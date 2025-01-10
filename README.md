@@ -114,7 +114,34 @@ To reduce the complexity of the repository, we have split the code into multiple
 
 The main package, found in `src/gptnt`, is the primary entrypoint for the entire project and uses all the other packages together.
 
+#### Linters/Formatters
 
+There are several linters and formatters, all working together to maintain consistency across the codebase. They are:
+
+- editorconfig
+- ruff
+- wemake-python-styleguide
+- basedpyright (used in place of Pylance/Pyright/mypy)
+- pre-commit
+- conventional-commits (enforced through commitizen)
+
+Run the formatter (and ruff's linter) on everything:
+
+```bash
+uv run pre-commit run -a
+```
+
+If you want to check basedpyright:
+
+```bash
+uv run basedpyright
+```
+
+If you want to check with wemake-python-styleguide:
+
+```bash
+uv run flake8
+```
 
 
 ## License
