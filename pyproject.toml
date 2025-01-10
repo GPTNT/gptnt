@@ -108,6 +108,7 @@ skip-magic-trailing-comma = true
 [tool.ruff.lint]
 # Enable every possible rule
 select = ["ALL"]
+external = ["WPS"]
 ignore = [
     # Allow function call as argument default
     "B008",
