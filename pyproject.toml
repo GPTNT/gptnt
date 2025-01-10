@@ -55,6 +55,7 @@ reportUnusedParameter = false
 reportUnusedVariable = false
 
 [tool.flake8]
+extend-exclude = [".venv"]
 extend-ignore = [
     # basedpyright checks for unused variables
     "WPS122",
