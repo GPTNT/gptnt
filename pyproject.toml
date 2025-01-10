@@ -4,18 +4,10 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 authors = [
-    { name = "Amit Parekh", email = "7276308+amitkparekh@users.noreply.github.com" },
+    {name = "Amit Parekh", email = "7276308+amitkparekh@users.noreply.github.com"},
 ]
 requires-python = ">=3.12"
 dependencies = []
-
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.uv.workspace]
-members = ["packages/*"]
 
 [dependency-groups]
 tests = [
@@ -25,3 +17,206 @@ tests = [
     "pytest-mock>=3.14.0",
     "pytest-sugar>=1.0.0",
 ]
+lint = [
+    "basedpyright>=1.23.2",
+    "flake8-pyproject>=1.2.3",
+    "pre-commit>=4.0.1",
+    "ruff>=0.9.0",
+    "toml-sort>=0.24.2",
+    "wemake-python-styleguide>=1.0.0",
+]
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.basedpyright]
+typeCheckingMode = "strict"
+reportMissingTypeStubs = false
+reportUnknownMemberType = false
+reportFunctionMemberAccess = "warning"
+reportUnknownVariableType = false
+reportUntypedFunctionDecorator = false
+reportUnknownLambdaType = false
+reportUnknownArgumentType = false
+reportUnknownParameterType = false
+reportAny = false
+reportImplicitOverride = false
+reportMissingSuperCall = false
+reportUnusedCallResult = false
+reportIncompatibleMethodOverride = false
+reportInvalidCast = false
+reportPrivateLocalImportUsage = false
+reportUnsafeMultipleInheritance = false
+# Covered by ruff
+reportUnusedParameter = false
+reportPrivateUsage = false
+reportUnusedImport = false
+reportPrivateImportUsage = false
+reportImplicitStringConcatenation = false
+reportDeprecated = false
+reportMissingParameterType = false
+
+[tool.flake8]
+extend-ignore = [
+    # basedpyright checks for unused variables
+    "WPS122",
+    # Do not warn on too many imports.
+    "WPS201",
+    # Do not warn on too many module members
+    "WPS202",
+    # Do not warn when too many arguments in functions
+    "WPS211",
+    # Do not warn on too many methods
+    "WPS214",
+    # Allow lots of importing from the same module --- it can happen and thats okay!
+    "WPS235",
+    # Do not warn on complex f-string
+    "WPS237",
+    # Allow relative module references
+    "WPS300",
+    # Allow f-strings
+    "WPS305",
+    # Do not force base classes to inherit object
+    "WPS306",
+    # Allow return statement that simply returns a prior statement
+    "WPS331",
+    # Allow new lines to start with a dot (caused by Black)
+    "WPS348",
+    # Allow logic in __init__ modules
+    "WPS412",
+]
+select = ["WPS"]
+max-line-length = 99
+nested-classes-whitelist = ["Meta", "Params", "Config"]
+allowed-domain-names = ["data", "params"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::UserWarning",
+    'ignore:Deprecated call to `pkg_resources.declare_namespace:DeprecationWarning',
+]
+
+[tool.ruff]
+line-length = 99
+target-version = "py312"
+unsafe-fixes = true
+src = ["src"]
+
+[tool.ruff.format]
+docstring-code-format = true
+skip-magic-trailing-comma = true
+
+[tool.ruff.lint]
+# Enable every possible rule
+select = ["ALL"]
+ignore = [
+    # Allow function call as argument default
+    "B008",
+    # Don't ask for docstring at top of module --- put it in the functions/classes
+    "D100",
+    # Do not check for docstring within __init__ method
+    "D107",
+    # Don't ask about line length, Black recommends using bugbear B950 instead
+    "E501",
+    # Allow import to be uppercase, because torch.nn.functional as F
+    "N812",
+    # Allow asserts to be used because they're just convenient for type-narrowing. Type-narrowing
+    # is more important than the possibility that someone is running python with -O (in optimized
+    # mode).
+    # https://stackoverflow.com/a/68429294
+    "S101",
+    # Do not enforce annotations for self, cls, or similar
+    "ANN1",
+    # Do not block using 'Any' type since it happens
+    "ANN401",
+    # Let Black handle commas
+    "COM",
+    # Let logging use f-strings
+    "G004",
+    # Disable 'flake8-errmsg' because we assume users of this project can read tracebacks
+    "EM",
+    # Allow TODO comments
+    "FIX002",
+    # We don't need to care about creating separate exception classes for every single type of
+    # error
+    "TRY003",
+    # Allow assigning variables before returning them
+    "RET504",
+    # Don't care about requiring an author name or issue link for a todo
+    "TD002",
+    "TD003",
+    # Disable flagging commented-out code because it's false-positives on shape comments
+    "ERA001",
+    # Things to ignore because ruff's formatter says so
+    # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+    "D206",
+    "D300",
+    "E111",
+    "E114",
+    "E117",
+    "ISC001",
+    "ISC002",
+    "Q000",
+    "Q001",
+    "Q002",
+    "Q003",
+    "W191",
+]
+unfixable = [
+    # Do not remove unused variables
+    "F841",
+    # Do not auto-remove commented out code
+    "ERA001",
+]
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "double"
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.flake8-type-checking]
+exempt-modules = ["typing", "typing_extensions", "pydantic_numpy"]
+runtime-evaluated-base-classes = [
+    "pydantic.BaseModel",
+    "pydantic.generics.GenericModel",
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+known-first-party = ["gptnt"]
+split-on-trailing-comma = false
+
+[tool.ruff.lint.mccabe]
+max-complexity = 18
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["D", "F401", "I002"]
+"tests/*" = ["D", "S101", "INP001", "PLR2004", "FBT001", "SLF001"]
+"scripts/*" = ["INP001"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.pylint]
+max-args = 20
+
+[tool.tomlsort]
+sort_first = ["project", "dependency-groups", "tool"]
+spaces_indent_inline_array = 4 # Matching editorconfig
+trailing_comma_inline_array = true
+overrides."project".first = [
+    "name",
+    "version",
+    "description",
+    "authors",
+    "license",
+    "readme",
+    "requires-python",
+]
+overrides."tool".first = ["uv"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
