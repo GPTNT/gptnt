@@ -114,16 +114,38 @@ To reduce the complexity of the repository, we have split the code into multiple
 
 The main package, found in `src/gptnt`, is the primary entrypoint for the entire project and uses all the other packages together.
 
-#### Linters/Formatters
+### How to run linters/formatters
 
-There are several linters and formatters, all working together to maintain consistency across the codebase. They are:
+> [!WARNING]
+> This section is currently being written. Need a day or so
 
-- editorconfig
+1. List the tools
+2. How to run things from the command line
+3. How to run things from the command line WITH mise tasks
+4. How to run things from VSCode automatically
+
+
+There are several linters and formatters, all working together to maintain consistency across the codebase. This is what we use:
+
+- EditorConfig
 - ruff
 - wemake-python-styleguide
 - basedpyright (used in place of Pylance/Pyright/mypy)
-- pre-commit
-- conventional-commits (enforced through commitizen)
+- pre-commit (with many hooks)
+- conventional-commits (enforced through pre-commit hooks)
+
+> [!NOTE]
+> The CI for this project runs _in the exact same way_.
+
+
+<details>
+<summary><b>pre-commit</b></summary>
+
+> [!IMPORTANT]
+> You must install pre-commit's hooks into it. This is a one-time setup and must be done after cloning the repository.
+>  ```bash
+>  uv run pre-commit install
+>  ```
 
 Run the formatter (and ruff's linter) on everything:
 
@@ -131,17 +153,27 @@ Run the formatter (and ruff's linter) on everything:
 uv run pre-commit run -a
 ```
 
-If you want to check basedpyright:
+</details>
+
+<details>
+<summary><b>wemake-python-styleguide</b></summary>
+
+```bash
+uv run flake8
+```
+
+</details>
+
+<details>
+<summary><b>basedpyright</b></summary>
 
 ```bash
 uv run basedpyright
 ```
 
-If you want to check with wemake-python-styleguide:
+</details>
 
-```bash
-uv run flake8
-```
+
 
 
 ## License
