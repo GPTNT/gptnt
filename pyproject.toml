@@ -16,3 +16,12 @@ build-backend = "hatchling.build"
 
 [tool.uv.workspace]
 members = ["packages/*"]
+
+[dependency-groups]
+tests = [
+    "hypothesis>=6.123.13",
+    "pytest>=8.3.4",
+    "pytest-cases>=3.8.6",
+    "pytest-mock>=3.14.0",
+    "pytest-sugar>=1.0.0",
+]
