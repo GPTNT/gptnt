@@ -1,0 +1,30 @@
+version = 1
+requires-python = ">=3.12"
+
+[manifest]
+members = [
+    "agents",
+    "common",
+    "dialogue-space",
+    "gptnt",
+]
+
+[[package]]
+name = "agents"
+version = "0.1.0"
+source = { editable = "packages/agents" }
+
+[[package]]
+name = "common"
+version = "0.1.0"
+source = { editable = "packages/common" }
+
+[[package]]
+name = "dialogue-space"
+version = "0.1.0"
+source = { editable = "packages/dialogue_space" }
+
+[[package]]
+name = "gptnt"
+version = "0.1.0"
+source = { editable = "." }
