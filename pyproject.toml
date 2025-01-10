@@ -30,31 +30,29 @@ lint = [
 members = ["packages/*"]
 
 [tool.basedpyright]
-typeCheckingMode = "strict"
+typeCheckingMode = "recommended"
+reportAny = false
+reportExplicitAny = false
+reportImplicitOverride = false
+reportIncompatibleMethodOverride = false
+reportMissingSuperCall = false
 reportMissingTypeStubs = false
+reportUnannotatedClassAttribute = false
+reportUnknownArgumentType = false
+reportUnknownLambdaType = false
 reportUnknownMemberType = false
-reportFunctionMemberAccess = "warning"
+reportUnknownParameterType = false
 reportUnknownVariableType = false
 reportUntypedFunctionDecorator = false
-reportUnknownLambdaType = false
-reportUnknownArgumentType = false
-reportUnknownParameterType = false
-reportAny = false
-reportImplicitOverride = false
-reportMissingSuperCall = false
-reportUnusedCallResult = false
-reportIncompatibleMethodOverride = false
-reportInvalidCast = false
-reportPrivateLocalImportUsage = false
-reportUnsafeMultipleInheritance = false
 # Covered by ruff
-reportUnusedParameter = false
+reportDeprecated = false
+reportImplicitStringConcatenation = false
+reportMissingParameterType = false
+reportPrivateImportUsage = false
 reportPrivateUsage = false
 reportUnusedImport = false
-reportPrivateImportUsage = false
-reportImplicitStringConcatenation = false
-reportDeprecated = false
-reportMissingParameterType = false
+reportUnusedParameter = false
+reportUnusedVariable = false
 
 [tool.flake8]
 extend-ignore = [
