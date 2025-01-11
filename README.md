@@ -155,11 +155,6 @@ After you first clone the repository, you should probably want to make sure that
 
 It is possible to run all the tools from the command line. There's a few but here is how you do each.
 
-<div style="margin-left: 2ch;">
-
-<details>
-<summary><b>pre-commit</b></summary>
-
 > [!IMPORTANT]
 > You must install pre-commit's hooks into it. This is a one-time setup and must be done after cloning the repository.
 >
@@ -167,32 +162,23 @@ It is possible to run all the tools from the command line. There's a few but her
 > uv run pre-commit install
 > ```
 
-Run the formatter (and ruff's linter) on everything:
+- **pre-commit**
 
-```bash
-uv run pre-commit run -a
-```
+  ```bash
+  uv run pre-commit run -a
+  ```
 
-</details>
+- **wemake-python-styleguide**
 
-<details>
-<summary><b>wemake-python-styleguide</b></summary>
+  ```bash
+  uv run flake8
+  ```
 
-```bash
-uv run flake8
-```
+- **basedpyright**
 
-</details>
-
-<details>
-<summary><b>basedpyright</b></summary>
-
-```bash
-uv run basedpyright
-```
-
-</details>
-</div>
+  ```bash
+  uv run basedpyright
+  ```
 
 </details>
 
