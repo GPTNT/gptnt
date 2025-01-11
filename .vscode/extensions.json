@@ -1,3 +1,14 @@
 {
-	"recommendations": ["editorconfig.editorconfig"]
+	"recommendations": [
+		"editorconfig.editorconfig",
+		"charliermarsh.ruff",
+		"detachhead.basedpyright",
+		"tamasfe.even-better-toml",
+		"ms-python.flake8",
+		"nhoizey.gremlins",
+		"ms-python.debugpy",
+		"redhat.vscode-yaml",
+		"ms-vscode.test-adapter-converter",
+		"esbenp.prettier-vscode"
+	]
 }

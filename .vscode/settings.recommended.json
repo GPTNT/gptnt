@@ -1,0 +1,27 @@
+{
+	"$schema": "vscode://schemas/settings/folder",
+	// Editor settings
+	"editor.wordWrapColumn": 99,
+	"editor.rulers": [99],
+	"git.ignoreLimitWarning": true,
+	// Python settings
+	"python.defaultInterpreterPath": "${workspaceFolder}/.venv",
+	// Python testing settings
+	"python.testing.pytestArgs": ["tests"],
+	"python.testing.unittestEnabled": false,
+	"python.testing.pytestEnabled": true,
+	"python.testing.cwd": "${workspaceFolder}",
+	// Formatters and linters
+	"[json,yaml,jsonc]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+		"editor.formatOnSave": true
+	},
+	"[python]": {
+		"editor.formatOnSave": true,
+		"editor.codeActionsOnSave": {
+			"source.fixAll": "always",
+			"source.organizeImports": "always"
+		},
+		"editor.defaultFormatter": "charliermarsh.ruff"
+	}
+}
