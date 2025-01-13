@@ -17,7 +17,7 @@ We've tried to keep system/external dependencies to a minimum to facilitate _ItJ
 - [uv](https://docs.astral.sh/uv/)
 - Python 3.12 (at least)
 
-<details>
+<!-- <details>
 <summary><b>Optional way to simplify tool installation</b></summary>
 
 You might want to use something like [mise-en-place](https://mise.jdx.dev/getting-started.html) to manage and install tools. For example, this is how you get setup with it:
@@ -29,7 +29,7 @@ uv sync --all-groups
 
 Note that we won't be helping with `mise` or any other tooling. We're just showing you how to use it.
 
-</details>
+</details> -->
 
 ### Installing the project
 
