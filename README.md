@@ -39,24 +39,6 @@ Note that we won't be helping with `mise` or any other tooling. We're just showi
 uv sync --all-groups
 ```
 
-<!-- <details>
-<summary><b>What if you use <code>requirements.txt</code>?</b></summary>
-
-Can't help you there.
-
-</details>
-
-<details>
-<summary><b>How I install dependencies on every machine</b></summary>
-
-I literally just run the following on the machines I use. I don't use Windows though so I can't help you there.
-
-```bash
-mise use python@3.11 pdm@latest
-pdm install
-```
-</details> -->
-
 <details>
 <summary><b>How to invoke the project</b></summary>
 
@@ -196,6 +178,49 @@ Copy the settings from that file into your `.vscode/settings.json` file, and tha
 
 > [!IMPORTANT]
 > The CI has not yet been set up.
+
+### How to contribute code
+
+Our project uses a monorepo structure (multiple projects in one repository) with two main areas:
+
+- The main package in `src/gptnt/`
+- Additional packages in the `packages/` directory
+
+#### How dependencies work
+
+Each package maintains its own dependencies in a local `pyproject.toml` file. However, all version information is centrally managed in a single `uv.lock` file at the project root.
+
+<details>
+<summary><b>Adding dependencies</b></summary>
+
+To add a dependency to a specific package:
+
+1. Navigate to the package directory:
+   ```bash
+   cd packages/your-package-name
+   ```
+2. Add the dependency using [uv](https://docs.astral.sh/uv/concepts/projects/dependencies/#adding-dependencies):
+   ```bash
+   uv add your-dependency-name
+   ```
+
+For example, to add Pydantic to the `agents` package:
+
+```bash
+cd packages/agents
+uv add pydantic
+```
+
+This will:
+
+- Add Pydantic to the `packages/agents/pyproject.toml` file
+- Update the version information in the root `uv.lock` file
+- Resolve any potential dependency conflicts automatically
+
+> [!NOTE]
+> This process is the same wherther you're adding dependencies in one of the `packages` or in the main package.
+
+</details>
 
 ## License
 
