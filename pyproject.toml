@@ -59,35 +59,17 @@ extend-exclude = [".venv"]
 extend-ignore = [
     # basedpyright checks for unused variables
     "WPS122",
-    # Do not warn on too many imports.
-    "WPS201",
-    # Do not warn on too many module members
-    "WPS202",
-    # Do not warn when too many arguments in functions
-    "WPS211",
-    # Do not warn on too many methods
-    "WPS214",
-    # Allow lots of importing from the same module --- it can happen and thats okay!
-    "WPS235",
-    # Do not warn on complex f-string
-    "WPS237",
-    # Allow relative module references
-    "WPS300",
-    # Allow f-strings
-    "WPS305",
-    # Do not force base classes to inherit object
-    "WPS306",
-    # Allow return statement that simply returns a prior statement
-    "WPS331",
-    # Allow new lines to start with a dot (caused by Black)
-    "WPS348",
-    # Allow logic in __init__ modules
-    "WPS412",
 ]
 select = ["WPS"]
 max-line-length = 99
 nested-classes-whitelist = ["Meta", "Params", "Config"]
 allowed-domain-names = ["data", "params"]
+# WPS211: Increase number of arguments allowed for a function
+max-arguments = 10
+# WPS214: Increase number of methods allowed for a class
+max-methods = 20
+# WPS235: Increase number of imports allowed from a module
+max-import-from-members = 10
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -111,8 +93,6 @@ skip-magic-trailing-comma = true
 select = ["ALL"]
 external = ["WPS"]
 ignore = [
-    # Allow function call as argument default
-    "B008",
     # Don't ask for docstring at top of module --- put it in the functions/classes
     "D100",
     # Do not check for docstring within __init__ method
@@ -138,9 +118,6 @@ ignore = [
     "EM",
     # Allow TODO comments
     "FIX002",
-    # We don't need to care about creating separate exception classes for every single type of
-    # error
-    "TRY003",
     # Allow assigning variables before returning them
     "RET504",
     # Don't care about requiring an author name or issue link for a todo
