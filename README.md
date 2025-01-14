@@ -150,12 +150,6 @@ It is possible to run all the tools from the command line. There's a few but her
   uv run pre-commit run -a
   ```
 
-- **wemake-python-styleguide**
-
-  ```bash
-  uv run flake8
-  ```
-
 - **basedpyright**
 
   ```bash
@@ -217,8 +211,7 @@ This will:
 - Update the version information in the root `uv.lock` file
 - Resolve any potential dependency conflicts automatically
 
-> [!NOTE]
-> This process is the same wherther you're adding dependencies in one of the `packages` or in the main package.
+Importantly, **this process is the same whether you're adding dependencies in one of the `packages` or in the main package.**
 
 </details>
 

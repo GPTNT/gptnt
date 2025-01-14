@@ -77,7 +77,7 @@ repos:
     rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
-        types_or: [html, javascript, shell, yaml, json, markdown]
+        types_or: [html, javascript, yaml, json, markdown]
 
   - repo: https://github.com/PyCQA/docformatter
     rev: eb1df34 # TODO: wait for https://github.com/PyCQA/docformatter/issues/293
@@ -94,4 +94,14 @@ repos:
         args: [--fix, --exit-non-zero-on-fix]
         types_or: [python, pyi, jupyter]
       - id: ruff-format
+        name: ruff format
         types_or: [python, pyi, jupyter]
+
+  - repo: https://github.com/pycqa/flake8
+    rev: "7.1.0"
+    hooks:
+      - id: flake8
+        name: wemake-python-styleguide
+        language: python
+        types: [python]
+        additional_dependencies: [wemake-python-styleguide, Flake8-pyproject]
