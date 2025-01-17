@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  changes:
+    name: Check for file changes
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.pull_request.draft }}
+    permissions:
+      pull-requests: read
+      contents: read
+    outputs:
+      deps: ${{steps.filter.outputs.deps}}
+      pre_commit_config: ${{steps.filter.outputs.pre_commit_config}}
+      ci: ${{steps.filter.outputs.ci}}
+      python: ${{steps.filter.outputs.python}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            deps: &deps-files
+              - 'pyproject.toml'
+              - 'uv.lock'
+            pre_commit_config: &pre-commit-files
+              - '.pre-commit-config.yaml'
+            ci: &ci-files
+              - '.github/workflows/ci.yaml'
+            python:
+              - *deps-files
+              - *pre-commit-files
+              - *ci-files
+              - '**/*.py'
+
+  check_pre_commit:
+    name: Check pre-commit
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: ${{ (needs.changes.outputs.python == 'true' || needs.changes.outputs.pre_commit_config == 'true') && !github.event.pull_request.draft }}
+
+    permissions:
+      contents: read
+      checks: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Load cached pre-commit environment
+        uses: actions/cache/restore@v4
+        id: pre-commit-cache
+        with:
+          path: ~/.cache/pre-commit
+          key: ${{ runner.os }}-pre-commit-${{ hashFiles('**/.pre-commit-config.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pre-commit-
+
+      - name: Run pre-commit hook
+        id: run-pre-commit-hooks
+        run: |
+          git add .pre-commit-config.yaml
+          uvx pre-commit run --color=always --all-files
+
+      - name: Annotate any changes using reviewdog
+        if: ${{ failure() }}
+        id: reviewdog-suggester
+        uses: reviewdog/action-suggester@v1
+        with:
+          tool_name: pre-commit
+
+      - name: Save pre-commit cache
+        if: ${{ always() }}
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: ${{ runner.os }}-pre-commit-${{ hashFiles('**/.pre-commit-config.yaml') }}
