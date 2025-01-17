@@ -7,7 +7,10 @@ authors = [
     {name = "Amit Parekh", email = "7276308+amitkparekh@users.noreply.github.com"},
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "rich>=13.9.4",
+    "structlog>=25.1.0",
+]
 
 [build-system]
 requires = ["hatchling"]
