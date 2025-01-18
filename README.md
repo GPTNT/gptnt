@@ -24,7 +24,7 @@ You might want to use something like [mise-en-place](https://mise.jdx.dev/gettin
 
 ```bash
 mise use python@3.12 uv@latest
-uv sync --all-groups
+uv sync --all-packages --all-groups
 ```
 
 Note that we won't be helping with `mise` or any other tooling. We're just showing you how to use it.
@@ -36,7 +36,7 @@ Note that we won't be helping with `mise` or any other tooling. We're just showi
 **To install everything**, you can run the following:
 
 ```bash
-uv sync --all-groups
+uv sync --all-packages --all-groups
 ```
 
 <details>
@@ -150,12 +150,6 @@ It is possible to run all the tools from the command line. There's a few but her
   uv run pre-commit run -a
   ```
 
-- **basedpyright**
-
-  ```bash
-  uv run basedpyright
-  ```
-
 </details>
 
 <details>
@@ -169,9 +163,6 @@ You can find the recommended extensions in the `.vscode/extensions.json` file. Y
 Copy the settings from that file into your `.vscode/settings.json` file, and that will enable things. Ensure that you have installed the recommended extensions too. Importantly, if you are using basedpyright too, ensure you have disabled the Pylance extension.
 
 </details>
-
-> [!IMPORTANT]
-> The CI has not yet been set up.
 
 ### How to contribute code
 
