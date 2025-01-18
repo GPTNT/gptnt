@@ -7,7 +7,7 @@ authors = [
     {name = "Amit Parekh", email = "7276308+amitkparekh@users.noreply.github.com"},
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = ["common", "agents", "environments", "dialogue_space"]
 
 [dependency-groups]
 tests = [
@@ -29,10 +29,17 @@ lint = [
     "wemake-python-styleguide>=1.0.0",
 ]
 
+[tool.uv.sources]
+common = {workspace = true}
+agents = {workspace = true}
+environments = {workspace = true}
+dialogue_space = {workspace = true}
+
 [tool.uv.workspace]
 members = ["packages/*"]
 
 [tool.basedpyright]
+verboseOutput = true
 typeCheckingMode = "recommended"
 reportAny = false
 reportExplicitAny = false
@@ -75,7 +82,7 @@ max-methods = 20
 max-import-from-members = 10
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "packages/*"]
 filterwarnings = [
     "ignore::UserWarning",
     'ignore:Deprecated call to `pkg_resources.declare_namespace:DeprecationWarning',
@@ -173,7 +180,7 @@ max-complexity = 18
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["D", "F401", "I002"]
-"tests/*" = ["D", "S101", "INP001", "PLR2004", "FBT001", "SLF001"]
+"**/tests/*" = ["D", "S101", "INP001", "PLR2004", "FBT001", "SLF001"]
 "scripts/*" = ["INP001"]
 
 [tool.ruff.lint.pydocstyle]

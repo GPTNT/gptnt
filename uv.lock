@@ -147,6 +147,12 @@ wheels = [
 name = "gptnt"
 version = "0.1.0"
 source = { editable = "." }
+dependencies = [
+    { name = "agents" },
+    { name = "common" },
+    { name = "dialogue-space" },
+    { name = "environments" },
+]
 
 [package.dev-dependencies]
 lint = [
@@ -169,6 +175,12 @@ tests = [
 ]
 
 [package.metadata]
+requires-dist = [
+    { name = "agents", editable = "packages/agents" },
+    { name = "common", editable = "packages/common" },
+    { name = "dialogue-space", editable = "packages/dialogue_space" },
+    { name = "environments", editable = "packages/environments" },
+]
 
 [package.metadata.requires-dev]
 lint = [
