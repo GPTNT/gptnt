@@ -79,29 +79,34 @@ repos:
       - id: prettier
         types_or: [html, javascript, yaml, json, markdown]
 
-  - repo: https://github.com/PyCQA/docformatter
-    rev: eb1df34 # TODO: wait for https://github.com/PyCQA/docformatter/issues/293
+  - repo: local
     hooks:
       - id: docformatter
-        types: [python]
-        args: [--in-place, --wrap-summaries=99, --wrap-descriptions=99]
-
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.9.1"
-    hooks:
-      - id: ruff
-        name: ruff linter
-        args: [--fix, --exit-non-zero-on-fix]
+        name: docformatter
+        language: system
+        entry: uv run docformatter --in-place --wrap-summaries=99 --wrap-descriptions=99
         types_or: [python, pyi, jupyter]
+
+      - id: ruff-lint
+        name: ruff linter
+        entry: uv run ruff check --fix --exit-non-zero-on-fix
+        types_or: [python, pyi, jupyter]
+        language: system
+
       - id: ruff-format
         name: ruff format
+        entry: uv run ruff format
         types_or: [python, pyi, jupyter]
+        language: system
 
-  - repo: https://github.com/pycqa/flake8
-    rev: "7.1.0"
-    hooks:
-      - id: flake8
+      - id: wemake-python-styleguide
         name: wemake-python-styleguide
-        language: python
-        types: [python]
-        additional_dependencies: [wemake-python-styleguide, Flake8-pyproject]
+        entry: uv run flake8
+        types_or: [python, jupyter]
+        language: system
+
+      - id: basedpyright
+        name: basedpyright
+        entry: uv run basedpyright
+        types_or: [python, pyi, jupyter]
+        language: system

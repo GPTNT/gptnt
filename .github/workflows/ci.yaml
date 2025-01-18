@@ -54,7 +54,7 @@ jobs:
     name: Check pre-commit
     runs-on: ubuntu-latest
     needs: [changes]
-    if: ${{ (needs.changes.outputs.python == 'true' || needs.changes.outputs.pre_commit_config == 'true') && !github.event.pull_request.draft }}
+    if: ${{ needs.changes.outputs.python == 'true' && !github.event.pull_request.draft }}
 
     permissions:
       contents: read
@@ -78,11 +78,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pre-commit-
 
+      - name: Install deps
+        run: uv sync --only-group lint
+
       - name: Run pre-commit hook
         id: run-pre-commit-hooks
         run: |
           git add .pre-commit-config.yaml
-          uvx pre-commit run --color=always --all-files
+          uv run pre-commit run --color=always --all-files
 
       - name: Annotate any changes using reviewdog
         if: ${{ failure() }}

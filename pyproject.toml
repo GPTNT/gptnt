@@ -22,6 +22,7 @@ tests = [
 ]
 lint = [
     "basedpyright>=1.23.2",
+    "docformatter>=1.7.5",
     "flake8-pyproject>=1.2.3",
     "pre-commit>=4.0.1",
     "ruff>=0.9.0",
