@@ -23,5 +23,27 @@
 			"source.organizeImports": "always"
 		},
 		"editor.defaultFormatter": "charliermarsh.ruff"
-	}
+	},
+	// Hide various files in browser (if using "Explorer Exclude" extension)
+	"files.exclude": {
+		"**/.git": false,
+		"**/.svn": false,
+		"**/.hg": false,
+		"**/CVS": false,
+		"**/.DS_Store": false,
+		"**/Thumbs.db": false,
+		"node_modules": false,
+		".venv": false,
+		"**/*.git{keep,ignore,attributes}": false,
+		"**/{.*_cache,__pycache__}": false,
+		"LICENSE": false,
+		".python-version": false,
+		".editorconfig": false,
+		".pre-commit-config.yaml": false,
+		".vscode": false,
+		".github": false,
+		"*mise.toml": false,
+		"*.lock": false
+	},
+	"explorerExclude.backup": {}
 }
