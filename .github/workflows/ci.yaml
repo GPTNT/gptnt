@@ -53,8 +53,7 @@ jobs:
   check_pre_commit:
     name: Check pre-commit
     runs-on: ubuntu-latest
-    needs: [changes]
-    if: ${{ needs.changes.outputs.python == 'true' && !github.event.pull_request.draft }}
+    if: ${{ !github.event.pull_request.draft }}
 
     permissions:
       contents: read
