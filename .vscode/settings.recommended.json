@@ -6,6 +6,7 @@
 	"git.ignoreLimitWarning": true,
 	// Python settings
 	"python.defaultInterpreterPath": "${workspaceFolder}/.venv",
+	"python.terminal.activateEnvInCurrentTerminal": true,
 	// Python testing settings
 	"python.testing.pytestArgs": ["tests"],
 	"python.testing.unittestEnabled": false,
@@ -24,6 +25,8 @@
 		},
 		"editor.defaultFormatter": "charliermarsh.ruff"
 	},
+	// Disable telemetry
+	"redhat.telemetry.enabled": false,
 	// Hide various files in browser (if using "Explorer Exclude" extension)
 	"files.exclude": {
 		"**/.git": false,
