@@ -28,7 +28,6 @@ jobs:
       contents: read
     outputs:
       deps: ${{steps.filter.outputs.deps}}
-      pre_commit_config: ${{steps.filter.outputs.pre_commit_config}}
       ci: ${{steps.filter.outputs.ci}}
       python: ${{steps.filter.outputs.python}}
     steps:
@@ -40,13 +39,10 @@ jobs:
             deps: &deps-files
               - 'pyproject.toml'
               - 'uv.lock'
-            pre_commit_config: &pre-commit-files
-              - '.pre-commit-config.yaml'
             ci: &ci-files
               - '.github/workflows/ci.yaml'
             python:
               - *deps-files
-              - *pre-commit-files
               - *ci-files
               - '**/*.py'
 
