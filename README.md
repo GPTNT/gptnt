@@ -87,13 +87,6 @@ Check out [pytest-xdist](https://github.com/pytest-dev/pytest-xdist) if you want
 
 </details>
 
-<details>
-<summary><b>What test suite is used?</b></summary>
-
-We use [pytest](https://docs.pytest.org/en/stable/) and [pytest-cases](https://smarie.github.io/python-pytest-cases/). You can find all the packages used for testing in the `pyproject.toml`, under `dependency_groups`.
-
-</details>
-
 ### How to run the code quality tools
 
 To maintain consistency throughout the codebase, we use several linters and formatters. There are three ways to run these tools: locally using the command-line, within your IDE, or through the CI.
@@ -203,6 +196,23 @@ This will:
 - Resolve any potential dependency conflicts automatically
 
 Importantly, **this process is the same whether you're adding dependencies in one of the `packages` or in the main package.**
+
+</details>
+
+<details>
+<summary><b>How to create a new package in the monorepo</b></summary>
+
+You can find more details about this in uv's documentation. Here is how I did it.
+
+1. `cd packages` to go to the `packages` directory
+2. `uv init --package <package-name>` to create a new package
+3. In the new `<package-name>/pyproject.toml` (that got created for the package), delete the lines about the entrypoints.
+4. In the new `packages/<package-name>/` directory, create a called `tests` and add the `conftest.py` file (note, you can copy this from another package).
+5. In the root `/pyproject.toml`, add the new package to the `tool.uv.sources` list with `{workspace = true}`
+6. In the root `/pyproject.toml`, include the package in the list of `dependencies` like the others
+7. Run `uv sync --all-packages --all-groups` to make sure it gets installed
+
+Alternatively, if you have `mise`, you can run `mise run create-package --package-name <package-name>` to do the same thing automatically.
 
 </details>
 
