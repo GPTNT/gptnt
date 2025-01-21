@@ -7,7 +7,12 @@ authors = [
     {name = "Amit Parekh", email = "7276308+amitkparekh@users.noreply.github.com"},
 ]
 requires-python = ">=3.12"
-dependencies = ["common", "agents", "environments", "dialogue_space"]
+dependencies = [
+    "common",
+    "agents",
+    "environments",
+    "dialogue-space",
+]
 
 [dependency-groups]
 tests = [
@@ -34,7 +39,7 @@ lint = [
 common = {workspace = true}
 agents = {workspace = true}
 environments = {workspace = true}
-dialogue_space = {workspace = true}
+dialogue-space = {workspace = true}
 
 [tool.uv.workspace]
 members = ["packages/*"]
