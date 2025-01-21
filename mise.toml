@@ -1,0 +1,75 @@
+[tasks.create-package]
+description = "Create a new package"
+usage = '''
+flag "--package-name <package-name>" help="The name of the new package"
+'''
+run = """
+#!/usr/bin/env bash
+set -e
+
+#shellcheck disable=SC2154
+package_name="{{option(name="package-name")}}"
+
+# Format the package name
+package_name_snake=$(echo "$package_name" | tr '[:upper:]' '[:lower:]' | tr ' -' '_' | tr -s '_')
+package_name_kebab=$(echo "$package_name" | tr '[:upper:]' '[:lower:]' | tr ' _' '-' | tr -s '-')
+
+# Make the package
+cd packages || exit 1
+uv init --package "$package_name_snake"
+cd "$package_name_snake" || exit 1
+
+# Remove `[project.scripts]` from the pyproject.toml
+awk '/\\[project.scripts\\]/{skip=2;next} skip{skip--; next} {print}' pyproject.toml > tmp && mv tmp pyproject.toml
+
+# Setup pytest
+mkdir tests && cd tests || exit 1
+cat <<'EOF' >conftest.py
+from pathlib import Path
+
+# Import all the fixtures from every file in the tests/fixtures dir.
+pytest_plugins = [
+    fixture_file.as_posix().replace("/", ".").replace(".py", "")
+    for fixture_file in Path().rglob("tests/fixtures/**/[!__]*.py")
+]
+EOF
+
+# cd to the root file
+cd ../../../ || exit 1
+
+# Insert the package after `[tool.uv.sources]`
+awk -v pkg="$package_name_kebab" '
+    /\\[tool.uv.sources\\]/ {
+        print $0
+        print pkg " = {workspace = true}"
+        next
+    }\
+    {print}
+' pyproject.toml >tmp && mv tmp pyproject.toml
+
+# Add package to the root's dependencies
+awk -v pkg="$package_name_kebab" '
+    /^dependencies = \\[/ {
+        print $0
+        print "    \\"" pkg "\\","
+        next
+    }
+    {print}
+' pyproject.toml >tmp && mv tmp pyproject.toml
+
+# Install everything
+uv sync --all-groups --all-packages
+"""
+depends_post = ["format"]
+
+[tasks.format]
+description = "Format/lint all files in one go"
+run = "uv run pre-commit run -a"
+
+[tasks.tests]
+description = "Run all tests"
+run = "uv run pytest"
+
+[tools]
+python = "3.12"
+uv = "latest"

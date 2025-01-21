@@ -3,8 +3,8 @@
 
 ### asdf ###
 /.tool-versions
-mise.toml
 .mise.toml
+# mise.toml
 
 ### Csharp ###
 ## Ignore Visual Studio temporary files, build results, and
