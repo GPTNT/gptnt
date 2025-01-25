@@ -10,7 +10,7 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "common",
     "agents",
-    "environments",
+    "ktane",
     "dialogue-space",
 ]
 
@@ -38,7 +38,7 @@ lint = [
 [tool.uv.sources]
 common = {workspace = true}
 agents = {workspace = true}
-environments = {workspace = true}
+ktane = {workspace = true}
 dialogue-space = {workspace = true}
 
 [tool.uv.workspace]
