@@ -88,10 +88,12 @@ max-methods = 20
 max-import-from-members = 10
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "packages/*"]
 filterwarnings = [
     "ignore::UserWarning",
     'ignore:Deprecated call to `pkg_resources.declare_namespace:DeprecationWarning',
+]
+addopts = [
+    "--import-mode=importlib",
 ]
 
 [tool.ruff]

@@ -8,7 +8,6 @@
 	"python.defaultInterpreterPath": "${workspaceFolder}/.venv",
 	"python.terminal.activateEnvInCurrentTerminal": true,
 	// Python testing settings
-	"python.testing.pytestArgs": ["tests"],
 	"python.testing.unittestEnabled": false,
 	"python.testing.pytestEnabled": true,
 	"python.testing.cwd": "${workspaceFolder}",
