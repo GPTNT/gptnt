@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     {name = "Amit Parekh", email = "7276308+amitkparekh@users.noreply.github.com"},
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.13"
 dependencies = [
     "common",
     "agents",
