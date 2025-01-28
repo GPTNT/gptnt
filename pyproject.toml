@@ -8,10 +8,8 @@ authors = [
 ]
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "common",
-    "agents",
-    "ktane",
-    "dialogue-space",
+    "rich>=13.9.4",
+    "structlog>=25.1.0",
 ]
 
 [dependency-groups]
@@ -34,15 +32,6 @@ lint = [
     "toml-sort>=0.24.2",
     "wemake-python-styleguide>=1.0.0",
 ]
-
-[tool.uv.sources]
-common = {workspace = true}
-agents = {workspace = true}
-ktane = {workspace = true}
-dialogue-space = {workspace = true}
-
-[tool.uv.workspace]
-members = ["packages/*"]
 
 [tool.basedpyright]
 verboseOutput = true

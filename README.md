@@ -6,9 +6,7 @@ We've tried to make it easy to get started with this project so that _ItJustWork
 
 ### How is the codebase structured?
 
-**This codebase is structured as a monorepo**: with multiple packages that work together to provide the functionality of the project, and yet are isolated enough to be worked on independently. The main package, found in `src/gptnt`, is the primary entrypoint for the entire project and uses all the other packages together.
-
-We use [uv](https://docs.astral.sh/uv/) to manage the project and its dependencies, and use [uv's workspaces](https://docs.astral.sh/uv/concepts/projects/workspaces/) to keep it all together.
+All the Python code for running this is found within `src/gptnt`. We use [uv](https://docs.astral.sh/uv/) to manage the project and its dependencies.
 
 ### Prerequisites
 
@@ -24,7 +22,7 @@ You might want to use something like [mise-en-place](https://mise.jdx.dev/gettin
 
 ```bash
 mise use python@3.12 uv@latest
-uv sync --all-packages --all-groups
+uv sync --all-groups
 ```
 
 Note that we won't be helping with `mise` or any other tooling. We're just showing you how to use it.
@@ -36,7 +34,7 @@ Note that we won't be helping with `mise` or any other tooling. We're just showi
 **To install everything**, you can run the following:
 
 ```bash
-uv sync --all-packages --all-groups
+uv sync --all-groups
 ```
 
 <details>
@@ -159,62 +157,7 @@ Copy the settings from that file into your `.vscode/settings.json` file, and tha
 
 ### How to contribute code
 
-Our project uses a monorepo structure (multiple projects in one repository) with two main areas:
-
-- The main package in `src/gptnt/`
-- Additional packages in the `packages/` directory
-
-#### How dependencies work
-
-Each package maintains its own dependencies in a local `pyproject.toml` file. However, all version information is centrally managed in a single `uv.lock` file at the project root.
-
-<details>
-<summary><b>Adding dependencies</b></summary>
-
-To add a dependency to a specific package:
-
-1. Navigate to the package directory:
-   ```bash
-   cd packages/your-package-name
-   ```
-2. Add the dependency using [uv](https://docs.astral.sh/uv/concepts/projects/dependencies/#adding-dependencies):
-   ```bash
-   uv add your-dependency-name
-   ```
-
-For example, to add Pydantic to the `agents` package:
-
-```bash
-cd packages/agents
-uv add pydantic
-```
-
-This will:
-
-- Add Pydantic to the `packages/agents/pyproject.toml` file
-- Update the version information in the root `uv.lock` file
-- Resolve any potential dependency conflicts automatically
-
-Importantly, **this process is the same whether you're adding dependencies in one of the `packages` or in the main package.**
-
-</details>
-
-<details>
-<summary><b>How to create a new package in the monorepo</b></summary>
-
-You can find more details about this in uv's documentation. Here is how I did it.
-
-1. `cd packages` to go to the `packages` directory
-2. `uv init --package <package-name>` to create a new package
-3. In the new `<package-name>/pyproject.toml` (that got created for the package), delete the lines about the entrypoints.
-4. In the new `packages/<package-name>/` directory, create a called `tests` and add the `conftest.py` file (note, you can copy this from another package).
-5. In the root `/pyproject.toml`, add the new package to the `tool.uv.sources` list with `{workspace = true}`
-6. In the root `/pyproject.toml`, include the package in the list of `dependencies` like the others
-7. Run `uv sync --all-packages --all-groups` to make sure it gets installed
-
-Alternatively, if you have `mise`, you can run `mise run create-package --package-name <package-name>` to do the same thing automatically.
-
-</details>
+TBA.
 
 ## License
 
