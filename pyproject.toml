@@ -64,6 +64,8 @@ extend-exclude = [".venv"]
 extend-ignore = [
     # basedpyright checks for unused variables
     "WPS122",
+    # WPS struggles with pydantic models
+    "WPS601",
 ]
 select = ["WPS"]
 max-line-length = 99
