@@ -85,9 +85,6 @@ filterwarnings = [
     "ignore::UserWarning",
     'ignore:Deprecated call to `pkg_resources.declare_namespace:DeprecationWarning',
 ]
-addopts = [
-    "--import-mode=importlib",
-]
 
 [tool.ruff]
 line-length = 99
