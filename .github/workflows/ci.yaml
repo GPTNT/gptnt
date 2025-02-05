@@ -74,7 +74,7 @@ jobs:
             ${{ runner.os }}-pre-commit-
 
       - name: Install deps
-        run: uv sync --only-group lint
+        run: uv sync --all-groups
 
       - name: Run pre-commit hook
         id: run-pre-commit-hooks
