@@ -70,6 +70,9 @@ extend-ignore = [
     # WPS struggles with pydantic models
     "WPS601",
 ]
+per-file-ignores = [
+    "tests/*:WPS2,WPS118,WPS432,WPS435,WPS444",
+]
 select = ["WPS"]
 max-line-length = 99
 nested-classes-whitelist = ["Meta", "Params", "Config"]
