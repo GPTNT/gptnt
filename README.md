@@ -81,8 +81,6 @@ uv run pytest
 
 The CI for this project runs _in the exact same way_.
 
-Check out [pytest-xdist](https://github.com/pytest-dev/pytest-xdist) if you want to know more about running tests in parallel, or just throw ` -n auto` on the end of the above commands. It makes it go faster by using multiple cores.
-
 </details>
 
 ### How to run the code quality tools
