@@ -4,13 +4,11 @@ import pytest
 import structlog
 from hypothesis import given, strategies as st
 
-from gptnt.common.logger import configure_logging
 from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.dialogue_space.server import DialogueSpaceServer
 from gptnt.websocket_api.client import WebsocketClient
 from gptnt.websocket_api.server import WebsocketServer
 
-configure_logging()
 log = structlog.get_logger()
 
 HOST = "localhost"
