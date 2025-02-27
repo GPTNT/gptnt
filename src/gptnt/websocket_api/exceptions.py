@@ -15,7 +15,7 @@ class InvalidRequestIDError(Exception):
 
 
 class InvalidEndpointError(Exception):
-    """Exception for attempting to call the callback for a non-exsistent endpoint."""
+    """Exception for attempting to call the callback for a non-existent endpoint."""
 
     def __init__(self, endpoint: str) -> None:
         super().__init__(f"Invalid endpoint: {endpoint}")

@@ -14,8 +14,13 @@ class DialogueSpaceClient:
         # Client for connecting to dialogue-space
         self.client = client
 
+    @property
+    def is_connected(self) -> bool:
+        """Check if client is connected to server."""
+        return self.client.is_connected
+
     async def connect(self) -> None:
-        """Conect agent to server, get UUID to self-identify."""
+        """Connect agent to server, get UUID to self-identify."""
         _ = await self.client.connect()
         con_request = ClientRequest(uuid=self.uuid)
         _ = await self.client.send_request("connect", con_request.model_dump_json())

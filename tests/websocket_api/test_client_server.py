@@ -32,6 +32,7 @@ async def test_client_init() -> None:
 
     client = WebsocketClient(TEST_HOST, test_port)
     assert client
+    assert client.is_connected is False
 
 
 @pytest.mark.asyncio
@@ -45,6 +46,10 @@ async def test_client_connect() -> None:
     ):
         assert server
         assert client
+        assert client.is_connected is True
+
+    # Ensure the client is no longer connected
+    assert client.is_connected is False
 
 
 # Messaging
@@ -66,3 +71,5 @@ async def test_websocket_messaging() -> None:
 
         assert ep1_result == "test_1"
         assert passthrough_result == "passed through"
+
+    assert client.is_connected is False

@@ -5,6 +5,7 @@ from typing import Any, Self
 from structlog import get_logger
 from websockets.asyncio.client import ClientConnection, connect
 from websockets.exceptions import ConnectionClosed
+from websockets.protocol import State
 
 from gptnt.websocket_api.exceptions import InvalidConnectionError, InvalidRequestIDError
 from gptnt.websocket_api.structures import WebsocketRequest, WebsocketResponse
@@ -25,6 +26,11 @@ class WebsocketClient:
         self.connection: None | ClientConnection = None
         self.response_task: None | Task[None] = None
         self._logger = get_logger()
+
+    @property
+    def is_connected(self) -> bool:
+        """Check if the client is currently connected to the server."""
+        return self.connection is not None and self.connection.state is State.OPEN
 
     async def __aenter__(self) -> Self:
         """Safe async context entering logic."""
@@ -98,7 +104,7 @@ class WebsocketClient:
                 self.connection = None
                 self._logger.info("Websocket connection to client closed", uri=self.uri)
 
-                # Connection no longer exsists, return from the handler coroutine
+                # Connection no longer exists, return from the handler coroutine
                 return
 
             # Might throw ValidationError

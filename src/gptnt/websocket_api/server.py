@@ -65,8 +65,8 @@ class WebsocketServer:
                 await connection.close()
 
     async def _connection_handler(self, connection: ServerConnection) -> None:
-        """Handles a single incomming connection and detects disconnects."""
-        # For each incomming request, switch to user-defined handler
+        """Handles a single incoming connection and detects disconnects."""
+        # For each incoming request, switch to user-defined handler
         while True:
             try:
                 message = await connection.recv()
@@ -78,14 +78,14 @@ class WebsocketServer:
                     client_id=connection.id,
                 )
 
-                # Connection no longer exsists, return from this handler
+                # Connection no longer exists, return from this handler
                 return
 
-            # Can thow ValidationError
+            # Can throw ValidationError
             parsed = WebsocketRequest.model_validate_json(json_data=message, strict=True)
 
             if parsed.endpoint in self.callbacks:
-                # Call corrosponding handler, and copy returned data into the response
+                # Call corresponding handler, and copy returned data into the response
                 response_data = self.callbacks.get(parsed.endpoint, lambda _: None)(parsed.data)
                 response = WebsocketResponse(
                     status="success", request_id=parsed.request_id, data=response_data

@@ -6,7 +6,6 @@ class WebsocketRequest[dtype](BaseModel):
 
     model_config = ConfigDict(strict=True)
 
-    # Fields
     request_id: str  # Client-chosen endpoint to match request to response
     endpoint: str  # Endpoint name
     data: dtype  # Arbitrary data
@@ -17,7 +16,6 @@ class WebsocketResponse[dtype](BaseModel):
 
     model_config = ConfigDict(strict=True)
 
-    # Fields
     request_id: str  # Client-chosen id to match response to request
-    status: str  # TODO: define these [TNT-XXX]
+    status: str  # TODO: define these
     data: dtype  # Arbitrary data

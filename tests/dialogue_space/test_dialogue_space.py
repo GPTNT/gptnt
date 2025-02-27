@@ -57,6 +57,7 @@ async def test_clients_can_connect_and_disconnect(
         for client_idx in range(num_clients):
             client = DialogueSpaceClient(WebsocketClient(host=HOST, port=PORT))
             await client.connect()
+            assert client.is_connected is True
 
             # Make sure each client is added to the server
             assert len(server.agents) == client_idx + 1
@@ -121,6 +122,9 @@ async def test_pull_messages(num_clients: int, dialogue_space: DialogueSpaceServ
             pulled_messages = await client.pull_messages()
             assert len(pulled_messages) == 0
 
+    for client in connected_clients:
+        assert client.is_connected is False
+
 
 @pytest.mark.asyncio
 @given(num_clients=st.integers(min_value=2, max_value=4), dialogue_space=dialogue_space())
@@ -130,6 +134,9 @@ async def test_pull_no_messages(num_clients: int, dialogue_space: DialogueSpaceS
 
         for client in connected_clients:
             assert len(await client.pull_messages()) == 0
+
+    for client in connected_clients:
+        assert client.is_connected is False
 
 
 async def connect_clients(num_clients: int) -> list[DialogueSpaceClient]:
