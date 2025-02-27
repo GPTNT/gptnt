@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "pydantic>=2.10.6",
+    "pydantic-ai>=0.0.24",
     "rich>=13.9.4",
     "structlog>=25.1.0",
     "websockets>=14.2",
@@ -60,6 +61,9 @@ reportPrivateUsage = false
 reportUnusedImport = false
 reportUnusedParameter = false
 reportUnusedVariable = false
+executionEnvironments = [
+    {root = "tests", extraPaths = ["."], reportArgumentType = false},
+]
 
 [tool.flake8]
 extend-exclude = [".venv"]
@@ -84,6 +88,8 @@ max-methods = 20
 max-import-from-members = 10
 # WPS226: Increase number of string literals allowed before wemake complains
 max-string-usages = 10
+# WPS234: Increase max annotation complexity
+max-annotation-complexity = 5
 
 [tool.pytest.ini_options]
 filterwarnings = [
@@ -138,6 +144,8 @@ ignore = [
     "TD003",
     # Disable flagging commented-out code because it's false-positives on shape comments
     "ERA001",
+    # Words in exceptions are fine.
+    "TRY003",
     # Things to ignore because ruff's formatter says so
     # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
     "D206",
