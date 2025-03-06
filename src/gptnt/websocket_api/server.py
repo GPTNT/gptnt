@@ -49,6 +49,9 @@ class WebsocketServer:
 
     async def start(self) -> Self:
         """Starts the server."""
+        if self.serving:
+            return self
+
         server_init = serve(handler=self._connection_handler, host=self.host, port=self.port)
         self.server = await server_init
         self.serving = create_task(self.server.serve_forever())

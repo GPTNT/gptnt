@@ -12,6 +12,7 @@ dependencies = [
     "pydantic-ai>=0.0.24",
     "rich>=13.9.4",
     "structlog>=25.1.0",
+    "typer>=0.15.1",
     "websockets>=14.2",
 ]
 
