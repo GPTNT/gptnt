@@ -1,5 +1,6 @@
 import abc
 from collections.abc import Awaitable, Callable
+from typing import TYPE_CHECKING
 
 import structlog
 from pydantic_ai import Agent
@@ -7,6 +8,9 @@ from pydantic_ai.usage import Usage, UsageLimits
 
 from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.players.actions import DoNothingAction, SendMessageAction
+
+if TYPE_CHECKING:
+    from pydantic_ai.messages import ModelMessage
 
 log = structlog.get_logger()
 
@@ -34,6 +38,9 @@ class Player[AgentDepsT, ResultDataT](abc.ABC):
 
         self.usage = Usage()
         self.usage_limits = agent_usage_limits or UsageLimits()
+
+        # PAI expects either messages or None, so we can just init with None
+        self._message_history: list[ModelMessage] | None = None
 
     @abc.abstractmethod
     def agent_result_type_to_function(
@@ -111,10 +118,17 @@ class Player[AgentDepsT, ResultDataT](abc.ABC):
         """
         message_input = await self.build_agent_input()
         request_deps = self.build_deps_for_request()
-        agent_output = await self.agent.run(message_input, deps=request_deps, usage=self.usage)
+        agent_output = await self.agent.run(
+            message_input,
+            deps=request_deps,
+            usage=self.usage,
+            message_history=self._message_history,
+        )
 
         # Updage usage after the request
         self.usage = agent_output.usage()
+        # Update the message history
+        self._message_history = agent_output.all_messages()
 
         # Return the actual data
         return agent_output.data
@@ -123,3 +137,11 @@ class Player[AgentDepsT, ResultDataT](abc.ABC):
     def build_deps_for_request(self) -> AgentDepsT:
         """Build the dependencies for the agent request."""
         raise NotImplementedError
+
+    def reset_message_history(self) -> None:
+        """Explicitly reset the message history.
+
+        Useful when we want to clear the dialogue history and start fresh, such as when the context
+        length gets too long.
+        """
+        self._message_history = None
