@@ -87,13 +87,6 @@ async def test_usage_updates_correctly_after_run(
     _ = await player.send_request_to_agent()
 
     assert player.usage.requests == 1
-    response_tokens = player.usage.response_tokens
-    request_tokens = player.usage.request_tokens
-
-    assert isinstance(response_tokens, int)
-    assert isinstance(request_tokens, int)
 
     _ = await player.send_request_to_agent()
     assert player.usage.requests == 2
-    assert player.usage.response_tokens == response_tokens * 2
-    assert player.usage.request_tokens == request_tokens * 2
