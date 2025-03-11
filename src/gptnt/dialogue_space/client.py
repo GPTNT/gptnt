@@ -1,3 +1,4 @@
+from typing import Self
 from uuid import uuid4
 
 from gptnt.dialogue_space.structures import ClientRequest, SendMessageData
@@ -13,6 +14,12 @@ class DialogueSpaceClient:
 
         # Client for connecting to dialogue-space
         self.client = client
+
+    @classmethod
+    def from_host_and_port(cls, host: str, port: int) -> Self:
+        """Initialise dialogue space client with host and port, using Websockets."""
+        client = WebsocketClient(host=host, port=port)
+        return cls(client=client)
 
     @property
     def is_connected(self) -> bool:

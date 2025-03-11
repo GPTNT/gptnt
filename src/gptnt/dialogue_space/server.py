@@ -26,6 +26,12 @@ class DialogueSpaceServer:
         # Server for client connectivity
         self.server = server
 
+    @classmethod
+    def from_host_and_port(cls, host: str, port: int) -> Self:
+        """Initialise dialogue space server with host and port, using Websockets."""
+        server = WebsocketServer(host=host, port=port)
+        return cls(server=server)
+
     async def __aenter__(self) -> Self:
         """Start dialogue space server and register endpoint callbacks."""
         _ = await self.server.start()
