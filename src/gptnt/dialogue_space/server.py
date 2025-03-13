@@ -89,6 +89,7 @@ class DialogueSpaceServer:
     def _on_message_sent(self, data: str) -> None:
         parsed = SendMessageData.model_validate_json(data)
         _ = self.add_message(parsed.uuid, parsed.message)
+        _logger.info(f"Message received: {parsed.message}")
 
     def _on_agent_connect_req(self, data: str) -> None:
         """Called when agent connects to dialogue-space."""
