@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "gradio>=5.20.1",
+    "httpx>=0.28.1",
     "pydantic>=2.10.6",
     "pydantic-ai>=0.0.24",
     "rich>=13.9.4",
@@ -27,6 +28,7 @@ tests = [
     "pytest-md>=0.2.0",
     "pytest-mock>=3.14.0",
     "pytest-sugar>=1.0.0",
+    "respx>=0.22.0",
 ]
 lint = [
     "basedpyright>=1.23.2",
