@@ -39,14 +39,21 @@ def mission_spec() -> KtaneMissionSpec:
 @respx.mock
 @pytest.mark.asyncio
 async def test_healthcheck_returns_true(client: KtaneClient) -> None:
-    """Test KtaneClient health check endpoint."""
     _ = respx.get("http://localhost:8085/health").mock(return_value=httpx.Response(httpx.codes.OK))
 
     is_healthy = await client.healthcheck()
     assert is_healthy is True
 
 
-# TODO: test the healthcheck will error with another code
+@respx.mock
+@pytest.mark.asyncio
+async def test_healthcheck_returns_false_and_no_exception(client: KtaneClient) -> None:
+    _ = respx.get("http://localhost:8085/health").mock(
+        return_value=httpx.Response(httpx.codes.BAD_REQUEST)
+    )
+
+    is_healthy = await client.healthcheck()
+    assert is_healthy is False
 
 
 @respx.mock
@@ -54,7 +61,6 @@ async def test_healthcheck_returns_true(client: KtaneClient) -> None:
 async def test_start_mission_returns_true_on_success(
     client: KtaneClient, mission_spec: KtaneMissionSpec
 ) -> None:
-    """Test starting a mission on KtaneClient."""
     route = respx.get("http://localhost:8085/startMission").mock(
         return_value=httpx.Response(httpx.codes.OK, json={JSON_KEY: "Mission started"})
     )
@@ -68,7 +74,6 @@ async def test_start_mission_returns_true_on_success(
 async def test_start_mission_returns_false_on_failing(
     client: KtaneClient, mission_spec: KtaneMissionSpec
 ) -> None:
-    """Test starting a mission on KtaneClient."""
     route = respx.get("http://localhost:8085/startMission").mock(
         return_value=httpx.Response(httpx.codes.BAD_REQUEST, json={JSON_KEY: "Mission started"})
     )
