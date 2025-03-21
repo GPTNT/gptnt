@@ -145,11 +145,11 @@ It is possible to run all the tools from the command line. There's a few but her
 
 <summary><b>Recommended VSCode defaults to make things automatic</b></summary>
 
-Many of the tools used are integrated with VSCode. To help you get started with making sure it's all working, we've included some recommended settings and extensions.
+Many of the tools used are integrated with VSCode. To help you get started with making sure it's all working, we've included some recommended settings and extensions in this repo—you can find them in `.vscode/` and learn mre about how these files work [here](https://leonardofaria.net/2023/02/10/using-recommended-extensions-and-settings-in-vs-code)
 
 You can find the recommended extensions in the `.vscode/extensions.json` file. You can also find the settings in the `.vscode/settings.recommended.json` file.
 
-Copy the settings from that file into your `.vscode/settings.json` file, and that will enable things. Ensure that you have installed the recommended extensions too. Importantly, if you are using basedpyright too, ensure you have disabled the Pylance extension.
+Copy the settings from that file into your `.vscode/settings.json` file, and that will automatically enable all the things. Ensure that you have installed the recommended extensions too. Importantly, if you are using basedpyright too, ensure you have disabled the Pylance extension.
 
 </details>
 
