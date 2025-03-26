@@ -34,10 +34,7 @@ class DialogueSpaceServer:
 
     async def __aenter__(self) -> Self:
         """Start dialogue space server and register endpoint callbacks."""
-        _ = await self.server.start()
-        self.server.on("connect", callback=self._on_agent_connect_req)
-        self.server.on("send_message", callback=self._on_message_sent)
-        self.server.on("pull_messages", callback=self._on_pull_messages)
+        _ = await self.connect()
         return self
 
     async def __aexit__(
@@ -50,6 +47,13 @@ class DialogueSpaceServer:
         # Empty agents store once server has stopped
         self.agents.clear()
         await self.server.stop()
+
+    async def connect(self) -> None:
+        """Start the dialogue space server and register endpoint callbacks."""
+        _ = await self.server.start()
+        self.server.on("connect", callback=self._on_agent_connect_req)
+        self.server.on("send_message", callback=self._on_message_sent)
+        self.server.on("pull_messages", callback=self._on_pull_messages)
 
     def add_message(self, sender_uuid: UUID, message: str) -> int:
         """Append message to datastore.
