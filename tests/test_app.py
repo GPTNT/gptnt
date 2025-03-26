@@ -86,6 +86,7 @@ async def test_pull_button_updates_message_history(
 
             # Update history with pulled messages
             history = await controller.handle_pull_button(history)
+
             # Chat history should be updated
             assert history[-1].role == "assistant"
             assert history[-1].content == message

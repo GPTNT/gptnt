@@ -78,7 +78,7 @@ extend-ignore = [
     "WPS601",
 ]
 per-file-ignores = [
-    "tests/*:WPS2,WPS118,WPS432,WPS435,WPS444",
+    "tests/*:WPS2,WPS118,WPS432,WPS435,WPS444,WPS476",
 ]
 select = ["WPS"]
 max-line-length = 99

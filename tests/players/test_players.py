@@ -1,4 +1,4 @@
-from typing import Never, TypeVar
+from typing import TypeVar
 
 import pytest
 from pydantic_ai.messages import ModelRequest, UserPromptPart
@@ -15,7 +15,7 @@ ResultDataT = TypeVar("ResultDataT")
 @parametrize_with_cases("player", cases=PlayerCases)
 async def test_connect_calls_dialogue_space(
     player: Player[None, ResultDataT], mocker: MockerFixture
-) -> Never:
+) -> None:
     # Mock the connect return
     player.dialogue_space_client.connect = mocker.AsyncMock(return_value=None)
     # Verify the dialogue space client within the player is the same as the one passed
@@ -26,7 +26,7 @@ async def test_connect_calls_dialogue_space(
 @pytest.mark.asyncio
 @parametrize_with_cases("player", cases=PlayerCases)
 @pytest.mark.skip("Not implemented")
-async def test_run_once_calls_expected_methods(player: Player[None, ResultDataT]) -> Never:
+async def test_run_once_calls_expected_methods(player: Player[None, ResultDataT]) -> None:
     raise NotImplementedError
 
 
@@ -34,7 +34,7 @@ async def test_run_once_calls_expected_methods(player: Player[None, ResultDataT]
 @parametrize_with_cases("player", cases=PlayerCases)
 async def test_player_pulls_messages_from_dialogue_space(
     player: Player[None, ResultDataT], mocker: MockerFixture
-) -> Never:
+) -> None:
     """Test that `build_agent_input` pulls the messages from the dialogue space."""
     # Mock the pull for the dialogue space client
     player.dialogue_space_client.pull_messages = mocker.AsyncMock(
@@ -51,7 +51,7 @@ async def test_player_pulls_messages_from_dialogue_space(
 @pytest.mark.skip("Not implemented")
 async def test_build_agent_input_with_no_messages(
     player: Player[None, ResultDataT], mocker: MockerFixture
-) -> Never:
+) -> None:
     """Test behaviour when there are no messages in the dialogue space."""
     # TODO: when there are no messages, the input to the model should be empty?
     # Mock the pull for the dialogue space client
@@ -67,7 +67,7 @@ async def test_build_agent_input_with_no_messages(
 @pytest.mark.skip("Not implemented")
 async def test_build_agent_input_with_disconnected_dialogue_space(
     player: Player[None, ResultDataT],
-) -> Never:
+) -> None:
     """Test behaviour when not connected to the dialogue space."""
     raise NotImplementedError
 
@@ -76,7 +76,7 @@ async def test_build_agent_input_with_disconnected_dialogue_space(
 @parametrize_with_cases("player", cases=PlayerCases)
 async def test_usage_updates_correctly_after_run(
     player: Player[None, ResultDataT], mocker: MockerFixture
-) -> Never:
+) -> None:
     """Test that usage statistics update correctly after running the agent."""
     # Mock the pull for the dialogue space client
     player.dialogue_space_client.pull_messages = mocker.AsyncMock(
@@ -97,7 +97,7 @@ async def test_usage_updates_correctly_after_run(
 @parametrize_with_cases("player", cases=PlayerCases)
 async def test_message_history_updates_after_run(
     player: Player[None, ResultDataT], mocker: MockerFixture
-) -> Never:
+) -> None:
     # Mock the pull for the dialogue space client
     player.dialogue_space_client.pull_messages = mocker.AsyncMock(
         return_value=["message1", "message2"]
@@ -116,7 +116,7 @@ async def test_message_history_updates_after_run(
 @parametrize_with_cases("player", cases=PlayerCases)
 async def test_message_history_resets_properly(
     player: Player[None, ResultDataT], mocker: MockerFixture
-) -> Never:
+) -> None:
     """Test that the message history resets properly after a run.
 
     This means that after we reset, the message history should be None, and the return of the run

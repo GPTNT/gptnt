@@ -1,4 +1,4 @@
-from asyncio import Task, create_task
+import asyncio
 from collections.abc import Callable
 from types import TracebackType
 from typing import TYPE_CHECKING, Any, Self
@@ -26,7 +26,7 @@ class WebsocketServer:
         self.port: int = port
         self.server: None | Server = None
         self.callbacks: dict[str, Callable[..., Any]] = {}
-        self.serving: None | Task[None] = None
+        self.serving: None | asyncio.Task[None] = None
         self._logger = get_logger()
 
     async def __aenter__(self) -> Self:
@@ -54,7 +54,7 @@ class WebsocketServer:
 
         server_init = serve(handler=self._connection_handler, host=self.host, port=self.port)
         self.server = await server_init
-        self.serving = create_task(self.server.serve_forever())
+        self.serving = asyncio.create_task(self.server.serve_forever())
         return self  # Chaining
 
     async def stop(self) -> None:
@@ -64,8 +64,10 @@ class WebsocketServer:
 
         if self.server:
             self.server.close()
-            for connection in self.server.connections:
-                await connection.close()
+
+            _ = await asyncio.gather(
+                *[connection.close() for connection in self.server.connections]
+            )
 
     async def _connection_handler(self, connection: ServerConnection) -> None:
         """Handles a single incoming connection and detects disconnects."""

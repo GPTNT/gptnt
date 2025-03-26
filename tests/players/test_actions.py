@@ -1,5 +1,3 @@
-from typing import Never
-
 import pytest
 from pytest_cases import parametrize_with_cases
 from pytest_mock import MockerFixture
@@ -16,7 +14,7 @@ ResultDataT = ExpertResultType
 @parametrize_with_cases("player", cases=PlayerCases)
 async def test_do_nothing_action_goes_to_do_nothing_method(
     player: Player[None, ResultDataT], mocker: MockerFixture
-) -> Never:
+) -> None:
     """Test that DoNothingAction handler actually does nothing."""
     # Make a spy to track the call to send_message
     spy = mocker.spy(player, "do_nothing_action")
@@ -33,7 +31,7 @@ async def test_do_nothing_action_goes_to_do_nothing_method(
 @parametrize_with_cases("player", cases=PlayerCases)
 async def test_send_message_action_sends_message_to_dialogue_space(
     player: Player[None, ResultDataT], mocker: MockerFixture
-) -> Never:
+) -> None:
     """Test that SendMessageAction handler sends message to dialogue space.
 
     We do not run the dialogue space server to check the messages are received, because that's
