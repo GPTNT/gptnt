@@ -2,11 +2,11 @@ from typing import override
 
 import gradio as gr
 
-from gptnt.app.views.base import BaseView
+from gptnt.app.views.base_player import BasePlayerView
 
 
-class ExpertView(BaseView):
-    """Interface for expert client."""
+class ExpertPlayerView(BasePlayerView):
+    """View for Expert player."""
 
     def __init__(self, *, pdf_endpoint: str) -> None:
         self.endpoint = pdf_endpoint

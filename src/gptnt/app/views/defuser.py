@@ -2,10 +2,10 @@ from typing import override
 
 import gradio as gr
 
-from gptnt.app.views.base import BaseView
+from gptnt.app.views.base_player import BasePlayerView
 
 
-class DefuserView(BaseView):
+class DefuserPlayerView(BasePlayerView):
     """View for defuser player."""
 
     def __init__(self, *, stream_endpoint: str) -> None:

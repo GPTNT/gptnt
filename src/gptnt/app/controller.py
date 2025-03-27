@@ -2,14 +2,16 @@ from threading import Thread
 
 from gradio import ChatMessage
 
-from gptnt.app.views.base import BaseView
+from gptnt.app.views.base_player import BasePlayerView
 from gptnt.dialogue_space.client import DialogueSpaceClient
 
 
 class Controller:
     """Control the frontend with the backend for the UI app."""
 
-    def __init__(self, *, view: BaseView, dialogue_space_client: DialogueSpaceClient) -> None:
+    def __init__(
+        self, *, view: BasePlayerView, dialogue_space_client: DialogueSpaceClient
+    ) -> None:
         self.ds_client = dialogue_space_client
         self.view = view
 

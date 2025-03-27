@@ -4,8 +4,8 @@ from gradio import ChatMessage
 from pytest_cases import parametrize_with_cases
 
 from gptnt.app.controller import Controller
-from gptnt.app.views.defuser import DefuserView
-from gptnt.app.views.expert import ExpertView
+from gptnt.app.views.defuser import DefuserPlayerView
+from gptnt.app.views.expert import ExpertPlayerView
 from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.dialogue_space.server import DialogueSpaceServer
 from gptnt.websocket_api.client import WebsocketClient
@@ -29,13 +29,13 @@ def ds_server() -> DialogueSpaceServer:
 
 class PlayerControllerCases:
     def case_expert(self, ds_client: DialogueSpaceClient) -> Controller:
-        expert_view = ExpertView(
+        expert_view = ExpertPlayerView(
             pdf_endpoint="https://www.bombmanual.com/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1.pdf"
         )
         return Controller(view=expert_view, dialogue_space_client=ds_client)
 
     def case_defuser(self, ds_client: DialogueSpaceClient) -> Controller:
-        defuser_view = DefuserView(stream_endpoint="http://localhost:5000/video_feed")
+        defuser_view = DefuserPlayerView(stream_endpoint="http://localhost:5000/video_feed")
         return Controller(view=defuser_view, dialogue_space_client=ds_client)
 
 

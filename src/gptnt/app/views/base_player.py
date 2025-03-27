@@ -5,8 +5,8 @@ from typing import Any
 import gradio as gr
 
 
-class BaseView(ABC):
-    """ABC for all the views, bringing common functionality acros them."""
+class BasePlayerView(ABC):
+    """ABC for all the views, bringing common functionality across them."""
 
     @abstractmethod
     def render_viewing_window(self) -> None:
