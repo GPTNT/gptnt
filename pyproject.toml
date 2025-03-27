@@ -94,12 +94,15 @@ max-import-from-members = 10
 max-string-usages = 10
 # WPS234: Increase max annotation complexity
 max-annotation-complexity = 5
+# WPS221: Increase max jones compexity
+max-line-complexity = 17
 
 [tool.pytest.ini_options]
 filterwarnings = [
     "ignore::UserWarning",
     'ignore:Deprecated call to `pkg_resources.declare_namespace:DeprecationWarning',
 ]
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
 line-length = 99

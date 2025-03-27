@@ -1,5 +1,7 @@
+from collections.abc import AsyncGenerator
+
 import pytest
-import structlog
+import pytest_asyncio
 from gradio import ChatMessage
 from pytest_cases import parametrize_with_cases
 
@@ -8,23 +10,18 @@ from gptnt.app.views.defuser import DefuserPlayerView
 from gptnt.app.views.expert import ExpertPlayerView
 from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.dialogue_space.server import DialogueSpaceServer
-from gptnt.websocket_api.client import WebsocketClient
-from gptnt.websocket_api.server import WebsocketServer
-
-log = structlog.get_logger()
-
-HOST = "localhost"
-PORT = 8000
 
 
-@pytest.fixture
-def ds_client() -> DialogueSpaceClient:
-    return DialogueSpaceClient(WebsocketClient(HOST, PORT))
+@pytest_asyncio.fixture
+async def ds_server(host: str, port: int) -> AsyncGenerator[DialogueSpaceServer, None]:
+    server = DialogueSpaceServer.from_host_and_port(host, port)
+    async with server:
+        yield server
 
 
 @pytest.fixture
-def ds_server() -> DialogueSpaceServer:
-    return DialogueSpaceServer(WebsocketServer(HOST, PORT))
+def ds_client(ds_server: DialogueSpaceServer) -> DialogueSpaceClient:
+    return DialogueSpaceClient.from_host_and_port(ds_server.server.host, ds_server.server.port)
 
 
 class PlayerControllerCases:
@@ -46,22 +43,21 @@ async def test_send_button_updates_history(
 ) -> None:
     num_messages = 5
 
-    async with ds_server as server:
-        # Connect to dialogue space.
-        await controller.ds_client.connect()
+    # Connect to dialogue space.
+    await controller.ds_client.connect()
 
-        # Create 'empty' chat history
-        history: list[ChatMessage] = []
+    # Create 'empty' chat history
+    history: list[ChatMessage] = []
 
-        for message_idx in range(num_messages):
-            message = f"TEST MESSAGE {message_idx}"
-            history, text_box_content = await controller.handle_user_message(message, history)
-            # Text box should be cleared
-            assert text_box_content == ""
-            # Chat history should be updated
-            assert history[-1] == ChatMessage(content=message, role="user")
-            # Dialogue space should have received message
-            assert server.messages[-1].message_content == message
+    for message_idx in range(num_messages):
+        message = f"TEST MESSAGE {message_idx}"
+        history, text_box_content = await controller.handle_user_message(message, history)
+        # Text box should be cleared
+        assert text_box_content == ""
+        # Chat history should be updated
+        assert history[-1] == ChatMessage(content=message, role="user")
+        # Dialogue space should have received message
+        assert ds_server.messages[message_idx].message_content == message
 
 
 @pytest.mark.asyncio
@@ -71,23 +67,24 @@ async def test_pull_button_updates_message_history(
 ) -> None:
     num_messages = 5
 
-    other_client = DialogueSpaceClient(WebsocketClient(HOST, PORT))
+    other_client = DialogueSpaceClient.from_host_and_port(
+        ds_server.server.host, ds_server.server.port
+    )
 
-    async with ds_server:
-        await other_client.connect()
-        await controller.ds_client.connect()
+    await other_client.connect()
+    await controller.ds_client.connect()
 
-        # Create 'empty' chat history
-        history: list[ChatMessage] = []
+    # Create 'empty' chat history
+    history: list[ChatMessage] = []
 
-        for message_idx in range(num_messages):
-            message = f"TEST MESSAGE {message_idx}"
-            await other_client.send_message(message)
+    for message_idx in range(num_messages):
+        message = f"TEST MESSAGE {message_idx}"
+        await other_client.send_message(message)
 
-            # Update history with pulled messages
-            history = await controller.handle_pull_button(history)
+        # Update history with pulled messages
+        history = await controller.handle_pull_button(history)
 
-            # Chat history should be updated
-            assert history[-1].role == "assistant"
-            assert history[-1].content == message
-            assert len(history) == message_idx + 1
+        # Chat history should be updated
+        assert history[-1].role == "assistant"
+        assert history[-1].content == message
+        assert len(history) == message_idx + 1

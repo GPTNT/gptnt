@@ -1,4 +1,5 @@
 from threading import Thread
+from typing import Any
 
 from gradio import ChatMessage
 
@@ -15,11 +16,12 @@ class Controller:
         self.ds_client = dialogue_space_client
         self.view = view
 
-    async def launch_interface(self, port: int | None = None) -> None:
+    async def launch_interface(self, *args: Any, **kwargs: Any) -> None:
         """Build layout and launch gradio server.
 
         Note:
-            Starts gradio on separate thread to prevent blocking logic thread.
+            - All arguments are passed to `gradio.Interface.launch`.
+            - Starts gradio on separate thread to prevent blocking logic thread.
         """
         await self.ds_client.connect()
 
@@ -27,7 +29,7 @@ class Controller:
             handle_send=self.handle_user_message, handle_pull=self.handle_pull_button
         )
         # Run gradio app on separate thread so we can still use main thread for DS client.
-        Thread(target=lambda: gradio_interface.launch(server_port=port), daemon=True).start()
+        Thread(target=lambda: gradio_interface.launch(*args, **kwargs), daemon=True).start()
 
     async def handle_pull_button(self, history: list[ChatMessage]) -> list[ChatMessage]:
         """Logic for 'pull messages' button."""

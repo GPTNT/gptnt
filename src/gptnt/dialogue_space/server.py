@@ -1,3 +1,4 @@
+import itertools
 from types import TracebackType
 from typing import Self
 from uuid import UUID
@@ -12,7 +13,7 @@ from gptnt.dialogue_space.structures import (
 )
 from gptnt.websocket_api.server import WebsocketServer
 
-_logger = getLogger()
+log = getLogger()
 
 
 class DialogueSpaceServer:
@@ -21,7 +22,7 @@ class DialogueSpaceServer:
     def __init__(self, server: WebsocketServer) -> None:
         # Datastore structures
         self.agents: dict[UUID, DialogueSpaceAgent] = {}
-        self.messages: list[DialogueSpaceMessage] = []
+        self.messages: dict[int, DialogueSpaceMessage] = {}
 
         # Server for client connectivity
         self.server = server
@@ -43,44 +44,65 @@ class DialogueSpaceServer:
         exc_value: BaseException | None = None,
         traceback: TracebackType | None = None,
     ) -> None:
-        """Safe async context exiting logic."""
-        # Empty agents store once server has stopped
-        self.agents.clear()
-        await self.server.stop()
+        """Close dialogue space server."""
+        await self.close()
 
     async def connect(self) -> None:
         """Start the dialogue space server and register endpoint callbacks."""
         _ = await self.server.start()
-        self.server.on("connect", callback=self._on_agent_connect_req)
+        self.server.on("connect", callback=self._on_agent_connect_request)
         self.server.on("send_message", callback=self._on_message_sent)
         self.server.on("pull_messages", callback=self._on_pull_messages)
+
+    async def close(self) -> None:
+        """Close the dialogue space server."""
+        await self.server.stop()
+        # Empty agents store once server has stopped
+        self.agents.clear()
+
+    @property
+    def next_message_id(self) -> int:
+        """Get the highest message ID in the datastore."""
+        return len(self.messages)
 
     def add_message(self, sender_uuid: UUID, message: str) -> int:
         """Append message to datastore.
 
         Returns ID of most recent message.
         """
-        new_id = self._get_highest_message_id() + 1
+        if self.next_message_id in self.messages:
+            raise ValueError(f"Message with ID {self.next_message_id} already exists.")
+
         new_message = DialogueSpaceMessage(
-            sender_uuid=sender_uuid, message_id=new_id, message_content=message
+            sender_uuid=sender_uuid, message_id=self.next_message_id, message_content=message
         )
-        self.messages.append(new_message)
-        return new_id
+        self.messages[self.next_message_id] = new_message
+
+        log.debug(f"Added message with ID {self.next_message_id}")
+        return self.next_message_id
 
     def get_unread_messages(self, agent_id: UUID) -> list[DialogueSpaceMessage]:
         """Return list of messages with id greater than agent's last read message ID."""
         agent = self.agents[agent_id]
 
-        # Store agents last read message for return
-        last_read_id = agent.last_read_message
-        _logger.info(f"Last read message id: {last_read_id}")
+        # Get the new last read message ID for the agent
+        latest_message_id = self.next_message_id - 1
+
+        # We slice all the messages between two points
+        messages_since_last_read = itertools.islice(
+            self.messages.values(), agent.last_read_message_id + 1, latest_message_id + 1
+        )
+        # Filter out messages that should not be pulled by the agent (i.e. ones from itself)
+        messages_since_last_read = (
+            message for message in messages_since_last_read if message.sender_uuid != agent_id
+        )
+        messages_since_last_read = list(messages_since_last_read)
 
         # Set last read to most recent message
-        agent.last_read_message = self._get_highest_message_id()
-        _logger.info(f"Set {agent.uuid} agent's last read message to {agent.last_read_message}")
+        agent.last_read_message_id = latest_message_id
+        log.info(f"Set {agent.uuid} agent's last read message to {agent.last_read_message_id}")
 
-        # Send all messages since last read
-        return [message for message in self.messages if message.message_id > last_read_id]
+        return messages_since_last_read
 
     def _on_pull_messages(self, data: str) -> list[str]:
         parsed = ClientRequest.model_validate_json(data)
@@ -93,17 +115,14 @@ class DialogueSpaceServer:
     def _on_message_sent(self, data: str) -> None:
         parsed = SendMessageData.model_validate_json(data)
         _ = self.add_message(parsed.uuid, parsed.message)
-        _logger.info(f"Message received: {parsed.message}")
+        log.info(f"Message received: {parsed.message}")
 
-    def _on_agent_connect_req(self, data: str) -> None:
-        """Called when agent connects to dialogue-space."""
+    def _on_agent_connect_request(self, data: str) -> None:
+        """Handle when an agent wants to connect to the server."""
         parsed = ClientRequest.model_validate_json(data)
-        _logger.info(f"Received connection from: {parsed.uuid}")
-        agent_id = parsed.uuid
-        new_agent = DialogueSpaceAgent(uuid=agent_id)
-        self.agents[agent_id] = new_agent  # Store agent
+        log.info(f"Received connection from {parsed.uuid}")
 
-    def _get_highest_message_id(self) -> int:
-        if not self.messages:
-            return -1  # Check list is empty
-        return max(message.message_id for message in self.messages)
+        if parsed.uuid in self.agents:
+            raise ValueError(f"Agent with UUID {parsed.uuid} already connected.")
+
+        self.agents[parsed.uuid] = DialogueSpaceAgent(uuid=parsed.uuid)
