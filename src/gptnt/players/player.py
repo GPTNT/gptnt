@@ -3,7 +3,7 @@ from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
 import structlog
-from pydantic_ai import Agent
+from pydantic_ai import Agent, BinaryContent
 from pydantic_ai.usage import Usage, UsageLimits
 
 from gptnt.dialogue_space.client import DialogueSpaceClient
@@ -64,6 +64,8 @@ class Player[AgentDepsT, ResultDataT](abc.ABC):
         """Connect the player to all the various clients/connections."""
         _ = await self.dialogue_space_client.connect()
 
+        log.debug("Connected to all clients.")
+
     async def health_check(self) -> None:
         """Check health of all relevant connections, raising exceptions if not healthy.
 
@@ -74,6 +76,7 @@ class Player[AgentDepsT, ResultDataT](abc.ABC):
         self.usage_limits.check_before_request(self.usage)
         self.usage_limits.check_tokens(self.usage)
         assert self.dialogue_space_client.is_connected
+        log.debug("Health check passed.")
 
     async def send_message_to_dialogue_space(self, message: SendMessageAction) -> None:
         """Send a message to the dialogue space for the current agent."""
@@ -82,6 +85,7 @@ class Player[AgentDepsT, ResultDataT](abc.ABC):
     async def pull_unread_messages_from_dialogue_space(self) -> str:
         """Pull messages from the dialogue space."""
         messages = await self.dialogue_space_client.pull_messages()
+        log.debug(f"Pulled {len(messages)} messages from dialogue space.")
 
         # TODO: when there are no messages, the input to the model should be empty?
         if not messages:
@@ -91,7 +95,7 @@ class Player[AgentDepsT, ResultDataT](abc.ABC):
         return "\n".join(messages)
 
     @abc.abstractmethod
-    async def build_agent_input(self) -> str:
+    async def build_agent_input(self) -> str | list[str | BinaryContent]:
         """Build the input for the agent."""
         raise NotImplementedError
 

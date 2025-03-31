@@ -1,21 +1,35 @@
-import pytest
 from pydantic_ai import Agent
-from pytest_mock import MockerFixture
 
 from gptnt.dialogue_space.client import DialogueSpaceClient
-from gptnt.players.expert import ExpertPlayer, ExpertResultType
+from gptnt.ktane.client import KtaneClient
+from gptnt.players.actions import RelativeCoordinate, SetOfMarksLocation
+from gptnt.players.defuser import DefuserResultT, MDPDefuserPlayer
+from gptnt.players.expert import ExpertPlayer, ExpertResultT
 
 
 class PlayerCases:
     """Parametrize fixtures for players."""
 
-    def case_expert_player(self, dialogue_space_client: DialogueSpaceClient) -> ExpertPlayer:
-        expert_agent = Agent[None, ExpertResultType]("test", result_type=ExpertResultType)
+    def case_expert(self, dialogue_space_client: DialogueSpaceClient) -> ExpertPlayer:
+        expert_agent = Agent[None, ExpertResultT]("test", result_type=ExpertResultT)
         return ExpertPlayer(agent=expert_agent, dialogue_space_client=dialogue_space_client)
 
+    def case_defuser_mdp_set_of_marks(
+        self, dialogue_space_client: DialogueSpaceClient, game_client: KtaneClient
+    ) -> MDPDefuserPlayer[SetOfMarksLocation]:
+        agent = Agent[None, DefuserResultT[SetOfMarksLocation]](
+            "test", result_type=DefuserResultT[SetOfMarksLocation]
+        )
+        return MDPDefuserPlayer[SetOfMarksLocation](
+            agent=agent, dialogue_space_client=dialogue_space_client, game_client=game_client
+        )
 
-@pytest.fixture
-def dialogue_space_client(mocker: MockerFixture) -> DialogueSpaceClient:
-    client = mocker.AsyncMock(spec=DialogueSpaceClient)
-    client.connect.return_value = None
-    return client
+    def case_defuser_mdp_coordinate(
+        self, dialogue_space_client: DialogueSpaceClient, game_client: KtaneClient
+    ) -> MDPDefuserPlayer[RelativeCoordinate]:
+        agent = Agent[None, DefuserResultT[RelativeCoordinate]](
+            "test", result_type=DefuserResultT[RelativeCoordinate]
+        )
+        return MDPDefuserPlayer[RelativeCoordinate](
+            agent=agent, dialogue_space_client=dialogue_space_client, game_client=game_client
+        )

@@ -1,13 +1,29 @@
+import itertools
+from typing import get_args
+
 import pytest
 from pytest_cases import parametrize_with_cases
 from pytest_mock import MockerFixture
 
-from gptnt.players.actions import DoNothingAction, SendMessageAction
-from gptnt.players.expert import ExpertResultType
+from gptnt.players.actions import DoNothingAction, InteractGameLocation, SendMessageAction
+from gptnt.players.defuser import DefuserResultT
+from gptnt.players.expert import ExpertResultT
 from gptnt.players.player import Player
 from tests.players.fixtures import PlayerCases
 
-ResultDataT = ExpertResultType
+ResultDataT = ExpertResultT | DefuserResultT[InteractGameLocation]
+
+
+def test_all_actions_have_action_type_attribute() -> None:
+    """Test that all actions have the action_type attribute."""
+    # Pull all the action types from the `ResultDataT` union in this file
+    action_types = set(
+        itertools.chain.from_iterable(
+            [get_args(data_type.__value__) for data_type in get_args(ResultDataT)]
+        )
+    )
+    for action_type in action_types:
+        assert "action_type" in action_type.model_fields
 
 
 @pytest.mark.asyncio

@@ -1,14 +1,15 @@
-from typing import TypeVar
-
 import pytest
 from pydantic_ai.messages import ModelRequest, UserPromptPart
 from pytest_cases import parametrize_with_cases
 from pytest_mock import MockerFixture
 
+from gptnt.players.actions import InteractGameLocation
+from gptnt.players.defuser import DefuserResultT
+from gptnt.players.expert import ExpertResultT
 from gptnt.players.player import Player
 from tests.players.fixtures import PlayerCases
 
-ResultDataT = TypeVar("ResultDataT")
+ResultDataT = ExpertResultT | DefuserResultT[InteractGameLocation]
 
 
 @pytest.mark.asyncio
@@ -145,5 +146,16 @@ async def test_message_history_resets_properly(
     )
     # Verify the content is only the second message and not the first one which came first
     assert isinstance(user_prompt, UserPromptPart)
-    assert user_prompt.content == "message2"
-    assert user_prompt.content != "message1"
+
+    message = user_prompt.content
+
+    # If the user_prompt content is a list, extract the message from it
+    if isinstance(user_prompt.content, list):
+        message = next(
+            iter(message for message in user_prompt.content if isinstance(message, str)), None
+        )
+        assert message is not None
+
+    assert isinstance(message, str)
+    assert message == "message2"
+    assert message != "message1"

@@ -15,6 +15,8 @@ class KtaneClient:
     def __init__(self, *, client: httpx.AsyncClient) -> None:
         self.client = client
 
+        assert self.client.base_url is not None, "Base URL must be set"
+
     async def __aenter__(self) -> Self:
         """Open the client."""
         _ = await self.client.__aenter__()
@@ -62,6 +64,6 @@ class KtaneClient:
         """Send an action to the server."""
         raise NotImplementedError
 
-    async def get_observation(self) -> None:
-        """Get the current observation from the game."""
+    async def get_observation(self) -> bytes:
+        """Get the current observation from the game as a JPEG."""
         raise NotImplementedError

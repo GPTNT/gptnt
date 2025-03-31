@@ -8,13 +8,15 @@ from gptnt.players.player import Player
 
 log = structlog.get_logger()
 
-ExpertResultType = Union[SendMessageAction, DoNothingAction]  # noqa: UP007
-"""Note: Needs to be Union until PEP-747 lands.
+type ExpertResultT = Union[SendMessageAction, DoNothingAction]  # noqa: UP007
+"""Possible structured output types for the Expert.
+
+Note: Needs to be Union until PEP-747 lands.
 https://ai.pydantic.dev/results/#structured-result-validation
 """
 
 
-class ExpertPlayer(Player[None, ExpertResultType]):
+class ExpertPlayer(Player[None, ExpertResultT]):
     """Class for all Expert players."""
 
     @override
@@ -25,14 +27,14 @@ class ExpertPlayer(Player[None, ExpertResultType]):
 
     @override
     def agent_result_type_to_function(
-        self, result_type: type[ExpertResultType]
-    ) -> Callable[[ExpertResultType], Awaitable[None]]:
+        self, result_type: type[ExpertResultT]
+    ) -> Callable[[ExpertResultT], Awaitable[None]]:
         """Map the result type from the AI model to a method within the function.
 
         This will allow us to dynamically convert the result from the AI model to a function that
         can be called to carry the logic forwards.
         """
-        switcher: dict[type[ExpertResultType], Callable[..., Awaitable[None]]] = {
+        switcher: dict[type[ExpertResultT], Callable[..., Awaitable[None]]] = {
             SendMessageAction: self.send_message_to_dialogue_space,
             DoNothingAction: self.do_nothing_action,
         }
