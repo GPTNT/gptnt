@@ -1,0 +1,15 @@
+# @package player
+
+defaults:
+  - _self_
+
+_target_: ???
+
+agent:
+  _target_: pydantic_ai.Agent
+  model: ${model}
+
+dialogue_space_client:
+  _target_: gptnt.dialogue_space.client.DialogueSpaceClient.from_host_and_port
+  host: ${dialogue_space_host}
+  port: ${dialogue_space_port}

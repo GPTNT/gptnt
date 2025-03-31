@@ -37,8 +37,31 @@ Note that we won't be helping with `mise` or any other tooling. We're just showi
 uv sync --all-groups
 ```
 
+### How to run a player
+
+> [!WARNING]
+> This needs more details on what Hydra configs are available and how things are run.
+
+We are using Hydra to instantiate and run players. You can run a player using the following command:
+
+```bash
+python src/gptnt/entrypoints/run_player.py player=human/expert
+```
+
+or
+
+```bash
+uv run python src/gptnt/entrypoints/run_player.py player=ai/expert model=gpt4o
+```
+
+### How to verify that everything is working
+
+Things happen and things break. Development is done using tests to verify that each piece works both in isolation and together. We recommend that you **run the tests first when using a new machine/node.**
+
+The various tests are a good way of looking how different pieces were implemented and are used. While coverage is not 100%, use tests with breakpoints to verify things are working as expected. **If you contribute new code, please add tests to ensure that it works as expected.** You can find all the tests in the `tests/` folder.
+
 <details>
-<summary><b>How to invoke the project</b></summary>
+<summary><b>How to make sure the project is installed</b></summary>
 
 The quickest way to make sure you're all setup is to run either of the following:
 
@@ -54,12 +77,6 @@ The quickest way to make sure you're all setup is to run either of the following
   ```
 
 </details>
-
-### How to verify that everything is working
-
-Things happen and things break. Development is done using tests to verify that each piece works both in isolation and together. We recommend that you **run the tests first when using a new machine/node.**
-
-The various tests are a good way of looking how different pieces were implemented and are used. While coverage is not 100%, use tests with breakpoints to verify things are working as expected. **If you contribute new code, please add tests to ensure that it works as expected.** You can find all the tests in the `tests/` folder.
 
 <details>
 <summary><b>How to make sure all tests can be loaded without errors</b></summary>

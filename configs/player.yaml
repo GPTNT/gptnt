@@ -1,0 +1,13 @@
+# @package _global_
+
+defaults:
+  - _self_
+  - hydra: default
+
+  - player: expert
+  - model: gpt4o
+
+task_name: evaluation
+
+dialogue_space_host: localhost
+dialogue_space_port: 1234

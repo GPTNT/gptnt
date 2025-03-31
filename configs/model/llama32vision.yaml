@@ -1,0 +1,7 @@
+defaults:
+  - ollama
+  - _self_
+
+model_name: llama3.2-vision
+provider:
+  base_url: http://localhost:11434/v1

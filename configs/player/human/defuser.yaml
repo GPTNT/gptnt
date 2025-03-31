@@ -1,0 +1,9 @@
+# @package player
+
+defaults:
+  - human/_default
+  - _self_
+
+view:
+  _target_: gptnt.app.views.defuser.DefuserPlayerView
+  stream_endpoint: http://localhost:5000/video_feed

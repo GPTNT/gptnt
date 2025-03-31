@@ -770,3 +770,7 @@ sysinfo.txt
 # Ignore all local history of files
 .history
 .ionide
+
+
+# Run outputs
+storage/outputs

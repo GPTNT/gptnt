@@ -1,23 +1,32 @@
+import asyncio
 from threading import Thread
-from typing import Any
+from typing import Any, override
 
 from gradio import ChatMessage
 
 from gptnt.app.views.base_player import BasePlayerView
 from gptnt.dialogue_space.client import DialogueSpaceClient
+from gptnt.players.run import RunPlayerMixin
 
 
-class Controller:
+class Controller(RunPlayerMixin):
     """Control the frontend with the backend for the UI app."""
 
     def __init__(
-        self, *, view: BasePlayerView, dialogue_space_client: DialogueSpaceClient
+        self,
+        *,
+        view: BasePlayerView,
+        dialogue_space_client: DialogueSpaceClient,
+        gradio_launch_kwargs: dict[str, Any] | None = None,
     ) -> None:
         self.ds_client = dialogue_space_client
         self.view = view
 
-    async def launch_interface(self, *args: Any, **kwargs: Any) -> None:
-        """Build layout and launch gradio server.
+        self.gradio_launch_kwargs = gradio_launch_kwargs or {}
+
+    @override
+    async def run(self) -> None:
+        """Build the layout and launch the gradio server.
 
         Note:
             - All arguments are passed to `gradio.Interface.launch`.
@@ -28,8 +37,14 @@ class Controller:
         gradio_interface = self.view.build_layout(
             handle_send=self.handle_user_message, handle_pull=self.handle_pull_button
         )
+
         # Run gradio app on separate thread so we can still use main thread for DS client.
-        Thread(target=lambda: gradio_interface.launch(*args, **kwargs), daemon=True).start()
+        Thread(
+            target=lambda: gradio_interface.launch(**self.gradio_launch_kwargs), daemon=True
+        ).start()
+
+        event = asyncio.Event()
+        _ = await event.wait()
 
     async def handle_pull_button(self, history: list[ChatMessage]) -> list[ChatMessage]:
         """Logic for 'pull messages' button."""

@@ -12,11 +12,11 @@ configure_logging()
 logger = get_logger()
 
 # Typer CLI app to integrate nicely with docker
-cli_app = Typer()
+app = Typer()
 
 
-async def _start(host: str, port: int) -> None:
-    """Async parts of start command: Starts the dialogue space on the given uri."""
+async def run_dialogue_space_server(host: str, port: int) -> None:
+    """Create and run the dialogue space server on the given host and port."""
     async with DialogueSpaceServer(server=WebsocketServer(host=host, port=port)) as dialogue_space:
         logger.info("Dialogue Space started", uri=f"ws://{host}:{port}")
 
@@ -27,12 +27,12 @@ async def _start(host: str, port: int) -> None:
     logger.info("Dialogue Space stopped", uri=f"ws://{host}:{port}")
 
 
-@cli_app.command()
+@app.command()
 def start(host: str, port: int) -> None:
-    """Runs the dialogue space on the given uri."""
-    logger.info(host=host)
-    asyncio.run(_start(host, port))
+    """Runs the dialogue space server on the given uri."""
+    logger.info("Starting server on host and port", host=host, port=port)
+    asyncio.run(run_dialogue_space_server(host, port))
 
 
 if __name__ == "__main__":
-    cli_app()
+    app()

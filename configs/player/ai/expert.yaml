@@ -1,0 +1,7 @@
+# @package player
+
+defaults:
+  - ai/_default
+  - _self_
+
+_target_: gptnt.players.expert.ExpertPlayer
