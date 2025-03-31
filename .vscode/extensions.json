@@ -9,6 +9,7 @@
 		"ms-python.debugpy",
 		"redhat.vscode-yaml",
 		"ms-vscode.test-adapter-converter",
-		"esbenp.prettier-vscode"
+		"esbenp.prettier-vscode",
+		"tekumara.typos-vscode"
 	]
 }
