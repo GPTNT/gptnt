@@ -29,6 +29,7 @@ tests = [
     "pytest-cov>=6.1.0",
     "pytest-mock>=3.14.0",
     "pytest-sugar>=1.0.0",
+    "pytest-xdist>=3.6.1",
     "respx>=0.22.0",
 ]
 lint = [

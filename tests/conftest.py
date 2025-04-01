@@ -2,10 +2,6 @@ import socket
 
 import pytest
 
-from gptnt.common.logger import configure_logging
-
-configure_logging()
-
 
 @pytest.fixture
 def host() -> str:

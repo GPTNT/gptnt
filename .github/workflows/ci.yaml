@@ -119,7 +119,7 @@ jobs:
 
       - name: Run tests
         run: |
-          uv run pytest --junitxml=pytest.xml --cov-report "xml:coverage.xml" --cov=src
+          uv run pytest --junitxml=pytest.xml --cov-report "xml:coverage.xml" --cov=src -n 2
 
       - name: Comment coverage
         if: ${{ github.event_name == 'pull_request' }}
