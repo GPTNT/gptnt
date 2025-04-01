@@ -49,16 +49,23 @@ class WebsocketServer:
 
     async def start(self) -> Self:
         """Starts the server."""
+        self._logger = self._logger.bind(server_uri=f"{self.host}:{self.port}")
+        self._logger.info("Starting websocket server")
+
         if self.serving:
             return self
 
         server_init = serve(handler=self._connection_handler, host=self.host, port=self.port)
         self.server = await server_init
         self.serving = asyncio.create_task(self.server.serve_forever())
+
+        self._logger.debug("Started")
+
         return self  # Chaining
 
     async def stop(self) -> None:
         """Stop serving."""
+        self._logger.info("Stopping websocket server")
         if self.serving and not self.serving.done():
             _ = self.serving.cancel()
 

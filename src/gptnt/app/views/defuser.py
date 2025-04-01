@@ -8,6 +8,8 @@ from gptnt.app.views.base_player import BasePlayerView
 class DefuserPlayerView(BasePlayerView):
     """View for defuser player."""
 
+    role = "defuser"
+
     def __init__(self, *, stream_endpoint: str) -> None:
         self.endpoint = stream_endpoint
 

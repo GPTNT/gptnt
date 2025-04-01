@@ -8,6 +8,8 @@ from gptnt.app.views.base_player import BasePlayerView
 class ExpertPlayerView(BasePlayerView):
     """View for Expert player."""
 
+    role = "expert"
+
     def __init__(self, *, pdf_endpoint: str) -> None:
         self.endpoint = pdf_endpoint
 

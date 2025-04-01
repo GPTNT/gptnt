@@ -3,6 +3,7 @@ from threading import Thread
 from typing import Any, override
 
 from gradio import ChatMessage
+from structlog import get_logger
 
 from gptnt.app.views.base_player import BasePlayerView
 from gptnt.dialogue_space.client import DialogueSpaceClient
@@ -24,6 +25,8 @@ class Controller(RunPlayerMixin):
 
         self.gradio_launch_kwargs = gradio_launch_kwargs or {}
 
+        self._log = get_logger()
+
     @override
     async def run(self) -> None:
         """Build the layout and launch the gradio server.
@@ -32,6 +35,9 @@ class Controller(RunPlayerMixin):
             - All arguments are passed to `gradio.Interface.launch`.
             - Starts gradio on separate thread to prevent blocking logic thread.
         """
+        self._log = self._log.bind(role=self.view.role)
+        self._log.info("Running gradio app", gradio_kwargs=self.gradio_launch_kwargs)
+
         await self.ds_client.connect()
 
         gradio_interface = self.view.build_layout(
@@ -43,6 +49,7 @@ class Controller(RunPlayerMixin):
             target=lambda: gradio_interface.launch(**self.gradio_launch_kwargs), daemon=True
         ).start()
 
+        self._log.debug("Waiting for gradio to finish")
         event = asyncio.Event()
         _ = await event.wait()
 

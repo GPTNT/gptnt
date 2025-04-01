@@ -1,12 +1,14 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import Any
+from typing import Any, ClassVar
 
 import gradio as gr
 
 
 class BasePlayerView(ABC):
     """ABC for all the views, bringing common functionality across them."""
+
+    role: ClassVar[str]
 
     @abstractmethod
     def render_viewing_window(self) -> None:
