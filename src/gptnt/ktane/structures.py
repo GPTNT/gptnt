@@ -60,7 +60,7 @@ class KtaneMissionSpec(BaseModel):
 
     def to_query_params(self) -> QueryParams:
         """Converts the mission spec into a query parameter string for API requests."""
-        specification_dict = self.dict(by_alias=True)
+        specification_dict = self.model_dump(by_alias=True)
         # Fix the enums for the components which is what the API wants
         specification_dict["components"] = (
             ",".join(component.value for component in specification_dict["components"]),
