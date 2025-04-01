@@ -78,6 +78,8 @@ extend-ignore = [
     "WPS122",
     # WPS struggles with pydantic models
     "WPS601",
+    # I disagree with WPS114
+    "WPS114",
 ]
 per-file-ignores = [
     "tests/*:WPS2,WPS118,WPS432,WPS435,WPS444,WPS476",
