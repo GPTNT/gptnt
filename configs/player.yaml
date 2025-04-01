@@ -7,6 +7,9 @@ defaults:
   - player: expert
   - model: gpt4o
 
+  - override hydra/job_logging: none
+  - override hydra/hydra_logging: none
+
 task_name: evaluation
 
 dialogue_space_host: localhost
