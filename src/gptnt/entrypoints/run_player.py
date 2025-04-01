@@ -1,18 +1,18 @@
 import asyncio
-from pathlib import Path
 
 import hydra
 from omegaconf import DictConfig
 
 from gptnt.common.logger import configure_logging
+from gptnt.common.paths import Paths
 from gptnt.players.run import RunPlayerMixin
-
-CONFIGS_PATH = Path.cwd().joinpath("configs").resolve()
 
 configure_logging()
 
+paths = Paths()
 
-@hydra.main(version_base="1.3", config_path=str(CONFIGS_PATH), config_name="player.yaml")
+
+@hydra.main(version_base="1.3", config_path=str(paths.configs), config_name="player.yaml")
 def run_player(config: DictConfig) -> None:
     """Run the player.
 
