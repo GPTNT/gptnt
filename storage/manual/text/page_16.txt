@@ -1,0 +1,20 @@
+8/28/2020 KeepTalkingandNobodyExplodes-BombDefusalManual-en-v1
+file:///C:/SteelCrate/KTaNE/git/Manual/build/en/print/source_html/index.html 16/23
+On the Subject of Passwords
+Fortunately this password doesn't seem to meet standard government security
+requirements: 22 characters, mixed case, numbers in random order without any
+palindromes above length 3.
+The buttons above and below each letter will cycle
+through the possibilities for that position.
+Only one combination of the available letters will
+match a password below.
+Press the submit button once the correct word has been set.
+about after again below could
+every first found great house
+large learn never other place
+plant point right small sound
+spell still study their there
+these thing think three water
+where which world would write
+Keep Talking and Nobody Explodes v. 1 Passwords
+Page 16 of 23

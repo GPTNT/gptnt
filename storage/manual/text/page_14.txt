@@ -1,0 +1,114 @@
+8/28/2020 KeepTalkingandNobodyExplodes-BombDefusalManual-en-v1
+file:///C:/SteelCrate/KTaNE/git/Manual/build/en/print/source_html/index.html 14/23
+On the Subject of Wire Sequences
+It's hard to say how this mechanism works. The engineering is pretty impressive,
+but there must have been an easier way to manage nine wires.
+Within this module there are several panels with wires
+on them, but only one panel is visible at a time. Switch
+to the next panel by using the down button and the
+previous panel by using the up button.
+Do not switch to the next panel until you are sure that you have cut all
+necessary wires on the current panel.
+Cut the wires as directed by the following table. Wire occurrences are
+cumulative over all panels within the module.
+Red Wire Occurrences
+Wire
+Occurrence
+Cut if
+connected
+to:
+First red
+occurrence
+C
+Second red
+occurrence
+B
+Third red
+occurrence
+A
+Fourth red
+occurrence
+A or C
+Fifth red
+occurrence
+B
+Sixth red
+occurrence
+A or C
+Seventh red
+occurrence
+A, B or C
+Eighth red
+occurrence
+A or B
+Ninth red
+occurrence
+B
+Blue Wire Occurrences
+Wire
+Occurrence
+Cut if
+connected
+to:
+First blue
+occurrence
+B
+Second blue
+occurrence
+A or C
+Third blue
+occurrence
+B
+Fourth blue
+occurrence
+A
+Fifth blue
+occurrence
+B
+Sixth blue
+occurrence
+B or C
+Seventh blue
+occurrence
+C
+Eighth blue
+occurrence
+A or C
+Ninth blue
+occurrence
+A
+Black Wire Occurrences
+Wire
+Occurrence
+Cut if
+connected
+to:
+First black
+occurrence
+A, B or C
+Second black
+occurrence
+A or C
+Third black
+occurrence
+B
+Fourth black
+occurrence
+A or C
+Fifth black
+occurrence
+B
+Sixth black
+occurrence
+B or C
+Seventh black
+occurrence
+A or B
+Eighth black
+occurrence
+C
+Ninth black
+occurrence
+C
+Keep Talking and Nobody Explodes v. 1 Wire Sequences
+Page 14 of 23

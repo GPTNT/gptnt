@@ -1,0 +1,75 @@
+8/28/2020 KeepTalkingandNobodyExplodes-BombDefusalManual-en-v1
+file:///C:/SteelCrate/KTaNE/git/Manual/build/en/print/source_html/index.html 12/23
+How to Interpret
+1. A short flash represents a dot.
+2. A long flash represents a dash.
+3. There is a long gap between letters.
+4. There is a very long gap before the word repeats.
+A
+B
+C
+D
+E
+F
+G
+H
+I
+J
+K
+L
+M
+N
+O
+P
+Q
+R
+S
+T
+U
+V
+W
+X
+Y
+Z
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+On the Subject of Morse Code
+An antiquated form of naval communication? What next? At least it's genuine Morse
+Code, so pay attention and you might just learn something.
+Interpret the signal from the flashing light using the
+Morse Code chart to spell one of the words in the table.
+The signal will loop, with a long gap between
+repetitions.
+Once the word is identified, set the corresponding frequency and press the
+transmit (TX) button.
+If the
+word is:
+Respond
+at
+frequency:
+shell 3.505 MHz
+halls 3.515 MHz
+slick 3.522 MHz
+trick 3.532 MHz
+boxes 3.535 MHz
+leaks 3.542 MHz
+strobe 3.545 MHz
+bistro 3.552 MHz
+flick 3.555 MHz
+bombs 3.565 MHz
+break 3.572 MHz
+brick 3.575 MHz
+steak 3.582 MHz
+sting 3.592 MHz
+vector 3.595 MHz
+beats 3.600 MHz
+Keep Talking and Nobody Explodes v. 1 Morse Code
+Page 12 of 23
