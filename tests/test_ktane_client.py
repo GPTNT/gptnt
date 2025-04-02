@@ -23,14 +23,12 @@ async def client(host: str, port: int) -> AsyncGenerator[KtaneClient, None]:
 def mission_spec() -> KtaneMissionSpec:
     mission_spec = KtaneMissionSpec(
         seed=123,  # noqa: WPS432
-        timeLimit=300,  # noqa: WPS432
-        numStrikes=3,
-        needyTime=90,  # noqa: WPS432
-        isFront=True,
-        optWidgets=5,
+        time_limit=300,  # noqa: WPS432
+        num_strikes_allowed=3,
+        needy_time=90,  # noqa: WPS432
+        force_modules_to_front=True,
+        optional_widgets=5,
         components=[KtaneComponent.wires, KtaneComponent.big_button],
-        timeScale=1.0,
-        timeStepSize=250,  # noqa: WPS432
     )
     return mission_spec
 
