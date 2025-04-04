@@ -11,6 +11,7 @@ class DefuserPlayerView(BasePlayerView):
     role = "defuser"
 
     def __init__(self, *, stream_endpoint: str) -> None:
+        super().__init__()
         self.endpoint = stream_endpoint
 
     @override

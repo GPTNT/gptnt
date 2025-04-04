@@ -11,6 +11,7 @@ class ExpertPlayerView(BasePlayerView):
     role = "expert"
 
     def __init__(self, *, pdf_endpoint: str) -> None:
+        super().__init__()
         self.endpoint = pdf_endpoint
 
     @override

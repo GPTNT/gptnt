@@ -10,6 +10,9 @@ class BasePlayerView(ABC):
 
     role: ClassVar[str]
 
+    def __init__(self) -> None:
+        self.message_history: list[gr.ChatMessage] = []
+
     @abstractmethod
     def render_viewing_window(self) -> None:
         """Create a viewing window for video feeds/pdf reader/etc."""
@@ -32,23 +35,24 @@ class BasePlayerView(ABC):
             # Have all dialogue components below on different columns
             self._create_message_input_ui()
             self._create_pull_message_ui()
-            self._setup_chat_interactions(handle_send, handle_pull)
+            self._setup_chat_interactions(handle_send)
+
+            # Run message polling function on gradio app load
+            _ = demo.load(fn=handle_pull, outputs=[self._chatbox])
 
             return demo
 
-    def add_external_message(
-        self, message: str, history: list[gr.ChatMessage]
-    ) -> list[gr.ChatMessage]:
+    def add_external_message(self, message: str) -> list[gr.ChatMessage]:
         """Add message from external player to history box.
 
         For example, from an AI assistant or other human player.
         """
-        history.append(gr.ChatMessage(content=message, role="assistant"))
-        return history
+        self.message_history.append(gr.ChatMessage(content=message, role="assistant"))
+        return self.message_history
 
-    def add_user_message(self, message: str, history: list[gr.ChatMessage]) -> None:
+    def add_user_message(self, message: str) -> None:
         """Add message from user player to history box."""
-        history.append(gr.ChatMessage(content=message, role="user"))
+        self.message_history.append(gr.ChatMessage(content=message, role="user"))
 
     def _create_chatbox(self) -> None:
         """Create chatbox interface."""
@@ -76,18 +80,11 @@ class BasePlayerView(ABC):
         with gr.Row():
             self._pull_messages_btn = gr.Button("Pull messages")
 
-    def _setup_chat_interactions(
-        self, handle_send: Callable[..., Any], handle_pull: Callable[..., Any]
-    ) -> None:
+    def _setup_chat_interactions(self, handle_send: Callable[..., Any]) -> None:
         """Set up interactions with controller callbacks."""
         _ = self._user_send.click(
-            handle_send,
-            inputs=[self._user_msg, self._chatbox],
-            outputs=[self._chatbox, self._user_msg],
+            handle_send, inputs=[self._user_msg], outputs=[self._chatbox, self._user_msg]
         )
         _ = self._user_msg.submit(
-            handle_send,
-            inputs=[self._user_msg, self._chatbox],
-            outputs=[self._chatbox, self._user_msg],
+            handle_send, inputs=[self._user_msg], outputs=[self._chatbox, self._user_msg]
         )
-        _ = self._pull_messages_btn.click(handle_pull, [self._chatbox], self._chatbox)

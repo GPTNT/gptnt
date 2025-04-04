@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncGenerator
 
 import pytest
@@ -51,7 +52,7 @@ async def test_send_button_updates_history(
 
     for message_idx in range(num_messages):
         message = f"TEST MESSAGE {message_idx}"
-        history, text_box_content = await controller.handle_user_message(message, history)
+        history, text_box_content = await controller.handle_user_message(message)
         # Text box should be cleared
         assert text_box_content == ""
         # Chat history should be updated
@@ -62,11 +63,9 @@ async def test_send_button_updates_history(
 
 @pytest.mark.asyncio
 @parametrize_with_cases("controller", cases=PlayerControllerCases)
-async def test_pull_button_updates_message_history(
-    controller: Controller, ds_server: DialogueSpaceServer
-) -> None:
+async def test_pulling(controller: Controller, ds_server: DialogueSpaceServer) -> None:
     num_messages = 5
-
+    poll_interval = 0.5
     other_client = DialogueSpaceClient.from_host_and_port(
         ds_server.server.host, ds_server.server.port
     )
@@ -74,17 +73,22 @@ async def test_pull_button_updates_message_history(
     await other_client.connect()
     await controller.ds_client.connect()
 
-    # Create 'empty' chat history
-    history: list[ChatMessage] = []
+    # No messages in history yet
+    chat_history = []
 
     for message_idx in range(num_messages):
-        message = f"TEST MESSAGE {message_idx}"
-        await other_client.send_message(message)
+        message_content = f"TEST MESSAGE {message_idx}"
+        await other_client.send_message(message_content)
 
-        # Update history with pulled messages
-        history = await controller.handle_pull_button(history)
-
-        # Chat history should be updated
-        assert history[-1].role == "assistant"
-        assert history[-1].content == message
-        assert len(history) == message_idx + 1
+        try:
+            # Time out after waiting for poll_interval * 5
+            new_chat_history = await asyncio.wait_for(
+                anext(controller.poll_and_add_new_messages()), timeout=poll_interval * 5
+            )
+            # Only one new message
+            assert len(new_chat_history) - len(chat_history) == 1
+            # New message has right body
+            assert new_chat_history[-1].content == message_content
+            chat_history = new_chat_history.copy()
+        except TimeoutError:
+            pytest.fail(f"Timed out waiting for message {message_idx}")
