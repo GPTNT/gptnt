@@ -95,7 +95,3 @@ class KtaneMissionSpec(BaseModel):
             ",".join(component.value for component in specification_dict["components"]),
         )
         return QueryParams(specification_dict)
-
-
-class KtaneAction(BaseModel):
-    """Action to perform in the game."""

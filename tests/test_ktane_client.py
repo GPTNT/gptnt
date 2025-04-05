@@ -6,7 +6,7 @@ from pytest_cases import fixture
 from typing_extensions import AsyncGenerator
 
 from gptnt.ktane.client import KtaneClient
-from gptnt.ktane.structures import KtaneComponent, KtaneMissionSpec
+from gptnt.ktane.mission_spec import KtaneComponent, KtaneMissionSpec
 
 JSON_KEY = "message"
 

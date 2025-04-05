@@ -1,8 +1,9 @@
 from pydantic_ai import Agent
 
 from gptnt.dialogue_space.client import DialogueSpaceClient
+from gptnt.ktane.actions import RelativeCoordinate
 from gptnt.ktane.client import KtaneClient
-from gptnt.players.actions import RelativeCoordinate, SetOfMarksLocation
+from gptnt.players.actions import SetOfMarksLocation
 from gptnt.players.defuser import DefuserResultT, MDPDefuserPlayer
 from gptnt.players.expert import ExpertPlayer, ExpertResultT
 

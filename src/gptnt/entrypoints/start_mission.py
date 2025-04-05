@@ -6,7 +6,7 @@ from structlog import get_logger
 
 from gptnt.entrypoints._async_typer import AsyncTyper
 from gptnt.ktane.client import KtaneClient
-from gptnt.ktane.structures import KtaneMissionSpec
+from gptnt.ktane.mission_spec import KtaneMissionSpec
 
 logger = get_logger()
 app = AsyncTyper()
