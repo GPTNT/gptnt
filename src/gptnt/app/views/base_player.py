@@ -34,7 +34,6 @@ class BasePlayerView(ABC):
                 self._create_chatbox()
             # Have all dialogue components below on different columns
             self._create_message_input_ui()
-            self._create_pull_message_ui()
             self._setup_chat_interactions(handle_send)
 
             # Run message polling function on gradio app load
@@ -75,10 +74,6 @@ class BasePlayerView(ABC):
                 )
             with gr.Column(scale=1):
                 self._user_send = gr.Button("Send")
-
-    def _create_pull_message_ui(self) -> None:
-        with gr.Row():
-            self._pull_messages_btn = gr.Button("Pull messages")
 
     def _setup_chat_interactions(self, handle_send: Callable[..., Any]) -> None:
         """Set up interactions with controller callbacks."""
