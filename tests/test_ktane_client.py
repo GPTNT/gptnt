@@ -1,3 +1,6 @@
+import base64
+from pathlib import Path
+
 import httpx
 import pytest
 import pytest_asyncio
@@ -31,6 +34,14 @@ def mission_spec() -> KtaneMissionSpec:
         components=[KtaneComponent.wires, KtaneComponent.big_button],
     )
     return mission_spec
+
+
+@fixture(scope="session")
+def screenshot(fixture_path: Path) -> str:
+    """Fixture to provide a screenshot."""
+    image_bytes = fixture_path.joinpath("screenshot.png").read_bytes()
+    base64_image = base64.b64encode(image_bytes).decode("utf-8")
+    return base64_image
 
 
 @respx.mock
@@ -79,3 +90,17 @@ async def test_start_mission_returns_false_on_failing(
     start_mission_response = await client.start_mission(mission_spec)
     assert route.called is True
     assert start_mission_response is False
+
+
+@respx.mock
+@pytest.mark.asyncio
+async def test_get_observation_returns_screenshot_as_bytes(
+    client: KtaneClient, screenshot: str
+) -> None:
+    route = respx.get(f"{client.client.base_url}/screenshot").mock(
+        return_value=httpx.Response(httpx.codes.OK, text=screenshot)
+    )
+    screenshot_response = await client.get_observation()
+    assert route.called is True
+    assert screenshot_response == base64.b64decode(screenshot)
+    assert isinstance(screenshot_response, bytes)

@@ -1,4 +1,5 @@
 import socket
+from pathlib import Path
 
 import pytest
 
@@ -16,3 +17,12 @@ def port() -> int:
     sock.bind(("", 0))
     port = sock.getsockname()[1]
     return port
+
+
+@pytest.fixture(scope="session")
+def fixture_path() -> Path:
+    """Fixture to provide a storage path."""
+    path = Path("storage/fixtures")
+    assert path.exists()
+    assert path.is_dir()
+    return path

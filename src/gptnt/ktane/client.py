@@ -1,3 +1,4 @@
+import base64
 from types import TracebackType
 from typing import Self
 
@@ -72,4 +73,14 @@ class KtaneClient:
 
     async def get_observation(self) -> bytes:
         """Get the current observation from the game as a png."""
-        raise NotImplementedError
+        response = await self.client.get("/screenshot")
+
+        try:
+            _ = response.raise_for_status()
+        except httpx.HTTPError:
+            self._logger.exception("Failed to fetch screenshot")
+            return b""  # empty bytes
+
+        base64_data = response.text
+        png_data = base64.b64decode(base64_data)
+        return png_data
