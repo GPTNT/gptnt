@@ -56,14 +56,6 @@ class BasePlayerView(ABC):
 
             return demo
 
-    def add_external_message(self, message: str) -> list[ChatMessage]:
-        """Add message from external player to history box.
-
-        For example, from an AI assistant or other human player.
-        """
-        self.message_history.append(ChatMessage(content=message, role="assistant"))
-        return self.message_history
-
     def add_user_message(self, message: str) -> None:
         """Add message from user player to history box."""
         self.message_history.append(ChatMessage(content=message, role="user"))
