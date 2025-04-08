@@ -37,11 +37,11 @@ class AsyncTyper(Typer):
         self, *args: Any, **kwargs: Any
     ) -> Callable[[CommandFunctionType], CommandFunctionType]:
         decorator = super().callback(*args, **kwargs)
-        return partial(self.maybe_run_async, decorator=decorator)
+        return partial(self.maybe_run_async, decorator)
 
     @override
     def command(
         self, *args: Any, **kwargs: Any
     ) -> Callable[[CommandFunctionType], CommandFunctionType]:
         decorator = super().command(*args, **kwargs)
-        return partial(self.maybe_run_async, decorator=decorator)
+        return partial(self.maybe_run_async, decorator)
