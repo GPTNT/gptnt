@@ -8,6 +8,7 @@ import respx
 from pytest_cases import fixture
 from typing_extensions import AsyncGenerator
 
+from gptnt.ktane.actions import GameActionType, KtaneAction
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.mission_spec import KtaneComponent, KtaneMissionSpec
 
@@ -104,3 +105,57 @@ async def test_get_observation_returns_screenshot_as_bytes(
     assert route.called is True
     assert screenshot_response == base64.b64decode(screenshot)
     assert isinstance(screenshot_response, bytes)
+
+
+@pytest.mark.parametrize("action_type", list(GameActionType))
+def test_ktane_action_correctly_converts_to_query_params(action_type: GameActionType) -> None:
+    """Test that the KtaneAction correctly converts to query parameters."""
+    location = {"x_pos": 0.5, "y_pos": 0.5}
+
+    action = KtaneAction(
+        action=action_type,
+        location=location if action_type in GameActionType.require_location() else None,
+    )
+    query_params = action.to_query_params()
+    assert query_params.get("action") == action_type.value
+
+    # Make sure the location is correct
+    if action_type in GameActionType.require_location():
+        assert query_params.get("x_pos") == str(location["x_pos"])
+        assert query_params.get("y_pos") == str(location["y_pos"])
+
+    if action_type not in GameActionType.require_location():
+        assert query_params.get("x_pos") is None
+        assert query_params.get("y_pos") is None
+        assert len(query_params) == 1
+
+
+@respx.mock
+@pytest.mark.asyncio
+@pytest.mark.parametrize("action_type", list(GameActionType))
+async def test_send_action_sends_correct_action(
+    client: KtaneClient, action_type: GameActionType
+) -> None:
+    click_endpoint = respx.get(f"{client.client.base_url}/click").mock(
+        return_value=httpx.Response(httpx.codes.OK)
+    )
+    discrete_endpoint = respx.get(f"{client.client.base_url}/rotation").mock(
+        return_value=httpx.Response(httpx.codes.OK)
+    )
+
+    location = {"x_pos": 0.5, "y_pos": 0.5}
+
+    action = KtaneAction(
+        action=action_type,
+        location=location if action_type in GameActionType.require_location() else None,
+    )
+
+    await client.send_action(action)
+
+    if action_type in GameActionType.require_location():
+        assert click_endpoint.called is True
+        assert discrete_endpoint.called is False
+
+    else:
+        assert click_endpoint.called is False
+        assert discrete_endpoint.called is True

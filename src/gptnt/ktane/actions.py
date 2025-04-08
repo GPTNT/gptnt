@@ -2,28 +2,29 @@ from enum import Enum
 from typing import Annotated, Self
 
 import annotated_types
+from httpx import QueryParams
 from pydantic import BaseModel, model_validator
 
 
 class GameActionType(Enum):
     """Actions that can be performed in the game."""
 
-    turn_left = "turn_left"
+    turn_left = "left"
     """Only 90deg rotations are allowed."""
 
-    turn_right = "turn_right"
+    turn_right = "right"
     """Only 90deg rotations are allowed."""
 
-    turn_around = "turn_around"
+    turn_around = "flip"
     """Rotate the bomb 180 degrees."""
 
-    roll_up = "roll_up"
+    roll_up = "up"
     """Roll the bomb up 90 degrees."""
 
-    roll_down = "roll_down"
+    roll_down = "down"
     """Roll the bomb down 90 degrees."""
 
-    zoom_out = "zoom_out"
+    zoom_out = "out"
     """Zoom out of the current depth (i.e. right-clicking)."""
 
     click = "click"
@@ -61,6 +62,11 @@ class KtaneBaseAction[LocationDataT](BaseModel):
     location: LocationDataT | None = None
     """Location to interact with, if needed."""
 
+    @property
+    def is_clicking_action(self) -> bool:
+        """Check if the action is a clicking action."""
+        return self.action in GameActionType.require_location()
+
     @model_validator(mode="after")
     def check_actions_align_with_location_use(self) -> Self:
         """Only certain actions require a location, so we make sure there's not mismatch."""
@@ -77,4 +83,12 @@ class KtaneBaseAction[LocationDataT](BaseModel):
         return self
 
 
-KtaneAction = KtaneBaseAction[RelativeCoordinate]
+class KtaneAction(KtaneBaseAction[RelativeCoordinate]):
+    """Interaction action for the player to take in the game."""
+
+    def to_query_params(self) -> QueryParams:
+        """Convert the action to query parameters for the API."""
+        location = (
+            self.location.model_dump(mode="json", exclude_none=True) if self.location else {}
+        )
+        return QueryParams({**self.model_dump(mode="json", exclude={"location"}), **location})

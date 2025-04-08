@@ -69,7 +69,14 @@ class KtaneClient:
         coordinate of where we are clicking. As a result, this means that using SoM is not
         supported by the game, and any SoM actions must first be converted to relative coordinates.
         """
-        raise NotImplementedError
+        endpoint = "/click" if action.is_clicking_action else "/rotation"
+
+        response = await self.client.get(endpoint, params=action.to_query_params())
+        try:
+            _ = response.raise_for_status()
+        except httpx.HTTPError:
+            self._logger.exception("Failed to send action")
+            return
 
     async def get_observation(self) -> bytes:
         """Get the current observation from the game as a png."""
