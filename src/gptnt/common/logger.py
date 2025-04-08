@@ -2,7 +2,10 @@ import logging
 
 import structlog
 
+from gptnt.common.run_once import run_once
 
+
+@run_once
 def configure_logging(root_log_level: int = logging.INFO) -> None:
     """Configure structlog for structured logging.
 
