@@ -1,14 +1,20 @@
 import asyncio
 from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
 from threading import Thread
 from typing import Any, override
 
-from gradio import ChatMessage
+from pydantic import TypeAdapter
 from structlog import get_logger
 
-from gptnt.app.views.base_player import BasePlayerView
+from gptnt.app.views.base_player import BasePlayerView, ChatMessage
+from gptnt.common.paths import Paths
 from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.players.run import RunPlayerMixin
+
+log = get_logger()
+
+paths = Paths()
 
 
 class Controller(RunPlayerMixin):
@@ -42,7 +48,9 @@ class Controller(RunPlayerMixin):
         await self.ds_client.connect()
 
         gradio_interface = self.view.build_layout(
-            handle_send=self.handle_user_message, handle_pull=self.poll_and_add_new_messages
+            handle_send=self.handle_user_message,
+            handle_pull=self.poll_and_add_new_messages,
+            handle_save_history=self.handle_save_history,
         )
 
         # Run gradio app on separate thread so we can still use main thread for DS client.
@@ -81,3 +89,13 @@ class Controller(RunPlayerMixin):
         # Update view
         self.view.add_user_message(message)
         return self.view.message_history, ""
+
+    def handle_save_history(self) -> None:
+        """Dumps message history to log file."""
+        log.info("program closing, dumping logs to file")
+        game_timestamp = datetime.now(tz=UTC).strftime("%Y-%m-%d_%H-%M-%S")
+        paths.gradio_chats.mkdir(parents=True, exist_ok=True)
+        log_file = paths.gradio_chats.joinpath(f"{game_timestamp}.json")
+
+        log_messages = TypeAdapter(list[ChatMessage]).dump_json(self.view.message_history)
+        _ = log_file.write_bytes(log_messages)

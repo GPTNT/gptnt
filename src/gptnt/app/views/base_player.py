@@ -1,8 +1,18 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable
+from datetime import datetime
 from typing import Any, ClassVar
 
 import gradio as gr
+from pydantic import Field
+from pydantic.dataclasses import dataclass
+
+
+@dataclass(config={"arbitrary_types_allowed": True})
+class ChatMessage(gr.ChatMessage):
+    """gr.ChatMessage with timestamp."""
+
+    timestamp: datetime = Field(default_factory=datetime.now)
 
 
 class BasePlayerView(ABC):
@@ -11,7 +21,7 @@ class BasePlayerView(ABC):
     role: ClassVar[str]
 
     def __init__(self) -> None:
-        self.message_history: list[gr.ChatMessage] = []
+        self.message_history: list[ChatMessage] = []
 
     @abstractmethod
     def render_viewing_window(self) -> None:
@@ -24,34 +34,39 @@ class BasePlayerView(ABC):
         raise NotImplementedError
 
     def build_layout(
-        self, handle_send: Callable[..., Any], handle_pull: Callable[..., Any]
+        self,
+        handle_send: Callable[..., Any],
+        handle_pull: Callable[..., Any],
+        handle_save_history: Callable[..., Any],
     ) -> gr.Blocks:
         """Generate layout of interface with controller callbacks."""
         with gr.Blocks(js=self.load_custom_js()) as demo:
+            with gr.Row():
+                self._save_game_button = gr.Button("Save game")
             # Put tailored component in same row as chatbox
             with gr.Row(equal_height=True):
                 self.render_viewing_window()
                 self._create_chatbox()
             # Have all dialogue components below on different columns
             self._create_message_input_ui()
-            self._setup_chat_interactions(handle_send)
+            self._setup_chat_interactions(handle_send, handle_save_history)
 
             # Run message polling function on gradio app load
             _ = demo.load(fn=handle_pull, outputs=[self._chatbox])
 
             return demo
 
-    def add_external_message(self, message: str) -> list[gr.ChatMessage]:
+    def add_external_message(self, message: str) -> list[ChatMessage]:
         """Add message from external player to history box.
 
         For example, from an AI assistant or other human player.
         """
-        self.message_history.append(gr.ChatMessage(content=message, role="assistant"))
+        self.message_history.append(ChatMessage(content=message, role="assistant"))
         return self.message_history
 
     def add_user_message(self, message: str) -> None:
         """Add message from user player to history box."""
-        self.message_history.append(gr.ChatMessage(content=message, role="user"))
+        self.message_history.append(ChatMessage(content=message, role="user"))
 
     def _create_chatbox(self) -> None:
         """Create chatbox interface."""
@@ -75,7 +90,9 @@ class BasePlayerView(ABC):
             with gr.Column(scale=1):
                 self._user_send = gr.Button("Send")
 
-    def _setup_chat_interactions(self, handle_send: Callable[..., Any]) -> None:
+    def _setup_chat_interactions(
+        self, handle_send: Callable[..., Any], handle_save_history: Callable[..., Any]
+    ) -> None:
         """Set up interactions with controller callbacks."""
         _ = self._user_send.click(
             handle_send, inputs=[self._user_msg], outputs=[self._chatbox, self._user_msg]
@@ -83,3 +100,4 @@ class BasePlayerView(ABC):
         _ = self._user_msg.submit(
             handle_send, inputs=[self._user_msg], outputs=[self._chatbox, self._user_msg]
         )
+        _ = self._save_game_button.click(handle_save_history)

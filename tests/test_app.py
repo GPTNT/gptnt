@@ -1,9 +1,9 @@
 import asyncio
 from collections.abc import AsyncGenerator
+from typing import TYPE_CHECKING
 
 import pytest
 import pytest_asyncio
-from gradio import ChatMessage
 from httpx import AsyncClient
 from pytest_cases import parametrize_with_cases
 
@@ -13,6 +13,9 @@ from gptnt.app.views.expert import ExpertPlayerView
 from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.dialogue_space.server import DialogueSpaceServer
 from gptnt.ktane.client import KtaneClient
+
+if TYPE_CHECKING:
+    from gptnt.app.views.base_player import ChatMessage
 
 
 @pytest_asyncio.fixture
@@ -62,7 +65,8 @@ async def test_send_button_updates_history(
         # Text box should be cleared
         assert text_box_content == ""
         # Chat history should be updated
-        assert history[-1] == ChatMessage(content=message, role="user")
+        assert history[-1].content == message
+        assert history[-1].role == "user"
         # Dialogue space should have received message
         assert ds_server.messages[message_idx].message_content == message
 
