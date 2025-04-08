@@ -28,9 +28,9 @@ class DefuserPlayerView(BasePlayerView):
         """Create video feed for defuser."""
         with gr.Column(scale=2):
             # Build the game viewing window
-            image_html = f"""
-                <img src="{self.endpoint}" width="100%" height="750" style="object-fit: cover;">
-                """
+            image_html = (
+                '<img id="img_tag" src="" width="100%" height="750" style="object-fit: cover;">'
+            )
             self._game_window = gr.HTML(image_html, elem_id="video_feed")
             output = gr.Textbox(label="Response from Python", elem_id="real_box", visible=False)
             _ = output.input(fn=self._handle_textbox_change, inputs=[output], outputs=None)

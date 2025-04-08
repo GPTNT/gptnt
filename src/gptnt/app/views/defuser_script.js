@@ -38,4 +38,20 @@ function setupClick() {
 
 	video.addEventListener("mousedown", handleMouseEvent);
 	video.addEventListener("mouseup", handleMouseEvent);
+
+	// Observations
+	const img = document.getElementById("img_tag");
+	const poll_observation = () => {
+		if (img) {
+			observation = fetch("http://localhost:8084/screenshot", {
+				mode: "cors",
+			}).then((res) => {
+				res.text().then((observation) => {
+					img.src = `data:image/png;base64, ${observation}`;
+				});
+			});
+		}
+	};
+
+	setInterval(poll_observation, 250);
 }

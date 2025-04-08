@@ -98,7 +98,7 @@ class MDPDefuserPlayer[LocationDataT: InteractGameLocation](
         messages = await self.pull_unread_messages_from_dialogue_space()
         # Frame is/should be a JPEG that is encoded as bytes
         current_frame: bytes = await self.game_client.get_observation()
-        agent_input = [messages, BinaryContent(current_frame, media_type="image/jpeg")]
+        agent_input = [messages, BinaryContent(current_frame, media_type="image/png")]
         return agent_input
 
     @override
