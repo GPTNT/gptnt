@@ -7,3 +7,8 @@ defaults:
 view:
   _target_: gptnt.app.views.defuser.DefuserPlayerView
   stream_endpoint: http://localhost:5000/video_feed
+  ktane_client:
+    _target_: gptnt.ktane.client.KtaneClient
+    client:
+      _target_: httpx.AsyncClient
+      base_url: ${ktane_client_host}:${ktane_client_port}

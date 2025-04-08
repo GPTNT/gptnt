@@ -4,6 +4,7 @@ from collections.abc import AsyncGenerator
 import pytest
 import pytest_asyncio
 from gradio import ChatMessage
+from httpx import AsyncClient
 from pytest_cases import parametrize_with_cases
 
 from gptnt.app.controller import Controller
@@ -11,6 +12,7 @@ from gptnt.app.views.defuser import DefuserPlayerView
 from gptnt.app.views.expert import ExpertPlayerView
 from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.dialogue_space.server import DialogueSpaceServer
+from gptnt.ktane.client import KtaneClient
 
 
 @pytest_asyncio.fixture
@@ -33,7 +35,11 @@ class PlayerControllerCases:
         return Controller(view=expert_view, dialogue_space_client=ds_client)
 
     def case_defuser(self, ds_client: DialogueSpaceClient) -> Controller:
-        defuser_view = DefuserPlayerView(stream_endpoint="http://localhost:5000/video_feed")
+        httpx_client = AsyncClient(base_url="http://localhost:1235")
+        ktane_client = KtaneClient(client=httpx_client)
+        defuser_view = DefuserPlayerView(
+            stream_endpoint="http://localhost:5000/video_feed", ktane_client=ktane_client
+        )
         return Controller(view=defuser_view, dialogue_space_client=ds_client)
 
 

@@ -14,3 +14,6 @@ task_name: evaluation
 
 dialogue_space_host: localhost
 dialogue_space_port: 1234
+
+ktane_client_host: localhost
+ktane_client_port: 1235
