@@ -6,6 +6,7 @@ import httpx
 import structlog
 
 from gptnt.ktane.actions import KtaneAction
+from gptnt.ktane.exceptions import InvalidGameError
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 
 
@@ -84,9 +85,8 @@ class KtaneClient:
 
         try:
             _ = response.raise_for_status()
-        except httpx.HTTPError:
-            self._logger.exception("Failed to fetch screenshot")
-            return b""  # empty bytes
+        except httpx.HTTPError as err:
+            raise InvalidGameError("Failed to take screenshot") from err
 
         base64_data = response.text
         png_data = base64.b64decode(base64_data)
