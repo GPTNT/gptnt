@@ -1,21 +1,25 @@
 import asyncio
 from collections.abc import AsyncGenerator
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
+from pydantic import TypeAdapter
 from pytest_cases import parametrize_with_cases
+from structlog import getLogger
 
 from gptnt.app.controller import Controller
+from gptnt.app.views.base_player import ChatMessage
 from gptnt.app.views.defuser import DefuserPlayerView
 from gptnt.app.views.expert import ExpertPlayerView
+from gptnt.common.logger import configure_logging
 from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.dialogue_space.server import DialogueSpaceServer
 from gptnt.ktane.client import KtaneClient
 
-if TYPE_CHECKING:
-    from gptnt.app.views.base_player import ChatMessage
+configure_logging()
+logger = getLogger()
 
 
 @pytest_asyncio.fixture
@@ -44,6 +48,11 @@ class PlayerControllerCases:
             stream_endpoint="http://localhost:5000/video_feed", ktane_client=ktane_client
         )
         return Controller(view=defuser_view, dialogue_space_client=ds_client)
+
+
+@pytest.fixture(scope="session")
+def saved_chats_temp_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    return tmp_path_factory.mktemp("gradio_chats")
 
 
 @pytest.mark.asyncio
@@ -102,3 +111,23 @@ async def test_pulling(controller: Controller, ds_server: DialogueSpaceServer) -
             chat_history = new_chat_history.copy()
         except TimeoutError:
             pytest.fail(f"Timed out waiting for message {message_idx}")
+
+
+@pytest.mark.asyncio
+@parametrize_with_cases("controller", cases=PlayerControllerCases)
+async def test_save_messages(controller: Controller, saved_chats_temp_dir: Path) -> None:
+    num_messages = 5
+    await controller.ds_client.connect()
+
+    for message_idx in range(num_messages):
+        controller_msg = f"CONTROLLER TEST MESSAGE {message_idx}"
+
+        _ = await controller.handle_user_message(controller_msg)
+
+    log_path = controller.handle_save_history(saved_chats_temp_dir)
+    log_json = log_path.read_text()
+    chat_messages: list[ChatMessage] = TypeAdapter(list[ChatMessage]).validate_json(log_json)
+
+    assert len(chat_messages) == num_messages
+    for idx, msg in enumerate(chat_messages):
+        assert msg.content == f"CONTROLLER TEST MESSAGE {idx}"

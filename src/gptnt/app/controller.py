@@ -1,6 +1,7 @@
 import asyncio
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
+from pathlib import Path
 from threading import Thread
 from typing import Any, override
 
@@ -90,12 +91,21 @@ class Controller(RunPlayerMixin):
         self.view.add_user_message(message)
         return self.view.message_history, ""
 
-    def handle_save_history(self) -> None:
-        """Dumps message history to log file."""
+    def handle_save_history(self, save_path: Path | None = None) -> Path:
+        """Dumps message history to log file.
+
+        If provided a path, will save to that directory, otherwise will save to
+        storage/outputs/gradio_chats. Returns saved log path.
+        """
         log.info("program closing, dumping logs to file")
         game_timestamp = datetime.now(tz=UTC).strftime("%Y-%m-%d_%H-%M-%S")
-        paths.gradio_chats.mkdir(parents=True, exist_ok=True)
-        log_file = paths.gradio_chats.joinpath(f"{game_timestamp}.json")
 
+        if save_path is None:
+            paths.gradio_chats.mkdir(parents=True, exist_ok=True)
+            save_path = paths.gradio_chats
+
+        log_file = save_path.joinpath(f"{game_timestamp}.json")
         log_messages = TypeAdapter(list[ChatMessage]).dump_json(self.view.message_history)
         _ = log_file.write_bytes(log_messages)
+
+        return log_file
