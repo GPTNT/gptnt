@@ -5,12 +5,14 @@ function setupClick() {
 		return;
 	}
 
-	const boundingBox = video.getBoundingClientRect();
 	const outputBox = document.querySelector("#real_box textarea");
 
 	let mouseDownTimer = null;
 
 	function handleMouseEvent(event) {
+		const boundingBox = document
+			.getElementById("img_tag")
+			.getBoundingClientRect();
 		const relativeX = (event.clientX - boundingBox.left) / boundingBox.width;
 		const relativeY = (event.clientY - boundingBox.top) / boundingBox.height;
 
@@ -18,7 +20,7 @@ function setupClick() {
 			// Start a delay before sending the mousedown message
 			mouseDownTimer = setTimeout(() => {
 				// Math.random is to prevent .change from having the same message and not actually changing
-				const message = `Mousedown at X: ${Math.round(relativeX)} Y: ${Math.round(relativeY)} Random: ${Math.random()}`;
+				const message = `Mousedown at X: ${relativeX} Y: ${relativeY} Random: ${Math.random()}`;
 				outputBox.value = message;
 				outputBox.dispatchEvent(new Event("input"));
 				mouseDownTimer = null;
@@ -43,7 +45,7 @@ function setupClick() {
 	const img = document.getElementById("img_tag");
 	const poll_observation = () => {
 		if (img) {
-			observation = fetch("http://localhost:8084/screenshot", {
+			observation = fetch("http://localhost:1235/screenshot", {
 				mode: "cors",
 			}).then((res) => {
 				res.text().then((observation) => {

@@ -11,4 +11,4 @@ view:
     _target_: gptnt.ktane.client.KtaneClient
     client:
       _target_: httpx.AsyncClient
-      base_url: ${ktane_client_host}:${ktane_client_port}
+      base_url: "http://${ktane_client_host}:${ktane_client_port}"
