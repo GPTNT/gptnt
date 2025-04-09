@@ -5,3 +5,9 @@ defaults:
   - _self_
 
 _target_: gptnt.players.defuser.MDPDefuserPlayer
+
+game_client:
+  _target_: gptnt.ktane.client.KtaneClient
+  client:
+    _target_: httpx.AsyncClient
+    base_url: "${ktane_client_host}:${ktane_client_port}"
