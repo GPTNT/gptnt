@@ -10,7 +10,14 @@ from pydantic.dataclasses import dataclass
 
 @dataclass(config={"arbitrary_types_allowed": True})
 class ChatMessage(gr.ChatMessage):
-    """gr.ChatMessage with timestamp."""
+    """gr.ChatMessage with timestamp.
+
+    This is because gr.ChatMessage does not have a timestamp field, and we need that to know when
+    each message for sent.
+
+    We are using a Pydantic dataclass instead of the builtin `dataclasses` because we are using
+    Pydantic to serialize the data to JSON automatically.
+    """
 
     timestamp: datetime = Field(default_factory=datetime.now)
 
