@@ -1,0 +1,2 @@
+# Ensure lineendings are LF, in case core.autocrlf is not set
+* text=auto
