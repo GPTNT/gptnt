@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from datetime import datetime
+from datetime import UTC, datetime
+from functools import partial
 from typing import Any, ClassVar
 
 import gradio as gr
@@ -19,7 +20,7 @@ class ChatMessage(gr.ChatMessage):
     Pydantic to serialize the data to JSON automatically.
     """
 
-    timestamp: datetime = Field(default_factory=datetime.now)
+    timestamp: datetime = Field(default_factory=partial(datetime.now, UTC))
 
 
 class BasePlayerView(ABC):
