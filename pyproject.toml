@@ -82,6 +82,7 @@ extend-ignore = [
 ]
 per-file-ignores = [
     "tests/*:WPS2,WPS118,WPS432,WPS435,WPS444,WPS476",
+    "src/gptnt/ktane/state/*:WPS202",
 ]
 select = ["WPS"]
 max-line-length = 99
