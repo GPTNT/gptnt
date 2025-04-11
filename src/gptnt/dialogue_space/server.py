@@ -60,6 +60,11 @@ class DialogueSpaceServer:
         # Empty agents store once server has stopped
         self.agents.clear()
 
+    def reset(self) -> None:
+        """Reset the dialogue space server."""
+        self.agents = {}
+        self.messages = {}
+
     @property
     def next_message_id(self) -> int:
         """Get the highest message ID in the datastore."""
