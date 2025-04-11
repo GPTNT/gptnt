@@ -12,9 +12,11 @@ dependencies = [
     "httpx>=0.28.1",
     "hydra-core>=1.3.2",
     "omegaconf>=2.3.0",
+    "opencv-python-headless>=4.11.0.86",
     "pydantic>=2.10.6",
     "pydantic-ai>=0.0.24",
     "rich>=13.9.4",
+    "scikit-image>=0.25.2",
     "structlog>=25.1.0",
     "typer>=0.15.1",
     "websockets>=14.2",
@@ -100,6 +102,8 @@ max-string-usages = 10
 max-annotation-complexity = 5
 # WPS221: Increase max jones compexity
 max-line-complexity = 17
+# WPS202: Increase max module members
+max-module-members = 15
 
 [tool.pytest.ini_options]
 filterwarnings = [

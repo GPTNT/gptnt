@@ -8,13 +8,17 @@ import structlog
 from gptnt.ktane.actions import KtaneAction
 from gptnt.ktane.exceptions import InvalidGameError
 from gptnt.ktane.mission_spec import KtaneMissionSpec
+from gptnt.som.som import SetOfMarksHandler
 
 
 class KtaneClient:
     """Create a client to interact with the KTANE game."""
 
-    def __init__(self, *, client: httpx.AsyncClient) -> None:
+    def __init__(
+        self, *, client: httpx.AsyncClient, set_of_marks_painter: SetOfMarksHandler | None = None
+    ) -> None:
         self.client = client
+        self.set_of_marks_painter = set_of_marks_painter
 
         assert self.client.base_url is not None, "Base URL must be set"
 
@@ -81,6 +85,15 @@ class KtaneClient:
 
     async def get_observation(self) -> bytes:
         """Get the current observation from the game as a png."""
+        if self.set_of_marks_painter is None:
+            return await self._get_screenshot()
+
+        observation_bytes, segm_image_bytes = await self._get_screenshot_with_segm()
+        return self.set_of_marks_painter.run(
+            observation=observation_bytes, colorful_image=segm_image_bytes
+        )
+
+    async def _get_screenshot(self) -> bytes:
         response = await self.client.get("/screenshot")
 
         try:
@@ -91,3 +104,6 @@ class KtaneClient:
         base64_data = response.text
         png_data = base64.b64decode(base64_data)
         return png_data
+
+    async def _get_screenshot_with_segm(self) -> tuple[bytes, bytes]:
+        raise NotImplementedError

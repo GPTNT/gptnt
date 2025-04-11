@@ -11,3 +11,8 @@ game_client:
   client:
     _target_: httpx.AsyncClient
     base_url: "${ktane_client_host}:${ktane_client_port}"
+
+  set_of_marks_painter:
+    _target_: gptnt.som.som.SetOfMarksHandler
+    add_label: true
+    add_bbox: true
