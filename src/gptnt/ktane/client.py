@@ -74,7 +74,7 @@ class KtaneClient:
         coordinate of where we are clicking. As a result, this means that using SoM is not
         supported by the game, and any SoM actions must first be converted to relative coordinates.
         """
-        endpoint = "/click" if action.is_clicking_action else "/rotation"
+        endpoint = "action"
 
         response = await self.client.get(endpoint, params=action.to_query_params())
         try:

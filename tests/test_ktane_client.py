@@ -136,10 +136,7 @@ def test_ktane_action_correctly_converts_to_query_params(action_type: GameAction
 async def test_send_action_sends_correct_action(
     client: KtaneClient, action_type: GameActionType
 ) -> None:
-    click_endpoint = respx.get(f"{client.client.base_url}/click").mock(
-        return_value=httpx.Response(httpx.codes.OK)
-    )
-    discrete_endpoint = respx.get(f"{client.client.base_url}/rotation").mock(
+    action_endpoint = respx.get(f"{client.client.base_url}/action").mock(
         return_value=httpx.Response(httpx.codes.OK)
     )
 
@@ -151,11 +148,4 @@ async def test_send_action_sends_correct_action(
     )
 
     await client.send_action(action)
-
-    if action_type in GameActionType.require_location():
-        assert click_endpoint.called is True
-        assert discrete_endpoint.called is False
-
-    else:
-        assert click_endpoint.called is False
-        assert discrete_endpoint.called is True
+    assert action_endpoint.called is True
