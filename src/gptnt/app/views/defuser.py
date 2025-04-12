@@ -69,7 +69,10 @@ class DefuserPlayerView(BasePlayerView):
 
     @override
     def load_custom_js(self) -> str:
-        return Path(__file__).parent.joinpath("defuser_script.js").read_text()
+        base_url = self.ktane_client.client.base_url
+        script = Path(__file__).parent.joinpath("defuser_script.js").read_text()
+        script = script.replace("{observation_endpoint}", f'"{base_url}/screenshot"')
+        return script
 
     async def _handle_textbox_change(self, text: str) -> None:
         # Parse JS mouse events and send to KTANE client
