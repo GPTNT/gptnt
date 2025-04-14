@@ -5,6 +5,7 @@ function setupClick() {
 		return;
 	}
 
+	// Output box for the messages
 	const outputBox = document.querySelector("#real_box textarea");
 
 	let mouseDownTimer = null;
@@ -35,11 +36,19 @@ function setupClick() {
 			const message = `Mouseup at X: ${relativeX} Y: ${relativeY} Random: ${Math.random()}`;
 			outputBox.value = message;
 			outputBox.dispatchEvent(new Event("input"));
+		} else if (event.type === "mouseleave") {
+			// If mouse leaves the bounding box reset the mouse down timer.
+			if (mouseDownTimer) {
+				clearTimeout(mouseDownTimer);
+				mouseDownTimer = null;
+				console.log("Mouseleave event was triggered.");
+			}
 		}
 	}
 
 	video.addEventListener("mousedown", handleMouseEvent);
 	video.addEventListener("mouseup", handleMouseEvent);
+	video.addEventListener("mouseleave", handleMouseEvent);
 
 	// Observations
 	const img = document.getElementById("img_tag");
