@@ -1,0 +1,32 @@
+# @package _global_
+
+defaults:
+  - _self_
+  - hydra: default
+  - experiment/pairing: with_self
+  - experiment/communication_style: sequential
+  - experiment/condition: single_module
+  - experiment/players: default
+
+  - experiment: null
+
+  - override hydra/job_logging: none
+  - override hydra/hydra_logging: none
+
+task_name: generate_experiments
+
+pairing_generator:
+  _target_: gptnt.ktane.exp.pairing.PairingGenerator
+  pairing_type: ???
+  all_players: ???
+
+mission_generator:
+  _target_: gptnt.ktane.exp.missions.MissionGenerator
+  num_seeds_per_mission: 3
+  seed: 42
+  config: ???
+
+experiment_generator:
+  _target_: gptnt.ktane.exp.experiments.ExperimentGenerator
+  condition: ???
+  communication_style: ???

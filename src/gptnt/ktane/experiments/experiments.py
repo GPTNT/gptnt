@@ -1,0 +1,65 @@
+import itertools
+from collections.abc import Iterator
+from typing import Literal
+
+from pydantic import BaseModel
+
+from gptnt.ktane.experiments.pairing import Pairing
+from gptnt.ktane.mission_spec import KtaneMissionSpec
+
+type CommunicationStyle = Literal["parallel", "sequential"]
+
+type Condition = Literal[
+    "single_module",
+    "multiple_modules_2",
+    "multiple_modules_2_front",
+    "multiple_modules_n",
+    "multiple_modules_5",
+    "repeated_modules_2",
+    "repeated_modules_5",
+]
+
+
+class ExperimentSpec(BaseModel):
+    """Specification for a single experiment.
+
+    This contains everything that the Experiment Manager will need to run the experiment.
+    """
+
+    mission_spec: KtaneMissionSpec
+    pairing: Pairing
+    condition: Condition
+    communication_style: CommunicationStyle
+
+    @property
+    def experiment_name(self) -> str:
+        """Get the name for the experiment."""
+        module = (
+            self.mission_spec.components[0].value
+            if len(self.mission_spec.components) == 1
+            else None
+        )
+        mission_name = module if module else ""
+        mission_name = f"{mission_name}_{self.mission_spec.seed}"
+        return f"{self.condition}_{self.communication_style}_{self.pairing}_{mission_name}"
+
+
+class ExperimentGenerator:
+    """Generate experiments from the given missions and pairings."""
+
+    def __init__(self, *, condition: Condition, communication_style: CommunicationStyle) -> None:
+        self.condition: Condition = condition
+        self.communication_style: CommunicationStyle = communication_style
+
+    def generate(
+        self, missions: Iterator[KtaneMissionSpec], pairings: Iterator[Pairing]
+    ) -> Iterator[ExperimentSpec]:
+        """Generate all possible experiments to be run from the given inputs."""
+        for mission, pairing in itertools.product(missions, pairings):
+            experiment = ExperimentSpec(
+                mission_spec=mission,
+                pairing=pairing,
+                condition=self.condition,
+                communication_style=self.communication_style,
+            )
+            yield experiment

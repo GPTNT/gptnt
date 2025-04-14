@@ -1,0 +1,6 @@
+# @package _global_
+
+pairing_generator:
+  all_players:
+    - human
+    - claude-37

@@ -81,6 +81,8 @@ extend-ignore = [
     "WPS601",
     # I disagree with WPS114
     "WPS114",
+    # f-strings are the way, this is just it now
+    "WPS237",
 ]
 per-file-ignores = [
     "tests/*:WPS2,WPS118,WPS432,WPS435,WPS444,WPS476",

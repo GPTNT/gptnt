@@ -1,0 +1,5 @@
+# @package _global_
+
+pairing_generator:
+  pairing_type: with_best
+  best_model: gpt4o

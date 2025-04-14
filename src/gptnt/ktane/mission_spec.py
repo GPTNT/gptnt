@@ -38,7 +38,11 @@ class KtaneMissionSpec(BaseModel):
         gt=0, serialization_alias="timeLimit", description="Time limit in seconds"
     )
     num_strikes_allowed: int = Field(
-        ge=1, le=5, serialization_alias="numStrikes", description="Allowed mistakes before failure"
+        default=3,
+        ge=1,
+        le=5,
+        serialization_alias="numStrikes",
+        description="Allowed mistakes before failure",
     )
     components: list[KtaneComponent] = Field(
         max_length=MAX_COMPONENTS, description="List of required components in the mission"

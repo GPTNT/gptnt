@@ -1,0 +1,8 @@
+# @package _global_
+
+defaults:
+  - _self_
+  - pairing: with_self
+  - communication_style: sequential
+  - condition: single_module
+  - players: with_smaller

@@ -12,5 +12,7 @@ class Paths(BaseSettings):
     storage: Path = root.joinpath("storage")
     output: Path = storage.joinpath("outputs")
 
+    experiments: Path = storage.joinpath("experiments")
+
     logs: Path = storage.joinpath("logs")
     gradio_chats: Path = output.joinpath("gradio_chats")

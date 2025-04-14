@@ -1,0 +1,4 @@
+# @package _global_
+
+experiment_generator:
+  communication_style: parallel
