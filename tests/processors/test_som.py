@@ -5,7 +5,12 @@ from numpy.typing import NDArray
 from pytest_cases import fixture, param_fixture
 from skimage.io import imread
 
-from gptnt.som.som import Bbox, Coordinate, convert_colorful_segm_to_labeled, get_region_properties
+from gptnt.processors.set_of_marks import (
+    Bbox,
+    Coordinate,
+    convert_colorful_segm_to_labeled,
+    get_region_properties,
+)
 
 segmentation_image_names = param_fixture(
     "segmentation_image_names",

@@ -8,7 +8,7 @@ import structlog
 from gptnt.ktane.actions import KtaneAction
 from gptnt.ktane.exceptions import InvalidGameError
 from gptnt.ktane.mission_spec import KtaneMissionSpec
-from gptnt.som.som import SetOfMarksHandler
+from gptnt.processors.set_of_marks import SetOfMarksHandler
 
 
 class KtaneClient:
