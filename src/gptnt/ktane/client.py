@@ -99,9 +99,13 @@ class KtaneClient:
         if self.set_of_marks_painter is None:
             return await self._get_screenshot()
 
-        observation_bytes, segm_image_bytes = await self._get_screenshot_with_segm()
+        observation, colorful_image = await self._get_screenshot_with_segm()
+        # If the segmentation is empty, we return the original screenshot.
+        if not colorful_image:
+            return observation
+
         return self.set_of_marks_painter.run(
-            observation=observation_bytes, colorful_image=segm_image_bytes
+            observation=observation, colorful_image=colorful_image
         )
 
     async def _get_screenshot(self) -> bytes:
@@ -116,5 +120,27 @@ class KtaneClient:
         png_data = base64.b64decode(base64_data)
         return png_data
 
-    async def _get_screenshot_with_segm(self) -> tuple[bytes, bytes]:
-        raise NotImplementedError
+    async def _get_screenshot_with_segm(self) -> tuple[bytes, bytes | None]:
+        """Get the current observation from the game as two pngs.
+
+        First is the raw screenshot, second is the segmentation image.
+        """
+        response = await self.client.get("/observation")
+
+        try:
+            _ = response.raise_for_status()
+        except httpx.HTTPError as err:
+            raise InvalidGameError("Failed to get observation") from err
+
+        response_json = response.json()
+
+        screenshot_png_data = base64.b64decode(response_json.get("screenshot"))
+
+        # When the segmentation is empty, we return an empty byte string.
+        segm_png_data = (
+            base64.b64decode(response_json.get("segmentation"))
+            if response_json["segmentation"]
+            else None
+        )
+
+        return screenshot_png_data, segm_png_data
