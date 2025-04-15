@@ -105,7 +105,6 @@ class DialogueSpaceServer:
 
         # Set last read to most recent message
         agent.last_read_message_id = latest_message_id
-        log.info(f"Set {agent.uuid} agent's last read message to {agent.last_read_message_id}")
 
         return messages_since_last_read
 
