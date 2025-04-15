@@ -49,6 +49,17 @@ class KtaneClient:
 
         return True
 
+    async def reset(self) -> bool:
+        """Reset the game to the Setup room."""
+        response = await self.client.get("/reset")
+        try:
+            _ = response.raise_for_status()
+        except httpx.HTTPError:
+            self._logger.exception("Failed to reset game")
+            return False
+
+        return True
+
     async def start_mission(self, specification: KtaneMissionSpec) -> bool:
         """Start a new mission in the environment."""
         response = await self.client.get("/startMission", params=specification.to_query_params())
