@@ -5,5 +5,5 @@ defaults:
   - _self_
 
 view:
-  _target_: gptnt.app.views.expert.ExpertPlayerView
+  _target_: gptnt.players.human.views.expert.ExpertPlayerView
   pdf_endpoint: https://www.bombmanual.com/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1.pdf

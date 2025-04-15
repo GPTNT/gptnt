@@ -3,7 +3,7 @@
 defaults:
   - _self_
 
-_target_: gptnt.app.controller.Controller
+_target_: gptnt.players.human.controller.Controller
 
 dialogue_space_client:
   _target_: gptnt.dialogue_space.client.DialogueSpaceClient.from_host_and_port

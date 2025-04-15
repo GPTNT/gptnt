@@ -5,7 +5,7 @@ defaults:
   - _self_
 
 view:
-  _target_: gptnt.app.views.defuser.DefuserPlayerView
+  _target_: gptnt.players.human.views.defuser.DefuserPlayerView
   stream_endpoint: http://localhost:5000/video_feed
   ktane_client:
     _target_: gptnt.ktane.client.KtaneClient
