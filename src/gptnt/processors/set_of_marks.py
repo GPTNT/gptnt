@@ -13,6 +13,7 @@ type RGBArray = NDArray[np.uint8]
 BLACK: Color = (0, 0, 0)
 WHITE: Color = (255, 255, 255)
 GREEN: Color = (0, 255, 0)
+ALPHA_CHANNEL = 4
 
 
 class Coordinate(NamedTuple):
@@ -175,10 +176,10 @@ class SetOfMarksHandler:
         *,
         box_color: Color = GREEN,
         text_color: Color = BLACK,
-        font_scale: float = 1,
-        box_thickness: int = 5,
-        text_thickness: int = 2,
-        padding: int = 3,
+        font_scale: float = 0.5,
+        box_thickness: int = 2,
+        text_thickness: int = 1,
+        padding: int = 1,
         add_labels: bool = True,
         add_bbox: bool = True,
     ) -> None:
@@ -232,6 +233,8 @@ class SetOfMarksHandler:
             add_labels=self._add_labels,
             add_bbox=self._add_bbox,
         )
+        if annotated_screenshot.shape[2] == ALPHA_CHANNEL:
+            annotated_screenshot = annotated_screenshot[:, :, :3]
 
         return annotated_screenshot
 
