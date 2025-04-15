@@ -41,7 +41,7 @@ def test_settings_file_created_correctly_if_not_exist(
     assert settings_path.exists()
     assert settings_path.is_file()
 
-    assert settings_path.read_text(encoding="utf-8").strip() == DEFAULT_PLAYER_SETTINGS_XML.strip()
+    assert settings_path.read_text() == DEFAULT_PLAYER_SETTINGS_XML
 
 
 def test_create_backup_settings_before_overwriting(
@@ -50,7 +50,6 @@ def test_create_backup_settings_before_overwriting(
     """Test that the settings file is backed up and then a new one is created."""
     # Make the path for the output
     settings_path = tmp_path.joinpath("playerSettings.xml")
-    backup_path = settings_path.with_suffix(".bak")
 
     # Fill in the file with some content
     _ = settings_path.write_text("Some content", encoding="utf-8")
@@ -61,6 +60,7 @@ def test_create_backup_settings_before_overwriting(
     settings_instance.create_settings_file(path=settings_path)
 
     # Check that the backup file exists
+    backup_path = next(settings_path.parent.glob("*.bak"))
     assert backup_path.exists()
     assert backup_path.is_file()
     assert backup_path.read_text(encoding="utf-8") == "Some content"
@@ -68,4 +68,4 @@ def test_create_backup_settings_before_overwriting(
     # check the new file is the default
     assert settings_path.exists()
     assert settings_path.is_file()
-    assert settings_path.read_text(encoding="utf-8").strip() == DEFAULT_PLAYER_SETTINGS_XML.strip()
+    assert settings_path.read_text() == DEFAULT_PLAYER_SETTINGS_XML

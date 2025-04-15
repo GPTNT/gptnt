@@ -774,3 +774,8 @@ sysinfo.txt
 
 # Run outputs
 storage/outputs
+
+# The game, but not the mod
+storage/ktane/*
+!storage/ktane/mods
+!storage/ktane/mods/*

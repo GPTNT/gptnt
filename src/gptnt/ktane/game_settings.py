@@ -1,5 +1,6 @@
 import os
 import platform
+from datetime import UTC, datetime
 from pathlib import Path
 
 import structlog
@@ -94,17 +95,29 @@ class KtanePlayerSettings(BaseSettings):
         except KeyError:
             raise OSError(f"Unsupported OS: {system}") from None
 
-    def create_settings_file(self, *, path: Path | None = None) -> None:
-        """Load or create the playerSettings.xml file and ensure settings are correct."""
+    def backup_old_settings(self, *, path: Path | None = None) -> None:
+        """Backup the old settings if it exists."""
         settings_path = path or self.get_settings_path()
 
-        # Make a backup of the settings file if it already exists
+        if settings_path.exists() and settings_path.read_text() == DEFAULT_PLAYER_SETTINGS_XML:
+            logger.debug("Settings file is already the default, no need to backup.")
+            return
+
         if settings_path.exists():
-            backup_location = settings_path.with_suffix(".bak")
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+            backup_location = settings_path.with_suffix(f".{timestamp}.bak")
             logger.warning(
                 f"Settings file already exists, we need to replace it to run things automatically. We are going to backup your settings at {backup_location}"
             )
             _ = backup_location.write_bytes(settings_path.read_bytes())
+
+    def create_settings_file(self, *, path: Path | None = None) -> None:
+        """Create the playerSettings.xml file if it doesn't exist.
+
+        We also backup old settings just in case.
+        """
+        settings_path = path or self.get_settings_path()
+        self.backup_old_settings(path=settings_path)
 
         # Make the dir if it doesn't exist
         settings_path.parent.mkdir(parents=True, exist_ok=True)

@@ -16,3 +16,6 @@ class Paths(BaseSettings):
 
     logs: Path = storage.joinpath("logs")
     gradio_chats: Path = output.joinpath("gradio_chats")
+
+    ktane: Path = storage.joinpath("ktane")
+    """Path to the where we store the game."""
