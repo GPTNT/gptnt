@@ -4,7 +4,9 @@ defaults:
   - ai/_default
   - _self_
 
-_target_: gptnt.players.defuser.MDPDefuserPlayer
+_target_: gptnt.players.ai.defuser.MDPDefuserPlayer
+
+observation_window_length: 10
 
 game_client:
   _target_: gptnt.ktane.client.KtaneClient
@@ -13,6 +15,6 @@ game_client:
     base_url: "${ktane_client_host}:${ktane_client_port}"
 
   set_of_marks_painter:
-    _target_: gptnt.som.som.SetOfMarksHandler
+    _target_: gptnt.processors.set_of_marks.SetOfMarksHandler
     add_label: true
     add_bbox: true

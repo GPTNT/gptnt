@@ -4,4 +4,4 @@ defaults:
   - ai/_default
   - _self_
 
-_target_: gptnt.players.expert.ExpertPlayer
+_target_: gptnt.players.ai.expert.ExpertPlayer

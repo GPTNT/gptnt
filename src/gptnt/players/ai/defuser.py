@@ -1,4 +1,5 @@
 import abc
+from collections import deque
 from collections.abc import Awaitable, Callable
 from typing import Union, override
 
@@ -43,6 +44,9 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
 
     LocationDataT is a generic that should be set to the location data type that the game client
     uses to represent locations in the game.
+
+    By default, all observations are stored in a deque with a max length of 1. This means that we
+    can easily support windowed or MDP-style defuser players.
     """
 
     role = "defuser"
@@ -52,9 +56,13 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
         agent: Agent[AgentDepsT, DefuserResultT[LocationDataT]],
         dialogue_space_client: DialogueSpaceClient,
         game_client: KtaneClient,
+        *,
+        observation_window_length: int = 1,
     ) -> None:
         super().__init__(agent, dialogue_space_client)
         self.game_client = game_client
+
+        self.observation_cache: deque[BinaryContent] = deque(maxlen=observation_window_length)
 
     @override
     async def connect(self) -> None:
@@ -99,8 +107,13 @@ class MDPDefuserPlayer[LocationDataT: InteractGameLocation](
         """Build the input for the defuser."""
         messages = await self.pull_unread_messages_from_dialogue_space()
         # Frame is/should be a JPEG that is encoded as bytes
-        current_frame: bytes = await self.game_client.get_observation()
-        agent_input = [messages, BinaryContent(current_frame, media_type="image/png")]
+        current_frame = BinaryContent(
+            await self.game_client.get_observation(), media_type="image/png"
+        )
+
+        self.observation_cache.append(current_frame)
+
+        agent_input = [messages, *list(self.observation_cache)]
         return agent_input
 
     @override
