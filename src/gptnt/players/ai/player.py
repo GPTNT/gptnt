@@ -1,13 +1,14 @@
 import abc
 from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 import structlog
-from pydantic_ai import Agent, BinaryContent
+from pydantic_ai import Agent, BinaryContent, UsageLimitExceeded
 from pydantic_ai.usage import Usage, UsageLimits
 
 from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.players.actions import DoNothingAction, SendMessageAction
+from gptnt.players.base_player import BasePlayer, UnhealthyPlayerError
 
 if TYPE_CHECKING:
     from pydantic_ai.messages import ModelMessage
@@ -15,8 +16,8 @@ if TYPE_CHECKING:
 log = structlog.get_logger()
 
 
-class Player[AgentDepsT, ResultDataT](abc.ABC):
-    """Base generic class for all actors/agents that play the game.
+class AIPlayer[AgentDepsT, ResultDataT](BasePlayer, abc.ABC):
+    """Base generic class for AI actors/agents that play the game.
 
     This class brings together all the other clients that are needed for this actor to have a role
     in the game, allow them to directly communicate with their dependencies to make decisions and
@@ -25,6 +26,8 @@ class Player[AgentDepsT, ResultDataT](abc.ABC):
     Notes:
         This class is an abstract class that is also a generic. Therefore the implementing class must provide the type of the data that the agent will return.
     """
+
+    role = "defuser"
 
     def __init__(
         self,
@@ -53,6 +56,14 @@ class Player[AgentDepsT, ResultDataT](abc.ABC):
         """
         raise NotImplementedError
 
+    @override
+    async def run(self) -> None:
+        """Run the decision making process for the player.
+
+        This will continually run forever/until we stop it.
+        """
+        raise NotImplementedError
+
     async def run_once(self) -> None:
         """Run the decision making process for the player once."""
         await self.health_check()
@@ -60,22 +71,23 @@ class Player[AgentDepsT, ResultDataT](abc.ABC):
         agent_output = await self.send_request_to_agent()
         _ = await self.direct_output_from_agent(agent_output)
 
+    @override
     async def connect(self) -> None:
-        """Connect the player to all the various clients/connections."""
         _ = await self.dialogue_space_client.connect()
 
         log.debug("Connected to all clients.")
 
+    @override
     async def health_check(self) -> None:
-        """Check health of all relevant connections, raising exceptions if not healthy.
+        try:  # noqa: WPS229 -- these raise the same error
+            self.usage_limits.check_before_request(self.usage)
+            self.usage_limits.check_tokens(self.usage)
+        except UsageLimitExceeded as err:
+            raise UnhealthyPlayerError("Usage limit exceeded") from err
 
-        Raises:
-            `pydantic_ai.exceptions.UsageLimitExceeded`: If next request would exceed the usage
-            limit.
-        """
-        self.usage_limits.check_before_request(self.usage)
-        self.usage_limits.check_tokens(self.usage)
-        assert self.dialogue_space_client.is_connected
+        if not self.dialogue_space_client.is_connected:
+            raise UnhealthyPlayerError("Dialogue space client is not connected.")
+
         log.debug("Health check passed.")
 
     async def send_message_to_dialogue_space(self, message: SendMessageAction) -> None:

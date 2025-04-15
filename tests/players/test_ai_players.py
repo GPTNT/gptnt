@@ -4,18 +4,18 @@ from pytest_cases import parametrize_with_cases
 from pytest_mock import MockerFixture
 
 from gptnt.players.actions import InteractGameLocation
-from gptnt.players.defuser import DefuserResultT
-from gptnt.players.expert import ExpertResultT
-from gptnt.players.player import Player
-from tests.players.fixtures import PlayerCases
+from gptnt.players.ai.ai_player import AIPlayer
+from gptnt.players.ai.defuser import DefuserResultT
+from gptnt.players.ai.expert import ExpertResultT
+from tests.players.fixtures import AIPlayerCases
 
 ResultDataT = ExpertResultT | DefuserResultT[InteractGameLocation]
 
 
 @pytest.mark.asyncio
-@parametrize_with_cases("player", cases=PlayerCases)
+@parametrize_with_cases("player", cases=AIPlayerCases)
 async def test_connect_calls_dialogue_space(
-    player: Player[None, ResultDataT], mocker: MockerFixture
+    player: AIPlayer[None, ResultDataT], mocker: MockerFixture
 ) -> None:
     # Mock the connect return
     player.dialogue_space_client.connect = mocker.AsyncMock(return_value=None)
@@ -25,16 +25,16 @@ async def test_connect_calls_dialogue_space(
 
 
 @pytest.mark.asyncio
-@parametrize_with_cases("player", cases=PlayerCases)
+@parametrize_with_cases("player", cases=AIPlayerCases)
 @pytest.mark.skip("Not implemented")
-async def test_run_once_calls_expected_methods(player: Player[None, ResultDataT]) -> None:
+async def test_run_once_calls_expected_methods(player: AIPlayer[None, ResultDataT]) -> None:
     raise NotImplementedError
 
 
 @pytest.mark.asyncio
-@parametrize_with_cases("player", cases=PlayerCases)
+@parametrize_with_cases("player", cases=AIPlayerCases)
 async def test_player_pulls_messages_from_dialogue_space(
-    player: Player[None, ResultDataT], mocker: MockerFixture
+    player: AIPlayer[None, ResultDataT], mocker: MockerFixture
 ) -> None:
     """Test that `build_agent_input` pulls the messages from the dialogue space."""
     # Mock the pull for the dialogue space client
@@ -48,10 +48,10 @@ async def test_player_pulls_messages_from_dialogue_space(
 
 
 @pytest.mark.asyncio
-@parametrize_with_cases("player", cases=PlayerCases)
+@parametrize_with_cases("player", cases=AIPlayerCases)
 @pytest.mark.skip("Not implemented")
 async def test_build_agent_input_with_no_messages(
-    player: Player[None, ResultDataT], mocker: MockerFixture
+    player: AIPlayer[None, ResultDataT], mocker: MockerFixture
 ) -> None:
     """Test behaviour when there are no messages in the dialogue space."""
     # TODO: when there are no messages, the input to the model should be empty?
@@ -64,19 +64,19 @@ async def test_build_agent_input_with_no_messages(
 
 
 @pytest.mark.asyncio
-@parametrize_with_cases("player", cases=PlayerCases)
+@parametrize_with_cases("player", cases=AIPlayerCases)
 @pytest.mark.skip("Not implemented")
 async def test_build_agent_input_with_disconnected_dialogue_space(
-    player: Player[None, ResultDataT],
+    player: AIPlayer[None, ResultDataT],
 ) -> None:
     """Test behaviour when not connected to the dialogue space."""
     raise NotImplementedError
 
 
 @pytest.mark.asyncio
-@parametrize_with_cases("player", cases=PlayerCases)
+@parametrize_with_cases("player", cases=AIPlayerCases)
 async def test_usage_updates_correctly_after_run(
-    player: Player[None, ResultDataT], mocker: MockerFixture
+    player: AIPlayer[None, ResultDataT], mocker: MockerFixture
 ) -> None:
     """Test that usage statistics update correctly after running the agent."""
     # Mock the pull for the dialogue space client
@@ -95,9 +95,9 @@ async def test_usage_updates_correctly_after_run(
 
 
 @pytest.mark.asyncio
-@parametrize_with_cases("player", cases=PlayerCases)
+@parametrize_with_cases("player", cases=AIPlayerCases)
 async def test_message_history_updates_after_run(
-    player: Player[None, ResultDataT], mocker: MockerFixture
+    player: AIPlayer[None, ResultDataT], mocker: MockerFixture
 ) -> None:
     # Mock the pull for the dialogue space client
     player.dialogue_space_client.pull_messages = mocker.AsyncMock(
@@ -114,9 +114,9 @@ async def test_message_history_updates_after_run(
 
 
 @pytest.mark.asyncio
-@parametrize_with_cases("player", cases=PlayerCases)
+@parametrize_with_cases("player", cases=AIPlayerCases)
 async def test_message_history_resets_properly(
-    player: Player[None, ResultDataT], mocker: MockerFixture
+    player: AIPlayer[None, ResultDataT], mocker: MockerFixture
 ) -> None:
     """Test that the message history resets properly after a run.
 

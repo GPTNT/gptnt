@@ -23,7 +23,7 @@ class ChatMessage(gr.ChatMessage):
     timestamp: datetime = Field(default_factory=partial(datetime.now, UTC))
 
 
-class BasePlayerView(ABC):
+class BaseView(ABC):
     """ABC for all the views, bringing common functionality across them."""
 
     role: ClassVar[str]

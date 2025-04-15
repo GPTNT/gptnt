@@ -5,14 +5,14 @@ from typing import override
 import gradio as gr
 from structlog import getLogger
 
-from gptnt.app.views.base_player import BasePlayerView
 from gptnt.ktane.actions import GameActionType, KtaneAction, RelativeCoordinate
 from gptnt.ktane.client import KtaneClient
+from gptnt.players.human.views.base_view import BaseView
 
 logger = getLogger()
 
 
-class DefuserPlayerView(BasePlayerView):
+class DefuserPlayerView(BaseView):
     """View for defuser player."""
 
     role = "defuser"

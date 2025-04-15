@@ -8,23 +8,21 @@ from typing import Any, override
 from pydantic import TypeAdapter
 from structlog import get_logger
 
-from gptnt.app.views.base_player import BasePlayerView, ChatMessage
 from gptnt.common.paths import Paths
 from gptnt.dialogue_space.client import DialogueSpaceClient
-from gptnt.players.run import RunPlayerMixin
-
-log = get_logger()
+from gptnt.players.base_player import BasePlayer, UnhealthyPlayerError
+from gptnt.players.human.views.base_view import BaseView, ChatMessage
 
 paths = Paths()
 
 
-class Controller(RunPlayerMixin):
+class Controller(BasePlayer):
     """Control the frontend with the backend for the UI app."""
 
     def __init__(
         self,
         *,
-        view: BasePlayerView,
+        view: BaseView,
         dialogue_space_client: DialogueSpaceClient,
         gradio_launch_kwargs: dict[str, Any] | None = None,
     ) -> None:
@@ -36,6 +34,16 @@ class Controller(RunPlayerMixin):
         self._log = get_logger()
 
     @override
+    async def health_check(self) -> None:
+        if not self.ds_client.is_connected:
+            raise UnhealthyPlayerError("Dialogue space client is unhealthy")
+
+    @override
+    async def connect(self) -> None:
+        await self.ds_client.connect()
+        self._log.info("Connected to dialogue space client")
+
+    @override
     async def run(self) -> None:
         """Build the layout and launch the gradio server.
 
@@ -45,8 +53,6 @@ class Controller(RunPlayerMixin):
         """
         self._log = self._log.bind(role=self.view.role)
         self._log.info("Running gradio app", gradio_kwargs=self.gradio_launch_kwargs)
-
-        await self.ds_client.connect()
 
         gradio_interface = self.view.build_layout(
             handle_send=self.handle_user_message,
@@ -97,7 +103,7 @@ class Controller(RunPlayerMixin):
         If provided a path, will save to that directory, otherwise will save to
         storage/outputs/gradio_chats. Returns saved log path.
         """
-        log.info("program closing, dumping logs to file")
+        self._log.info("program closing, dumping logs to file")
         game_timestamp = datetime.now(tz=UTC).strftime("%Y-%m-%d_%H-%M-%S")
 
         if save_path is None:

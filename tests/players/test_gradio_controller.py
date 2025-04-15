@@ -9,14 +9,14 @@ from pydantic import TypeAdapter
 from pytest_cases import parametrize_with_cases
 from structlog import getLogger
 
-from gptnt.app.controller import Controller
-from gptnt.app.views.base_player import ChatMessage
-from gptnt.app.views.defuser import DefuserPlayerView
-from gptnt.app.views.expert import ExpertPlayerView
 from gptnt.common.logger import configure_logging
 from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.dialogue_space.server import DialogueSpaceServer
 from gptnt.ktane.client import KtaneClient
+from gptnt.players.human.controller import Controller
+from gptnt.players.human.views.base_view import ChatMessage
+from gptnt.players.human.views.defuser import DefuserPlayerView
+from gptnt.players.human.views.expert import ExpertPlayerView
 
 configure_logging()
 logger = getLogger()

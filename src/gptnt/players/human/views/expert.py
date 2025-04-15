@@ -2,10 +2,10 @@ from typing import override
 
 import gradio as gr
 
-from gptnt.app.views.base_player import BasePlayerView
+from gptnt.players.human.views.base_view import BaseView
 
 
-class ExpertPlayerView(BasePlayerView):
+class ExpertPlayerView(BaseView):
     """View for Expert player."""
 
     role = "expert"

@@ -13,7 +13,7 @@ from gptnt.players.actions import (
     InteractGameLocation,
     SendMessageAction,
 )
-from gptnt.players.player import Player
+from gptnt.players.ai.ai_player import AIPlayer
 
 log = structlog.get_logger()
 
@@ -33,7 +33,7 @@ https://ai.pydantic.dev/results/#structured-result-validation
 
 
 class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
-    Player[AgentDepsT, DefuserResultT[LocationDataT]], abc.ABC
+    AIPlayer[AgentDepsT, DefuserResultT[LocationDataT]], abc.ABC
 ):
     """Base defuser player for the game.
 
@@ -44,6 +44,8 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
     LocationDataT is a generic that should be set to the location data type that the game client
     uses to represent locations in the game.
     """
+
+    role = "defuser"
 
     def __init__(
         self,

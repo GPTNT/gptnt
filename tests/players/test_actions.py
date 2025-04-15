@@ -6,10 +6,10 @@ from pytest_cases import parametrize_with_cases
 from pytest_mock import MockerFixture
 
 from gptnt.players.actions import DoNothingAction, InteractGameLocation, SendMessageAction
-from gptnt.players.defuser import DefuserResultT
-from gptnt.players.expert import ExpertResultT
-from gptnt.players.player import Player
-from tests.players.fixtures import PlayerCases
+from gptnt.players.ai.ai_player import AIPlayer
+from gptnt.players.ai.defuser import DefuserResultT
+from gptnt.players.ai.expert import ExpertResultT
+from tests.players.fixtures import AIPlayerCases
 
 ResultDataT = ExpertResultT | DefuserResultT[InteractGameLocation]
 
@@ -27,9 +27,9 @@ def test_all_actions_have_action_type_attribute() -> None:
 
 
 @pytest.mark.asyncio
-@parametrize_with_cases("player", cases=PlayerCases)
+@parametrize_with_cases("player", cases=AIPlayerCases)
 async def test_do_nothing_action_goes_to_do_nothing_method(
-    player: Player[None, ResultDataT], mocker: MockerFixture
+    player: AIPlayer[None, ResultDataT], mocker: MockerFixture
 ) -> None:
     """Test that DoNothingAction handler actually does nothing."""
     # Make a spy to track the call to send_message
@@ -44,9 +44,9 @@ async def test_do_nothing_action_goes_to_do_nothing_method(
 
 
 @pytest.mark.asyncio
-@parametrize_with_cases("player", cases=PlayerCases)
+@parametrize_with_cases("player", cases=AIPlayerCases)
 async def test_send_message_action_sends_message_to_dialogue_space(
-    player: Player[None, ResultDataT], mocker: MockerFixture
+    player: AIPlayer[None, ResultDataT], mocker: MockerFixture
 ) -> None:
     """Test that SendMessageAction handler sends message to dialogue space.
 

@@ -5,7 +5,7 @@ from omegaconf import DictConfig
 
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
-from gptnt.players.run import RunPlayerMixin
+from gptnt.players.base_player import BasePlayer
 
 configure_logging()
 
@@ -20,7 +20,7 @@ def run_player(config: DictConfig) -> None:
     """
     # Instantiate the player from the class
     player = hydra.utils.instantiate(config.player)
-    assert isinstance(player, RunPlayerMixin)
+    assert isinstance(player, BasePlayer)
 
     # Now run it in its loop
     asyncio.run(player.run())

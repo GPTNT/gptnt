@@ -4,7 +4,7 @@ from typing import Union, override
 import structlog
 
 from gptnt.players.actions import DoNothingAction, SendMessageAction
-from gptnt.players.player import Player
+from gptnt.players.ai.ai_player import AIPlayer
 
 log = structlog.get_logger()
 
@@ -16,8 +16,10 @@ https://ai.pydantic.dev/results/#structured-result-validation
 """
 
 
-class ExpertPlayer(Player[None, ExpertResultT]):
+class ExpertPlayer(AIPlayer[None, ExpertResultT]):
     """Class for all Expert players."""
+
+    role = "expert"
 
     @override
     async def build_agent_input(self) -> str:

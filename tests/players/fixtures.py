@@ -4,11 +4,11 @@ from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.ktane.actions import RelativeCoordinate
 from gptnt.ktane.client import KtaneClient
 from gptnt.players.actions import SetOfMarksLocation
-from gptnt.players.defuser import DefuserResultT, MDPDefuserPlayer
-from gptnt.players.expert import ExpertPlayer, ExpertResultT
+from gptnt.players.ai.defuser import DefuserResultT, MDPDefuserPlayer
+from gptnt.players.ai.expert import ExpertPlayer, ExpertResultT
 
 
-class PlayerCases:
+class AIPlayerCases:
     """Parametrize fixtures for players."""
 
     def case_expert(self, dialogue_space_client: DialogueSpaceClient) -> ExpertPlayer:
