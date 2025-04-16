@@ -71,12 +71,39 @@ class KtaneClient:
             return False
         return True
 
-    async def time_step(self) -> bool:
-        """Unpause for 'KtaneMissionSpec.time_step_size' milliseconds.
+    async def advance_time(self, milliseconds: int) -> bool:
+        """Move the game forward in time by a given number of milliseconds, then pause it."""
+        response_set_step_unit = await self.client.get(
+            "/setstepunit", params={"value": milliseconds}
+        )
+        response_time_step = await self.client.get("/timestep")
 
-        Return True if there are no issues with performing this command.
-        """
-        raise NotImplementedError
+        try:
+            _ = response_set_step_unit.raise_for_status(), response_time_step.raise_for_status()
+        except httpx.HTTPError:
+            self._logger.exception("Failed to advance time")
+            return False
+        return True
+
+    async def stop_time(self) -> bool:
+        """Pause the game."""
+        response = await self.client.get("/settimescale", params={"value": 0})
+        try:
+            _ = response.raise_for_status()
+        except httpx.HTTPError:
+            self._logger.exception("Failed to stop time")
+            return False
+        return True
+
+    async def resume_time(self) -> bool:
+        """Resume the game."""
+        response = await self.client.get("/settimescale", params={"value": 1})
+        try:
+            _ = response.raise_for_status()
+        except httpx.HTTPError:
+            self._logger.exception("Failed to resume time")
+            return False
+        return True
 
     async def send_action(self, action: KtaneAction) -> None:
         """Send an action to the server.
