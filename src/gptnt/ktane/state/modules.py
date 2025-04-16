@@ -1,6 +1,6 @@
 from typing import Annotated, NamedTuple
 
-from pydantic import BaseModel, ConfigDict, Field, alias_generators, with_config
+from pydantic import BaseModel, ConfigDict, Field, NonNegativeFloat, alias_generators, with_config
 
 from gptnt.ktane.state import constants
 
@@ -9,11 +9,24 @@ from gptnt.ktane.state import constants
 class BaseModuleState(BaseModel):
     """Base class for all module states."""
 
+    on_front: bool
+    index: Annotated[int, Field(ge=0, le=5)]
+
+
+class InteractiveModuleState(BaseModuleState):
+    """Base class for interactive module states."""
+
     is_solved: bool
     in_focus: bool
 
 
-class ButtonModuleState(BaseModuleState):
+class TimerState(BaseModuleState):
+    """State of the Timer module."""
+
+    seconds_remaining: NonNegativeFloat = 300
+
+
+class ButtonModuleState(InteractiveModuleState):
     """State of the Button module."""
 
     button_color: constants.ButtonColor
@@ -22,14 +35,14 @@ class ButtonModuleState(BaseModuleState):
     strip_colour: constants.ButtonStripColour | None
 
 
-class KeyPadButtonState(BaseModuleState):
+class KeyPadButtonState(InteractiveModuleState):
     """State of the Keypad button."""
 
     symbol: constants.KeypadSymbol
     colour: constants.KeyPadButtonColour | None
 
 
-class KeypadModuleState(BaseModuleState):
+class KeypadModuleState(InteractiveModuleState):
     """State of the Keypad module."""
 
     top_left: KeyPadButtonState
@@ -38,7 +51,7 @@ class KeypadModuleState(BaseModuleState):
     bottom_right: KeyPadButtonState
 
 
-class SimonSaysModuleState(BaseModuleState):
+class SimonSaysModuleState(InteractiveModuleState):
     """State of the Simon Says module."""
 
     beep_sequence: Annotated[list[constants.SimonSaysColor], Field(min_length=4, max_length=6)]
@@ -74,20 +87,20 @@ class WireSequenceWire(BaseWire[constants.WireSequenceColor]):
     end_position_letter: Annotated[str, Field(max_length=1, min_length=1)]
 
 
-class ComplicatedWiresModuleState(BaseModuleState):
+class ComplicatedWiresModuleState(InteractiveModuleState):
     """State of the Complicated Wires module."""
 
     wires: Annotated[list[ComplicatedWire], Field(max_length=6, min_length=1)]
 
 
-class WireSequenceModuleState(BaseModuleState):
+class WireSequenceModuleState(InteractiveModuleState):
     """State of the Wire Sequence module."""
 
     panel: Annotated[int, Field(le=4, ge=1)]
     wires: Annotated[list[WireSequenceWire], Field(max_length=3, min_length=1)]
 
 
-class WireSetModuleState(BaseModuleState):
+class WireSetModuleState(InteractiveModuleState):
     """State of the Wire Set module."""
 
     wires: Annotated[list[WireSetWire], Field(max_length=6, min_length=1)]
@@ -100,7 +113,7 @@ class MazeCoordinate(NamedTuple):
     column: int
 
 
-class MazeModuleState(BaseModuleState):
+class MazeModuleState(InteractiveModuleState):
     """State of the Maze module.
 
     Note: Coordinates start with (0,0) at the top-left corner, and (num_rows-1, num_columns-1) at the bottom-right corner.
@@ -115,7 +128,7 @@ class MazeModuleState(BaseModuleState):
     circle_positions: Annotated[list[MazeCoordinate], Field(max_length=2, min_length=2)]
 
 
-class MemoryModuleState(BaseModuleState):
+class MemoryModuleState(InteractiveModuleState):
     """State of the Memory module."""
 
     display_number: Annotated[int, Field(le=4, ge=1)]
@@ -125,21 +138,22 @@ class MemoryModuleState(BaseModuleState):
     stage: Annotated[int, Field(le=5, ge=1)]
 
 
-class MorseCodeModuleState(BaseModuleState):
+class MorseCodeModuleState(InteractiveModuleState):
     """State of the Morse Code module."""
 
     sequence: constants.MorseCodes
-    frequency: float
+    current_frequency: float
+    correct_frequency: float
 
 
-class PasswordModuleState(BaseModuleState):
+class PasswordModuleState(InteractiveModuleState):
     """State of the Password module."""
 
     current_word: str
     goal_word: str
 
 
-class WhosOnFirstModuleState(BaseModuleState):
+class WhosOnFirstModuleState(InteractiveModuleState):
     """State of the Who's on First module."""
 
     display_word: str
@@ -162,14 +176,14 @@ type StandardModuleStates = (
 )
 
 
-class DischargeModuleState(BaseModuleState):
+class DischargeModuleState(InteractiveModuleState):
     """State of the Capacitor Discharge module."""
 
     is_being_needy: bool
     seconds_until_discharge: int
 
 
-class KnobModuleState(BaseModuleState):
+class KnobModuleState(InteractiveModuleState):
     """State of the Knob module."""
 
     is_being_needy: bool
@@ -177,7 +191,7 @@ class KnobModuleState(BaseModuleState):
     led_position: dict[Annotated[int, Field(le=11, ge=0)], bool]  # noqa: WPS432
 
 
-class GasModuleState(BaseModuleState):
+class GasModuleState(InteractiveModuleState):
     """State of the Venting Gas module."""
 
     is_being_needy: bool
