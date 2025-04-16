@@ -1,10 +1,11 @@
 from typing import Annotated, NamedTuple
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, alias_generators, with_config
 
 from gptnt.ktane.state import constants
 
 
+@with_config(ConfigDict(alias_generator=alias_generators.to_snake, populate_by_name=True))
 class BaseModuleState(BaseModel):
     """Base class for all module states."""
 
@@ -40,11 +41,12 @@ class KeypadModuleState(BaseModuleState):
 class SimonSaysModuleState(BaseModuleState):
     """State of the Simon Says module."""
 
-    beep_sequence: Annotated[list[constants.SimonSaysColor], Field(min_length=1, max_length=5)]
-    input_sequence: Annotated[list[constants.SimonSaysColor], Field(min_length=0, max_length=4)]
+    beep_sequence: Annotated[list[constants.SimonSaysColor], Field(min_length=4, max_length=6)]
+    solve_progress: Annotated[int, Field(le=5, ge=0)]
 
 
-class BaseWire[WireColourT](BaseModuleState):
+@with_config(ConfigDict(alias_generator=alias_generators.to_snake, populate_by_name=True))
+class BaseWire[WireColourT](BaseModel):
     """Base class for wires."""
 
     is_cut: bool
@@ -81,7 +83,7 @@ class ComplicatedWiresModuleState(BaseModuleState):
 class WireSequenceModuleState(BaseModuleState):
     """State of the Wire Sequence module."""
 
-    panel: Annotated[int, Field(max_length=4, min_length=1)]
+    panel: Annotated[int, Field(le=4, ge=1)]
     wires: Annotated[list[WireSequenceWire], Field(max_length=3, min_length=1)]
 
 
@@ -133,7 +135,8 @@ class MorseCodeModuleState(BaseModuleState):
 class PasswordModuleState(BaseModuleState):
     """State of the Password module."""
 
-    letters: list[str]
+    current_word: str
+    goal_word: str
 
 
 class WhosOnFirstModuleState(BaseModuleState):

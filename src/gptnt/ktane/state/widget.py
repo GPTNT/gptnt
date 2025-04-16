@@ -1,32 +1,42 @@
 from typing import Annotated
 
 import annotated_types
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, alias_generators, with_config
 
 from gptnt.ktane.state import constants
 
 
-class BatteryWidgetState(BaseModel):
-    """State of the Battery widget."""
+@with_config(ConfigDict(alias_generator=alias_generators.to_snake, populate_by_name=True))
+class BaseWidgetState(BaseModel):
+    """Base class for all widget states."""
 
     position: constants.WidgetPosition
+
+
+class BatteryWidgetState(BaseWidgetState):
+    """State of the Battery widget."""
+
     batteries_count: int
     battery_type: constants.BatteryType
 
 
-class IndicatorWidgetState(BaseModel):
+class IndicatorWidgetState(BaseWidgetState):
     """State of the Indicator widget."""
 
-    position: constants.WidgetPosition
     light_activated: bool
     label: Annotated[str, annotated_types.MaxLen(3), annotated_types.MinLen(3)]
 
 
-class PortWidgetState(BaseModel):
+class PortWidgetState(BaseWidgetState):
     """State of the Port widget."""
 
-    position: constants.WidgetPosition
-    port_type: constants.PortType
+    port_type: list[constants.PortType] | None
 
 
-type WidgetStates = BatteryWidgetState | IndicatorWidgetState | PortWidgetState
+class SerialWidgetState(BaseWidgetState):
+    """State of the Serial Number widget."""
+
+    serial_number: str
+
+
+type WidgetStates = BatteryWidgetState | IndicatorWidgetState | PortWidgetState | SerialWidgetState
