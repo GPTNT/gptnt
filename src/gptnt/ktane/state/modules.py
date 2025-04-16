@@ -1,13 +1,14 @@
 from typing import Annotated, NamedTuple
 
-from pydantic import BaseModel, ConfigDict, Field, NonNegativeFloat, alias_generators, with_config
+from pydantic import BaseModel, ConfigDict, Field, NonNegativeFloat, alias_generators
 
 from gptnt.ktane.state import constants
 
 
-@with_config(ConfigDict(alias_generator=alias_generators.to_snake, populate_by_name=True))
 class BaseModuleState(BaseModel):
     """Base class for all module states."""
+
+    model_config = ConfigDict(alias_generator=alias_generators.to_snake, populate_by_name=True)
 
     on_front: bool
     index: Annotated[int, Field(ge=0, le=5)]
@@ -24,6 +25,8 @@ class TimerState(BaseModuleState):
     """State of the Timer module."""
 
     seconds_remaining: NonNegativeFloat = 300
+    on_front: bool
+    index: Annotated[int, Field(ge=0, le=5)]
 
 
 class ButtonModuleState(InteractiveModuleState):
@@ -58,9 +61,10 @@ class SimonSaysModuleState(InteractiveModuleState):
     solve_progress: Annotated[int, Field(le=5, ge=0)]
 
 
-@with_config(ConfigDict(alias_generator=alias_generators.to_snake, populate_by_name=True))
 class BaseWire[WireColourT](BaseModel):
     """Base class for wires."""
+
+    model_config = ConfigDict(alias_generator=alias_generators.to_camel, populate_by_name=True)
 
     is_cut: bool
     colour: WireColourT

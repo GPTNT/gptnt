@@ -1,12 +1,13 @@
-from pydantic import BaseModel, ConfigDict, NonNegativeFloat, alias_generators, with_config
+from pydantic import BaseModel, ConfigDict, NonNegativeFloat, alias_generators
 
 from gptnt.ktane.state.modules import ModuleStates, TimerState
 from gptnt.ktane.state.widget import WidgetStates
 
 
-@with_config(ConfigDict(alias_generator=alias_generators.to_snake, populate_by_name=True))
 class BombState(BaseModel):
     """State of the bomb at the current timestep."""
+
+    model_config = ConfigDict(alias_generator=alias_generators.to_snake, populate_by_name=True)
 
     seed: int
     timestamp: NonNegativeFloat
@@ -14,6 +15,7 @@ class BombState(BaseModel):
     current_strikes: int = 0
     is_detonated: bool
     is_solved: bool
+    is_light_on: bool
     timer_module: TimerState
     widgets: list[WidgetStates]
     modules: list[ModuleStates]

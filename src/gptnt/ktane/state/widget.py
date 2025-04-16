@@ -1,15 +1,15 @@
 from typing import Annotated
 
 import annotated_types
-from pydantic import BaseModel, ConfigDict, alias_generators, with_config
+from pydantic import BaseModel, ConfigDict, alias_generators
 
 from gptnt.ktane.state import constants
 
 
-@with_config(ConfigDict(alias_generator=alias_generators.to_snake, populate_by_name=True))
 class BaseWidgetState(BaseModel):
     """Base class for all widget states."""
 
+    model_config = ConfigDict(alias_generator=alias_generators.to_snake, populate_by_name=True)
     position: constants.WidgetPosition
 
 
