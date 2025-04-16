@@ -51,6 +51,7 @@ class Controller(BasePlayer):
             - All arguments are passed to `gradio.Interface.launch`.
             - Starts gradio on separate thread to prevent blocking logic thread.
         """
+        await self.connect()
         self._log = self._log.bind(role=self.view.role)
         self._log.info("Running gradio app", gradio_kwargs=self.gradio_launch_kwargs)
 
