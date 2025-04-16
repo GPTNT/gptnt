@@ -54,12 +54,9 @@ function setupClick() {
 	const img = document.getElementById("img_tag");
 	const poll_observation = () => {
 		if (img) {
-			observation = fetch(
-				{ observation_endpoint },
-				{
-					mode: "cors",
-				},
-			).then((res) => {
+			observation = fetch(`{observation_endpoint}`, {
+				mode: "cors",
+			}).then((res) => {
 				res.text().then((observation) => {
 					img.src = `data:image/png;base64, ${observation}`;
 				});

@@ -71,7 +71,7 @@ class DefuserPlayerView(BaseView):
     def load_custom_js(self) -> str:
         base_url = self.ktane_client.client.base_url
         script = Path(__file__).parent.joinpath("defuser_script.js").read_text()
-        script = script.replace("{observation_endpoint}", f'"{base_url}/screenshot"')
+        script = script.replace("`{observation_endpoint}`", f'"{base_url}/screenshot"')
         return script
 
     async def _handle_textbox_change(self, text: str) -> None:
