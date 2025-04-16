@@ -7,9 +7,7 @@ import pytest_asyncio
 from httpx import AsyncClient
 from pydantic import TypeAdapter
 from pytest_cases import parametrize_with_cases
-from structlog import getLogger
 
-from gptnt.common.logger import configure_logging
 from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.dialogue_space.server import DialogueSpaceServer
 from gptnt.ktane.client import KtaneClient
@@ -17,9 +15,6 @@ from gptnt.players.human.controller import Controller
 from gptnt.players.human.views.base_view import ChatMessage
 from gptnt.players.human.views.defuser import DefuserPlayerView
 from gptnt.players.human.views.expert import ExpertPlayerView
-
-configure_logging()
-logger = getLogger()
 
 
 @pytest_asyncio.fixture

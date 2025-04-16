@@ -151,11 +151,35 @@ async def test_message_history_resets_properly(
 
     # If the user_prompt content is a list, extract the message from it
     if isinstance(user_prompt.content, list):
-        message = next(
-            iter(message for message in user_prompt.content if isinstance(message, str)), None
-        )
+        text_content = [text for text in user_prompt.content if isinstance(text, str)]
+        message = text_content[-1]
         assert message is not None
 
     assert isinstance(message, str)
     assert message == "message2"
     assert message != "message1"
+
+
+@pytest.mark.asyncio
+@parametrize_with_cases("player", cases=AIPlayerCases, glob="expert")
+async def test_first_expert_message_includes_manual(
+    player: AIPlayer[None, ExpertResultT], mocker: MockerFixture
+) -> None:
+    """Test that the first message from the expert player includes the manual."""
+    # Mock the pull for the dialogue space client
+    player.dialogue_space_client.pull_messages = mocker.AsyncMock(return_value=["message1"])
+
+    _ = await player.send_request_to_agent()
+
+    assert player._message_history is not None
+    user_prompt = next(
+        msg.parts[0]
+        for msg in player._message_history
+        if isinstance(msg, ModelRequest) and isinstance(msg.parts[0], UserPromptPart)
+    ).content
+
+    assert isinstance(user_prompt, list)
+    assert len(user_prompt) > 1
+    # (23 pages * 2) + 1
+    assert len(user_prompt) == 47
+    assert user_prompt[-1] == "message1"
