@@ -1,3 +1,4 @@
+import colorsys
 import io
 from typing import NamedTuple, overload
 
@@ -6,6 +7,7 @@ import numpy as np
 from numpy.typing import NDArray
 from PIL import Image
 from skimage.measure import regionprops
+from skimage.measure._regionprops import RegionProperties
 
 type Color = tuple[int, int, int]
 type RGBArray = NDArray[np.uint8]
@@ -23,21 +25,16 @@ class Coordinate(NamedTuple):
     y_pos: int
 
 
-class Bbox(NamedTuple):
-    """Structure of a bounding box of a region."""
-
-    min_row: int
-    min_col: int
-    max_row: int
-    max_col: int
+def hue_to_rgb(hue: float) -> Color:
+    """Convert hue value to rgb."""
+    red_val, green_val, blue_val = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
+    return (int(red_val * 255), int(green_val * 255), int(blue_val * 255))  # noqa: WPS432
 
 
-class RegionProperties(NamedTuple):
-    """Specify the structure of a region's properties."""
-
-    label: int
-    centroid: Coordinate
-    bbox: Bbox
+def blend_with_image(image: RGBArray, mask: RGBArray, alpha: float = 0.3) -> RGBArray:
+    """Blend a mask with an image using alpha transparency."""
+    blended = cv2.addWeighted(mask, alpha, image, 1 - alpha, 0)
+    return np.asarray(blended, dtype=np.uint8)
 
 
 def convert_colorful_segm_to_labeled(image_as_array: RGBArray) -> NDArray[np.int8]:
@@ -62,27 +59,43 @@ def get_region_properties(labeled_image: NDArray[np.int8]) -> list[RegionPropert
     """Extract region properties from a labelled image."""
     props = regionprops(labeled_image)
 
-    return [
-        RegionProperties(
-            label=region.label,
-            centroid=Coordinate(round(region.centroid[1]), round(region.centroid[0])),
-            bbox=Bbox(*region.bbox),
-        )
-        for region in props
-    ]
+    return props
 
 
-def draw_bounding_box_on_image(
-    *, image: RGBArray, bbox: Bbox, color: Color, thickness: int
+def draw_mask_outline_on_image(  # noqa: WPS210
+    *,
+    image: RGBArray,
+    coords: NDArray[np.intp],
+    color: Color,
+    thickness: int,
+    soft_mask_alpha: float,
 ) -> RGBArray:
-    """Draw bounding box based off of bbos region property."""
-    _ = cv2.rectangle(
-        image,
-        (bbox.min_col, bbox.min_row),
-        (bbox.max_col, bbox.max_row),
-        color=color,
-        thickness=thickness,
-    )
+    """Draw outline of a single region based on its coordinates."""
+    # blank mask
+    mask = np.zeros_like(image[:, :, 0])
+
+    # get all region pixels on the mask
+    for y_coord, x_coord in coords:
+        mask[y_coord, x_coord] = 255
+
+    # draw contours on image
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if soft_mask_alpha > 0:
+        soft_mask = np.zeros_like(image)
+        _ = cv2.drawContours(soft_mask, contours, -1, color, cv2.FILLED)
+
+        # alpha blend soft mask over image
+        mask_region = cv2.drawContours(np.zeros_like(mask), contours, -1, WHITE, cv2.FILLED)
+        mask_region = mask_region.astype(bool)
+
+        # blend only in masked area
+        image[mask_region] = (
+            image[mask_region] * (1 - soft_mask_alpha) + soft_mask[mask_region] * soft_mask_alpha
+        ).astype(np.uint8)
+
+    _ = cv2.drawContours(image, contours, -1, color, thickness)
+
     return image
 
 
@@ -91,7 +104,7 @@ def draw_label_on_image(  # noqa: WPS210
     image: RGBArray,
     text: str,
     position: Coordinate,
-    box_color: Color,
+    mask_color: Color,
     text_color: Color,
     font_scale: float,
     thickness: int,
@@ -103,16 +116,16 @@ def draw_label_on_image(  # noqa: WPS210
     )
 
     # background rectangle
-    text_box_left = position.x_pos - text_width // 2
-    text_box_top = position.y_pos - text_height // 2
-    text_box_right = position.x_pos + text_width // 2
-    text_box_bottom = position.y_pos + text_height // 2
+    text_box_left = int(position.x_pos - text_width // 2)
+    text_box_top = int(position.y_pos - text_height // 2)
+    text_box_right = int(position.x_pos + text_width // 2)
+    text_box_bottom = int(position.y_pos + text_height // 2)
 
     _ = cv2.rectangle(
-        image,
-        (text_box_left - padding, text_box_top - padding),
-        (text_box_right + padding, text_box_bottom + padding),
-        color=box_color,
+        img=image,
+        pt1=(text_box_left - padding, text_box_top - padding),
+        pt2=(text_box_right + padding, text_box_bottom + padding),
+        color=mask_color,
         thickness=cv2.FILLED,
     )
 
@@ -131,34 +144,42 @@ def draw_label_on_image(  # noqa: WPS210
     return image
 
 
-def draw_region_labels(
+def draw_region_labels(  # noqa: WPS211
     *,
     image: RGBArray,
     regions: list[RegionProperties],
-    box_color: Color,
     text_color: Color,
     font_scale: float,
-    box_thickness: int,
+    mask_thickness: int,
     text_thickness: int,
     padding: int,
     add_labels: bool,
-    add_bbox: bool,
+    add_mask_outline: bool,
+    soft_mask_alpha: float,
 ) -> RGBArray:
     """Place label numbers on image based on region properties."""
     annotated_image = image.copy()
 
-    for region in regions:
-        if add_bbox:
-            _ = draw_bounding_box_on_image(
-                image=annotated_image, bbox=region.bbox, color=box_color, thickness=box_thickness
+    for idx, region in enumerate(regions):
+        # convert HSV to RGB
+        hue = idx / len(regions)  # evenly spaced between 0 and 1
+        mask_color: Color = hue_to_rgb(hue)
+
+        if add_mask_outline:
+            _ = draw_mask_outline_on_image(
+                image=annotated_image,
+                coords=region.coords,
+                color=mask_color,
+                thickness=mask_thickness,
+                soft_mask_alpha=soft_mask_alpha,
             )
 
         if add_labels:
             _ = draw_label_on_image(
                 image=annotated_image,
                 text=str(region.label),
-                position=region.centroid,
-                box_color=box_color,
+                position=Coordinate(*region.centroid[::-1]),
+                mask_color=mask_color,
                 text_color=text_color,
                 font_scale=font_scale,
                 thickness=text_thickness,
@@ -174,23 +195,23 @@ class SetOfMarksHandler:
     def __init__(
         self,
         *,
-        box_color: Color = GREEN,
         text_color: Color = BLACK,
         font_scale: float = 0.5,
-        box_thickness: int = 2,
+        mask_thickness: int = 2,
         text_thickness: int = 1,
         padding: int = 1,
         add_labels: bool = True,
-        add_bbox: bool = True,
+        add_mask_outline: bool = True,
+        soft_mask_alpha: float = 0.3,
     ) -> None:
-        self._box_color = box_color
         self._text_color = text_color
         self._font_scale = font_scale
-        self._box_thickness = box_thickness
+        self._mask_thickness = mask_thickness
         self._text_thickness = text_thickness
         self._padding = padding
         self._add_labels = add_labels
-        self._add_bbox = add_bbox
+        self._add_mask_outline = add_mask_outline
+        self._soft_mask_alpha = soft_mask_alpha
 
     @overload
     def run(self, *, observation: RGBArray, colorful_image: RGBArray) -> RGBArray: ...
@@ -224,14 +245,14 @@ class SetOfMarksHandler:
         annotated_screenshot = draw_region_labels(
             image=observation,
             regions=regions,
-            box_color=self._box_color,
             text_color=self._text_color,
             font_scale=self._font_scale,
-            box_thickness=self._box_thickness,
+            mask_thickness=self._mask_thickness,
             text_thickness=self._text_thickness,
             padding=self._padding,
             add_labels=self._add_labels,
-            add_bbox=self._add_bbox,
+            add_mask_outline=self._add_mask_outline,
+            soft_mask_alpha=self._soft_mask_alpha,
         )
         if annotated_screenshot.shape[2] == ALPHA_CHANNEL:
             annotated_screenshot = annotated_screenshot[:, :, :3]
