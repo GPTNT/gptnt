@@ -31,8 +31,8 @@ DEFAULT_PLAYER_SETTINGS_XML = """
     </AccessibilitySettings>
     <UseModsAlways>true</UseModsAlways>
     <SkipTitleScreen>true</SkipTitleScreen>
-    <UseParallelModLoading>false</UseParallelModLoading>
-    <LockMouseToWindow>true</LockMouseToWindow>
+    <UseParallelModLoading>true</UseParallelModLoading>
+    <LockMouseToWindow>false</LockMouseToWindow>
     <ShowLeaderBoards>true</ShowLeaderBoards>
     <ShowScanline>true</ShowScanline>
     <ShowRotationUI>true</ShowRotationUI>
@@ -124,3 +124,10 @@ class KtanePlayerSettings(BaseSettings):
 
         # Write the settings
         _ = settings_path.write_text(DEFAULT_PLAYER_SETTINGS_XML, encoding="utf-8")
+
+
+if __name__ == "__main__":
+    # This is just for testing the settings file
+    settings = KtanePlayerSettings()
+    settings.create_settings_file()
+    logger.info(f"Settings file created at {settings.get_settings_path()}")
