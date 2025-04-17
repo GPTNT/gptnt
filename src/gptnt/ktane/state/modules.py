@@ -1,14 +1,38 @@
-from typing import Annotated, NamedTuple
+from enum import Enum
+from typing import Annotated, NamedTuple, Union
 
 from pydantic import BaseModel, ConfigDict, Field, NonNegativeFloat, alias_generators
 
 from gptnt.ktane.state import constants
 
 
+class KtaneComponent(Enum):
+    """Enum representing valid KTANE components."""
+
+    empty = "Empty"
+    timer = "Timer"
+    wires = "Wires"
+    big_button = "BigButton"
+    keypad = "KeyPad"
+    simon = "Simon"
+    whos_on_first = "WhosOnFirst"
+    memory = "Memory"
+    morse_code = "Morse"
+    venn = "Venn"
+    wire_sequence = "WireSequence"
+    maze = "Maze"
+    password = "Password"  # noqa: S105
+    needy_vent_gas = "NeedyVentGas"
+    needy_capacitor = "NeedyCapacitor"
+    needy_knob = "NeedyKnob"
+
+
 class BaseModuleState(BaseModel):
     """Base class for all module states."""
 
-    model_config = ConfigDict(alias_generator=alias_generators.to_snake, populate_by_name=True)
+    model_config = ConfigDict(alias_generator=alias_generators.to_camel, populate_by_name=True)
+
+    name: KtaneComponent
 
     on_front: bool
     index: Annotated[int, Field(ge=0, le=5)]
@@ -25,8 +49,6 @@ class TimerState(BaseModuleState):
     """State of the Timer module."""
 
     seconds_remaining: NonNegativeFloat = 300
-    on_front: bool
-    index: Annotated[int, Field(ge=0, le=5)]
 
 
 class ButtonModuleState(InteractiveModuleState):
@@ -35,14 +57,14 @@ class ButtonModuleState(InteractiveModuleState):
     button_color: constants.ButtonColor
     button_word: constants.ButtonWord
     is_held: bool
-    strip_colour: constants.ButtonStripColour | None
+    strip_color: constants.ButtonStripColor | None
 
 
-class KeyPadButtonState(InteractiveModuleState):
+class KeyPadButtonState(BaseModel):
     """State of the Keypad button."""
 
     symbol: constants.KeypadSymbol
-    colour: constants.KeyPadButtonColour | None
+    color: constants.KeyPadButtonColor | None
 
 
 class KeypadModuleState(InteractiveModuleState):
@@ -61,13 +83,13 @@ class SimonSaysModuleState(InteractiveModuleState):
     solve_progress: Annotated[int, Field(le=5, ge=0)]
 
 
-class BaseWire[WireColourT](BaseModel):
+class BaseWire[WireColorT](BaseModel):
     """Base class for wires."""
 
     model_config = ConfigDict(alias_generator=alias_generators.to_camel, populate_by_name=True)
 
     is_cut: bool
-    colour: WireColourT
+    color: WireColorT
 
 
 class WireSetWire(BaseWire[constants.WireSetColor]):
@@ -126,7 +148,6 @@ class MazeModuleState(InteractiveModuleState):
 
     num_rows: int
     num_columns: int
-
     triangle_position: MazeCoordinate
     square_position: MazeCoordinate
     circle_positions: Annotated[list[MazeCoordinate], Field(max_length=2, min_length=2)]
@@ -165,19 +186,19 @@ class WhosOnFirstModuleState(InteractiveModuleState):
     stage: Annotated[int, Field(le=3, ge=1)]
 
 
-type StandardModuleStates = (
-    WireSetModuleState
-    | ButtonModuleState
-    | KeypadModuleState
-    | SimonSaysModuleState
-    | ComplicatedWiresModuleState
-    | MazeModuleState
-    | MemoryModuleState
-    | MorseCodeModuleState
-    | PasswordModuleState
-    | WhosOnFirstModuleState
-    | WireSequenceModuleState
-)
+type StandardModuleStates = Union[  # noqa: UP007
+    WireSetModuleState,
+    ButtonModuleState,
+    KeypadModuleState,
+    SimonSaysModuleState,
+    ComplicatedWiresModuleState,
+    MazeModuleState,
+    MemoryModuleState,
+    MorseCodeModuleState,
+    PasswordModuleState,
+    WhosOnFirstModuleState,
+    WireSequenceModuleState,
+]
 
 
 class DischargeModuleState(InteractiveModuleState):

@@ -1,31 +1,11 @@
-from enum import Enum
 from typing import cast
 
 from httpx import QueryParams
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from gptnt.ktane.state.modules import KtaneComponent
+
 MAX_COMPONENTS = 11
-
-
-class KtaneComponent(Enum):
-    """Enum representing valid KTANE components."""
-
-    empty = "Empty"
-    timer = "Timer"
-    wires = "Wires"
-    big_button = "BigButton"
-    keypad = "KeyPad"
-    simon = "Simon"
-    whos_on_first = "WhosOnFirst"
-    memory = "Memory"
-    morse_code = "Morse"
-    venn = "Venn"
-    wire_sequence = "WireSequence"
-    maze = "Maze"
-    password = "Password"  # noqa: S105
-    needy_vent_gas = "NeedyVentGas"
-    needy_capacitor = "NeedyCapacitor"
-    needy_knob = "NeedyKnob"
 
 
 class KtaneMissionSpec(BaseModel):

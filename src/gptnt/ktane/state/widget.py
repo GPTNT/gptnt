@@ -1,4 +1,5 @@
-from typing import Annotated
+from enum import Enum
+from typing import Annotated, Union
 
 import annotated_types
 from pydantic import BaseModel, ConfigDict, alias_generators
@@ -6,11 +7,21 @@ from pydantic import BaseModel, ConfigDict, alias_generators
 from gptnt.ktane.state import constants
 
 
+class KtaneWidget(Enum):
+    """Enum representing valid KTANE widgets."""
+
+    battery = "Battery"
+    indicator = "Indicator"
+    port = "Port"
+    serial_number = "SerialNumber"
+
+
 class BaseWidgetState(BaseModel):
     """Base class for all widget states."""
 
-    model_config = ConfigDict(alias_generator=alias_generators.to_snake, populate_by_name=True)
+    model_config = ConfigDict(alias_generator=alias_generators.to_camel, populate_by_name=True)
     position: constants.WidgetPosition
+    name: KtaneWidget
 
 
 class BatteryWidgetState(BaseWidgetState):
@@ -30,7 +41,7 @@ class IndicatorWidgetState(BaseWidgetState):
 class PortWidgetState(BaseWidgetState):
     """State of the Port widget."""
 
-    port_type: list[constants.PortType] | None
+    port_type: list[constants.PortType]
 
 
 class SerialWidgetState(BaseWidgetState):
@@ -39,4 +50,7 @@ class SerialWidgetState(BaseWidgetState):
     serial_number: str
 
 
-type WidgetStates = BatteryWidgetState | IndicatorWidgetState | PortWidgetState | SerialWidgetState
+type WidgetStates = Union[  # noqa: UP007
+    BatteryWidgetState, IndicatorWidgetState, PortWidgetState, SerialWidgetState
+]
+"""Widget states for the KTANE game."""

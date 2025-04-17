@@ -8,6 +8,7 @@ import structlog
 from gptnt.ktane.actions import KtaneAction
 from gptnt.ktane.exceptions import InvalidGameError
 from gptnt.ktane.mission_spec import KtaneMissionSpec
+from gptnt.ktane.state.bomb import BombState
 from gptnt.processors.set_of_marks import SetOfMarksHandler
 
 
@@ -105,7 +106,7 @@ class KtaneClient:
             return False
         return True
 
-    async def send_action(self, action: KtaneAction) -> None:
+    async def send_action(self, action: KtaneAction) -> BombState | None:
         """Send an action to the server.
 
         When we are sending actions to the game, we are always going to be sending a relative
@@ -119,7 +120,18 @@ class KtaneClient:
             _ = response.raise_for_status()
         except httpx.HTTPError:
             self._logger.exception("Failed to send action")
-            return
+            return None
+        return BombState.model_validate_json(response.text)
+
+    async def get_state(self) -> BombState | None:
+        """Get the current state of the bomb."""
+        response = await self.client.get("/state")
+        try:
+            _ = response.raise_for_status()
+        except httpx.HTTPError:
+            self._logger.exception("Failed to get bomb state")
+            return None
+        return BombState.model_validate_json(response.text)
 
     async def get_observation(self) -> bytes:
         """Get the current observation from the game as a png."""

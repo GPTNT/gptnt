@@ -10,7 +10,9 @@ from typing_extensions import AsyncGenerator
 
 from gptnt.ktane.actions import GameActionType, KtaneAction
 from gptnt.ktane.client import KtaneClient
-from gptnt.ktane.mission_spec import KtaneComponent, KtaneMissionSpec
+from gptnt.ktane.mission_spec import KtaneMissionSpec
+from gptnt.ktane.state.bomb import BombState
+from gptnt.ktane.state.modules import KtaneComponent
 
 JSON_KEY = "message"
 
@@ -137,7 +139,84 @@ async def test_send_action_sends_correct_action(
     client: KtaneClient, action_type: GameActionType
 ) -> None:
     action_endpoint = respx.get(f"{client.client.base_url}/action").mock(
-        return_value=httpx.Response(httpx.codes.OK)
+        return_value=httpx.Response(
+            httpx.codes.OK,
+            json={
+                "seed": 998865,
+                "timestamp": 3.76218414,
+                "maxStrikes": 3,
+                "currentStrikes": 0,
+                "isDetonated": False,
+                "isSolved": False,
+                "isLightOn": True,
+                "timerModule": {
+                    "secondsRemaining": 8.249501,
+                    "onFront": True,
+                    "index": 4,
+                    "name": "Timer",
+                },
+                "widgets": [
+                    {"serialNumber": "JR2ZR5", "position": "right", "name": "SerialNumber"},
+                    {"portType": ["Parallel", "Serial"], "position": "top", "name": "Port"},
+                    {
+                        "lightActivated": True,
+                        "label": "FRQ",
+                        "position": "right",
+                        "name": "Indicator",
+                    },
+                    {"portType": [], "position": "bottom", "name": "Port"},
+                    {
+                        "batteriesCount": 1,
+                        "batteryType": "D",
+                        "position": "left",
+                        "name": "Battery",
+                    },
+                    {
+                        "batteriesCount": 2,
+                        "batteryType": "AA",
+                        "position": "bottom",
+                        "name": "Battery",
+                    },
+                ],
+                "modules": [
+                    {
+                        "currentWord": "PCVNK",
+                        "goalWord": "PLANT",
+                        "isSolved": False,
+                        "inFocus": False,
+                        "onFront": True,
+                        "index": 5,
+                        "name": "Password",
+                    },
+                    {
+                        "wires": [
+                            {"position": 0, "isCut": False, "color": "yellow"},
+                            {"position": 1, "isCut": False, "color": "blue"},
+                            {"position": 2, "isCut": False, "color": "red"},
+                            {"position": 3, "isCut": False, "color": "yellow"},
+                            {"position": 4, "isCut": False, "color": "red"},
+                            {"position": 5, "isCut": False, "color": "blue"},
+                        ],
+                        "isSolved": False,
+                        "inFocus": False,
+                        "onFront": True,
+                        "index": 3,
+                        "name": "Wires",
+                    },
+                    {
+                        "topLeft": {"symbol": "omega", "color": None},
+                        "topRight": {"symbol": "short-i", "color": None},
+                        "bottomLeft": {"symbol": "ae", "color": None},
+                        "bottomRight": {"symbol": "e-with-diaeresis", "color": None},
+                        "isSolved": False,
+                        "inFocus": False,
+                        "onFront": True,
+                        "index": 0,
+                        "name": "KeyPad",
+                    },
+                ],
+            },
+        )
     )
 
     location = {"x_pos": 0.5, "y_pos": 0.5}
@@ -147,5 +226,6 @@ async def test_send_action_sends_correct_action(
         location=location if action_type in GameActionType.require_location() else None,
     )
 
-    await client.send_action(action)
+    bomb_state = await client.send_action(action)
+    assert BombState.model_validate(bomb_state)
     assert action_endpoint.called is True

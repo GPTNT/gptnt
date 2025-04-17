@@ -7,7 +7,7 @@ from gptnt.ktane.state.widget import WidgetStates
 class BombState(BaseModel):
     """State of the bomb at the current timestep."""
 
-    model_config = ConfigDict(alias_generator=alias_generators.to_snake, populate_by_name=True)
+    model_config = ConfigDict(alias_generator=alias_generators.to_camel, populate_by_name=True)
 
     seed: int
     timestamp: NonNegativeFloat

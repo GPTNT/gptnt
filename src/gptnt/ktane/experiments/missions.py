@@ -4,7 +4,8 @@ from typing import cast
 import numpy as np
 from pydantic import BaseModel, Field, NonNegativeInt
 
-from gptnt.ktane.mission_spec import KtaneComponent, KtaneMissionSpec
+from gptnt.ktane.mission_spec import KtaneMissionSpec
+from gptnt.ktane.state.modules import KtaneComponent
 
 
 class MissionGeneratorConfig(BaseModel):

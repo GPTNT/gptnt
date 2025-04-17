@@ -1,37 +1,37 @@
 from typing import Literal
 
 type KeypadSymbol = Literal[
-    "©",
-    "★",
-    "☆",
-    "ټ",
-    "Җ",
-    "Ω",
-    "Ѭ",
-    "Ѽ",
-    "ϗ",
-    "ϫ",
-    "Ϭ",
-    "Ϟ",
-    "Ѧ",
-    "ӕ",
-    "Ԇ",
-    "Ӭ",
-    "\u0488",
-    "Ҋ",
-    "ѯ",
-    "¿",
-    "¶",
-    "Ͼ",
-    "Ͽ",
-    "Ψ",
-    "Ѫ",
-    "Ҩ",
-    "҂",
-    "Ϙ",
-    "ζ",
-    "ƛ",
-    "ѣ",
+    "copyright",
+    "star",
+    "hollow-star",
+    "pashto-teh",
+    "zh",
+    "omega",
+    "ligature-iotated-e",
+    "ot",
+    "kai",
+    "egyptian-kai",
+    "lunate-sampi",
+    "qoppa",
+    "little-yus",
+    "ae",
+    "ha-with-descender",
+    "e-with-diaeresis",
+    "thousand-sign",
+    "short-i",
+    "ksi",
+    "inverted-question",
+    "pilcrow",
+    "lunate-epsilon",
+    "reversed-lunate-epsilon",
+    "psi",
+    "big-yus",
+    "qa",
+    "titlo",
+    "archaic-koppa",
+    "zeta",
+    "lambda-bar",
+    "yat",
 ]
 
 type SimonSaysColor = Literal["red", "blue", "green", "yellow"]
@@ -58,6 +58,6 @@ type PortType = Literal["DVI-D", "Parallel", "PS/2", "RJ-45", "Serial", "Stereo 
 
 type ButtonWord = Literal["Abort", "Detonate", "Hold", "Press"]
 
-type ButtonStripColour = Literal["red", "blue", "yellow", "white"]
+type ButtonStripColor = Literal["red", "blue", "yellow", "white"]
 
-type KeyPadButtonColour = Literal["Green", "Red"]
+type KeyPadButtonColor = Literal["Green", "Red"]

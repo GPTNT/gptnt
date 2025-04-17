@@ -2,7 +2,7 @@ import pytest
 from pytest_cases import parametrize_with_cases
 
 from gptnt.ktane.experiments.missions import MissionGenerator, MissionGeneratorConfig
-from gptnt.ktane.mission_spec import KtaneComponent
+from gptnt.ktane.state.modules import KtaneComponent
 
 
 class MissionGeneratorConfigCases:
