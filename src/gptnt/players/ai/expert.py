@@ -1,5 +1,5 @@
 from collections.abc import Awaitable, Callable, Iterator
-from typing import Union, override
+from typing import TypeAliasType, Union, override
 
 import structlog
 from pydantic_ai import BinaryContent
@@ -30,6 +30,14 @@ def load_manual_as_prompt(*, num_pages: int = MANUAL_NUM_PAGES) -> Iterator[str 
         # Load the image for the page afterwards
         image = manual_paths.load_image(page_num, kind="512")
         yield BinaryContent(image, media_type="image/png")
+
+
+def get_expert_output_type() -> TypeAliasType:
+    """Get the output type for the Expert.
+
+    This is mainly for Hydra and shouldn't be used anywhere else.
+    """
+    return ExpertResultT
 
 
 class ExpertPlayer(AIPlayer[None, ExpertResultT]):

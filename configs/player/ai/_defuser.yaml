@@ -1,18 +1,17 @@
 # @package player
 
 defaults:
-  - ai/_default
+  - _default
   - _self_
 
-_target_: gptnt.players.ai.defuser.MDPDefuserPlayer
+_target_: ???
+
+agent:
+  output_type:
+    _target_: gptnt.players.ai.defuser.get_defuser_output_type
 
 game_client:
   _target_: gptnt.ktane.client.KtaneClient
   client:
     _target_: httpx.AsyncClient
     base_url: "${ktane_client_host}:${ktane_client_port}"
-
-  set_of_marks_painter:
-    _target_: gptnt.processors.set_of_marks.SetOfMarksHandler
-    add_label: true
-    add_bbox: true

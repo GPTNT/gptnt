@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Literal
 
 from pydantic import BaseModel, NonNegativeInt
 
@@ -17,13 +16,13 @@ class ActionType(Enum):
 class DoNothingAction(BaseModel):
     """Create a 'do nothing' action."""
 
-    action_type: Literal[ActionType.do_nothing] = ActionType.do_nothing
+    action_type: ActionType = ActionType.do_nothing
 
 
 class SendMessageAction(BaseModel):
     """Create a 'send message' action."""
 
-    action_type: Literal[ActionType.send_message] = ActionType.send_message
+    action_type: ActionType = ActionType.send_message
     message: str
 
 
@@ -37,4 +36,4 @@ type InteractGameLocation = RelativeCoordinate | SetOfMarksLocation
 class InteractGameAction[LocationDataT: InteractGameLocation](KtaneBaseAction[LocationDataT]):
     """Interaction action for the player to take in the game."""
 
-    action_type: Literal[ActionType.interact_game] = ActionType.interact_game
+    action_type: ActionType = ActionType.interact_game

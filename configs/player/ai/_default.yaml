@@ -8,6 +8,7 @@ _target_: ???
 agent:
   _target_: pydantic_ai.Agent
   model: ${model}
+  output_type: ???
 
 dialogue_space_client:
   _target_: gptnt.dialogue_space.client.DialogueSpaceClient.from_host_and_port

@@ -5,3 +5,7 @@ defaults:
   - _self_
 
 _target_: gptnt.players.ai.expert.ExpertPlayer
+
+agent:
+  output_type:
+    _target_: gptnt.players.ai.expert.get_expert_output_type

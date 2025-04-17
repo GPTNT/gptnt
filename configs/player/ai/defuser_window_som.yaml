@@ -1,0 +1,9 @@
+# @package player
+
+defaults:
+  - ai/_defuser_som
+  - _self_
+
+_target_: gptnt.players.ai.defuser.MDPDefuserPlayer
+
+observation_window_length: 10

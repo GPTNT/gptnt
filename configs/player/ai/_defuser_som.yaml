@@ -1,0 +1,13 @@
+# @package player
+
+defaults:
+  - _defuser
+  - _self_
+
+agent:
+  output_type:
+    variant: "set_of_marks"
+
+game_client:
+  set_of_marks_painter:
+    _target_: gptnt.processors.set_of_marks.SetOfMarksHandler
