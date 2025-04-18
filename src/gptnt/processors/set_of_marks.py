@@ -1,11 +1,9 @@
 import colorsys
-import io
-from typing import NamedTuple, overload
+from typing import NamedTuple
 
 import cv2
 import numpy as np
 from numpy.typing import NDArray
-from PIL import Image
 from skimage.measure import regionprops
 from skimage.measure._regionprops import RegionProperties
 
@@ -213,28 +211,7 @@ class SetOfMarksHandler:
         self._add_mask_outline = add_mask_outline
         self._soft_mask_alpha = soft_mask_alpha
 
-    @overload
-    def run(self, *, observation: RGBArray, colorful_image: RGBArray) -> RGBArray: ...
-
-    @overload
-    def run(self, *, observation: bytes, colorful_image: bytes) -> bytes: ...
-
-    def run(
-        self, *, observation: RGBArray | bytes, colorful_image: RGBArray | bytes
-    ) -> RGBArray | bytes:
-        """Convert screenshot + seg mask to annotated screenshot in bytes or RBGArray form."""
-        if isinstance(observation, np.ndarray) and isinstance(colorful_image, np.ndarray):
-            return self.run_from_array(observation=observation, colorful_image=colorful_image)
-
-        if isinstance(observation, bytes) and isinstance(colorful_image, bytes):
-            return self.run_from_bytes(observation=observation, colorful_image=colorful_image)
-
-        raise TypeError(
-            "Both observation and colorful_image must be either RGBArray or bytes. "
-            "Mixing types is not allowed."
-        )
-
-    def run_from_array(self, *, observation: RGBArray, colorful_image: RGBArray) -> RGBArray:
+    def run(self, *, observation: RGBArray, colorful_image: RGBArray) -> RGBArray:
         """Handle the labelling and bounding box drawing on the screenshot based on segmentation.
 
         Output: Annotated screenshot with bounding boxes and labels drawn.
@@ -258,18 +235,3 @@ class SetOfMarksHandler:
             annotated_screenshot = annotated_screenshot[:, :, :3]
 
         return annotated_screenshot
-
-    def run_from_bytes(self, *, observation: bytes, colorful_image: bytes) -> bytes:  # noqa: WPS210
-        """Convert bytes to RGBArrays, run annotation, then convert back to bytes."""
-        obs_image = Image.open(io.BytesIO(initial_bytes=observation)).convert("RGB")
-        obs_array = np.array(obs_image, dtype=np.uint8)
-
-        col_image = Image.open(io.BytesIO(initial_bytes=colorful_image)).convert("RGB")
-        col_array = np.array(col_image, dtype=np.uint8)
-
-        annotated_array = self.run_from_array(observation=obs_array, colorful_image=col_array)
-
-        # save to bytes buffer
-        buffer = io.BytesIO()
-        Image.fromarray(annotated_array).save(buffer, format="PNG")
-        return buffer.getvalue()

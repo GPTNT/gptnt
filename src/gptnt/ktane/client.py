@@ -3,23 +3,30 @@ from types import TracebackType
 from typing import Self
 
 import httpx
+import numpy as np
 import structlog
 
 from gptnt.ktane.actions import KtaneAction
 from gptnt.ktane.exceptions import InvalidGameError
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
-from gptnt.processors.set_of_marks import SetOfMarksHandler
+from gptnt.processors.image_resizer import ImageResizer
+from gptnt.processors.set_of_marks import RGBArray, SetOfMarksHandler
 
 
 class KtaneClient:
     """Create a client to interact with the KTANE game."""
 
     def __init__(
-        self, *, client: httpx.AsyncClient, set_of_marks_painter: SetOfMarksHandler | None = None
+        self,
+        *,
+        client: httpx.AsyncClient,
+        set_of_marks_painter: SetOfMarksHandler | None = None,
+        image_resizer: ImageResizer | None = None,
     ) -> None:
         self.client = client
         self.set_of_marks_painter = set_of_marks_painter
+        self.image_resizer = image_resizer
 
         assert self.client.base_url is not None, "Base URL must be set"
 
@@ -133,19 +140,24 @@ class KtaneClient:
             return None
         return BombState.model_validate_json(response.text)
 
-    async def get_observation(self) -> bytes:
+    async def get_observation(self) -> bytes:  # noqa: WPS615
         """Get the current observation from the game as a png."""
-        if self.set_of_marks_painter is None:
+        if self.set_of_marks_painter is None and self.image_resizer is None:
             return await self._get_screenshot()
 
-        observation, colorful_image = await self._get_screenshot_with_segm()
-        # If the segmentation is empty, we return the original screenshot.
-        if not colorful_image:
-            return observation
+        observation_bytes, segmentation_bytes = await self._get_screenshot_with_segm()
+        observation: RGBArray = np.frombuffer(observation_bytes, dtype=np.uint8)
 
-        return self.set_of_marks_painter.run(
-            observation=observation, colorful_image=colorful_image
-        )
+        if self.image_resizer:
+            observation = self.image_resizer.resize_image(observation)
+
+        if self.set_of_marks_painter and segmentation_bytes:
+            segmentation: RGBArray = np.frombuffer(segmentation_bytes, dtype=np.uint8)
+
+            observation = self.set_of_marks_painter.run(
+                observation=observation, colorful_image=segmentation
+            )
+        return base64.b64encode(observation)
 
     async def _get_screenshot(self) -> bytes:
         response = await self.client.get("/screenshot")
