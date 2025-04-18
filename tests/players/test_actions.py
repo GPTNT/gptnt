@@ -7,19 +7,19 @@ from pytest_mock import MockerFixture
 
 from gptnt.players.actions import DoNothingAction, InteractGameLocation, SendMessageAction
 from gptnt.players.ai.ai_player import AIPlayer
-from gptnt.players.ai.defuser import DefuserResultT
-from gptnt.players.ai.expert import ExpertResultT
+from gptnt.players.ai.defuser import DefuserOutputT
+from gptnt.players.ai.expert import ExpertOutputT
 from tests.players.fixtures import AIPlayerCases
 
-ResultDataT = ExpertResultT | DefuserResultT[InteractGameLocation]
+OutputDataT = ExpertOutputT | DefuserOutputT[InteractGameLocation]
 
 
 def test_all_actions_have_action_type_attribute() -> None:
     """Test that all actions have the action_type attribute."""
-    # Pull all the action types from the `ResultDataT` union in this file
+    # Pull all the action types from the `OutputDataT` union in this file
     action_types = set(
         itertools.chain.from_iterable(
-            [get_args(data_type.__value__) for data_type in get_args(ResultDataT)]
+            [get_args(data_type.__value__) for data_type in get_args(OutputDataT)]
         )
     )
     for action_type in action_types:
@@ -29,7 +29,7 @@ def test_all_actions_have_action_type_attribute() -> None:
 @pytest.mark.asyncio
 @parametrize_with_cases("player", cases=AIPlayerCases)
 async def test_do_nothing_action_goes_to_do_nothing_method(
-    player: AIPlayer[None, ResultDataT], mocker: MockerFixture
+    player: AIPlayer[None, OutputDataT], mocker: MockerFixture
 ) -> None:
     """Test that DoNothingAction handler actually does nothing."""
     # Make a spy to track the call to send_message
@@ -46,7 +46,7 @@ async def test_do_nothing_action_goes_to_do_nothing_method(
 @pytest.mark.asyncio
 @parametrize_with_cases("player", cases=AIPlayerCases)
 async def test_send_message_action_sends_message_to_dialogue_space(
-    player: AIPlayer[None, ResultDataT], mocker: MockerFixture
+    player: AIPlayer[None, OutputDataT], mocker: MockerFixture
 ) -> None:
     """Test that SendMessageAction handler sends message to dialogue space.
 

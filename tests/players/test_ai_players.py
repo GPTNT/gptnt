@@ -5,17 +5,17 @@ from pytest_mock import MockerFixture
 
 from gptnt.players.actions import InteractGameLocation
 from gptnt.players.ai.ai_player import AIPlayer
-from gptnt.players.ai.defuser import DefuserResultT
-from gptnt.players.ai.expert import ExpertResultT
+from gptnt.players.ai.defuser import DefuserOutputT
+from gptnt.players.ai.expert import ExpertOutputT
 from tests.players.fixtures import AIPlayerCases
 
-ResultDataT = ExpertResultT | DefuserResultT[InteractGameLocation]
+OutputDataT = ExpertOutputT | DefuserOutputT[InteractGameLocation]
 
 
 @pytest.mark.asyncio
 @parametrize_with_cases("player", cases=AIPlayerCases)
 async def test_connect_calls_dialogue_space(
-    player: AIPlayer[None, ResultDataT], mocker: MockerFixture
+    player: AIPlayer[None, OutputDataT], mocker: MockerFixture
 ) -> None:
     # Mock the connect return
     player.dialogue_space_client.connect = mocker.AsyncMock(return_value=None)
@@ -27,14 +27,14 @@ async def test_connect_calls_dialogue_space(
 @pytest.mark.asyncio
 @parametrize_with_cases("player", cases=AIPlayerCases)
 @pytest.mark.skip("Not implemented")
-async def test_run_once_calls_expected_methods(player: AIPlayer[None, ResultDataT]) -> None:
+async def test_run_once_calls_expected_methods(player: AIPlayer[None, OutputDataT]) -> None:
     raise NotImplementedError
 
 
 @pytest.mark.asyncio
 @parametrize_with_cases("player", cases=AIPlayerCases)
 async def test_player_pulls_messages_from_dialogue_space(
-    player: AIPlayer[None, ResultDataT], mocker: MockerFixture
+    player: AIPlayer[None, OutputDataT], mocker: MockerFixture
 ) -> None:
     """Test that `build_agent_input` pulls the messages from the dialogue space."""
     # Mock the pull for the dialogue space client
@@ -50,7 +50,7 @@ async def test_player_pulls_messages_from_dialogue_space(
 @pytest.mark.asyncio
 @parametrize_with_cases("player", cases=AIPlayerCases)
 async def test_build_agent_input_with_no_messages(
-    player: AIPlayer[None, ResultDataT], mocker: MockerFixture
+    player: AIPlayer[None, OutputDataT], mocker: MockerFixture
 ) -> None:
     """Test behaviour when there are no messages in the dialogue space."""
     # Mock the pull for the dialogue space client
@@ -64,7 +64,7 @@ async def test_build_agent_input_with_no_messages(
 @parametrize_with_cases("player", cases=AIPlayerCases)
 @pytest.mark.skip("Not implemented")
 async def test_build_agent_input_with_disconnected_dialogue_space(
-    player: AIPlayer[None, ResultDataT],
+    player: AIPlayer[None, OutputDataT],
 ) -> None:
     """Test behaviour when not connected to the dialogue space."""
     raise NotImplementedError
@@ -73,7 +73,7 @@ async def test_build_agent_input_with_disconnected_dialogue_space(
 @pytest.mark.asyncio
 @parametrize_with_cases("player", cases=AIPlayerCases)
 async def test_usage_updates_correctly_after_run(
-    player: AIPlayer[None, ResultDataT], mocker: MockerFixture
+    player: AIPlayer[None, OutputDataT], mocker: MockerFixture
 ) -> None:
     """Test that usage statistics update correctly after running the agent."""
     # Mock the pull for the dialogue space client
@@ -94,7 +94,7 @@ async def test_usage_updates_correctly_after_run(
 @pytest.mark.asyncio
 @parametrize_with_cases("player", cases=AIPlayerCases)
 async def test_message_history_updates_after_run(
-    player: AIPlayer[None, ResultDataT], mocker: MockerFixture
+    player: AIPlayer[None, OutputDataT], mocker: MockerFixture
 ) -> None:
     # Mock the pull for the dialogue space client
     player.dialogue_space_client.pull_messages = mocker.AsyncMock(
@@ -113,7 +113,7 @@ async def test_message_history_updates_after_run(
 @pytest.mark.asyncio
 @parametrize_with_cases("player", cases=AIPlayerCases)
 async def test_message_history_resets_properly(
-    player: AIPlayer[None, ResultDataT], mocker: MockerFixture
+    player: AIPlayer[None, OutputDataT], mocker: MockerFixture
 ) -> None:
     """Test that the message history resets properly after a run.
 
@@ -160,7 +160,7 @@ async def test_message_history_resets_properly(
 @pytest.mark.asyncio
 @parametrize_with_cases("player", cases=AIPlayerCases, glob="expert")
 async def test_first_expert_message_includes_manual(
-    player: AIPlayer[None, ExpertResultT], mocker: MockerFixture
+    player: AIPlayer[None, ExpertOutputT], mocker: MockerFixture
 ) -> None:
     """Test that the first message from the expert player includes the manual."""
     # Mock the pull for the dialogue space client

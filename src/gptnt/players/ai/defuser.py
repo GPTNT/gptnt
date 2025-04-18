@@ -21,7 +21,7 @@ from gptnt.players.ai.ai_player import AIPlayer
 log = structlog.get_logger()
 
 
-type DefuserResultT[LocationDataT: InteractGameLocation] = Union[  # noqa: UP007
+type DefuserOutputT[LocationDataT: InteractGameLocation] = Union[  # noqa: UP007
     DoNothingAction, SendMessageAction, InteractGameAction[LocationDataT]
 ]
 """Result type for the defuser player.
@@ -41,14 +41,14 @@ def get_defuser_output_type(variant: Literal["set_of_marks", "coordinates"]) -> 
     This is mainly for Hydra and shouldn't be used anywhere else.
     """
     switcher = {
-        "set_of_marks": DefuserResultT[int],
-        "coordinates": DefuserResultT[RelativeCoordinate],
+        "set_of_marks": DefuserOutputT[int],
+        "coordinates": DefuserOutputT[RelativeCoordinate],
     }
     return switcher[variant]
 
 
 class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
-    AIPlayer[AgentDepsT, DefuserResultT[LocationDataT]], abc.ABC
+    AIPlayer[AgentDepsT, DefuserOutputT[LocationDataT]], abc.ABC
 ):
     """Base defuser player for the game.
 
@@ -67,7 +67,7 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
 
     def __init__(
         self,
-        agent: Agent[AgentDepsT, DefuserResultT[LocationDataT]],
+        agent: Agent[AgentDepsT, DefuserOutputT[LocationDataT]],
         dialogue_space_client: DialogueSpaceClient,
         game_client: KtaneClient,
         *,
@@ -93,15 +93,15 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
         raise NotImplementedError("Not sure how to convert the action to a game action yet.")
 
     @override
-    def agent_result_type_to_function(
-        self, result_type: type[DefuserResultT[LocationDataT]]
-    ) -> Callable[[DefuserResultT[LocationDataT]], Awaitable[None]]:
-        switcher: dict[type[DefuserResultT[LocationDataT]], Callable[..., Awaitable[None]]] = {
+    def agent_output_type_to_function(
+        self, output_type: type[DefuserOutputT[LocationDataT]]
+    ) -> Callable[[DefuserOutputT[LocationDataT]], Awaitable[None]]:
+        switcher: dict[type[DefuserOutputT[LocationDataT]], Callable[..., Awaitable[None]]] = {
             SendMessageAction: self.send_message_to_dialogue_space,
             DoNothingAction: self.do_nothing_action,
             InteractGameAction[LocationDataT]: self.send_action_to_game,
         }
-        return switcher[result_type]
+        return switcher[output_type]
 
 
 class MDPDefuserPlayer[LocationDataT: InteractGameLocation](

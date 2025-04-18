@@ -10,7 +10,7 @@ from gptnt.players.ai.ai_player import AIPlayer
 
 log = structlog.get_logger()
 
-type ExpertResultT = Union[SendMessageAction, DoNothingAction]  # noqa: UP007
+type ExpertOutputT = Union[SendMessageAction, DoNothingAction]  # noqa: UP007
 """Possible structured output types for the Expert.
 
 Note: Needs to be Union until PEP-747 lands.
@@ -37,10 +37,10 @@ def get_expert_output_type() -> TypeAliasType:
 
     This is mainly for Hydra and shouldn't be used anywhere else.
     """
-    return ExpertResultT
+    return ExpertOutputT
 
 
-class ExpertPlayer(AIPlayer[None, ExpertResultT]):
+class ExpertPlayer(AIPlayer[None, ExpertOutputT]):
     """Class for all Expert players."""
 
     role = "expert"
@@ -65,19 +65,14 @@ class ExpertPlayer(AIPlayer[None, ExpertResultT]):
         return messages
 
     @override
-    def agent_result_type_to_function(
-        self, result_type: type[ExpertResultT]
-    ) -> Callable[[ExpertResultT], Awaitable[None]]:
-        """Map the result type from the AI model to a method within the function.
-
-        This will allow us to dynamically convert the result from the AI model to a function that
-        can be called to carry the logic forwards.
-        """
-        switcher: dict[type[ExpertResultT], Callable[..., Awaitable[None]]] = {
+    def agent_output_type_to_function(
+        self, output_type: type[ExpertOutputT]
+    ) -> Callable[[ExpertOutputT], Awaitable[None]]:
+        switcher: dict[type[ExpertOutputT], Callable[..., Awaitable[None]]] = {
             SendMessageAction: self.send_message_to_dialogue_space,
             DoNothingAction: self.do_nothing_action,
         }
-        return switcher[result_type]
+        return switcher[output_type]
 
     @override
     def build_deps_for_request(self) -> None:

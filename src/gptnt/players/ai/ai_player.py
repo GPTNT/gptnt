@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 log = structlog.get_logger()
 
 
-class AIPlayer[AgentDepsT, ResultDataT](BasePlayer, abc.ABC):
+class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, abc.ABC):
     """Base generic class for AI actors/agents that play the game.
 
     This class brings together all the other clients that are needed for this actor to have a role
@@ -29,7 +29,7 @@ class AIPlayer[AgentDepsT, ResultDataT](BasePlayer, abc.ABC):
 
     def __init__(
         self,
-        agent: Agent[AgentDepsT, ResultDataT],
+        agent: Agent[AgentDepsT, OutputDataT],
         dialogue_space_client: DialogueSpaceClient,
         *,
         agent_usage_limits: UsageLimits | None = None,
@@ -47,12 +47,12 @@ class AIPlayer[AgentDepsT, ResultDataT](BasePlayer, abc.ABC):
         self._no_new_messages_sentinel_token = no_new_messages_sentinel_token
 
     @abc.abstractmethod
-    def agent_result_type_to_function(
-        self, result_type: type[ResultDataT]
-    ) -> Callable[[ResultDataT], Awaitable[None]]:
-        """Map the result type from the AI model to a method within the function.
+    def agent_output_type_to_function(
+        self, output_type: type[OutputDataT]
+    ) -> Callable[[OutputDataT], Awaitable[None]]:
+        """Map the output type from the AI model to a method within the function.
 
-        This will allow us to dynamically convert the result from the AI model to a function that
+        This will allow us to dynamically convert the output from the AI model to a function that
         can be called to carry the logic forwards.
         """
         raise NotImplementedError
@@ -111,21 +111,21 @@ class AIPlayer[AgentDepsT, ResultDataT](BasePlayer, abc.ABC):
         """Build the input for the agent."""
         raise NotImplementedError
 
-    async def direct_output_from_agent(self, agent_output: ResultDataT) -> None:
+    async def direct_output_from_agent(self, agent_output: OutputDataT) -> None:
         """Process output from Agent and direct to correct function.
 
-        Once it comes in, index the type in the agent_result_type_to_function and call the function
+        Once it comes in, index the type in the agent_output_type_to_function and call the function
         that is mapped to that type. This will allow us to dynamically convert the result from the
         AI model to a function that can be called to carry the logic forwards.
         """
-        method = self.agent_result_type_to_function(type(agent_output))
+        method = self.agent_output_type_to_function(type(agent_output))
         return await method(agent_output)
 
     async def do_nothing_action(self, _: DoNothingAction) -> None:
         """Do nothing action."""
         log.debug("Doing nothing.")
 
-    async def send_request_to_agent(self) -> ResultDataT:
+    async def send_request_to_agent(self) -> OutputDataT:
         """Send the content to the agent and get it to make a decision and perform an action.
 
         Raises:
