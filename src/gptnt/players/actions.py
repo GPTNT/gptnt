@@ -13,13 +13,20 @@ class ActionType(Enum):
     interact_game = "interact_game"
 
 
-class DoNothingAction(BaseModel):
+class BaseAction(BaseModel):
+    """Base class for all actions."""
+
+    thoughts: str | None = None
+
+
+class DoNothingAction(BaseAction):
     """Create a 'do nothing' action."""
 
     action_type: ActionType = ActionType.do_nothing
+    thoughts: str | None = None
 
 
-class SendMessageAction(BaseModel):
+class SendMessageAction(BaseAction):
     """Create a 'send message' action."""
 
     action_type: ActionType = ActionType.send_message
@@ -33,7 +40,9 @@ type InteractGameLocation = RelativeCoordinate | SetOfMarksLocation
 """Location-methods to interact with in the game."""
 
 
-class InteractGameAction[LocationDataT: InteractGameLocation](KtaneBaseAction[LocationDataT]):
+class InteractGameAction[LocationDataT: InteractGameLocation](
+    BaseAction, KtaneBaseAction[LocationDataT]
+):
     """Interaction action for the player to take in the game."""
 
     action_type: ActionType = ActionType.interact_game
