@@ -8,4 +8,4 @@ _target_: gptnt.players.ai.expert.ExpertPlayer
 
 agent:
   output_type:
-    _target_: gptnt.players.ai.expert.get_expert_output_type
+    _target_: gptnt.players.ai.output_type.get_expert_output_type

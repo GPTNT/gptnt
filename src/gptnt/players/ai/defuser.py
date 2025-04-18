@@ -1,14 +1,12 @@
 import abc
 from collections import deque
 from collections.abc import Awaitable, Callable
-from types import GenericAlias
-from typing import Literal, Union, override
+from typing import Union, override
 
 import structlog
 from pydantic_ai import Agent, BinaryContent
 
 from gptnt.dialogue_space.client import DialogueSpaceClient
-from gptnt.ktane.actions import RelativeCoordinate
 from gptnt.ktane.client import KtaneClient
 from gptnt.players.actions import (
     DoNothingAction,
@@ -33,18 +31,6 @@ choose locations to act in the environment.
 Note: Needs to be Union until PEP-747 lands.
 https://ai.pydantic.dev/results/#structured-result-validation
 """
-
-
-def get_defuser_output_type(variant: Literal["set_of_marks", "coordinates"]) -> GenericAlias:
-    """Get the output type for the Defuser.
-
-    This is mainly for Hydra and shouldn't be used anywhere else.
-    """
-    switcher = {
-        "set_of_marks": DefuserOutputT[int],
-        "coordinates": DefuserOutputT[RelativeCoordinate],
-    }
-    return switcher[variant]
 
 
 class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](

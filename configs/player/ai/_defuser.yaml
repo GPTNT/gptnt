@@ -8,7 +8,7 @@ _target_: ???
 
 agent:
   output_type:
-    _target_: gptnt.players.ai.defuser.get_defuser_output_type
+    _target_: gptnt.players.ai.output_type.get_defuser_output_type
 
 game_client:
   _target_: gptnt.ktane.client.KtaneClient
