@@ -1,4 +1,5 @@
 import platform
+from collections.abc import Generator
 from pathlib import Path
 
 from gptnt.common.paths import Paths
@@ -86,3 +87,20 @@ def ensure_mod_exists() -> bool:
         raise ModNotFoundError(f"Mod not found at {mod_path}.")
 
     return True
+
+
+def set_port_number_of_logfile(port: str) -> Generator[bool]:
+    """Sets the log name with the port number."""
+    log_path = paths.ktane.joinpath("logConfig.xml")
+    if not log_path.exists():
+        raise FileNotFoundError(f"Log config file not found at {log_path}.")
+
+    original_data = log_path.read_text(encoding="utf-8")
+
+    updated_data = original_data.replace('"logs/ktane.log"/', f'"logs/ktane_{port}.log"/')
+
+    _ = log_path.write_text(data=updated_data, encoding="utf-8")
+    yield True
+
+    _ = log_path.write_text(data=original_data, encoding="utf-8")
+    yield True
