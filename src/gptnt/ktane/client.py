@@ -154,6 +154,9 @@ class KtaneClient:
         if self.set_of_marks_painter and segmentation_bytes:
             segmentation: RGBArray = np.frombuffer(segmentation_bytes, dtype=np.uint8)
 
+            if self.image_resizer:
+                segmentation = self.image_resizer.resize_image(segmentation)
+
             observation = self.set_of_marks_painter.run(
                 observation=observation, colorful_image=segmentation
             )
