@@ -33,6 +33,7 @@ class AIPlayer[AgentDepsT, ResultDataT](BasePlayer, abc.ABC):
         dialogue_space_client: DialogueSpaceClient,
         *,
         agent_usage_limits: UsageLimits | None = None,
+        no_new_messages_sentinel_token: str = "<no_new_messages>",  # noqa: S107
     ) -> None:
         self.agent = agent
         self.dialogue_space_client = dialogue_space_client
@@ -42,6 +43,8 @@ class AIPlayer[AgentDepsT, ResultDataT](BasePlayer, abc.ABC):
 
         # PAI expects either messages or None, so we can just init with None
         self._message_history: list[ModelMessage] | None = None
+
+        self._no_new_messages_sentinel_token = no_new_messages_sentinel_token
 
     @abc.abstractmethod
     def agent_result_type_to_function(
@@ -97,9 +100,8 @@ class AIPlayer[AgentDepsT, ResultDataT](BasePlayer, abc.ABC):
         messages = await self.dialogue_space_client.pull_messages()
         log.debug(f"Pulled {len(messages)} messages from dialogue space.")
 
-        # TODO: when there are no messages, the input to the model should be empty?
         if not messages:
-            raise ValueError("No messages to pull from the dialogue space.")
+            return self._no_new_messages_sentinel_token
 
         # Flatten the messages into a single string
         return "\n".join(messages)

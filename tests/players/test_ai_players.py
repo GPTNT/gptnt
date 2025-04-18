@@ -49,18 +49,15 @@ async def test_player_pulls_messages_from_dialogue_space(
 
 @pytest.mark.asyncio
 @parametrize_with_cases("player", cases=AIPlayerCases)
-@pytest.mark.skip("Not implemented")
 async def test_build_agent_input_with_no_messages(
     player: AIPlayer[None, ResultDataT], mocker: MockerFixture
 ) -> None:
     """Test behaviour when there are no messages in the dialogue space."""
-    # TODO: when there are no messages, the input to the model should be empty?
     # Mock the pull for the dialogue space client
     player.dialogue_space_client.pull_messages = mocker.AsyncMock(return_value=[])
 
-    # TODO: Pull and verify
-    # pulled_messages = await player.pull_unread_messages_from_dialogue_space()
-    raise NotImplementedError
+    pulled_messages = await player.pull_unread_messages_from_dialogue_space()
+    assert pulled_messages == player._no_new_messages_sentinel_token
 
 
 @pytest.mark.asyncio
