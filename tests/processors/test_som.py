@@ -7,7 +7,7 @@ from skimage.io import imread
 
 from gptnt.processors.set_of_marks import (
     convert_colorful_segm_to_labeled,
-    draw_mask_outline_on_image,
+    draw_mask_on_image,
     get_region_properties,
 )
 
@@ -68,7 +68,7 @@ def test_mask_outline_color(segmentation_image: NDArray[np.uint8]) -> None:
 
     # Draw masks on the test image
     for region in regions:
-        test_image = draw_mask_outline_on_image(
+        test_image, _ = draw_mask_on_image(
             image=test_image,
             coords=region.coords,
             color=expected_mask_color,

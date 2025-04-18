@@ -4,6 +4,7 @@ from typing import NamedTuple
 import cv2
 import numpy as np
 from numpy.typing import NDArray
+from skimage.color import hsv2rgb, rgb2hsv
 from skimage.measure import regionprops
 from skimage.measure._regionprops import RegionProperties
 
@@ -35,7 +36,7 @@ def blend_with_image(image: RGBArray, mask: RGBArray, alpha: float = 0.3) -> RGB
     return np.asarray(blended, dtype=np.uint8)
 
 
-def convert_colorful_segm_to_labeled(image_as_array: RGBArray) -> NDArray[np.int8]:
+def convert_colorful_segm_to_labeled(image_as_array: RGBArray) -> NDArray[np.int8]:  # noqa: WPS210
     """Convert colourful segmentation to a labelled image.
 
     Input shape: (height, width, channels = 3)
@@ -45,8 +46,16 @@ def convert_colorful_segm_to_labeled(image_as_array: RGBArray) -> NDArray[np.int
     height, width, color_chan = image_as_array.shape
     # shape: (height * width, channels = 3)
     flattened = image_as_array.reshape(-1, color_chan)
+
+    # make the brightness of all non-black colours equal to 1 (mitigates the anti-aliasing of seg mask)
+    non_black_color_mask = flattened.sum(axis=-1) > 0
+    flattened_hsv = rgb2hsv(flattened)
+    flattened_hsv[:, 2] = non_black_color_mask
+    floating_rgb = hsv2rgb(flattened_hsv) * 255  # noqa: WPS432
+    fixed_rgb = floating_rgb.astype(np.uint8)
+
     # find unique colours and assign labels
-    _, inverse = np.unique(flattened, axis=0, return_inverse=True)
+    _, inverse = np.unique(fixed_rgb, axis=0, return_inverse=True)
 
     # reshape the labels to image dimensions again
     # shape: (height, width)
@@ -60,14 +69,21 @@ def get_region_properties(labeled_image: NDArray[np.int8]) -> list[RegionPropert
     return props
 
 
-def draw_mask_outline_on_image(  # noqa: WPS210
+def convert_to_grayscale(image: RGBArray) -> RGBArray:
+    """Convert an image to grayscale while maintaining 3 channels."""
+    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    grayscale = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
+    return np.asarray(grayscale, dtype=np.uint8)
+
+
+def draw_mask_on_image(  # noqa: WPS210
     *,
     image: RGBArray,
     coords: NDArray[np.intp],
     color: Color,
     thickness: int,
     soft_mask_alpha: float,
-) -> RGBArray:
+) -> tuple[RGBArray, NDArray[np.bool_]]:
     """Draw outline of a single region based on its coordinates."""
     # blank mask
     mask = np.zeros_like(image[:, :, 0])
@@ -76,8 +92,12 @@ def draw_mask_outline_on_image(  # noqa: WPS210
     for y_coord, x_coord in coords:
         mask[y_coord, x_coord] = 255
 
+    # dilate mask to expand it outward
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    dilated_mask = cv2.dilate(mask, kernel, iterations=2)
+
     # draw contours on image
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(dilated_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     if soft_mask_alpha > 0:
         soft_mask = np.zeros_like(image)
@@ -92,9 +112,11 @@ def draw_mask_outline_on_image(  # noqa: WPS210
             image[mask_region] * (1 - soft_mask_alpha) + soft_mask[mask_region] * soft_mask_alpha
         ).astype(np.uint8)
 
-    _ = cv2.drawContours(image, contours, -1, color, thickness)
+    _ = cv2.drawContours(
+        image=image, contours=contours, contourIdx=-1, color=color, thickness=thickness
+    )
 
-    return image
+    return image, dilated_mask.astype(bool)
 
 
 def draw_label_on_image(  # noqa: WPS210
@@ -142,7 +164,7 @@ def draw_label_on_image(  # noqa: WPS210
     return image
 
 
-def draw_region_labels(  # noqa: WPS211
+def draw_region_labels(  # noqa: WPS210, WPS211
     *,
     image: RGBArray,
     regions: list[RegionProperties],
@@ -154,9 +176,16 @@ def draw_region_labels(  # noqa: WPS211
     add_labels: bool,
     add_mask_outline: bool,
     soft_mask_alpha: float,
+    bw_outside_mask: bool,
 ) -> RGBArray:
     """Place label numbers on image based on region properties."""
     annotated_image = image.copy()
+
+    # initialise combined mask
+    height, width = image.shape[:2]
+    combined_mask = (
+        np.zeros((height, width), dtype=bool) if bw_outside_mask and add_mask_outline else None
+    )
 
     for idx, region in enumerate(regions):
         # convert HSV to RGB
@@ -164,13 +193,17 @@ def draw_region_labels(  # noqa: WPS211
         mask_color: Color = hue_to_rgb(hue)
 
         if add_mask_outline:
-            _ = draw_mask_outline_on_image(
+            _, mask = draw_mask_on_image(
                 image=annotated_image,
                 coords=region.coords,
                 color=mask_color,
                 thickness=mask_thickness,
                 soft_mask_alpha=soft_mask_alpha,
             )
+
+            # add the masks together with bitwise OR
+            if combined_mask is not None:
+                combined_mask |= mask
 
         if add_labels:
             _ = draw_label_on_image(
@@ -183,6 +216,11 @@ def draw_region_labels(  # noqa: WPS211
                 thickness=text_thickness,
                 padding=padding,
             )
+
+    # convert areas outside all masks to grayscale
+    if combined_mask is not None:
+        gray_image = convert_to_grayscale(annotated_image)
+        annotated_image[~combined_mask] = gray_image[~combined_mask]
 
     return annotated_image
 
@@ -200,7 +238,8 @@ class SetOfMarksHandler:
         padding: int = 1,
         add_labels: bool = True,
         add_mask_outline: bool = True,
-        soft_mask_alpha: float = 0.3,
+        soft_mask_alpha: float = 0.15,
+        bw_outside_mask: bool = True,
     ) -> None:
         self._text_color = text_color
         self._font_scale = font_scale
@@ -210,6 +249,7 @@ class SetOfMarksHandler:
         self._add_labels = add_labels
         self._add_mask_outline = add_mask_outline
         self._soft_mask_alpha = soft_mask_alpha
+        self._bw_outside_mask = bw_outside_mask
 
     def run(self, *, observation: RGBArray, colorful_image: RGBArray) -> RGBArray:
         """Handle the labelling and bounding box drawing on the screenshot based on segmentation.
@@ -230,6 +270,7 @@ class SetOfMarksHandler:
             add_labels=self._add_labels,
             add_mask_outline=self._add_mask_outline,
             soft_mask_alpha=self._soft_mask_alpha,
+            bw_outside_mask=self._bw_outside_mask,
         )
         if annotated_screenshot.shape[2] == ALPHA_CHANNEL:
             annotated_screenshot = annotated_screenshot[:, :, :3]
