@@ -103,7 +103,7 @@ class DefuserPlayerView(BaseView):
 
             # Incorrect event (throw error?)
             case err:
-                logger.error(f"Invalid  mouse-event format recieved from JS: {err}")
+                logger.error(f"Invalid  mouse-event format received from JS: {err}")
 
     async def _handle_discrete_action(self, action_type: GameActionType) -> None:
         """Send the discrete action to the KTANE Client."""

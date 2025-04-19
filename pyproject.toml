@@ -13,6 +13,7 @@ dependencies = [
     "hydra-core>=1.3.2",
     "omegaconf>=2.3.0",
     "opencv-python-headless>=4.11.0.86",
+    "pillow>=11.1.0",
     "pydantic>=2.10.6",
     "pydantic-ai>=0.0.24",
     "rich>=13.9.4",
@@ -84,6 +85,8 @@ extend-ignore = [
     "WPS114",
     # f-strings are the way, this is just it now
     "WPS237",
+    # Imports happen. That's fine
+    "WPS201",
 ]
 per-file-ignores = [
     "tests/*:WPS2,WPS118,WPS432,WPS435,WPS444,WPS476",

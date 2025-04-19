@@ -1,17 +1,21 @@
 import base64
+from io import BytesIO
 from types import TracebackType
 from typing import Self
 
 import httpx
 import numpy as np
 import structlog
+from PIL import Image
 
-from gptnt.ktane.actions import KtaneAction
+from gptnt.common.image_ops import load_observation_from_bytes
+from gptnt.ktane.actions import KtaneAction, KtaneBaseAction
 from gptnt.ktane.exceptions import InvalidGameError
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
+from gptnt.players.actions import InteractGameLocation
 from gptnt.processors.image_resizer import ImageResizer
-from gptnt.processors.set_of_marks import RGBArray, SetOfMarksHandler
+from gptnt.processors.set_of_marks import SetOfMarksHandler
 
 
 class KtaneClient:
@@ -113,21 +117,27 @@ class KtaneClient:
             return False
         return True
 
-    async def send_action(self, action: KtaneAction) -> BombState | None:
+    async def send_action(
+        self, action: KtaneBaseAction[InteractGameLocation] | KtaneAction
+    ) -> BombState | None:
         """Send an action to the server.
 
         When we are sending actions to the game, we are always going to be sending a relative
         coordinate of where we are clicking. As a result, this means that using SoM is not
         supported by the game, and any SoM actions must first be converted to relative coordinates.
         """
-        endpoint = "action"
+        # Convert from SoM to relative coordinates if needed
+        if self.set_of_marks_painter and isinstance(action.location, int):
+            # Convert the SoM to relative coordinates
+            action.location = self.set_of_marks_painter.mark_to_coordinate(mark_id=action.location)
 
-        response = await self.client.get(endpoint, params=action.to_query_params())
+        response = await self.client.get("/action", params=action.to_query_params())
         try:
             _ = response.raise_for_status()
         except httpx.HTTPError:
             self._logger.exception("Failed to send action")
             return None
+
         return BombState.model_validate_json(response.text)
 
     async def get_state(self) -> BombState | None:
@@ -142,25 +152,37 @@ class KtaneClient:
 
     async def get_observation(self) -> bytes:  # noqa: WPS615
         """Get the current observation from the game as a png."""
+        # If we are not resizing or using SoM, we can just get the screenshot as bytes and pass it
+        # on as is
         if self.set_of_marks_painter is None and self.image_resizer is None:
             return await self._get_screenshot()
 
+        # Incase we are going to be using SoM, we need to get the screenshot and the segmentation
         observation_bytes, segmentation_bytes = await self._get_screenshot_with_segm()
-        observation: RGBArray = np.frombuffer(observation_bytes, dtype=np.uint8)
+        observation = load_observation_from_bytes(observation_bytes)
 
+        # If we are resizing the image, we need to resize it before passing it on
         if self.image_resizer:
             observation = self.image_resizer.resize_image(observation)
 
         if self.set_of_marks_painter and segmentation_bytes:
-            segmentation: RGBArray = np.frombuffer(segmentation_bytes, dtype=np.uint8)
+            segmentation = load_observation_from_bytes(segmentation_bytes)
 
+            # If we are using SoM, we also need to resize the segmentation image
             if self.image_resizer:
                 segmentation = self.image_resizer.resize_image(segmentation)
 
+            # Apply SoM onto the image
             observation = self.set_of_marks_painter.run(
-                observation=observation, colorful_image=segmentation
+                observation=np.asarray(observation), colorful_image=np.asarray(segmentation)
             )
-        return base64.b64encode(observation)
+
+            # convert back to pillow image
+            observation = Image.fromarray(observation.astype(np.uint8), "RGB")
+
+        buffer = BytesIO()
+        observation.save(buffer, format="PNG")
+        return buffer.getvalue()
 
     async def _get_screenshot(self) -> bytes:
         response = await self.client.get("/screenshot")

@@ -147,7 +147,7 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, abc.ABC):
         self._message_history = agent_output.all_messages()
 
         # Return the actual data
-        return agent_output.data
+        return agent_output.output
 
     @abc.abstractmethod
     def build_deps_for_request(self) -> AgentDepsT:

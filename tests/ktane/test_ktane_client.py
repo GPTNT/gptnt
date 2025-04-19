@@ -1,28 +1,21 @@
 import base64
 from pathlib import Path
+from typing import Any
 
 import httpx
 import pytest
-import pytest_asyncio
 import respx
 from pytest_cases import fixture
-from typing_extensions import AsyncGenerator
+from pytest_mock import MockerFixture
 
-from gptnt.ktane.actions import GameActionType, KtaneAction
+from gptnt.common.image_ops import load_observation_from_bytes
+from gptnt.ktane.actions import GameActionType, KtaneAction, KtaneBaseAction
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.modules import KtaneComponent
-
-JSON_KEY = "message"
-
-
-@pytest_asyncio.fixture
-async def client(host: str, port: int) -> AsyncGenerator[KtaneClient, None]:
-    """Provides an instance of the Ktane Client for testing."""
-    http_client = httpx.AsyncClient(base_url=f"http://{host}:{port}")
-    async with KtaneClient(client=http_client) as client:
-        yield client
+from gptnt.processors.image_resizer import ImageResizer
+from gptnt.processors.set_of_marks import SetOfMarksHandler
 
 
 @fixture
@@ -75,7 +68,7 @@ async def test_start_mission_returns_true_on_success(
     client: KtaneClient, mission_spec: KtaneMissionSpec
 ) -> None:
     route = respx.get(f"{client.client.base_url}/startMission").mock(
-        return_value=httpx.Response(httpx.codes.OK, json={JSON_KEY: "Mission started"})
+        return_value=httpx.Response(httpx.codes.OK, text="Mission started")
     )
     start_mission_response = await client.start_mission(mission_spec)
     assert route.called is True
@@ -88,7 +81,7 @@ async def test_start_mission_returns_false_on_failing(
     client: KtaneClient, mission_spec: KtaneMissionSpec
 ) -> None:
     route = respx.get(f"{client.client.base_url}/startMission").mock(
-        return_value=httpx.Response(httpx.codes.BAD_REQUEST, json={JSON_KEY: "Mission started"})
+        return_value=httpx.Response(httpx.codes.BAD_REQUEST, text="Mission failed")
     )
     start_mission_response = await client.start_mission(mission_spec)
     assert route.called is True
@@ -110,7 +103,9 @@ async def test_get_observation_returns_screenshot_as_bytes(
 
 
 @pytest.mark.parametrize("action_type", list(GameActionType))
-def test_ktane_action_correctly_converts_to_query_params(action_type: GameActionType) -> None:
+def test_ktane_coordinate_action_correctly_converts_to_query_params(
+    action_type: GameActionType,
+) -> None:
     """Test that the KtaneAction correctly converts to query parameters."""
     location = {"x_pos": 0.5, "y_pos": 0.5}
 
@@ -134,89 +129,92 @@ def test_ktane_action_correctly_converts_to_query_params(action_type: GameAction
 
 @respx.mock
 @pytest.mark.asyncio
+async def test_get_observation_resizes_image(client: KtaneClient, screenshot: str) -> None:
+    """Test that the KtaneClient correctly resizes the image."""
+    # Mock the get_observation method to return the image and segmentation bytes
+    _ = respx.get(f"{client.client.base_url}/observation").mock(
+        return_value=httpx.Response(
+            httpx.codes.OK, json={"screenshot": screenshot, "segmentation": None}
+        )
+    )
+
+    # Add resizer to client
+    client.image_resizer = ImageResizer(target_width=100, target_height=200)
+
+    # Get the observation
+    observation = await client.get_observation()
+    assert isinstance(observation, bytes)
+
+    observation_image = load_observation_from_bytes(observation)
+    # Check that the observation is resized
+    assert observation_image.size == (
+        client.image_resizer.target_width,
+        client.image_resizer.target_height,
+    )
+
+
+@respx.mock
+@pytest.mark.asyncio
 @pytest.mark.parametrize("action_type", list(GameActionType))
-async def test_send_action_sends_correct_action(
-    client: KtaneClient, action_type: GameActionType
+async def test_set_of_mark_actions_are_converted_to_relative_coordinates(
+    client: KtaneClient,
+    fixture_path: Path,
+    mocker: MockerFixture,
+    action_type: GameActionType,
+    bomb_state_json: dict[str, Any],
 ) -> None:
-    action_endpoint = respx.get(f"{client.client.base_url}/action").mock(
+    """Test that the KtaneAction correctly converts to query parameters."""
+    # Create a set of marks painter
+    client.set_of_marks_painter = SetOfMarksHandler()
+
+    # Load an image and segmentation mask
+    image_bytes = fixture_path.joinpath("screenshot1.png").read_bytes()
+    segm_bytes = fixture_path.joinpath("segmentation1.png").read_bytes()
+
+    # Mock the get_observation method to return the image and segmentation bytes
+    _ = respx.get(f"{client.client.base_url}/observation").mock(
         return_value=httpx.Response(
             httpx.codes.OK,
             json={
-                "seed": 998865,
-                "timestamp": 3.76218414,
-                "maxStrikes": 3,
-                "currentStrikes": 0,
-                "isDetonated": False,
-                "isSolved": False,
-                "isLightOn": True,
-                "timerModule": {
-                    "secondsRemaining": 8.249501,
-                    "onFront": True,
-                    "index": 4,
-                    "name": "Timer",
-                },
-                "widgets": [
-                    {"serialNumber": "JR2ZR5", "position": "right", "name": "SerialNumber"},
-                    {"portType": ["Parallel", "Serial"], "position": "top", "name": "Port"},
-                    {
-                        "lightActivated": True,
-                        "label": "FRQ",
-                        "position": "right",
-                        "name": "Indicator",
-                    },
-                    {"portType": [], "position": "bottom", "name": "Port"},
-                    {
-                        "batteriesCount": 1,
-                        "batteryType": "D",
-                        "position": "left",
-                        "name": "Battery",
-                    },
-                    {
-                        "batteriesCount": 2,
-                        "batteryType": "AA",
-                        "position": "bottom",
-                        "name": "Battery",
-                    },
-                ],
-                "modules": [
-                    {
-                        "currentWord": "PCVNK",
-                        "goalWord": "PLANT",
-                        "isSolved": False,
-                        "inFocus": False,
-                        "onFront": True,
-                        "index": 5,
-                        "name": "Password",
-                    },
-                    {
-                        "wires": [
-                            {"position": 0, "isCut": False, "color": "yellow"},
-                            {"position": 1, "isCut": False, "color": "blue"},
-                            {"position": 2, "isCut": False, "color": "red"},
-                            {"position": 3, "isCut": False, "color": "yellow"},
-                            {"position": 4, "isCut": False, "color": "red"},
-                            {"position": 5, "isCut": False, "color": "blue"},
-                        ],
-                        "isSolved": False,
-                        "inFocus": False,
-                        "onFront": True,
-                        "index": 3,
-                        "name": "Wires",
-                    },
-                    {
-                        "topLeft": {"symbol": "omega", "color": None},
-                        "topRight": {"symbol": "short-i", "color": None},
-                        "bottomLeft": {"symbol": "ae", "color": None},
-                        "bottomRight": {"symbol": "e-with-diaeresis", "color": None},
-                        "isSolved": False,
-                        "inFocus": False,
-                        "onFront": True,
-                        "index": 0,
-                        "name": "KeyPad",
-                    },
-                ],
+                "screenshot": base64.b64encode(image_bytes).decode("utf-8"),
+                "segmentation": base64.b64encode(segm_bytes).decode("utf-8"),
             },
         )
+    )
+    _ = respx.get(f"{client.client.base_url}/action").mock(
+        return_value=httpx.Response(httpx.codes.OK, json=bomb_state_json)
+    )
+
+    # Get the observation
+    _ = await client.get_observation()
+    # Make sure that the mapping of marks to coords exists
+    assert client.set_of_marks_painter._mark_to_coordinate is not None
+
+    action = KtaneBaseAction[int](
+        action=action_type,
+        location=1 if action_type in GameActionType.require_location() else None,
+    )
+
+    # Call the method
+    spy = mocker.spy(SetOfMarksHandler, "mark_to_coordinate")
+    _ = await client.send_action(action)
+
+    if action_type in GameActionType.require_location():
+        assert spy.called is True
+        assert spy.spy_return == client.set_of_marks_painter._mark_to_coordinate[1]
+    else:
+        # If the action does not require a location, we should not call the mark_to_coordinate method
+        assert spy.called is False
+
+
+@respx.mock
+@pytest.mark.asyncio
+@pytest.mark.parametrize("action_type", list(GameActionType))
+async def test_send_action_returns_bomb_state(
+    client: KtaneClient, action_type: GameActionType, bomb_state_json: dict[str, Any]
+) -> None:
+    action_endpoint = respx.get(f"{client.client.base_url}/action").mock(
+        return_value=httpx.Response(httpx.codes.OK, json=bomb_state_json)
     )
 
     location = {"x_pos": 0.5, "y_pos": 0.5}
@@ -227,5 +225,5 @@ async def test_send_action_sends_correct_action(
     )
 
     bomb_state = await client.send_action(action)
-    assert BombState.model_validate(bomb_state)
+    assert isinstance(bomb_state, BombState)
     assert action_endpoint.called is True

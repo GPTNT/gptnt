@@ -76,7 +76,10 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
 
     async def send_action_to_game(self, action: InteractGameAction[LocationDataT]) -> None:
         """Send an action to the game client."""
-        raise NotImplementedError("Not sure how to convert the action to a game action yet.")
+        # TODO: handle the return from the game client
+        _ = await self.game_client.send_action(action)
+
+        raise NotImplementedError
 
     @override
     def agent_output_type_to_function(

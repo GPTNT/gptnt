@@ -6,7 +6,12 @@ import numpy as np
 from numpy.typing import NDArray
 from skimage.color import hsv2rgb, rgb2hsv
 from skimage.measure import regionprops
-from skimage.measure._regionprops import RegionProperties
+from skimage.measure._regionprops import RegionProperties as _RegionProperties
+
+from gptnt.ktane.actions import RelativeCoordinate
+
+RegionProperties = _RegionProperties
+
 
 type Color = tuple[int, int, int]
 type RGBArray = NDArray[np.uint8]
@@ -65,8 +70,19 @@ def convert_colorful_segm_to_labeled(image_as_array: RGBArray) -> NDArray[np.int
 def get_region_properties(labeled_image: NDArray[np.int8]) -> list[RegionProperties]:
     """Extract region properties from a labelled image."""
     props = regionprops(labeled_image)
-
     return props
+
+
+def map_label_to_coordinate(regions: list[RegionProperties]) -> dict[int, RelativeCoordinate]:
+    """Map the region label to a relative coordinate."""
+    label_to_coord: dict[int, RelativeCoordinate] = {
+        region.label: RelativeCoordinate(
+            x_pos=region.centroid[1] / region._label_image.shape[1],  # noqa: SLF001
+            y_pos=region.centroid[0] / region._label_image.shape[0],  # noqa: SLF001
+        )
+        for region in regions
+    }
+    return label_to_coord
 
 
 def convert_to_grayscale(image: RGBArray) -> RGBArray:
@@ -251,16 +267,18 @@ class SetOfMarksHandler:
         self._soft_mask_alpha = soft_mask_alpha
         self._bw_outside_mask = bw_outside_mask
 
-    def run(self, *, observation: RGBArray, colorful_image: RGBArray) -> RGBArray:
-        """Handle the labelling and bounding box drawing on the screenshot based on segmentation.
+        self._mark_to_coordinate: dict[int, RelativeCoordinate] = {}
 
-        Output: Annotated screenshot with bounding boxes and labels drawn.
-        """
+    def extract_regions(self, colorful_image: RGBArray) -> list[RegionProperties]:
+        """Extract regions from a colourful segmentation image."""
         labeled_segmentation = convert_colorful_segm_to_labeled(colorful_image)
         regions = get_region_properties(labeled_segmentation)
+        return regions
 
-        annotated_screenshot = draw_region_labels(
-            image=observation,
+    def draw_regions(self, image: RGBArray, regions: list[RegionProperties]) -> RGBArray:
+        """Draw regions on an image."""
+        annotated_image = draw_region_labels(
+            image=image,
             regions=regions,
             text_color=self._text_color,
             font_scale=self._font_scale,
@@ -272,7 +290,22 @@ class SetOfMarksHandler:
             soft_mask_alpha=self._soft_mask_alpha,
             bw_outside_mask=self._bw_outside_mask,
         )
-        if annotated_screenshot.shape[2] == ALPHA_CHANNEL:
-            annotated_screenshot = annotated_screenshot[:, :, :3]
+        return annotated_image
 
-        return annotated_screenshot
+    def run(self, *, observation: RGBArray, colorful_image: RGBArray) -> RGBArray:
+        """Handle the labelling and bounding box drawing on the screenshot based on segmentation.
+
+        Output: Annotated screenshot with bounding boxes and labels drawn.
+        """
+        regions = self.extract_regions(colorful_image)
+        # convert regions to relative coordinates and store them
+        self._mark_to_coordinate = map_label_to_coordinate(regions)
+        annotated_image = self.draw_regions(observation, regions)
+        return annotated_image
+
+    def mark_to_coordinate(self, *, mark_id: int) -> RelativeCoordinate:
+        """Convert a mark ID to a relative coordinate."""
+        assert mark_id in self._mark_to_coordinate, (
+            f"Mark ID {mark_id} not found in mark to coordinate mapping."
+        )
+        return self._mark_to_coordinate[mark_id]

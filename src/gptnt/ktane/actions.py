@@ -82,13 +82,14 @@ class KtaneBaseAction[LocationDataT](BaseModel):
 
         return self
 
-
-class KtaneAction(KtaneBaseAction[RelativeCoordinate]):
-    """Interaction action for the player to take in the game."""
-
     def to_query_params(self) -> QueryParams:
         """Convert the action to query parameters for the API."""
         location = (
-            self.location.model_dump(mode="json", exclude_none=True) if self.location else {}
+            self.location.model_dump(mode="json", exclude_none=True)
+            if isinstance(self.location, BaseModel)
+            else {}
         )
         return QueryParams({**self.model_dump(mode="json", exclude={"location"}), **location})
+
+
+KtaneAction = KtaneBaseAction[RelativeCoordinate]
