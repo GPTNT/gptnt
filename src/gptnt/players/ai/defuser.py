@@ -79,8 +79,6 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
         # TODO: handle the return from the game client
         _ = await self.game_client.send_action(action)
 
-        raise NotImplementedError
-
     @override
     def agent_output_type_to_function(
         self, output_type: type[DefuserOutputT[LocationDataT]]
