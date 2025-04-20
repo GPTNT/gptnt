@@ -21,9 +21,9 @@ def bomb_state_json() -> dict[str, Any]:
     """Return a sample bomb state JSON."""
     return {
         "seed": 998865,
-        "timestamp": 3.76218414,
         "maxStrikes": 3,
         "currentStrikes": 0,
+        "strikes": [],
         "isDetonated": False,
         "isSolved": False,
         "isLightOn": True,
