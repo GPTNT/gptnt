@@ -2,8 +2,9 @@ from typing import TYPE_CHECKING, Any, Literal, Self, cast
 
 import polars as pl
 import wandb
-from pydantic import BaseModel, TypeAdapter
+from pydantic import BaseModel, SerializationInfo, TypeAdapter, model_serializer
 
+from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.ktane.experiments.experiments import ExperimentSpec
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import InteractGameAction, InteractGameLocation, SendMessageAction
@@ -75,13 +76,53 @@ class BombStateMetric(BombState, TimestampMixin):
         return cls.model_construct(None, timestamp=timestamp, **bomb_state.model_dump())
 
 
-class ObservationMetric(BaseModel):
+class ObservationMetric(TimestampMixin):
     """Observation metric class for observability logging."""
 
     raw_image: bytes
     segm_mask: bytes | None
-    final_image: bytes
-    timestamp: float
+    som_image: bytes
+
+    @classmethod
+    def from_observation(
+        cls, *, raw_image: bytes, segm_mask: bytes, som_image: bytes, timestamp: float
+    ) -> Self:
+        """Create an ObservationMetric from an observation."""
+        return cls(
+            raw_image=raw_image,
+            segm_mask=segm_mask if segm_mask else None,
+            som_image=som_image,
+            timestamp=timestamp,
+        )
+
+    @model_serializer(mode="plain")
+    def serialize_wandb(self, info: SerializationInfo) -> dict[str, Any]:  # noqa: WPS110
+        """Serialize the observation to a WandB image."""
+        context = info.context
+        if context is None:
+            return self.model_dump()
+        is_for_wandb = context.get("wandb", False) is not None
+        if is_for_wandb:
+            # If we are in a wandb context, we need to convert the images to wandb images
+            return self._to_wandb_images()
+        return self.model_dump()
+
+    def _to_wandb_images(self) -> dict[str, Any]:
+        # Convert the images to WandB images
+        raw_image = wandb.Image(load_observation_from_bytes(self.raw_image), caption="Raw Image")
+        segm_mask = (
+            wandb.Image(load_observation_from_bytes(self.segm_mask), caption="Segmentation Mask")
+            if self.segm_mask
+            else None
+        )
+        som_image = wandb.Image(load_observation_from_bytes(self.som_image), caption="SoM Image")
+
+        return {
+            "raw_image": raw_image,
+            "segmentation_mask": segm_mask,
+            "som_image": som_image,
+            "timestamp": self.timestamp,
+        }
 
 
 class PlayerEpisodeTracker:
@@ -127,13 +168,16 @@ class PlayerEpisodeTracker:
 
     def on_game_end(self) -> None:
         """Sends the mission results to wandb and cleans up."""
-        actions_table, messages_table, bomb_states_table = self._compute_tables()
+        actions_table, messages_table, bomb_states_table, observations_table = (
+            self._compute_tables()
+        )
 
         self._run.log(
             {
                 "actions_data": actions_table,
                 "messages_data": messages_table,
                 "bomb_states_data": bomb_states_table,
+                "observations_data": observations_table,
                 "is_solved": self._bomb_states[-1].is_solved if self._bomb_states else None,
             }
         )
@@ -161,10 +205,15 @@ class PlayerEpisodeTracker:
         )
         self._bomb_states.append(bomb_state_metric)
 
-    def add_observation(self, observation: bytes) -> None:
+    def add_observation(self, raw_image: bytes, segm_mask: bytes, som_image: bytes) -> None:
         """Add an observation to the player's observation list."""
-        # TODO: Change to a more appropriate type
-        raise NotImplementedError("Observation metric is not implemented yet.")
+        observation_metric = ObservationMetric.from_observation(
+            raw_image=raw_image,
+            segm_mask=segm_mask,
+            som_image=som_image,
+            timestamp=self._compute_time_delta(),
+        )
+        self._observations.append(observation_metric)
 
     def _reset(self) -> None:
         """Reset the player data."""
@@ -173,7 +222,7 @@ class PlayerEpisodeTracker:
         self._bomb_states.clear()
         self._observations.clear()
 
-    def _compute_tables(self) -> tuple[wandb.Table, wandb.Table, wandb.Table]:
+    def _compute_tables(self) -> tuple[wandb.Table, wandb.Table, wandb.Table, wandb.Table]:  # noqa: WPS210
         """Convert player data to a W&B Table for logging."""
         # Messages table
         messages_table = wandb.Table(
@@ -203,7 +252,21 @@ class PlayerEpisodeTracker:
             allow_mixed_types=True,
         )
 
-        return actions_table, messages_table, bomb_states_table
+        # Use the custom serialiser to convert the images to wandb images
+        observations_data = TypeAdapter(list[ObservationMetric]).dump_python(
+            self._observations, context={"wandb": True}
+        )
+
+        # Observations table
+        observations_table = wandb.Table(
+            columns=["raw_image", "segmentation_mask", "som_image", "timestamp"]
+        )
+        for row in observations_data:
+            observations_table.add_data(
+                row["raw_image"], row["segmentation_mask"], row["som_image"], row["timestamp"]
+            )
+
+        return actions_table, messages_table, bomb_states_table, observations_table
 
     def _compute_time_delta(self) -> float:
         """Compute the time delta between the start time and now."""
