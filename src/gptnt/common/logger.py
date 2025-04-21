@@ -50,3 +50,6 @@ def configure_logging(root_log_level: int = logging.INFO) -> None:
     root_logger = logging.getLogger()
     root_logger.addHandler(handler)
     root_logger.setLevel(root_log_level)
+    # Set httpx to WARNING to avoid too much noise
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
