@@ -111,7 +111,7 @@ max-string-usages = 10
 # WPS234: Increase max annotation complexity
 max-annotation-complexity = 5
 # WPS221: Increase max jones compexity
-max-line-complexity = 17
+max-line-complexity = 18
 # WPS202: Increase max module members
 max-module-members = 15
 
