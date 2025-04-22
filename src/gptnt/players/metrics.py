@@ -2,11 +2,13 @@ from typing import TYPE_CHECKING, Any, Literal, Self, cast
 
 import polars as pl
 import wandb
-from pydantic import BaseModel, SerializationInfo, TypeAdapter, model_serializer
+from pydantic import BaseModel, SerializationInfo, TypeAdapter, field_serializer, model_serializer
 
 from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.ktane.experiments.experiments import ExperimentSpec
 from gptnt.ktane.state.bomb import BombState
+from gptnt.ktane.state.modules import ModuleStates
+from gptnt.ktane.state.widget import WidgetStates
 from gptnt.players.actions import InteractGameAction, InteractGameLocation, SendMessageAction
 
 if TYPE_CHECKING:
@@ -73,7 +75,40 @@ class BombStateMetric(BombState, TimestampMixin):
         Because BombState is a subclass of this class, we just set the timestamp and pass it in
         because it should work. This is a bit of a hack, but it works.
         """
-        return cls.model_construct(None, timestamp=timestamp, **bomb_state.model_dump())
+        return cls.model_validate({**bomb_state.model_dump(), "timestamp": timestamp})
+
+    @classmethod
+    def polars_schema_override(cls) -> dict[str, Any]:
+        """Override the schema for the polars dataframe to build a consistent table."""
+        return {
+            "seed": pl.Int32,
+            "max_strikes": pl.Int32,
+            "current_strikes": pl.Int32,
+            "strikes": pl.List(pl.String),
+            "is_detonated": pl.Boolean,
+            "is_solved": pl.Boolean,
+            "is_light_on": pl.Boolean,
+            "timer_module": pl.Struct(
+                fields={
+                    "name": pl.String,
+                    "on_front": pl.Boolean,
+                    "index": pl.Int32,
+                    "seconds_remaining": pl.Float32,
+                }
+            ),
+            "widgets": pl.String,
+            "modules": pl.String,
+        }
+
+    @field_serializer("modules")
+    def serialize_modules(self, modules: list[ModuleStates]) -> str:
+        """Serialize the modules to a string."""
+        return TypeAdapter(list[ModuleStates]).dump_json(modules).decode("utf-8")
+
+    @field_serializer("widgets")
+    def serialize_widgets(self, widgets: list[WidgetStates]) -> str:
+        """Serialize the widgets to a string."""
+        return TypeAdapter(list[WidgetStates]).dump_json(widgets).decode("utf-8")
 
 
 class ObservationMetric(TimestampMixin):
@@ -172,13 +207,35 @@ class PlayerEpisodeTracker:
             self._compute_tables()
         )
 
+        last_bomb_state = self._bomb_states[-1]
+
         self._run.log(
             {
-                "actions_data": actions_table,
-                "messages_data": messages_table,
-                "bomb_states_data": bomb_states_table,
-                "observations_data": observations_table,
-                "is_solved": self._bomb_states[-1].is_solved if self._bomb_states else None,
+                # tables
+                "actions": actions_table,
+                "messages": messages_table,
+                "bomb_states": bomb_states_table,
+                "observations": observations_table,
+                # other metrics
+                "is_solved": last_bomb_state.is_solved,
+                "is_strike_out": last_bomb_state.is_detonated
+                and last_bomb_state.strikes is not None
+                and len(last_bomb_state.strikes) >= last_bomb_state.max_strikes,
+                "is_timed_out": last_bomb_state.is_detonated
+                and last_bomb_state.timer_module.seconds_remaining <= 0,
+                "time_remaining": last_bomb_state.timer_module.seconds_remaining,
+                "total_modules_solved": len(
+                    [module for module in last_bomb_state.modules if module.is_solved]
+                ),
+                "total_strikes": len(last_bomb_state.strikes) if last_bomb_state.strikes else 0,
+                "total_defuser_actions": len(self._actions),
+                "total_messages_sent": len(self._messages_sent),
+                "total_defuser_messages_sent": len(
+                    [message for message in self._messages_sent if message.role == "defuser"]
+                ),
+                "total_expert_messages_sent": len(
+                    [message for message in self._messages_sent if message.role == "expert"]
+                ),
             }
         )
         self._run.finish()
@@ -237,9 +294,10 @@ class PlayerEpisodeTracker:
         # Bomb states
         bomb_states_table = wandb.Table(
             dataframe=pl.from_dicts(
-                TypeAdapter(list[BombStateMetric]).dump_python(self._bomb_states, mode="json")
+                TypeAdapter(list[BombStateMetric]).dump_python(self._bomb_states, mode="json"),
+                schema_overrides=BombStateMetric.polars_schema_override(),
             ).to_pandas(),
-            allow_mixed_types=True,
+            allow_mixed_types=False,
         )
 
         # in-game actions

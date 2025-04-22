@@ -1,7 +1,14 @@
 from enum import Enum
 from typing import Annotated, NamedTuple, Union
 
-from pydantic import BaseModel, ConfigDict, Field, NonNegativeFloat, alias_generators
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    NonNegativeFloat,
+    alias_generators,
+    computed_field,
+)
 
 from gptnt.ktane.state import constants
 
@@ -36,6 +43,18 @@ class BaseModuleState(BaseModel):
 
     on_front: bool
     index: Annotated[int, Field(ge=0, le=5)]
+
+    @computed_field
+    @property
+    def module_location(self) -> int:
+        """Get the module location.
+
+        The module location is the index of the module in the list of modules.
+        """
+        index = self.index
+        if self.on_front:
+            index += 6
+        return index
 
 
 class InteractiveModuleState(BaseModuleState):
