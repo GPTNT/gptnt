@@ -49,6 +49,9 @@ lint = [
     "toml-sort>=0.24.2",
     "wemake-python-styleguide>=1.0.0",
 ]
+visualisation = [
+    "streamlit>=1.44.1",
+]
 
 [tool.basedpyright]
 verboseOutput = true
@@ -115,6 +118,8 @@ max-annotation-complexity = 5
 max-line-complexity = 18
 # WPS202: Increase max module members
 max-module-members = 15
+# WPS210: Increase max number of variables in a function
+max-local-variables = 10
 
 [tool.pytest.ini_options]
 filterwarnings = [

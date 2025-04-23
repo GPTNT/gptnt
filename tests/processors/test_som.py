@@ -3,8 +3,8 @@ from pathlib import Path
 import numpy as np
 from numpy.typing import NDArray
 from pytest_cases import fixture, param_fixture
-from skimage.io import imread
 
+from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.processors.set_of_marks import (
     convert_colorful_segm_to_labeled,
     draw_mask_on_image,
@@ -23,7 +23,7 @@ def segmentation_image(fixture_path: Path, segmentation_image_names: str) -> NDA
     """Fixture to provide a segmentation screenshot as a numpy array."""
     path = fixture_path.joinpath(segmentation_image_names)
     assert path.exists()
-    return imread(path)
+    return np.asarray(load_observation_from_bytes(path.read_bytes()))
 
 
 def test_convert_colorful_segm_to_labeled(segmentation_image: NDArray[np.uint8]) -> None:

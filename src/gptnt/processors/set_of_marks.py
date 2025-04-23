@@ -1,4 +1,7 @@
 import colorsys
+from collections.abc import Callable, Generator, Mapping
+from functools import partial
+from types import MappingProxyType
 from typing import NamedTuple
 
 import cv2
@@ -6,20 +9,51 @@ import numpy as np
 from numpy.typing import NDArray
 from skimage.color import hsv2rgb, rgb2hsv
 from skimage.measure import regionprops
-from skimage.measure._regionprops import RegionProperties as _RegionProperties
 
 from gptnt.ktane.actions import RelativeCoordinate
+from gptnt.ktane.state.modules import KtaneComponent
+from gptnt.processors.labels.color import ENTIRELY_COLOR_DEPENDENT_MODULES, get_median_colour
+from gptnt.processors.labels.drawing import BIG_BUTTON_OFFSET, draw_annotation
+from gptnt.processors.labels.keypad import keypad
+from gptnt.processors.labels.maze import maze
+from gptnt.processors.labels.memory import memory
+from gptnt.processors.labels.morse import morse_code
+from gptnt.processors.labels.password import password
+from gptnt.processors.labels.simon import simon
+from gptnt.processors.labels.types import (
+    BLACK,
+    IS_LINE_THRESHOLD,
+    WHITE,
+    Color,
+    DrawData,
+    RegionProperties,
+    RGBArray,
+)
+from gptnt.processors.labels.venn import venn
+from gptnt.processors.labels.whos_on_first import whos_on_first
+from gptnt.processors.labels.wires import wires
+from gptnt.processors.labels.zoomed_out import zoomed_out
 
-RegionProperties = _RegionProperties
+PROPS_AREA_THRESHOLD = 10
 
-
-type Color = tuple[int, int, int]
-type RGBArray = NDArray[np.uint8]
-
-BLACK: Color = (0, 0, 0)
-WHITE: Color = (255, 255, 255)
-GREEN: Color = (0, 255, 0)
-ALPHA_CHANNEL = 4
+COMPONENT_WRITE_LABEL_MAPPER: Mapping[
+    KtaneComponent | None, Callable[[list[RegionProperties]], Generator[DrawData]]
+] = MappingProxyType(
+    {
+        None: zoomed_out,
+        KtaneComponent.big_button: partial(zoomed_out, offset=BIG_BUTTON_OFFSET),
+        KtaneComponent.memory: memory,
+        KtaneComponent.morse_code: morse_code,
+        KtaneComponent.password: password,
+        KtaneComponent.simon: simon,
+        KtaneComponent.keypad: keypad,
+        KtaneComponent.whos_on_first: whos_on_first,
+        KtaneComponent.maze: maze,
+        KtaneComponent.wires: wires,
+        KtaneComponent.venn: venn,
+        KtaneComponent.wire_sequence: wires,
+    }
+)
 
 
 class Coordinate(NamedTuple):
@@ -56,6 +90,8 @@ def convert_colorful_segm_to_labeled(image_as_array: RGBArray) -> NDArray[np.int
     non_black_color_mask = flattened.sum(axis=-1) > 0
     flattened_hsv = rgb2hsv(flattened)
     flattened_hsv[:, 2] = non_black_color_mask
+    flattened_hsv[:, 1] = non_black_color_mask
+    flattened_hsv[:, 0] = np.round(flattened_hsv[:, 0], 2)
     floating_rgb = hsv2rgb(flattened_hsv) * 255  # noqa: WPS432
     fixed_rgb = floating_rgb.astype(np.uint8)
 
@@ -70,6 +106,7 @@ def convert_colorful_segm_to_labeled(image_as_array: RGBArray) -> NDArray[np.int
 def get_region_properties(labeled_image: NDArray[np.int8]) -> list[RegionProperties]:
     """Extract region properties from a labelled image."""
     props = regionprops(labeled_image)
+    props = [props for props in props if props.area > PROPS_AREA_THRESHOLD]
     return props
 
 
@@ -248,14 +285,15 @@ class SetOfMarksHandler:
         self,
         *,
         text_color: Color = BLACK,
-        font_scale: float = 0.5,
-        mask_thickness: int = 2,
-        text_thickness: int = 1,
-        padding: int = 1,
+        font_scale: float = 0.7,
+        mask_thickness: int = 1,
+        text_thickness: int = 2,
+        padding: int = 5,
         add_labels: bool = True,
         add_mask_outline: bool = True,
         soft_mask_alpha: float = 0.15,
         bw_outside_mask: bool = True,
+        font_type: int = cv2.FONT_HERSHEY_SIMPLEX,
     ) -> None:
         self._text_color = text_color
         self._font_scale = font_scale
@@ -266,6 +304,7 @@ class SetOfMarksHandler:
         self._add_mask_outline = add_mask_outline
         self._soft_mask_alpha = soft_mask_alpha
         self._bw_outside_mask = bw_outside_mask
+        self._font_type = font_type
 
         self._mark_to_coordinate: dict[int, RelativeCoordinate] = {}
 
@@ -309,3 +348,65 @@ class SetOfMarksHandler:
             f"Mark ID {mark_id} not found in mark to coordinate mapping."
         )
         return self._mark_to_coordinate[mark_id]
+
+    def draw_labels(
+        self, image: RGBArray, segm_img: RGBArray, module: KtaneComponent | None
+    ) -> RGBArray:
+        """Draw labels on the image based on the segmentation image and observation."""
+        # Get list of coordinates to draw labels
+        draw_coords = COMPONENT_WRITE_LABEL_MAPPER[module](self.extract_regions(segm_img))
+
+        annotated_image = image.copy()
+
+        for draw_location, region in draw_coords:
+            # Get the colour of the region
+            color = self.get_region_colour(image, segm_img, region, module)
+
+            annotated_image = draw_annotation(
+                annotated_image,
+                str(region.label),
+                draw_location,
+                self._font_type,
+                self._font_scale,
+                color,
+                self._text_thickness,
+                self._padding,
+            )
+
+        return annotated_image
+
+    def get_region_colour(
+        self,
+        image: RGBArray,
+        segm_image: RGBArray,
+        region: RegionProperties,
+        module: KtaneComponent | None,
+    ) -> Color:
+        """Get the colour of a region based on the module type."""
+        # Use image colours for colour dependent modules (but only wire interactables for wire modules)
+        if module in ENTIRELY_COLOR_DEPENDENT_MODULES or (
+            module == KtaneComponent.wire_sequence and region.eccentricity > IS_LINE_THRESHOLD
+        ):
+            return get_median_colour(region, image)
+
+        # Otherwise, use segmentation image colour
+        return get_median_colour(region, segm_image)
+
+    def draw_region_outlines(
+        self, image: RGBArray, segm_img: RGBArray, module: KtaneComponent | None
+    ) -> RGBArray:
+        """Draw outlines of regions on the image based on the segmentation image."""
+        regions = self.extract_regions(segm_img)
+
+        outlined_image = image.copy()
+
+        for region in regions:
+            color = self.get_region_colour(image, segm_img, region, module)
+            _ = draw_mask_on_image(
+                image=outlined_image,
+                coords=region.coords,
+                color=color,
+                thickness=self._mask_thickness,
+                soft_mask_alpha=self._soft_mask_alpha,
+            )
+        return outlined_image
