@@ -9,13 +9,13 @@ from pydantic import BaseModel, model_validator
 class GameActionType(Enum):
     """Actions that can be performed in the game."""
 
-    turn_left = "left"
+    rotate_left = "left"
     """Only 90deg rotations are allowed."""
 
-    turn_right = "right"
+    rotate_right = "right"
     """Only 90deg rotations are allowed."""
 
-    turn_around = "flip"
+    flip = "flip"
     """Rotate the bomb 180 degrees."""
 
     roll_up = "up"
@@ -27,7 +27,7 @@ class GameActionType(Enum):
     zoom_out = "out"
     """Zoom out of the current depth (i.e. right-clicking)."""
 
-    click = "click"
+    click_release = "click"
     """Click (and immediate release) on a point."""
 
     hold = "hold"
@@ -39,7 +39,7 @@ class GameActionType(Enum):
     @classmethod
     def require_location(cls) -> "set[GameActionType]":
         """Return the set of actions that require a location to interact on."""
-        return {cls.click, cls.hold}
+        return {cls.click_release, cls.hold}
 
 
 class RelativeCoordinate(BaseModel):

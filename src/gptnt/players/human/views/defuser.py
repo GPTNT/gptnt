@@ -49,13 +49,13 @@ class DefuserPlayerView(BaseView):
 
         # Registering the actions
         _ = self._button_left.click(
-            fn=partial(self._handle_discrete_action, GameActionType.turn_left)
+            fn=partial(self._handle_discrete_action, GameActionType.rotate_left)
         )
         _ = self._button_right.click(
-            fn=partial(self._handle_discrete_action, GameActionType.turn_right)
+            fn=partial(self._handle_discrete_action, GameActionType.rotate_right)
         )
         _ = self._button_around.click(
-            fn=partial(self._handle_discrete_action, GameActionType.turn_around)
+            fn=partial(self._handle_discrete_action, GameActionType.flip)
         )
         _ = self._button_roll_up.click(
             fn=partial(self._handle_discrete_action, GameActionType.roll_up)
@@ -94,7 +94,7 @@ class DefuserPlayerView(BaseView):
                 else:
                     # Click
                     action = KtaneAction(
-                        action=GameActionType.click,
+                        action=GameActionType.click_release,
                         location=RelativeCoordinate(x_pos=float(event_x), y_pos=float(event_y)),
                     )
 

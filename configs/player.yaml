@@ -6,6 +6,7 @@ defaults:
 
   - player: expert
   - model: gpt4o
+  - system_prompt: none
 
   - override hydra/job_logging: none
   - override hydra/hydra_logging: none
