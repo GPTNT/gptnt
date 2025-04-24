@@ -1,22 +1,28 @@
-import asyncio
-
-import anyio
 import logfire
+import structlog
+from fastapi import FastAPI
 
+from gptnt.api.experiment_manager_routes import lifespan, router
 from gptnt.common.logger import configure_logging
-from gptnt.experiments.experiment_manager.api import ExperimentManagerAPI
 
 _ = logfire.configure(service_name="experiment-manager")
 configure_logging()
 
+_logger = structlog.get_logger()
 
-async def main() -> None:
+
+def run() -> FastAPI:
     """Runs the room forever, gracefully exiting (without zombies!) on Ctrl+C."""
-    experiment_manager = ExperimentManagerAPI()
-    _ = logfire.instrument_fastapi(experiment_manager.app, excluded_urls=["/health"])
-    async with experiment_manager as manager:
-        while not manager._should_exit:  # noqa: SLF001
-            _ = await asyncio.sleep(delay=1)
+    app = FastAPI(lifespan=lifespan)
+    app.include_router(router)
+    _ = logfire.instrument_fastapi(app, excluded_urls=["/health"])
+    return app
 
 
-anyio.run(func=main)
+if __name__ == "__main__":
+    import uvicorn
+
+    app = run()
+
+    uvicorn.run(app, host="localhost", log_level="warning")
+    _logger.info("App closed")

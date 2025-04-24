@@ -6,6 +6,7 @@ import httpx
 import logfire
 from structlog import get_logger
 
+from gptnt.api.structures import ClientMetadata
 from gptnt.common.instrumentation import InstrumentationMixin
 
 _logger = get_logger()
@@ -63,3 +64,37 @@ class BaseClient(InstrumentationMixin, abc.ABC):
                 return True
 
         return False
+
+
+class SupervisedClient[ClientT: BaseClient, MetadataT: ClientMetadata](abc.ABC):
+    """Wrapper to supervise clients."""
+
+    client_constructor: type[ClientT]
+    supervisor_interval: float = 0.5
+
+    def __init__(self, client: ClientT, metadata: MetadataT) -> None:
+        self.is_connected = False
+        self.is_started = False
+        self.in_experiment = False
+        self.metadata = metadata
+        self.client = client
+
+    @classmethod
+    def from_metadata(cls, metadata: MetadataT) -> Self:
+        """Creates a new client from the metadata."""
+        return cls(client=cls.client_constructor(metadata.fastapi_url), metadata=metadata)
+
+    async def start(self) -> None:
+        """Starts the client."""
+        self.is_started = True
+        _ = await self.client.start()
+
+    async def stop(self) -> None:
+        """Stops the client."""
+        self.is_connected = False
+        _ = await self.client.stop()
+
+    @abc.abstractmethod
+    async def supervisor_loop(self) -> None:
+        """Returns the supervisor loop for this client."""
+        raise NotImplementedError

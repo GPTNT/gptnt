@@ -10,7 +10,7 @@ import logfire
 from structlog import get_logger
 
 from gptnt.api.experiment_manager_client import ExperimentManagerClient
-from gptnt.api.structures import RoomManagerAPIInfo, RoomStage
+from gptnt.api.structures import RoomMetadata, RoomStage
 from gptnt.common.hosting import get_available_port
 from gptnt.dialogue_space.server import DialogueSpaceServer
 from gptnt.ktane.client import KtaneClient
@@ -55,7 +55,6 @@ class RoomManager:
         self._restartable_tasks: list[Task[None]] = []
 
         # Sub services
-        # self._fastapi_server: uvicorn.Server
         self._fastapi_supervisor_client: httpx.AsyncClient
 
         self._game_process: Process
@@ -70,12 +69,13 @@ class RoomManager:
         return f"http://{self.hostname}:{self._fastapi_server_port}"
 
     @property
-    def room_info(self) -> RoomManagerAPIInfo:
+    def room_info(self) -> RoomMetadata:
         """Build the room info for the experiment manager."""
-        return RoomManagerAPIInfo(
+        return RoomMetadata(
             fastapi_url=self.url,
             dialogue_space_url=self._dialogue_space_server.url,
             ktane_url=f"{self.ktane_client.client.base_url}",
+            state=self.lifecycle_stage,
         )
 
     def kill_game_process(self) -> None:

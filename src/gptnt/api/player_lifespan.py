@@ -6,7 +6,7 @@ import structlog
 from fastapi import FastAPI
 
 from gptnt.api.experiment_manager_client import ExperimentManagerClient
-from gptnt.api.structures import PlayerAPIInfo
+from gptnt.api.structures import PlayerMetadata
 from gptnt.players.base_player import BasePlayer
 
 logger = structlog.get_logger()
@@ -17,7 +17,7 @@ async def player_lifespan(
     app: FastAPI,
     player: BasePlayer,
     experiment_manager_client: ExperimentManagerClient,
-    api_info: PlayerAPIInfo,
+    api_info: PlayerMetadata,
 ) -> AsyncGenerator[None]:
     """Lifespan context manager for PlayerAPI."""
     logger.info("Starting PlayerAPI", api_info=api_info)

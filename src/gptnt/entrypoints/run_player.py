@@ -10,7 +10,7 @@ from structlog import get_logger
 from gptnt.api.experiment_manager_client import ExperimentManagerClient
 from gptnt.api.player_lifespan import player_lifespan
 from gptnt.api.player_routes import player_router
-from gptnt.api.structures import PlayerAPIInfo
+from gptnt.api.structures import PlayerMetadata
 from gptnt.common.hosting import get_available_port
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
@@ -41,7 +41,7 @@ def run_player(config: DictConfig) -> None:  # noqa: WPS210
     api_host = "localhost"
     api_port = get_available_port()
 
-    api_info = PlayerAPIInfo(
+    api_info = PlayerMetadata(
         fastapi_url=f"http://{api_host}:{api_port}",
         player_type=player.player_type,
         player_role=player.player_role,

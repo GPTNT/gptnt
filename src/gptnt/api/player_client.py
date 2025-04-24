@@ -1,8 +1,11 @@
+import asyncio
+from typing import override
+
 import httpx
 from structlog import get_logger
 
-from gptnt.api.base_client import BaseClient
-from gptnt.api.structures import RoomManagerAPIInfo
+from gptnt.api.base_client import BaseClient, SupervisedClient
+from gptnt.api.structures import PlayerMetadata, RoomMetadata
 
 _logger = get_logger()
 
@@ -10,7 +13,7 @@ _logger = get_logger()
 class PlayerClient(BaseClient):
     """API for externally interacting with the PlayerAPI."""
 
-    async def join_room(self, room: RoomManagerAPIInfo) -> None:
+    async def join_room(self, room: RoomMetadata) -> None:
         """Makes player join the passed RoomManager's dialogue space."""
         response = await self.client.post(url="/join-room", json=room.model_dump(mode="json"))
         _ = response.raise_for_status()
@@ -56,3 +59,19 @@ class PlayerClient(BaseClient):
             _logger.exception("Could not stop experiment")
             return False
         return True
+
+
+class SupervisedPlayerClient(SupervisedClient[PlayerClient, PlayerMetadata]):
+    """Client for players, with a supervisor to keep track of the health."""
+
+    client_constructor = PlayerClient
+
+    @override
+    async def supervisor_loop(self) -> None:
+        while self.is_started:
+            if not await self.client.healthcheck():
+                break
+            await asyncio.sleep(self.supervisor_interval)
+        _logger.info("Player died")
+        self.is_connected = False
+        await self.stop()

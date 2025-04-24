@@ -1,8 +1,11 @@
+import asyncio
+from typing import override
+
 import httpx
 from structlog import get_logger
 
-from gptnt.api.base_client import BaseClient
-from gptnt.api.structures import RoomStage
+from gptnt.api.base_client import BaseClient, SupervisedClient
+from gptnt.api.structures import RoomMetadata, RoomStage
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 
 _logger = get_logger()
@@ -52,3 +55,26 @@ class RoomManagerClient(BaseClient):
             _logger.exception("Could not start experiment")
             return False
         return True
+
+
+class SupervisedRoomManagerClient(SupervisedClient[RoomManagerClient, RoomMetadata]):
+    """API for externally interacting with the RoomManager in supervised mode."""
+
+    client_constructor = RoomManagerClient
+
+    @property
+    def state(self) -> RoomStage:
+        """Returns the current state of the RoomManager in its lifecycle."""
+        return self.metadata.state
+
+    @override
+    async def supervisor_loop(self) -> None:
+        """Returns the supervisor co-routine for this client."""
+        while self.is_started:
+            try:
+                self.metadata.state = await self.client.statecheck()
+            except httpx.HTTPError:
+                break
+            await asyncio.sleep(self.supervisor_interval)
+        self.is_connected = False
+        await self.stop()

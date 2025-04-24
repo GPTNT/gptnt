@@ -5,7 +5,7 @@ import structlog
 from fastapi import APIRouter, Depends, Request
 from httpx import AsyncClient
 
-from gptnt.api.structures import RoomManagerAPIInfo
+from gptnt.api.structures import RoomMetadata
 from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.ktane.client import KtaneClient
 from gptnt.players.ai.defuser import BaseDefuserPlayer
@@ -32,7 +32,7 @@ async def health() -> bool:
 
 
 @player_router.post("/join-room")
-async def join_room(room: RoomManagerAPIInfo, player: PlayerDep) -> None:
+async def join_room(room: RoomMetadata, player: PlayerDep) -> None:
     """Join a room and connect to its dialogue space."""
     # logger.debug("Disconnecting from previous room")
     # await player.disconnect_from_room()

@@ -3,25 +3,6 @@ from enum import Enum
 from pydantic import BaseModel
 
 
-class RoomManagerAPIInfo(BaseModel):
-    """Information about a RoomManagerAPI needed to maintain a connection."""
-
-    fastapi_url: str
-    dialogue_space_url: str
-    ktane_url: str
-
-
-class PlayerAPIInfo(BaseModel):
-    """Information about a PlayerAPI needed to maintain a connection."""
-
-    fastapi_url: str
-
-    player_type: str
-    player_role: str
-
-    # TODO: Add player type
-
-
 class RoomStage(Enum):
     """The stage of the experiment lifecycle that a RoomManager is in."""
 
@@ -39,3 +20,25 @@ class RoomStage(Enum):
 
     done = "done"
     """The RoomManager is finished playing a mission."""
+
+
+class ClientMetadata(BaseModel):
+    """Metadata for a given client."""
+
+    fastapi_url: str
+    """The URL of the FastAPI server that it's running on."""
+
+
+class RoomMetadata(ClientMetadata):
+    """Information about a Room that needed to maintain a connection."""
+
+    dialogue_space_url: str
+    ktane_url: str
+    state: RoomStage
+
+
+class PlayerMetadata(ClientMetadata):
+    """Information about a PlayerAPI needed to maintain a connection."""
+
+    player_type: str
+    player_role: str
