@@ -1,7 +1,7 @@
 import asyncio
+import itertools
 from collections.abc import Callable
 from dataclasses import dataclass
-from itertools import chain
 from types import TracebackType
 from typing import Any, Self, override
 
@@ -226,7 +226,7 @@ class ExperimentManagerAPI:
         """
         while not self._should_exit:
             # Start newly connected clients and their supervisors
-            for client in chain(self.players, self.rooms):
+            for client in itertools.chain(self.players, self.rooms):
                 if not client.is_started:
                     await client.start()  # noqa: WPS476
                     self._tasks.append(asyncio.create_task(coro=client.supervisor()))
