@@ -6,6 +6,7 @@ from structlog import get_logger
 
 from gptnt.api.base_client import BaseClient
 from gptnt.api.structures import PlayerMetadata, RoomMetadata
+from gptnt.ktane.experiments.experiments import ExperimentSpec
 
 _logger = get_logger()
 
@@ -32,6 +33,22 @@ class ExperimentManagerClient(BaseClient):
         _ = await endpoint(connection)  # pyright: ignore[reportArgumentType]
         _logger.debug("Connected to ExperimentManager.")
         yield
+
+    async def add_experiment(self, experiment: ExperimentSpec) -> bool:
+        """Connect to the ExperimentManager.
+
+        Adds an ExperimentSpec to the ExperimentManager.experiments.
+        """
+        try:
+            _ = (
+                await self.client.post(
+                    url="/add-experiment", json=experiment.model_dump(mode="json")
+                )
+            ).raise_for_status()
+        except httpx.HTTPError:
+            _logger.exception("Failed to connect to ExperimentManager")
+            return False
+        return True
 
     async def connect_room(self, connection: RoomMetadata) -> bool:
         """Connect to the ExperimentManager.

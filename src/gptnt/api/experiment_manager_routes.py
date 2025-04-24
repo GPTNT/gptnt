@@ -10,10 +10,16 @@ from gptnt.api.experiment_manager import ExperimentManager
 from gptnt.api.player_client import SupervisedPlayerClient
 from gptnt.api.room_client import SupervisedRoomManagerClient
 from gptnt.api.structures import PlayerMetadata, RoomMetadata
+from gptnt.ktane.experiments.experiments import ExperimentSpec
 
 logger = structlog.get_logger()
 
 router = APIRouter()
+
+
+async def _get_experiments(request: Request) -> list[SupervisedPlayerClient]:
+    """Get the experiments from the state of the app."""
+    return request.app.state.manager.experiments
 
 
 async def _get_supervised_players(request: Request) -> list[SupervisedPlayerClient]:
@@ -26,6 +32,7 @@ async def _get_supervised_rooms(request: Request) -> list[SupervisedRoomManagerC
     return request.app.state.manager.rooms
 
 
+ExperimentSpecDep = Annotated[list[ExperimentSpec], Depends(_get_experiments)]
 SupervisedPlayersDep = Annotated[list[SupervisedPlayerClient], Depends(_get_supervised_players)]
 SupervisedRoomsDep = Annotated[list[SupervisedRoomManagerClient], Depends(_get_supervised_rooms)]
 
@@ -34,6 +41,13 @@ SupervisedRoomsDep = Annotated[list[SupervisedRoomManagerClient], Depends(_get_s
 def health() -> bool:
     """Check if the experiment manager is healthy."""
     return True
+
+
+@logfire.instrument("Add Experiment")
+@router.post("/add-experiment")
+async def add_experiment(experiment_spec: ExperimentSpec, experiments: ExperimentSpecDep) -> None:
+    """Connects a new player to the experiment manager."""
+    experiments.append(experiment_spec)
 
 
 @logfire.instrument("Connect player")
