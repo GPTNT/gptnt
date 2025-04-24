@@ -2,7 +2,7 @@ import httpx
 from structlog import get_logger
 
 from gptnt.api.base_client import BaseClient
-from gptnt.experiments.structures import RoomManagerAPIInfo
+from gptnt.api.structures import RoomManagerAPIInfo
 
 _logger = get_logger()
 

@@ -22,7 +22,7 @@ class PlayerAPIInfo(BaseModel):
     # TODO: Add player type
 
 
-class LifecycleStage(Enum):
+class RoomStage(Enum):
     """The stage of the experiment lifecycle that a RoomManager is in."""
 
     boot = "boot"

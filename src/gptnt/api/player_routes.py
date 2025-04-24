@@ -5,8 +5,8 @@ import structlog
 from fastapi import APIRouter, Depends, Request
 from httpx import AsyncClient
 
+from gptnt.api.structures import RoomManagerAPIInfo
 from gptnt.dialogue_space.client import DialogueSpaceClient
-from gptnt.experiments.structures import RoomManagerAPIInfo
 from gptnt.ktane.client import KtaneClient
 from gptnt.players.ai.defuser import BaseDefuserPlayer
 from gptnt.players.base_player import BasePlayer

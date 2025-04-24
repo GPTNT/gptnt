@@ -10,9 +10,9 @@ import logfire
 from structlog import get_logger
 
 from gptnt.api.experiment_manager_client import ExperimentManagerClient
+from gptnt.api.structures import RoomManagerAPIInfo, RoomStage
 from gptnt.common.hosting import get_available_port
 from gptnt.dialogue_space.server import DialogueSpaceServer
-from gptnt.experiments.structures import LifecycleStage, RoomManagerAPIInfo
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.executable import get_executable_path
 from gptnt.ktane.state.game import GameState
@@ -41,7 +41,7 @@ class RoomManager:
         self._game_startup_time: float = 15.0
 
         # Control and status flags
-        self.lifecycle_stage: LifecycleStage
+        self.lifecycle_stage: RoomStage
         self.game_state: GameState
         self._state_changed: asyncio.Event
         self._players_connected: asyncio.Event
@@ -113,7 +113,7 @@ class RoomManager:
 
     async def start(self, *, start_subservices: bool = True) -> None:
         """Starts the subservices and supervisors."""
-        self.lifecycle_stage = LifecycleStage.boot
+        self.lifecycle_stage = RoomStage.boot
         self.game_state = GameState.unknown
 
         self._state_changed = asyncio.Event()
@@ -182,22 +182,22 @@ class RoomManager:
                 self._state_changed.clear()
 
         # Lifecycle
-        self.lifecycle_stage = LifecycleStage.boot
+        self.lifecycle_stage = RoomStage.boot
 
         await _until_game_state(target_state=GameState.main_menu)
-        self.lifecycle_stage = LifecycleStage.ready_for_config
+        self.lifecycle_stage = RoomStage.ready_for_config
 
         await _until_game_state(target_state=GameState.lights_off)
         _ = await self.ktane_client.stop_time()  # BUG: This might fail
         _ = await self._players_connected.wait()
         self._players_connected.clear()
-        self.lifecycle_stage = LifecycleStage.ready_for_start
+        self.lifecycle_stage = RoomStage.ready_for_start
 
         await _until_game_state(target_state=GameState.lights_on)
-        self.lifecycle_stage = LifecycleStage.in_experiment
+        self.lifecycle_stage = RoomStage.in_experiment
 
         await _until_game_state(target_state=GameState.game_ended)
-        self.lifecycle_stage = LifecycleStage.done
+        self.lifecycle_stage = RoomStage.done
 
     async def _start_subservices(self) -> None:
         """Start the server and app."""

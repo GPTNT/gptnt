@@ -2,7 +2,7 @@ import httpx
 from structlog import get_logger
 
 from gptnt.api.base_client import BaseClient
-from gptnt.experiments.structures import LifecycleStage
+from gptnt.api.structures import RoomStage
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 
 _logger = get_logger()
@@ -11,7 +11,7 @@ _logger = get_logger()
 class RoomManagerClient(BaseClient):
     """API for externally interacting with the RoomManager."""
 
-    async def statecheck(self) -> LifecycleStage:
+    async def statecheck(self) -> RoomStage:
         """Returns the current state of the RoomManager in its lifecycle."""
         response = await self.client.get(url="/health")
         try:
@@ -20,7 +20,7 @@ class RoomManagerClient(BaseClient):
             _logger.exception("Could not get room state")
 
         # There are `"` characters in the response, so we need to strip them out for some reason
-        return LifecycleStage(value=response.text.replace('"', ""))
+        return RoomStage(value=response.text.replace('"', ""))
 
     async def reset_room(self) -> bool:
         """Resets the room, back to a state ready to receive a new experiment config."""

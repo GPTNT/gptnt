@@ -6,7 +6,7 @@ import structlog
 from fastapi import FastAPI
 
 from gptnt.api.experiment_manager_client import ExperimentManagerClient
-from gptnt.experiments.structures import PlayerAPIInfo
+from gptnt.api.structures import PlayerAPIInfo
 from gptnt.players.base_player import BasePlayer
 
 logger = structlog.get_logger()
