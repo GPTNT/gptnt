@@ -24,5 +24,5 @@ if __name__ == "__main__":
 
     app = run()
 
-    uvicorn.run(app, host="localhost", log_level="warning")
+    uvicorn.run(app, host="localhost", port=8099, log_level="warning")  # noqa: WPS432
     _logger.info("App closed")
