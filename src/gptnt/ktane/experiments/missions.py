@@ -34,9 +34,6 @@ class MissionGeneratorConfig(BaseModel):
             KtaneComponent.needy_vent_gas,
             KtaneComponent.needy_capacitor,
             KtaneComponent.needy_knob,
-            # ?? We also want to avoid sampling complicated wires as most models struggle to read
-            #   the handwritten * in the wires (TBC)
-            KtaneComponent.venn,
         }
     )
 

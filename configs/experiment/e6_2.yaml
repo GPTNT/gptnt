@@ -1,0 +1,8 @@
+# @package _global_
+
+defaults:
+  - _self_
+  - pairing: with_best
+  - communication_style: parallel
+  - condition: multiple_modules_2
+  - players: default

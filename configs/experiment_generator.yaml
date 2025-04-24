@@ -1,5 +1,4 @@
 # @package _global_
-
 defaults:
   - _self_
   - hydra: default
@@ -15,18 +14,26 @@ defaults:
 
 task_name: generate_experiments
 
+seeds_per_condition:
+  single_module: 3
+  repeated_modules_2: 3
+  repeated_modules_5: 3
+  multiple_modules_2_front: 1
+  multiple_modules_2: 1
+  multiple_modules_n: 8
+
 pairing_generator:
-  _target_: gptnt.ktane.exp.pairing.PairingGenerator
+  _target_: gptnt.ktane.experiments.pairing.PairingGenerator
   pairing_type: ???
   all_players: ???
 
 mission_generator:
-  _target_: gptnt.ktane.exp.missions.MissionGenerator
-  num_seeds_per_mission: 3
-  seed: 42
+  _target_: gptnt.ktane.experiments.missions.MissionGenerator
+  num_seeds_per_mission: ${seeds_per_condition.${experiment_generator.condition}}
+  seed: 34
   config: ???
 
 experiment_generator:
-  _target_: gptnt.ktane.exp.experiments.ExperimentGenerator
+  _target_: gptnt.ktane.experiments.experiments.ExperimentGenerator
   condition: ???
   communication_style: ???

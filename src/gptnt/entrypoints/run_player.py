@@ -10,10 +10,10 @@ from structlog import get_logger
 from gptnt.api.experiment_manager_client import ExperimentManagerClient
 from gptnt.api.player_lifespan import player_lifespan
 from gptnt.api.player_routes import player_router
+from gptnt.api.structures import PlayerAPIInfo
 from gptnt.common.hosting import get_available_port
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
-from gptnt.experiments.structures import PlayerAPIInfo
 from gptnt.players.base_player import BasePlayer
 
 # TODO: We need to contextualise the service with the metadata when we run things

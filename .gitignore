@@ -782,6 +782,10 @@ storage/ktane/*
 !storage/ktane/mods
 !storage/ktane/mods/*
 
+# The experiment jsons
+storage/experiments/*
+storage/missions/*
+
 # Szymon (don't listen to that guy)
 todo.md
 game_proxy.exe

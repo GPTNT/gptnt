@@ -1,0 +1,10 @@
+# @package _global_
+
+defaults:
+  - _self_
+  - pairing: with_best
+  - communication_style: sequential
+  - condition: repeated_modules_2
+  - players: default
+# pairing_generator:
+# best_model: gpt4o

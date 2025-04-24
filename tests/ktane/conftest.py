@@ -75,7 +75,7 @@ def bomb_state_json() -> dict[str, Any]:
                 "inFocus": False,
                 "onFront": True,
                 "index": 0,
-                "name": "KeyPad",
+                "name": "Keypad",
             },
         ],
     }

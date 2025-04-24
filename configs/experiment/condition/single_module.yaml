@@ -2,7 +2,7 @@
 
 mission_generator:
   config:
-    _target_: gptnt.ktane.exp.missions.MissionGeneratorConfig
+    _target_: gptnt.ktane.experiments.missions.MissionGeneratorConfig
     time_limit: 60
     allow_back_placement: false
 

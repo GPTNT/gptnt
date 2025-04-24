@@ -20,7 +20,7 @@ class KtaneComponent(Enum):
     timer = "Timer"
     wires = "Wires"
     big_button = "BigButton"
-    keypad = "KeyPad"
+    keypad = "Keypad"
     simon = "Simon"
     whos_on_first = "WhosOnFirst"
     memory = "Memory"
