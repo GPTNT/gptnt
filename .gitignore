@@ -786,6 +786,6 @@ storage/ktane/*
 storage/experiments/*
 storage/missions/*
 
-# Szymon (don't listen to that guy)
-todo.md
-game_proxy.exe
+
+# do NOT commit any keys that might be stored in this dir
+storage/keys/
