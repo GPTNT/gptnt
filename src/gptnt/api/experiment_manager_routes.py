@@ -58,6 +58,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     # Create the manager
     manager = ExperimentManager()
 
+    logger.info("Starting ExperimentManager")
     # Start the manager and store it in the app
     async with manager:
         app.state.manager = manager
