@@ -13,7 +13,7 @@ from structlog import get_logger
 
 from gptnt.api.player_client import PlayerClient
 from gptnt.api.room_client import RoomManagerClient
-from gptnt.experiments.structures import LifecycleStage, PlayerAPIInfo, RoomManagerAPIInfo
+from gptnt.api.structures import PlayerAPIInfo, RoomManagerAPIInfo, RoomStage
 from gptnt.ktane.experiments.experiments import ExperimentSpec
 from gptnt.ktane.experiments.pairing import Pairing
 from gptnt.ktane.mission_spec import KtaneMissionSpec
@@ -70,7 +70,7 @@ class Player(SupervisedClient[PlayerAPIInfo, PlayerClient]):
 class Room(SupervisedClient[RoomManagerAPIInfo, RoomManagerClient]):
     """Information about connected RoomManagerAPI."""
 
-    state: LifecycleStage = LifecycleStage.boot
+    state: RoomStage = RoomStage.boot
 
     @override
     async def supervisor(self) -> None:
@@ -165,7 +165,7 @@ class ExperimentManagerAPI:
             if room.is_started
             and room.is_connected
             and not room.in_experiment
-            and room.state is LifecycleStage.ready_for_config
+            and room.state is RoomStage.ready_for_config
         ]
 
         # _logger.info(
@@ -256,11 +256,11 @@ class ExperimentManagerAPI:
     ) -> None:
         """Performs the starting logic for an experiment, then switches to seq/par impl."""
         # Configure the experiment
-        await until(get_value=lambda: room.state, target=LifecycleStage.ready_for_config)
+        await until(get_value=lambda: room.state, target=RoomStage.ready_for_config)
         _ = await room.client.configure_experiment(config=spec.mission_spec)
 
         # Start game and switch to correct communication style
-        await until(get_value=lambda: room.state, target=LifecycleStage.ready_for_start)
+        await until(get_value=lambda: room.state, target=RoomStage.ready_for_start)
         _ = await room.client.start_experiment()
 
         match spec.communication_style:
@@ -274,7 +274,7 @@ class ExperimentManagerAPI:
         """Runs an experiment where both players can act at the same time."""
         _ = await asyncio.gather(expert.client.run_for_game(), defuser.client.run_for_game())
 
-        while room.state is not LifecycleStage.done:
+        while room.state is not RoomStage.done:
             if (not room.is_connected) or (not expert.is_connected) or (not defuser.is_connected):
                 # TODO: Error handling
                 raise NotImplementedError
@@ -285,7 +285,7 @@ class ExperimentManagerAPI:
     @logfire.instrument("Run Sequential experiment")
     async def _sequential_experiment(self, expert: Player, defuser: Player, room: Room) -> None:
         """Runs an experiment where players take turns."""
-        while room.state is not LifecycleStage.done:
+        while room.state is not RoomStage.done:
             _ = await expert.client.run_for_turn()
             _ = await defuser.client.run_for_turn()
 
