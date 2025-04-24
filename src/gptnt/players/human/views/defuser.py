@@ -3,8 +3,10 @@ from pathlib import Path
 from typing import override
 
 import gradio as gr
+from httpx import AsyncClient
 from structlog import getLogger
 
+from gptnt.common.hosting import get_available_port
 from gptnt.ktane.actions import GameActionType, KtaneAction, RelativeCoordinate
 from gptnt.ktane.client import KtaneClient
 from gptnt.players.human.views.base_view import BaseView
@@ -15,23 +17,32 @@ logger = getLogger()
 class DefuserPlayerView(BaseView):
     """View for defuser player."""
 
-    role = "defuser"
     previous_event = ""
 
-    def __init__(self, *, stream_endpoint: str, ktane_client: KtaneClient) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self.endpoint = stream_endpoint
-        self.ktane_client = ktane_client
+        self.ktane_client: KtaneClient = KtaneClient(
+            client=AsyncClient(base_url=f"http://localhost:{get_available_port()}")
+        )
+        self.port = int(str(self.ktane_client.client.base_url).split(":")[2])
 
     @override
     def render_viewing_window(self) -> None:
         """Create video feed for defuser."""
         with gr.Column(scale=2):
+            port_tag = gr.Number(label="Port", value=self.port, visible=True, interactive=True)
+
+            self._game_window = gr.HTML(elem_id="video_feed", visible=True)
+
             # Build the game viewing window
-            image_html = (
-                '<img id="img_tag" src="" width="100%" height="750" style="object-fit: cover;">'
-            )
-            self._game_window = gr.HTML(image_html, elem_id="video_feed")
+            @gr.render(inputs=port_tag)
+            def view(port: int) -> None:  # pyright: ignore[reportUnusedFunction] # noqa: WPS430
+                image_html = f"""
+                    <img id="img_tag" src="" width="100%" height="750" style="object-fit: cover;">
+                    <p id="port_tag">{port}</p>
+                """
+                self._game_window = gr.HTML(image_html, elem_id="video_feed")
+
             output = gr.Textbox(label="Response from Python", elem_id="real_box", visible=False)
             _ = output.input(fn=self._handle_textbox_change, inputs=[output], outputs=None)
 
@@ -69,10 +80,15 @@ class DefuserPlayerView(BaseView):
 
     @override
     def load_custom_js(self) -> str:
-        base_url = self.ktane_client.client.base_url
         script = Path(__file__).parent.joinpath("defuser_script.js").read_text()
-        script = script.replace("`{observation_endpoint}`", f'"{base_url}/screenshot"')
         return script
+
+    @override
+    async def disconnect_view_from_room(self) -> None:
+        """Handle disconnection of the view from the room."""
+        # TODO: Send back to waiting room UI
+        if hasattr(self, "ktane_client"):
+            await self.ktane_client.__aexit__()
 
     async def _handle_textbox_change(self, text: str) -> None:
         # Parse JS mouse events and send to KTANE client

@@ -6,12 +6,12 @@ defaults:
 
 _target_: ???
 
-agent:
-  output_type:
-    _target_: gptnt.players.ai.output_type.get_defuser_output_type
-
 game_client:
   _target_: gptnt.ktane.client.KtaneClient
   client:
     _target_: httpx.AsyncClient
-    base_url: "${ktane_client_host}:${ktane_client_port}"
+    base_url: "http://localhost:1245"
+
+agent:
+  output_type:
+    _target_: gptnt.players.ai.output_type.get_defuser_output_type

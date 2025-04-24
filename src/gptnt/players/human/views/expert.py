@@ -8,8 +8,6 @@ from gptnt.players.human.views.base_view import BaseView
 class ExpertPlayerView(BaseView):
     """View for Expert player."""
 
-    role = "expert"
-
     def __init__(self, *, pdf_endpoint: str) -> None:
         super().__init__()
         self.endpoint = pdf_endpoint
@@ -31,3 +29,8 @@ class ExpertPlayerView(BaseView):
     def load_custom_js(self) -> str:
         """No embedded js needed for this view."""
         return ""
+
+    @override
+    async def disconnect_view_from_room(self) -> None:
+        # TODO: Send to main lobby/waiting room
+        ...

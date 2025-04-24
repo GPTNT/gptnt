@@ -15,7 +15,14 @@ ai_player = param_fixture(
 )
 
 system_prompt = param_fixture(
-    "system_prompt", [path.stem for path in SYSTEM_PROMPT_DIR.glob("[!_]*.yaml")], scope="session"
+    "system_prompt",
+    [
+        path.stem
+        for path in SYSTEM_PROMPT_DIR.glob("[!_]*.yaml")
+        # Exclude the file named "none" since AI must have a system prompt
+        if path.stem != "none"
+    ],
+    scope="session",
 )
 
 

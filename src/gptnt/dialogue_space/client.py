@@ -1,6 +1,8 @@
 from typing import Self
 from uuid import uuid4
 
+from httpx import URL
+
 from gptnt.dialogue_space.structures import ClientRequest, SendMessageData
 from gptnt.websocket_api.client import WebsocketClient
 
@@ -21,6 +23,15 @@ class DialogueSpaceClient:
         client = WebsocketClient(host=host, port=port)
         return cls(client=client)
 
+    @classmethod
+    def from_url(cls, url: str) -> Self:
+        """Initialise dialogue space client with URL, using Websockets."""
+        parsed_url = URL(url)
+        assert parsed_url.port is not None, "URL must include port"
+
+        client = WebsocketClient(host=parsed_url.host, port=parsed_url.port)
+        return cls(client=client)
+
     @property
     def is_connected(self) -> bool:
         """Check if client is connected to server."""
@@ -31,6 +42,10 @@ class DialogueSpaceClient:
         _ = await self.client.connect()
         con_request = ClientRequest(uuid=self.uuid)
         _ = await self.client.send_request("connect", con_request.model_dump_json())
+
+    async def disconnect(self) -> None:
+        """Disconnect agent from server."""
+        await self.client.__aexit__()
 
     async def send_message(self, message: str) -> None:
         """Send message to dialogue space."""

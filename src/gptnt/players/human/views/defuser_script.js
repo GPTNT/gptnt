@@ -51,10 +51,13 @@ function setupClick() {
 	video.addEventListener("mouseleave", handleMouseEvent);
 
 	// Observations
-	const img = document.getElementById("img_tag");
 	const poll_observation = () => {
+		const img = document.getElementById("img_tag");
+		const port = document.getElementById("port_tag").textContent;
+		console.debug("Port", port);
+		observation_endpoint = `http://localhost:${port}/screenshot`;
 		if (img) {
-			observation = fetch(`{observation_endpoint}`, {
+			observation = fetch(observation_endpoint, {
 				mode: "cors",
 			}).then((res) => {
 				res.text().then((observation) => {
@@ -64,5 +67,5 @@ function setupClick() {
 		}
 	};
 
-	setInterval(poll_observation, 250);
+	setInterval(poll_observation, 125);
 }

@@ -1,12 +1,14 @@
 import abc
+import asyncio
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, override
 
+import logfire
 import structlog
 from pydantic_ai import Agent, BinaryContent, UsageLimitExceeded
 from pydantic_ai.usage import Usage, UsageLimits
 
-from gptnt.dialogue_space.client import DialogueSpaceClient
+from gptnt.common.instrumentation import InstrumentationMixin
 from gptnt.players.actions import DoNothingAction, SendMessageAction
 from gptnt.players.base_player import BasePlayer, UnhealthyPlayerError
 
@@ -16,7 +18,7 @@ if TYPE_CHECKING:
 log = structlog.get_logger()
 
 
-class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, abc.ABC):
+class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationMixin, abc.ABC):
     """Base generic class for AI actors/agents that play the game.
 
     This class brings together all the other clients that are needed for this actor to have a role
@@ -30,13 +32,13 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, abc.ABC):
     def __init__(
         self,
         agent: Agent[AgentDepsT, OutputDataT],
-        dialogue_space_client: DialogueSpaceClient,
+        # dialogue_space_client: DialogueSpaceClient,
         *,
         agent_usage_limits: UsageLimits | None = None,
         no_new_messages_sentinel_token: str = "<no_new_messages>",  # noqa: S107
     ) -> None:
         self.agent = agent
-        self.dialogue_space_client = dialogue_space_client
+        # self.dialogue_space_client = dialogue_space_client
 
         self.usage = Usage()
         self.usage_limits = agent_usage_limits or UsageLimits()
@@ -45,6 +47,13 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, abc.ABC):
         self._message_history: list[ModelMessage] | None = None
 
         self._no_new_messages_sentinel_token = no_new_messages_sentinel_token
+
+    @override
+    def perform_instrumentation(self) -> None:
+        log.debug("Instrumenting AI player.")
+        # this is noqa'd since the generic types are not lining up within the instrument. That is
+        # annoying but it's fine.
+        logfire.instrument_pydantic_ai(self.agent)  # pyright: ignore[reportArgumentType, reportCallIssue]
 
     @abc.abstractmethod
     def agent_output_type_to_function(
@@ -58,13 +67,23 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, abc.ABC):
         raise NotImplementedError
 
     @override
+    async def on_startup(self) -> None:
+        return  # noqa: WPS324
+
+    @override
+    @logfire.instrument("Run AI player")
     async def run(self) -> None:
         """Run the decision making process for the player.
 
         This will continually run forever/until we stop it.
         """
-        raise NotImplementedError
+        # TODO: This seems like a bad idea? Do we need to fix this
+        while True:  # noqa: WPS457
+            _ = await self.run_once()
+            _ = asyncio.sleep(1)
 
+    @override
+    @logfire.instrument("Run AI player once")
     async def run_once(self) -> None:
         """Run the decision making process for the player once."""
         await self.health_check()

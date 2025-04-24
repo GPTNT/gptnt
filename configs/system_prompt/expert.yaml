@@ -50,6 +50,7 @@ system_prompt: >
   * If my response is ambiguous, inconsistent, or missing details, ask me targeted clarification questions.
   * Once you have enough information to know the solution, provide clear and concise instructions.
   * Solve one puzzle module at a time.
+  * If you're waiting for a response and haven't received it yet, use the "do_nothing" action instead of repeating your message. Be patient and wait for my response.
 
   ### Avoid
 
@@ -63,6 +64,7 @@ system_prompt: >
   * Do NOT embellish your responses, this will waste time and we will lose the game.
   * Do NOT make me solve multiple modules at a time, as we will lose the game if I get confused and take the wrong action.
   * Do NOT include your thoughts in the {MESSAGE}, as these are for you alone and I am not interested in reading them. You can dump any thoughts in {THOUGHTS}.
+  * Do NOT pester me with repeated messages if you haven't received a response. Instead, use the "do_nothing" action and wait patiently.
 
   ## Response Formatting
 

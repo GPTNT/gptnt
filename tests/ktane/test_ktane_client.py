@@ -13,6 +13,7 @@ from gptnt.ktane.actions import GameActionType, KtaneAction, KtaneBaseAction
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
+from gptnt.ktane.state.game import GameState
 from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.processors.image_resizer import ImageResizer
 from gptnt.processors.set_of_marks import SetOfMarksHandler
@@ -44,11 +45,11 @@ def screenshot(fixture_path: Path) -> str:
 @pytest.mark.asyncio
 async def test_healthcheck_returns_true(client: KtaneClient) -> None:
     _ = respx.get(f"{client.client.base_url}/health").mock(
-        return_value=httpx.Response(httpx.codes.OK)
+        return_value=httpx.Response(httpx.codes.OK, text=GameState.lights_on.value)
     )
 
     is_healthy = await client.healthcheck()
-    assert is_healthy is True
+    assert is_healthy is GameState.lights_on
 
 
 @respx.mock
@@ -59,7 +60,7 @@ async def test_healthcheck_returns_false_and_no_exception(client: KtaneClient) -
     )
 
     is_healthy = await client.healthcheck()
-    assert is_healthy is False
+    assert is_healthy is GameState.unknown
 
 
 @respx.mock

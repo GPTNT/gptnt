@@ -1,0 +1,54 @@
+import httpx
+from structlog import get_logger
+
+from gptnt.api.base_client import BaseClient
+from gptnt.experiments.structures import LifecycleStage
+from gptnt.ktane.mission_spec import KtaneMissionSpec
+
+_logger = get_logger()
+
+
+class RoomManagerClient(BaseClient):
+    """API for externally interacting with the RoomManager."""
+
+    async def statecheck(self) -> LifecycleStage:
+        """Returns the current state of the RoomManager in its lifecycle."""
+        response = await self.client.get(url="/health")
+        try:
+            _ = response.raise_for_status()
+        except httpx.HTTPError:
+            _logger.exception("Could not get room state")
+
+        # There are `"` characters in the response, so we need to strip them out for some reason
+        return LifecycleStage(value=response.text.replace('"', ""))
+
+    async def reset_room(self) -> bool:
+        """Resets the room, back to a state ready to receive a new experiment config."""
+        try:
+            _ = (await self.client.post(url="/reset-room")).raise_for_status()
+        except httpx.HTTPError:
+            _logger.exception("Could not reset room")
+            return False
+        return True
+
+    async def configure_experiment(self, config: KtaneMissionSpec) -> bool:
+        """Configure the experiment for the RoomManager to run."""
+        try:
+            _ = (
+                await self.client.post(
+                    url="/configure-experiment", json=config.model_dump(mode="json")
+                )
+            ).raise_for_status()
+        except httpx.HTTPError:
+            _logger.exception("Could not configure experiment")
+            return False
+        return True
+
+    async def start_experiment(self) -> bool:
+        """Starts the currently configured experiment."""
+        try:
+            _ = (await self.client.post(url="/start-experiment")).raise_for_status()
+        except httpx.HTTPError:
+            _logger.exception("Could not start experiment")
+            return False
+        return True

@@ -1,5 +1,6 @@
 import logging
 
+import logfire
 import structlog
 
 from gptnt.common.run_once import run_once
@@ -27,7 +28,11 @@ def configure_logging(root_log_level: int = logging.INFO) -> None:
     # Configure structlog to use the standard library logging module, with the processors from
     # above
     structlog.configure(
-        processors=[*shared_processors, structlog.stdlib.ProcessorFormatter.wrap_for_formatter],
+        processors=[
+            *shared_processors,
+            logfire.StructlogProcessor(),
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+        ],
         logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,
     )

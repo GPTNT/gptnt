@@ -1,6 +1,4 @@
-import asyncio
-from collections.abc import AsyncGenerator
-from pathlib import Path
+"""Import asyncio from collections.abc import AsyncGenerator from pathlib import Path.
 
 import pytest
 import pytest_asyncio
@@ -58,7 +56,7 @@ async def test_send_button_updates_history(
     num_messages = 5
 
     # Connect to dialogue space.
-    await controller.ds_client.connect()
+    await controller.dialogue_space_client.connect()
 
     # Create 'empty' chat history
     history: list[ChatMessage] = []
@@ -85,7 +83,7 @@ async def test_pulling(controller: Controller, ds_server: DialogueSpaceServer) -
     )
 
     await other_client.connect()
-    await controller.ds_client.connect()
+    await controller.dialogue_space_client.connect()
 
     # No messages in history yet
     chat_history = []
@@ -112,7 +110,7 @@ async def test_pulling(controller: Controller, ds_server: DialogueSpaceServer) -
 @parametrize_with_cases("controller", cases=PlayerControllerCases)
 async def test_save_messages(controller: Controller, saved_chats_temp_dir: Path) -> None:
     num_messages = 5
-    await controller.ds_client.connect()
+    await controller.dialogue_space_client.connect()
 
     for message_idx in range(num_messages):
         controller_msg = f"CONTROLLER TEST MESSAGE {message_idx}"
@@ -126,3 +124,4 @@ async def test_save_messages(controller: Controller, saved_chats_temp_dir: Path)
     assert len(chat_messages) == num_messages
     for idx, msg in enumerate(chat_messages):
         assert msg.content == f"CONTROLLER TEST MESSAGE {idx}"
+"""

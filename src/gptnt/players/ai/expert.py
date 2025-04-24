@@ -35,7 +35,8 @@ def load_manual_as_prompt(*, num_pages: int = MANUAL_NUM_PAGES) -> Iterator[str 
 class ExpertPlayer(AIPlayer[None, ExpertOutputT]):
     """Class for all Expert players."""
 
-    role = "expert"
+    player_role = "expert"
+    player_type = "ai"
 
     @override
     async def build_agent_input(self) -> str | list[str | BinaryContent]:

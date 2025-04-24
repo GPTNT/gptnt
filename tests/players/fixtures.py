@@ -13,7 +13,9 @@ class AIPlayerCases:
 
     def case_expert(self, dialogue_space_client: DialogueSpaceClient) -> ExpertPlayer:
         expert_agent = Agent[None, ExpertOutputT]("test", output_type=ExpertOutputT)
-        return ExpertPlayer(agent=expert_agent, dialogue_space_client=dialogue_space_client)
+        player = ExpertPlayer(agent=expert_agent)
+        player.dialogue_space_client = dialogue_space_client
+        return player
 
     def case_defuser_mdp_set_of_marks(
         self, dialogue_space_client: DialogueSpaceClient, game_client: KtaneClient
@@ -21,9 +23,9 @@ class AIPlayerCases:
         agent = Agent[None, DefuserOutputT[SetOfMarksLocation]](
             "test", output_type=DefuserOutputT[SetOfMarksLocation]
         )
-        return MDPDefuserPlayer[SetOfMarksLocation](
-            agent=agent, dialogue_space_client=dialogue_space_client, game_client=game_client
-        )
+        player = MDPDefuserPlayer[SetOfMarksLocation](agent=agent, game_client=game_client)
+        player.dialogue_space_client = dialogue_space_client
+        return player
 
     def case_defuser_mdp_coordinate(
         self, dialogue_space_client: DialogueSpaceClient, game_client: KtaneClient
@@ -31,6 +33,6 @@ class AIPlayerCases:
         agent = Agent[None, DefuserOutputT[RelativeCoordinate]](
             "test", output_type=DefuserOutputT[RelativeCoordinate]
         )
-        return MDPDefuserPlayer[RelativeCoordinate](
-            agent=agent, dialogue_space_client=dialogue_space_client, game_client=game_client
-        )
+        player = MDPDefuserPlayer[RelativeCoordinate](agent=agent, game_client=game_client)
+        player.dialogue_space_client = dialogue_space_client
+        return player

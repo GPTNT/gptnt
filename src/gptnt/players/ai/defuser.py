@@ -6,8 +6,8 @@ from typing import Union, override
 import structlog
 from pydantic_ai import Agent, BinaryContent
 
-from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.ktane.client import KtaneClient
+from gptnt.ktane.state.game import GameState
 from gptnt.players.actions import (
     DoNothingAction,
     InteractGameAction,
@@ -49,17 +49,18 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
     can easily support windowed or MDP-style defuser players.
     """
 
-    role = "defuser"
+    player_role = "defuser"
+    player_type = "ai"
 
     def __init__(
         self,
         agent: Agent[AgentDepsT, DefuserOutputT[LocationDataT]],
-        dialogue_space_client: DialogueSpaceClient,
+        # dialogue_space_client: DialogueSpaceClient,
         game_client: KtaneClient,
         *,
         observation_window_length: int = 1,
     ) -> None:
-        super().__init__(agent, dialogue_space_client)
+        super().__init__(agent)
         self.game_client = game_client
 
         self.observation_cache: deque[BinaryContent] = deque(maxlen=observation_window_length)
@@ -70,9 +71,14 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
         _ = await self.game_client.__aenter__()
 
     @override
+    async def disconnect_from_room(self) -> None:
+        await super().disconnect_from_room()
+        _ = await self.game_client.__aexit__()
+
+    @override
     async def health_check(self) -> None:
         await super().health_check()
-        assert await self.game_client.healthcheck() is True
+        assert await self.game_client.healthcheck() in {GameState.lights_on, GameState.lights_off}
 
     async def send_action_to_game(self, action: InteractGameAction[LocationDataT]) -> None:
         """Send an action to the game client."""

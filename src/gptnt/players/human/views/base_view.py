@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from datetime import UTC, datetime
 from functools import partial
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Literal
 
 import gradio as gr
 from pydantic import Field
@@ -26,7 +26,8 @@ class ChatMessage(gr.ChatMessage):
 class BaseView(ABC):
     """ABC for all the views, bringing common functionality across them."""
 
-    role: ClassVar[str]
+    role: ClassVar[Literal["expert", "defuser"]]
+    player_type: ClassVar[Literal["ai", "human"]]
 
     def __init__(self) -> None:
         self.message_history: list[ChatMessage] = []
@@ -39,6 +40,11 @@ class BaseView(ABC):
     @abstractmethod
     def load_custom_js(self) -> str:
         """Javascript to be embedded into gradio interface."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def disconnect_view_from_room(self) -> None:
+        """Disconnect the view from the room."""
         raise NotImplementedError
 
     def build_layout(

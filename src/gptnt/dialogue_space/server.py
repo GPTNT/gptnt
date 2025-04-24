@@ -33,10 +33,35 @@ class DialogueSpaceServer:
         server = WebsocketServer(host=host, port=port)
         return cls(server=server)
 
-    async def __aenter__(self) -> Self:
-        """Start dialogue space server and register endpoint callbacks."""
+    @property
+    def url(self) -> str:
+        """Get the URL of the dialogue space server."""
+        return f"ws://{self.host}:{self.port}"
+
+    @property
+    def host(self) -> str:
+        """Get the host of the dialogue space server."""
+        return self.server.host
+
+    @property
+    def port(self) -> int:
+        """Get the port of the dialogue space server."""
+        return self.server.port
+
+    async def start(self) -> Self:
+        """Start the dialogue space server."""
         _ = await self.connect()
         return self
+
+    async def close(self) -> None:
+        """Close the dialogue space server."""
+        await self.server.stop()
+        # Empty agents store once server has stopped
+        self.agents.clear()
+
+    async def __aenter__(self) -> Self:
+        """Start dialogue space server and register endpoint callbacks."""
+        return await self.start()
 
     async def __aexit__(
         self,
@@ -53,12 +78,6 @@ class DialogueSpaceServer:
         self.server.on("connect", callback=self._on_agent_connect_request)
         self.server.on("send_message", callback=self._on_message_sent)
         self.server.on("pull_messages", callback=self._on_pull_messages)
-
-    async def close(self) -> None:
-        """Close the dialogue space server."""
-        await self.server.stop()
-        # Empty agents store once server has stopped
-        self.agents.clear()
 
     def reset(self) -> None:
         """Reset the dialogue space server."""

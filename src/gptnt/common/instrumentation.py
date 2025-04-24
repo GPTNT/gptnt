@@ -1,8 +1,13 @@
 import abc
 from typing import TYPE_CHECKING, Any
 
+import logfire
+import structlog
+
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+log = structlog.get_logger()
 
 
 class PostInitMeta(abc.ABCMeta):
@@ -56,6 +61,9 @@ class InstrumentationMixin(abc.ABC, metaclass=PostInitMeta):
 
     def post_init(self) -> None:
         """Post-initialisation method that performs instrumentation."""
+        if not logfire.DEFAULT_LOGFIRE_INSTANCE.config.send_to_logfire:
+            log.debug("Logfire is not enabled, skipping instrumentation.")
+            return
         self.perform_instrumentation()
 
     @abc.abstractmethod

@@ -1,24 +1,29 @@
 import base64
 from io import BytesIO
 from types import TracebackType
-from typing import Self
+from typing import Self, override
 
 import httpx
+import logfire
 import numpy as np
 import structlog
 from PIL import Image
 
 from gptnt.common.image_ops import load_observation_from_bytes
+from gptnt.common.instrumentation import InstrumentationMixin
 from gptnt.ktane.actions import KtaneAction, KtaneBaseAction
 from gptnt.ktane.exceptions import InvalidGameError
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
+from gptnt.ktane.state.game import GameState
 from gptnt.players.actions import InteractGameLocation
 from gptnt.processors.image_resizer import ImageResizer
 from gptnt.processors.set_of_marks import SetOfMarksHandler
 
+_logger = structlog.get_logger()
 
-class KtaneClient:
+
+class KtaneClient(InstrumentationMixin):
     """Create a client to interact with the KTANE game."""
 
     def __init__(
@@ -34,7 +39,10 @@ class KtaneClient:
 
         assert self.client.base_url is not None, "Base URL must be set"
 
-        self._logger = structlog.get_logger().bind(client=self.client.base_url)
+    @override
+    def perform_instrumentation(self) -> None:
+        _logger.debug("Instrumenting KtaneClient")
+        logfire.instrument_httpx(self.client, capture_all=True)
 
     async def __aenter__(self) -> Self:
         """Open the client."""
@@ -50,16 +58,16 @@ class KtaneClient:
         """Close the client."""
         await self.client.__aexit__()
 
-    async def healthcheck(self) -> bool:
+    async def healthcheck(self) -> GameState:
         """Check if the server is running."""
         response = await self.client.get("/health")
         try:
             _ = response.raise_for_status()
         except httpx.HTTPError:
-            self._logger.exception("Game client is not healthy")
-            return False
+            _logger.exception("Game client is not healthy")
+            return GameState.unknown
 
-        return True
+        return GameState(response.text)
 
     async def reset(self) -> bool:
         """Reset the game to the Setup room."""
@@ -67,9 +75,8 @@ class KtaneClient:
         try:
             _ = response.raise_for_status()
         except httpx.HTTPError:
-            self._logger.exception("Failed to reset game")
+            _logger.exception("Failed to reset game")
             return False
-
         return True
 
     async def start_mission(self, specification: KtaneMissionSpec) -> bool:
@@ -79,7 +86,7 @@ class KtaneClient:
         try:
             _ = response.raise_for_status()
         except httpx.HTTPError:
-            self._logger.exception("Failed to start mission")
+            _logger.exception("Failed to start mission")
             return False
         return True
 
@@ -93,7 +100,7 @@ class KtaneClient:
         try:
             _ = response_set_step_unit.raise_for_status(), response_time_step.raise_for_status()
         except httpx.HTTPError:
-            self._logger.exception("Failed to advance time")
+            _logger.exception("Failed to advance time")
             return False
         return True
 
@@ -103,7 +110,7 @@ class KtaneClient:
         try:
             _ = response.raise_for_status()
         except httpx.HTTPError:
-            self._logger.exception("Failed to stop time")
+            _logger.exception("Failed to stop time")
             return False
         return True
 
@@ -113,7 +120,7 @@ class KtaneClient:
         try:
             _ = response.raise_for_status()
         except httpx.HTTPError:
-            self._logger.exception("Failed to resume time")
+            _logger.exception("Failed to resume time")
             return False
         return True
 
@@ -135,7 +142,7 @@ class KtaneClient:
         try:
             _ = response.raise_for_status()
         except httpx.HTTPError:
-            self._logger.exception("Failed to send action")
+            _logger.exception("Failed to send action")
             return None
 
         return BombState.model_validate_json(response.text)
@@ -146,7 +153,7 @@ class KtaneClient:
         try:
             _ = response.raise_for_status()
         except httpx.HTTPError:
-            self._logger.exception("Failed to get bomb state")
+            _logger.exception("Failed to get bomb state")
             return None
         return BombState.model_validate_json(response.text)
 

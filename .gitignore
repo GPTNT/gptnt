@@ -771,6 +771,8 @@ sysinfo.txt
 .history
 .ionide
 
+# Local (gradio) app data
+.gradio
 
 # Run outputs
 storage/outputs
@@ -779,3 +781,7 @@ storage/outputs
 storage/ktane/*
 !storage/ktane/mods
 !storage/ktane/mods/*
+
+# Szymon (don't listen to that guy)
+todo.md
+game_proxy.exe

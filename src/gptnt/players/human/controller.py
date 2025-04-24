@@ -9,52 +9,35 @@ from pydantic import TypeAdapter
 from structlog import get_logger
 
 from gptnt.common.paths import Paths
-from gptnt.dialogue_space.client import DialogueSpaceClient
-from gptnt.players.base_player import BasePlayer, UnhealthyPlayerError
+from gptnt.players.base_player import BasePlayer
 from gptnt.players.human.views.base_view import BaseView, ChatMessage
 
 paths = Paths()
+_log = get_logger()
 
 
 class Controller(BasePlayer):
     """Control the frontend with the backend for the UI app."""
 
+    player_type = "human"
+    player_role = "human"
+
     def __init__(
-        self,
-        *,
-        view: BaseView,
-        dialogue_space_client: DialogueSpaceClient,
-        gradio_launch_kwargs: dict[str, Any] | None = None,
+        self, *, view: BaseView, gradio_launch_kwargs: dict[str, Any] | None = None
     ) -> None:
-        self.ds_client = dialogue_space_client
         self.view = view
 
         self.gradio_launch_kwargs = gradio_launch_kwargs or {}
 
-        self._log = get_logger()
-
     @override
-    async def health_check(self) -> None:
-        if not self.ds_client.is_connected:
-            raise UnhealthyPlayerError("Dialogue space client is unhealthy")
-
-    @override
-    async def connect(self) -> None:
-        await self.ds_client.connect()
-        self._log.info("Connected to dialogue space client")
-
-    @override
-    async def run(self) -> None:
+    async def on_startup(self) -> None:
         """Build the layout and launch the gradio server.
 
         Note:
             - All arguments are passed to `gradio.Interface.launch`.
             - Starts gradio on separate thread to prevent blocking logic thread.
         """
-        await self.connect()
-        self._log = self._log.bind(role=self.view.role)
-        self._log.info("Running gradio app", gradio_kwargs=self.gradio_launch_kwargs)
-
+        _log.info("Running gradio app", gradio_kwargs=self.gradio_launch_kwargs)
         gradio_interface = self.view.build_layout(
             handle_send=self.handle_user_message,
             handle_pull=self.poll_and_add_new_messages,
@@ -66,22 +49,45 @@ class Controller(BasePlayer):
             target=lambda: gradio_interface.launch(**self.gradio_launch_kwargs), daemon=True
         ).start()
 
-        self._log.debug("Waiting for gradio to finish")
+        _log.debug("Waiting for gradio to finish")
         event = asyncio.Event()
         _ = await event.wait()
+
+    @override
+    async def run(self) -> None:
+        return  # noqa: WPS324
+
+    @override
+    async def health_check(self) -> None:
+        return  # noqa: WPS324
+
+    @override
+    async def connect(self) -> None:
+        if hasattr(self, "dialogue_space_client"):
+            await self.dialogue_space_client.connect()
+            _log.info("Connected to dialogue space client")
+
+    @override
+    async def disconnect_from_room(self) -> None:
+        """Disconnect from the dialogue space room."""
+        await super().disconnect_from_room()
+        await self.view.disconnect_view_from_room()
+        _log.info("Disconnected from dialogue space client")
 
     async def poll_and_add_new_messages(
         self, poll_interval: float = 0.5
     ) -> AsyncGenerator[list[ChatMessage], None]:
         """Poll dialogue space while connected and update chat history on new msgs."""
-        while self.ds_client.is_connected:
-            new_messages = await self.ds_client.pull_messages()
-            chat_messages = [
-                ChatMessage(content=message, role="assistant") for message in new_messages
-            ]
-            self.view.message_history.extend(chat_messages)
-            yield self.view.message_history
-            _ = await asyncio.sleep(poll_interval)
+        while True:  # noqa: WPS457
+            # TODO: Fix this to end at some point?
+            if self.dialogue_space_client.is_connected:
+                new_messages = await self.dialogue_space_client.pull_messages()
+                chat_messages = [
+                    ChatMessage(content=message, role="assistant") for message in new_messages
+                ]
+                self.view.message_history.extend(chat_messages)
+                yield self.view.message_history
+                _ = await asyncio.sleep(poll_interval)
 
     async def handle_user_message(self, message: str) -> tuple[list[ChatMessage], str]:
         """Read user message and add it to chat history."""
@@ -92,7 +98,7 @@ class Controller(BasePlayer):
             return self.view.message_history, ""
 
         # Update model
-        await self.ds_client.send_message(message)
+        await self.dialogue_space_client.send_message(message)
 
         # Update view
         self.view.add_user_message(message)
@@ -104,7 +110,7 @@ class Controller(BasePlayer):
         If provided a path, will save to that directory, otherwise will save to
         storage/outputs/gradio_chats. Returns saved log path.
         """
-        self._log.info("program closing, dumping logs to file")
+        _log.info("program closing, dumping logs to file")
         game_timestamp = datetime.now(tz=UTC).strftime("%Y-%m-%d_%H-%M-%S")
 
         if save_path is None:
