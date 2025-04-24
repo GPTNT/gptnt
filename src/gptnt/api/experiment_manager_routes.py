@@ -57,11 +57,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Lifespan to run the room manager API."""
     # Create the manager
     manager = ExperimentManager()
+    app.state.manager = manager
 
     logger.info("Starting ExperimentManager")
     # Start the manager and store it in the app
     async with manager:
-        app.state.manager = manager
         yield
 
     logger.info("Shutting down ExperimentManager")

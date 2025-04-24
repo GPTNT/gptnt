@@ -73,8 +73,7 @@ class SupervisedClient[ClientT: BaseClient, MetadataT: ClientMetadata](abc.ABC):
     supervisor_interval: float = 0.5
 
     def __init__(self, client: ClientT, metadata: MetadataT) -> None:
-        self.is_connected = False
-        self.is_started = False
+        self.is_running = False
         self.in_experiment = False
         self.metadata = metadata
         self.client = client
@@ -86,12 +85,12 @@ class SupervisedClient[ClientT: BaseClient, MetadataT: ClientMetadata](abc.ABC):
 
     async def start(self) -> None:
         """Starts the client."""
-        self.is_started = True
+        self.is_running = True
         _ = await self.client.start()
 
     async def stop(self) -> None:
         """Stops the client."""
-        self.is_connected = False
+        self.is_running = False
         _ = await self.client.stop()
 
     @abc.abstractmethod

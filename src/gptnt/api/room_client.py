@@ -70,11 +70,11 @@ class SupervisedRoomManagerClient(SupervisedClient[RoomManagerClient, RoomMetada
     @override
     async def supervisor_loop(self) -> None:
         """Returns the supervisor co-routine for this client."""
-        while self.is_started:
+        while self.is_running:
             try:
                 self.metadata.state = await self.client.statecheck()
             except httpx.HTTPError:
                 break
             await asyncio.sleep(self.supervisor_interval)
-        self.is_connected = False
+        self.is_running = False
         await self.stop()

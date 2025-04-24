@@ -68,7 +68,7 @@ class SupervisedPlayerClient(SupervisedClient[PlayerClient, PlayerMetadata]):
 
     @override
     async def supervisor_loop(self) -> None:
-        while self.is_started:
+        while self.is_running:
             if not await self.client.healthcheck():
                 break
             await asyncio.sleep(self.supervisor_interval)

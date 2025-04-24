@@ -63,22 +63,20 @@ class ExperimentManager:
 
         # Filter for available clients (running, connected, and not in an experiment already)
         available_players = [
-            player
-            for player in self.players
-            if player.is_started and player.is_connected and not player.in_experiment
+            player for player in self.players if player.is_running and not player.in_experiment
         ]
+
         available_rooms = [
             room
             for room in self.rooms
-            if room.is_started
-            and room.is_connected
+            if room.is_running
             and not room.in_experiment
             and room.state is RoomStage.ready_for_config
         ]
 
-        # _logger.info(
-        #     f"Available Players: {len(available_players)}, Available Rooms: {len(available_rooms)}"
-        # )
+        _logger.info(
+            f"Available Players: {len(available_players)}/{len(self.players)}, Available Rooms: {len(available_rooms)}/{len(self.rooms)}"
+        )
 
         # TODO: Make this find the correct pairings
         if len(available_players) >= 2 and len(available_rooms) >= 1:  # noqa: PLR2004
@@ -135,7 +133,7 @@ class ExperimentManager:
         while not self._should_exit:
             # Start newly connected clients and their supervisors
             for client in itertools.chain(self.players, self.rooms):
-                if not client.is_started:
+                if not client.is_running:
                     _ = await client.start()  # noqa: WPS476
                     self._tasks.append(asyncio.create_task(coro=client.supervisor_loop()))
 
@@ -192,7 +190,7 @@ class ExperimentManager:
         _ = await asyncio.gather(expert.client.run_for_game(), defuser.client.run_for_game())
 
         while room.state is not RoomStage.done:
-            if (not room.is_connected) or (not expert.is_connected) or (not defuser.is_connected):
+            if (not room.is_running) or (not expert.is_running) or (not defuser.is_running):
                 # TODO: Error handling
                 raise NotImplementedError
             await asyncio.sleep(1)
@@ -211,7 +209,7 @@ class ExperimentManager:
             _ = await expert.client.run_for_turn()
             _ = await defuser.client.run_for_turn()
 
-            if (not room.is_connected) or (not expert.is_connected) or (not defuser.is_connected):
+            if (not room.is_running) or (not expert.is_running) or (not defuser.is_running):
                 # TODO: Error handling
                 raise NotImplementedError
             await asyncio.sleep(1)
