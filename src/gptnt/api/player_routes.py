@@ -41,9 +41,9 @@ async def join_room(room: RoomMetadata, player: PlayerDep) -> None:
 
     # TODO: Fix the Ktane player hackery
     if isinstance(player, Controller) and isinstance(player.view, DefuserPlayerView):
-        player.view.ktane_client.client = AsyncClient(base_url=room.ktane_url)
+        player.view.ktane_client.update_client(AsyncClient(base_url=room.ktane_url))
     if isinstance(player, BaseDefuserPlayer):
-        player.game_client.client = AsyncClient(base_url=room.ktane_url)
+        player.game_client.update_client(AsyncClient(base_url=room.ktane_url))
 
     await player.connect()
 
