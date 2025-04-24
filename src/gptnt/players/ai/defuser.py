@@ -94,10 +94,13 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
     def agent_output_type_to_function(
         self, output_type: type[DefuserOutputT[LocationDataT]]
     ) -> Callable[[DefuserOutputT[LocationDataT]], Awaitable[None]]:
+        if issubclass(output_type, InteractGameAction):
+            output_type = InteractGameAction
+
         switcher: dict[type[DefuserOutputT[LocationDataT]], Callable[..., Awaitable[None]]] = {
             SendMessageAction: self.send_message_to_dialogue_space,
             DoNothingAction: self.do_nothing_action,
-            InteractGameAction[LocationDataT]: self.send_action_to_game,
+            InteractGameAction: self.send_action_to_game,
         }
         return switcher[output_type]
 
