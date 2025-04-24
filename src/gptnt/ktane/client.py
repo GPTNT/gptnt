@@ -202,6 +202,53 @@ class KtaneClient(InstrumentationMixin):
         observation.save(buffer, format="PNG")
         return buffer.getvalue()
 
+    async def get_full_observation(self) -> bytes:
+        """Get the current observation from the game as two pngs, followed by the state.
+
+        The first png is the raw screenshot, the second is the segmentation image.
+        """
+        # If we are not resizing or using SoM, we can just get the screenshot as bytes and pass it
+        # on as is
+        if self.set_of_marks_painter is None and self.image_resizer is None:
+            return await self._get_screenshot()
+        # Incase we are going to be using SoM, we need to get the screenshot and the segmentation
+        (
+            observation_bytes,
+            segmentation_bytes,
+            state,
+        ) = await self._get_screenshot_with_segm_with_state()
+        observation = load_observation_from_bytes(observation_bytes)
+
+        # If we are resizing the image, we need to resize it before passing it on
+        if self.image_resizer:
+            with logfire.span("Resizing image", image=observation):
+                observation = self.image_resizer.resize_image(observation)
+
+        if self.set_of_marks_painter and segmentation_bytes:
+            segmentation = load_observation_from_bytes(segmentation_bytes)
+
+            # If we are using SoM, we also need to resize the segmentation image
+            if self.image_resizer:
+                with logfire.span("Resizing image", image=segmentation):
+                    segmentation = self.image_resizer.resize_image(segmentation)
+
+            # Apply SoM onto the image
+            with logfire.span(
+                "Perform Set of Marks", observation=observation, segmentation=segmentation
+            ):
+                observation = self.set_of_marks_painter.run(
+                    observation=np.asarray(observation),
+                    colorful_image=np.asarray(segmentation),
+                    state=state,
+                )
+
+            # convert back to pillow image
+            observation = Image.fromarray(observation.astype(np.uint8), "RGB")
+
+        buffer = BytesIO()
+        observation.save(buffer, format="PNG")
+        return buffer.getvalue()
+
     async def _get_screenshot(self) -> bytes:
         response = await self.client.get("/screenshot")
 
@@ -238,3 +285,36 @@ class KtaneClient(InstrumentationMixin):
         )
 
         return screenshot_png_data, segm_png_data
+
+    async def _get_screenshot_with_segm_with_state(
+        self,
+    ) -> tuple[bytes, bytes | None, BombState | None]:
+        """Get the current observation from the game as two pngs.
+
+        First is the raw screenshot, second is the segmentation image.
+        """
+        response = await self.client.get("/fullobservation")
+
+        try:
+            _ = response.raise_for_status()
+        except httpx.HTTPError as err:
+            raise InvalidGameError("Failed to get observation") from err
+
+        response_json = response.json()
+
+        screenshot_png_data = base64.b64decode(response_json.get("screenshot"))
+
+        # When the segmentation is empty, we return an empty byte string.
+        segm_png_data = (
+            base64.b64decode(response_json.get("segmentation"))
+            if response_json["segmentation"]
+            else None
+        )
+
+        state = (
+            BombState.model_validate_json(response_json.get("state"))
+            if response_json["state"]
+            else None
+        )
+
+        return screenshot_png_data, segm_png_data, state

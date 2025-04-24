@@ -11,6 +11,7 @@ from skimage.color import hsv2rgb, rgb2hsv
 from skimage.measure import regionprops
 
 from gptnt.ktane.actions import RelativeCoordinate
+from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.processors.labels.color import ENTIRELY_COLOR_DEPENDENT_MODULES, get_median_colour
 from gptnt.processors.labels.drawing import BIG_BUTTON_OFFSET, draw_annotation
@@ -172,62 +173,27 @@ def draw_mask_on_image(  # noqa: WPS210
     return image, dilated_mask.astype(bool)
 
 
-def draw_label_on_image(  # noqa: WPS210
+def get_region_color(
+    image: RGBArray, segm_image: RGBArray, region: RegionProperties, module: KtaneComponent | None
+) -> Color:
+    """Get the colour of a region based on the module type."""
+    # Use image colours for colour dependent modules (but only wire interactables for wire modules)
+    if module in ENTIRELY_COLOR_DEPENDENT_MODULES or (
+        module == KtaneComponent.wire_sequence and region.eccentricity > IS_LINE_THRESHOLD
+    ):
+        return get_median_colour(region, image)
+
+    # Otherwise, use segmentation image colour
+    return get_median_colour(region, segm_image)
+
+
+def draw_region_masks(  # noqa: WPS210, WPS211
     *,
     image: RGBArray,
-    text: str,
-    position: Coordinate,
-    mask_color: Color,
-    text_color: Color,
-    font_scale: float,
-    thickness: int,
-    padding: int,
-) -> RGBArray:
-    """Draw a number label on an image."""
-    (text_width, text_height), _ = cv2.getTextSize(
-        text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness
-    )
-
-    # background rectangle
-    text_box_left = int(position.x_pos - text_width // 2)
-    text_box_top = int(position.y_pos - text_height // 2)
-    text_box_right = int(position.x_pos + text_width // 2)
-    text_box_bottom = int(position.y_pos + text_height // 2)
-
-    _ = cv2.rectangle(
-        img=image,
-        pt1=(text_box_left - padding, text_box_top - padding),
-        pt2=(text_box_right + padding, text_box_bottom + padding),
-        color=mask_color,
-        thickness=cv2.FILLED,
-    )
-
-    # label text
-    _ = cv2.putText(
-        image,
-        text,
-        (text_box_left, text_box_bottom),
-        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-        fontScale=font_scale,
-        color=text_color,
-        thickness=thickness,
-        lineType=cv2.LINE_AA,
-    )
-
-    return image
-
-
-def draw_region_labels(  # noqa: WPS210, WPS211
-    *,
-    image: RGBArray,
+    segm_image: RGBArray,
     regions: list[RegionProperties],
-    text_color: Color,
-    font_scale: float,
+    zoomed_in_component: KtaneComponent | None,
     mask_thickness: int,
-    text_thickness: int,
-    padding: int,
-    add_labels: bool,
-    add_mask_outline: bool,
     soft_mask_alpha: float,
     bw_outside_mask: bool,
 ) -> RGBArray:
@@ -236,39 +202,22 @@ def draw_region_labels(  # noqa: WPS210, WPS211
 
     # initialise combined mask
     height, width = image.shape[:2]
-    combined_mask = (
-        np.zeros((height, width), dtype=bool) if bw_outside_mask and add_mask_outline else None
-    )
+    combined_mask = np.zeros((height, width), dtype=bool) if bw_outside_mask else None
 
-    for idx, region in enumerate(regions):
-        # convert HSV to RGB
-        hue = idx / len(regions)  # evenly spaced between 0 and 1
-        mask_color: Color = hue_to_rgb(hue)
+    for region in regions:
+        mask_color = get_region_color(image, segm_image, region, zoomed_in_component)
 
-        if add_mask_outline:
-            _, mask = draw_mask_on_image(
-                image=annotated_image,
-                coords=region.coords,
-                color=mask_color,
-                thickness=mask_thickness,
-                soft_mask_alpha=soft_mask_alpha,
-            )
+        _, mask = draw_mask_on_image(
+            image=annotated_image,
+            coords=region.coords,
+            color=mask_color,
+            thickness=mask_thickness,
+            soft_mask_alpha=soft_mask_alpha,
+        )
 
-            # add the masks together with bitwise OR
-            if combined_mask is not None:
-                combined_mask |= mask
-
-        if add_labels:
-            _ = draw_label_on_image(
-                image=annotated_image,
-                text=str(region.label),
-                position=Coordinate(*region.centroid[::-1]),
-                mask_color=mask_color,
-                text_color=text_color,
-                font_scale=font_scale,
-                thickness=text_thickness,
-                padding=padding,
-            )
+        # add the masks together with bitwise OR
+        if combined_mask is not None:
+            combined_mask |= mask
 
     # convert areas outside all masks to grayscale
     if combined_mask is not None:
@@ -314,32 +263,38 @@ class SetOfMarksHandler:
         regions = get_region_properties(labeled_segmentation)
         return regions
 
-    def draw_regions(self, image: RGBArray, regions: list[RegionProperties]) -> RGBArray:
-        """Draw regions on an image."""
-        annotated_image = draw_region_labels(
-            image=image,
-            regions=regions,
-            text_color=self._text_color,
-            font_scale=self._font_scale,
-            mask_thickness=self._mask_thickness,
-            text_thickness=self._text_thickness,
-            padding=self._padding,
-            add_labels=self._add_labels,
-            add_mask_outline=self._add_mask_outline,
-            soft_mask_alpha=self._soft_mask_alpha,
-            bw_outside_mask=self._bw_outside_mask,
-        )
-        return annotated_image
-
-    def run(self, *, observation: RGBArray, colorful_image: RGBArray) -> RGBArray:
+    def run(
+        self, *, observation: RGBArray, colorful_image: RGBArray, state: BombState | None = None
+    ) -> RGBArray:
         """Handle the labelling and bounding box drawing on the screenshot based on segmentation.
 
         Output: Annotated screenshot with bounding boxes and labels drawn.
         """
         regions = self.extract_regions(colorful_image)
+
+        # find which bomb component is currently selected
+        zoomed_in_component = (
+            KtaneComponent(next(module.name for module in state.modules if module.in_focus))
+            if state
+            else None
+        )
+
         # convert regions to relative coordinates and store them
         self._mark_to_coordinate = map_label_to_coordinate(regions)
-        annotated_image = self.draw_regions(observation, regions)
+        annotated_image = draw_region_masks(
+            image=observation,
+            segm_image=colorful_image,
+            regions=regions,
+            zoomed_in_component=zoomed_in_component,
+            mask_thickness=self._mask_thickness,
+            soft_mask_alpha=self._soft_mask_alpha,
+            bw_outside_mask=self._bw_outside_mask,
+        )
+
+        # add numbered labels to image
+        annotated_image = self.draw_labels(
+            image=annotated_image, segm_img=colorful_image, module=zoomed_in_component
+        )
         return annotated_image
 
     def mark_to_coordinate(self, *, mark_id: int) -> RelativeCoordinate:
@@ -360,7 +315,7 @@ class SetOfMarksHandler:
 
         for draw_location, region in draw_coords:
             # Get the colour of the region
-            color = self.get_region_colour(image, segm_img, region, module)
+            color = get_region_color(image, segm_img, region, module)
 
             annotated_image = draw_annotation(
                 annotated_image,
@@ -375,23 +330,6 @@ class SetOfMarksHandler:
 
         return annotated_image
 
-    def get_region_colour(
-        self,
-        image: RGBArray,
-        segm_image: RGBArray,
-        region: RegionProperties,
-        module: KtaneComponent | None,
-    ) -> Color:
-        """Get the colour of a region based on the module type."""
-        # Use image colours for colour dependent modules (but only wire interactables for wire modules)
-        if module in ENTIRELY_COLOR_DEPENDENT_MODULES or (
-            module == KtaneComponent.wire_sequence and region.eccentricity > IS_LINE_THRESHOLD
-        ):
-            return get_median_colour(region, image)
-
-        # Otherwise, use segmentation image colour
-        return get_median_colour(region, segm_image)
-
     def draw_region_outlines(
         self, image: RGBArray, segm_img: RGBArray, module: KtaneComponent | None
     ) -> RGBArray:
@@ -401,7 +339,7 @@ class SetOfMarksHandler:
         outlined_image = image.copy()
 
         for region in regions:
-            color = self.get_region_colour(image, segm_img, region, module)
+            color = get_region_color(image, segm_img, region, module)
             _ = draw_mask_on_image(
                 image=outlined_image,
                 coords=region.coords,
