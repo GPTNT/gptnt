@@ -18,12 +18,12 @@ router = APIRouter()
 
 async def _get_supervised_players(request: Request) -> list[SupervisedPlayerClient]:
     """Get the supervised players from the state of the app."""
-    return request.app.state.players
+    return request.app.state.manager.players
 
 
 async def _get_supervised_rooms(request: Request) -> list[SupervisedRoomManagerClient]:
     """Get the supervised players from the state of the app."""
-    return request.app.state.rooms
+    return request.app.state.manager.rooms
 
 
 SupervisedPlayersDep = Annotated[list[SupervisedPlayerClient], Depends(_get_supervised_players)]
