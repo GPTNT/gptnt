@@ -44,6 +44,11 @@ class KtaneClient(InstrumentationMixin):
         _logger.debug("Instrumenting KtaneClient")
         logfire.instrument_httpx(self.client, capture_all=True)
 
+    def update_client(self, client: httpx.AsyncClient) -> None:
+        """Create a new client with the given base URL."""
+        self.client = client
+        self.perform_instrumentation()
+
     async def __aenter__(self) -> Self:
         """Open the client."""
         _ = await self.client.__aenter__()
