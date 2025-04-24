@@ -7,7 +7,6 @@ from httpx import AsyncClient
 
 from gptnt.api.structures import RoomMetadata
 from gptnt.dialogue_space.client import DialogueSpaceClient
-from gptnt.ktane.client import KtaneClient
 from gptnt.players.ai.defuser import BaseDefuserPlayer
 from gptnt.players.base_player import BasePlayer
 from gptnt.players.human.controller import Controller
@@ -42,9 +41,9 @@ async def join_room(room: RoomMetadata, player: PlayerDep) -> None:
 
     # TODO: Fix the Ktane player hackery
     if isinstance(player, Controller) and isinstance(player.view, DefuserPlayerView):
-        player.view.ktane_client = KtaneClient(client=AsyncClient(base_url=room.ktane_url))
+        player.view.ktane_client.client = AsyncClient(base_url=room.ktane_url)
     if isinstance(player, BaseDefuserPlayer):
-        player.game_client = KtaneClient(client=AsyncClient(base_url=room.ktane_url))
+        player.game_client.client = AsyncClient(base_url=room.ktane_url)
 
     await player.connect()
 
