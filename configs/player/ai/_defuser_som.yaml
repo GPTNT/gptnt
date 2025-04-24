@@ -11,3 +11,5 @@ agent:
 game_client:
   set_of_marks_painter:
     _target_: gptnt.processors.set_of_marks.SetOfMarksHandler
+
+should_save_images: false

@@ -4,8 +4,10 @@ from collections.abc import Awaitable, Callable
 from typing import Union, override
 
 import structlog
+import whenever
 from pydantic_ai import Agent, BinaryContent
 
+from gptnt.common.paths import Paths
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.state.game import GameState
 from gptnt.players.actions import (
@@ -18,6 +20,7 @@ from gptnt.players.ai.ai_player import AIPlayer
 
 log = structlog.get_logger()
 
+paths = Paths()
 
 type DefuserOutputT[LocationDataT: InteractGameLocation] = Union[  # noqa: UP007
     DoNothingAction, SendMessageAction, InteractGameAction[LocationDataT]
@@ -59,11 +62,13 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
         game_client: KtaneClient,
         *,
         observation_window_length: int = 1,
+        should_save_images: bool = False,
     ) -> None:
         super().__init__(agent)
         self.game_client = game_client
 
         self.observation_cache: deque[BinaryContent] = deque(maxlen=observation_window_length)
+        self._should_save_images = should_save_images
 
     @override
     async def connect(self) -> None:
@@ -119,6 +124,14 @@ class MDPDefuserPlayer[LocationDataT: InteractGameLocation](
         )
 
         self.observation_cache.append(current_frame)
+
+        if self._should_save_images:
+            paths.output.joinpath("images").mkdir(parents=True, exist_ok=True)
+            _ = (
+                paths.output.joinpath("images")
+                .joinpath(f"frame_{whenever.Instant.now()}.png")
+                .write_bytes(current_frame.data)
+            )
 
         agent_input = [messages, *list(self.observation_cache)]
         return agent_input
