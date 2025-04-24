@@ -18,6 +18,10 @@ class Pairing(BaseModel):
         output = f"{self.defuser}_{self.expert}_{self.pairing_type}"
         return output
 
+    @override
+    def __hash__(self) -> int:
+        return hash((self.defuser, self.expert, self.pairing_type))
+
 
 class PairingGenerator:
     """Generate all the possible pairings for a game.

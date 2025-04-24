@@ -79,10 +79,6 @@ class ExperimentManager:
             and room.state is RoomStage.ready_for_config
         ]
 
-        _logger.info(
-            f"Available Players: {len(available_players)}/{len(self.players)}, Available Rooms: {len(available_rooms)}/{len(self.rooms)}"
-        )
-
         # TODO: Make this find the correct pairings
         if len(available_players) >= 2 and len(available_rooms) >= 1:  # noqa: PLR2004
             expert = available_players.pop()

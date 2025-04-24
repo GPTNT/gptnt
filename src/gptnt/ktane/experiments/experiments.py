@@ -1,6 +1,6 @@
 import itertools
 from collections.abc import Iterator
-from typing import Literal
+from typing import Literal, override
 
 from pydantic import BaseModel
 
@@ -20,7 +20,7 @@ type Condition = Literal[
 ]
 
 
-class ExperimentSpec(BaseModel):
+class ExperimentSpec(BaseModel, frozen=True):
     """Specification for a single experiment.
 
     This contains everything that the Experiment Manager will need to run the experiment.
@@ -42,6 +42,10 @@ class ExperimentSpec(BaseModel):
         mission_name = module if module else ""
         mission_name = f"{mission_name}_{self.mission_spec.seed}"
         return f"{self.condition}_{self.communication_style}_{self.pairing}_{mission_name}"
+
+    @override
+    def __hash__(self) -> int:
+        return hash((self.mission_spec, self.pairing, self.condition, self.communication_style))
 
 
 class ExperimentGenerator:

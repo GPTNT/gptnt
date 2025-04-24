@@ -2,6 +2,8 @@ from enum import Enum
 
 from pydantic import BaseModel
 
+from gptnt.ktane.experiments.experiments import ExperimentSpec
+
 
 class RoomStage(Enum):
     """The stage of the experiment lifecycle that a RoomManager is in."""
@@ -42,3 +44,5 @@ class PlayerMetadata(ClientMetadata):
 
     player_type: str
     player_role: str
+    player_name: str | None = None
+    experiments_played: list[ExperimentSpec] = []
