@@ -157,6 +157,7 @@ class KtaneClient(InstrumentationMixin):
             return None
         return BombState.model_validate_json(response.text)
 
+    @logfire.instrument("Get observation from environment")
     async def get_observation(self) -> bytes:  # noqa: WPS615
         """Get the current observation from the game as a png."""
         # If we are not resizing or using SoM, we can just get the screenshot as bytes and pass it
@@ -170,19 +171,24 @@ class KtaneClient(InstrumentationMixin):
 
         # If we are resizing the image, we need to resize it before passing it on
         if self.image_resizer:
-            observation = self.image_resizer.resize_image(observation)
+            with logfire.span("Resizing image", image=observation):
+                observation = self.image_resizer.resize_image(observation)
 
         if self.set_of_marks_painter and segmentation_bytes:
             segmentation = load_observation_from_bytes(segmentation_bytes)
 
             # If we are using SoM, we also need to resize the segmentation image
             if self.image_resizer:
-                segmentation = self.image_resizer.resize_image(segmentation)
+                with logfire.span("Resizing image", image=segmentation):
+                    segmentation = self.image_resizer.resize_image(segmentation)
 
             # Apply SoM onto the image
-            observation = self.set_of_marks_painter.run(
-                observation=np.asarray(observation), colorful_image=np.asarray(segmentation)
-            )
+            with logfire.span(
+                "Perform Set of Marks", observation=observation, segmentation=segmentation
+            ):
+                observation = self.set_of_marks_painter.run(
+                    observation=np.asarray(observation), colorful_image=np.asarray(segmentation)
+                )
 
             # convert back to pillow image
             observation = Image.fromarray(observation.astype(np.uint8), "RGB")
