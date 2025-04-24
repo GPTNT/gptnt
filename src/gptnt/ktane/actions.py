@@ -1,9 +1,10 @@
+from contextlib import suppress
 from enum import Enum
-from typing import Annotated, Self
+from typing import Annotated, Any, Self
 
 import annotated_types
 from httpx import QueryParams
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 
 class GameActionType(Enum):
@@ -81,6 +82,14 @@ class KtaneBaseAction[LocationDataT](BaseModel):
             )
 
         return self
+
+    @field_validator("action", mode="before")
+    @classmethod
+    def try_validate_action_by_name(cls, action: Any) -> GameActionType | Any:
+        """Serialize the action to a GameActionType enum."""
+        with suppress(KeyError):
+            return GameActionType[action]
+        return action
 
     def to_query_params(self) -> QueryParams:
         """Convert the action to query parameters for the API."""

@@ -1,5 +1,5 @@
 import itertools
-from typing import Union, get_args
+from typing import get_args
 
 import pytest
 from pydantic_ai import Agent
@@ -133,23 +133,18 @@ class PlayerActionCases:
 
 
 @parametrize_with_cases("action", cases=PlayerActionCases)
-@pytest.mark.skip(reason="I don't understand pydantic-ai yet")
 def test_actions_are_parsed_correctly_from_json(action: BaseAction) -> None:
     """Test that the actions are parsed correctly.
 
     This is a regression test to ensure that the actions are parsed correctly.
     """
     action_as_json = action.model_dump(mode="json")
-    test_model = Agent(
-        TestModel(custom_output_args=action_as_json),
-        output_type=Union[  # noqa: UP007
-            DoNothingAction,
-            SendMessageAction,
-            InteractGameAction[RelativeCoordinate],
-            InteractGameAction[int],
-        ],
-    )
 
+    # Note: actions can be validated by their name or the value, so we check that too
+    if isinstance(action, InteractGameAction):
+        action_as_json["action"] = action.action.name
+
+    test_model = Agent(TestModel(custom_output_args=action_as_json), output_type=action.__class__)
     output = test_model.run_sync("message")
 
-    assert isinstance(output.output, action.__class__)
+    assert output.output == action
