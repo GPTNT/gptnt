@@ -46,15 +46,15 @@ system_prompt: >
 
   where {GAME_ACTION} can be one of:
 
-  * `turn_left` (-90° rotation)
-  * `turn_right` (90° rotation)
-  * `turn_around` (180° rotation)
+  * `rotate_left` (-90° rotation)
+  * `rotate_right` (90° rotation)
+  * `flip` (180° rotation)
   * `roll_up` (90° roll upward)
   * `roll_down` (90° roll downward)
   * `zoom_out` (return to full bomb view from a zoomed module)
   * `release` (release a hold action)
 
-  Turning left, right, and around, as well as rolling up or down and zooming out are your navigation actions.
+  Rotating left and right, flipping, as well as rolling up or down and zooming out are your navigation actions.
 
   2. Actions with location requirements
 
@@ -62,7 +62,7 @@ system_prompt: >
 
   where {GAME_ACTION} can be one of:
 
-  * `click` (click on location and release immediately)
+  * `click-release` (click on location and release immediately)
   * `hold` (click and hold on location)
 
   and {LOCATION} is the numeric ID of the interactive object as shown on the image.
