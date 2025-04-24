@@ -37,10 +37,7 @@ class BaseClient(InstrumentationMixin, abc.ABC):
         logfire.instrument_httpx(self.client, capture_all=True)
 
     async def healthcheck(self, *, skip_logger: bool = False) -> bool:
-        """Checks the health of the RoomManager.
-
-        Returns true if the RoomManager is healthy, else false.
-        """
+        """Checks the health of the client."""
         try:
             _ = (await self.client.get(url="/health")).raise_for_status()
         except httpx.HTTPError:
