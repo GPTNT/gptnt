@@ -2,4 +2,4 @@ defaults:
   - default
   - _self_
 
-_target_: gptnt.players.ai.models.DummyDefuserModel
+_target_: gptnt.players.ai.dummy_defuser.DummyDefuserModel
