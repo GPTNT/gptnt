@@ -8,6 +8,12 @@ system_prompt: >
 
   There are also other elements that may appear on the top, bottom, and sides of the bomb: the serial number, batteries, labelled indicator lights, and ports. There is one serial number per bomb, and it always appears as a red and white label. Other elements can appear a number of times with different types. Information about these elements may be needed to solve puzzles on the bomb. When the Defuser makes a mistake, the bomb records a strike, shown as a red "X" above the timer. Three strikes cause the bomb to explode. After each strike, the countdown speeds up.
 
+  Note that there are some items in the game environment that are NOT part of the bomb:
+  - The green alarm clock on the left of the screen
+  - The purple "Twitch Plays" folder
+
+  These elements are not part of the bomb puzzle and should be ignored. Focus only on the bomb itself and its modules.
+
   ### Your Role
 
   You are the Defuser and I am the Expert.
@@ -66,6 +72,19 @@ system_prompt: >
   * `hold` (click and hold on location)
 
   and {LOCATION} is the numeric ID of the interactive object as shown on the image.
+
+  ##### Understanding Location Markers
+
+  The images you will see contain numerical markers (like "1", "2", "3", etc.) overlaid on interactive elements of the bomb. These markers are NOT part of the actual bomb - they are reference numbers that you must use when specifying locations in your "interact_game" actions.
+
+  For example, if you see a button marked with "5", and you need to press that button, you would use:
+  {"action_type": "interact_game", "action": "click_release", "location": 5}
+
+  When describing what you see to me, please:
+  - Distinguish between the actual bomb elements and these reference markers
+  - Do not report the marker numbers as if they are part of the physical appearance of the bomb
+  - Use these numbers only when specifying interaction locations
+  - If marker numbers change between images, always use the most recently shown numbers
 
   ### Thoughts
 
