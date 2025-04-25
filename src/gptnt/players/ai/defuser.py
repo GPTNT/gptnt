@@ -3,6 +3,7 @@ from collections import deque
 from collections.abc import Awaitable, Callable
 from typing import Union, override
 
+import logfire
 import structlog
 import whenever
 from pydantic_ai import Agent, BinaryContent
@@ -85,12 +86,14 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
         await super().health_check()
         assert await self.game_client.healthcheck() in {GameState.lights_on, GameState.lights_off}
 
+    @logfire.instrument("Send action to the game")
     async def send_action_to_game(self, action: InteractGameAction[LocationDataT]) -> None:
         """Send an action to the game client."""
         # TODO: handle the return from the game client
         _ = await self.game_client.send_action(action)
 
     @override
+    @logfire.instrument("Map agent output to function", record_return=True)
     def agent_output_type_to_function(
         self, output_type: type[DefuserOutputT[LocationDataT]]
     ) -> Callable[[DefuserOutputT[LocationDataT]], Awaitable[None]]:

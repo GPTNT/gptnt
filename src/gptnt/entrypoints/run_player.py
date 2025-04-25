@@ -17,7 +17,7 @@ from gptnt.common.paths import Paths
 from gptnt.players.base_player import BasePlayer
 
 # TODO: We need to contextualise the service with the metadata when we run things
-_ = logfire.configure(service_name="player")
+_ = logfire.configure(service_name="player", scrubbing=False)
 configure_logging()
 
 _logger = get_logger()

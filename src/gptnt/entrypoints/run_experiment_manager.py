@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from gptnt.api.experiment_manager_routes import lifespan, router
 from gptnt.common.logger import configure_logging
 
-_ = logfire.configure(service_name="experiment-manager")
+_ = logfire.configure(service_name="experiment-manager", scrubbing=False)
 configure_logging()
 
 _logger = structlog.get_logger()

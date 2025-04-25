@@ -71,16 +71,21 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationMixin, abc.AB
         return  # noqa: WPS324
 
     @override
-    @logfire.instrument("Run AI player")
     async def run(self) -> None:
         """Run the decision making process for the player.
 
         This will continually run forever/until we stop it.
         """
-        # TODO: This seems like a bad idea? Do we need to fix this
-        while True:  # noqa: WPS457
-            _ = await self.run_once()
-            _ = asyncio.sleep(1)
+        with logfire.span(
+            f"Run AI Player ({self.player_type}/{self.player_role})",
+            tags=[self.player_role, self.player_type],
+        ):
+            # TODO: I think this is breaking when an action is performed while the lights are off?
+
+            # TODO: This seems like a bad idea? Do we need to fix this
+            while True:  # noqa: WPS457
+                _ = await self.run_once()
+                _ = asyncio.sleep(1)
 
     @override
     @logfire.instrument("Run AI player once")
@@ -110,10 +115,12 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationMixin, abc.AB
 
         log.debug("Health check passed.")
 
+    @logfire.instrument("Send message to dialogue space")
     async def send_message_to_dialogue_space(self, message: SendMessageAction) -> None:
         """Send a message to the dialogue space for the current agent."""
         return await self.dialogue_space_client.send_message(message.message)
 
+    @logfire.instrument("Pull unread messages from dialogue space")
     async def pull_unread_messages_from_dialogue_space(self) -> str:
         """Pull messages from the dialogue space."""
         messages = await self.dialogue_space_client.pull_messages()
@@ -144,6 +151,7 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationMixin, abc.AB
         """Do nothing action."""
         log.debug("Doing nothing.")
 
+    @logfire.instrument("Send request to agent")
     async def send_request_to_agent(self) -> OutputDataT:
         """Send the content to the agent and get it to make a decision and perform an action.
 

@@ -8,7 +8,7 @@ from gptnt.api.room_endpoints import lifespan, router
 from gptnt.common.hosting import get_available_port
 from gptnt.common.logger import configure_logging
 
-_ = logfire.configure(service_name="room-manager")
+_ = logfire.configure(service_name="room-manager", scrubbing=False)
 configure_logging()
 
 _logger = structlog.get_logger()
