@@ -93,9 +93,9 @@ class MissionGenerator:
         self, seed: int, *, chosen_module: KtaneComponent | None
     ) -> KtaneMissionSpec:
         """Generate one mission spec for a given condition."""
-        n_components: int = self._rng.integers(
+        n_components = self._rng.integers(
             low=self.spec.n_modules_min, high=self.spec.n_modules_max + 1
-        )
+        ).item()
 
         # Either we use the chosen module OR we sample from all modules
         components = (
