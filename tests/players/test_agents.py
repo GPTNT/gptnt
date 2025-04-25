@@ -28,7 +28,7 @@ def test_provide_message_to_agent(player: AIPlayer[None, OutputDataT]) -> None:
 @parametrize_with_cases("player", cases=AIPlayerCases, glob="defuser_mdp_set_of_marks")
 async def test_functional_model_does_not_crash(player: AIPlayer[None, OutputDataT]) -> None:
     for _ in range(30):
-        with player.agent.override(model=DummyDefuserModel):
+        with player.agent.override(model=DummyDefuserModel()):
             response = await player.send_request_to_agent()
 
             assert response
