@@ -64,8 +64,6 @@ class ExperimentManager:
         # TODO: Make this actually run proper configs, this currently just throws the first
         # room/players it finds with a random config
 
-        _logger.info(self.experiments)
-
         # Filter for available clients (running, connected, and not in an experiment already)
         available_players = [
             player for player in self.players if player.is_running and not player.in_experiment
