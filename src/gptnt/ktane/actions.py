@@ -86,7 +86,7 @@ class KtaneBaseAction[LocationDataT](BaseModel):
     @field_validator("action", mode="before")
     @classmethod
     def try_validate_action_by_name(cls, action: Any) -> GameActionType | Any:
-        """Serialize the action to a GameActionType enum."""
+        """Validate the action using the GameActionType enum name."""
         with suppress(KeyError):
             return GameActionType[action]
         return action
