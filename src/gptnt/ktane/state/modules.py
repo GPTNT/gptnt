@@ -185,7 +185,7 @@ class MemoryModuleState(InteractiveModuleState):
 class MorseCodeModuleState(InteractiveModuleState):
     """State of the Morse Code module."""
 
-    sequence: constants.MorseCodes
+    sequence: str
     current_frequency: float
     correct_frequency: float
 
