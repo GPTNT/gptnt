@@ -83,6 +83,7 @@ reportUnusedVariable = false
 executionEnvironments = [
     {root = "tests", extraPaths = ["."], reportArgumentType = false},
 ]
+ignore = ["scripts/**/*"]
 
 [tool.flake8]
 extend-exclude = [".venv"]
@@ -99,7 +100,7 @@ extend-ignore = [
     "WPS201",
 ]
 per-file-ignores = [
-    "scripts/*:WPS201,WPS202,WPS210,WPS212,WPS213,WPS217,WPS221,WPS231,WPS335,WPS400,WPS420,WPS476,WPS529",
+    "scripts/*:WPS",
     "tests/*:WPS2,WPS118,WPS432,WPS435,WPS444,WPS476",
     "src/gptnt/ktane/state/*:WPS202",
 ]
@@ -136,6 +137,7 @@ line-length = 99
 target-version = "py312"
 unsafe-fixes = true
 src = ["src"]
+force-exclude = true
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -201,6 +203,7 @@ unfixable = [
     # Do not auto-remove commented out code
     "ERA001",
 ]
+exclude = ["scripts"]
 
 [tool.ruff.lint.flake8-quotes]
 inline-quotes = "double"
@@ -226,7 +229,7 @@ max-complexity = 18
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["D", "F401", "I002"]
 "**/tests/*" = ["D", "S101", "INP001", "PLR2004", "FBT001", "SLF001"]
-"scripts/*" = ["INP001"]
+"scripts/*" = ["INP001", "D", "ANN", "PLR", "PD", "S"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

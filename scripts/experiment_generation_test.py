@@ -315,7 +315,7 @@ def process_directory() -> None:
         dump_unneeded_info(json_file)
 
 
-def remove_keys_recursively(data, keys_to_remove: list[str]) -> None:  # noqa: ANN001
+def remove_keys_recursively(data, keys_to_remove: list[str]) -> None:
     """Recursively remove specified keys from dictionaries and lists."""
     if isinstance(data, dict):
         # Remove keys from the current dictionary
@@ -370,7 +370,7 @@ def dump_unneeded_info(file_path: Path) -> None:
         json.dump(data, file_to_write_to, indent=4)
 
 
-def count_unique_attributes(data1, data2) -> int:  # noqa: PLR0911, ANN001
+def count_unique_attributes(data1, data2) -> int:
     """Counts all attributes from two inputs, counting shared attributes only once."""
     if isinstance(data1, dict) and isinstance(data2, dict):
         # Combine keys from both dictionaries
