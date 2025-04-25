@@ -100,5 +100,15 @@ class KtaneBaseAction[LocationDataT](BaseModel):
         )
         return QueryParams({**self.model_dump(mode="json", exclude={"location"}), **location})
 
+    def as_model_return(self) -> dict[str, Any]:
+        """Serialize the action as if it was a return value from the model.
+
+        We are getting models to return the name for the enum, so this method can make tests
+        easier.
+        """
+        as_dict = self.model_dump(mode="json")
+        as_dict["action"] = self.action.name
+        return as_dict
+
 
 KtaneAction = KtaneBaseAction[RelativeCoordinate]

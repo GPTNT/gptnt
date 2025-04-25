@@ -2,4 +2,4 @@ defaults:
   - default
   - _self_
 
-_target_: pydantic_ai.models.test.TestModel
+_target_: gptnt.players.ai.models.DummyDefuserModel
