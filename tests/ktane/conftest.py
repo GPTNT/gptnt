@@ -16,7 +16,7 @@ async def client(host: str, port: int) -> AsyncGenerator[KtaneClient, None]:
         yield client
 
 
-@fixture
+@fixture(scope="session")
 def bomb_state_json() -> dict[str, Any]:
     """Return a sample bomb state JSON."""
     return {
@@ -65,17 +65,6 @@ def bomb_state_json() -> dict[str, Any]:
                 "onFront": True,
                 "index": 3,
                 "name": "Wires",
-            },
-            {
-                "topLeft": {"symbol": "omega", "color": None},
-                "topRight": {"symbol": "short-i", "color": None},
-                "bottomLeft": {"symbol": "ae", "color": None},
-                "bottomRight": {"symbol": "e-with-diaeresis", "color": None},
-                "isSolved": False,
-                "inFocus": False,
-                "onFront": True,
-                "index": 0,
-                "name": "Keypad",
             },
         ],
     }

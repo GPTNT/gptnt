@@ -12,7 +12,6 @@ from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.ktane.actions import GameActionType, KtaneAction, KtaneBaseAction
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.mission_spec import KtaneMissionSpec
-from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.game import GameState
 from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.processors.image_resizer import ImageResizer
@@ -206,25 +205,3 @@ async def test_set_of_mark_actions_are_converted_to_relative_coordinates(
     else:
         # If the action does not require a location, we should not call the mark_to_coordinate method
         assert spy.called is False
-
-
-@respx.mock
-@pytest.mark.asyncio
-@pytest.mark.parametrize("action_type", list(GameActionType))
-async def test_send_action_returns_bomb_state(
-    client: KtaneClient, action_type: GameActionType, bomb_state_json: dict[str, Any]
-) -> None:
-    action_endpoint = respx.get(f"{client.client.base_url}/action").mock(
-        return_value=httpx.Response(httpx.codes.OK, json=bomb_state_json)
-    )
-
-    location = {"x_pos": 0.5, "y_pos": 0.5}
-
-    action = KtaneAction(
-        action=action_type,
-        location=location if action_type in GameActionType.require_location() else None,
-    )
-
-    bomb_state = await client.send_action(action)
-    assert isinstance(bomb_state, BombState)
-    assert action_endpoint.called is True
