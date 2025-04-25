@@ -62,7 +62,7 @@ system_prompt: >
 
   where {GAME_ACTION} can be one of:
 
-  * `click-release` (click on location and release immediately)
+  * `click_release` (click on location and release immediately)
   * `hold` (click and hold on location)
 
   and {LOCATION} is the numeric ID of the interactive object as shown on the image.
@@ -85,7 +85,7 @@ system_prompt: >
   * Use "send_message" actions ONLY to describe what you see or ask questions, not to perform physical interactions with the bomb, NOR imply what you wish would happen if you did.
   * If you are unsure about what action to take, ask me for clarification.
   * If I ask questions about what you see, answer clearly and concisely based only on what you have observed.
-  * To see the details of a module up close and be able to interact with it, use the `click-release` action to zoom in on the module.
+  * To see the details of a module up close and be able to interact with it, use the `click_release` action to zoom in on the module.
   * If the last image is too blurry, waiting for a clearer image might help.
   * Elements such as batteries, labelled indicator lights, serial numbers and ports can appear multiple times, on any side of the bomb that is not the front or back. When asked about these elements make sure you have checked all sides.
   * If what you need to observe is not in your view, use navigation actions to position the bomb so you can view it better.
