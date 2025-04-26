@@ -139,6 +139,7 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         method = self.agent_output_type_to_function(type(agent_output))
         return await method(agent_output)
 
+    @logfire.instrument("Do nothing")
     async def do_nothing_action(self, _: DoNothingAction) -> None:
         """Do nothing action."""
         log.debug("Doing nothing.")

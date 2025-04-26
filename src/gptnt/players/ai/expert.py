@@ -2,6 +2,7 @@ from collections.abc import Awaitable, Callable, Iterator
 from dataclasses import dataclass
 from typing import Union, override
 
+import logfire
 import structlog
 from pydantic_ai import BinaryContent
 
@@ -38,6 +39,7 @@ class ExpertPlayer(AIPlayer[None, ExpertOutputT]):
     """Class for all Expert players."""
 
     @override
+    @logfire.instrument("Build agent input")
     async def build_agent_input(self) -> str | list[str | BinaryContent]:
         """Build the input for the expert.
 

@@ -113,6 +113,7 @@ class MDPDefuserPlayer[LocationDataT: InteractGameLocation](
     """
 
     @override
+    @logfire.instrument("Build agent input")
     async def build_agent_input(self) -> list[str | BinaryContent]:
         """Build the input for the defuser."""
         messages = await self.pull_unread_messages_from_dialogue_space()
