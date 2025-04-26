@@ -98,7 +98,9 @@ class KtaneBaseAction[LocationDataT](BaseModel):
             if isinstance(self.location, BaseModel)
             else {}
         )
-        return QueryParams({**self.model_dump(mode="json", exclude={"location"}), **location})
+        return QueryParams(
+            {**self.model_dump(mode="json", exclude_unset=True, exclude={"location"}), **location}
+        )
 
     def as_model_return(self) -> dict[str, Any]:
         """Serialize the action as if it was a return value from the model.
