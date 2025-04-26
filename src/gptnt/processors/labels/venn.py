@@ -4,10 +4,10 @@ from types import MappingProxyType
 from gptnt.processors.labels.types import DrawData, RegionProperties
 
 
-def venn(regions: list[RegionProperties], *, offset: int = 35) -> Generator[DrawData]:
+def venn(regions: list[RegionProperties], *, offset: int = 25) -> Generator[DrawData]:
     """Generate draw data for venn module."""
     sorted_regions = sorted(regions, key=lambda region: region.bbox[1])
-    venn_horizontal_offset_mapping = MappingProxyType({0: -20, 1: -15, 3: -2, 4: 10, 5: 20})  # noqa: WPS221
+    venn_horizontal_offset_mapping = MappingProxyType({0: -5, 1: -5, 2: 0, 3: 0, 4: 0, 5: 0})  # noqa: WPS221
 
     for wire_idx, region in enumerate(sorted_regions):
         # bottom-left

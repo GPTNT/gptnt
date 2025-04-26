@@ -16,6 +16,7 @@ from gptnt.ktane.exceptions import InvalidGameError
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.game import GameState
+from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.players.actions import InteractGameLocation
 from gptnt.processors.image_resizer import ImageResizer
 from gptnt.processors.set_of_marks import SetOfMarksHandler
@@ -232,6 +233,13 @@ class KtaneClient(InstrumentationMixin):
                 with logfire.span("Resizing image", image=segmentation):
                     segmentation = self.image_resizer.resize_image(segmentation)
 
+            if state:
+                zoomed_component = next(
+                    module_state.name for module_state in state.modules if module_state.in_focus
+                )
+            else:
+                zoomed_component = None
+
             # Apply SoM onto the image
             with logfire.span(
                 "Perform Set of Marks", observation=observation, segmentation=segmentation
@@ -239,7 +247,7 @@ class KtaneClient(InstrumentationMixin):
                 observation = self.set_of_marks_painter.run(
                     observation=np.asarray(observation),
                     colorful_image=np.asarray(segmentation),
-                    state=state,
+                    state=KtaneComponent(zoomed_component),
                 )
 
             # convert back to pillow image

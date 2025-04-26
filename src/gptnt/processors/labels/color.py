@@ -4,7 +4,7 @@ from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.processors.labels.types import Color, RegionProperties, RGBArray
 
 ENTIRELY_COLOR_DEPENDENT_MODULES: frozenset[KtaneComponent] = frozenset(
-    (KtaneComponent.simon, KtaneComponent.venn, KtaneComponent.wires)
+    (KtaneComponent.simon, KtaneComponent.venn, KtaneComponent.wires, KtaneComponent.big_button)
 )
 
 
@@ -25,7 +25,7 @@ def compute_perceived_brightness(*, rgb: Color) -> float:
     return brightness
 
 
-def get_median_colour(region: RegionProperties, segm_img: RGBArray) -> tuple[int, int, int]:
+def get_median_colour(region: RegionProperties, segm_img: RGBArray) -> Color:
     """Get the centroid colour of a region in the segmentation image."""
     # Get the centroid coordinates
     pixels = np.array(

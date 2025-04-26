@@ -6,6 +6,14 @@ from gptnt.processors.labels.position import get_region_height
 from gptnt.processors.labels.types import DrawData, RegionProperties
 
 MAZE_REGIONS = 4
+TOP_X_OFFSET = 10
+BOTTOM_X_OFFSET = 3
+LEFT_X_OFFSET = -10
+RIGHT_X_OFFSET = 15
+TOP_Y_OFFSET = -10
+BOTTOM_Y_OFFSET = 5
+LEFT_Y_OFFSET = -18
+RIGHT_Y_OFFSET = -18
 log = structlog.get_logger()
 
 
@@ -32,7 +40,6 @@ def maze_get_buttons(
 def calculate_maze_button_coordinates(
     region: RegionProperties,
     region_height: int,
-    offset: int,
     left_button: RegionProperties,
     right_button: RegionProperties,
     top_button: RegionProperties,
@@ -41,19 +48,17 @@ def calculate_maze_button_coordinates(
     """Calculate the coordinates for a maze button."""
     coord = region.coords[region.coords[:, 0].argmax()]
     if region is left_button:
-        return (coord[0] + region_height + offset, coord[1] - offset)
+        return (coord[0] + region_height + LEFT_Y_OFFSET, coord[1] + LEFT_X_OFFSET)
     if region is right_button:
-        return (coord[0] + region_height + offset, coord[1] + offset)
+        return (coord[0] + region_height + RIGHT_Y_OFFSET, coord[1] + RIGHT_X_OFFSET)
     if region is top_button:
-        offset = 25
-        return (coord[0] - region_height - offset, coord[1] + offset)
+        return (coord[0] - region_height + TOP_Y_OFFSET, coord[1] + TOP_X_OFFSET)
     if region is bottom_button:
-        offset = 25
-        return (coord[0] + region_height, coord[1] + offset)
+        return (coord[0] + region_height + BOTTOM_Y_OFFSET, coord[1] + BOTTOM_X_OFFSET)
     return coord
 
 
-def maze(regions: list[RegionProperties], *, offset: int = 10) -> Generator[DrawData]:
+def maze(regions: list[RegionProperties]) -> Generator[DrawData]:
     """Annotate the maze module with labels."""
     if len(regions) != MAZE_REGIONS:
         log.warning(f"Maze should have {MAZE_REGIONS} regions, but got %d", len(regions))
@@ -61,6 +66,6 @@ def maze(regions: list[RegionProperties], *, offset: int = 10) -> Generator[Draw
     for region in regions:
         region_height = get_region_height(region)
         coord = calculate_maze_button_coordinates(
-            region, region_height, offset, left_button, right_button, top_button, bottom_button
+            region, region_height, left_button, right_button, top_button, bottom_button
         )
         yield DrawData(coord, region)

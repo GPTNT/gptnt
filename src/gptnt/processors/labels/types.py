@@ -7,7 +7,14 @@ from skimage.measure._regionprops import RegionProperties as _RegionProperties
 RegionProperties = _RegionProperties
 type Color = tuple[int, int, int]
 type RGBArray = NDArray[np.uint8]
-type Coordinates = tuple[int, int]
+
+
+class Coordinates(NamedTuple):
+    """Structure of a coordinate."""
+
+    y_pos: int
+    x_pos: int
+
 
 BLACK: Color = (0, 0, 0)
 WHITE: Color = (255, 255, 255)

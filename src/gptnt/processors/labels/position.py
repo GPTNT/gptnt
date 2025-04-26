@@ -53,7 +53,7 @@ def find_furthest_point(
 
 def calculate_offset_point(
     furthest_y: int, furthest_x: int, center_y: float, center_x: float, offset: int
-) -> tuple[int, int]:
+) -> Coordinates:
     """Calculate the offset point from the furthest point."""
     dy = furthest_y - center_y
     dx = furthest_x - center_x
@@ -61,7 +61,9 @@ def calculate_offset_point(
     if norm != 0:
         dy /= norm
         dx /= norm
-    return round(furthest_y + dy * offset), round(furthest_x + dx * offset)
+    return Coordinates(
+        y_pos=round(furthest_y + dy * offset), x_pos=round(furthest_x + dx * offset)
+    )
 
 
 def get_furthest_point_from_center(region: RegionProperties, *, offset: int = 10) -> Coordinates:

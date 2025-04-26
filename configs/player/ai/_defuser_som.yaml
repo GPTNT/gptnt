@@ -11,5 +11,22 @@ agent:
 game_client:
   set_of_marks_painter:
     _target_: gptnt.processors.set_of_marks.SetOfMarksHandler
+    annotation_text_params:
+      _target_: gptnt.processors.labels.drawing.AnnotationTextParams
+      font: 0
+      font_scale: 0.6
+      thickness: 1
+    annotation_background_params:
+      _target_: gptnt.processors.labels.drawing.AnnotationBackgroundParams
+      padding: 0
+      alpha: 0.5
+    mask_drawing_params:
+      _target_: gptnt.processors.set_of_marks.MaskDrawingParams
+      mask_thickness: 1
+      soft_mask_alpha: 0.5
+      bw_outside_mask: False
+
+    add_labels: true
+    add_mask_outline: true
 
 should_save_images: false

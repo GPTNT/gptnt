@@ -2,7 +2,6 @@ from collections.abc import Generator
 
 import structlog
 
-from gptnt.processors.labels.position import get_region_height
 from gptnt.processors.labels.types import DrawData, RegionProperties
 
 MEMORY_REGIONS = 4
@@ -19,19 +18,19 @@ def calculate_memory_label_coordinates(
 ) -> tuple[int, int]:
     """Calculate label coordinates for memory regions."""
     coord = region.coords[region.coords[:, 0].argmax()]
-    region_height = get_region_height(region)
+    y_offset = 10
 
-    y_coord = coord[0] + region_height
+    y_coord = coord[0] + y_offset
     x_coord = coord[1]
 
     if region is far_left:
-        offset = 21
+        offset = -10
         return (y_coord, x_coord - offset)
     if region is far_right:
-        offset = 20
+        offset = 10
         return (y_coord, x_coord + offset)
     if region is middle_left:
-        offset = 8
+        offset = -10
         return (y_coord, x_coord - offset)
     if region is middle_right:
         offset = 8

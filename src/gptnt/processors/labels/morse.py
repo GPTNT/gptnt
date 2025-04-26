@@ -8,7 +8,7 @@ MORSE_REGIONS = 3
 log = structlog.get_logger()
 
 
-def morse_code(regions: list[RegionProperties], *, offset: int = 6) -> Generator[DrawData]:
+def morse_code(regions: list[RegionProperties], *, offset: int = 0) -> Generator[DrawData]:
     """Annotate the morse code module with labels."""
     if len(regions) != MORSE_REGIONS:
         log.warning("Morse should have {MORSE_REGIONS} regions, but got %d", len(regions))

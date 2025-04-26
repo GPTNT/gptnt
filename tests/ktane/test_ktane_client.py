@@ -15,7 +15,8 @@ from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.game import GameState
 from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.processors.image_resizer import ImageResizer
-from gptnt.processors.set_of_marks import SetOfMarksHandler
+from gptnt.processors.labels.drawing import AnnotationBackgroundParams, AnnotationTextParams
+from gptnt.processors.set_of_marks import MaskDrawingParams, SetOfMarksHandler
 
 
 @fixture
@@ -165,7 +166,18 @@ async def test_set_of_mark_actions_are_converted_to_relative_coordinates(
 ) -> None:
     """Test that the KtaneAction correctly converts to query parameters."""
     # Create a set of marks painter
-    client.set_of_marks_painter = SetOfMarksHandler()
+    annotation_text_params = AnnotationTextParams(font=0, font_scale=0.5, thickness=1)
+
+    annotation_background_params = AnnotationBackgroundParams(padding=0, alpha=0.5)
+
+    mask_drawing_params = MaskDrawingParams(
+        mask_thickness=1, soft_mask_alpha=0.5, bw_outside_mask=False
+    )
+    client.set_of_marks_painter = SetOfMarksHandler(
+        annotation_background_params=annotation_background_params,
+        annotation_text_params=annotation_text_params,
+        mask_drawing_params=mask_drawing_params,
+    )
 
     # Load an image and segmentation mask
     image_bytes = fixture_path.joinpath("screenshot1.png").read_bytes()
