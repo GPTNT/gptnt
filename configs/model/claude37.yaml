@@ -1,9 +1,16 @@
+# @package player
+
 defaults:
   - default
   - _self_
 
-_target_: pydantic_ai.models.anthropic.AnthropicModel
-model_name: claude-3-7-sonnet-latest
-provider:
-  _target_: pydantic_ai.providers.anthropic.AnthropicProvider
-  api_key: ${env:ANTHROPIC_API_KEY}
+metadata:
+  player_name: claude37
+
+agent:
+  model:
+    _target_: pydantic_ai.models.anthropic.AnthropicModel
+    model_name: claude-3-7-sonnet-latest
+    provider:
+      _target_: pydantic_ai.providers.anthropic.AnthropicProvider
+      # api_key: ${env:ANTHROPIC_API_KEY}

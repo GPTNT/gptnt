@@ -58,7 +58,7 @@ async def start_experiment() -> bool:
 @player_router.post("/run-for-game")
 async def run_for_game(player: PlayerDep, request: Request) -> None:
     """Run the game in 'parallel' mode."""
-    if player.player_type == "ai":
+    if player.metadata.player_type == "ai":
         request.app.state.main_loop_task = asyncio.create_task(player.run())
 
 
@@ -68,7 +68,7 @@ async def run_for_turn(player: PlayerDep) -> None:
 
     Only makes sense for AI players.
     """
-    if player.player_type == "ai":
+    if player.metadata.player_type == "ai":
         await player.run_once()
 
 
@@ -77,7 +77,7 @@ async def stop_experiment(player: PlayerDep, request: Request) -> None:
     """Stop the experiment and disconnect from the room."""
     # Stop AI from taking any more actions
     loop_task = getattr(request.app.state, "main_loop_task", None)
-    if player.player_type == "ai" and loop_task:
+    if player.metadata.player_type == "ai" and loop_task:
         loop_task.cancel()
 
     # Disconnect from the room

@@ -1,7 +1,14 @@
+# @package player
+
 defaults:
   - ollama
   - _self_
 
-model_name: llama3.2-vision
-provider:
-  base_url: http://localhost:11434/v1
+metadata:
+  player_name: llama32-vision
+
+agent:
+  model:
+    model_name: llama3.2-vision
+    provider:
+      base_url: http://localhost:11434/v1

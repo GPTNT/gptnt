@@ -6,6 +6,9 @@ defaults:
 
 _target_: gptnt.players.ai.expert.ExpertPlayer
 
+metadata:
+  player_role: expert
+
 agent:
   output_type:
     _target_: gptnt.players.ai.output_type.get_expert_output_type

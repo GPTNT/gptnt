@@ -4,5 +4,8 @@ defaults:
   - human/_default
   - _self_
 
+metadata:
+  player_role: defuser
+
 view:
   _target_: gptnt.players.human.views.defuser.DefuserPlayerView

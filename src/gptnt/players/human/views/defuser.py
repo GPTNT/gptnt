@@ -6,7 +6,7 @@ import gradio as gr
 from httpx import AsyncClient
 from structlog import getLogger
 
-from gptnt.common.hosting import get_available_port
+from gptnt.common.servers import get_available_port
 from gptnt.ktane.actions import GameActionType, KtaneAction, RelativeCoordinate
 from gptnt.ktane.client import KtaneClient
 from gptnt.players.human.views.base_view import BaseView

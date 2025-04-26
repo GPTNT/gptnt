@@ -102,12 +102,12 @@ async def test_message_history_updates_after_run(
     )
 
     assert player.usage.requests == 0
-    assert player._message_history is None
+    assert not player._message_history
 
     _ = await player.send_request_to_agent()
 
     assert player.usage.requests == 1
-    assert player._message_history is not None
+    assert player._message_history
 
 
 @pytest.mark.asyncio

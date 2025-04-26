@@ -1,9 +1,16 @@
+# @package player
+
 defaults:
   - default
   - _self_
 
-_target_: pydantic_ai.models.gemini.GeminiModel
-model_name: gemini-2.0-flash
-provider:
-  _target_: pydantic_ai.providers.google_vertex.GoogleVertexProvider
-  service_account_file: "storage/keys/gemini.json"
+metadata:
+  player_name: gemini-2
+
+agent:
+  model:
+    _target_: pydantic_ai.models.gemini.GeminiModel
+    model_name: gemini-2.0-flash
+    provider:
+      _target_: pydantic_ai.providers.google_vertex.GoogleVertexProvider
+      service_account_file: "storage/keys/gemini.json"

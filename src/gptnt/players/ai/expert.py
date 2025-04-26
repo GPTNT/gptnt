@@ -1,4 +1,5 @@
 from collections.abc import Awaitable, Callable, Iterator
+from dataclasses import dataclass
 from typing import Union, override
 
 import structlog
@@ -32,11 +33,9 @@ def load_manual_as_prompt(*, num_pages: int = MANUAL_NUM_PAGES) -> Iterator[str 
         yield BinaryContent(image, media_type="image/png")
 
 
+@dataclass(kw_only=True)
 class ExpertPlayer(AIPlayer[None, ExpertOutputT]):
     """Class for all Expert players."""
-
-    player_role = "expert"
-    player_type = "ai"
 
     @override
     async def build_agent_input(self) -> str | list[str | BinaryContent]:

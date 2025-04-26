@@ -5,8 +5,9 @@ import httpx
 from structlog import get_logger
 
 from gptnt.api.base_client import BaseClient
-from gptnt.api.structures import PlayerMetadata, RoomMetadata
+from gptnt.api.structures import RoomMetadata
 from gptnt.ktane.experiments.experiments import ExperimentSpec
+from gptnt.players.base_player import PlayerMetadata
 
 _logger = get_logger()
 

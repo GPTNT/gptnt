@@ -6,8 +6,8 @@ import httpx
 import logfire
 from structlog import get_logger
 
-from gptnt.api.structures import ClientMetadata
 from gptnt.common.instrumentation import InstrumentationMixin
+from gptnt.common.servers import ClientMetadata
 
 _logger = get_logger()
 
@@ -81,6 +81,8 @@ class SupervisedClient[ClientT: BaseClient, MetadataT: ClientMetadata](abc.ABC):
     @classmethod
     def from_metadata(cls, metadata: MetadataT) -> Self:
         """Creates a new client from the metadata."""
+        if not metadata.fastapi_url:
+            raise ValueError("URL is required")
         return cls(client=cls.client_constructor(metadata.fastapi_url), metadata=metadata)
 
     async def start(self) -> None:

@@ -1,11 +1,12 @@
+# @package player
+
 defaults:
-  - default
+  - gpt4o
   - _self_
 
-_target_: pydantic_ai.models.openai.OpenAIModel
-model_name: gpt-4.1
-provider:
-  _target_: pydantic_ai.providers.azure.AzureProvider
-  api_key: ${env:AZURE_OPENAI_API_KEY}
-  api_version: ${env:AZURE_OPENAI_API_VERSION}
-  endpoint: ${env:AZURE_OPENAI_ENDPOINT}
+metadata:
+  player_name: gpt41
+
+agent:
+  model:
+    model_name: gpt-4.1

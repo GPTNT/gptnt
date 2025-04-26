@@ -1,12 +1,13 @@
 import abc
 from collections import deque
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from typing import Union, override
 
 import logfire
 import structlog
 import whenever
-from pydantic_ai import Agent, BinaryContent
+from pydantic_ai import BinaryContent
 
 from gptnt.common.paths import Paths
 from gptnt.ktane.client import KtaneClient
@@ -37,6 +38,7 @@ https://ai.pydantic.dev/results/#structured-result-validation
 """
 
 
+@dataclass(kw_only=True)
 class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
     AIPlayer[AgentDepsT, DefuserOutputT[LocationDataT]], abc.ABC
 ):
@@ -53,23 +55,13 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
     can easily support windowed or MDP-style defuser players.
     """
 
-    player_role = "defuser"
-    player_type = "ai"
+    game_client: KtaneClient
+    observation_window_length: int = 1
+    should_save_images: bool = False
 
-    def __init__(
-        self,
-        agent: Agent[AgentDepsT, DefuserOutputT[LocationDataT]],
-        # dialogue_space_client: DialogueSpaceClient,
-        game_client: KtaneClient,
-        *,
-        observation_window_length: int = 1,
-        should_save_images: bool = False,
-    ) -> None:
-        super().__init__(agent)
-        self.game_client = game_client
-
-        self.observation_cache: deque[BinaryContent] = deque(maxlen=observation_window_length)
-        self._should_save_images = should_save_images
+    def __post_init__(self) -> None:
+        """Post init for the defuser player."""
+        self.observation_cache: deque[BinaryContent] = deque(maxlen=self.observation_window_length)
 
     @override
     async def connect(self) -> None:
@@ -131,7 +123,7 @@ class MDPDefuserPlayer[LocationDataT: InteractGameLocation](
 
         self.observation_cache.append(current_frame)
 
-        if self._should_save_images:
+        if self.should_save_images:
             paths.output.joinpath("images").mkdir(parents=True, exist_ok=True)
             _ = (
                 paths.output.joinpath("images")

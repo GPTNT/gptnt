@@ -9,8 +9,9 @@ from fastapi import APIRouter, Depends, FastAPI, Request
 from gptnt.api.experiment_manager import ExperimentManager
 from gptnt.api.player_client import SupervisedPlayerClient
 from gptnt.api.room_client import SupervisedRoomManagerClient
-from gptnt.api.structures import PlayerMetadata, RoomMetadata
+from gptnt.api.structures import RoomMetadata
 from gptnt.ktane.experiments.experiments import ExperimentSpec
+from gptnt.players.base_player import PlayerMetadata
 
 logger = structlog.get_logger()
 

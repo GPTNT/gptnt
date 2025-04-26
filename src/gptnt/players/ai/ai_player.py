@@ -1,24 +1,24 @@
 import abc
 import asyncio
 from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING, override
+from dataclasses import dataclass, field
+from typing import override
 
 import logfire
 import structlog
 from pydantic_ai import Agent, BinaryContent, UsageLimitExceeded
+from pydantic_ai.messages import ModelMessage
 from pydantic_ai.usage import Usage, UsageLimits
 
-from gptnt.common.instrumentation import InstrumentationMixin
+from gptnt.common.instrumentation import InstrumentationDataclassMixin
 from gptnt.players.actions import DoNothingAction, SendMessageAction
 from gptnt.players.base_player import BasePlayer, UnhealthyPlayerError
-
-if TYPE_CHECKING:
-    from pydantic_ai.messages import ModelMessage
 
 log = structlog.get_logger()
 
 
-class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationMixin, abc.ABC):
+@dataclass(kw_only=True)
+class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixin, abc.ABC):
     """Base generic class for AI actors/agents that play the game.
 
     This class brings together all the other clients that are needed for this actor to have a role
@@ -29,24 +29,16 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationMixin, abc.AB
         This class is an abstract class that is also a generic. Therefore the implementing class must provide the type of the data that the agent will return.
     """
 
-    def __init__(
-        self,
-        agent: Agent[AgentDepsT, OutputDataT],
-        # dialogue_space_client: DialogueSpaceClient,
-        *,
-        agent_usage_limits: UsageLimits | None = None,
-        no_new_messages_sentinel_token: str = "<no_new_messages>",  # noqa: S107
-    ) -> None:
-        self.agent = agent
-        # self.dialogue_space_client = dialogue_space_client
+    agent: Agent[AgentDepsT, OutputDataT]
+    agent_usage_limits: UsageLimits | None = None
 
-        self.usage = Usage()
-        self.usage_limits = agent_usage_limits or UsageLimits()
+    usage: Usage = field(default_factory=Usage)
+    usage_limits: UsageLimits = field(default_factory=UsageLimits)
 
-        # PAI expects either messages or None, so we can just init with None
-        self._message_history: list[ModelMessage] | None = None
+    # # PAI expects either messages or None, so we can just init with None
+    _message_history: list[ModelMessage] = field(default_factory=list)
 
-        self._no_new_messages_sentinel_token = no_new_messages_sentinel_token
+    _no_new_messages_sentinel_token: str = field(default="<no_new_messages>")
 
     @override
     def perform_instrumentation(self) -> None:
@@ -77,8 +69,8 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationMixin, abc.AB
         This will continually run forever/until we stop it.
         """
         with logfire.span(
-            f"Run AI Player ({self.player_type}/{self.player_role})",
-            tags=[self.player_role, self.player_type],
+            f"Run AI Player ({self.metadata.player_type}/{self.metadata.player_role})",
+            tags=[self.metadata.player_role, self.metadata.player_type],
         ):
             # TODO: I think this is breaking when an action is performed while the lights are off?
 
@@ -187,4 +179,4 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationMixin, abc.AB
         Useful when we want to clear the dialogue history and start fresh, such as when the context
         length gets too long.
         """
-        self._message_history = None
+        self._message_history = []

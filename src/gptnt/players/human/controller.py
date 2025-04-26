@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import AsyncGenerator
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from threading import Thread
@@ -16,18 +17,12 @@ paths = Paths()
 _log = get_logger()
 
 
+@dataclass(kw_only=True)
 class Controller(BasePlayer):
     """Control the frontend with the backend for the UI app."""
 
-    player_type = "human"
-    player_role = "human"
-
-    def __init__(
-        self, *, view: BaseView, gradio_launch_kwargs: dict[str, Any] | None = None
-    ) -> None:
-        self.view = view
-
-        self.gradio_launch_kwargs = gradio_launch_kwargs or {}
+    view: BaseView
+    gradio_launch_kwargs: dict[str, Any] = field(default_factory=dict)
 
     @override
     async def on_startup(self) -> None:

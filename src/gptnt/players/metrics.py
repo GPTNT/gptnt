@@ -1,8 +1,10 @@
-from typing import TYPE_CHECKING, Any, Literal, Self, cast
+from typing import TYPE_CHECKING, Any, Self, cast
 
 import polars as pl
 import wandb
+from pandas import json_normalize
 from pydantic import BaseModel, SerializationInfo, TypeAdapter, field_serializer, model_serializer
+from whenever import Instant
 
 from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.ktane.experiments.experiments import ExperimentSpec
@@ -10,14 +12,10 @@ from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.modules import ModuleStates
 from gptnt.ktane.state.widget import WidgetStates
 from gptnt.players.actions import InteractGameAction, InteractGameLocation, SendMessageAction
+from gptnt.players.base_player import PlayerRole
 
 if TYPE_CHECKING:
     from wandb.sdk.wandb_run import Run
-
-from pandas import json_normalize
-from whenever import Instant
-
-type Role = Literal["defuser", "expert"]
 
 
 def flatten_dict(config: dict[str, Any], *, separator: str = ".") -> dict[str, Any]:
@@ -55,10 +53,10 @@ class ActionMetric(InteractGameAction[InteractGameLocation], TimestampMixin):
 class MessageMetric(SendMessageAction, TimestampMixin):
     """SendMessageAction for logging."""
 
-    role: Role
+    role: PlayerRole
 
     @classmethod
-    def from_action(cls, *, action: SendMessageAction, role: Role, timestamp: float) -> Self:
+    def from_action(cls, *, action: SendMessageAction, role: PlayerRole, timestamp: float) -> Self:
         """Create a MessageMetric from an SendMessageAction."""
         return cls(
             message=action.message, role=role, thoughts=action.thoughts, timestamp=timestamp
@@ -180,7 +178,7 @@ class PlayerEpisodeTracker:
         experiment_spec: ExperimentSpec,
         game_id: str,
         player_id: str,
-        role: Role,
+        role: PlayerRole,
         additional_metadata: dict[str, Any],
     ) -> None:
         """Start the run for the current player.
@@ -248,7 +246,7 @@ class PlayerEpisodeTracker:
         )
         self._actions.append(action_metric)
 
-    def add_message(self, message: SendMessageAction, role: Role) -> None:
+    def add_message(self, message: SendMessageAction, role: PlayerRole) -> None:
         """Add a message to the message list."""
         message_metric = MessageMetric.from_action(
             action=message, role=role, timestamp=self._compute_time_delta()

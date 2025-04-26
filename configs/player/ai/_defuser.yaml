@@ -6,6 +6,9 @@ defaults:
 
 _target_: ???
 
+metadata:
+  player_role: defuser
+
 game_client:
   _target_: gptnt.ktane.client.KtaneClient
   client:

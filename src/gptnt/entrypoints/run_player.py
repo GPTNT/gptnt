@@ -10,13 +10,11 @@ from structlog import get_logger
 from gptnt.api.experiment_manager_client import ExperimentManagerClient
 from gptnt.api.player_lifespan import player_lifespan
 from gptnt.api.player_routes import player_router
-from gptnt.api.structures import PlayerMetadata
-from gptnt.common.hosting import get_available_port
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
+from gptnt.common.servers import get_available_port
 from gptnt.players.base_player import BasePlayer
 
-# TODO: We need to contextualise the service with the metadata when we run things
 _ = logfire.configure(service_name="player", scrubbing=False)
 configure_logging()
 
@@ -31,29 +29,23 @@ def run_player(config: DictConfig) -> None:  # noqa: WPS210
 
     We use Hydra for this to allow us to easily switch between different configurations of players.
     """
+    api_host = "localhost"
+    api_port = get_available_port()
+
     # Instantiate the player from the class
     player = hydra.utils.instantiate(config.player)
     assert isinstance(player, BasePlayer)
+    player.metadata.fastapi_url = f"http://{api_host}:{api_port}"
 
     experiment_manager_client = hydra.utils.instantiate(config.experiment_manager_client)
     assert isinstance(experiment_manager_client, ExperimentManagerClient)
 
-    api_host = "localhost"
-    api_port = get_available_port()
-
-    api_info = PlayerMetadata(
-        fastapi_url=f"http://{api_host}:{api_port}",
-        player_type=player.player_type,
-        player_role=player.player_role,
-    )
     app = FastAPI(
         lifespan=partial(
-            player_lifespan,
-            player=player,
-            experiment_manager_client=experiment_manager_client,
-            api_info=api_info,
+            player_lifespan, player=player, experiment_manager_client=experiment_manager_client
         )
     )
+
     # Include the router with the endpoints.
     app.include_router(player_router)
     _ = logfire.instrument_fastapi(app, excluded_urls=["/health"])

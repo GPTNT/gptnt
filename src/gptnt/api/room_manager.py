@@ -11,7 +11,7 @@ from structlog import get_logger
 
 from gptnt.api.experiment_manager_client import ExperimentManagerClient
 from gptnt.api.structures import RoomMetadata, RoomStage
-from gptnt.common.hosting import get_available_port
+from gptnt.common.servers import get_available_port
 from gptnt.dialogue_space.server import DialogueSpaceServer
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.executable import get_executable_path

@@ -1,5 +1,12 @@
+# @package player
+
 defaults:
   - default
   - _self_
 
-_target_: gptnt.players.ai.dummy_defuser.DummyDefuserModel
+metadata:
+  player_name: test
+
+agent:
+  model:
+    _target_: gptnt.players.ai.dummy_defuser.DummyDefuserModel

@@ -1,11 +1,14 @@
+# @package player
+
 defaults:
-  - default
+  - claude37
   - _self_
 
-_target_: pydantic_ai.models.anthropic.AnthropicModel
-model_name: anthropic.claude-3-7-sonnet-20250219-v1:0
-provider:
-  _target_: pydantic_ai.providers.bedrock.BedrockProvider
-  api_key: ${env:AWS_DEFAULT_REGION}
-  aws_access_key_id: ${env:AWS_ACCESS_KEY_ID}
-  aws_secret_access_key: ${env:AWS_SECRET_ACCESS_KEY}
+agent:
+  model:
+    model_name: anthropic.claude-3-7-sonnet-20250219-v1:0
+    provider:
+      _target_: pydantic_ai.providers.bedrock.BedrockProvider
+      # api_key: ${env:AWS_DEFAULT_REGION}
+      # aws_access_key_id: ${env:AWS_ACCESS_KEY_ID}
+      # aws_secret_access_key: ${env:AWS_SECRET_ACCESS_KEY}

@@ -1,4 +1,20 @@
+# @package player
+
 defaults:
   - _self_
 
 _target_: ???
+
+metadata:
+  _target_: gptnt.players.base_player.PlayerMetadata
+  player_type: ai
+
+  player_name: ???
+  player_role: ???
+
+agent:
+  _target_: pydantic_ai.Agent
+
+  model: ???
+  output_type: ???
+  system_prompt: ???

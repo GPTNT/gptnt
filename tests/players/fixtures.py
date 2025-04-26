@@ -6,6 +6,7 @@ from gptnt.ktane.client import KtaneClient
 from gptnt.players.actions import SetOfMarksLocation
 from gptnt.players.ai.defuser import DefuserOutputT, MDPDefuserPlayer
 from gptnt.players.ai.expert import ExpertOutputT, ExpertPlayer
+from gptnt.players.base_player import PlayerMetadata
 
 
 class AIPlayerCases:
@@ -13,7 +14,9 @@ class AIPlayerCases:
 
     def case_expert(self, dialogue_space_client: DialogueSpaceClient) -> ExpertPlayer:
         expert_agent = Agent[None, ExpertOutputT]("test", output_type=ExpertOutputT)
-        player = ExpertPlayer(agent=expert_agent)
+        player = ExpertPlayer(
+            agent=expert_agent, metadata=PlayerMetadata(player_type="ai", player_role="expert")
+        )
         player.dialogue_space_client = dialogue_space_client
         return player
 
@@ -23,7 +26,11 @@ class AIPlayerCases:
         agent = Agent[None, DefuserOutputT[SetOfMarksLocation]](
             "test", output_type=DefuserOutputT[SetOfMarksLocation]
         )
-        player = MDPDefuserPlayer[SetOfMarksLocation](agent=agent, game_client=game_client)
+        player = MDPDefuserPlayer[SetOfMarksLocation](
+            agent=agent,
+            game_client=game_client,
+            metadata=PlayerMetadata(player_type="ai", player_role="defuser"),
+        )
         player.dialogue_space_client = dialogue_space_client
         return player
 
@@ -33,6 +40,10 @@ class AIPlayerCases:
         agent = Agent[None, DefuserOutputT[RelativeCoordinate]](
             "test", output_type=DefuserOutputT[RelativeCoordinate]
         )
-        player = MDPDefuserPlayer[RelativeCoordinate](agent=agent, game_client=game_client)
+        player = MDPDefuserPlayer[RelativeCoordinate](
+            agent=agent,
+            game_client=game_client,
+            metadata=PlayerMetadata(player_type="ai", player_role="defuser"),
+        )
         player.dialogue_space_client = dialogue_space_client
         return player

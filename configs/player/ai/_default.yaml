@@ -5,9 +5,6 @@ defaults:
 
 _target_: ???
 
-agent:
-  _target_: pydantic_ai.Agent
-  model: ${model}
-  output_type: ???
-
-  system_prompt: ???
+metadata:
+  _target_: gptnt.players.base_player.PlayerMetadata
+  player_type: ai

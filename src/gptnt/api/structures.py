@@ -1,8 +1,6 @@
 from enum import Enum
 
-from pydantic import BaseModel
-
-from gptnt.ktane.experiments.experiments import ExperimentSpec
+from gptnt.common.servers import ClientMetadata
 
 
 class RoomStage(Enum):
@@ -24,25 +22,9 @@ class RoomStage(Enum):
     """The RoomManager is finished playing a mission."""
 
 
-class ClientMetadata(BaseModel):
-    """Metadata for a given client."""
-
-    fastapi_url: str
-    """The URL of the FastAPI server that it's running on."""
-
-
 class RoomMetadata(ClientMetadata):
     """Information about a Room that needed to maintain a connection."""
 
     dialogue_space_url: str
     ktane_url: str
     state: RoomStage
-
-
-class PlayerMetadata(ClientMetadata):
-    """Information about a PlayerAPI needed to maintain a connection."""
-
-    player_type: str
-    player_role: str
-    player_name: str | None = None
-    experiments_played: list[ExperimentSpec] = []

@@ -5,7 +5,8 @@ import httpx
 from structlog import get_logger
 
 from gptnt.api.base_client import BaseClient, SupervisedClient
-from gptnt.api.structures import PlayerMetadata, RoomMetadata
+from gptnt.api.structures import RoomMetadata
+from gptnt.players.base_player import PlayerMetadata
 
 _logger = get_logger()
 

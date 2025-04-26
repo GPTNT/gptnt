@@ -4,6 +4,9 @@ defaults:
   - human/_default
   - _self_
 
+metadata:
+  player_role: expert
+
 view:
   _target_: gptnt.players.human.views.expert.ExpertPlayerView
   pdf_endpoint: https://www.bombmanual.com/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1.pdf

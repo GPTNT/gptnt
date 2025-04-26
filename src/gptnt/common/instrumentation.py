@@ -1,4 +1,5 @@
 import abc
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import logfire
@@ -60,6 +61,26 @@ class InstrumentationMixin(abc.ABC, metaclass=PostInitMeta):
     """
 
     def post_init(self) -> None:
+        """Post-initialisation method that performs instrumentation."""
+        if not logfire.DEFAULT_LOGFIRE_INSTANCE.config.send_to_logfire:
+            log.debug("Logfire is not enabled, skipping instrumentation.")
+            return
+        self.perform_instrumentation()
+
+    @abc.abstractmethod
+    def perform_instrumentation(self) -> None:
+        """Perform instrumentation on the class."""
+        raise NotImplementedError
+
+
+@dataclass
+class InstrumentationDataclassMixin(abc.ABC):
+    """Simplify instrumentation of clients within a dataclass.
+
+    Subclasses should implement the `perform_instrumentation` method to define the specific
+    """
+
+    def __post_init__(self) -> None:
         """Post-initialisation method that performs instrumentation."""
         if not logfire.DEFAULT_LOGFIRE_INSTANCE.config.send_to_logfire:
             log.debug("Logfire is not enabled, skipping instrumentation.")

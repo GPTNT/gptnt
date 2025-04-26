@@ -1,16 +1,10 @@
-from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, NonNegativeInt
 
 from gptnt.ktane.actions import KtaneBaseAction, RelativeCoordinate
 
-
-class ActionType(Enum):
-    """Types of actions the agent can perform."""
-
-    do_nothing = "do_nothing"
-    send_message = "send_message"
-    interact_game = "interact_game"
+type ActionType = Literal["do_nothing", "send_message", "interact_game"]
 
 
 class BaseAction(BaseModel):
@@ -22,14 +16,13 @@ class BaseAction(BaseModel):
 class DoNothingAction(BaseAction):
     """Create a 'do nothing' action."""
 
-    action_type: ActionType = ActionType.do_nothing
-    thoughts: str | None = None
+    action_type: Literal["do_nothing"] = "do_nothing"
 
 
 class SendMessageAction(BaseAction):
     """Create a 'send message' action."""
 
-    action_type: ActionType = ActionType.send_message
+    action_type: Literal["send_message"] = "send_message"
     message: str
 
 
@@ -45,4 +38,4 @@ class InteractGameAction[LocationDataT: InteractGameLocation](
 ):
     """Interaction action for the player to take in the game."""
 
-    action_type: ActionType = ActionType.interact_game
+    action_type: Literal["interact_game"] = "interact_game"

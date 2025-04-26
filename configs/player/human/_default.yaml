@@ -5,6 +5,9 @@ defaults:
 
 _target_: gptnt.players.human.controller.Controller
 
+metadata:
+  player_type: human
+
 view: ???
 
 gradio_launch_kwargs:
