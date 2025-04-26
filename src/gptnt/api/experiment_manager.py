@@ -40,6 +40,27 @@ class ExperimentManager:
         self.players: list[SupervisedPlayerClient] = []
         self.rooms: list[SupervisedRoomManagerClient] = []
 
+    def get_available_rooms(self) -> list[SupervisedRoomManagerClient]:
+        """Returns a list of all available rooms."""
+        return [
+            room
+            for room in self.rooms
+            # Ensure room is running and not in an experiment
+            if room.is_running
+            and not room.in_experiment
+            # And also ensure the room is waiting for a config
+            and room.state is RoomStage.ready_for_config
+        ]
+
+    def get_available_players(self) -> set[SupervisedPlayerClient]:
+        """Returns a list of all available players."""
+        return {
+            player
+            for player in self.players
+            # Ensure player is running and not in an experiment
+            if player.is_running and not player.in_experiment
+        }
+
     # Experiment logic
     async def main_loop(self) -> None:
         """Runs the main logic for the Experiment Manager.
@@ -65,25 +86,21 @@ class ExperimentManager:
 
     async def start_available_experiments(self) -> None:
         """Starts all ExperimentConfig's that have the correct players and rooms available."""
-        available_rooms = [
-            room
-            for room in self.rooms
-            if room.is_running
-            and not room.in_experiment
-            and room.state is RoomStage.ready_for_config
-        ]
-
-        available_players = {
-            player for player in self.players if player.is_running and not player.in_experiment
-        }
+        available_rooms = self.get_available_rooms()
+        available_players = self.get_available_players()
+        if not available_rooms or not available_players:
+            # No rooms or players available, nothing to do
+            return
 
         # Start all available experiments as long as there are enough rooms
         available_pairings = get_playable_pairings(
             available_players=available_players, available_experiments=self.experiments
         )
+        if not available_pairings:
+            # No available pairings, nothing to do
+            return
+
         for expert, defuser, spec in available_pairings:
-            if len(available_rooms) == 0:
-                return
             room = available_rooms.pop()
 
             expert.in_experiment = True

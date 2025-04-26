@@ -9,7 +9,6 @@ from gptnt.ktane.experiments.experiments import ExperimentSpec
 logger = structlog.get_logger()
 
 
-# BUG: Can't move to structures.py because of circular imports
 class PlayerExperimentPairing(NamedTuple):
     """Pairing of an experiment and players."""
 
@@ -29,7 +28,7 @@ def _get_demo_pairings(  # noqa: WPS231
     """Returns all valid pairings for demo/required experiments."""
     pairings: list[PlayerExperimentPairing] = []
 
-    # Seperate human and AI players
+    # Separate human and AI players
     human_players: set[SupervisedPlayerClient] = {
         player for player in available_players if player.metadata.player_type == "human"
     }
@@ -88,6 +87,50 @@ def _get_demo_pairings(  # noqa: WPS231
     return pairings
 
 
+def find_valid_pairing_for_experiment(
+    *, available_players: set[SupervisedPlayerClient], experiment: ExperimentSpec
+) -> PlayerExperimentPairing | None:
+    """Returns a valid pairing for the given experiment."""
+    valid_experts = {
+        player
+        for player in available_players
+        # Check the player is the desired expert for this experiment
+        if player.metadata.player_name == experiment.pairing.expert
+        # And that the experiment has not been played by this player yet
+        and experiment not in player.metadata.experiments_played
+        # And also check that the player is a human OR is an AI with the correct role
+        # TODO: this might be a source of a bug?? Depends on how we run them
+        and (player.metadata.player_type == "human" or player.metadata.player_role == "expert")
+    }
+
+    valid_defusers = {
+        player
+        for player in available_players
+        # Check the player is the desired defuser for this experiment
+        if player.metadata.player_name == experiment.pairing.defuser
+        # And also check that the player has not played this experiment yet
+        and experiment not in player.metadata.experiments_played
+        # And also check that the player is a human OR is an AI with the correct role
+        # TODO: this might be a source of a bug?? Depends on how we run them
+        and (player.metadata.player_type == "human" or player.metadata.player_role == "defuser")
+    }
+
+    # If there are no valid experts, skip
+    if len(valid_experts) == 0:
+        return None
+
+    expert = valid_experts.pop()
+
+    # If there are no valid defusers, skip
+    with suppress(KeyError):
+        valid_defusers.remove(expert)
+    if len(valid_defusers) == 0:
+        return None
+
+    defuser = valid_defusers.pop()
+    return PlayerExperimentPairing(expert=expert, defuser=defuser, experiment=experiment)
+
+
 def _get_freeplay_pairings(  # noqa: WPS231
     available_players: set[SupervisedPlayerClient], available_experiments: set[ExperimentSpec]
 ) -> list[PlayerExperimentPairing]:
@@ -95,44 +138,18 @@ def _get_freeplay_pairings(  # noqa: WPS231
     pairings: list[PlayerExperimentPairing] = []
 
     # Free play, all players are now valid
-    if len(available_experiments) == 0:
+    if not available_experiments:
         return pairings
 
     # Experiments will be completed in an unspecified order
     for experiment in available_experiments:
-        valid_experts = {
-            player
-            for player in available_players
-            if player.metadata.player_name == experiment.pairing.expert
-            and (player.metadata.player_type == "human" or player.metadata.player_role == "expert")
-            and experiment not in player.metadata.experiments_played
-        }
-        valid_defusers = {
-            player
-            for player in available_players
-            if player.metadata.player_name == experiment.pairing.defuser
-            and (
-                player.metadata.player_type == "human" or player.metadata.player_role == "defuser"
-            )
-            and experiment not in player.metadata.experiments_played
-        }
-
-        if len(valid_experts) == 0:
-            continue
-        expert = valid_experts.pop()
-
-        with suppress(KeyError):
-            valid_defusers.remove(expert)
-
-        if len(valid_defusers) == 0:
-            continue
-        defuser = valid_defusers.pop()
-
-        available_players.remove(expert)
-        available_players.remove(defuser)
-        pairings.append(
-            PlayerExperimentPairing(expert=expert, defuser=defuser, experiment=experiment)
+        pairing = find_valid_pairing_for_experiment(
+            available_players=available_players, experiment=experiment
         )
+        if pairing is not None:
+            pairings.append(pairing)
+            available_players.remove(pairing.expert)
+            available_players.remove(pairing.defuser)
 
     return pairings
 
