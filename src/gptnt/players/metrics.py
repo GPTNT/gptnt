@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Any, Self, cast
 
+import logfire
 import polars as pl
 import wandb
 from pandas import json_normalize
@@ -199,6 +200,7 @@ class PlayerEpisodeTracker:
         )
         self.start_time = Instant.now()
 
+    @logfire.instrument("Send results to wandb")
     def on_game_end(self) -> None:
         """Sends the mission results to wandb and cleans up."""
         actions_table, messages_table, bomb_states_table, observations_table = (
