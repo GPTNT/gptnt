@@ -2,13 +2,13 @@
 
 pairing_generator:
   all_players:
-    - gpt-4o
-    - claude-37
-    - gemini
-    - llama3.2-vision
-    - internvl-2.5-8b
-    - internvl-2.5-26b
-    - internvl-2.5-38b
-    - qwenvl-2.5-7b
-    - qwenvl-2.5-14b
-    - qwenvl-2.5-32b
+    - gpt4o
+    - claude37
+    - gemini-2
+    - llama32-vision
+    - internvl-25-8b
+    - internvl-25-26b
+    - internvl-25-38b
+    - qwenvl-25-7b
+    - qwenvl-25-14b
+    - qwenvl-25-32b
