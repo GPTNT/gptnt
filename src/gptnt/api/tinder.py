@@ -33,6 +33,9 @@ def _get_demo_pairings(  # noqa: WPS231
     human_players: set[SupervisedPlayerClient] = {
         player for player in available_players if player.metadata.player_type == "human"
     }
+    if len(human_players) == 0:
+        return pairings
+
     ai_defusers: set[SupervisedPlayerClient] = {
         player
         for player in available_players
@@ -100,14 +103,14 @@ def _get_freeplay_pairings(  # noqa: WPS231
         valid_experts = {
             player
             for player in available_players
-            if player.metadata.player_name is experiment.pairing.expert
+            if player.metadata.player_name == experiment.pairing.expert
             and (player.metadata.player_type == "human" or player.metadata.player_role == "expert")
             and experiment not in player.metadata.experiments_played
         }
         valid_defusers = {
             player
             for player in available_players
-            if player.metadata.player_name is experiment.pairing.defuser
+            if player.metadata.player_name == experiment.pairing.defuser
             and (
                 player.metadata.player_type == "human" or player.metadata.player_role == "defuser"
             )

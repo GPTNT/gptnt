@@ -387,4 +387,4 @@ class RoomManager:
                     self._restart_raised.set()
                     break
 
-            await asyncio.sleep(delay=self._supervisor_interval)
+                await asyncio.sleep(delay=self._supervisor_interval)

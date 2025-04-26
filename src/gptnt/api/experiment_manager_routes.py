@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Annotated
@@ -10,12 +11,15 @@ from gptnt.api.experiment_manager import ExperimentManager
 from gptnt.api.player_client import SupervisedPlayerClient
 from gptnt.api.room_client import SupervisedRoomManagerClient
 from gptnt.api.structures import RoomMetadata
+from gptnt.common.paths import Paths
 from gptnt.ktane.experiments.experiments import ExperimentSpec
 from gptnt.players.base_player import PlayerMetadata
 
 logger = structlog.get_logger()
 
 router = APIRouter()
+
+paths = Paths()
 
 
 async def _get_experiments(request: Request) -> list[SupervisedPlayerClient]:
@@ -33,7 +37,7 @@ async def _get_supervised_rooms(request: Request) -> list[SupervisedRoomManagerC
     return request.app.state.manager.rooms
 
 
-ExperimentSpecDep = Annotated[list[ExperimentSpec], Depends(_get_experiments)]
+ExperimentSpecDep = Annotated[set[ExperimentSpec], Depends(_get_experiments)]
 SupervisedPlayersDep = Annotated[list[SupervisedPlayerClient], Depends(_get_supervised_players)]
 SupervisedRoomsDep = Annotated[list[SupervisedRoomManagerClient], Depends(_get_supervised_rooms)]
 
@@ -48,7 +52,7 @@ def health() -> bool:
 @router.post("/add-experiment")
 async def add_experiment(experiment_spec: ExperimentSpec, experiments: ExperimentSpecDep) -> None:
     """Connects a new player to the experiment manager."""
-    experiments.append(experiment_spec)
+    experiments.add(experiment_spec)
 
 
 @logfire.instrument("Connect player")
@@ -74,9 +78,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     manager = ExperimentManager()
     app.state.manager = manager
 
-    logger.info("Starting ExperimentManager")
-    # Start the manager and store it in the app
-    async with manager:
-        yield
+    # Add all experiments genrated using `src/gptnt/exntrypoints/generate_experiments.py`
+    experiments = {
+        ExperimentSpec.model_validate_json(path.read_text())
+        for path in paths.experiments.rglob("*.json")
+    }
+    assert len(experiments) > 0, (
+        "No experiments found, please generate some using `uv run ./src/gptnt/exntrypoints/generate_experiments.py`"
+    )
+    logger.info(f"Starting ExperimentManager with {len(experiments)} experiments.")
+    manager.experiments = experiments
+
+    manager.tasks.append(asyncio.create_task(manager.main_loop()))
+    yield
 
     logger.info("Shutting down ExperimentManager")
+    manager.should_exit = True
+    for task in manager.tasks:
+        _ = task.cancel()
