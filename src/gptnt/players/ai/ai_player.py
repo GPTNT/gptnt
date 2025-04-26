@@ -85,7 +85,7 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationMixin, abc.AB
             # TODO: This seems like a bad idea? Do we need to fix this
             while True:  # noqa: WPS457
                 _ = await self.run_once()
-                _ = asyncio.sleep(1)
+                _ = await asyncio.sleep(1)
 
     @override
     @logfire.instrument("Run AI player once")
