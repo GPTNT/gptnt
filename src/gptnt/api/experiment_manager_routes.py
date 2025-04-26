@@ -53,6 +53,9 @@ def health() -> bool:
 async def add_experiment(experiment_spec: ExperimentSpec, experiments: ExperimentSpecDep) -> None:
     """Connects a new player to the experiment manager."""
     experiments.add(experiment_spec)
+    logger.info(
+        f"Added experiment {experiment_spec.experiment_name}; currently {len(experiments)} experiments."
+    )
 
 
 @logfire.instrument("Connect player")
@@ -83,9 +86,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         ExperimentSpec.model_validate_json(path.read_text())
         for path in paths.experiments.rglob("*.json")
     }
-    assert len(experiments) > 0, (
-        "No experiments found, please generate some using `uv run ./src/gptnt/entrypoints/generate_experiments.py`"
-    )
+    if not experiments:
+        logger.warning(
+            "No experiments found. Generate some with `uv run ./src/gptnt/entrypoints/generate_experiments.py` and restart; OR use the entrypoint to provide them."
+        )
+
     logger.info(f"Starting ExperimentManager with {len(experiments)} experiments.")
     manager.experiments = experiments
 

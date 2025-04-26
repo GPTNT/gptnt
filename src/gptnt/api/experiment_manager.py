@@ -145,7 +145,7 @@ class ExperimentManager:
         while room.state is not RoomStage.done:
             if (not room.is_running) or (not expert.is_running) or (not defuser.is_running):
                 # If the experiment fails, it needs to run again, but we still want metrics
-                _logger.error("Something died, stopping experiment")
+                _logger.error("Something died, stopping experiment and returning to the pool")
                 self.experiments.add(spec)
                 break
 
@@ -170,7 +170,7 @@ class ExperimentManager:
             # BUG: This does not run often enough
             if (not room.is_running) or (not expert.is_running) or (not defuser.is_running):
                 # If the experiment fails, it needs to run again, but we still want metrics
-                _logger.error("Something died, stopping experiment")
+                _logger.error("Something died, stopping experiment and returning to the pool")
                 self.experiments.add(spec)
                 break
 
