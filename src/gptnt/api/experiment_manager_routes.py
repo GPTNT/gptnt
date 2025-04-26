@@ -3,7 +3,6 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-import logfire
 import structlog
 from fastapi import APIRouter, Depends, FastAPI, Request
 
@@ -48,7 +47,6 @@ def health() -> bool:
     return True
 
 
-@logfire.instrument("Add Experiment")
 @router.post("/add-experiment")
 async def add_experiment(experiment_spec: ExperimentSpec, experiments: ExperimentSpecDep) -> None:
     """Connects a new player to the experiment manager."""
@@ -58,7 +56,6 @@ async def add_experiment(experiment_spec: ExperimentSpec, experiments: Experimen
     )
 
 
-@logfire.instrument("Connect player")
 @router.post("/connect-player")
 async def connect_player(
     player_metadata: PlayerMetadata, supervised_players: SupervisedPlayersDep
@@ -67,7 +64,6 @@ async def connect_player(
     supervised_players.append(SupervisedPlayerClient.from_metadata(player_metadata))
 
 
-@logfire.instrument("Connect room")
 @router.post("/connect-room")
 async def connect_room(room_metadata: RoomMetadata, supervised_rooms: SupervisedRoomsDep) -> None:
     """Connects a new room manager to the experiment manager."""
