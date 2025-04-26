@@ -78,13 +78,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     manager = ExperimentManager()
     app.state.manager = manager
 
-    # Add all experiments genrated using `src/gptnt/exntrypoints/generate_experiments.py`
+    # Add all experiments generated using `src/gptnt/exntrypoints/generate_experiments.py`
     experiments = {
         ExperimentSpec.model_validate_json(path.read_text())
         for path in paths.experiments.rglob("*.json")
     }
     assert len(experiments) > 0, (
-        "No experiments found, please generate some using `uv run ./src/gptnt/exntrypoints/generate_experiments.py`"
+        "No experiments found, please generate some using `uv run ./src/gptnt/entrypoints/generate_experiments.py`"
     )
     logger.info(f"Starting ExperimentManager with {len(experiments)} experiments.")
     manager.experiments = experiments
