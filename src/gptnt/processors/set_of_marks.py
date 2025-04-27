@@ -29,9 +29,13 @@ from gptnt.processors.labels.memory import memory
 from gptnt.processors.labels.morse import morse_code
 from gptnt.processors.labels.password import password
 from gptnt.processors.labels.simon import simon
-from gptnt.processors.labels.types import (
+from gptnt.processors.labels.types import (  # noqa: WPS235
+    BLUE,
+    GREEN,
     IS_LINE_THRESHOLD,
+    RED,
     WHITE,
+    YELLOW,
     Color,
     Coordinates,
     DrawData,
@@ -190,6 +194,14 @@ def get_region_color(
     ):
         color = get_median_colour(region, image)
         return brighten(color, color_dependent_brighten_factor)
+
+    if module == KtaneComponent.wire_sequence:
+        # Set the colors of the wire_sequence buttons so that they do not match one of the wires
+        color = get_median_colour(region, segm_image)
+        if color == RED:
+            return GREEN
+        if color == BLUE:
+            return YELLOW
 
     # Otherwise, use segmentation image colour
     return get_median_colour(region, segm_image)

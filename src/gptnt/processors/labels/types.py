@@ -19,6 +19,10 @@ class Coordinates(NamedTuple):
 BLACK: Color = (0, 0, 0)
 WHITE: Color = (255, 255, 255)
 GREEN: Color = (0, 255, 0)
+RED: Color = (255, 0, 0)
+BLUE: Color = (0, 0, 255)
+YELLOW: Color = (255, 255, 0)
+
 ALPHA_CHANNEL = 4
 IS_LINE_THRESHOLD = 0.95
 
