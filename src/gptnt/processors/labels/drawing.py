@@ -5,7 +5,7 @@ import numpy as np
 import structlog
 from cv2.typing import MatLike
 
-from gptnt.processors.labels.color import compute_perceived_brightness
+from gptnt.processors.labels.color import find_text_color
 from gptnt.processors.labels.position import get_background_corner_coords
 from gptnt.processors.labels.types import Color, Coordinates, NumberBoxDimensions, RGBArray
 
@@ -78,9 +78,8 @@ def _draw_label(
     text_y = coords.y_pos + text_height // 2
 
     # determine colour of text based on brightness
-    brightness = compute_perceived_brightness(rgb=color)
-    epsilon = 1e-6
-    text_color = (0, 0, 0) if brightness > (0.5 + epsilon) else (255, 255, 255)
+
+    text_color = find_text_color(color)
 
     # Draw text
     img = cv2.putText(

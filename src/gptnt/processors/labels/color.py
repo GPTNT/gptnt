@@ -1,32 +1,16 @@
 from typing import cast
 
 import numpy as np
+from color_contrast import check_contrast
 
 from gptnt.ktane.state.modules import KtaneComponent
-from gptnt.processors.labels.types import Color, RegionProperties, RGBArray
+from gptnt.processors.labels.types import BLACK, WHITE, Color, RegionProperties, RGBArray
 
 ENTIRELY_COLOR_DEPENDENT_MODULES: frozenset[KtaneComponent] = frozenset(
     (KtaneComponent.simon, KtaneComponent.venn, KtaneComponent.wires, KtaneComponent.big_button)
 )
 
 MAX_RGB = 255
-
-
-def compute_perceived_brightness(*, rgb: Color) -> float:
-    """Return perceived brightness of an RGB color (0.0 = black, 1.0 = white)."""
-    red, green, blue = rgb
-
-    max_rgb = float(MAX_RGB)
-
-    # Normalize to [0, 1]
-    red /= max_rgb
-    green /= max_rgb
-    blue /= max_rgb
-
-    # Perceived luminance formula (ITU-R BT.709)
-    brightness = 0.2126 * red + 0.7152 * green + 0.0722 * blue  # noqa: WPS432
-
-    return brightness
 
 
 def get_median_colour(region: RegionProperties, segm_img: RGBArray) -> Color:
@@ -49,3 +33,19 @@ def brighten(rgb: Color, factor: float = 0.2) -> Color:
     new_rgb = tuple(min(MAX_RGB, int(color + (MAX_RGB - color) * factor)) for color in rgb)  # noqa: WPS221
 
     return cast("Color", new_rgb)
+
+
+def rgb_to_hex(rgb: Color) -> str:
+    """Convert an RGB color to a hex string."""
+    return f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
+
+
+def find_text_color(bg_color: Color) -> Color:
+    """Find the text color based on the background color.
+
+    The text color is either black or white, depending on the contrast with the background.
+    """
+    hex_color = rgb_to_hex(bg_color)
+    if check_contrast(hex_color, "#FFFFFF"):
+        return WHITE
+    return BLACK
