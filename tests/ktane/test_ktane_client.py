@@ -173,7 +173,10 @@ async def test_set_of_mark_actions_are_converted_to_relative_coordinates(
     annotation_background_params = AnnotationBackgroundParams(padding=0, alpha=0.5)
 
     mask_drawing_params = MaskDrawingParams(
-        mask_thickness=1, soft_mask_alpha=0.5, bw_outside_mask=False
+        mask_thickness=1,
+        soft_mask_alpha=0.5,
+        bw_outside_mask=False,
+        color_dependent_brighten_factor=0.4,
     )
     client.set_of_marks_painter = SetOfMarksHandler(
         annotation_background_params=annotation_background_params,

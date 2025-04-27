@@ -118,6 +118,9 @@ with st.sidebar:
     _ = st.header("Mask")
     mask_thickness = st.number_input("Mask thickness", min_value=0, max_value=10, value=1, step=1)
     mask_alpha = st.number_input("Mask alpha", min_value=0.0, max_value=1.0, value=0.10, step=0.01)
+    color_dependent_brighten_factor = st.number_input(
+        "Color dependent brighten factor", min_value=0.0, max_value=1.0, value=0.4, step=0.01
+    )
 
 som = SetOfMarksHandler(
     annotation_background_params=AnnotationBackgroundParams(
@@ -130,7 +133,10 @@ som = SetOfMarksHandler(
         space_between_boxes=annotation_text_space_between,
     ),
     mask_drawing_params=MaskDrawingParams(
-        mask_thickness=mask_thickness, soft_mask_alpha=mask_alpha, bw_outside_mask=bw_outside_mask
+        mask_thickness=mask_thickness,
+        soft_mask_alpha=mask_alpha,
+        bw_outside_mask=bw_outside_mask,
+        color_dependent_brighten_factor=color_dependent_brighten_factor,
     ),
     add_labels=add_labels,
     add_mask_outline=add_mask_outline,

@@ -12,7 +12,11 @@ from skimage.measure import regionprops
 
 from gptnt.ktane.actions import RelativeCoordinate
 from gptnt.ktane.state.modules import KtaneComponent
-from gptnt.processors.labels.color import ENTIRELY_COLOR_DEPENDENT_MODULES, get_median_colour
+from gptnt.processors.labels.color import (
+    ENTIRELY_COLOR_DEPENDENT_MODULES,
+    brighten,
+    get_median_colour,
+)
 from gptnt.processors.labels.drawing import (
     BIG_BUTTON_OFFSET,
     AnnotationBackgroundParams,
@@ -173,14 +177,19 @@ def draw_mask_on_image(  # noqa: WPS210
 
 
 def get_region_color(
-    image: RGBArray, segm_image: RGBArray, region: RegionProperties, module: KtaneComponent | None
+    image: RGBArray,
+    segm_image: RGBArray,
+    region: RegionProperties,
+    module: KtaneComponent | None,
+    color_dependent_brighten_factor: float,
 ) -> Color:
     """Get the colour of a region based on the module type."""
     # Use image colours for colour dependent modules (but only wire interactables for wire modules)
     if module in ENTIRELY_COLOR_DEPENDENT_MODULES or (
         module == KtaneComponent.wire_sequence and region.eccentricity > IS_LINE_THRESHOLD
     ):
-        return get_median_colour(region, image)
+        color = get_median_colour(region, image)
+        return brighten(color, color_dependent_brighten_factor)
 
     # Otherwise, use segmentation image colour
     return get_median_colour(region, segm_image)
@@ -193,6 +202,7 @@ class MaskDrawingParams:
     mask_thickness: int
     soft_mask_alpha: float
     bw_outside_mask: bool
+    color_dependent_brighten_factor: float = 0.4
 
 
 def draw_region_masks(  # noqa: WPS210, WPS211
@@ -213,7 +223,13 @@ def draw_region_masks(  # noqa: WPS210, WPS211
     )
 
     for region in regions:
-        mask_color = get_region_color(image, segm_image, region, zoomed_in_component)
+        mask_color = get_region_color(
+            image,
+            segm_image,
+            region,
+            zoomed_in_component,
+            drawing_params.color_dependent_brighten_factor,
+        )
 
         _, mask = draw_mask_on_image(
             image=annotated_image,
@@ -331,7 +347,13 @@ class SetOfMarksHandler:
 
         for draw_location, region in draw_coords:
             # Get the colour of the region
-            color = get_region_color(image, segm_img, region, module)
+            color = get_region_color(
+                image,
+                segm_img,
+                region,
+                module,
+                self._mask_drawing_params.color_dependent_brighten_factor,
+            )
 
             annotated_image = draw_annotation(
                 img=annotated_image,

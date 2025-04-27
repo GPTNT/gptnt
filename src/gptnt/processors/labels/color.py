@@ -1,3 +1,5 @@
+from typing import cast
+
 import numpy as np
 
 from gptnt.ktane.state.modules import KtaneComponent
@@ -7,12 +9,14 @@ ENTIRELY_COLOR_DEPENDENT_MODULES: frozenset[KtaneComponent] = frozenset(
     (KtaneComponent.simon, KtaneComponent.venn, KtaneComponent.wires, KtaneComponent.big_button)
 )
 
+MAX_RGB = 255
+
 
 def compute_perceived_brightness(*, rgb: Color) -> float:
     """Return perceived brightness of an RGB color (0.0 = black, 1.0 = white)."""
     red, green, blue = rgb
 
-    max_rgb = 255.0
+    max_rgb = float(MAX_RGB)
 
     # Normalize to [0, 1]
     red /= max_rgb
@@ -35,3 +39,13 @@ def get_median_colour(region: RegionProperties, segm_img: RGBArray) -> Color:
     color = median_pixel[:3]
 
     return (int(color[0]), int(color[1]), int(color[2]))
+
+
+def brighten(rgb: Color, factor: float = 0.2) -> Color:
+    """Brighten a color by a factor.
+
+    The factor is how much brighter: 0 = no change, 1 = full white.
+    """
+    new_rgb = tuple(min(MAX_RGB, int(color + (MAX_RGB - color) * factor)) for color in rgb)  # noqa: WPS221
+
+    return cast("Color", new_rgb)
