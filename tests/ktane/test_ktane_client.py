@@ -166,7 +166,9 @@ async def test_set_of_mark_actions_are_converted_to_relative_coordinates(
 ) -> None:
     """Test that the KtaneAction correctly converts to query parameters."""
     # Create a set of marks painter
-    annotation_text_params = AnnotationTextParams(font=0, font_scale=0.5, thickness=1)
+    annotation_text_params = AnnotationTextParams(
+        font=0, font_scale=0.5, thickness=1, space_between_boxes=2
+    )
 
     annotation_background_params = AnnotationBackgroundParams(padding=0, alpha=0.5)
 

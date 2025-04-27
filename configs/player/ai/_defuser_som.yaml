@@ -16,6 +16,7 @@ game_client:
       font: 0
       font_scale: 0.6
       thickness: 1
+      space_between_boxes: 2
     annotation_background_params:
       _target_: gptnt.processors.labels.drawing.AnnotationBackgroundParams
       padding: 0

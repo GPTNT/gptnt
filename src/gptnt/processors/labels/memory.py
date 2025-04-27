@@ -2,7 +2,7 @@ from collections.abc import Generator
 
 import structlog
 
-from gptnt.processors.labels.types import DrawData, RegionProperties
+from gptnt.processors.labels.types import DrawData, NumberBoxDimensions, RegionProperties
 
 MEMORY_REGIONS = 4
 log = structlog.get_logger()
@@ -39,7 +39,9 @@ def calculate_memory_label_coordinates(
     return coord
 
 
-def memory(regions: list[RegionProperties], *, offset: int = -5) -> Generator[DrawData]:
+def memory(
+    regions: list[RegionProperties], _: NumberBoxDimensions, *, offset: int = -5
+) -> Generator[DrawData]:
     """Annotate the memory module with labels."""
     if len(regions) != MEMORY_REGIONS:
         log.warning(f"Memory should have {MEMORY_REGIONS} regions, but got %d", len(regions))

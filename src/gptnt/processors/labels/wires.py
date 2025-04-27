@@ -1,7 +1,7 @@
 from collections.abc import Generator
 from types import MappingProxyType
 
-from gptnt.processors.labels.types import DrawData, RegionProperties
+from gptnt.processors.labels.types import DrawData, NumberBoxDimensions, RegionProperties
 
 BOTTOM_WIRE_INDEX = 5
 BOTTOM_WIRE_X_OFFSET = 20
@@ -13,7 +13,9 @@ WIRE_Y_OFFSETS = MappingProxyType(
 )
 
 
-def wires(regions: list[RegionProperties], *, x_offset: int = 20) -> Generator[DrawData]:
+def wires(
+    regions: list[RegionProperties], _: NumberBoxDimensions, *, x_offset: int = 20
+) -> Generator[DrawData]:
     """Annotate the wires module with labels."""
     # Sorted from top to bottom
     regions = sorted(regions, key=lambda region: region.bbox[0])

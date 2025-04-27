@@ -31,6 +31,7 @@ from gptnt.processors.labels.types import (
     Color,
     Coordinates,
     DrawData,
+    NumberBoxDimensions,
     RegionProperties,
     RGBArray,
 )
@@ -42,7 +43,8 @@ from gptnt.processors.labels.zoomed_out import zoomed_out
 PROPS_AREA_THRESHOLD = 10
 
 COMPONENT_WRITE_LABEL_MAPPER: Mapping[
-    KtaneComponent | None, Callable[[list[RegionProperties]], Generator[DrawData]]
+    KtaneComponent | None,
+    Callable[[list[RegionProperties], NumberBoxDimensions], Generator[DrawData]],
 ] = MappingProxyType(
     {
         None: zoomed_out,
@@ -308,8 +310,22 @@ class SetOfMarksHandler:
         self, image: RGBArray, segm_img: RGBArray, module: KtaneComponent | None
     ) -> RGBArray:
         """Draw labels on the image based on the segmentation image and observation."""
+        (text_width, text_height), _ = cv2.getTextSize(
+            text="0",  # sample text
+            fontFace=self._annotation_text_params.font,
+            fontScale=self._annotation_text_params.font_scale,
+            thickness=self._annotation_text_params.thickness,
+        )
+
         # Get list of coordinates to draw labels
-        draw_coords = COMPONENT_WRITE_LABEL_MAPPER[module](self.extract_regions(segm_img))
+        draw_coords = COMPONENT_WRITE_LABEL_MAPPER[module](
+            self.extract_regions(segm_img),
+            NumberBoxDimensions(
+                width=text_width,
+                height=text_height,
+                space_between=self._annotation_text_params.space_between_boxes,
+            ),
+        )
 
         annotated_image = image.copy()
 

@@ -2,13 +2,15 @@ from collections.abc import Generator
 
 import structlog
 
-from gptnt.processors.labels.types import DrawData, RegionProperties
+from gptnt.processors.labels.types import DrawData, NumberBoxDimensions, RegionProperties
 
 SIMON_REGIONS = 4
 log = structlog.get_logger()
 
 
-def simon(regions: list[RegionProperties], *, offset: int = 32) -> Generator[DrawData]:  # noqa: WPS210
+def simon(  # noqa: WPS210
+    regions: list[RegionProperties], _: NumberBoxDimensions, *, offset: int = 32
+) -> Generator[DrawData]:
     """Annotate the simon module with labels."""
     if len(regions) != SIMON_REGIONS:
         log.warning(f"Simon Says should have {SIMON_REGIONS} regions, but got %d", len(regions))

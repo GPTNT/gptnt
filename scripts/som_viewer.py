@@ -107,10 +107,13 @@ with st.sidebar:
         "Annotation text font", min_value=0, max_value=10, value=1, step=1
     )
     annotation_text_scale = st.number_input(
-        "Annotation text scale", min_value=0.0, max_value=10.0, value=0.2, step=0.01
+        "Annotation text scale", min_value=0.0, max_value=10.0, value=1.0, step=0.01
     )
     annotation_text_thickness = st.number_input(
         "Annotation text thickness", min_value=0, max_value=10, value=1, step=1
+    )
+    annotation_text_space_between = st.number_input(
+        "Space between annotation text", min_value=0, max_value=10, value=2, step=1
     )
     _ = st.header("Mask")
     mask_thickness = st.number_input("Mask thickness", min_value=0, max_value=10, value=1, step=1)
@@ -124,6 +127,7 @@ som = SetOfMarksHandler(
         font=annotation_text_font,
         font_scale=annotation_text_scale,
         thickness=annotation_text_thickness,
+        space_between_boxes=annotation_text_space_between,
     ),
     mask_drawing_params=MaskDrawingParams(
         mask_thickness=mask_thickness, soft_mask_alpha=mask_alpha, bw_outside_mask=bw_outside_mask

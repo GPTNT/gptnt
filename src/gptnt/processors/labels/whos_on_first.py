@@ -3,7 +3,7 @@ from types import MappingProxyType
 
 import structlog
 
-from gptnt.processors.labels.types import DrawData, RegionProperties
+from gptnt.processors.labels.types import DrawData, NumberBoxDimensions, RegionProperties
 
 log = structlog.get_logger()
 
@@ -40,7 +40,9 @@ def get_sorted_whos_on_first_regions(
     return left_buttons, right_buttons
 
 
-def whos_on_first(regions: list[RegionProperties], *, x_offset: int = 20) -> Generator[DrawData]:
+def whos_on_first(
+    regions: list[RegionProperties], _: NumberBoxDimensions, *, x_offset: int = 20
+) -> Generator[DrawData]:
     """Annotate the whos on first module with labels."""
     left_buttons, right_buttons = get_sorted_whos_on_first_regions(regions)
 

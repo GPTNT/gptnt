@@ -7,7 +7,7 @@ from cv2.typing import MatLike
 
 from gptnt.processors.labels.color import compute_perceived_brightness
 from gptnt.processors.labels.position import get_background_corner_coords
-from gptnt.processors.labels.types import Color, Coordinates, RGBArray
+from gptnt.processors.labels.types import Color, Coordinates, NumberBoxDimensions, RGBArray
 
 log = structlog.get_logger()
 
@@ -28,6 +28,7 @@ class AnnotationTextParams:
 
     font_scale: float
     thickness: int
+    space_between_boxes: int
     font: int = cv2.FONT_HERSHEY_SIMPLEX
 
 
@@ -138,3 +139,13 @@ def draw_annotation(
     img = np.asarray(img, dtype=np.uint8)
 
     return img
+
+
+def is_overlapping(c1: Coordinates, c2: Coordinates, dims: NumberBoxDimensions) -> bool:
+    """Check if two boxes overlap given their Coordinates and dimensions."""
+    return not (
+        c1.x_pos + dims.width + dims.space_between <= c2.x_pos
+        or c2.x_pos + dims.width + dims.space_between <= c1.x_pos
+        or c1.y_pos + dims.height + dims.space_between <= c2.y_pos
+        or c2.y_pos + dims.height + dims.space_between <= c1.y_pos
+    )

@@ -2,13 +2,15 @@ from collections.abc import Generator
 
 import structlog
 
-from gptnt.processors.labels.types import DrawData, RegionProperties
+from gptnt.processors.labels.types import DrawData, NumberBoxDimensions, RegionProperties
 
 KEYPAD_REGIONS = 4
 log = structlog.get_logger()
 
 
-def keypad(regions: list[RegionProperties], *, offset: int = 30) -> Generator[DrawData]:  # noqa: WPS210
+def keypad(
+    regions: list[RegionProperties], _: NumberBoxDimensions, *, offset: int = 30
+) -> Generator[DrawData]:  # noqa: WPS210
     """Annotate the keypad module with labels."""
     if len(regions) != KEYPAD_REGIONS:
         log.warning(f"Keypad should have {KEYPAD_REGIONS} regions, but got %d", len(regions))

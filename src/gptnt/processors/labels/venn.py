@@ -1,18 +1,59 @@
 from collections.abc import Generator
-from types import MappingProxyType
 
-from gptnt.processors.labels.types import DrawData, RegionProperties
+from gptnt.processors.labels.types import (
+    Coordinates,
+    DrawData,
+    NumberBoxDimensions,
+    RegionProperties,
+)
 
 
-def venn(regions: list[RegionProperties], *, offset: int = 25) -> Generator[DrawData]:
+def resolve_overlaps(
+    coords: list[Coordinates], box_dims: NumberBoxDimensions, start_idx: int
+) -> list[Coordinates]:
+    """Resolve overlaps between labels by pushing them apart."""
+    new_coords = coords.copy()
+
+    # move left from start_idx
+    for idx in range(start_idx - 1, -1, -1):
+        right = new_coords[idx + 1]
+        current = new_coords[idx]
+
+        # if label's right side overlaps with next label's left side
+        if current.x_pos + box_dims.width + box_dims.space_between > right.x_pos:
+            # push current label to the left
+            new_x = right.x_pos - box_dims.width - box_dims.space_between
+            new_coords[idx] = Coordinates(y_pos=current.y_pos, x_pos=new_x)
+
+    # move right from start_idx
+    for idx in range(start_idx + 1, len(new_coords)):  # noqa: WPS518
+        left = new_coords[idx - 1]
+        current = new_coords[idx]
+
+        # if label's left side overlaps with previous label's right side
+        if current.x_pos < left.x_pos + box_dims.width + box_dims.space_between:
+            # push current label to the right
+            new_x = left.x_pos + box_dims.width + box_dims.space_between
+            new_coords[idx] = Coordinates(y_pos=current.y_pos, x_pos=new_x)
+
+    return new_coords
+
+
+def venn(
+    regions: list[RegionProperties], box_dims: NumberBoxDimensions, *, offset: int = 25
+) -> Generator[DrawData]:
     """Generate draw data for venn module."""
     sorted_regions = sorted(regions, key=lambda region: region.bbox[1])
-    venn_horizontal_offset_mapping = MappingProxyType({0: -5, 1: -5, 2: 0, 3: 0, 4: 0, 5: 0})  # noqa: WPS221
 
-    for wire_idx, region in enumerate(sorted_regions):
-        # bottom-left
-        coord = (region.bbox[2] + offset, region.bbox[3])
+    # ideal coordinates
+    ideal_coords = []
+    for region in sorted_regions:
+        coord = Coordinates(y_pos=region.bbox[2] + offset, x_pos=region.bbox[3])
+        ideal_coords.append(coord)
 
-        coord = (coord[0], coord[1] + venn_horizontal_offset_mapping.get(wire_idx, -10))
+    # resolve overlaps starting from 3rd wire (index 2)
+    resolved_coords = resolve_overlaps(ideal_coords, box_dims, start_idx=2)
 
-        yield DrawData(coord, region)
+    # yield final drawing data
+    for coord, region in zip(resolved_coords, sorted_regions, strict=False):
+        yield DrawData((coord.y_pos, coord.x_pos), region)

@@ -31,3 +31,11 @@ class DrawData(NamedTuple):
 
     coords: tuple[int, int]
     region: RegionProperties
+
+
+class NumberBoxDimensions(NamedTuple):
+    """Structure of a number label/box used in SoM."""
+
+    width: int
+    height: int
+    space_between: int

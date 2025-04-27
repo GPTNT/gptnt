@@ -3,7 +3,7 @@ from types import MappingProxyType
 
 import structlog
 
-from gptnt.processors.labels.types import DrawData, RegionProperties
+from gptnt.processors.labels.types import DrawData, NumberBoxDimensions, RegionProperties
 
 BOTTOM_Y_OFFSETS = MappingProxyType({0: 10, 1: -5, 2: -5, 3: 0, 4: 0})
 SUBMIT_Y_OFFSET = 0
@@ -13,7 +13,9 @@ PASSWORD_REGIONS = 11
 log = structlog.get_logger()
 
 
-def password(regions: list[RegionProperties], *, offset: int = 25) -> Generator[DrawData]:
+def password(
+    regions: list[RegionProperties], _: NumberBoxDimensions, *, offset: int = 25
+) -> Generator[DrawData]:
     """Annotate the password module with labels."""
     if len(regions) != PASSWORD_REGIONS:
         log.warning("Password should have {PASSWORD_REGIONS} regions, but got %d", len(regions))
