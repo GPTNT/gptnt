@@ -49,7 +49,7 @@ def resolve_overlaps(
 
 
 def venn(
-    regions: list[RegionProperties], box_dims: NumberBoxDimensions, *, y_offset: int = 20
+    regions: list[RegionProperties], box_dims: NumberBoxDimensions, *, y_offset: int = 16
 ) -> Generator[DrawData]:
     """Generate draw data for venn module."""
     sorted_regions = sorted(regions, key=lambda region: region.bbox[1])
