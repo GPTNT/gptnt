@@ -1,4 +1,3 @@
-import asyncio
 from typing import override
 
 import httpx
@@ -6,6 +5,7 @@ from structlog import get_logger
 
 from gptnt.api.base_client import BaseClient, SupervisedClient
 from gptnt.api.structures import GameMetadata, RoomMetadata
+from gptnt.common.async_ops import healthcheck_interval
 from gptnt.players.structures import PlayerMetadata
 
 _logger = get_logger()
@@ -76,7 +76,7 @@ class SupervisedPlayerClient(SupervisedClient[PlayerClient, PlayerMetadata]):
         while self.is_running:
             if not await self.client.healthcheck():
                 break
-            await asyncio.sleep(self.supervisor_interval)
+            await healthcheck_interval()
         _logger.info("Player died")
         self.is_running = False
         await self.stop()

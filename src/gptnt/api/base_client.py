@@ -70,7 +70,6 @@ class SupervisedClient[ClientT: BaseClient, MetadataT: ClientMetadata](abc.ABC):
     """Wrapper to supervise clients."""
 
     client_constructor: type[ClientT]
-    supervisor_interval: float = 0.5
 
     def __init__(self, client: ClientT, metadata: MetadataT) -> None:
         self.is_running = False

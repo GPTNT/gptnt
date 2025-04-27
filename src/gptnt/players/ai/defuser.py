@@ -1,5 +1,4 @@
 import abc
-import asyncio
 from collections import deque
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -10,6 +9,7 @@ import structlog
 import whenever
 from pydantic_ai import BinaryContent
 
+from gptnt.common.async_ops import busy_wait_interval
 from gptnt.common.paths import Paths
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.state.game import GameState
@@ -121,8 +121,8 @@ class MDPDefuserPlayer[LocationDataT: InteractGameLocation](
     async def build_agent_input(self) -> list[str | BinaryContent]:
         """Build the input for the defuser."""
         # Wait for a valid bomb state (lights on) before receiving any observations
-        while await self.game_client.get_state() is None:  # noqa: ASYNC110
-            await asyncio.sleep(0.25)  # noqa: WPS432
+        while await self.game_client.get_state() is None:
+            await busy_wait_interval()
 
         messages = await self.pull_unread_messages_from_dialogue_space()
         # Frame is/should be a JPEG that is encoded as bytes

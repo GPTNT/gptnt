@@ -1,4 +1,3 @@
-import asyncio
 from typing import override
 
 import httpx
@@ -6,6 +5,7 @@ from structlog import get_logger
 
 from gptnt.api.base_client import BaseClient, SupervisedClient
 from gptnt.api.structures import RoomMetadata, RoomStage
+from gptnt.common.async_ops import healthcheck_interval
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 
 _logger = get_logger()
@@ -75,6 +75,6 @@ class SupervisedRoomManagerClient(SupervisedClient[RoomManagerClient, RoomMetada
                 self.metadata.state = await self.client.statecheck()
             except httpx.HTTPError:
                 break
-            await asyncio.sleep(self.supervisor_interval)
+            await healthcheck_interval()
         self.is_running = False
         await self.stop()

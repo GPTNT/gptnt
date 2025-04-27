@@ -11,6 +11,7 @@ from structlog import get_logger
 
 from gptnt.api.experiment_manager_client import ExperimentManagerClient
 from gptnt.api.structures import RoomMetadata, RoomStage
+from gptnt.common.async_ops import healthcheck_interval
 from gptnt.common.servers import get_available_port
 from gptnt.dialogue_space.server import DialogueSpaceServer
 from gptnt.ktane.client import KtaneClient
@@ -36,7 +37,6 @@ class RoomManager:
 
         self._fastapi_server_port: int = port
 
-        self._supervisor_interval: float = 0.5
         self._players_per_game: int = 2
         self._game_startup_time: float = 15.0
 
@@ -283,7 +283,7 @@ class RoomManager:
                 _logger.exception("FastAPI server failed healthcheck")
                 self._restart_raised.set()
 
-            await asyncio.sleep(delay=self._supervisor_interval)
+            await healthcheck_interval()
 
     async def _supervise_game_process(self) -> None:
         """Supervises the Game subprocess.
@@ -296,7 +296,7 @@ class RoomManager:
                 _logger.exception("Game sub-process exited unexpectedly")
                 self._restart_raised.set()
 
-            await asyncio.sleep(delay=self._supervisor_interval)
+            await healthcheck_interval()
 
     async def _supervise_dialogue_space_server(self) -> None:
         """Supervises the DialogueSpaceServer.
@@ -310,7 +310,7 @@ class RoomManager:
                 self._players_connected.set()
                 break
 
-            await asyncio.sleep(self._supervisor_interval)
+            await healthcheck_interval()
 
         _logger.info("Starting DialogueSpaceServer supervisor")
         while not self._restart_raised.is_set():
@@ -318,7 +318,7 @@ class RoomManager:
                 _logger.exception("Player disconnected during experiment")
                 self._restart_raised.set()
 
-            await asyncio.sleep(delay=self._supervisor_interval)
+            await healthcheck_interval()
 
     async def _supervise_ktane_client(self) -> None:  # noqa: WPS231
         """Supervises the KtaneClient.
@@ -360,7 +360,7 @@ class RoomManager:
                     self.game_state = new_game_state
                 self._state_changed.set()
 
-            await asyncio.sleep(delay=self._supervisor_interval)
+            await healthcheck_interval()
 
     async def _supervise_experiment_manager_client(self) -> None:
         """Supervises the connection to the experiment manager.
@@ -387,4 +387,4 @@ class RoomManager:
                     self._restart_raised.set()
                     break
 
-                await asyncio.sleep(delay=self._supervisor_interval)
+                await healthcheck_interval()

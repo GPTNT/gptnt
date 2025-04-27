@@ -1,5 +1,4 @@
 import abc
-import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import override
@@ -10,6 +9,7 @@ from pydantic_ai import Agent, BinaryContent, UsageLimitExceeded
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.usage import Usage, UsageLimits
 
+from gptnt.common.async_ops import busy_wait_interval
 from gptnt.common.instrumentation import InstrumentationDataclassMixin
 from gptnt.players.actions import DoNothingAction, SendMessageAction
 from gptnt.players.base_player import BasePlayer
@@ -78,7 +78,7 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
             # TODO: This seems like a bad idea? Do we need to fix this
             while True:  # noqa: WPS457
                 _ = await self.run_once()
-                _ = await asyncio.sleep(1)
+                _ = await busy_wait_interval()
 
     @override
     @logfire.instrument("Run AI player once")

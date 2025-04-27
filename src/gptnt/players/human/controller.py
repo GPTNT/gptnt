@@ -9,6 +9,7 @@ from typing import Any, override
 from pydantic import TypeAdapter
 from structlog import get_logger
 
+from gptnt.common.async_ops import busy_wait_interval
 from gptnt.common.paths import Paths
 from gptnt.players.base_player import BasePlayer
 from gptnt.players.human.views.base_view import BaseView, ChatMessage
@@ -69,9 +70,7 @@ class Controller(BasePlayer):
         await self.view.disconnect_view_from_room()
         _log.info("Disconnected from dialogue space client")
 
-    async def poll_and_add_new_messages(
-        self, poll_interval: float = 0.5
-    ) -> AsyncGenerator[list[ChatMessage], None]:
+    async def poll_and_add_new_messages(self) -> AsyncGenerator[list[ChatMessage], None]:
         """Poll dialogue space while connected and update chat history on new msgs."""
         while True:  # noqa: WPS457
             # TODO: Fix this to end at some point?
@@ -82,7 +81,7 @@ class Controller(BasePlayer):
                 ]
                 self.view.message_history.extend(chat_messages)
                 yield self.view.message_history
-                _ = await asyncio.sleep(poll_interval)
+                _ = await busy_wait_interval()
 
     async def handle_user_message(self, message: str) -> tuple[list[ChatMessage], str]:
         """Read user message and add it to chat history."""

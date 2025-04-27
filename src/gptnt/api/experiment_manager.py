@@ -1,9 +1,7 @@
 import asyncio
 import itertools
 import uuid
-from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
 
 import logfire
 from pydantic import UUID4
@@ -13,16 +11,10 @@ from gptnt.api.player_client import SupervisedPlayerClient
 from gptnt.api.room_client import SupervisedRoomManagerClient
 from gptnt.api.structures import GameMetadata, RoomStage
 from gptnt.api.tinder import get_playable_pairings
+from gptnt.common.async_ops import busy_wait_interval, until
 from gptnt.ktane.experiments.experiments import ExperimentSpec
 
 _logger = get_logger()
-
-
-# TODO: Generics!
-async def until(get_value: Callable[[], Any], target: Any) -> None:
-    """Await until a value (specified by passed getter) becomes the target."""
-    while get_value() is not target:  # noqa: ASYNC110
-        await asyncio.sleep(1)
 
 
 @dataclass
@@ -96,7 +88,7 @@ class ExperimentManager:
             self.tasks = [task for task in self.tasks if not task.done()]
 
             # Short delay to let the system breathe
-            await asyncio.sleep(1)
+            await busy_wait_interval()
 
     async def start_available_experiments(self) -> None:
         """Starts all ExperimentConfig's that have the correct players and rooms available."""
@@ -195,7 +187,7 @@ class ExperimentManager:
                 self.experiments.add(experiment.spec)
                 break
 
-            await asyncio.sleep(1)
+            await busy_wait_interval()
 
         await self._end_experiment(experiment=experiment)
 
@@ -220,7 +212,7 @@ class ExperimentManager:
                 self.experiments.add(experiment.spec)
                 break
 
-            await asyncio.sleep(1)
+            await busy_wait_interval()
 
         await self._end_experiment(experiment=experiment)
 
