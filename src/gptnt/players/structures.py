@@ -1,6 +1,7 @@
 from typing import Literal, override
+from uuid import uuid4
 
-from pydantic import Field
+from pydantic import UUID4, Field
 
 from gptnt.common.servers import ClientMetadata
 from gptnt.ktane.experiments.experiments import ExperimentSpec
@@ -22,8 +23,16 @@ class PlayerMetadata(ClientMetadata):
     player_name: str | None = None
     experiments_played: list[ExperimentSpec] = Field(default_factory=list)
 
+    uuid: UUID4 = uuid4()
+
     @override
     def __hash__(self) -> int:
         return hash(
-            (self.player_type, self.player_role, self.player_name, *self.experiments_played)
+            (
+                self.player_type,
+                self.player_role,
+                self.player_name,
+                *self.experiments_played,
+                self.uuid,
+            )
         )

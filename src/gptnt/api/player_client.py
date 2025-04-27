@@ -78,5 +78,5 @@ class SupervisedPlayerClient(SupervisedClient[PlayerClient, PlayerMetadata]):
                 break
             await asyncio.sleep(self.supervisor_interval)
         _logger.info("Player died")
-        self.is_connected = False
+        self.is_running = False
         await self.stop()

@@ -790,3 +790,7 @@ storage/missions/*
 
 # do NOT commit any keys that might be stored in this dir
 storage/keys/
+
+
+# do not commit any wandb logs or config
+wandb

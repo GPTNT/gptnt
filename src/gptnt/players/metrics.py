@@ -4,7 +4,14 @@ import logfire
 import polars as pl
 import wandb
 from pandas import json_normalize
-from pydantic import BaseModel, SerializationInfo, TypeAdapter, field_serializer, model_serializer
+from pydantic import (
+    UUID4,
+    BaseModel,
+    SerializationInfo,
+    TypeAdapter,
+    field_serializer,
+    model_serializer,
+)
 from whenever import Instant
 
 from gptnt.common.image_ops import load_observation_from_bytes
@@ -180,7 +187,7 @@ class PlayerEpisodeTracker:
         *,
         experiment_spec: ExperimentSpec,
         game_id: str,
-        player_id: str,
+        player_id: UUID4,
         role: PlayerRole | None,
         additional_metadata: dict[str, Any],
     ) -> None:
@@ -192,7 +199,7 @@ class PlayerEpisodeTracker:
             config=flatten_dict(
                 {
                     "game_id": game_id,
-                    "player_id": player_id,
+                    "player_id": str(player_id),
                     "role": role,
                     "experiment_spec": experiment_spec.model_dump(mode="json"),
                     **additional_metadata,

@@ -58,7 +58,7 @@ async def start_experiment(player: PlayerDep, game_metadata: GameMetadata) -> bo
         experiment_spec=game_metadata.experiment_spec,
         game_id=str(game_metadata.game_id),
         role=game_metadata.player_metadata.player_role,
-        player_id=str(hash(game_metadata.player_metadata)),
+        player_id=player.metadata.uuid,
         additional_metadata={},
     )
     return True
