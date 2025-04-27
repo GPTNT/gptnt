@@ -13,14 +13,14 @@ game_client:
     _target_: gptnt.processors.set_of_marks.SetOfMarksHandler
     annotation_text_params:
       _target_: gptnt.processors.labels.drawing.AnnotationTextParams
-      font: 0
-      font_scale: 0.6
+      font: 2
+      font_scale: 0.7
       thickness: 1
       space_between_boxes: 2
     annotation_background_params:
       _target_: gptnt.processors.labels.drawing.AnnotationBackgroundParams
-      padding: 0
-      alpha: 0.5
+      padding: 3
+      alpha: 0.75
     mask_drawing_params:
       _target_: gptnt.processors.set_of_marks.MaskDrawingParams
       mask_thickness: 1

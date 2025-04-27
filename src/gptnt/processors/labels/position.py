@@ -4,18 +4,14 @@ from gptnt.processors.labels.types import Coordinates, RegionProperties
 
 
 def get_background_corner_coords(
-    coords: Coordinates,
-    padding: int = 5,
-    text_width: int = 0,
-    text_height: int = 0,
-    baseline: int = 0,
+    coords: Coordinates, padding: int = 5, text_width: int = 0, text_height: int = 0
 ) -> tuple[tuple[int, int], tuple[int, int]]:
     """Get background box coordinates for label."""
     # Calculate top-left and bottom-right of background rectangle
-    top_left_x = coords[1] - text_width // 2 - padding
-    top_left_y = coords[0] - text_height // 2 - padding
-    bottom_right_x = coords[1] + text_width // 2
-    bottom_right_y = coords[0] + text_height // 2 + baseline
+    top_left_x = coords.x_pos - text_width // 2 - padding
+    top_left_y = coords.y_pos - text_height // 2 - padding
+    bottom_right_x = coords.x_pos + text_width // 2 + padding
+    bottom_right_y = coords.y_pos + text_height // 2 + padding
 
     return (top_left_x, top_left_y), (bottom_right_x, bottom_right_y)
 

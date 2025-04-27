@@ -97,17 +97,17 @@ with st.sidebar:
     bw_outside_mask = st.toggle("Black and white outside mask", value=False)
     _ = st.header("Annotation Background")
     annotation_bg_padding = st.number_input(
-        "Annotation background padding", min_value=0, max_value=100, value=1, step=1
+        "Annotation background padding", min_value=0, max_value=100, value=3, step=1
     )
     annotation_bg_alpha = st.number_input(
-        "Annotation background alpha", min_value=0.0, max_value=1.0, value=0.50, step=0.01
+        "Annotation background alpha", min_value=0.0, max_value=1.0, value=0.75, step=0.01
     )
     _ = st.header("Annotation Text")
     annotation_text_font = st.number_input(
-        "Annotation text font", min_value=0, max_value=10, value=1, step=1
+        "Annotation text font", min_value=0, max_value=10, value=2, step=1
     )
     annotation_text_scale = st.number_input(
-        "Annotation text scale", min_value=0.0, max_value=10.0, value=1.0, step=0.01
+        "Annotation text scale", min_value=0.0, max_value=10.0, value=0.7, step=0.01
     )
     annotation_text_thickness = st.number_input(
         "Annotation text thickness", min_value=0, max_value=10, value=1, step=1

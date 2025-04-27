@@ -38,26 +38,25 @@ def _draw_background(
     color: Color,
     text_width: int,
     text_height: int,
-    baseline: int,
     drawing_params: AnnotationBackgroundParams,
 ) -> MatLike:
     """Draw box for label for selectable component."""
     # Get size of the text
     top_left, bottom_right = get_background_corner_coords(
-        coords,
-        padding=drawing_params.padding,
-        text_width=text_width,
-        text_height=text_height,
-        baseline=baseline,
+        coords, padding=drawing_params.padding, text_width=text_width, text_height=text_height
     )
 
     if drawing_params.alpha >= 1.0:  # noqa: WPS459
-        return cv2.rectangle(img, top_left, bottom_right, color, thickness=cv2.FILLED)
+        return cv2.rectangle(
+            img=img, pt1=top_left, pt2=bottom_right, color=color, thickness=cv2.FILLED
+        )
 
     overlay = img.copy()
 
     # draw background rectangle on overlay
-    _ = cv2.rectangle(overlay, top_left, bottom_right, color, thickness=cv2.FILLED)
+    _ = cv2.rectangle(
+        img=overlay, pt1=top_left, pt2=bottom_right, color=color, thickness=cv2.FILLED
+    )
 
     # blend overlay with original image
     return cv2.addWeighted(overlay, drawing_params.alpha, img, 1 - drawing_params.alpha, 0)
@@ -75,8 +74,8 @@ def _draw_label(
     """Draw label for selectable component."""
     # Draw background rectangle
     # Calculate position to put the text so it's centered
-    text_x = coords[1] - text_width // 2
-    text_y = coords[0] + text_height // 2
+    text_x = coords.x_pos - text_width // 2
+    text_y = coords.y_pos + text_height // 2
 
     # determine colour of text based on brightness
     brightness = compute_perceived_brightness(rgb=color)
@@ -107,21 +106,19 @@ def draw_annotation(
     background_drawing_params: AnnotationBackgroundParams,
 ) -> RGBArray:
     """Draw label for selectable component, and draw box behind it."""
-    text_size, baseline = cv2.getTextSize(
+    text_size, _ = cv2.getTextSize(
         label,
         text_drawing_params.font,
         text_drawing_params.font_scale,
         text_drawing_params.thickness,
     )
     text_width, text_height = text_size
-    baseline += 1  # make sure we account for the bottom part of some letters
     img = _draw_background(
         img,
         centroid_coords,
         color=color,
         text_width=text_width,
         text_height=text_height,
-        baseline=baseline,
         drawing_params=background_drawing_params,
     )
 

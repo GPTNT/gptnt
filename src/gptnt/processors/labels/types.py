@@ -38,4 +38,5 @@ class NumberBoxDimensions(NamedTuple):
 
     width: int
     height: int
+    padding: int
     space_between: int

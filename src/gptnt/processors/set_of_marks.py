@@ -339,6 +339,7 @@ class SetOfMarksHandler:
             NumberBoxDimensions(
                 width=text_width,
                 height=text_height,
+                padding=self._annotation_background_params.padding,
                 space_between=self._annotation_text_params.space_between_boxes,
             ),
         )
