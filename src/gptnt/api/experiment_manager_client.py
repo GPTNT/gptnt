@@ -7,7 +7,7 @@ from structlog import get_logger
 from gptnt.api.base_client import BaseClient
 from gptnt.api.structures import RoomMetadata
 from gptnt.ktane.experiments.experiments import ExperimentSpec
-from gptnt.players.base_player import PlayerMetadata
+from gptnt.players.structures import PlayerMetadata
 
 _logger = get_logger()
 

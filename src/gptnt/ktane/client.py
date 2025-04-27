@@ -1,7 +1,7 @@
 import base64
 from io import BytesIO
 from types import TracebackType
-from typing import Self, override
+from typing import TYPE_CHECKING, NamedTuple, Self, override
 
 import httpx
 import logfire
@@ -16,12 +16,26 @@ from gptnt.ktane.exceptions import InvalidGameError
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.game import GameState
-from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.players.actions import InteractGameLocation
 from gptnt.processors.image_resizer import ImageResizer
 from gptnt.processors.set_of_marks import SetOfMarksHandler
 
+if TYPE_CHECKING:
+    from gptnt.ktane.state.modules import KtaneComponent
+
 _logger = structlog.get_logger()
+
+
+class Observation(NamedTuple):
+    """Observation from the game.
+
+    This is a named tuple that contains the observation bytes, the segmentation bytes, and the
+    processed image.
+    """
+
+    raw_image: bytes
+    segm_mask: bytes
+    som_image: bytes
 
 
 class KtaneClient(InstrumentationMixin):
@@ -37,6 +51,7 @@ class KtaneClient(InstrumentationMixin):
         self.client = client
         self.set_of_marks_painter = set_of_marks_painter
         self.image_resizer = image_resizer
+        self.zoomed_in_component: KtaneComponent | None = None
 
         assert self.client.base_url is not None, "Base URL must be set"
 
@@ -151,7 +166,17 @@ class KtaneClient(InstrumentationMixin):
             _logger.exception("Failed to send action")
             return None
 
-        return BombState.model_validate_json(response.text)
+        bomb_state = BombState.model_validate_json(response.text)
+
+        # Find zoomed-in component if any are zoomed in
+        try:
+            self.zoomed_in_component = {
+                module.name for module in bomb_state.modules if module.in_focus
+            }.pop()
+        except KeyError:
+            self.zoomed_in_component = None
+
+        return bomb_state
 
     async def get_state(self) -> BombState | None:
         """Get the current state of the bomb."""
@@ -164,12 +189,12 @@ class KtaneClient(InstrumentationMixin):
         return BombState.model_validate_json(response.text)
 
     @logfire.instrument("Get observation from environment")
-    async def get_observation(self) -> bytes:  # noqa: WPS615
+    async def get_observation(self) -> Observation:  # noqa: WPS615
         """Get the current observation from the game as a png."""
         # If we are not resizing or using SoM, we can just get the screenshot as bytes and pass it
         # on as is
         if self.set_of_marks_painter is None and self.image_resizer is None:
-            return await self._get_screenshot()
+            return Observation(b"", b"", await self._get_screenshot())
 
         # Incase we are going to be using SoM, we need to get the screenshot and the segmentation
         observation_bytes, segmentation_bytes = await self._get_screenshot_with_segm()
@@ -193,61 +218,9 @@ class KtaneClient(InstrumentationMixin):
                 "Perform Set of Marks", observation=observation, segmentation=segmentation
             ):
                 observation = self.set_of_marks_painter.run(
-                    observation=np.asarray(observation), colorful_image=np.asarray(segmentation)
-                )
-
-            # convert back to pillow image
-            observation = Image.fromarray(observation.astype(np.uint8), "RGB")
-
-        buffer = BytesIO()
-        observation.save(buffer, format="PNG")
-        return buffer.getvalue()
-
-    async def get_full_observation(self) -> bytes:
-        """Get the current observation from the game as two pngs, followed by the state.
-
-        The first png is the raw screenshot, the second is the segmentation image.
-        """
-        # If we are not resizing or using SoM, we can just get the screenshot as bytes and pass it
-        # on as is
-        if self.set_of_marks_painter is None and self.image_resizer is None:
-            return await self._get_screenshot()
-        # Incase we are going to be using SoM, we need to get the screenshot and the segmentation
-        (
-            observation_bytes,
-            segmentation_bytes,
-            state,
-        ) = await self._get_screenshot_with_segm_with_state()
-        observation = load_observation_from_bytes(observation_bytes)
-
-        # If we are resizing the image, we need to resize it before passing it on
-        if self.image_resizer:
-            with logfire.span("Resizing image", image=observation):
-                observation = self.image_resizer.resize_image(observation)
-
-        if self.set_of_marks_painter and segmentation_bytes:
-            segmentation = load_observation_from_bytes(segmentation_bytes)
-
-            # If we are using SoM, we also need to resize the segmentation image
-            if self.image_resizer:
-                with logfire.span("Resizing image", image=segmentation):
-                    segmentation = self.image_resizer.resize_image(segmentation)
-
-            if state:
-                zoomed_component = next(
-                    module_state.name for module_state in state.modules if module_state.in_focus
-                )
-            else:
-                zoomed_component = None
-
-            # Apply SoM onto the image
-            with logfire.span(
-                "Perform Set of Marks", observation=observation, segmentation=segmentation
-            ):
-                observation = self.set_of_marks_painter.run(
                     observation=np.asarray(observation),
                     colorful_image=np.asarray(segmentation),
-                    state=KtaneComponent(zoomed_component),
+                    state=self.zoomed_in_component,
                 )
 
             # convert back to pillow image
@@ -255,7 +228,11 @@ class KtaneClient(InstrumentationMixin):
 
         buffer = BytesIO()
         observation.save(buffer, format="PNG")
-        return buffer.getvalue()
+        return Observation(
+            raw_image=observation_bytes,
+            segm_mask=segmentation_bytes if segmentation_bytes else b"",
+            som_image=buffer.getvalue(),
+        )
 
     async def _get_screenshot(self) -> bytes:
         response = await self.client.get("/screenshot")

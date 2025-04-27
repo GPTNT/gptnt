@@ -782,8 +782,9 @@ storage/ktane/*
 !storage/ktane/mods
 !storage/ktane/mods/*
 
-# The experiment jsons
+# The experiment jsons, but not the tests
 storage/experiments/*
+!storage/experiments/test.json
 storage/missions/*
 
 

@@ -13,7 +13,7 @@ from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.modules import ModuleStates
 from gptnt.ktane.state.widget import WidgetStates
 from gptnt.players.actions import InteractGameAction, InteractGameLocation, SendMessageAction
-from gptnt.players.base_player import PlayerRole
+from gptnt.players.structures import PlayerRole
 
 if TYPE_CHECKING:
     from wandb.sdk.wandb_run import Run
@@ -54,10 +54,12 @@ class ActionMetric(InteractGameAction[InteractGameLocation], TimestampMixin):
 class MessageMetric(SendMessageAction, TimestampMixin):
     """SendMessageAction for logging."""
 
-    role: PlayerRole
+    role: PlayerRole | None
 
     @classmethod
-    def from_action(cls, *, action: SendMessageAction, role: PlayerRole, timestamp: float) -> Self:
+    def from_action(
+        cls, *, action: SendMessageAction, role: PlayerRole | None, timestamp: float
+    ) -> Self:
         """Create a MessageMetric from an SendMessageAction."""
         return cls(
             message=action.message, role=role, thoughts=action.thoughts, timestamp=timestamp
@@ -179,7 +181,7 @@ class PlayerEpisodeTracker:
         experiment_spec: ExperimentSpec,
         game_id: str,
         player_id: str,
-        role: PlayerRole,
+        role: PlayerRole | None,
         additional_metadata: dict[str, Any],
     ) -> None:
         """Start the run for the current player.
@@ -248,7 +250,7 @@ class PlayerEpisodeTracker:
         )
         self._actions.append(action_metric)
 
-    def add_message(self, message: SendMessageAction, role: PlayerRole) -> None:
+    def add_message(self, message: SendMessageAction, role: PlayerRole | None) -> None:
         """Add a message to the message list."""
         message_metric = MessageMetric.from_action(
             action=message, role=role, timestamp=self._compute_time_delta()

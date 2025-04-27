@@ -5,8 +5,8 @@ import httpx
 from structlog import get_logger
 
 from gptnt.api.base_client import BaseClient, SupervisedClient
-from gptnt.api.structures import RoomMetadata
-from gptnt.players.base_player import PlayerMetadata
+from gptnt.api.structures import GameMetadata, RoomMetadata
+from gptnt.players.structures import PlayerMetadata
 
 _logger = get_logger()
 
@@ -20,10 +20,14 @@ class PlayerClient(BaseClient):
         _ = response.raise_for_status()
 
     # TODO: we need to send the experiment spec to the player for wandb
-    async def start_experiment(self) -> bool:
+    async def start_experiment(self, game_metadata: GameMetadata) -> bool:
         """Command the player to perform any pre-experiment setup or logging needed."""
         try:
-            _ = (await self.client.post(url="/start-experiment")).raise_for_status()
+            _ = (
+                await self.client.post(
+                    url="/start-experiment", json=game_metadata.model_dump(mode="json")
+                )
+            ).raise_for_status()
         except httpx.HTTPError:
             _logger.exception("Could not start experiment")
             return False

@@ -12,7 +12,7 @@ from gptnt.api.room_client import SupervisedRoomManagerClient
 from gptnt.api.structures import RoomMetadata
 from gptnt.common.paths import Paths
 from gptnt.ktane.experiments.experiments import ExperimentSpec
-from gptnt.players.base_player import PlayerMetadata
+from gptnt.players.structures import PlayerMetadata
 
 logger = structlog.get_logger()
 

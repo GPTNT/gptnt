@@ -3,7 +3,7 @@ from gptnt.api.tinder import get_playable_pairings
 from gptnt.ktane.experiments.experiments import ExperimentSpec
 from gptnt.ktane.experiments.pairing import Pairing
 from gptnt.ktane.mission_spec import KtaneMissionSpec
-from gptnt.players.base_player import PlayerMetadata
+from gptnt.players.structures import PlayerMetadata
 
 
 def create_player(player_name: str, player_role: str = "") -> SupervisedPlayerClient:

@@ -1,5 +1,6 @@
 import asyncio
 import itertools
+import uuid
 from collections.abc import Callable
 from typing import Any
 
@@ -8,7 +9,7 @@ from structlog import get_logger
 
 from gptnt.api.player_client import SupervisedPlayerClient
 from gptnt.api.room_client import SupervisedRoomManagerClient
-from gptnt.api.structures import RoomStage
+from gptnt.api.structures import GameMetadata, RoomStage
 from gptnt.api.tinder import get_playable_pairings
 from gptnt.ktane.experiments.experiments import ExperimentSpec
 
@@ -134,7 +135,21 @@ class ExperimentManager:
         """Performs the starting logic for an experiment, then switches to seq/par impl."""
         # Configure the experiment
         await until(get_value=lambda: room.state, target=RoomStage.ready_for_config)
-        _ = await room.client.configure_experiment(config=spec.mission_spec)
+        game_id = uuid.uuid4()
+
+        _ = await asyncio.gather(
+            room.client.configure_experiment(config=spec.mission_spec),
+            expert.client.start_experiment(
+                game_metadata=GameMetadata(
+                    experiment_spec=spec, player_metadata=expert.metadata, game_id=game_id
+                )
+            ),
+            defuser.client.start_experiment(
+                game_metadata=GameMetadata(
+                    experiment_spec=spec, player_metadata=defuser.metadata, game_id=game_id
+                )
+            ),
+        )
 
         # Start game and switch to correct communication style
         await until(get_value=lambda: room.state, target=RoomStage.ready_for_start)

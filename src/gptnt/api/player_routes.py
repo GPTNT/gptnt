@@ -5,12 +5,13 @@ import structlog
 from fastapi import APIRouter, Depends, Request
 from httpx import AsyncClient
 
-from gptnt.api.structures import RoomMetadata
+from gptnt.api.structures import GameMetadata, RoomMetadata
 from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.players.ai.defuser import BaseDefuserPlayer
 from gptnt.players.base_player import BasePlayer
 from gptnt.players.human.controller import Controller
 from gptnt.players.human.views.defuser import DefuserPlayerView
+from gptnt.players.metrics import PlayerEpisodeTracker
 
 logger = structlog.get_logger()
 
@@ -38,6 +39,7 @@ async def join_room(room: RoomMetadata, player: PlayerDep) -> None:
 
     # Reset dialogue-space client
     player.dialogue_space_client = DialogueSpaceClient.from_url(room.dialogue_space_url)
+    player.tracker = PlayerEpisodeTracker(wandb_init_kwargs={"project": "gptnt"})
 
     # TODO: Fix the Ktane player hackery
     if isinstance(player, Controller) and isinstance(player.view, DefuserPlayerView):
@@ -49,9 +51,16 @@ async def join_room(room: RoomMetadata, player: PlayerDep) -> None:
 
 
 @player_router.post("/start-experiment")
-async def start_experiment() -> bool:
+async def start_experiment(player: PlayerDep, game_metadata: GameMetadata) -> bool:
     """Start the experiment."""
     # TODO: Add W&B stuff
+    player.tracker.on_game_start(
+        experiment_spec=game_metadata.experiment_spec,
+        game_id=str(game_metadata.game_id),
+        role=game_metadata.player_metadata.player_role,
+        player_id=str(hash(game_metadata.player_metadata)),
+        additional_metadata={},
+    )
     return True
 
 
@@ -83,4 +92,4 @@ async def stop_experiment(player: PlayerDep, request: Request) -> None:
     # Disconnect from the room
     await player.disconnect_from_room()
 
-    # TODO: Add W&B stuff
+    player.tracker.on_game_end()

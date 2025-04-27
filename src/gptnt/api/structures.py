@@ -1,6 +1,11 @@
 from enum import Enum
 
+from pydantic import BaseModel
+from pydantic.types import UUID4
+
 from gptnt.common.servers import ClientMetadata
+from gptnt.ktane.experiments.experiments import ExperimentSpec
+from gptnt.players.structures import PlayerMetadata
 
 
 class RoomStage(Enum):
@@ -28,3 +33,16 @@ class RoomMetadata(ClientMetadata):
     dialogue_space_url: str
     ktane_url: str
     state: RoomStage
+
+
+class GameMetadata(BaseModel):
+    """Information about a given experiment."""
+
+    experiment_spec: ExperimentSpec
+    """The spec of the experiment."""
+
+    player_metadata: PlayerMetadata
+    """The metadata of the player that played the experiment."""
+
+    game_id: UUID4
+    """The ID of the game."""

@@ -12,7 +12,8 @@ from pydantic_ai.usage import Usage, UsageLimits
 
 from gptnt.common.instrumentation import InstrumentationDataclassMixin
 from gptnt.players.actions import DoNothingAction, SendMessageAction
-from gptnt.players.base_player import BasePlayer, UnhealthyPlayerError
+from gptnt.players.base_player import BasePlayer
+from gptnt.players.structures import UnhealthyPlayerError
 
 log = structlog.get_logger()
 
@@ -110,6 +111,7 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
     @logfire.instrument("Send message to dialogue space")
     async def send_message_to_dialogue_space(self, message: SendMessageAction) -> None:
         """Send a message to the dialogue space for the current agent."""
+        self.tracker.add_message(message=message, role=self.metadata.player_role)
         return await self.dialogue_space_client.send_message(message.message)
 
     @logfire.instrument("Pull unread messages from dialogue space")

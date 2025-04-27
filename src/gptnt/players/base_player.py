@@ -1,32 +1,13 @@
 import abc
 from dataclasses import dataclass, field
-from typing import Literal
 
 import structlog
-from pydantic import Field
 
-from gptnt.common.servers import ClientMetadata
 from gptnt.dialogue_space.client import DialogueSpaceClient
-from gptnt.ktane.experiments.experiments import ExperimentSpec
+from gptnt.players.metrics import PlayerEpisodeTracker
+from gptnt.players.structures import PlayerMetadata
 
 log = structlog.get_logger()
-
-type PlayerType = Literal["ai", "human"]
-type PlayerRole = Literal["defuser", "expert"]
-
-
-class UnhealthyPlayerError(Exception):
-    """Raise when the player is unhealthy."""
-
-
-class PlayerMetadata(ClientMetadata):
-    """Information about a player."""
-
-    player_type: PlayerType
-
-    player_role: PlayerRole | None = None
-    player_name: str | None = None
-    experiments_played: list[ExperimentSpec] = Field(default_factory=list)
 
 
 @dataclass(kw_only=True)
@@ -37,6 +18,8 @@ class BasePlayer(abc.ABC):
 
     # Attributes that need to exist within the class
     dialogue_space_client: DialogueSpaceClient = field(init=False)
+
+    tracker: PlayerEpisodeTracker
 
     @abc.abstractmethod
     async def on_startup(self) -> None:

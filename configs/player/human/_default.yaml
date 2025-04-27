@@ -12,3 +12,7 @@ view: ???
 
 gradio_launch_kwargs:
   share: false
+
+tracker:
+  _target_: gptnt.players.metrics.PlayerEpisodeTracker
+  wandb_init_kwargs: { "project": "gptnt" }

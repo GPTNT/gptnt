@@ -6,16 +6,22 @@ from gptnt.ktane.client import KtaneClient
 from gptnt.players.actions import SetOfMarksLocation
 from gptnt.players.ai.defuser import DefuserOutputT, MDPDefuserPlayer
 from gptnt.players.ai.expert import ExpertOutputT, ExpertPlayer
-from gptnt.players.base_player import PlayerMetadata
+from gptnt.players.metrics import PlayerEpisodeTracker
+from gptnt.players.structures import PlayerMetadata
 
 
 class AIPlayerCases:
     """Parametrize fixtures for players."""
 
+    def __init__(self) -> None:
+        self.tracker = PlayerEpisodeTracker(wandb_init_kwargs={"project": "gptnt"})
+
     def case_expert(self, dialogue_space_client: DialogueSpaceClient) -> ExpertPlayer:
         expert_agent = Agent[None, ExpertOutputT]("test", output_type=ExpertOutputT)
         player = ExpertPlayer(
-            agent=expert_agent, metadata=PlayerMetadata(player_type="ai", player_role="expert")
+            agent=expert_agent,
+            metadata=PlayerMetadata(player_type="ai", player_role="expert"),
+            tracker=self.tracker,
         )
         player.dialogue_space_client = dialogue_space_client
         return player
@@ -30,6 +36,7 @@ class AIPlayerCases:
             agent=agent,
             game_client=game_client,
             metadata=PlayerMetadata(player_type="ai", player_role="defuser"),
+            tracker=self.tracker,
         )
         player.dialogue_space_client = dialogue_space_client
         return player
@@ -44,6 +51,7 @@ class AIPlayerCases:
             agent=agent,
             game_client=game_client,
             metadata=PlayerMetadata(player_type="ai", player_role="defuser"),
+            tracker=self.tracker,
         )
         player.dialogue_space_client = dialogue_space_client
         return player

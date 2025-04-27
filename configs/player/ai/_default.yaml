@@ -8,3 +8,7 @@ _target_: ???
 metadata:
   _target_: gptnt.players.base_player.PlayerMetadata
   player_type: ai
+
+tracker:
+  _target_: gptnt.players.metrics.PlayerEpisodeTracker
+  wandb_init_kwargs: { "project": "gptnt" }

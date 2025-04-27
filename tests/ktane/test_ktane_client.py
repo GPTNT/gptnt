@@ -97,7 +97,7 @@ async def test_get_observation_returns_screenshot_as_bytes(
     route = respx.get(f"{client.client.base_url}/screenshot").mock(
         return_value=httpx.Response(httpx.codes.OK, text=screenshot)
     )
-    screenshot_response = await client.get_observation()
+    _, _, screenshot_response = await client.get_observation()
     assert route.called is True
     assert screenshot_response == base64.b64decode(screenshot)
     assert isinstance(screenshot_response, bytes)
@@ -143,7 +143,7 @@ async def test_get_observation_resizes_image(client: KtaneClient, screenshot: st
     client.image_resizer = ImageResizer(target_width=100, target_height=200)
 
     # Get the observation
-    observation = await client.get_observation()
+    _, _, observation = await client.get_observation()
     assert isinstance(observation, bytes)
 
     observation_image = load_observation_from_bytes(observation)

@@ -1,4 +1,5 @@
 import abc
+import asyncio
 from collections import deque
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -82,7 +83,10 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
     async def send_action_to_game(self, action: InteractGameAction[LocationDataT]) -> None:
         """Send an action to the game client."""
         # TODO: handle the return from the game client
-        _ = await self.game_client.send_action(action)
+        bomb_state = await self.game_client.send_action(action)
+        self.tracker.add_action(action=action)
+        if bomb_state is not None:  # This *should* always be true
+            self.tracker.add_bomb_state(bomb_state=bomb_state)
 
     @override
     @logfire.instrument("Map agent output to function", record_return=True)
@@ -116,11 +120,15 @@ class MDPDefuserPlayer[LocationDataT: InteractGameLocation](
     @logfire.instrument("Build agent input")
     async def build_agent_input(self) -> list[str | BinaryContent]:
         """Build the input for the defuser."""
+        # Wait for a valid bomb state (lights on) before receiving any observations
+        while await self.game_client.get_state() is None:  # noqa: ASYNC110
+            await asyncio.sleep(0.25)  # noqa: WPS432
+
         messages = await self.pull_unread_messages_from_dialogue_space()
         # Frame is/should be a JPEG that is encoded as bytes
-        current_frame = BinaryContent(
-            await self.game_client.get_observation(), media_type="image/png"
-        )
+        raw_image, segm_mask, som_image = await self.game_client.get_observation()
+        self.tracker.add_observation(raw_image=raw_image, segm_mask=segm_mask, som_image=som_image)
+        current_frame = BinaryContent(data=som_image, media_type="image/png")
 
         self.observation_cache.append(current_frame)
 
