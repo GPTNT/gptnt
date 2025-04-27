@@ -101,6 +101,9 @@ class ExperimentManager:
             return
 
         for expert, defuser, spec in available_pairings:
+            if not available_rooms:
+                # No more rooms, can't start any more pairings
+                return
             room = available_rooms.pop()
 
             expert.in_experiment = True
