@@ -125,40 +125,48 @@ class ExperimentManager:
             experiment = ExperimentMetadata(
                 expert=expert, defuser=defuser, room=room, spec=spec, game_id=uuid.uuid4()
             )
-            _logger.info(f"Setting-up game[{experiment.game_id}]")
+            _logger.info(
+                f"Spawning experiment [{experiment.game_id}]",
+                game_id=experiment.game_id,
+                room=room.url,
+                experiment=experiment,
+            )
             self.tasks.append(
                 asyncio.create_task(coro=self._start_experiment(experiment=experiment))
             )
 
-    @logfire.instrument("Start experiment")
+    @logfire.instrument("Experiment")
     async def _start_experiment(  # noqa: WPS217
         self, experiment: ExperimentMetadata
     ) -> None:
         """Performs the starting logic for an experiment, then switches to seq/par impl."""
         # Configure the experiment
-        await until(get_value=lambda: experiment.room.state, target=RoomStage.ready_for_config)
-        _logger.info(f"Starting game[{experiment.game_id}]")
-        _ = await asyncio.gather(
-            experiment.room.client.configure_experiment(config=experiment.spec.mission_spec),
-            experiment.expert.client.start_experiment(
-                game_metadata=GameMetadata(
-                    experiment_spec=experiment.spec,
-                    player_metadata=experiment.expert.metadata,
-                    game_id=experiment.game_id,
-                )
-            ),
-            experiment.defuser.client.start_experiment(
-                game_metadata=GameMetadata(
-                    experiment_spec=experiment.spec,
-                    player_metadata=experiment.defuser.metadata,
-                    game_id=experiment.game_id,
-                )
-            ),
-        )
+        with logfire.span("Waiting for room to be ready", room=experiment.room.url):
+            await until(get_value=lambda: experiment.room.state, target=RoomStage.ready_for_config)
 
-        # Start game and switch to correct communication style
-        await until(get_value=lambda: experiment.room.state, target=RoomStage.ready_for_start)
-        _ = await experiment.room.client.start_experiment()
+        with logfire.span(
+            f"Preparing experiment [{experiment.game_id}]", room=experiment.room.url
+        ):
+            _ = await asyncio.gather(
+                experiment.room.client.configure_experiment(config=experiment.spec.mission_spec),
+                experiment.expert.client.start_experiment(
+                    game_metadata=GameMetadata(
+                        experiment_spec=experiment.spec,
+                        player_metadata=experiment.expert.metadata,
+                        game_id=experiment.game_id,
+                    )
+                ),
+                experiment.defuser.client.start_experiment(
+                    game_metadata=GameMetadata(
+                        experiment_spec=experiment.spec,
+                        player_metadata=experiment.defuser.metadata,
+                        game_id=experiment.game_id,
+                    )
+                ),
+            )
+            # Start game and switch to correct communication style
+            await until(get_value=lambda: experiment.room.state, target=RoomStage.ready_for_start)
+            _ = await experiment.room.client.start_experiment()
 
         match experiment.spec.communication_style:
             case "parallel":
