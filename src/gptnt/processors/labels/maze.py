@@ -6,12 +6,12 @@ from gptnt.processors.labels.position import get_region_height
 from gptnt.processors.labels.types import DrawData, NumberBoxDimensions, RegionProperties
 
 MAZE_REGIONS = 4
-TOP_X_OFFSET = 10
-BOTTOM_X_OFFSET = 3
-LEFT_X_OFFSET = -10
-RIGHT_X_OFFSET = 15
-TOP_Y_OFFSET = -10
-BOTTOM_Y_OFFSET = 5
+TOP_X_OFFSET = 5
+BOTTOM_X_OFFSET = 0
+LEFT_X_OFFSET = -20
+RIGHT_X_OFFSET = 20
+TOP_Y_OFFSET = -15
+BOTTOM_Y_OFFSET = 10
 LEFT_Y_OFFSET = -18
 RIGHT_Y_OFFSET = -18
 log = structlog.get_logger()
