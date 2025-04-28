@@ -30,5 +30,6 @@ game_client:
 
     add_labels: true
     add_mask_outline: true
+    mark_type: alphabet
 
 should_save_images: false

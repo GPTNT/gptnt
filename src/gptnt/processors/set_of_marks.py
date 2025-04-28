@@ -1,17 +1,22 @@
 import colorsys
+import string
 from collections.abc import Callable, Generator, Mapping
 from dataclasses import dataclass
 from functools import partial
 from types import MappingProxyType
+from typing import Literal
 
 import cv2
 import numpy as np
+import structlog
 from numpy.typing import NDArray
+from pydantic import NonNegativeInt
 from skimage.color import hsv2rgb, rgb2hsv
 from skimage.measure import regionprops
 
 from gptnt.ktane.actions import RelativeCoordinate
 from gptnt.ktane.state.modules import KtaneComponent
+from gptnt.players.actions import SetOfMarksLocation, SingleAlphabetLetter
 from gptnt.processors.labels.color import (
     ENTIRELY_COLOR_DEPENDENT_MODULES,
     brighten,
@@ -47,6 +52,8 @@ from gptnt.processors.labels.venn import venn
 from gptnt.processors.labels.whos_on_first import whos_on_first
 from gptnt.processors.labels.wires import wires
 from gptnt.processors.labels.zoomed_out import zoomed_out
+
+_logger = structlog.get_logger()
 
 PROPS_AREA_THRESHOLD = 10
 
@@ -116,18 +123,6 @@ def get_region_properties(labeled_image: NDArray[np.int8]) -> list[RegionPropert
     props = regionprops(labeled_image)
     props = [props for props in props if props.area > PROPS_AREA_THRESHOLD]
     return props
-
-
-def map_label_to_coordinate(regions: list[RegionProperties]) -> dict[int, RelativeCoordinate]:
-    """Map the region label to a relative coordinate."""
-    label_to_coord: dict[int, RelativeCoordinate] = {
-        region.label: RelativeCoordinate(
-            x_pos=region.centroid[1] / region._label_image.shape[1],  # noqa: SLF001
-            y_pos=region.centroid[0] / region._label_image.shape[0],  # noqa: SLF001
-        )
-        for region in regions
-    }
-    return label_to_coord
 
 
 def convert_to_grayscale(image: RGBArray) -> RGBArray:
@@ -274,6 +269,7 @@ class SetOfMarksHandler:
         mask_drawing_params: MaskDrawingParams,
         add_labels: bool = True,
         add_mask_outline: bool = True,
+        mark_type: Literal["alphabet", "number"] = "alphabet",
     ) -> None:
         self._annotation_text_params = annotation_text_params
         self._annotation_background_params = annotation_background_params
@@ -282,12 +278,14 @@ class SetOfMarksHandler:
         self._add_labels = add_labels
         self._add_mask_outline = add_mask_outline
 
-        self._mark_to_coordinate: dict[int, RelativeCoordinate] = {}
+        self._mark_type = mark_type
+        self._mark_to_coordinate: dict[SetOfMarksLocation, RelativeCoordinate] = {}
 
     def extract_regions(self, colorful_image: RGBArray) -> list[RegionProperties]:
         """Extract regions from a colourful segmentation image."""
         labeled_segmentation = convert_colorful_segm_to_labeled(colorful_image)
         regions = get_region_properties(labeled_segmentation)
+        self._update_mark_to_coordinate_mapping(regions)
         return regions
 
     def run(
@@ -305,14 +303,8 @@ class SetOfMarksHandler:
 
         # find which bomb component is currently selected
         zoomed_in_component = state
-        # = (
-        #     KtaneComponent(next(module.name for module in state.modules if module.in_focus))
-        #     if state
-        #     else None
-        # )
 
         # convert regions to relative coordinates and store them
-        self._mark_to_coordinate = map_label_to_coordinate(regions)
         annotated_image = draw_region_masks(
             image=observation,
             segm_image=colorful_image,
@@ -327,7 +319,7 @@ class SetOfMarksHandler:
         )
         return annotated_image
 
-    def mark_to_coordinate(self, *, mark_id: int) -> RelativeCoordinate:
+    def mark_to_coordinate(self, *, mark_id: SetOfMarksLocation) -> RelativeCoordinate:
         """Convert a mark ID to a relative coordinate."""
         assert mark_id in self._mark_to_coordinate, (
             f"Mark ID {mark_id} not found in mark to coordinate mapping."
@@ -367,10 +359,14 @@ class SetOfMarksHandler:
                 module,
                 self._mask_drawing_params.color_dependent_brighten_factor,
             )
+            # Ensure the label is an integer, which is should be but skimage is not type safe
+            assert isinstance(region.label, int), (
+                f"Label {region.label} is not an integer. Label type: {type(region.label)}"
+            )
 
             annotated_image = draw_annotation(
                 img=annotated_image,
-                label=str(region.label),
+                label=str(self._convert_label_num_to_alphabet(region.label)),
                 centroid_coords=Coordinates(y_pos=draw_location[0], x_pos=draw_location[1]),
                 color=color,
                 text_drawing_params=self._annotation_text_params,
@@ -379,21 +375,27 @@ class SetOfMarksHandler:
 
         return annotated_image
 
-    # def draw_region_outlines(
-    #     self, image: RGBArray, segm_img: RGBArray, module: KtaneComponent | None
-    # ) -> RGBArray:
-    #     """Draw outlines of regions on the image based on the segmentation image."""
-    #     regions = self.extract_regions(segm_img)
+    def _update_mark_to_coordinate_mapping(self, regions: list[RegionProperties]) -> None:
+        """Map the region label to a relative coordinate."""
+        label_format = (
+            self._convert_label_num_to_alphabet if self._mark_type == "alphabet" else int
+        )
+        label_to_coord = {
+            label_format(region.label): RelativeCoordinate(
+                x_pos=region.centroid[1] / region._label_image.shape[1],  # noqa: SLF001
+                y_pos=region.centroid[0] / region._label_image.shape[0],  # noqa: SLF001
+            )
+            for region in regions
+        }
+        self._mark_to_coordinate = label_to_coord
 
-    #     outlined_image = image.copy()
+    def _convert_label_num_to_alphabet(self, label_num: NonNegativeInt) -> SingleAlphabetLetter:
+        """Convert a label number to its corresponding alphabet.
 
-    #     for region in regions:
-    #         color = get_region_color(image, segm_img, region, module)
-    #         _ = draw_mask_on_image(
-    #             image=outlined_image,
-    #             coords=region.coords,
-    #             color=color,
-    #             thickness=self._mask_thickness,
-    #             soft_mask_alpha=self._soft_mask_alpha,
-    #         )
-    #     return outlined_image
+        Note that regions are 1-indexed, so we need to subtract 1 from the label number.
+        """
+        if label_num < 0 or label_num >= len(string.ascii_lowercase):
+            _logger.warning("Label number out of range. Using numbers instead.")
+            return str(label_num)
+
+        return string.ascii_lowercase[label_num - 1]

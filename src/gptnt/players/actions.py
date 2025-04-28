@@ -1,6 +1,6 @@
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, NonNegativeInt
+from pydantic import AfterValidator, BaseModel, BeforeValidator, NonNegativeInt
 
 from gptnt.ktane.actions import KtaneBaseAction, RelativeCoordinate
 
@@ -26,8 +26,15 @@ class SendMessageAction(BaseAction):
     message: str
 
 
-type SetOfMarksLocation = NonNegativeInt
-"""Set of marks location to interact with; must be an int >= 0."""
+type SingleAlphabetLetter = Annotated[
+    str,
+    BeforeValidator(lambda letter: letter.lower()),
+    AfterValidator(lambda letter: len(letter) == 1),
+    AfterValidator(lambda letter: letter.isalpha()),
+]
+
+type SetOfMarksLocation = NonNegativeInt | SingleAlphabetLetter
+"""Set of marks location to interact with; must be an int >= 0, or a single letter a-z."""
 
 type InteractGameLocation = RelativeCoordinate | SetOfMarksLocation
 """Location-methods to interact with in the game."""

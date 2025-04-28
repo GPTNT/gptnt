@@ -15,8 +15,7 @@ from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.game import GameState
 from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.processors.image_resizer import ImageResizer
-from gptnt.processors.labels.drawing import AnnotationBackgroundParams, AnnotationTextParams
-from gptnt.processors.set_of_marks import MaskDrawingParams, SetOfMarksHandler
+from gptnt.processors.set_of_marks import SetOfMarksHandler
 
 
 @fixture
@@ -154,42 +153,32 @@ async def test_get_observation_resizes_image(client: KtaneClient, screenshot: st
     )
 
 
+@fixture(scope="session")
+def screenshot_segmentation_pair(fixture_path: Path) -> tuple[bytes, bytes]:
+    """Fixture to provide a screenshot and segmentation pair."""
+    image_bytes = fixture_path.joinpath("screenshot1.png").read_bytes()
+    segm_bytes = fixture_path.joinpath("segmentation1.png").read_bytes()
+    return image_bytes, segm_bytes
+
+
 @respx.mock
 @pytest.mark.asyncio
 @pytest.mark.parametrize("action_type", list(GameActionType))
 async def test_set_of_mark_actions_are_converted_to_relative_coordinates(
-    client: KtaneClient,
-    fixture_path: Path,
+    client_with_som: KtaneClient,
+    screenshot_segmentation_pair: tuple[bytes, bytes],
     mocker: MockerFixture,
     action_type: GameActionType,
     bomb_state_json: dict[str, Any],
 ) -> None:
     """Test that the KtaneAction correctly converts to query parameters."""
-    # Create a set of marks painter
-    annotation_text_params = AnnotationTextParams(
-        font=0, font_scale=0.5, thickness=1, space_between_boxes=2
-    )
-
-    annotation_background_params = AnnotationBackgroundParams(padding=0, alpha=0.5)
-
-    mask_drawing_params = MaskDrawingParams(
-        mask_thickness=1,
-        soft_mask_alpha=0.5,
-        bw_outside_mask=False,
-        color_dependent_brighten_factor=0.4,
-    )
-    client.set_of_marks_painter = SetOfMarksHandler(
-        annotation_background_params=annotation_background_params,
-        annotation_text_params=annotation_text_params,
-        mask_drawing_params=mask_drawing_params,
-    )
+    assert isinstance(client_with_som.set_of_marks_painter, SetOfMarksHandler)
 
     # Load an image and segmentation mask
-    image_bytes = fixture_path.joinpath("screenshot1.png").read_bytes()
-    segm_bytes = fixture_path.joinpath("segmentation1.png").read_bytes()
+    image_bytes, segm_bytes = screenshot_segmentation_pair
 
     # Mock the get_observation method to return the image and segmentation bytes
-    _ = respx.get(f"{client.client.base_url}/observation").mock(
+    _ = respx.get(f"{client_with_som.client.base_url}/observation").mock(
         return_value=httpx.Response(
             httpx.codes.OK,
             json={
@@ -198,27 +187,34 @@ async def test_set_of_mark_actions_are_converted_to_relative_coordinates(
             },
         )
     )
-    _ = respx.get(f"{client.client.base_url}/action").mock(
+    _ = respx.get(f"{client_with_som.client.base_url}/action").mock(
         return_value=httpx.Response(httpx.codes.OK, json=bomb_state_json)
     )
 
-    # Get the observation
-    _ = await client.get_observation()
-    # Make sure that the mapping of marks to coords exists
-    assert client.set_of_marks_painter._mark_to_coordinate is not None
+    som_mark_style = client_with_som.set_of_marks_painter._mark_type
+    som_mark_type = str if som_mark_style == "alphabet" else int
+    som_location = "a" if som_mark_style == "alphabet" else 1
 
-    action = KtaneBaseAction[int](
+    # Get the observation
+    _ = await client_with_som.get_observation()
+    # Make sure that the mapping of marks to coords exists
+    assert client_with_som.set_of_marks_painter._mark_to_coordinate is not None
+
+    action = KtaneBaseAction[som_mark_type](
         action=action_type,
-        location=1 if action_type in GameActionType.require_location() else None,
+        location=som_location if action_type in GameActionType.require_location() else None,
     )
 
     # Call the method
     spy = mocker.spy(SetOfMarksHandler, "mark_to_coordinate")
-    _ = await client.send_action(action)
+    _ = await client_with_som.send_action(action)
 
     if action_type in GameActionType.require_location():
         assert spy.called is True
-        assert spy.spy_return == client.set_of_marks_painter._mark_to_coordinate[1]
+        assert (
+            spy.spy_return
+            == client_with_som.set_of_marks_painter._mark_to_coordinate[som_location]
+        )
     else:
         # If the action does not require a location, we should not call the mark_to_coordinate method
         assert spy.called is False

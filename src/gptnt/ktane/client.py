@@ -155,7 +155,7 @@ class KtaneClient(InstrumentationMixin):
         supported by the game, and any SoM actions must first be converted to relative coordinates.
         """
         # Convert from SoM to relative coordinates if needed
-        if self.set_of_marks_painter and isinstance(action.location, int):
+        if self.set_of_marks_painter and isinstance(action.location, (int, str)):
             # Convert the SoM to relative coordinates
             action.location = self.set_of_marks_painter.mark_to_coordinate(mark_id=action.location)
 
