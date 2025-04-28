@@ -36,7 +36,7 @@ type KeypadSymbol = Literal[
 
 type SimonSaysColor = Literal["red", "blue", "green", "yellow"]
 
-type ComplicatedWireColor = Literal["white", "red", "blue", "White_red", "white_blue", "red_blue"]
+type ComplicatedWireColor = Literal["white", "red", "blue", "white_red", "white_blue", "red_blue"]
 
 type KnobPosition = Literal["up", "down", "left", "right"]
 
@@ -60,4 +60,4 @@ type ButtonWord = Literal["Abort", "Detonate", "Hold", "Press"]
 
 type ButtonStripColor = Literal["red", "blue", "yellow", "white"]
 
-type KeyPadButtonColor = Literal["Green", "Red"]
+type KeyPadButtonColor = Literal["green", "red"]

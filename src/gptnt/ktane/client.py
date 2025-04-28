@@ -1,7 +1,7 @@
 import base64
 from io import BytesIO
 from types import TracebackType
-from typing import TYPE_CHECKING, NamedTuple, Self, override
+from typing import NamedTuple, Self, override
 
 import httpx
 import logfire
@@ -19,9 +19,6 @@ from gptnt.ktane.state.game import GameState
 from gptnt.players.actions import InteractGameLocation
 from gptnt.processors.image_resizer import ImageResizer
 from gptnt.processors.set_of_marks import SetOfMarksHandler
-
-if TYPE_CHECKING:
-    from gptnt.ktane.state.modules import KtaneComponent
 
 _logger = structlog.get_logger()
 
@@ -52,7 +49,9 @@ class KtaneClient(InstrumentationMixin):
         self.set_of_marks_painter = set_of_marks_painter
         self.image_resizer = image_resizer
 
-        self.zoomed_in_component: KtaneComponent | None = None
+        self.current_bomb_state: BombState | None = None
+
+        # self.zoomed_in_component: KtaneComponent | None = None
 
         assert self.client.base_url is not None, "Base URL must be set"
 
@@ -148,7 +147,7 @@ class KtaneClient(InstrumentationMixin):
 
     async def send_action(
         self, action: KtaneBaseAction[InteractGameLocation] | KtaneAction
-    ) -> BombState | None:
+    ) -> bool | None:
         """Send an action to the server.
 
         When we are sending actions to the game, we are always going to be sending a relative
@@ -158,6 +157,7 @@ class KtaneClient(InstrumentationMixin):
         # Convert from SoM to relative coordinates if needed
         if self.set_of_marks_painter and isinstance(action.location, (int, str)):
             # Convert the SoM to relative coordinates
+            _logger.info(f"Mark to click is: {action.location}")
             action.location = self.set_of_marks_painter.mark_to_coordinate(mark_id=action.location)
 
         response = await self.client.get("/action", params=action.to_query_params())
@@ -167,11 +167,9 @@ class KtaneClient(InstrumentationMixin):
             _logger.exception(f"Failed to send action Reason: {response.text}", exc_info=err)
             return None
 
-        bomb_state = BombState.model_validate_json(response.text)
-        # Find zoomed-in component if any are zoomed in
-        self.zoomed_in_component = bomb_state.zoomed_in_component
+        _logger.info("Response from action", response=response.text)
 
-        return bomb_state
+        return True
 
     async def get_state(self) -> BombState | None:
         """Get the current state of the bomb."""
@@ -182,7 +180,10 @@ class KtaneClient(InstrumentationMixin):
             _logger.exception(f"Failed to get bomb state Reason: {response.text}", exc_info=err)
             return None
         _logger.debug("Bomb state", bomb_state=response.json())
-        return BombState.model_validate(response.json())
+
+        state = BombState.model_validate(response.json())
+        self.current_bomb_state = state
+        return state
 
     @logfire.instrument("Get observation from environment")
     async def get_observation(self) -> Observation:  # noqa: WPS615
@@ -216,7 +217,9 @@ class KtaneClient(InstrumentationMixin):
                 observation = self.set_of_marks_painter.run(
                     observation=np.asarray(observation),
                     colorful_image=np.asarray(segmentation),
-                    state=self.zoomed_in_component,
+                    state=self.current_bomb_state.zoomed_in_component
+                    if self.current_bomb_state
+                    else None,
                 )
 
             # convert back to pillow image
@@ -267,36 +270,3 @@ class KtaneClient(InstrumentationMixin):
         )
 
         return screenshot_png_data, segm_png_data
-
-    async def _get_screenshot_with_segm_with_state(
-        self,
-    ) -> tuple[bytes, bytes | None, BombState | None]:
-        """Get the current observation from the game as two pngs.
-
-        First is the raw screenshot, second is the segmentation image.
-        """
-        response = await self.client.get("/fullobservation")
-
-        try:
-            _ = response.raise_for_status()
-        except httpx.HTTPError as err:
-            raise InvalidGameError("Failed to get observation") from err
-
-        response_json = response.json()
-
-        screenshot_png_data = base64.b64decode(response_json.get("screenshot"))
-
-        # When the segmentation is empty, we return an empty byte string.
-        segm_png_data = (
-            base64.b64decode(response_json.get("segmentation"))
-            if response_json["segmentation"]
-            else None
-        )
-
-        state = (
-            BombState.model_validate_json(response_json.get("state"))
-            if response_json["state"]
-            else None
-        )
-
-        return screenshot_png_data, segm_png_data, state

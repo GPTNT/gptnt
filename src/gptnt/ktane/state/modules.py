@@ -3,11 +3,13 @@ from typing import Annotated, NamedTuple, Union
 
 from pydantic import (
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     Field,
     NonNegativeFloat,
     alias_generators,
     computed_field,
+    field_validator,
 )
 
 from gptnt.ktane.state import constants
@@ -32,6 +34,17 @@ class KtaneComponent(Enum):
     needy_vent_gas = "NeedyVentGas"
     needy_capacitor = "NeedyCapacitor"
     needy_knob = "NeedyKnob"
+
+
+def coerce_color(value: str | None) -> str | None:  # noqa: WPS110
+    """Coerce the color to lowercase.
+
+    This is used to ensure that the color is always in lowercase, as the KTANE API expects it to
+    be.
+    """
+    if value is None:
+        return None
+    return value.lower()
 
 
 class BaseModuleState(BaseModel):
@@ -78,12 +91,24 @@ class ButtonModuleState(InteractiveModuleState):
     is_held: bool
     strip_color: constants.ButtonStripColor | None
 
+    @field_validator("strip_color", "button_color", mode="before")
+    @classmethod
+    def fix_color(cls, value: str | None) -> str | None:  # noqa: WPS110
+        """Coerce the color."""
+        return coerce_color(value)
+
 
 class KeyPadButtonState(BaseModel):
     """State of the Keypad button."""
 
     symbol: constants.KeypadSymbol
     color: constants.KeyPadButtonColor | None
+
+    @field_validator("color", mode="before")
+    @classmethod
+    def fix_color(cls, value: str | None) -> str | None:  # noqa: WPS110
+        """Coerce the strip color."""
+        return coerce_color(value)
 
 
 class KeypadModuleState(InteractiveModuleState):
@@ -101,6 +126,12 @@ class SimonSaysModuleState(InteractiveModuleState):
     beep_sequence: Annotated[list[constants.SimonSaysColor], Field(min_length=4, max_length=6)]
     solve_progress: Annotated[int, Field(le=5, ge=0)]
 
+    @field_validator("beep_sequence", mode="before")
+    @classmethod
+    def fix_color(cls, value: list[str]) -> list[str]:  # noqa: WPS110
+        """Coerce the color to lowercase."""
+        return [color.lower() for color in value]
+
 
 class BaseWire[WireColorT](BaseModel):
     """Base class for wires."""
@@ -108,7 +139,7 @@ class BaseWire[WireColorT](BaseModel):
     model_config = ConfigDict(alias_generator=alias_generators.to_camel, populate_by_name=True)
 
     is_cut: bool
-    color: WireColorT
+    color: Annotated[WireColorT, BeforeValidator(lambda word: word.lower())]
 
 
 class WireSetWire(BaseWire[constants.WireSetColor]):

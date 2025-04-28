@@ -2,6 +2,7 @@ from types import GenericAlias
 from typing import Literal, TypeAliasType
 
 from gptnt.ktane.actions import RelativeCoordinate
+from gptnt.players.actions import SingleAlphabetLetter
 from gptnt.players.ai.defuser import DefuserOutputT
 from gptnt.players.ai.expert import ExpertOutputT
 
@@ -12,7 +13,7 @@ def get_defuser_output_type(variant: Literal["set_of_marks", "coordinates"]) -> 
     This is mainly for Hydra and shouldn't be used anywhere else.
     """
     switcher = {
-        "set_of_marks": DefuserOutputT[int],
+        "set_of_marks": DefuserOutputT[SingleAlphabetLetter],
         "coordinates": DefuserOutputT[RelativeCoordinate],
     }
     return switcher[variant]

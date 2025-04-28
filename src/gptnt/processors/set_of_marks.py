@@ -318,9 +318,10 @@ class SetOfMarksHandler:
 
     def mark_to_coordinate(self, *, mark_id: SetOfMarksLocation) -> RelativeCoordinate:
         """Convert a mark ID to a relative coordinate."""
-        assert mark_id in self._mark_to_coordinate, (
-            f"Mark ID {mark_id} not found in mark to coordinate mapping."
-        )
+        if mark_id not in self._mark_to_coordinate:
+            _logger.exception(
+                "Mark ID not found in mapping", mark_id=mark_id, mapping=self._mark_to_coordinate
+            )
         return self._mark_to_coordinate[mark_id]
 
     def draw_labels(

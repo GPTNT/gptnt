@@ -26,12 +26,19 @@ class SendMessageAction(BaseAction):
     message: str
 
 
+def validate_single_alphabet_letter(letter: str) -> str:
+    """Validate that the letter is a single alphabet letter."""
+    if len(letter) != 1 or not letter.isalpha():
+        raise ValueError("Must be a single alphabet letter (a-z).")
+    return letter
+
+
 type SingleAlphabetLetter = Annotated[
     str,
-    BeforeValidator(lambda letter: letter.lower()),
-    AfterValidator(lambda letter: len(letter) == 1),
-    AfterValidator(lambda letter: letter.isalpha()),
+    BeforeValidator(lambda letter: letter.upper()),
+    AfterValidator(validate_single_alphabet_letter),
 ]
+
 
 type SetOfMarksLocation = NonNegativeInt | SingleAlphabetLetter
 """Set of marks location to interact with; must be an int >= 0, or a single letter a-z."""

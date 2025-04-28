@@ -38,7 +38,7 @@ async def join_room(room: RoomMetadata, player: PlayerDep) -> None:
 
     # Reset dialogue-space client
     player.dialogue_space_client = DialogueSpaceClient.from_url(room.dialogue_space_url)
-    player.tracker.reset(force=True)
+    # player.tracker.reset(force=True)
 
     # TODO: Fix the Ktane player hackery
     if isinstance(player, Controller) and isinstance(player.view, DefuserPlayerView):

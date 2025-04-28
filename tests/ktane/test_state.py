@@ -7,7 +7,6 @@ from pytest_cases import parametrize_with_cases
 
 from gptnt.ktane.actions import GameActionType, KtaneAction
 from gptnt.ktane.client import KtaneClient
-from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.modules import ComplicatedWire, WireSequenceWire, WireSetWire
 
 
@@ -88,6 +87,5 @@ async def test_send_action_returns_bomb_state(
         location=location if action_type in GameActionType.require_location() else None,
     )
 
-    bomb_state = await client.send_action(action)
-    assert isinstance(bomb_state, BombState)
+    _ = await client.send_action(action)
     assert action_endpoint.called is True
