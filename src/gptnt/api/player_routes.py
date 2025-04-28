@@ -53,10 +53,9 @@ async def join_room(room: RoomMetadata, player: PlayerDep) -> None:
 @player_router.post("/start-experiment")
 async def start_experiment(player: PlayerDep, game_metadata: GameMetadata) -> bool:
     """Start the experiment."""
-    # TODO: Add W&B stuff
     player.tracker.on_game_start(
         experiment_spec=game_metadata.experiment_spec,
-        game_id=str(game_metadata.game_id),
+        game_id=game_metadata.game_id,
         role=game_metadata.player_metadata.player_role,
         player_id=player.metadata.uuid,
         additional_metadata={},

@@ -191,7 +191,7 @@ class PlayerEpisodeTracker:
         self,
         *,
         experiment_spec: ExperimentSpec,
-        game_id: str,
+        game_id: UUID4,
         player_id: UUID4,
         role: PlayerRole | None,
         additional_metadata: dict[str, Any],
@@ -204,7 +204,7 @@ class PlayerEpisodeTracker:
             config=flatten_dict(
                 {
                     "game_id": game_id,
-                    "player_id": str(player_id),
+                    "player_id": player_id,
                     "role": role,
                     "experiment_name": experiment_spec.experiment_name,
                     **experiment_spec.model_dump(mode="json"),
