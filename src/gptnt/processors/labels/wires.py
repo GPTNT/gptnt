@@ -8,9 +8,10 @@ from gptnt.processors.labels.types import (
 )
 
 OVERCROWDING_THRESHOLD = 4
+VERTICAL_OFFSET = 7
 
 
-def resolve_overlaps(
+def _resolve_overlaps(
     coords: list[Coordinates], box_dims: NumberBoxDimensions, center_label_index: int
 ) -> list[Coordinates]:
     """Resolve overlaps between labels by pushing them apart."""
@@ -51,8 +52,8 @@ def resolve_overlaps(
     return new_coords
 
 
-def wires(
-    regions: list[RegionProperties], box_dims: NumberBoxDimensions, *, x_offset: int = -7
+def wires(  # noqa: WPS210
+    regions: list[RegionProperties], box_dims: NumberBoxDimensions, *, x_offset: int = 7
 ) -> Generator[DrawData]:
     """Generate draw data for venn module."""
     sorted_regions = sorted(regions, key=lambda region: region.bbox[0])
@@ -62,30 +63,48 @@ def wires(
     # ideal coordinates
     ideal_coords = []
     for region in sorted_regions:
-        x_coord = region.bbox[1] - box_dims.width // 2 - box_dims.padding + x_offset
+        x_coord = region.bbox[1] - box_dims.width // 2 - box_dims.padding - x_offset
         y_coord = int(region.centroid[0])
 
         coord = Coordinates(y_pos=y_coord, x_pos=x_coord)
         ideal_coords.append(coord)
 
+    overcrowded = number_of_wires > OVERCROWDING_THRESHOLD
+
     # if too many wires, put a couple above and below the wires
-    if number_of_wires > OVERCROWDING_THRESHOLD:
+    if overcrowded:
         ideal_coords[0] = Coordinates(
-            y_pos=sorted_regions[0].bbox[2] - box_dims.height // 2 - box_dims.padding,
+            y_pos=sorted_regions[0].bbox[0]
+            - box_dims.height // 2
+            - box_dims.padding
+            - VERTICAL_OFFSET,
             x_pos=int(sorted_regions[0].centroid[1]),
         )
         ideal_coords[-1] = Coordinates(
-            y_pos=sorted_regions[-1].bbox[2] + box_dims.height // 2 + box_dims.padding,
+            y_pos=sorted_regions[-1].bbox[2]
+            + box_dims.height // 2
+            + box_dims.padding
+            + VERTICAL_OFFSET,
             x_pos=int(sorted_regions[0].centroid[1]),
         )
 
     # index of centre label (i.e. label that will always be ideally placed)
     center_label_index = (number_of_wires - 1) // 2  # rounds up when n is even
 
-    # resolve overlaps starting from 3rd wire (index 2)
-    resolved_coords = resolve_overlaps(
-        ideal_coords, box_dims, center_label_index=center_label_index
-    )
+    if overcrowded:
+        # only resolve overlaps for the middle labels
+        middle_coords = ideal_coords[1:-1]
+        middle_center_index = (len(middle_coords) - 1) // 2
+        resolved_middle = _resolve_overlaps(
+            middle_coords, box_dims, center_label_index=middle_center_index
+        )
+        # reconstruct full list
+        resolved_coords = [ideal_coords[0], *resolved_middle, ideal_coords[-1]]
+    else:
+        # resolve all coordinates normally
+        resolved_coords = _resolve_overlaps(
+            ideal_coords, box_dims, center_label_index=center_label_index
+        )
 
     # yield final drawing data
     for coord, region in zip(resolved_coords, sorted_regions, strict=False):

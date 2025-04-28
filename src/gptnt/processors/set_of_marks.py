@@ -22,7 +22,6 @@ from gptnt.processors.labels.color import (
     get_median_colour,
 )
 from gptnt.processors.labels.drawing import (
-    BIG_BUTTON_OFFSET,
     AnnotationBackgroundParams,
     AnnotationTextParams,
     draw_annotation,
@@ -49,12 +48,14 @@ from gptnt.processors.labels.types import (  # noqa: WPS235
 )
 from gptnt.processors.labels.venn import venn
 from gptnt.processors.labels.whos_on_first import whos_on_first
+from gptnt.processors.labels.wire_sequence import wire_sequence
 from gptnt.processors.labels.wires import wires
 from gptnt.processors.labels.zoomed_out import zoomed_out
 
 _logger = structlog.get_logger()
 
 PROPS_AREA_THRESHOLD = 10
+BIG_BUTTON_OFFSET = -6
 
 COMPONENT_WRITE_LABEL_MAPPER: Mapping[
     KtaneComponent | None,
@@ -72,7 +73,7 @@ COMPONENT_WRITE_LABEL_MAPPER: Mapping[
         KtaneComponent.maze: maze,
         KtaneComponent.wires: wires,
         KtaneComponent.venn: venn,
-        KtaneComponent.wire_sequence: wires,
+        KtaneComponent.wire_sequence: wire_sequence,
     }
 )
 

@@ -11,8 +11,6 @@ from gptnt.processors.labels.types import Color, Coordinates, NumberBoxDimension
 
 log = structlog.get_logger()
 
-BIG_BUTTON_OFFSET = 10
-
 
 @dataclass
 class AnnotationBackgroundParams:

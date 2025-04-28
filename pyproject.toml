@@ -104,6 +104,7 @@ per-file-ignores = [
     "scripts/*:WPS",
     "tests/*:WPS2,WPS118,WPS432,WPS435,WPS444,WPS476",
     "src/gptnt/ktane/state/*:WPS202",
+    "src/gptnt/processors/*:WPS203",
 ]
 select = ["WPS"]
 max-line-length = 99
