@@ -13,21 +13,25 @@ from gptnt.players.structures import PlayerMetadata
 class AIPlayerCases:
     """Parametrize fixtures for players."""
 
-    def __init__(self) -> None:
-        self.tracker = PlayerEpisodeTracker(wandb_init_kwargs={"project": "gptnt"})
-
-    def case_expert(self, dialogue_space_client: DialogueSpaceClient) -> ExpertPlayer:
+    def case_expert(
+        self,
+        dialogue_space_client: DialogueSpaceClient,
+        player_episode_tracker: PlayerEpisodeTracker,
+    ) -> ExpertPlayer:
         expert_agent = Agent[None, ExpertOutputT]("test", output_type=ExpertOutputT)
         player = ExpertPlayer(
             agent=expert_agent,
             metadata=PlayerMetadata(player_type="ai", player_role="expert"),
-            tracker=self.tracker,
+            tracker=player_episode_tracker,
         )
         player.dialogue_space_client = dialogue_space_client
         return player
 
     def case_defuser_mdp_set_of_marks(
-        self, dialogue_space_client: DialogueSpaceClient, game_client: KtaneClient
+        self,
+        dialogue_space_client: DialogueSpaceClient,
+        game_client: KtaneClient,
+        player_episode_tracker: PlayerEpisodeTracker,
     ) -> MDPDefuserPlayer[SetOfMarksLocation]:
         agent = Agent[None, DefuserOutputT[SetOfMarksLocation]](
             "test", output_type=DefuserOutputT[SetOfMarksLocation]
@@ -36,13 +40,16 @@ class AIPlayerCases:
             agent=agent,
             game_client=game_client,
             metadata=PlayerMetadata(player_type="ai", player_role="defuser"),
-            tracker=self.tracker,
+            tracker=player_episode_tracker,
         )
         player.dialogue_space_client = dialogue_space_client
         return player
 
     def case_defuser_mdp_coordinate(
-        self, dialogue_space_client: DialogueSpaceClient, game_client: KtaneClient
+        self,
+        dialogue_space_client: DialogueSpaceClient,
+        game_client: KtaneClient,
+        player_episode_tracker: PlayerEpisodeTracker,
     ) -> MDPDefuserPlayer[RelativeCoordinate]:
         agent = Agent[None, DefuserOutputT[RelativeCoordinate]](
             "test", output_type=DefuserOutputT[RelativeCoordinate]
@@ -51,7 +58,7 @@ class AIPlayerCases:
             agent=agent,
             game_client=game_client,
             metadata=PlayerMetadata(player_type="ai", player_role="defuser"),
-            tracker=self.tracker,
+            tracker=player_episode_tracker,
         )
         player.dialogue_space_client = dialogue_space_client
         return player
