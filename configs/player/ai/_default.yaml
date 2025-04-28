@@ -11,4 +11,9 @@ metadata:
 
 tracker:
   _target_: gptnt.players.metrics.PlayerEpisodeTracker
-  wandb_init_kwargs: { "project": "gptnt" }
+  wandb_init_kwargs:
+    project: gptnt
+    entity: gptnt
+    group: null
+    tags: null
+    name: null
