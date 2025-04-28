@@ -202,7 +202,7 @@ class PlayerEpisodeTracker:
                     "player_id": str(player_id),
                     "role": role,
                     "experiment_name": experiment_spec.experiment_name,
-                    "experiment_spec": experiment_spec.model_dump(mode="json"),
+                    **experiment_spec.model_dump(mode="json"),
                     **additional_metadata,
                 }
             ),
