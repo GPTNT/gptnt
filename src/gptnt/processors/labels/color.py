@@ -1,4 +1,4 @@
-from typing import cast
+import colorsys
 
 import numpy as np
 from color_contrast import check_contrast
@@ -25,19 +25,54 @@ def get_median_colour(region: RegionProperties, segm_img: RGBArray) -> Color:
     return (int(color[0]), int(color[1]), int(color[2]))
 
 
-def brighten(rgb: Color, factor: float = 0.2) -> Color:
-    """Brighten a color by a factor.
-
-    The factor is how much brighter: 0 = no change, 1 = full white.
-    """
-    new_rgb = tuple(min(MAX_RGB, int(color + (MAX_RGB - color) * factor)) for color in rgb)  # noqa: WPS221
-
-    return cast("Color", new_rgb)
-
-
 def rgb_to_hex(rgb: Color) -> str:
     """Convert an RGB color to a hex string."""
     return f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
+
+
+def _rgb_to_hsv(rgb: Color) -> tuple[float, float, float]:
+    """Convert an RGB color to HSV."""
+    red, green, blue = rgb
+    red /= MAX_RGB
+    green /= MAX_RGB
+    blue /= MAX_RGB
+    return colorsys.rgb_to_hsv(red, green, blue)
+
+
+def _hsv_to_rgb(hsv: tuple[float, float, float]) -> Color:
+    """Convert an HSV color to RGB."""
+    red, green, blue = colorsys.hsv_to_rgb(*hsv)
+    return int(red * MAX_RGB), int(green * MAX_RGB), int(blue * MAX_RGB)
+
+
+def _boost_vibrancy_hsv(
+    hue: float,
+    saturation: float,
+    value: float,  # noqa: WPS110
+    saturation_boost: float = 0.2,
+    value_boost: float = 0.1,
+) -> tuple[float, float, float]:  # noqa: WPS110
+    """Boosts the vibrancy of a color in HSV space.
+
+    - saturation_boost: amount to increase saturation by (default 0.2)
+    - value_boost: amount to increase value by (default 0.1)
+    Returns modified (hue, saturation, value), clamped to valid ranges.
+    """
+    new_saturation = min(saturation + saturation_boost, 1.0)
+    new_value = min(value + value_boost, 1.0)
+    return hue, new_saturation, new_value
+
+
+def boost_vibrancy(rgb: Color, saturation_boost: float = 0.2, value_boost: float = 0.1) -> Color:
+    """Boosts the vibrancy of a color in RGB space.
+
+    - saturation_boost: amount to increase saturation by (default 0.2)
+    - value_boost: amount to increase value by (default 0.1)
+    Returns modified (r, g, b), clamped to valid ranges.
+    """
+    hsv = _rgb_to_hsv(rgb)
+    boosted_hsv = _boost_vibrancy_hsv(hsv[0], hsv[1], hsv[2], saturation_boost, value_boost)
+    return _hsv_to_rgb(boosted_hsv)
 
 
 def find_text_color(bg_color: Color) -> Color:

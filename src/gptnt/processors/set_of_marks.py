@@ -1,4 +1,3 @@
-import colorsys
 import string
 from collections.abc import Callable, Generator, Mapping
 from dataclasses import dataclass
@@ -19,7 +18,7 @@ from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.players.actions import SetOfMarksLocation, SingleAlphabetLetter
 from gptnt.processors.labels.color import (
     ENTIRELY_COLOR_DEPENDENT_MODULES,
-    brighten,
+    boost_vibrancy,
     get_median_colour,
 )
 from gptnt.processors.labels.drawing import (
@@ -76,12 +75,6 @@ COMPONENT_WRITE_LABEL_MAPPER: Mapping[
         KtaneComponent.wire_sequence: wires,
     }
 )
-
-
-def hue_to_rgb(hue: float) -> Color:
-    """Convert hue value to rgb."""
-    red_val, green_val, blue_val = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
-    return (int(red_val * 255), int(green_val * 255), int(blue_val * 255))  # noqa: WPS432
 
 
 def blend_with_image(image: RGBArray, mask: RGBArray, alpha: float = 0.3) -> RGBArray:
@@ -180,7 +173,8 @@ def get_region_color(
     segm_image: RGBArray,
     region: RegionProperties,
     module: KtaneComponent | None,
-    color_dependent_brighten_factor: float,
+    saturation_boost: float,
+    value_boost: float,
 ) -> Color:
     """Get the colour of a region based on the module type."""
     # Use image colours for colour dependent modules (but only wire interactables for wire modules)
@@ -188,7 +182,7 @@ def get_region_color(
         module == KtaneComponent.wire_sequence and region.eccentricity > IS_LINE_THRESHOLD
     ):
         color = get_median_colour(region, image)
-        return brighten(color, color_dependent_brighten_factor)
+        return boost_vibrancy(color, saturation_boost=saturation_boost, value_boost=value_boost)
 
     if module == KtaneComponent.wire_sequence:
         # Set the colors of the wire_sequence buttons so that they do not match one of the wires
@@ -209,7 +203,8 @@ class MaskDrawingParams:
     mask_thickness: int
     soft_mask_alpha: float
     bw_outside_mask: bool
-    color_dependent_brighten_factor: float = 0.4
+    color_dependent_saturation_boost: float
+    color_dependent_value_boost: float
 
 
 def draw_region_masks(  # noqa: WPS210, WPS211
@@ -235,7 +230,8 @@ def draw_region_masks(  # noqa: WPS210, WPS211
             segm_image,
             region,
             zoomed_in_component,
-            drawing_params.color_dependent_brighten_factor,
+            drawing_params.color_dependent_saturation_boost,
+            drawing_params.color_dependent_value_boost,
         )
 
         _, mask = draw_mask_on_image(
@@ -357,7 +353,8 @@ class SetOfMarksHandler:
                 segm_img,
                 region,
                 module,
-                self._mask_drawing_params.color_dependent_brighten_factor,
+                self._mask_drawing_params.color_dependent_saturation_boost,
+                self._mask_drawing_params.color_dependent_value_boost,
             )
             # Ensure the label is an integer, which is should be but skimage is not type safe
             assert isinstance(region.label, int), (
