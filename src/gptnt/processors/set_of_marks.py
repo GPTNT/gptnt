@@ -331,7 +331,7 @@ class SetOfMarksHandler:
     ) -> RGBArray:
         """Draw labels on the image based on the segmentation image and observation."""
         (text_width, text_height), _ = cv2.getTextSize(
-            text="0",  # sample text
+            text="A",  # sample text
             fontFace=self._annotation_text_params.font,
             fontScale=self._annotation_text_params.font_scale,
             thickness=self._annotation_text_params.thickness,
@@ -394,8 +394,8 @@ class SetOfMarksHandler:
 
         Note that regions are 1-indexed, so we need to subtract 1 from the label number.
         """
-        if label_num < 0 or label_num >= len(string.ascii_lowercase):
+        if label_num < 0 or label_num >= len(string.ascii_uppercase):
             _logger.warning("Label number out of range. Using numbers instead.")
             return str(label_num)
 
-        return string.ascii_lowercase[label_num - 1]
+        return string.ascii_uppercase[label_num - 1]

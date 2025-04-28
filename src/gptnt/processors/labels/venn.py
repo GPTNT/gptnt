@@ -11,7 +11,7 @@ from gptnt.processors.labels.types import (
 CENTER_LABEL = 2
 
 
-def resolve_overlaps(
+def _resolve_overlaps(
     coords: list[Coordinates], box_dims: NumberBoxDimensions
 ) -> list[Coordinates]:
     """Resolve overlaps between labels by pushing them apart."""
@@ -64,7 +64,7 @@ def venn(
         ideal_coords.append(coord)
 
     # resolve overlaps starting from 3rd wire (index 2)
-    resolved_coords = resolve_overlaps(ideal_coords, box_dims)
+    resolved_coords = _resolve_overlaps(ideal_coords, box_dims)
 
     # yield final drawing data
     for coord, region in zip(resolved_coords, sorted_regions, strict=False):
