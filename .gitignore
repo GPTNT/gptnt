@@ -784,7 +784,6 @@ storage/ktane/*
 
 # The experiment jsons, but not the tests
 storage/experiments/*
-!storage/experiments/test.json
 storage/missions/*
 
 

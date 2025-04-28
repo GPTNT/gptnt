@@ -1,6 +1,7 @@
 from typing import override
 
 import httpx
+import logfire
 from structlog import get_logger
 
 from gptnt.api.base_client import BaseClient, SupervisedClient
@@ -74,8 +75,9 @@ class SupervisedPlayerClient(SupervisedClient[PlayerClient, PlayerMetadata]):
     @override
     async def supervisor_loop(self) -> None:
         while self.is_running:
-            if not await self.client.healthcheck():
-                break
+            with logfire.suppress_instrumentation():
+                if not await self.client.healthcheck():
+                    break
             await healthcheck_interval()
         _logger.info("Player died")
         self.is_running = False

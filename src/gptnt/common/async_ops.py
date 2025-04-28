@@ -1,16 +1,16 @@
 import asyncio
-from collections.abc import Callable
+from collections.abc import Callable, Coroutine
 from typing import Any
 
 
-async def healthcheck_interval() -> None:
+def healthcheck_interval() -> Coroutine[Any, Any, None]:
     """Returns after the standard healthcheck interval has passed."""
-    await asyncio.sleep(1)
+    return asyncio.sleep(1)
 
 
-async def busy_wait_interval() -> None:
+def busy_wait_interval() -> Coroutine[Any, Any, None]:
     """Returns after the standard busy-wait interval has passed."""
-    await asyncio.sleep(1)
+    return asyncio.sleep(1)
 
 
 async def until(get_value: Callable[[], Any], target: Any) -> None:

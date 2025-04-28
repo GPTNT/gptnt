@@ -57,6 +57,9 @@ class WebsocketClient:
         if self.response_task and not self.response_task.done():
             _ = self.response_task.cancel()
 
+        if self.connection:
+            await self.connection.close()
+
     def send_request(self, endpoint: str, data: Any) -> Task[Any]:
         """Request data from the websocket endpoint."""
         # Schedule the request send to be executed immediately and return a promise to the response data

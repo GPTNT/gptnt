@@ -48,6 +48,13 @@ class DialogueSpaceServer:
         """Get the port of the dialogue space server."""
         return self.server.port
 
+    @property
+    def active_connections(self) -> int:
+        """Get the number of active connections."""
+        if self.server.server is None:
+            return 0
+        return len(self.server.server.connections)
+
     async def start(self) -> Self:
         """Start the dialogue space server."""
         _ = await self.connect()

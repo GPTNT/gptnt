@@ -36,9 +36,15 @@ async def _get_supervised_rooms(request: Request) -> list[SupervisedRoomManagerC
     return request.app.state.manager.rooms
 
 
+async def _get_manager_tasks(request: Request) -> list[asyncio.Task[None]]:
+    """Get the running tasks from the state of the app."""
+    return request.app.state.manager.tasks
+
+
 ExperimentSpecDep = Annotated[set[ExperimentSpec], Depends(_get_experiments)]
 SupervisedPlayersDep = Annotated[list[SupervisedPlayerClient], Depends(_get_supervised_players)]
 SupervisedRoomsDep = Annotated[list[SupervisedRoomManagerClient], Depends(_get_supervised_rooms)]
+ManagerTasksDep = Annotated[list[asyncio.Task[None]], Depends(_get_manager_tasks)]
 
 
 @router.get("/health")
@@ -58,16 +64,30 @@ async def add_experiment(experiment_spec: ExperimentSpec, experiments: Experimen
 
 @router.post("/connect-player")
 async def connect_player(
-    player_metadata: PlayerMetadata, supervised_players: SupervisedPlayersDep
+    player_metadata: PlayerMetadata,
+    supervised_players: SupervisedPlayersDep,
+    tasks: ManagerTasksDep,
 ) -> None:
-    """Connects a new player to the experiment manager."""
-    supervised_players.append(SupervisedPlayerClient.from_metadata(player_metadata))
+    """Connects a new player to the experiment manager and starts its supervisors."""
+    new_player = SupervisedPlayerClient.from_metadata(player_metadata)
+    await new_player.start()
+    tasks.append(asyncio.create_task(coro=new_player.supervisor_loop()))
+    supervised_players.append(new_player)
 
 
 @router.post("/connect-room")
-async def connect_room(room_metadata: RoomMetadata, supervised_rooms: SupervisedRoomsDep) -> None:
+async def connect_room(
+    room_metadata: RoomMetadata, supervised_rooms: SupervisedRoomsDep, tasks: ManagerTasksDep
+) -> None:
     """Connects a new room manager to the experiment manager."""
-    supervised_rooms.append(SupervisedRoomManagerClient.from_metadata(room_metadata))
+    # TODO: Stop the RoomManager from re-connecting after a restart, this is a HACK
+    if [room for room in supervised_rooms if room.metadata.uuid == room_metadata.uuid]:
+        return
+
+    new_room = SupervisedRoomManagerClient.from_metadata(room_metadata)
+    await new_room.start()
+    tasks.append(asyncio.create_task(coro=new_room.supervisor_loop()))
+    supervised_rooms.append(new_room)
 
 
 @asynccontextmanager
@@ -86,6 +106,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         logger.warning(
             "No experiments found. Generate some with `uv run ./src/gptnt/entrypoints/generate_experiments.py` and restart; OR use the entrypoint to provide them."
         )
+    test_experiments = {
+        ExperimentSpec.model_validate_json(path.read_text())
+        for path in paths.test_experiments.rglob("*.json")
+    }
+    experiments = experiments | test_experiments  # noqa: WPS350 (Huh? What is this?)
 
     logger.info(f"Starting ExperimentManager with {len(experiments)} experiments.")
     manager.experiments = experiments

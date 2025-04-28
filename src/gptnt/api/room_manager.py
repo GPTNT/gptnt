@@ -1,5 +1,6 @@
 import asyncio
 import os
+import uuid
 from contextlib import suppress
 from types import TracebackType
 from typing import TYPE_CHECKING, Self
@@ -38,7 +39,7 @@ class RoomManager:
         self._fastapi_server_port: int = port
 
         self._players_per_game: int = 2
-        self._game_startup_time: float = 15.0
+        self._uuid = uuid.uuid4()
 
         # Control and status flags
         self.lifecycle_stage: RoomStage
@@ -76,6 +77,7 @@ class RoomManager:
             dialogue_space_url=self._dialogue_space_server.url,
             ktane_url=f"{self.ktane_client.client.base_url}",
             state=self.lifecycle_stage,
+            uuid=self._uuid,
         )
 
     def kill_game_process(self) -> None:
@@ -306,17 +308,9 @@ class RoomManager:
         """
         # Wait for players to connect
         while not self._should_exit:
-            if len(self._dialogue_space_server.agents) == self._players_per_game:
+            if self._dialogue_space_server.active_connections == self._players_per_game:
                 self._players_connected.set()
                 break
-
-            await healthcheck_interval()
-
-        _logger.info("Starting DialogueSpaceServer supervisor")
-        while not self._restart_raised.is_set():
-            if len(self._dialogue_space_server.agents) != self._players_per_game:
-                _logger.exception("Player disconnected during experiment")
-                self._restart_raised.set()
 
             await healthcheck_interval()
 

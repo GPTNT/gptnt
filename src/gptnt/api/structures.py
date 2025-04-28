@@ -33,6 +33,7 @@ class RoomMetadata(ClientMetadata):
     dialogue_space_url: str
     ktane_url: str
     state: RoomStage
+    uuid: UUID4
 
 
 class GameMetadata(BaseModel):

@@ -1,6 +1,7 @@
 from typing import override
 
 import httpx
+import logfire
 from structlog import get_logger
 
 from gptnt.api.base_client import BaseClient, SupervisedClient
@@ -72,9 +73,11 @@ class SupervisedRoomManagerClient(SupervisedClient[RoomManagerClient, RoomMetada
         """Returns the supervisor co-routine for this client."""
         while self.is_running:
             try:
-                self.metadata.state = await self.client.statecheck()
+                with logfire.suppress_instrumentation():
+                    self.metadata.state = await self.client.statecheck()
             except httpx.HTTPError:
                 break
             await healthcheck_interval()
+        _logger.info("Room died")
         self.is_running = False
         await self.stop()

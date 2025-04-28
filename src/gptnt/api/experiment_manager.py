@@ -1,7 +1,5 @@
 import asyncio
-import itertools
 import uuid
-from dataclasses import dataclass
 
 import logfire
 from pydantic import UUID4
@@ -11,21 +9,159 @@ from gptnt.api.player_client import SupervisedPlayerClient
 from gptnt.api.room_client import SupervisedRoomManagerClient
 from gptnt.api.structures import GameMetadata, RoomStage
 from gptnt.api.tinder import get_playable_pairings
-from gptnt.common.async_ops import busy_wait_interval, until
+from gptnt.common.async_ops import busy_wait_interval, healthcheck_interval, until
 from gptnt.ktane.experiments.experiments import ExperimentSpec
 
 _logger = get_logger()
 
 
-@dataclass
-class ExperimentMetadata:
-    """Information about a single experiment (game/session)."""
+class Experiment:
+    """Self-contained experiment lifecycle."""
 
-    expert: SupervisedPlayerClient
-    defuser: SupervisedPlayerClient
-    room: SupervisedRoomManagerClient
+    _expert: SupervisedPlayerClient
+    _defuser: SupervisedPlayerClient
+    _room: SupervisedRoomManagerClient
     spec: ExperimentSpec
-    game_id: UUID4
+
+    _uuid: UUID4
+
+    # Lifecycle
+    lifecycle_task: asyncio.Task[None]
+    supervisor_task: asyncio.Task[None]
+    _mission_configured: bool = False
+    _mission_started: bool = False
+    completed_successfully: bool = False
+
+    def __init__(
+        self,
+        *,
+        expert: SupervisedPlayerClient,
+        defuser: SupervisedPlayerClient,
+        room: SupervisedRoomManagerClient,
+        spec: ExperimentSpec,
+    ) -> None:
+        """TODO: desc."""
+        self._expert = expert
+        self._defuser = defuser
+        self._room = room
+        self.spec = spec
+
+        # ExperimentManager contorl flags
+        expert.in_experiment = True
+        defuser.in_experiment = True
+        room.in_experiment = True
+
+        # Persistant UUID for the session/game/experiment/run (whatever you want to call it)
+        self._uuid = uuid.uuid4()
+
+        # Lifecycle
+        self.lifecycle_task = asyncio.create_task(coro=self.lifecycle_loop())
+        self.supervisor_task = asyncio.create_task(coro=self.supervisor_loop())
+
+    @logfire.instrument("Started experiment lifecycle")
+    async def lifecycle_loop(self) -> None:  # noqa: WPS217 (This is a lifecycle, the whole point is awaiting lots of stuff)
+        """Runs the experiment."""
+        # 1. Configure the experiment
+        await until(get_value=lambda: self._room.state, target=RoomStage.ready_for_config)
+        _ = await self._room.client.configure_experiment(self.spec.mission_spec)
+        self._mission_configured = True
+
+        # 2. Connect the players to the room
+        _ = await asyncio.gather(  # noqa: WPS476
+            self._expert.client.join_room(room=self._room.metadata),
+            self._defuser.client.join_room(room=self._room.metadata),
+        )
+
+        # 3. Start the experiment
+        await until(get_value=lambda: self._room.state, target=RoomStage.ready_for_start)
+        _ = await asyncio.gather(
+            self._expert.client.start_experiment(
+                game_metadata=GameMetadata(
+                    experiment_spec=self.spec,
+                    player_metadata=self._expert.metadata,
+                    game_id=self._uuid,
+                )
+            ),
+            self._defuser.client.start_experiment(
+                game_metadata=GameMetadata(
+                    experiment_spec=self.spec,
+                    player_metadata=self._defuser.metadata,
+                    game_id=self._uuid,
+                )
+            ),
+            self._room.client.start_experiment(),
+        )
+        self._mission_started = True
+
+        # 4. Run correct experiment
+        match self.spec.communication_style:
+            case "parallel":
+                _ = await asyncio.gather(
+                    self._expert.client.run_for_game(), self._defuser.client.run_for_game()
+                )
+                await until(get_value=lambda: self._room.state, target=RoomStage.done)
+
+            case "sequential":
+                while self._room.state is not RoomStage.done:
+                    _ = await self._expert.client.run_for_turn()
+                    _ = await self._defuser.client.run_for_turn()
+
+        # 5. Stop experiment
+        self.completed_successfully = True
+        await self.stop_lifecycle()
+
+    @logfire.instrument("Started experiment lifecycle")
+    async def stop_lifecycle(self) -> None:
+        """Stops the current experiment, either because the mission is over or an error occured."""
+        _logger.info(f"Finishing game[{self._uuid}]")
+        _ = await self._room.client.reset_room()
+
+        to_reset = [
+            player.client.stop_experiment()
+            for player in (self._expert, self._defuser)
+            if player.is_running
+        ]
+        _ = await asyncio.gather(*to_reset)
+
+        self._expert.in_experiment = False
+        self._defuser.in_experiment = False
+        self._room.in_experiment = False
+
+        # Stop
+        _ = self.supervisor_task.cancel()
+        _ = self.lifecycle_task.cancel()
+
+    async def supervisor_loop(self) -> None:
+        """Runs the experiment supervisor."""
+        while not self.completed_successfully:
+            # Stop the experiment if there are any problems
+            in_invalid_state: bool = (
+                self._mission_started
+                and self._room.state
+                not in [RoomStage.ready_for_start, RoomStage.in_experiment, RoomStage.done]
+            ) or (
+                self._mission_configured
+                and self._room.state
+                not in [
+                    RoomStage.ready_for_config,
+                    RoomStage.ready_for_start,
+                    RoomStage.in_experiment,
+                ]
+            )
+            if in_invalid_state:
+                _logger.info(f"Wrong state entered: {self._room.state}")
+
+            player_or_room_died: bool = (
+                (not self._expert.is_running)
+                or (not self._defuser.is_running)
+                or (not self._room.is_running)
+            )
+
+            if in_invalid_state or player_or_room_died:
+                # Something went wrong, stop this experiment
+                await self.stop_lifecycle()
+
+            await healthcheck_interval()
 
 
 class ExperimentManager:
@@ -41,6 +177,7 @@ class ExperimentManager:
 
         # Experiments
         self.experiments: set[ExperimentSpec] = set()
+        self.running_experiments: set[Experiment] = set()
 
         # Connection Tracking
         self.players: list[SupervisedPlayerClient] = []
@@ -75,17 +212,22 @@ class ExperimentManager:
         found. BUG: Dead connections not culled.
         """
         while not self.should_exit:
-            # Start newly connected clients and their supervisors
-            for client in itertools.chain(self.players, self.rooms):
-                if not client.is_running:
-                    _ = await client.start()  # noqa: WPS476
-                    self.tasks.append(asyncio.create_task(coro=client.supervisor_loop()))
-
             # Start experiments that have valid pairings available
             await self.start_available_experiments()
 
-            # Clear any finished tasks
+            # Clear any dead client supervisors
             self.tasks = [task for task in self.tasks if not task.done()]
+
+            # Clear any dead experiments and add failed specs back into the pool
+            for experiment in self.running_experiments:
+                if experiment.lifecycle_task.done() and not experiment.completed_successfully:
+                    _logger.warning("Experiment ended early, re-adding to todo pool")
+                    self.experiments.add(experiment.spec)
+            self.running_experiments = {
+                running_experiment
+                for running_experiment in self.running_experiments
+                if not running_experiment.lifecycle_task.done()
+            }
 
             # Short delay to let the system breathe
             await busy_wait_interval()
@@ -94,6 +236,7 @@ class ExperimentManager:
         """Starts all ExperimentConfig's that have the correct players and rooms available."""
         available_rooms = self.get_available_rooms()
         available_players = self.get_available_players()
+
         if not available_rooms or not available_players:
             # No rooms or players available, nothing to do
             return
@@ -112,127 +255,8 @@ class ExperimentManager:
                 return
             room = available_rooms.pop()
 
-            expert.in_experiment = True
-            defuser.in_experiment = True
-            room.in_experiment = True
             self.experiments.remove(spec)
 
-            _ = await asyncio.gather(  # noqa: WPS476
-                expert.client.join_room(room=room.metadata),
-                defuser.client.join_room(room=room.metadata),
+            self.running_experiments.add(
+                Experiment(expert=expert, defuser=defuser, room=room, spec=spec)
             )
-
-            experiment = ExperimentMetadata(
-                expert=expert, defuser=defuser, room=room, spec=spec, game_id=uuid.uuid4()
-            )
-            _logger.info(
-                f"Spawning experiment [{experiment.game_id}]",
-                game_id=experiment.game_id,
-                room=room.url,
-                experiment=experiment,
-            )
-            self.tasks.append(
-                asyncio.create_task(coro=self._start_experiment(experiment=experiment))
-            )
-
-    @logfire.instrument("Experiment")
-    async def _start_experiment(  # noqa: WPS217
-        self, experiment: ExperimentMetadata
-    ) -> None:
-        """Performs the starting logic for an experiment, then switches to seq/par impl."""
-        # Configure the experiment
-        with logfire.span("Waiting for room to be ready", room=experiment.room.url):
-            await until(get_value=lambda: experiment.room.state, target=RoomStage.ready_for_config)
-
-        with logfire.span(
-            f"Preparing experiment [{experiment.game_id}]", room=experiment.room.url
-        ):
-            _ = await asyncio.gather(
-                experiment.room.client.configure_experiment(config=experiment.spec.mission_spec),
-                experiment.expert.client.start_experiment(
-                    game_metadata=GameMetadata(
-                        experiment_spec=experiment.spec,
-                        player_metadata=experiment.expert.metadata,
-                        game_id=experiment.game_id,
-                    )
-                ),
-                experiment.defuser.client.start_experiment(
-                    game_metadata=GameMetadata(
-                        experiment_spec=experiment.spec,
-                        player_metadata=experiment.defuser.metadata,
-                        game_id=experiment.game_id,
-                    )
-                ),
-            )
-            # Start game and switch to correct communication style
-            await until(get_value=lambda: experiment.room.state, target=RoomStage.ready_for_start)
-            _ = await experiment.room.client.start_experiment()
-
-        match experiment.spec.communication_style:
-            case "parallel":
-                await self._parallel_experiment(experiment=experiment)
-
-            case "sequential":
-                await self._sequential_experiment(experiment=experiment)
-
-    @logfire.instrument("Run parallel experiment")
-    async def _parallel_experiment(self, experiment: ExperimentMetadata) -> None:
-        """Runs an experiment where both players can act at the same time."""
-        _logger.info("Starting parallel experiment")
-        _ = await asyncio.gather(
-            experiment.expert.client.run_for_game(), experiment.defuser.client.run_for_game()
-        )
-
-        _logger.info(f"Running game[{experiment.game_id}]")
-        while experiment.room.state is not RoomStage.done:
-            if (
-                (not experiment.room.is_running)
-                or (not experiment.expert.is_running)
-                or (not experiment.defuser.is_running)
-            ):
-                # If the experiment fails, it needs to run again, but we still want metrics
-                _logger.error("Something died, stopping experiment and returning to the pool")
-                self.experiments.add(experiment.spec)
-                break
-
-            await busy_wait_interval()
-
-        await self._end_experiment(experiment=experiment)
-
-    @logfire.instrument("Run Sequential experiment")
-    async def _sequential_experiment(self, experiment: ExperimentMetadata) -> None:
-        """Runs an experiment where players take turns."""
-        _logger.info("Starting sequential experiment")
-        _logger.info(f"Running game[{experiment.game_id}]")
-
-        while experiment.room.state is not RoomStage.done:
-            _ = await experiment.expert.client.run_for_turn()
-            _ = await experiment.defuser.client.run_for_turn()
-
-            # BUG: This does not run often enough
-            if (
-                (not experiment.room.is_running)
-                or (not experiment.expert.is_running)
-                or (not experiment.defuser.is_running)
-            ):
-                # If the experiment fails, it needs to run again, but we still want metrics
-                _logger.error("Something died, stopping experiment and returning to the pool")
-                self.experiments.add(experiment.spec)
-                break
-
-            await busy_wait_interval()
-
-        await self._end_experiment(experiment=experiment)
-
-    @logfire.instrument("End experiment")
-    async def _end_experiment(self, experiment: ExperimentMetadata) -> None:
-        """Performs the finishing logic for an experiment."""
-        _logger.info(f"Finishing game[{experiment.game_id}]")
-        _ = await experiment.room.client.reset_room()
-        _ = await asyncio.gather(
-            experiment.expert.client.stop_experiment(), experiment.defuser.client.stop_experiment()
-        )
-
-        experiment.expert.in_experiment = False
-        experiment.defuser.in_experiment = False
-        experiment.room.in_experiment = False

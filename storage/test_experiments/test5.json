@@ -3,7 +3,7 @@
 		"seed": 103,
 		"time_limit": 60,
 		"num_strikes_allowed": 3,
-		"components": ["BigButton"],
+		"components": ["Password"],
 		"optional_widgets": 3,
 		"needy_time": 60,
 		"force_modules_to_front": true,
@@ -16,5 +16,5 @@
 		"pairing_type": "with_self"
 	},
 	"condition": "single_module",
-	"communication_style": "sequential"
+	"communication_style": "parallel"
 }
