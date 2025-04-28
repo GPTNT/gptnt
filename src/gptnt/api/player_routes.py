@@ -11,7 +11,6 @@ from gptnt.players.ai.defuser import BaseDefuserPlayer
 from gptnt.players.base_player import BasePlayer
 from gptnt.players.human.controller import Controller
 from gptnt.players.human.views.defuser import DefuserPlayerView
-from gptnt.players.metrics import PlayerEpisodeTracker
 
 logger = structlog.get_logger()
 
@@ -39,7 +38,7 @@ async def join_room(room: RoomMetadata, player: PlayerDep) -> None:
 
     # Reset dialogue-space client
     player.dialogue_space_client = DialogueSpaceClient.from_url(room.dialogue_space_url)
-    player.tracker = PlayerEpisodeTracker(wandb_init_kwargs={"project": "gptnt"})
+    player.tracker.reset(force=True)
 
     # TODO: Fix the Ktane player hackery
     if isinstance(player, Controller) and isinstance(player.view, DefuserPlayerView):

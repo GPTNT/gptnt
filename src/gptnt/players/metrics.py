@@ -258,7 +258,7 @@ class PlayerEpisodeTracker:
 
         self._run.log(data_to_send)
         self._run.finish()
-        self._reset()
+        self.reset()
 
     def add_action(self, action: InteractGameAction[InteractGameLocation]) -> None:
         """Add an action to the player's action list."""
@@ -291,12 +291,16 @@ class PlayerEpisodeTracker:
         )
         self._observations.append(observation_metric)
 
-    def _reset(self) -> None:
+    def reset(self, *, force: bool = False) -> None:
         """Reset the player data."""
         self._actions.clear()
         self._messages_sent.clear()
         self._bomb_states.clear()
         self._observations.clear()
+
+        if self._run and force:
+            # If the run is still active, finish it
+            self._run.finish(exit_code=1)
 
     def _compute_time_delta(self) -> float:
         """Compute the time delta between the start time and now."""
