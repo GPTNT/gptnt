@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Self, cast
 
 import logfire
@@ -298,9 +299,10 @@ class PlayerEpisodeTracker:
         self._bomb_states.clear()
         self._observations.clear()
 
-        if self._run and force:
-            # If the run is still active, finish it
-            self._run.finish(exit_code=1)
+        with suppress(AttributeError):
+            if self._run and force:
+                # If the run is still active, finish it
+                self._run.finish(exit_code=1)
 
     def _compute_time_delta(self) -> float:
         """Compute the time delta between the start time and now."""
