@@ -17,7 +17,7 @@ from whenever import Instant
 from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.ktane.experiments.experiments import ExperimentSpec
 from gptnt.ktane.state.bomb import BombState
-from gptnt.ktane.state.modules import ModuleStates
+from gptnt.ktane.state.modules import KtaneComponent, ModuleStates
 from gptnt.ktane.state.widget import WidgetStates
 from gptnt.players.actions import InteractGameAction, InteractGameLocation, SendMessageAction
 from gptnt.players.structures import PlayerRole
@@ -92,7 +92,7 @@ class BombStateMetric(BombState, TimestampMixin):
             "seed": pl.Int32,
             "max_strikes": pl.Int32,
             "current_strikes": pl.Int32,
-            "strikes": pl.List(pl.String),
+            "strikes": pl.String,
             "is_detonated": pl.Boolean,
             "is_solved": pl.Boolean,
             "is_light_on": pl.Boolean,
@@ -117,6 +117,11 @@ class BombStateMetric(BombState, TimestampMixin):
     def serialize_widgets(self, widgets: list[WidgetStates]) -> str:
         """Serialize the widgets to a string."""
         return TypeAdapter(list[WidgetStates]).dump_json(widgets).decode("utf-8")
+
+    @field_serializer("strikes")
+    def serialize_strikes(self, strikes: list[KtaneComponent]) -> str:
+        """Serialize the strikes to a string."""
+        return TypeAdapter(list[KtaneComponent]).dump_json(strikes).decode("utf-8")
 
 
 class ObservationMetric(TimestampMixin):
@@ -213,41 +218,45 @@ class PlayerEpisodeTracker:
     @logfire.instrument("Send results to wandb")
     def on_game_end(self) -> None:
         """Sends the mission results to wandb and cleans up."""
-        actions_table, messages_table, bomb_states_table, observations_table = (
-            self._compute_tables()
-        )
-
         last_bomb_state = self._bomb_states[-1]
 
-        self._run.log(
-            {
-                # tables
-                "actions": actions_table,
-                "messages": messages_table,
-                "bomb_states": bomb_states_table,
-                "observations": observations_table,
-                # other metrics
-                "is_solved": last_bomb_state.is_solved,
-                "is_strike_out": last_bomb_state.is_detonated
-                and last_bomb_state.strikes is not None
-                and len(last_bomb_state.strikes) >= last_bomb_state.max_strikes,
-                "is_timed_out": last_bomb_state.is_detonated
-                and last_bomb_state.timer_module.seconds_remaining <= 0,
-                "time_remaining": last_bomb_state.timer_module.seconds_remaining,
-                "total_modules_solved": len(
-                    [module for module in last_bomb_state.modules if module.is_solved]
-                ),
-                "total_strikes": len(last_bomb_state.strikes) if last_bomb_state.strikes else 0,
-                "total_defuser_actions": len(self._actions),
-                "total_messages_sent": len(self._messages_sent),
-                "total_defuser_messages_sent": len(
-                    [message for message in self._messages_sent if message.role == "defuser"]
-                ),
-                "total_expert_messages_sent": len(
-                    [message for message in self._messages_sent if message.role == "expert"]
-                ),
-            }
-        )
+        data_to_send: dict[str, Any] = {
+            "is_solved": last_bomb_state.is_solved,
+            "is_strike_out": last_bomb_state.is_detonated
+            and last_bomb_state.strikes is not None
+            and len(last_bomb_state.strikes) >= last_bomb_state.max_strikes,
+            "is_timed_out": last_bomb_state.is_detonated
+            and last_bomb_state.timer_module.seconds_remaining <= 0,
+            "time_remaining": last_bomb_state.timer_module.seconds_remaining,
+            "total_modules_solved": len(
+                [module for module in last_bomb_state.modules if module.is_solved]
+            ),
+            "total_strikes": len(last_bomb_state.strikes) if last_bomb_state.strikes else 0,
+            "total_defuser_actions": len(self._actions),
+            "total_messages_sent": len(self._messages_sent),
+            "total_defuser_messages_sent": len(
+                [message for message in self._messages_sent if message.role == "defuser"]
+            ),
+            "total_expert_messages_sent": len(
+                [message for message in self._messages_sent if message.role == "expert"]
+            ),
+        }
+
+        # Send tables if they exist
+        actions_table = self._compute_actions_table()
+        messages_table = self._compute_messages_table()
+        bomb_states_table = self._compute_bomb_states_table()
+        observations_table = self._compute_observations_table()
+        if actions_table:
+            data_to_send["actions"] = actions_table
+        if messages_table:
+            data_to_send["messages"] = messages_table
+        if bomb_states_table:
+            data_to_send["bomb_states"] = bomb_states_table
+        if observations_table:
+            data_to_send["observations"] = observations_table
+
+        self._run.log(data_to_send)
         self._run.finish()
         self._reset()
 
@@ -289,19 +298,14 @@ class PlayerEpisodeTracker:
         self._bomb_states.clear()
         self._observations.clear()
 
-    def _compute_tables(self) -> tuple[wandb.Table, wandb.Table, wandb.Table, wandb.Table]:  # noqa: WPS210
-        """Convert player data to a W&B Table for logging."""
-        # Messages table
-        messages_table = wandb.Table(
-            dataframe=pl.from_dicts(
-                TypeAdapter(list[MessageMetric]).dump_python(
-                    self._messages_sent, mode="json", exclude={"action_type"}
-                )
-            ).to_pandas(),
-            allow_mixed_types=True,
-        )
+    def _compute_time_delta(self) -> float:
+        """Compute the time delta between the start time and now."""
+        return (Instant.now() - self.start_time).in_seconds()
 
-        # Bomb states
+    def _compute_bomb_states_table(self) -> wandb.Table | None:
+        """Compute the bomb states table."""
+        if not self._bomb_states:
+            return None
         bomb_states_table = wandb.Table(
             dataframe=pl.from_dicts(
                 TypeAdapter(list[BombStateMetric]).dump_python(self._bomb_states, mode="json"),
@@ -309,8 +313,12 @@ class PlayerEpisodeTracker:
             ).to_pandas(),
             allow_mixed_types=False,
         )
+        return bomb_states_table
 
-        # in-game actions
+    def _compute_actions_table(self) -> wandb.Table | None:
+        """Compute the actions table."""
+        if not self._actions:
+            return None
         actions_table = wandb.Table(
             dataframe=pl.from_dicts(
                 TypeAdapter(list[ActionMetric]).dump_python(
@@ -319,13 +327,30 @@ class PlayerEpisodeTracker:
             ).to_pandas(),
             allow_mixed_types=True,
         )
+        return actions_table
 
+    def _compute_messages_table(self) -> wandb.Table | None:
+        """Compute the messages table."""
+        if not self._messages_sent:
+            return None
+        messages_table = wandb.Table(
+            dataframe=pl.from_dicts(
+                TypeAdapter(list[MessageMetric]).dump_python(
+                    self._messages_sent, mode="json", exclude={"action_type"}
+                )
+            ).to_pandas(),
+            allow_mixed_types=True,
+        )
+        return messages_table
+
+    def _compute_observations_table(self) -> wandb.Table | None:
+        """Compute the observations table."""
+        if not self._observations:
+            return None
         # Use the custom serialiser to convert the images to wandb images
         observations_data = TypeAdapter(list[ObservationMetric]).dump_python(
             self._observations, context={"wandb": True}
         )
-
-        # Observations table
         observations_table = wandb.Table(
             columns=["raw_image", "segmentation_mask", "som_image", "timestamp"]
         )
@@ -333,9 +358,4 @@ class PlayerEpisodeTracker:
             observations_table.add_data(
                 row["raw_image"], row["segmentation_mask"], row["som_image"], row["timestamp"]
             )
-
-        return actions_table, messages_table, bomb_states_table, observations_table
-
-    def _compute_time_delta(self) -> float:
-        """Compute the time delta between the start time and now."""
-        return (Instant.now() - self.start_time).in_seconds()
+        return observations_table

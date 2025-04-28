@@ -85,8 +85,8 @@ class KtaneClient(InstrumentationMixin):
         response = await self.client.get("/health")
         try:
             _ = response.raise_for_status()
-        except httpx.HTTPError:
-            _logger.exception("Game client is not healthy")
+        except httpx.HTTPError as err:
+            _logger.exception("Game client is not healthy", exc_info=err)
             return GameState.unknown
 
         return GameState(response.text)
@@ -96,8 +96,8 @@ class KtaneClient(InstrumentationMixin):
         response = await self.client.get("/reset")
         try:
             _ = response.raise_for_status()
-        except httpx.HTTPError:
-            _logger.exception("Failed to reset game")
+        except httpx.HTTPError as err:
+            _logger.exception("Failed to reset game", exc_info=err)
             return False
         return True
 
@@ -107,8 +107,8 @@ class KtaneClient(InstrumentationMixin):
 
         try:
             _ = response.raise_for_status()
-        except httpx.HTTPError:
-            _logger.exception("Failed to start mission")
+        except httpx.HTTPError as err:
+            _logger.exception(f"Failed to start mission Reason: {response.text}", exc_info=err)
             return False
         return True
 
@@ -163,8 +163,8 @@ class KtaneClient(InstrumentationMixin):
         response = await self.client.get("/action", params=action.to_query_params())
         try:
             _ = response.raise_for_status()
-        except httpx.HTTPError:
-            _logger.exception("Failed to send action")
+        except httpx.HTTPError as err:
+            _logger.exception(f"Failed to send action Reason: {response.text}", exc_info=err)
             return None
 
         bomb_state = BombState.model_validate_json(response.text)
@@ -178,10 +178,11 @@ class KtaneClient(InstrumentationMixin):
         response = await self.client.get("/state")
         try:
             _ = response.raise_for_status()
-        except httpx.HTTPError:
-            _logger.exception("Failed to get bomb state")
+        except httpx.HTTPError as err:
+            _logger.exception(f"Failed to get bomb state Reason: {response.text}", exc_info=err)
             return None
-        return BombState.model_validate_json(response.text)
+        _logger.debug("Bomb state", bomb_state=response.json())
+        return BombState.model_validate(response.json())
 
     @logfire.instrument("Get observation from environment")
     async def get_observation(self) -> Observation:  # noqa: WPS615
@@ -235,7 +236,8 @@ class KtaneClient(InstrumentationMixin):
         try:
             _ = response.raise_for_status()
         except httpx.HTTPError as err:
-            raise InvalidGameError("Failed to take screenshot") from err
+            _logger.exception("Failed to get screenshot", exc_info=err)
+            raise InvalidGameError("Failed to get screenshot") from err
 
         base64_data = response.text
         png_data = base64.b64decode(base64_data)
