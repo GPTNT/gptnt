@@ -51,6 +51,7 @@ class KtaneClient(InstrumentationMixin):
         self.client = client
         self.set_of_marks_painter = set_of_marks_painter
         self.image_resizer = image_resizer
+
         self.zoomed_in_component: KtaneComponent | None = None
 
         assert self.client.base_url is not None, "Base URL must be set"
@@ -167,14 +168,8 @@ class KtaneClient(InstrumentationMixin):
             return None
 
         bomb_state = BombState.model_validate_json(response.text)
-
         # Find zoomed-in component if any are zoomed in
-        try:
-            self.zoomed_in_component = {
-                module.name for module in bomb_state.modules if module.in_focus
-            }.pop()
-        except KeyError:
-            self.zoomed_in_component = None
+        self.zoomed_in_component = bomb_state.zoomed_in_component
 
         return bomb_state
 

@@ -19,3 +19,11 @@ class BombState(BaseModel):
     timer_module: TimerState
     widgets: list[WidgetStates]
     modules: list[ModuleStates]
+
+    @property
+    def zoomed_in_component(self) -> KtaneComponent | None:
+        """Get the currently zoomed in component, if we are zoomed in."""
+        for module in self.modules:
+            if module.in_focus:
+                return module.name
+        return None
