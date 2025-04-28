@@ -3,7 +3,7 @@ from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from gptnt.ktane.actions import GameActionType
-from gptnt.players.actions import InteractGameAction, SetOfMarksLocation
+from gptnt.players.actions import InteractGameAction, SendMessageAction, SetOfMarksLocation
 
 logger = structlog.get_logger()
 
@@ -58,8 +58,31 @@ def dummy_set_of_marks_action_generator(
     return ModelResponse(parts=[ToolCallPart("final_result", {"response": model_response})])
 
 
+def dummy_message_generator(
+    messages: list[ModelMessage],
+    info: AgentInfo,  # noqa: WPS110 ARG001
+) -> ModelResponse:
+    """Dummy function model that generates set of marks actions based on the number of messages."""
+    message = SendMessageAction(message=f"Message {len(messages)}")
+    return ModelResponse(
+        parts=[
+            ToolCallPart(
+                "final_result_SendMessageAction",
+                {"response": message.model_dump(exclude=["thoughts"], mode="json")},  # pyright: ignore[reportArgumentType]
+            )
+        ]
+    )
+
+
 class DummyDefuserModel(FunctionModel):
     """Dummy function model that generates set of marks actions based on the number of messages."""
 
     def __init__(self) -> None:
         super().__init__(dummy_set_of_marks_action_generator)
+
+
+class DummyExpertModel(FunctionModel):
+    """Dummy function model that generates set of marks actions based on the number of messages."""
+
+    def __init__(self) -> None:
+        super().__init__(dummy_message_generator)

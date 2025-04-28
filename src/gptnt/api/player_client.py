@@ -75,10 +75,10 @@ class SupervisedPlayerClient(SupervisedClient[PlayerClient, PlayerMetadata]):
     @override
     async def supervisor_loop(self) -> None:
         while self.is_running:
+            await healthcheck_interval()
             with logfire.suppress_instrumentation():
                 if not await self.client.healthcheck():
                     break
-            await healthcheck_interval()
         _logger.info("Player died")
         self.is_running = False
         await self.stop()

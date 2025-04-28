@@ -40,7 +40,6 @@ class Experiment:
         room: SupervisedRoomManagerClient,
         spec: ExperimentSpec,
     ) -> None:
-        """TODO: desc."""
         self._expert = expert
         self._defuser = defuser
         self._room = room
@@ -128,8 +127,8 @@ class Experiment:
         self._room.in_experiment = False
 
         # Stop
-        _ = self.supervisor_task.cancel()
         _ = self.lifecycle_task.cancel()
+        _ = self.supervisor_task.cancel()
 
     async def supervisor_loop(self) -> None:
         """Runs the experiment supervisor."""

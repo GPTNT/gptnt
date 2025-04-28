@@ -38,7 +38,7 @@ async def join_room(room: RoomMetadata, player: PlayerDep) -> None:
 
     # Reset dialogue-space client
     player.dialogue_space_client = DialogueSpaceClient.from_url(room.dialogue_space_url)
-    # player.tracker.reset(force=True)
+    player.tracker.reset()
 
     # TODO: Fix the Ktane player hackery
     if isinstance(player, Controller) and isinstance(player.view, DefuserPlayerView):
@@ -87,7 +87,11 @@ async def stop_experiment(player: PlayerDep, request: Request) -> None:
     if player.metadata.player_type == "ai" and loop_task:
         loop_task.cancel()
 
+    if isinstance(player, BaseDefuserPlayer):
+        last_bomb_state = await player.game_client.get_state()
+        if last_bomb_state is not None:
+            player.tracker.add_bomb_state(last_bomb_state)
+
     # Disconnect from the room
     await player.disconnect_from_room()
-
     player.tracker.on_game_end()

@@ -46,10 +46,15 @@ def load_hydra_config(
 
 def test_ai_player_config_is_valid(ai_player: str, system_prompt: str) -> None:
     """Test that the players can be instantiated from Hydra."""
+    player = "defuser" if "defuser" in ai_player else "expert"
     config = load_hydra_config(
         config_dir=PLAYER_CONFIG.parent,
         config_file_name=PLAYER_CONFIG.name,
-        overrides=[f"player=ai/{ai_player}", f"system_prompt={system_prompt}", "model=test"],
+        overrides=[
+            f"player=ai/{ai_player}",
+            f"system_prompt={system_prompt}",
+            f"model=test_{player}",
+        ],
     )
 
     assert config
@@ -60,10 +65,15 @@ def test_ai_player_can_instantiate_from_config(ai_player: str, system_prompt: st
 
     Note that this only uses the TestModel and not the actual models.
     """
+    player = "defuser" if "defuser" in ai_player else "expert"
     config = load_hydra_config(
         config_dir=PLAYER_CONFIG.parent,
         config_file_name=PLAYER_CONFIG.name,
-        overrides=[f"player=ai/{ai_player}", f"system_prompt={system_prompt}", "model=test"],
+        overrides=[
+            f"player=ai/{ai_player}",
+            f"system_prompt={system_prompt}",
+            f"model=test_{player}",
+        ],
     )
 
     # Check that the player can be instantiated

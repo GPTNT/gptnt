@@ -1,4 +1,3 @@
-from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Self, cast
 
 import logfire
@@ -219,20 +218,7 @@ class PlayerEpisodeTracker:
     @logfire.instrument("Send results to wandb")
     def on_game_end(self) -> None:
         """Sends the mission results to wandb and cleans up."""
-        last_bomb_state = self._bomb_states[-1]
-
         data_to_send: dict[str, Any] = {
-            "is_solved": last_bomb_state.is_solved,
-            "is_strike_out": last_bomb_state.is_detonated
-            and last_bomb_state.strikes is not None
-            and len(last_bomb_state.strikes) >= last_bomb_state.max_strikes,
-            "is_timed_out": last_bomb_state.is_detonated
-            and last_bomb_state.timer_module.seconds_remaining <= 0,
-            "time_remaining": last_bomb_state.timer_module.seconds_remaining,
-            "total_modules_solved": len(
-                [module for module in last_bomb_state.modules if module.is_solved]
-            ),
-            "total_strikes": len(last_bomb_state.strikes) if last_bomb_state.strikes else 0,
             "total_defuser_actions": len(self._actions),
             "total_messages_sent": len(self._messages_sent),
             "total_defuser_messages_sent": len(
@@ -242,6 +228,24 @@ class PlayerEpisodeTracker:
                 [message for message in self._messages_sent if message.role == "expert"]
             ),
         }
+
+        if self._bomb_states:
+            last_bomb_state = self._bomb_states[-1]
+
+            data_to_send = {
+                **data_to_send,
+                "is_solved": last_bomb_state.is_solved,
+                "is_strike_out": last_bomb_state.is_detonated
+                and last_bomb_state.strikes is not None
+                and len(last_bomb_state.strikes) >= last_bomb_state.max_strikes,
+                "is_timed_out": last_bomb_state.is_detonated
+                and last_bomb_state.timer_module.seconds_remaining <= 0,
+                "time_remaining": last_bomb_state.timer_module.seconds_remaining,
+                "total_modules_solved": len(
+                    [module for module in last_bomb_state.modules if module.is_solved]
+                ),
+                "total_strikes": len(last_bomb_state.strikes) if last_bomb_state.strikes else 0,
+            }
 
         # Send tables if they exist
         actions_table = self._compute_actions_table()
@@ -292,17 +296,12 @@ class PlayerEpisodeTracker:
         )
         self._observations.append(observation_metric)
 
-    def reset(self, *, force: bool = False) -> None:
+    def reset(self) -> None:
         """Reset the player data."""
         self._actions.clear()
         self._messages_sent.clear()
         self._bomb_states.clear()
         self._observations.clear()
-
-        with suppress(AttributeError):
-            if self._run and force:
-                # If the run is still active, finish it
-                self._run.finish(exit_code=1)
 
     def _compute_time_delta(self) -> float:
         """Compute the time delta between the start time and now."""

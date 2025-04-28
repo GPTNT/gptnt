@@ -80,7 +80,9 @@ class InteractiveModuleState(BaseModuleState):
 class TimerState(BaseModuleState):
     """State of the Timer module."""
 
-    seconds_remaining: NonNegativeFloat = 300
+    seconds_remaining: Annotated[
+        float, NonNegativeFloat, BeforeValidator(lambda seconds: max(seconds, 0))
+    ] = 300
 
 
 class ButtonModuleState(InteractiveModuleState):
