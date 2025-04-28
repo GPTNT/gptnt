@@ -2,6 +2,7 @@ from pathlib import Path
 
 import numpy as np
 from numpy.typing import NDArray
+from PIL.Image import Resampling
 from pytest_cases import fixture, param_fixture
 
 from gptnt.common.image_ops import load_observation_from_bytes
@@ -23,7 +24,10 @@ def segmentation_image(fixture_path: Path, segmentation_image_names: str) -> NDA
     """Fixture to provide a segmentation screenshot as a numpy array."""
     path = fixture_path.joinpath(segmentation_image_names)
     assert path.exists()
-    return np.asarray(load_observation_from_bytes(path.read_bytes()))
+    image = load_observation_from_bytes(path.read_bytes())
+    # make the iamge smaller for testing
+    image = image.resize((512, 512), resample=Resampling.NEAREST)
+    return np.asarray(image)
 
 
 def test_convert_colorful_segm_to_labeled(segmentation_image: NDArray[np.uint8]) -> None:
