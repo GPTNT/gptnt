@@ -84,6 +84,11 @@ class SupervisedClient[ClientT: BaseClient, MetadataT: ClientMetadata](abc.ABC):
             raise ValueError("URL is required")
         return cls(client=cls.client_constructor(metadata.fastapi_url), metadata=metadata)
 
+    @property
+    def url(self) -> httpx.URL:
+        """The base URL of the API."""
+        return self.client.url
+
     async def start(self) -> None:
         """Starts the client."""
         self.is_running = True
