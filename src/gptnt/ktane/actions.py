@@ -99,7 +99,7 @@ class KtaneBaseAction[LocationDataT](BaseModel):
             else {}
         )
         return QueryParams(
-            {**self.model_dump(mode="json", exclude_unset=True, exclude={"location"}), **location}
+            {**self.model_dump(mode="json", exclude_unset=True, include={"action"}), **location}
         )
 
 
