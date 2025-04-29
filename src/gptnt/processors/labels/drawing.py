@@ -46,14 +46,24 @@ def _draw_background(
 
     if drawing_params.alpha >= 1.0:  # noqa: WPS459
         return cv2.rectangle(
-            img=img, pt1=top_left, pt2=bottom_right, color=color, thickness=cv2.FILLED
+            img=img,
+            pt1=top_left,
+            pt2=bottom_right,
+            color=color,
+            thickness=cv2.FILLED,
+            lineType=cv2.LINE_AA,
         )
 
     overlay = img.copy()
 
     # draw background rectangle on overlay
     _ = cv2.rectangle(
-        img=overlay, pt1=top_left, pt2=bottom_right, color=color, thickness=cv2.FILLED
+        img=overlay,
+        pt1=top_left,
+        pt2=bottom_right,
+        color=color,
+        thickness=cv2.FILLED,
+        lineType=cv2.LINE_AA,
     )
 
     # blend overlay with original image

@@ -154,7 +154,9 @@ def draw_mask_on_image(  # noqa: WPS210
         _ = cv2.drawContours(soft_mask, contours, -1, color, cv2.FILLED)
 
         # alpha blend soft mask over image
-        mask_region = cv2.drawContours(np.zeros_like(mask), contours, -1, WHITE, cv2.FILLED)
+        mask_region = cv2.drawContours(
+            np.zeros_like(mask), contours, -1, WHITE, cv2.FILLED, lineType=cv2.LINE_AA
+        )
         mask_region = mask_region.astype(bool)
 
         # blend only in masked area
@@ -163,7 +165,12 @@ def draw_mask_on_image(  # noqa: WPS210
         ).astype(np.uint8)
 
     _ = cv2.drawContours(
-        image=image, contours=contours, contourIdx=-1, color=color, thickness=thickness
+        image=image,
+        contours=contours,
+        contourIdx=-1,
+        color=color,
+        thickness=thickness,
+        lineType=cv2.LINE_AA,
     )
 
     return image, dilated_mask.astype(bool)
