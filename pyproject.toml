@@ -99,6 +99,8 @@ extend-ignore = [
     "WPS237",
     # Imports happen. That's fine
     "WPS201",
+    # Handled by ruff PLR2004
+    "WPS432",
 ]
 per-file-ignores = [
     "scripts/*:WPS",
