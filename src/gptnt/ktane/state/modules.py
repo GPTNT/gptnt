@@ -241,7 +241,7 @@ class MemoryModuleState(InteractiveModuleState):
     button_numbers: Annotated[
         list[Annotated[int, Field(le=4, ge=1)]], Field(max_length=4, min_length=4)
     ]
-    stage: Annotated[int, Field(le=5, ge=1)]
+    stage: Annotated[int, Field(le=5, ge=0)]
 
 
 class MorseCodeModuleState(InteractiveModuleState):
