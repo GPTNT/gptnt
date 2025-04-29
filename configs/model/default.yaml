@@ -18,3 +18,8 @@ agent:
   model: ???
   output_type: ???
   system_prompt: ???
+
+  model_settings:
+    _target_: pydantic_ai.settings.ModelSettings
+    temperature: 0.0
+    top_p: 1.0
