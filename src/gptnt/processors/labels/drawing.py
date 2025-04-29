@@ -20,7 +20,7 @@ class AnnotationBackgroundParams:
     alpha: float = 1
 
 
-@dataclass
+@dataclass(frozen=True)
 class AnnotationTextParams:
     """Parameters for drawing the text of the annotation."""
 

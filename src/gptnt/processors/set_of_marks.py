@@ -1,21 +1,21 @@
+import itertools
 import string
 from collections.abc import Callable, Generator, Mapping
 from dataclasses import dataclass
-from functools import partial
+from functools import lru_cache, partial
 from types import MappingProxyType
-from typing import Literal
+from typing import ClassVar, Literal
 
 import cv2
 import numpy as np
 import structlog
 from numpy.typing import NDArray
-from pydantic import NonNegativeInt
 from skimage.color import hsv2rgb, rgb2hsv
 from skimage.measure import regionprops
 
 from gptnt.ktane.actions import RelativeCoordinate
 from gptnt.ktane.state.modules import KtaneComponent
-from gptnt.players.actions import SetOfMarksLocation, SingleAlphabetLetter
+from gptnt.players.actions import SetOfMarksLocation
 from gptnt.processors.labels.color import (
     ENTIRELY_COLOR_DEPENDENT_MODULES,
     boost_vibrancy,
@@ -255,8 +255,26 @@ def draw_region_masks(  # noqa: WPS210, WPS211
     return annotated_image
 
 
+@lru_cache(maxsize=1)
+def compute_sample_text_dimensions(*, text: str, params: AnnotationTextParams) -> tuple[int, int]:
+    """Compute the dimensions of a sample text using the given parameters."""
+    (text_width, text_height), _ = cv2.getTextSize(
+        text=text, fontFace=params.font, fontScale=params.font_scale, thickness=params.thickness
+    )
+    return text_width, text_height
+
+
 class SetOfMarksHandler:
     """Create a handler that manages the SoM labelling on screenshots of ktane."""
+
+    # Create a list of possible labels for set of marks if using the alphabet, up to 2-letter
+    # combinations of uppercase letters.
+    alphabet: ClassVar[list[str]] = list(
+        itertools.chain(
+            string.ascii_uppercase,
+            map("".join, itertools.combinations_with_replacement(string.ascii_uppercase, 2)),
+        )
+    )
 
     def __init__(
         self,
@@ -312,7 +330,10 @@ class SetOfMarksHandler:
 
         # add numbered labels to image
         annotated_image = self.draw_labels(
-            image=annotated_image, segm_img=colorful_image, module=zoomed_in_component
+            image=annotated_image,
+            segm_img=colorful_image,
+            regions=regions,
+            module=zoomed_in_component,
         )
         return annotated_image
 
@@ -325,19 +346,21 @@ class SetOfMarksHandler:
         return self._mark_to_coordinate[mark_id]
 
     def draw_labels(
-        self, image: RGBArray, segm_img: RGBArray, module: KtaneComponent | None
+        self,
+        *,
+        image: RGBArray,
+        segm_img: RGBArray,
+        regions: list[RegionProperties],
+        module: KtaneComponent | None,
     ) -> RGBArray:
         """Draw labels on the image based on the segmentation image and observation."""
-        (text_width, text_height), _ = cv2.getTextSize(
-            text="A",  # sample text
-            fontFace=self._annotation_text_params.font,
-            fontScale=self._annotation_text_params.font_scale,
-            thickness=self._annotation_text_params.thickness,
+        text_width, text_height = compute_sample_text_dimensions(
+            text="A", params=self._annotation_text_params
         )
 
         # Get list of coordinates to draw labels
         draw_coords = COMPONENT_WRITE_LABEL_MAPPER[module](
-            self.extract_regions(segm_img),
+            regions,
             NumberBoxDimensions(
                 width=text_width,
                 height=text_height,
@@ -365,7 +388,7 @@ class SetOfMarksHandler:
 
             annotated_image = draw_annotation(
                 img=annotated_image,
-                label=str(self._convert_label_num_to_alphabet(region.label)),
+                label=str(self._format_label(region.label)),
                 centroid_coords=Coordinates(y_pos=draw_location[0], x_pos=draw_location[1]),
                 color=color,
                 text_drawing_params=self._annotation_text_params,
@@ -376,11 +399,8 @@ class SetOfMarksHandler:
 
     def _update_mark_to_coordinate_mapping(self, regions: list[RegionProperties]) -> None:
         """Map the region label to a relative coordinate."""
-        label_format = (
-            self._convert_label_num_to_alphabet if self._mark_type == "alphabet" else int
-        )
         label_to_coord = {
-            label_format(region.label): RelativeCoordinate(
+            self._format_label(region.label): RelativeCoordinate(
                 x_pos=region.centroid[1] / region._label_image.shape[1],  # noqa: SLF001
                 y_pos=region.centroid[0] / region._label_image.shape[0],  # noqa: SLF001
             )
@@ -388,13 +408,13 @@ class SetOfMarksHandler:
         }
         self._mark_to_coordinate = label_to_coord
 
-    def _convert_label_num_to_alphabet(self, label_num: NonNegativeInt) -> SingleAlphabetLetter:
-        """Convert a label number to its corresponding alphabet.
+    def _format_label(self, label_num: int) -> str | int:
+        """Format a label number to a string.
 
-        Note that regions are 1-indexed, so we need to subtract 1 from the label number.
+        This is used to convert the label number to a string for display.
         """
-        if label_num < 0 or label_num >= len(string.ascii_uppercase):
-            _logger.warning("Label number out of range. Using numbers instead.")
-            return str(label_num)
-
-        return string.ascii_uppercase[label_num - 1]
+        if self._mark_type == "alphabet":
+            return self.alphabet[label_num - 1]
+        if self._mark_type == "number":
+            return label_num
+        raise ValueError(f"Invalid mark type: {self._mark_type}. Must be 'alphabet' or 'number'.")
