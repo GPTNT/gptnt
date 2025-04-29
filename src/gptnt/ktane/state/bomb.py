@@ -27,3 +27,8 @@ class BombState(BaseModel):
             if module.in_focus:
                 return module.name
         return None
+
+    @property
+    def is_timed_out(self) -> bool:
+        """Check if the bomb is timed out."""
+        return self.timer_module.seconds_remaining <= 0
