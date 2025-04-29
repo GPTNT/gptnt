@@ -1,3 +1,4 @@
+import colorsys
 from pathlib import Path
 
 import numpy as np
@@ -13,6 +14,7 @@ from gptnt.processors.set_of_marks import (
     MaskDrawingParams,
     SetOfMarksHandler,
     convert_colorful_segm_to_labeled,
+    get_region_color,
     get_region_properties,
 )
 
@@ -169,11 +171,16 @@ for module, screenshot, segmentation in image_pairs:
     segm_image = np.asarray(load_observation_from_bytes(segmentation.read_bytes()))
     segm_image = segm_image.copy()
 
-    # Get a unique color for each region, these are equidistance hue values
     display_image = som.run(observation=image, colorful_image=segm_image, state=module)
 
     # _ = plot_label(image, region)
     # image = add_center_grid(image)
     _ = st.image(display_image, use_container_width=True)
+
+    # region colors
+    for region in regions:
+        color = get_region_color(image, segm_image, region, module, 0, 0)
+        hsv_color = colorsys.rgb_to_hsv(*color)
+        st.write(f"Region {region.label} color: {color}, HSV: {hsv_color}")
 
     _ = st.divider()
