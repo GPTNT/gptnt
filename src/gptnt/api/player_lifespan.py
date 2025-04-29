@@ -3,6 +3,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import structlog
+import wandb
 from fastapi import FastAPI
 
 from gptnt.api.experiment_manager_client import ExperimentManagerClient
@@ -35,4 +36,5 @@ async def player_lifespan(
     if app.state.main_loop_task:
         _ = app.state.main_loop_task.cancel()
 
+    wandb.finish()
     logger.info("Cleaned up player.")
