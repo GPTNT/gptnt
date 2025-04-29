@@ -170,6 +170,15 @@ class ComplicatedWiresModuleState(InteractiveModuleState):
 
     wires: Annotated[list[ComplicatedWire], Field(max_length=6, min_length=1)]
 
+    @field_validator("wires", mode="before")
+    @classmethod
+    def remove_nones_from_list(cls, wires: list[ComplicatedWire | None]) -> list[ComplicatedWire]:
+        """Remove Nones from the list of wires.
+
+        This is used to ensure that the list of wires is always in the correct format.
+        """
+        return [wire for wire in wires if wire is not None]
+
 
 class WireSequenceModuleState(InteractiveModuleState):
     """State of the Wire Sequence module."""
@@ -177,11 +186,31 @@ class WireSequenceModuleState(InteractiveModuleState):
     panel: Annotated[int, Field(le=4, ge=1)]
     wires: Annotated[list[WireSequenceWire], Field(max_length=3, min_length=1)]
 
+    @field_validator("wires", mode="before")
+    @classmethod
+    def remove_nones_from_list(
+        cls, wires: list[WireSequenceWire | None]
+    ) -> list[WireSequenceWire]:
+        """Remove Nones from the list of wires.
+
+        This is used to ensure that the list of wires is always in the correct format.
+        """
+        return [wire for wire in wires if wire is not None]
+
 
 class WireSetModuleState(InteractiveModuleState):
     """State of the Wire Set module."""
 
     wires: Annotated[list[WireSetWire], Field(max_length=6, min_length=1)]
+
+    @field_validator("wires", mode="before")
+    @classmethod
+    def remove_nones_from_list(cls, wires: list[WireSetWire | None]) -> list[WireSetWire]:
+        """Remove Nones from the list of wires.
+
+        This is used to ensure that the list of wires is always in the correct format.
+        """
+        return [wire for wire in wires if wire is not None]
 
 
 class MazeCoordinate(NamedTuple):
