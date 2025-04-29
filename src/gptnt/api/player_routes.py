@@ -70,13 +70,14 @@ async def run_for_game(player: PlayerDep, request: Request) -> None:
 
 
 @player_router.post("/run-for-turn")
-async def run_for_turn(player: PlayerDep) -> None:
+async def run_for_turn(player: PlayerDep, request: Request) -> None:
     """Perform one step in the game.
 
     Only makes sense for AI players.
     """
     if player.metadata.player_type == "ai":
-        await player.run_sequential()
+        request.app.state.main_loop_task = asyncio.create_task(player.run_sequential())
+        await request.app.state.main_loop_task
 
 
 @player_router.post("/stop-experiment")
@@ -95,3 +96,4 @@ async def stop_experiment(player: PlayerDep, request: Request) -> None:
     # Disconnect from the room
     await player.disconnect_from_room()
     player.tracker.on_game_end()
+    logger.info("Stopped experiment for player")
