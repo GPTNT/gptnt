@@ -32,3 +32,13 @@ class BombState(BaseModel):
     def is_timed_out(self) -> bool:
         """Check if the bomb is timed out."""
         return self.timer_module.seconds_remaining <= 0
+
+    @property
+    def is_strike_out(self) -> bool:
+        """Check if the bomb is strike out."""
+        return self.current_strikes >= self.max_strikes
+
+    @property
+    def is_game_correctly_over(self) -> bool:
+        """Check if the game is correctly over."""
+        return self.is_detonated or self.is_solved or self.is_timed_out or self.is_strike_out
