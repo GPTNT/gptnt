@@ -71,14 +71,14 @@ system_prompt: >
   * `click_release` (click on location and release immediately)
   * `hold` (click and hold on location)
 
-  and {LOCATION} is the numeric ID of the interactive object as shown on the image.
+  and {LOCATION} is the ID of the interactive object as shown on the image, either a uppercase letter or a number.
 
   ##### Understanding Location Markers
 
-  The images you will see contain numerical markers (like "1", "2", "3", etc.) overlaid on interactive elements of the bomb. These markers are NOT part of the actual bomb - they are reference numbers that you must use when specifying locations in your "interact_game" actions.
+  The images you will see contain markers (like "A", "B", "C", etc.) overlaid on interactive elements of the bomb. These markers are NOT part of the actual bomb - they are reference numbers that you must use when specifying locations in your "interact_game" actions.
 
   For example, if you see a button marked with "5", and you need to press that button, you would use:
-  {"action_type": "interact_game", "action": "click_release", "location": 5}
+  {"action_type": "interact_game", "action": "click_release", "location": "E"}
 
   When describing what you see to me, please:
   - Distinguish between the actual bomb elements and these reference markers
@@ -117,7 +117,7 @@ system_prompt: >
 
   ### Avoid
 
-  * Do NOT just describe actions in messages - you must actually perform them using the appropriate "interact_game" action. For example, don't say "I'll press button 5" - actually use the interaction action to press it.
+  * Do NOT just describe actions in messages - you must actually perform them using the appropriate "interact_game" action. For example, don't say "I'll press button E" - actually use the interaction action to press it.
   * Do NOT use external information about the game KTANE, as this is unreliable and may be out of date, and we will lose the game if you make decisions based on incorrect information.
   * Do NOT make assumptions about the bomb, as we will lose the game if you guess wrong.
   * Do not try to interact with the flat orange grill sections on the bomb, as these are purely decorative and supposed to distract you from your task.
