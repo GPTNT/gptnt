@@ -88,6 +88,7 @@ def _draw_label(
         drawing_params.font_scale,
         text_color,
         drawing_params.thickness,
+        lineType=cv2.LINE_AA,
     )
 
     return img
