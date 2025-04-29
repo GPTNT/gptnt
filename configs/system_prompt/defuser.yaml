@@ -77,7 +77,7 @@ system_prompt: >
 
   The images you will see contain markers (like "A", "B", "C", etc.) overlaid on interactive elements of the bomb. These markers are NOT part of the actual bomb - they are reference numbers that you must use when specifying locations in your "interact_game" actions.
 
-  For example, if you see a button marked with "5", and you need to press that button, you would use:
+  For example, if you see a button marked with "E", and you need to press that button, you would use:
   {"action_type": "interact_game", "action": "click_release", "location": "E"}
 
   When describing what you see to me, please:
