@@ -86,6 +86,7 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
 
     def __post_init__(self) -> None:
         """Post init for the defuser player."""
+        super().__post_init__()
         if not does_model_support_structured_outputs(self.agent):
             self.agent.output_validator(coerce_model_string_outputs)  # pyright: ignore[reportArgumentType,reportCallIssue]
 
