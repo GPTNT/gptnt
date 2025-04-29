@@ -106,7 +106,7 @@ class Experiment:
             self.completed_successfully = True
             await self.stop_lifecycle()
 
-    @logfire.instrument("Started experiment lifecycle")
+    @logfire.instrument("Stopped experiment lifecycle")
     async def stop_lifecycle(self) -> None:
         """Stops the current experiment, either because the mission is over or an error occured."""
         _logger.info(f"Finishing game[{self._uuid}]")
@@ -117,7 +117,7 @@ class Experiment:
             for player in (self._expert, self._defuser)
             if player.is_running
         ]
-        _ = await asyncio.gather(*to_reset)
+        _ = await asyncio.gather(*to_reset, return_exceptions=True)
 
         self._expert.in_experiment = False
         self._defuser.in_experiment = False
