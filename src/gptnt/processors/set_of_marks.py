@@ -1,3 +1,4 @@
+import colorsys
 import itertools
 import string
 from collections.abc import Callable, Generator, Mapping
@@ -33,6 +34,7 @@ from gptnt.processors.labels.morse import morse_code
 from gptnt.processors.labels.password import password
 from gptnt.processors.labels.simon import simon
 from gptnt.processors.labels.types import (  # noqa: WPS235
+    BLACK,
     BLUE,
     GREEN,
     IS_LINE_THRESHOLD,
@@ -176,7 +178,17 @@ def draw_mask_on_image(  # noqa: WPS210
     return image, dilated_mask.astype(bool)
 
 
-def get_region_color(
+def is_hsv_white(hsv: tuple[float, float, float]) -> bool:
+    """Check if a given HSV value is (essentially) white."""
+    return hsv[1] < 0.2 and hsv[2] > 150  # noqa: WPS459 PLR2004
+
+
+def is_hsv_black(hsv: tuple[float, float, float]) -> bool:
+    """Check if a given HSV value is (essentially) black."""
+    return hsv[1] < 0.2 and hsv[2] < 50  # noqa: WPS459 PLR2004
+
+
+def get_region_color(  # noqa: WPS212
     image: RGBArray,
     segm_image: RGBArray,
     region: RegionProperties,
@@ -190,7 +202,19 @@ def get_region_color(
         module == KtaneComponent.wire_sequence and region.eccentricity > IS_LINE_THRESHOLD
     ):
         color = get_median_colour(region, image)
-        return boost_vibrancy(color, saturation_boost=saturation_boost, value_boost=value_boost)
+
+        # Get the HSV values of the colour
+        hsv_color = colorsys.rgb_to_hsv(*color)
+
+        if is_hsv_white(hsv_color):
+            return WHITE
+        if is_hsv_black(hsv_color):
+            return BLACK
+
+        vibrant_color = boost_vibrancy(
+            color, saturation_boost=saturation_boost, value_boost=value_boost
+        )
+        return vibrant_color
 
     if module == KtaneComponent.wire_sequence:
         # Set the colors of the wire_sequence buttons so that they do not match one of the wires
