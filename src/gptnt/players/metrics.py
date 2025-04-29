@@ -262,7 +262,7 @@ class PlayerEpisodeTracker:
             data_to_send["observations"] = observations_table
 
         self._run.log(data_to_send)
-        self._run.finish()
+        wandb.finish()
         self.reset()
 
     def add_action(self, action: InteractGameAction[InteractGameLocation]) -> None:
