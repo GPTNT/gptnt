@@ -166,6 +166,7 @@ class RoomManager:
 
             elif self.reset_raised.is_set():
                 await self.stop(stop_subservices=False)
+                _ = await self.ktane_client.resume_time()
                 _ = await self.ktane_client.reset()
                 self._dialogue_space_server.reset()
                 await self.start(start_subservices=False)
