@@ -21,7 +21,7 @@ async def client(host: str, port: int) -> AsyncGenerator[KtaneClient, None]:
 
 
 @fixture
-@parametrize("mark_type", [str, int], ids=["mark_type=alphabet", "mark_type=int"])
+@parametrize("mark_type", ["alphabet", "number"], ids=["mark_type=alphabet", "mark_type=int"])
 def set_of_marks_handler(mark_type: type[SetOfMarksLocation]) -> SetOfMarksHandler:
     annotation_text_params = AnnotationTextParams(
         font=0, font_scale=0.5, thickness=1, space_between_boxes=2
