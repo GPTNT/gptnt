@@ -73,6 +73,9 @@ async def connect_player(
     await new_player.start()
     tasks.append(asyncio.create_task(coro=new_player.supervisor_loop()))
     supervised_players.append(new_player)
+    logger.info(
+        f"Connected player {player_metadata.player_name} ({player_metadata.player_type}; {player_metadata.player_role}) to the experiment manager."
+    )
 
 
 @router.post("/connect-room")
