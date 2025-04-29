@@ -49,14 +49,15 @@ class BasePlayer(abc.ABC):
             log.debug("Disconnected from room dialogue space.")
 
     @abc.abstractmethod
-    async def run(self) -> None:
+    async def run_parallel(self) -> None:
         """Run the player."""
         raise NotImplementedError
 
-    async def run_once(self) -> None:
+    @abc.abstractmethod
+    async def run_sequential(self) -> None:
         """Run a single iteration of the decision making logic.
 
-        AI players only.
+        For AI players only.
         """
         raise NotImplementedError
 

@@ -64,7 +64,8 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         return  # noqa: WPS324
 
     @override
-    async def run(self) -> None:
+    @logfire.instrument("Run AI player (with parallel decision making)")
+    async def run_parallel(self) -> None:
         """Run the decision making process for the player.
 
         This will continually run forever/until we stop it.
@@ -77,12 +78,16 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
 
             # TODO: This seems like a bad idea? Do we need to fix this
             while True:  # noqa: WPS457
-                _ = await self.run_once()
+                await self.health_check()
+
+                agent_output = await self.send_request_to_agent()
+                _ = await self.direct_output_from_agent(agent_output)
+
                 _ = await busy_wait_interval()
 
     @override
-    @logfire.instrument("Run AI player once")
-    async def run_once(self) -> None:
+    @logfire.instrument("Run AI player once (sequential decision making)")
+    async def run_sequential(self) -> None:
         """Run the decision making process for the player once."""
         await self.health_check()
 

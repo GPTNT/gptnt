@@ -50,7 +50,11 @@ class Controller(BasePlayer):
         _ = await event.wait()
 
     @override
-    async def run(self) -> None:
+    async def run_parallel(self) -> None:
+        return  # noqa: WPS324
+
+    @override
+    async def run_sequential(self) -> None:
         return  # noqa: WPS324
 
     @override

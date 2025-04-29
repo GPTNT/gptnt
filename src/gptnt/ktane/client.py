@@ -135,6 +135,7 @@ class KtaneClient(InstrumentationMixin):
             return False
         return True
 
+    @logfire.instrument("Resume time")
     async def resume_time(self) -> bool:
         """Resume the game."""
         response = await self.client.get("/settimescale", params={"value": 1})
@@ -145,6 +146,7 @@ class KtaneClient(InstrumentationMixin):
             return False
         return True
 
+    @logfire.instrument("Send action")
     async def send_action(
         self, action: KtaneBaseAction[InteractGameLocation] | KtaneAction
     ) -> bool | None:
@@ -171,6 +173,7 @@ class KtaneClient(InstrumentationMixin):
 
         return True
 
+    @logfire.instrument("Get bomb state")
     async def get_state(self) -> BombState | None:
         """Get the current state of the bomb."""
         response = await self.client.get("/state")

@@ -1,4 +1,5 @@
 import abc
+import asyncio
 from collections import deque
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -114,6 +115,21 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
         self.tracker.add_action(action=action)
 
     @override
+    async def run_sequential(self) -> None:  # noqa: WPS217
+        """Run the decision making process for the player once."""
+        while await self.game_client.get_state() is None:
+            await busy_wait_interval()
+
+        await self.health_check()
+
+        agent_output = await self.send_request_to_agent()
+        if isinstance(agent_output, InteractGameAction):
+            _ = await self.game_client.resume_time()
+        _ = await self.direct_output_from_agent(agent_output)
+        await asyncio.sleep(1)
+        _ = await self.game_client.stop_time()
+
+    @override
     @logfire.instrument("Map agent output to function", record_return=True)
     def agent_output_type_to_function(
         self, output_type: type[DefuserOutputT[LocationDataT]]
@@ -160,8 +176,9 @@ class MDPDefuserPlayer[LocationDataT: InteractGameLocation](
         # Frame is/should be a JPEG that is encoded as bytes
         raw_image, segm_mask, som_image = await self.game_client.get_observation()
         current_frame = BinaryContent(data=som_image, media_type="image/png")
+
         self.tracker.add_observation(raw_image=raw_image, segm_mask=segm_mask, som_image=som_image)
-        self.observation_cache.append(current_frame)
+        self.observation_cache.append(BinaryContent(data=raw_image, media_type="image/png"))
 
         if self.should_save_images:
             paths.output.joinpath("images").mkdir(parents=True, exist_ok=True)
@@ -172,6 +189,8 @@ class MDPDefuserPlayer[LocationDataT: InteractGameLocation](
             )
 
         agent_input = [messages, *list(self.observation_cache)]
+        # remove the last frame since thats the current frame and replace it with the som one
+        agent_input[-1] = current_frame
         return agent_input
 
     @override
