@@ -60,54 +60,51 @@ class Experiment:
     @logfire.instrument("Started experiment lifecycle")
     async def lifecycle_loop(self) -> None:  # noqa: WPS217 (This is a lifecycle, the whole point is awaiting lots of stuff)
         """Runs the experiment."""
-        # 1. Configure the experiment
-        await until(get_value=lambda: self._room.state, target=RoomStage.ready_for_config)
-        _ = await self._room.client.configure_experiment(self.spec.mission_spec)
-        self._mission_configured = True
+        with logfire.span("Prepare experiment"):
+            # 1. Configure the experiment
+            await until(get_value=lambda: self._room.state, target=RoomStage.ready_for_config)
+            _ = await self._room.client.configure_experiment(self.spec.mission_spec)
+            self._mission_configured = True
 
-        # 2. Connect the players to the room
-        _ = await asyncio.gather(  # noqa: WPS476
-            self._expert.client.join_room(room=self._room.metadata),
-            self._defuser.client.join_room(room=self._room.metadata),
-        )
+            # 2. Connect the players to the room
+            _ = await asyncio.gather(  # noqa: WPS476
+                self._expert.client.join_room(room=self._room.metadata),
+                self._defuser.client.join_room(room=self._room.metadata),
+            )
 
-        # 3. Start the experiment
-        await until(get_value=lambda: self._room.state, target=RoomStage.ready_for_start)
-        _ = await asyncio.gather(
-            self._expert.client.start_experiment(
-                game_metadata=GameMetadata(
-                    experiment_spec=self.spec,
-                    player_metadata=self._expert.metadata,
-                    game_id=self._uuid,
-                )
-            ),
-            self._defuser.client.start_experiment(
-                game_metadata=GameMetadata(
-                    experiment_spec=self.spec,
-                    player_metadata=self._defuser.metadata,
-                    game_id=self._uuid,
-                )
-            ),
-            self._room.client.start_experiment(),
-        )
-        self._mission_started = True
+            await until(get_value=lambda: self._room.state, target=RoomStage.ready_for_start)
+
+            # 3. Start the experiment
+            _ = await asyncio.gather(
+                self._expert.client.start_experiment(
+                    game_metadata=GameMetadata(
+                        experiment_spec=self.spec,
+                        player_metadata=self._expert.metadata,
+                        game_id=self._uuid,
+                    )
+                ),
+                self._defuser.client.start_experiment(
+                    game_metadata=GameMetadata(
+                        experiment_spec=self.spec,
+                        player_metadata=self._defuser.metadata,
+                        game_id=self._uuid,
+                    )
+                ),
+                self._room.client.start_experiment(),
+            )
+            self._mission_started = True
 
         # 4. Run correct experiment
         match self.spec.communication_style:
             case "parallel":
-                _ = await asyncio.gather(
-                    self._expert.client.run_for_game(), self._defuser.client.run_for_game()
-                )
-                await until(get_value=lambda: self._room.state, target=RoomStage.done)
-
+                await self._run_parallel()
             case "sequential":
-                while self._room.state is not RoomStage.done:
-                    _ = await self._expert.client.run_for_turn()
-                    _ = await self._defuser.client.run_for_turn()
+                await self._run_sequential()
 
         # 5. Stop experiment
-        self.completed_successfully = True
-        await self.stop_lifecycle()
+        with logfire.span("Stop Experiment"):
+            self.completed_successfully = True
+            await self.stop_lifecycle()
 
     @logfire.instrument("Started experiment lifecycle")
     async def stop_lifecycle(self) -> None:
@@ -161,6 +158,23 @@ class Experiment:
                 await self.stop_lifecycle()
 
             await healthcheck_interval()
+
+    @logfire.instrument("Run Experiment (Sequential)")
+    async def _run_sequential(self) -> None:
+        """Runs the experiment in sequential mode."""
+        while self._room.state is not RoomStage.done:
+            with logfire.span("Expert turn"):
+                _ = await self._expert.client.run_for_turn()
+            with logfire.span("Defuser turn"):
+                _ = await self._defuser.client.run_for_turn()
+
+    @logfire.instrument("Run Experiment (Parallel)")
+    async def _run_parallel(self) -> None:
+        """Runs the experiment in parallel mode."""
+        _ = await asyncio.gather(
+            self._expert.client.run_for_game(), self._defuser.client.run_for_game()
+        )
+        await until(get_value=lambda: self._room.state, target=RoomStage.done)
 
 
 class ExperimentManager:
