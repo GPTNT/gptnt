@@ -4,8 +4,8 @@ defaults:
   - _self_
   - hydra: default
 
-  - model: claude37
   - player: ai/defuser_mdp_som
+  - model: claude37
   - system_prompt: defuser
 
   - override hydra/job_logging: none

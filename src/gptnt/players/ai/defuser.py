@@ -2,12 +2,14 @@ import abc
 from collections import deque
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Union, override
+from typing import Any, Union, override
 
 import logfire
 import structlog
 import whenever
-from pydantic_ai import BinaryContent
+from pydantic import TypeAdapter
+from pydantic_ai import Agent, BinaryContent
+from pydantic_ai.models import Model
 
 from gptnt.common.async_ops import busy_wait_interval
 from gptnt.common.paths import Paths
@@ -39,6 +41,28 @@ https://ai.pydantic.dev/results/#structured-result-validation
 """
 
 
+def coerce_model_string_outputs(
+    output: str | DefuserOutputT[InteractGameLocation],
+) -> DefuserOutputT[InteractGameLocation]:
+    """Parse the output from the agent for gemini/models that don't support structured output."""
+    if isinstance(output, str):
+        output = output.strip().replace("```json", "").replace("```", "")
+        return TypeAdapter(DefuserOutputT[InteractGameLocation]).validate_json(output)
+    return output
+
+
+def does_model_support_structured_outputs(agent: Agent[Any, Any]) -> bool:
+    """Check if the model supports structured outputs."""
+    if isinstance(agent.model, str):
+        model_name_string = agent.model
+    elif isinstance(agent.model, Model):
+        model_name_string = agent.model.model_name
+    else:
+        raise TypeError("Cannot determine model name from agent")
+
+    return "gemini" not in model_name_string
+
+
 @dataclass(kw_only=True)
 class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
     AIPlayer[AgentDepsT, DefuserOutputT[LocationDataT]], abc.ABC
@@ -62,6 +86,9 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
 
     def __post_init__(self) -> None:
         """Post init for the defuser player."""
+        if not does_model_support_structured_outputs(self.agent):
+            self.agent.output_validator(coerce_model_string_outputs)  # pyright: ignore[reportArgumentType,reportCallIssue]
+
         self.observation_cache: deque[BinaryContent] = deque(maxlen=self.observation_window_length)
 
     @override

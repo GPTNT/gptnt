@@ -8,6 +8,9 @@ metadata:
   player_name: gemini-25
 
 agent:
+  output_type:
+    variant: "gemini"
+
   model:
     _target_: pydantic_ai.models.gemini.GeminiModel
     model_name: gemini-2.5-flash-preview-04-17
