@@ -193,7 +193,7 @@ async def test_set_of_mark_actions_are_converted_to_relative_coordinates(
 
     som_mark_style = client_with_som.set_of_marks_painter._mark_type
     som_mark_type = str if som_mark_style == "alphabet" else int
-    som_location = "a" if som_mark_style == "alphabet" else 1
+    som_location = "A" if som_mark_style == "alphabet" else 1
 
     # Get the observation
     _ = await client_with_som.get_observation()
