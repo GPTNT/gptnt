@@ -1,0 +1,8 @@
+# @package _global_
+
+pairing_generator:
+  all_players:
+    - internvl-3-2b
+    - internvl-3-8b
+    - qwenvl-25-3b
+    - qwenvl-25-7b

@@ -5,6 +5,6 @@ defaults:
   - pairing: with_best
   - communication_style: sequential
   - condition: single_module
-  - players: with_smaller
+  - players: smaller
 # pairing_generator:
 # best_model: gpt4o
