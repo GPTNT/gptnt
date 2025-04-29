@@ -84,3 +84,34 @@ def find_text_color(bg_color: Color) -> Color:
     if check_contrast(hex_color, "#FFFFFF"):
         return WHITE
     return BLACK
+
+
+def _is_white(rgb: Color) -> bool:
+    red, green, blue = rgb
+    color_minimum = 200
+    return red > color_minimum and green > color_minimum and blue > color_minimum
+
+
+def _is_blue(rgb: Color) -> bool:
+    red, green, blue = rgb
+    blue_minimum = 150
+    other_colors_maximum = 100
+    return blue > blue_minimum and red < other_colors_maximum and green < other_colors_maximum
+
+
+def _is_red(rgb: Color) -> bool:
+    red, green, blue = rgb
+    red_minimum = 150
+    other_colors_maximum = 100
+    return red > red_minimum and green < other_colors_maximum and blue < other_colors_maximum
+
+
+def check_colors(region: RegionProperties, segm_img: RGBArray) -> tuple[bool, bool, bool]:
+    """Check for presence of white, blue, and red colors in a region."""
+    pixels = np.array([segm_img[y_iter, x_iter] for y_iter, x_iter in region.coords])
+
+    has_white = any(_is_white(rgb) for rgb in pixels)
+    has_blue = any(_is_blue(rgb) for rgb in pixels)
+    has_red = any(_is_red(rgb) for rgb in pixels)
+
+    return has_white, has_blue, has_red

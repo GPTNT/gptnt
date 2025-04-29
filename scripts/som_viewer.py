@@ -1,4 +1,3 @@
-import colorsys
 from pathlib import Path
 
 import numpy as np
@@ -14,7 +13,6 @@ from gptnt.processors.set_of_marks import (
     MaskDrawingParams,
     SetOfMarksHandler,
     convert_colorful_segm_to_labeled,
-    get_region_color,
     get_region_properties,
 )
 
@@ -120,12 +118,6 @@ with st.sidebar:
     _ = st.header("Mask")
     mask_thickness = st.number_input("Mask thickness", min_value=0, max_value=10, value=1, step=1)
     mask_alpha = st.number_input("Mask alpha", min_value=0.0, max_value=1.0, value=0.10, step=0.01)
-    color_dependent_saturation_boost = st.number_input(
-        "Color dependent saturation boost", min_value=0.0, max_value=1.0, value=0.4, step=0.1
-    )
-    color_dependent_value_boost = st.number_input(
-        "Color dependent value boost", min_value=0.0, max_value=1.0, value=0.4, step=0.1
-    )
 
 som = SetOfMarksHandler(
     annotation_background_params=AnnotationBackgroundParams(
@@ -138,11 +130,7 @@ som = SetOfMarksHandler(
         space_between_boxes=annotation_text_space_between,
     ),
     mask_drawing_params=MaskDrawingParams(
-        mask_thickness=mask_thickness,
-        soft_mask_alpha=mask_alpha,
-        bw_outside_mask=bw_outside_mask,
-        color_dependent_value_boost=color_dependent_value_boost,
-        color_dependent_saturation_boost=color_dependent_saturation_boost,
+        mask_thickness=mask_thickness, soft_mask_alpha=mask_alpha, bw_outside_mask=bw_outside_mask
     ),
     add_labels=add_labels,
     add_mask_outline=add_mask_outline,
@@ -177,10 +165,10 @@ for module, screenshot, segmentation in image_pairs:
     # image = add_center_grid(image)
     _ = st.image(display_image, use_container_width=True)
 
-    # region colors
-    for region in regions:
-        color = get_region_color(image, segm_image, region, module, 0, 0)
-        hsv_color = colorsys.rgb_to_hsv(*color)
-        st.write(f"Region {region.label} color: {color}, HSV: {hsv_color}")
+    # # region colors
+    # for region in regions:
+    #     color = get_region_color(image, segm_image, region, module, 0, 0)
+    #     hsv_color = colorsys.rgb_to_hsv(*color)
+    #     st.write(f"Region {region.label} color: {color}, HSV: {hsv_color}")
 
     _ = st.divider()

@@ -7,7 +7,14 @@ from cv2.typing import MatLike
 
 from gptnt.processors.labels.color import find_text_color
 from gptnt.processors.labels.position import get_background_corner_coords
-from gptnt.processors.labels.types import Color, Coordinates, NumberBoxDimensions, RGBArray
+from gptnt.processors.labels.types import (
+    BLACK,
+    WHITE,
+    Color,
+    Coordinates,
+    NumberBoxDimensions,
+    RGBArray,
+)
 
 log = structlog.get_logger()
 
@@ -70,11 +77,46 @@ def _draw_background(
     return cv2.addWeighted(overlay, drawing_params.alpha, img, 1 - drawing_params.alpha, 0)
 
 
+def _draw_background_triangle(
+    img: MatLike,
+    coords: Coordinates,
+    color1: Color,  # color for first triangle (top-left to bottom-right diagonal)
+    color2: Color,  # color for second triangle (bottom-left to top-right diagonal)
+    text_width: int,
+    text_height: int,
+    drawing_params: AnnotationBackgroundParams,
+) -> MatLike:
+    """Draw two triangles for label background instead of a rectangle."""
+    top_left, bottom_right = get_background_corner_coords(
+        coords, padding=drawing_params.padding, text_width=text_width, text_height=text_height
+    )
+
+    x1, y1 = top_left
+    x2, y2 = bottom_right
+
+    pts_triangle1 = np.array([[x1, y1], [x2, y1], [x2, y2]], dtype=np.int32)  # top-right triangle
+    pts_triangle2 = np.array(
+        [[x1, y1], [x1, y2], [x2, y2]], dtype=np.int32
+    )  # bottom-left triangle
+
+    if drawing_params.alpha >= 1.0:  # noqa: WPS459
+        _ = cv2.fillPoly(img, [pts_triangle1], color1, lineType=cv2.LINE_AA)
+        _ = cv2.fillPoly(img, [pts_triangle2], color2, lineType=cv2.LINE_AA)
+        return img
+
+    overlay = img.copy()
+
+    _ = cv2.fillPoly(overlay, [pts_triangle1], color1, lineType=cv2.LINE_AA)
+    _ = cv2.fillPoly(overlay, [pts_triangle2], color2, lineType=cv2.LINE_AA)
+
+    return cv2.addWeighted(overlay, drawing_params.alpha, img, 1 - drawing_params.alpha, 0)
+
+
 def _draw_label(
     img: MatLike,
     label: str,
     coords: Coordinates,
-    color: Color,
+    color: tuple[Color, ...],
     text_width: int,
     text_height: int,
     drawing_params: AnnotationTextParams,
@@ -87,7 +129,12 @@ def _draw_label(
 
     # determine colour of text based on brightness
 
-    text_color = find_text_color(color)
+    if len(color) == 1:
+        text_color = find_text_color(color[0])
+    elif WHITE in color:
+        text_color = BLACK
+    else:
+        text_color = WHITE
 
     # Draw text
     img = cv2.putText(
@@ -108,37 +155,70 @@ def draw_annotation(
     *,
     img: MatLike,
     label: str,
-    color: Color,
+    color: tuple[Color, ...],
     centroid_coords: Coordinates,
     text_drawing_params: AnnotationTextParams,
     background_drawing_params: AnnotationBackgroundParams,
 ) -> RGBArray:
     """Draw label for selectable component, and draw box behind it."""
-    text_size, _ = cv2.getTextSize(
-        label,
-        text_drawing_params.font,
-        text_drawing_params.font_scale,
-        text_drawing_params.thickness,
-    )
-    text_width, text_height = text_size
-    img = _draw_background(
-        img,
-        centroid_coords,
-        color=color,
-        text_width=text_width,
-        text_height=text_height,
-        drawing_params=background_drawing_params,
-    )
+    if len(color) == 0:
+        log.warning("No color provided for label, skipping drawing.")
+        img = np.asarray(img, dtype=np.uint8)
+        return img
 
-    img = _draw_label(
-        img,
-        label,
-        centroid_coords,
-        color=color,
-        text_width=text_width,
-        text_height=text_height,
-        drawing_params=text_drawing_params,
-    )
+    if len(color) > 1:
+        text_size, _ = cv2.getTextSize(
+            label,
+            text_drawing_params.font,
+            text_drawing_params.font_scale,
+            text_drawing_params.thickness,
+        )
+        text_width, text_height = text_size
+        img = _draw_background_triangle(
+            img,
+            centroid_coords,
+            color1=color[0],
+            color2=color[1],
+            text_width=text_width,
+            text_height=text_height,
+            drawing_params=background_drawing_params,
+        )
+
+        img = _draw_label(
+            img,
+            label,
+            centroid_coords,
+            color=color,
+            text_width=text_width,
+            text_height=text_height,
+            drawing_params=text_drawing_params,
+        )
+    else:
+        text_size, _ = cv2.getTextSize(
+            label,
+            text_drawing_params.font,
+            text_drawing_params.font_scale,
+            text_drawing_params.thickness,
+        )
+        text_width, text_height = text_size
+        img = _draw_background(
+            img,
+            centroid_coords,
+            color=color[0],
+            text_width=text_width,
+            text_height=text_height,
+            drawing_params=background_drawing_params,
+        )
+
+        img = _draw_label(
+            img,
+            label,
+            centroid_coords,
+            color=color,
+            text_width=text_width,
+            text_height=text_height,
+            drawing_params=text_drawing_params,
+        )
 
     # transform img back into ndarray
     img = np.asarray(img, dtype=np.uint8)

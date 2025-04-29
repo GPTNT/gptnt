@@ -1,4 +1,3 @@
-import colorsys
 import itertools
 import string
 from collections.abc import Callable, Generator, Mapping
@@ -19,7 +18,7 @@ from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.players.actions import SetOfMarksLocation
 from gptnt.processors.labels.color import (
     ENTIRELY_COLOR_DEPENDENT_MODULES,
-    boost_vibrancy,
+    check_colors,
     get_median_colour,
 )
 from gptnt.processors.labels.drawing import (
@@ -34,7 +33,6 @@ from gptnt.processors.labels.morse import morse_code
 from gptnt.processors.labels.password import password
 from gptnt.processors.labels.simon import simon
 from gptnt.processors.labels.types import (  # noqa: WPS235
-    BLACK,
     BLUE,
     GREEN,
     IS_LINE_THRESHOLD,
@@ -132,11 +130,11 @@ def draw_mask_on_image(  # noqa: WPS210
     *,
     image: RGBArray,
     coords: NDArray[np.intp],
-    color: Color,
+    color: tuple[Color, ...],
     thickness: int,
     soft_mask_alpha: float,
 ) -> tuple[RGBArray, NDArray[np.bool_]]:
-    """Draw outline of a single region based on its coordinates."""
+    """Draw outline of a single region with optional color split for top/bottom."""
     # blank mask
     mask = np.zeros_like(image[:, :, 0])
 
@@ -148,32 +146,81 @@ def draw_mask_on_image(  # noqa: WPS210
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     dilated_mask = cv2.dilate(mask, kernel, iterations=2)
 
-    # draw contours on image
+    # find external contours
     contours, _ = cv2.findContours(dilated_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     if soft_mask_alpha > 0:
+        soft_mask_color = color[0]  # fallback if multiple
         soft_mask = np.zeros_like(image)
-        _ = cv2.drawContours(soft_mask, contours, -1, color, cv2.FILLED)
+        _ = cv2.drawContours(soft_mask, contours, -1, soft_mask_color, cv2.FILLED)
 
-        # alpha blend soft mask over image
         mask_region = cv2.drawContours(
             np.zeros_like(mask), contours, -1, WHITE, cv2.FILLED, lineType=cv2.LINE_AA
         )
         mask_region = mask_region.astype(bool)
 
-        # blend only in masked area
         image[mask_region] = (
             image[mask_region] * (1 - soft_mask_alpha) + soft_mask[mask_region] * soft_mask_alpha
         ).astype(np.uint8)
 
-    _ = cv2.drawContours(
-        image=image,
-        contours=contours,
-        contourIdx=-1,
-        color=color,
-        thickness=thickness,
-        lineType=cv2.LINE_AA,
-    )
+    if len(color) == 1:
+        # standard single-color outline
+        _ = cv2.drawContours(
+            image=image,
+            contours=contours,
+            contourIdx=-1,
+            color=color[0],
+            thickness=thickness,
+            lineType=cv2.LINE_AA,
+        )
+    else:
+        # split top/bottom logic
+        contour_mask = np.zeros_like(image[:, :, 0])
+        _ = cv2.drawContours(
+            contour_mask, contours, -1, WHITE, thickness=thickness, lineType=cv2.LINE_AA
+        )
+
+        rows = np.any(mask, axis=1)
+        nonzero_row_indices = np.where(rows)[0]
+
+        if nonzero_row_indices.size > 0:
+            height = nonzero_row_indices[-1] - nonzero_row_indices[0] + 1
+        else:
+            height = 0  # no masked area
+
+        midpoint = height // 2
+        quarter_height = midpoint // 2
+
+        mask_start = nonzero_row_indices[0]
+        mask_end = nonzero_row_indices[-1]
+
+        top_mask = np.zeros_like(contour_mask)
+        top_mask[mask_start : mask_start + quarter_height, :] = 1
+
+        middle_top_mask = np.zeros_like(contour_mask)
+        middle_top_mask[mask_start + quarter_height : mask_start + midpoint, :] = 1
+
+        middle_bottom_mask = np.zeros_like(contour_mask)
+        middle_bottom_mask[mask_start + midpoint : mask_start + midpoint + quarter_height, :] = 1
+
+        bottom_mask = np.zeros_like(contour_mask)
+        bottom_mask[mask_start + midpoint + quarter_height : mask_end, :] = 1
+
+        color_top, color_bottom = color[:2]
+
+        top_contour = cv2.bitwise_and(contour_mask, contour_mask, mask=top_mask)
+        image[top_contour > 0] = color_top
+
+        middle_top_contour = cv2.bitwise_and(contour_mask, contour_mask, mask=middle_top_mask)
+        image[middle_top_contour > 0] = color_bottom
+
+        middle_bottom_contour = cv2.bitwise_and(
+            contour_mask, contour_mask, mask=middle_bottom_mask
+        )
+        image[middle_bottom_contour > 0] = color_top
+
+        bottom_contour = cv2.bitwise_and(contour_mask, contour_mask, mask=bottom_mask)
+        image[bottom_contour > 0] = color_bottom
 
     return image, dilated_mask.astype(bool)
 
@@ -188,44 +235,46 @@ def is_hsv_black(hsv: tuple[float, float, float]) -> bool:
     return hsv[1] < 0.2 and hsv[2] < 50  # noqa: WPS459 PLR2004
 
 
+def handle_venn(region: RegionProperties, image: RGBArray) -> tuple[Color, ...]:
+    """Check if the region is a venn diagram."""
+    has_white, has_blue, has_red = check_colors(region, image)
+    color_mapping = {
+        (True, True, False): (WHITE, BLUE),
+        (True, False, True): (WHITE, RED),
+        (False, True, True): (BLUE, RED),
+        (True, False, False): (WHITE,),
+        (False, True, False): (BLUE,),
+    }
+    colors = color_mapping.get((has_white, has_blue, has_red), (RED,))
+    return colors
+
+
 def get_region_color(  # noqa: WPS212
-    image: RGBArray,
-    segm_image: RGBArray,
-    region: RegionProperties,
-    module: KtaneComponent | None,
-    saturation_boost: float,
-    value_boost: float,
-) -> Color:
+    image: RGBArray, segm_image: RGBArray, region: RegionProperties, module: KtaneComponent | None
+) -> tuple[Color, ...]:
     """Get the colour of a region based on the module type."""
     # Use image colours for colour dependent modules (but only wire interactables for wire modules)
+
+    if module == KtaneComponent.venn:
+        return handle_venn(region, image)
+
     if module in ENTIRELY_COLOR_DEPENDENT_MODULES or (
         module == KtaneComponent.wire_sequence and region.eccentricity > IS_LINE_THRESHOLD
     ):
         color = get_median_colour(region, image)
 
-        # Get the HSV values of the colour
-        hsv_color = colorsys.rgb_to_hsv(*color)
-
-        if is_hsv_white(hsv_color):
-            return WHITE
-        if is_hsv_black(hsv_color):
-            return BLACK
-
-        vibrant_color = boost_vibrancy(
-            color, saturation_boost=saturation_boost, value_boost=value_boost
-        )
-        return vibrant_color
+        return (color,)
 
     if module == KtaneComponent.wire_sequence:
         # Set the colors of the wire_sequence buttons so that they do not match one of the wires
         color = get_median_colour(region, segm_image)
         if color == RED:
-            return GREEN
+            return (GREEN,)
         if color == BLUE:
-            return YELLOW
+            return (YELLOW,)
 
     # Otherwise, use segmentation image colour
-    return get_median_colour(region, segm_image)
+    return (get_median_colour(region, segm_image),)
 
 
 @dataclass
@@ -235,8 +284,6 @@ class MaskDrawingParams:
     mask_thickness: int
     soft_mask_alpha: float
     bw_outside_mask: bool
-    color_dependent_saturation_boost: float
-    color_dependent_value_boost: float
 
 
 def draw_region_masks(  # noqa: WPS210, WPS211
@@ -257,14 +304,7 @@ def draw_region_masks(  # noqa: WPS210, WPS211
     )
 
     for region in regions:
-        mask_color = get_region_color(
-            image,
-            segm_image,
-            region,
-            zoomed_in_component,
-            drawing_params.color_dependent_saturation_boost,
-            drawing_params.color_dependent_value_boost,
-        )
+        mask_color = get_region_color(image, segm_image, region, zoomed_in_component)
 
         _, mask = draw_mask_on_image(
             image=annotated_image,
@@ -404,14 +444,7 @@ class SetOfMarksHandler:
 
         for draw_location, region in draw_coords:
             # Get the colour of the region
-            color = get_region_color(
-                image,
-                segm_img,
-                region,
-                module,
-                self._mask_drawing_params.color_dependent_saturation_boost,
-                self._mask_drawing_params.color_dependent_value_boost,
-            )
+            color = get_region_color(image, segm_img, region, module)
             # Ensure the label is an integer, which is should be but skimage is not type safe
             assert isinstance(region.label, int), (
                 f"Label {region.label} is not an integer. Label type: {type(region.label)}"

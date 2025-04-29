@@ -26,8 +26,6 @@ game_client:
       mask_thickness: 1
       soft_mask_alpha: 0.1
       bw_outside_mask: False
-      color_dependent_value_boost: 0.4
-      color_dependent_saturation_boost: 0.4
 
     add_labels: true
     add_mask_outline: true
