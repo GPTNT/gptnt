@@ -184,7 +184,7 @@ class WireSequenceModuleState(InteractiveModuleState):
     """State of the Wire Sequence module."""
 
     panel: Annotated[int, Field(le=4, ge=1)]
-    wires: Annotated[list[WireSequenceWire], Field(max_length=3, min_length=1)]
+    wires: Annotated[list[WireSequenceWire], Field(max_length=12, min_length=1)]
 
     @field_validator("wires", mode="before")
     @classmethod
