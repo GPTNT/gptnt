@@ -125,7 +125,7 @@ class KeypadModuleState(InteractiveModuleState):
 class SimonSaysModuleState(InteractiveModuleState):
     """State of the Simon Says module."""
 
-    beep_sequence: Annotated[list[constants.SimonSaysColor], Field(min_length=4, max_length=6)]
+    beep_sequence: Annotated[list[constants.SimonSaysColor], Field(min_length=1, max_length=6)]
     solve_progress: Annotated[int, Field(le=5, ge=0)]
 
     @field_validator("beep_sequence", mode="before")
