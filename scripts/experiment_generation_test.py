@@ -4,6 +4,7 @@ import shutil
 import sys
 from itertools import combinations
 from pathlib import Path
+from typing import Any
 
 import httpx
 import numpy as np
@@ -301,7 +302,7 @@ def check_paths_exist() -> None:
     seed_differences_path.mkdir(parents=True, exist_ok=True)
 
 
-def save(path: Path, seed: int, modules: list[KtaneComponent], bomb_state: BombState) -> None:
+def save(path: Path, seed: int, modules: list[KtaneComponent], bomb_state: dict[str, Any]) -> None:
     """Saves the bomb state to a file."""
     file_name = str(seed) + "".join(f"_{component.name}" for component in modules)
     file_save = path.joinpath(file_name).with_suffix(".json").write_text(json.dumps(bomb_state))
@@ -498,7 +499,8 @@ async def get_bomb_details(client: KtaneClient, mission_spec: KtaneMissionSpec) 
     await asyncio.sleep(5)
 
     # Retrieve the bomb state
-    bomb_state = await client.get_state()
+    bomb_state = await client.client.get("/state")
+    bomb_state = bomb_state.json()
 
     assert bomb_state is not None
 
