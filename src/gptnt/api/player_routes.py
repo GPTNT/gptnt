@@ -7,6 +7,7 @@ from httpx import AsyncClient
 
 from gptnt.api.structures import GameMetadata, RoomMetadata
 from gptnt.dialogue_space.client import DialogueSpaceClient
+from gptnt.players.ai.ai_player import AIPlayer
 from gptnt.players.ai.defuser import BaseDefuserPlayer
 from gptnt.players.base_player import BasePlayer
 from gptnt.players.human.controller import Controller
@@ -88,12 +89,10 @@ async def stop_experiment(player: PlayerDep, request: Request) -> None:
     if player.metadata.player_type == "ai" and loop_task:
         loop_task.cancel()
 
-    if isinstance(player, BaseDefuserPlayer):
-        last_bomb_state = await player.game_client.get_state()
-        if last_bomb_state is not None:
-            player.tracker.add_bomb_state(last_bomb_state)
+    if isinstance(player, AIPlayer):
+        await player.on_experiment_stop()
 
     # Disconnect from the room
     await player.disconnect_from_room()
-    player.tracker.on_game_end()
+
     logger.info("Stopped experiment for player")
