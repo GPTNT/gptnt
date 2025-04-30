@@ -23,6 +23,11 @@ class BaseClient(InstrumentationMixin, abc.ABC):
         """The base URL of the API."""
         return self.client.base_url
 
+    @property
+    def is_closed(self) -> bool:
+        """Returns true if the client is closed."""
+        return self.client.is_closed
+
     async def start(self) -> Self:
         """Opens the API."""
         _ = await self.client.__aenter__()
@@ -88,6 +93,11 @@ class SupervisedClient[ClientT: BaseClient, MetadataT: ClientMetadata](abc.ABC):
     def url(self) -> httpx.URL:
         """The base URL of the API."""
         return self.client.url
+
+    @property
+    def is_closed(self) -> bool:
+        """Returns true if the client is closed."""
+        return self.client.is_closed
 
     async def start(self) -> None:
         """Starts the client."""

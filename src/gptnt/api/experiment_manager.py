@@ -109,22 +109,26 @@ class Experiment:
     @logfire.instrument("Stopped experiment lifecycle")
     async def stop_lifecycle(self) -> None:
         """Stops the current experiment, either because the mission is over or an error occured."""
-        _logger.info(f"Finishing game[{self._uuid}]")
+        _logger.info(f"Finishing game [{self._uuid}]")
         to_reset = [
             player.client.stop_experiment()
             for player in (self._expert, self._defuser)
             if player.is_running
         ]
-        _ = await asyncio.gather(*to_reset)
-
-        # Reset the room
-        _ = await self._room.client.reset_room()
-
+        _ = await asyncio.gather(*to_reset, return_exceptions=True)
         self._expert.in_experiment = False
         self._defuser.in_experiment = False
+
+        # Reset the room
+        _logger.debug("Resetting room")
+        # If the room/client is closed for some reasn, don't try to reset it since it will raise a
+        # runtime error which is annoying
+        if not self._room.is_closed:
+            _ = await self._room.client.reset_room()
         self._room.in_experiment = False
 
         # Stop
+        _logger.debug("Stopping tasks")
         _ = self.lifecycle_task.cancel()
         _ = self.supervisor_task.cancel()
 
@@ -250,6 +254,10 @@ class ExperimentManager:
         """Starts all ExperimentConfig's that have the correct players and rooms available."""
         available_rooms = self.get_available_rooms()
         available_players = self.get_available_players()
+
+        _logger.debug(
+            f"Available rooms: {len(available_rooms)}, available players: {len(available_players)}"
+        )
 
         if not available_rooms or not available_players:
             # No rooms or players available, nothing to do
