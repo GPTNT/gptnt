@@ -96,6 +96,7 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
 
     @override
     async def connect(self) -> None:
+        self.reset_message_history()
         _ = await self.dialogue_space_client.connect()
 
         log.debug("Connected to all clients.")
