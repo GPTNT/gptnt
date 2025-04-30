@@ -5,7 +5,7 @@ from pytest_cases import parametrize_with_cases
 from gptnt.players.actions import InteractGameAction, InteractGameLocation, SetOfMarksLocation
 from gptnt.players.ai.ai_player import AIPlayer
 from gptnt.players.ai.defuser import DefuserOutputT
-from gptnt.players.ai.dummy_defuser import DummyDefuserModel
+from gptnt.players.ai.dummy import DummyDefuserModel
 from gptnt.players.ai.expert import ExpertOutputT
 from tests.players.fixtures import AIPlayerCases
 

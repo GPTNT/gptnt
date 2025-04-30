@@ -9,4 +9,4 @@ metadata:
 
 agent:
   model:
-    _target_: gptnt.players.ai.dummy_defuser.DummyExpertModel
+    _target_: gptnt.players.ai.dummy.DummyExpertModel
