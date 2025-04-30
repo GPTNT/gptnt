@@ -158,6 +158,7 @@ class RoomManager:
                 ],
                 return_when="FIRST_COMPLETED",
             )
+
             if self._restart_raised.is_set():
                 _logger.exception("RoomManager restarting")
                 await self.stop()
@@ -165,8 +166,10 @@ class RoomManager:
                 self._restart_raised.clear()
 
             elif self.reset_raised.is_set():
-                await self.stop(stop_subservices=False)
+                # Resume the game if need be and wait for it to resume
                 _ = await self.ktane_client.resume_time()
+                await asyncio.sleep(4)
+                await self.stop(stop_subservices=False)
                 _ = await self.ktane_client.reset()
                 self._dialogue_space_server.reset()
                 await self.start(start_subservices=False)
