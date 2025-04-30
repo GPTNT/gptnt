@@ -203,6 +203,7 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         length gets too long.
         """
         self._message_history = []
+        self.usage = Usage()
 
     @abc.abstractmethod
     def add_new_messages_to_history(self, messages: list[ModelMessage]) -> None:
