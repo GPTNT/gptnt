@@ -1,8 +1,10 @@
 import abc
 from dataclasses import dataclass, field
+from typing import Any
 
 import structlog
 
+from gptnt.api.structures import GameMetadata
 from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.players.metrics import PlayerEpisodeTracker
 from gptnt.players.structures import PlayerMetadata
@@ -41,6 +43,20 @@ class BasePlayer(abc.ABC):
     async def connect(self) -> None:
         """Connect to all the clients."""
         raise NotImplementedError
+
+    async def on_experiment_start(
+        self, *, game_metadata: GameMetadata, additional_metadata: dict[str, Any] | None = None
+    ) -> None:
+        """Things to do when the experiment starts."""
+        additional_metadata = additional_metadata or {}
+        log.debug("Starting wandb")
+        self.tracker.on_game_start(
+            experiment_spec=game_metadata.experiment_spec,
+            game_id=game_metadata.game_id,
+            role=game_metadata.player_metadata.player_role,
+            player_id=self.metadata.uuid,
+            additional_metadata=additional_metadata,
+        )
 
     async def on_experiment_stop(self) -> None:
         """Things to do when the experiment stops."""
