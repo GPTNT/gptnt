@@ -15,4 +15,4 @@ tracker:
     project: gptnt
     entity: gptnt
 
-should_reflect_on_game_at_end: false
+should_reflect_on_game_at_end: true
