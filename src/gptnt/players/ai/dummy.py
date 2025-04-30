@@ -67,8 +67,8 @@ def dummy_message_generator(
     return ModelResponse(
         parts=[
             ToolCallPart(
-                "final_result",
-                {"response": message.model_dump(exclude=["thoughts", "action_type"], mode="json")},  # pyright: ignore[reportArgumentType]
+                "final_result_SendMessageAction",
+                message.model_dump(exclude=["thoughts", "action_type"], mode="json"),  # pyright: ignore[reportArgumentType]
             )
         ]
     )
