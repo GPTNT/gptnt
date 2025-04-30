@@ -160,7 +160,10 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
 
     @override
     def add_new_messages_to_history(self, messages: list[ModelMessage]) -> None:
-        """Add new messages to the message history."""
+        """Add new messages to the message history.
+
+        This removes any observations from the messages before adding them to the history.
+        """
         messages_to_add = [
             remove_binary_content_from_user_message(message)
             if isinstance(message, ModelRequest)
