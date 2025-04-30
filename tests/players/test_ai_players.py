@@ -123,6 +123,8 @@ async def test_message_history_does_not_contain_observation_images(
                 assert any(
                     isinstance(message_part, BinaryContent) for message_part in part.content
                 )
+            continue
+
         # The rest of the messages should not contain binary content
         for part in message.parts:
             if len(part.content) > 1:
