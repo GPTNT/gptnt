@@ -24,7 +24,6 @@ RoomManagerDep = Annotated[RoomManager, Depends(_get_room_manager)]
 @router.get("/health")
 async def health(room_manager: RoomManagerDep) -> str:
     """Health check endpoint."""
-    _logger.debug("Health check")
     return room_manager.lifecycle_stage.value
 
 
