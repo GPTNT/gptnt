@@ -5,6 +5,7 @@ from typing import Union, override
 import logfire
 import structlog
 from pydantic_ai import BinaryContent
+from pydantic_ai.messages import ModelMessage
 
 from gptnt.ktane.manual import MANUAL_NUM_PAGES, KtaneManualPaths
 from gptnt.players.actions import DoNothingAction, SendMessageAction
@@ -72,3 +73,8 @@ class ExpertPlayer(AIPlayer[None, ExpertOutputT]):
     def build_deps_for_request(self) -> None:
         """Return None since this class doesn't use tools or have deps."""
         return  # noqa: WPS324
+
+    @override
+    def add_new_messages_to_history(self, messages: list[ModelMessage]) -> None:
+        """Add new messages to the message history."""
+        self._message_history.extend(messages)

@@ -1,4 +1,5 @@
 import pytest
+from pydantic_ai import BinaryContent
 from pydantic_ai.messages import ModelRequest, UserPromptPart
 from pytest_cases import parametrize_with_cases
 from pytest_mock import MockerFixture
@@ -91,6 +92,43 @@ async def test_message_history_updates_after_run(
 
     assert player.usage.requests == 1
     assert player._message_history
+
+
+@pytest.mark.asyncio
+@parametrize_with_cases("player", cases=AIPlayerCases)
+async def test_message_history_does_not_contain_observation_images(
+    player: AIPlayer[None, OutputDataT], mocker: MockerFixture
+) -> None:
+    """Test that the message history does not contain observation images."""
+    # Mock the pull for the dialogue space client
+    player.dialogue_space_client.pull_messages = mocker.AsyncMock(
+        return_value=["message1", "message2"]
+    )
+
+    assert player.usage.requests == 0
+    assert not player._message_history
+
+    _ = await player.send_request_to_agent()
+    _ = await player.send_request_to_agent()
+
+    assert player.usage.requests == 2
+    assert player._message_history
+
+    for idx, message in enumerate(player._message_history):
+        if not isinstance(message, ModelRequest):
+            continue
+        # If its an expert player, the first message should contain binary content
+        if player.metadata.player_role == "expert" and idx == 0:
+            for part in message.parts:
+                assert any(
+                    isinstance(message_part, BinaryContent) for message_part in part.content
+                )
+        # The rest of the messages should not contain binary content
+        for part in message.parts:
+            if len(part.content) > 1:
+                assert not any(
+                    isinstance(message_part, BinaryContent) for message_part in part.content
+                )
 
 
 @pytest.mark.asyncio

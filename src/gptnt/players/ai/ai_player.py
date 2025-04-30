@@ -171,8 +171,9 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
 
         # Updage usage after the request
         self.usage = agent_output.usage()
+
         # Update the message history
-        self._message_history = agent_output.all_messages()
+        self.add_new_messages_to_history(agent_output.new_messages())
 
         # Return the actual data
         return agent_output.output
@@ -189,3 +190,8 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         length gets too long.
         """
         self._message_history = []
+
+    @abc.abstractmethod
+    def add_new_messages_to_history(self, messages: list[ModelMessage]) -> None:
+        """Add a new message to the message history."""
+        raise NotImplementedError
