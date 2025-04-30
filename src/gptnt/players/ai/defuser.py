@@ -16,7 +16,6 @@ from pydantic_ai.models import Model
 from gptnt.common.async_ops import busy_wait_interval
 from gptnt.common.paths import Paths
 from gptnt.ktane.client import KtaneClient
-from gptnt.ktane.state.game import GameState
 from gptnt.players.actions import (
     DoNothingAction,
     InteractGameAction,
@@ -125,11 +124,6 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
 
         await super().on_experiment_stop()
 
-    @override
-    async def health_check(self) -> None:
-        await super().health_check()
-        assert await self.game_client.healthcheck() in {GameState.lights_on, GameState.lights_off}
-
     @logfire.instrument("Send action to the game")
     async def send_action_to_game(self, action: InteractGameAction[LocationDataT]) -> None:
         """Send an action to the game client."""
@@ -141,8 +135,6 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
         """Run the decision making process for the player once."""
         while await self.game_client.get_state() is None:
             await busy_wait_interval()
-
-        await self.health_check()
 
         agent_output = await self.send_request_to_agent()
         if isinstance(agent_output, InteractGameAction):
