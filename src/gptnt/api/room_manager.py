@@ -175,7 +175,7 @@ class RoomManager:
                 await self.start(start_subservices=False)
                 self.reset_raised.clear()
 
-    async def _lifecycle_loop(self) -> None:  # noqa: WPS217
+    async def _lifecycle_loop(self) -> None:  # noqa: WPS217, WPS213
         """Moves the RoomManager through the lifecycle.
 
         Restarts on resets and restarts.
@@ -188,20 +188,26 @@ class RoomManager:
                 self._state_changed.clear()
 
         # Lifecycle
+        _logger.debug("Booting room")
         self.lifecycle_stage = RoomStage.boot
 
+        _logger.debug("Waiting for main menu")
         await _until_game_state(target_state=GameState.main_menu)
+        _logger.debug("Room in main menu")
         self.lifecycle_stage = RoomStage.ready_for_config
 
+        _logger.debug("Waiting for lights to turn off")
         await _until_game_state(target_state=GameState.lights_off)
         _ = await self.ktane_client.stop_time()  # BUG: This might fail
         _ = await self._players_connected.wait()
         self._players_connected.clear()
         self.lifecycle_stage = RoomStage.ready_for_start
 
+        _logger.debug("Waiting for lights to turn on")
         await _until_game_state(target_state=GameState.lights_on)
         self.lifecycle_stage = RoomStage.in_experiment
 
+        _logger.debug("Waiting for game to end")
         await _until_game_state(target_state=GameState.game_ended)
         self.lifecycle_stage = RoomStage.done
 
