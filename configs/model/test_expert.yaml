@@ -10,3 +10,5 @@ metadata:
 agent:
   model:
     _target_: gptnt.players.ai.dummy.DummyExpertModel
+
+should_reflect_on_game_at_end: false
