@@ -184,6 +184,7 @@ class PlayerEpisodeTracker:
         self._messages_sent: list[MessageMetric] = []
         self._bomb_states: list[BombStateMetric] = []
         self._observations: list[ObservationMetric] = []
+        self._reflections: list[MessageMetric] = []
 
         self.start_time: Instant
 
@@ -252,6 +253,9 @@ class PlayerEpisodeTracker:
         messages_table = self._compute_messages_table()
         bomb_states_table = self._compute_bomb_states_table()
         observations_table = self._compute_observations_table()
+        reflections_table = self._compute_reflections_table()
+        if reflections_table:
+            data_to_send["reflections"] = reflections_table
         if actions_table:
             data_to_send["actions"] = actions_table
         if messages_table:
@@ -295,6 +299,13 @@ class PlayerEpisodeTracker:
             timestamp=self._compute_time_delta(),
         )
         self._observations.append(observation_metric)
+
+    def add_reflection(self, message: SendMessageAction, role: PlayerRole | None) -> None:
+        """Add a reflection message to the player's reflection list."""
+        message_metric = MessageMetric.from_action(
+            action=message, role=role, timestamp=self._compute_time_delta()
+        )
+        self._reflections.append(message_metric)
 
     def reset(self) -> None:
         """Reset the player data."""
@@ -364,3 +375,17 @@ class PlayerEpisodeTracker:
                 row["raw_image"], row["segmentation_mask"], row["som_image"], row["timestamp"]
             )
         return observations_table
+
+    def _compute_reflections_table(self) -> wandb.Table | None:
+        """Compute the reflections table."""
+        if not self._reflections:
+            return None
+        reflections_table = wandb.Table(
+            dataframe=pl.from_dicts(
+                TypeAdapter(list[MessageMetric]).dump_python(
+                    self._reflections, mode="json", exclude={"action_type"}
+                )
+            ).to_pandas(),
+            allow_mixed_types=True,
+        )
+        return reflections_table

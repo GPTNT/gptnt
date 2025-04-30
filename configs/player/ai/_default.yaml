@@ -14,3 +14,5 @@ tracker:
   wandb_init_kwargs:
     project: gptnt
     entity: gptnt
+
+should_reflect_on_game_at_end: false

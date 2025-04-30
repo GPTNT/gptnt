@@ -96,5 +96,4 @@ async def stop_experiment(player: PlayerDep, request: Request) -> None:
 
     # Disconnect from the room
     await player.disconnect_from_room()
-
     logger.info("Stopped experiment for player")

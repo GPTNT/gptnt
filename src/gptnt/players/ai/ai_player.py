@@ -12,6 +12,7 @@ from pydantic_ai.usage import Usage, UsageLimits
 from gptnt.common.async_ops import busy_wait_interval
 from gptnt.common.instrumentation import InstrumentationDataclassMixin
 from gptnt.players.actions import DoNothingAction, SendMessageAction
+from gptnt.players.ai.prompts import load_reflection_prompt
 from gptnt.players.base_player import BasePlayer
 from gptnt.players.structures import UnhealthyPlayerError
 
@@ -35,6 +36,8 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
 
     usage: Usage = field(default_factory=Usage)
     usage_limits: UsageLimits = field(default_factory=UsageLimits)
+
+    should_reflect_on_game_at_end: bool = field(default=False)
 
     # # PAI expects either messages or None, so we can just init with None
     _message_history: list[ModelMessage] = field(default_factory=list)
@@ -62,6 +65,16 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
     @override
     async def on_startup(self) -> None:
         return  # noqa: WPS324
+
+    @override
+    async def on_experiment_stop(self) -> None:
+        """Things to do when the experiment stops."""
+        if self.should_reflect_on_game_at_end:
+            log.debug("Reflecting on the game at end")
+            reflection = await self.send_reflection_prompt()
+            self.tracker.add_reflection(message=reflection, role=self.metadata.player_role)
+
+        await super().on_experiment_stop()
 
     @override
     @logfire.instrument("Run AI player (with parallel decision making)")
@@ -195,3 +208,21 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
     def add_new_messages_to_history(self, messages: list[ModelMessage]) -> None:
         """Add a new message to the message history."""
         raise NotImplementedError
+
+    @logfire.instrument("Send reflection prompt")
+    async def send_reflection_prompt(self) -> SendMessageAction:
+        """Send/get the reflection message from the AI given the state."""
+        # pull final message from dialogue space
+        final_message = await self.pull_unread_messages_from_dialogue_space()
+
+        # Load the reflection prompt
+        reflection_message = load_reflection_prompt()
+
+        response = await self.agent.run(
+            [final_message, reflection_message],
+            deps=self.build_deps_for_request(),
+            usage=self.usage,
+            message_history=self._message_history,
+            output_type=SendMessageAction,
+        )
+        return response.output
