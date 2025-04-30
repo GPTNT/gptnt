@@ -84,13 +84,24 @@ async def connect_room(
 ) -> None:
     """Connects a new room manager to the experiment manager."""
     # TODO: Stop the RoomManager from re-connecting after a restart, this is a HACK
-    if [room for room in supervised_rooms if room.metadata.uuid == room_metadata.uuid]:
+    old_rooms = [room for room in supervised_rooms if room.metadata.uuid == room_metadata.uuid]
+    if len(old_rooms) > 1:
+        raise ValueError("There should be at most one room with the same UUID.")
+
+    if old_rooms:
+        logger.warning(
+            f"Room {room_metadata.uuid} already connected to the experiment manager. Updating metadata for room."
+        )
+        old_rooms[0].metadata = room_metadata
         return
 
     new_room = SupervisedRoomManagerClient.from_metadata(room_metadata)
     await new_room.start()
     tasks.append(asyncio.create_task(coro=new_room.supervisor_loop()))
     supervised_rooms.append(new_room)
+    logger.info(
+        f"Connected room {room_metadata.uuid} ({room_metadata.fastapi_url}) to the experiment manager."
+    )
 
 
 @asynccontextmanager
