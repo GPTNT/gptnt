@@ -30,8 +30,8 @@ class RoomManagerClient(BaseClient):
         """Resets the room, back to a state ready to receive a new experiment config."""
         try:
             _ = (await self.client.post(url="/reset-room")).raise_for_status()
-        except httpx.HTTPError:
-            _logger.exception("Could not reset room")
+        except httpx.HTTPError as err:
+            _logger.exception("Could not reset room", exc_info=err)
             return False
         return True
 
