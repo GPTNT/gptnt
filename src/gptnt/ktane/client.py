@@ -176,12 +176,20 @@ class KtaneClient(InstrumentationMixin):
     @logfire.instrument("Get bomb state")
     async def get_state(self) -> BombState | None:
         """Get the current state of the bomb."""
-        response = await self.client.get("/state")
-        try:
+        try:  # noqa: WPS229
+            response = await self.client.get("/state")
             _ = response.raise_for_status()
-        except httpx.HTTPError as err:
-            _logger.exception(f"Failed to get bomb state Reason: {response.text}", exc_info=err)
+        except httpx.RequestError as exc:
+            _logger.exception(
+                f"Failed to request bomb state from {exc.request.url!r}.", exc_info=exc
+            )
             return None
+        except httpx.HTTPStatusError as err:
+            _logger.exception(
+                f"Failed to receive bomb state. Reason: {err.response.text}", exc_info=err
+            )
+            return None
+
         _logger.debug("Bomb state", bomb_state=response.json())
 
         state = BombState.model_validate(response.json())
