@@ -5,7 +5,7 @@ defaults:
   - hydra: default
 
   - player: ai/defuser_mdp_som
-  - model: claude37
+  - model: test_defuser
   - system_prompt: defuser
 
   - override hydra/job_logging: none
