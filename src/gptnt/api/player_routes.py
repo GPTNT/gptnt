@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import suppress
 from typing import Annotated
 
 import structlog
@@ -34,8 +35,9 @@ async def health() -> bool:
 @player_router.post("/join-room")
 async def join_room(room: RoomMetadata, player: PlayerDep) -> None:
     """Join a room and connect to its dialogue space."""
-    # logger.debug("Disconnecting from previous room")
-    # await player.disconnect_from_room()
+    with suppress(AttributeError):
+        logger.debug("Disconnecting from previous room")
+        await player.disconnect_from_room()
 
     # Reset dialogue-space client
     player.dialogue_space_client = DialogueSpaceClient.from_url(room.dialogue_space_url)
