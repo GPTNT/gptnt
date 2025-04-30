@@ -14,6 +14,3 @@ tracker:
   wandb_init_kwargs:
     project: gptnt
     entity: gptnt
-    group: null
-    tags: null
-    name: null
