@@ -110,14 +110,15 @@ class Experiment:
     async def stop_lifecycle(self) -> None:
         """Stops the current experiment, either because the mission is over or an error occured."""
         _logger.info(f"Finishing game[{self._uuid}]")
-        _ = await self._room.client.reset_room()
-
         to_reset = [
             player.client.stop_experiment()
             for player in (self._expert, self._defuser)
             if player.is_running
         ]
-        _ = await asyncio.gather(*to_reset, return_exceptions=True)
+        _ = await asyncio.gather(*to_reset)
+
+        # Reset the room
+        _ = await self._room.client.reset_room()
 
         self._expert.in_experiment = False
         self._defuser.in_experiment = False
