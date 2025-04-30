@@ -12,6 +12,7 @@ from gptnt.api.room_client import SupervisedRoomManagerClient
 from gptnt.api.structures import RoomMetadata
 from gptnt.common.paths import Paths
 from gptnt.ktane.experiments.experiments import ExperimentSpec
+from gptnt.players.metrics import check_if_experiments_on_wandb
 from gptnt.players.structures import PlayerMetadata
 
 logger = structlog.get_logger()
@@ -126,7 +127,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     }
     experiments = experiments | test_experiments  # noqa: WPS350 (Huh? What is this?)
 
+    experiments = check_if_experiments_on_wandb(experiments=experiments, wandb_path="gptnt/gptnt")
+
     logger.info(f"Starting ExperimentManager with {len(experiments)} experiments.")
+
     manager.experiments = experiments
 
     manager.tasks.append(asyncio.create_task(manager.main_loop()))

@@ -9,9 +9,12 @@ from pydantic import (
     BaseModel,
     SerializationInfo,
     TypeAdapter,
+    ValidationError,
     field_serializer,
     model_serializer,
 )
+from structlog import get_logger
+from unflatten import unflatten
 from whenever import Instant
 
 from gptnt.common.image_ops import load_observation_from_bytes
@@ -24,6 +27,33 @@ from gptnt.players.structures import PlayerRole
 
 if TYPE_CHECKING:
     from wandb.sdk.wandb_run import Run
+
+_logger = get_logger()
+
+
+def check_if_experiments_on_wandb(
+    *, experiments: set[ExperimentSpec], wandb_path: str
+) -> set[ExperimentSpec]:
+    """Checks if the experiments are already on wandb.
+
+    This is used to prevent duplicate experiments from being run.
+    """
+    wandb_runs = wandb.Api().runs(path=wandb_path, order="-created_at")
+
+    wandb_spec_set = set()
+    for run in wandb_runs:
+        unflattened_config = unflatten(run.config)
+        if run.state in {"finished", "running"}:
+            try:
+                myspec = ExperimentSpec.model_validate(unflattened_config)
+            except ValidationError as _:
+                _logger.warning(f"Could not parse config {run.config}.")
+                myspec = None
+
+            if myspec is not None:
+                wandb_spec_set.add(myspec)
+
+    return experiments - wandb_spec_set
 
 
 def flatten_dict(config: dict[str, Any], *, separator: str = ".") -> dict[str, Any]:

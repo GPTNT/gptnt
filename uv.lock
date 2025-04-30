@@ -618,6 +618,7 @@ dependencies = [
     { name = "scikit-image" },
     { name = "structlog" },
     { name = "typer" },
+    { name = "unflatten" },
     { name = "wandb", extra = ["media"] },
     { name = "websockets" },
     { name = "whenever" },
@@ -668,6 +669,7 @@ requires-dist = [
     { name = "scikit-image", specifier = ">=0.25.2" },
     { name = "structlog", specifier = ">=25.1.0" },
     { name = "typer", specifier = ">=0.15.1" },
+    { name = "unflatten", specifier = ">=0.2.0" },
     { name = "wandb", extras = ["media"], specifier = ">=0.19.9" },
     { name = "websockets", specifier = ">=14.2" },
     { name = "whenever", specifier = ">=0.7.3" },
@@ -2581,6 +2583,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/95/32/1a225d6164441be760d75c2c42e2780dc0873fe382da3e98a2e1e48361e5/tzdata-2025.2.tar.gz", hash = "sha256:b60a638fcc0daffadf82fe0f57e53d06bdec2f36c4df66280ae79bce6bd6f2b9", size = 196380 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5c/23/c7abc0ca0a1526a0774eca151daeb8de62ec457e77262b66b359c3c7679e/tzdata-2025.2-py2.py3-none-any.whl", hash = "sha256:1a403fada01ff9221ca8044d701868fa132215d84beb92242d9acd2147f667a8", size = 347839 },
+]
+
+[[package]]
+name = "unflatten"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e4/d5/d2ee1ab7fdbc5af182e853391003c862cde05001810b11057d336436da35/unflatten-0.2.0.tar.gz", hash = "sha256:9710bc558882f697bc36a95a97614be296f07c8f8df1bc2b4ef96c189ce5cf84", size = 6978 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/03/89/9030594c356c6327160d0e9d744fa8deb1de5cdd70b94f272eabcce706fa/unflatten-0.2.0-py2.py3-none-any.whl", hash = "sha256:a0afa7ff22313dcc60ff45110b796ed5b4e908614826e8672a9f76d3a20c1f54", size = 5194 },
 ]
 
 [[package]]

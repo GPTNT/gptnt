@@ -45,12 +45,12 @@ class Experiment:
         self._room = room
         self.spec = spec
 
-        # ExperimentManager contorl flags
+        # ExperimentManager control flags
         expert.in_experiment = True
         defuser.in_experiment = True
         room.in_experiment = True
 
-        # Persistant UUID for the session/game/experiment/run (whatever you want to call it)
+        # Persistent UUID for the session/game/experiment/run (whatever you want to call it)
         self._uuid = uuid.uuid4()
 
         # Lifecycle
@@ -108,7 +108,10 @@ class Experiment:
 
     @logfire.instrument("Stopped experiment lifecycle")
     async def stop_lifecycle(self) -> None:
-        """Stops the current experiment, either because the mission is over or an error occured."""
+        """Stops the current experiment.
+
+        Either because the mission is over or an error occurred.
+        """
         _logger.info(f"Finishing game [{self._uuid}]")
         to_reset = [
             player.client.stop_experiment()

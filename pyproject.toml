@@ -26,6 +26,7 @@ dependencies = [
     "scikit-image>=0.25.2",
     "structlog>=25.1.0",
     "typer>=0.15.1",
+    "unflatten>=0.2.0",
     "wandb[media]>=0.19.9",
     "websockets>=14.2",
     "whenever>=0.7.3",
