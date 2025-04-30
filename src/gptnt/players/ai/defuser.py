@@ -140,7 +140,7 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
         if isinstance(agent_output, InteractGameAction):
             _ = await self.game_client.resume_time()
         _ = await self.direct_output_from_agent(agent_output)
-        await asyncio.sleep(1)
+        await asyncio.sleep(3)
         _ = await self.game_client.stop_time()
 
     @override
