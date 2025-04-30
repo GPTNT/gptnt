@@ -348,7 +348,7 @@ class RoomManager:
                     response = await self.ktane_client.client.get(url="/health")
 
             # If it's not alive, raise an exception
-            except httpx.HTTPError:
+            except (httpx.HTTPError, TimeoutError):
                 _logger.exception("Ktane failed healthcheck")
                 self._restart_raised.set()
 
