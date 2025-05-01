@@ -9,7 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = structlog.get_logger()
 
-DEFAULT_PLAYER_SETTINGS_XML = Path(__file__).parent.joinpath("play.xml").read_text()
+DEFAULT_PLAYER_SETTINGS_XML = Path(__file__).parent.joinpath("playerSettings.xml").read_text()
 
 
 def get_default_windows_location() -> Path:
