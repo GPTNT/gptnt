@@ -108,11 +108,10 @@ class Experiment:
                 await self._run_sequential()
 
         # 5. Stop experiment
-        with logfire.span("Stop Experiment"):
-            self.completed_successfully = True
-            await self.stop_lifecycle()
+        self.completed_successfully = True
+        await self.stop_lifecycle()
 
-    @logfire.instrument("Stopped experiment lifecycle")
+    @logfire.instrument("Stop experiment lifecycle")
     async def stop_lifecycle(self) -> None:
         """Stops the current experiment.
 
