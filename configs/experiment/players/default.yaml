@@ -6,5 +6,5 @@ pairing_generator:
     - claude37
     - gemini-25
     - llama32-vision
-    - internvl-3-38b
-    - qwenvl-25-32b
+    - internvl3-38b
+    - qwen25vl-32b

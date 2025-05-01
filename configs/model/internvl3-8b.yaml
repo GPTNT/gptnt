@@ -5,10 +5,10 @@ defaults:
   - _self_
 
 metadata:
-  player_name: llama32-vision
+  player_name: internvl3-8b
 
 agent:
   model:
-    model_name: meta-llama/Llama-3.2-11B-Vision
+    model_name: OpenGVLab/InternVL3-8B
     provider:
       base_url: http://localhost:11434/v1

@@ -2,7 +2,7 @@
 
 pairing_generator:
   all_players:
-    - internvl-3-2b
-    - internvl-3-8b
-    - qwenvl-25-3b
-    - qwenvl-25-7b
+    - internvl3-2b
+    - internvl3-8b
+    - qwen25vl-3b
+    - qwen25vl-7b
