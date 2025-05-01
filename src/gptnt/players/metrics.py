@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Self, cast
+from typing import Any, Self, cast
 
 import logfire
 import polars as pl
@@ -24,9 +24,6 @@ from gptnt.ktane.state.modules import KtaneComponent, ModuleStates
 from gptnt.ktane.state.widget import WidgetStates
 from gptnt.players.actions import InteractGameAction, InteractGameLocation, SendMessageAction
 from gptnt.players.structures import PlayerRole
-
-if TYPE_CHECKING:
-    from wandb.sdk.wandb_run import Run
 
 _logger = get_logger()
 
@@ -209,7 +206,6 @@ class PlayerEpisodeTracker:
     def __init__(self, *, wandb_init_kwargs: dict[str, Any]) -> None:
         self._wandb_init_kwargs = wandb_init_kwargs
 
-        self._run: Run
         self._actions: list[ActionMetric] = []
         self._messages_sent: list[MessageMetric] = []
         self._bomb_states: list[BombStateMetric] = []
@@ -231,7 +227,7 @@ class PlayerEpisodeTracker:
 
         All configs given are flattened using dot notation.
         """
-        self._run = wandb.init(
+        run = wandb.init(
             config=flatten_dict(
                 {
                     "game_id": game_id,
@@ -244,6 +240,7 @@ class PlayerEpisodeTracker:
             ),
             **self._wandb_init_kwargs,
         )
+        _logger.info("WandB run started", run_id=run.id, config=run.config)
         self.start_time = Instant.now()
 
     @logfire.instrument("Send results to wandb")
@@ -295,7 +292,7 @@ class PlayerEpisodeTracker:
         if observations_table:
             data_to_send["observations"] = observations_table
 
-        self._run.log(data_to_send)
+        wandb.log(data_to_send)
         wandb.finish()
         self.reset()
 
