@@ -117,10 +117,9 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
     async def health_check(self) -> None:
         log.debug("Checking usage limits", limits=self.usage_limits, usage=self.usage)
         try:  # noqa: WPS229 -- these raise the same error
-            self.usage_limits.check_before_request(self.usage)
             self.usage_limits.check_tokens(self.usage)
         except UsageLimitExceeded as err:
-            raise UnhealthyPlayerError("Usage limit exceeded") from err
+            raise UnhealthyPlayerError("Too many tokens exceeded") from err
 
         if not self.dialogue_space_client.is_connected:
             raise UnhealthyPlayerError("Dialogue space client is not connected.")

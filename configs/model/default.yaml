@@ -26,7 +26,7 @@ agent:
 
 usage_limits:
   _target_: pydantic_ai.usage.UsageLimits
-  request_limit: 1000
+  request_limit: null
   request_tokens_limit: null
   response_tokens_limit: null
   total_tokens_limit: null
