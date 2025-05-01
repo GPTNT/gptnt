@@ -32,7 +32,6 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
     """
 
     agent: Agent[AgentDepsT, OutputDataT]
-    agent_usage_limits: UsageLimits | None = None
 
     usage: Usage = field(default_factory=Usage)
     usage_limits: UsageLimits = field(default_factory=UsageLimits)
@@ -77,15 +76,15 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         await super().on_experiment_stop()
 
     @override
-    @logfire.instrument("Run AI player (with parallel decision making)")
     async def run_parallel(self) -> None:
         """Run the decision making process for the player.
 
         This will continually run forever/until we stop it.
         """
         with logfire.span(
-            f"Run AI Player ({self.metadata.player_type}/{self.metadata.player_role})",
+            f"Run Parallel ({self.metadata.player_type}/{self.metadata.player_role})",
             tags=[self.metadata.player_role, self.metadata.player_type],
+            limits=self.usage_limits,
         ):
             # TODO: I think this is breaking when an action is performed while the lights are off?
 
@@ -120,6 +119,7 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
             self.usage_limits.check_before_request(self.usage)
             self.usage_limits.check_tokens(self.usage)
         except UsageLimitExceeded as err:
+            log.debug("Usage limit exceeded", limits=self.usage_limits, usage=self.usage)
             raise UnhealthyPlayerError("Usage limit exceeded") from err
 
         if not self.dialogue_space_client.is_connected:
