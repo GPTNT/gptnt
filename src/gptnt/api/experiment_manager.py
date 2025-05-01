@@ -118,14 +118,14 @@ class Experiment:
         Either because the mission is over or an error occurred.
         """
         _logger.info(f"Finishing game [{self._uuid}]")
-        to_reset = [
-            player.client.stop_experiment()
-            for player in (self._expert, self._defuser)
-            if player.is_running
-        ]
-        _ = await asyncio.gather(*to_reset, return_exceptions=True)
-        self._expert.in_experiment = False
-        self._defuser.in_experiment = False
+
+        with logfire.span("Stop expert"):
+            _ = await self._expert.client.stop_experiment()
+            self._expert.in_experiment = False
+
+        with logfire.span("Stop defuser"):
+            _ = await self._defuser.client.stop_experiment()
+            self._defuser.in_experiment = False
 
         # Reset the room
         _logger.debug("Resetting room")
