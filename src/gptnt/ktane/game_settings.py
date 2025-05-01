@@ -9,36 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = structlog.get_logger()
 
-DEFAULT_PLAYER_SETTINGS_XML = """
-<?xml version="1.0" encoding="utf-8"?>
-<PlayerSettings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-    <InvertTiltControls>false</InvertTiltControls>
-    <TouchpadInvert>false</TouchpadInvert>
-    <RumbleEnabled>true</RumbleEnabled>
-    <MusicVolume>0</MusicVolume>
-    <SFXVolume>100</SFXVolume>
-    <AntiAliasing>4</AntiAliasing>
-    <VRModeRequested>true</VRModeRequested>
-    <SecondScreenMode>InteractiveManual</SecondScreenMode>
-    <VSync>1</VSync>
-    <AccessibilitySettings>
-        <AccessibilityVeto>
-        <ComponentTypeEnum>Empty</ComponentTypeEnum>
-        <ComponentTypeEnum>Empty</ComponentTypeEnum>
-        <ComponentTypeEnum>Empty</ComponentTypeEnum>
-        </AccessibilityVeto>
-        <UnlockAllMissions>false</UnlockAllMissions>
-    </AccessibilitySettings>
-    <UseModsAlways>true</UseModsAlways>
-    <SkipTitleScreen>true</SkipTitleScreen>
-    <UseParallelModLoading>true</UseParallelModLoading>
-    <LockMouseToWindow>false</LockMouseToWindow>
-    <ShowLeaderBoards>true</ShowLeaderBoards>
-    <ShowScanline>true</ShowScanline>
-    <ShowRotationUI>true</ShowRotationUI>
-    <LanguageCode>en</LanguageCode>
-</PlayerSettings>
-"""
+DEFAULT_PLAYER_SETTINGS_XML = Path(__file__).parent.joinpath("play.xml").read_text()
 
 
 def get_default_windows_location() -> Path:

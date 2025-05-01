@@ -30,6 +30,9 @@ indent_style = unset
 insert_final_newline = unset
 trim_trailing_whitespace = unset
 
-[*md]
-indent_style = space
+# Ignore xml
+[*.xml]
 indent_size = unset
+indent_style = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
