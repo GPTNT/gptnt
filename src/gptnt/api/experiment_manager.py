@@ -63,7 +63,14 @@ class Experiment:
         with logfire.span("Prepare experiment"):
             # 1. Configure the experiment
             await until(get_value=lambda: self._room.state, target=RoomStage.ready_for_config)
-            _ = await self._room.client.configure_experiment(self.spec.mission_spec)
+            # TODO: Do something when we can't configure the experiment
+            is_configured = await self._room.client.configure_experiment(self.spec.mission_spec)
+
+            if not is_configured:
+                _logger.exception("Failed to configure experiment. Bailing out")
+                await self.stop_lifecycle()
+                return
+
             self._mission_configured = True
 
             # 2. Connect the players to the room
