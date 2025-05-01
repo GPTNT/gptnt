@@ -114,6 +114,7 @@ class DialogueSpaceServer:
         log.debug(f"Added message with ID {self.next_message_id}")
         return self.next_message_id
 
+    @logfire.instrument("Get unread messages for agent")
     def get_unread_messages(self, agent_id: UUID) -> list[DialogueSpaceMessage]:
         """Return list of messages with id greater than agent's last read message ID."""
         agent = self.agents[agent_id]
@@ -149,6 +150,7 @@ class DialogueSpaceServer:
         _ = self.add_message(parsed.uuid, parsed.message)
         log.debug(f"Message received: {parsed.message}")
 
+    @logfire.instrument("Connect agent to DS server")
     def _on_agent_connect_request(self, data: str) -> None:
         """Handle when an agent wants to connect to the server."""
         parsed = ClientRequest.model_validate_json(data)

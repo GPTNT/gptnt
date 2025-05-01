@@ -290,7 +290,7 @@ class ExperimentManager:
 
             self.experiments.remove(spec)
 
-            with logfire.span("Experiment"):
+            with logfire.span(f"Experiment ({spec.experiment_name})", experiment=spec):
                 self.running_experiments.add(
                     Experiment(expert=expert, defuser=defuser, room=room, spec=spec)
                 )
