@@ -108,8 +108,9 @@ class Experiment:
                 await self._run_sequential()
 
         # 5. Stop experiment
-        self.completed_successfully = True
-        await self.stop_lifecycle()
+        with logfire.span("Stop successful experiment"):
+            self.completed_successfully = True
+            await self.stop_lifecycle()
 
     @logfire.instrument("Stop experiment lifecycle")
     async def stop_lifecycle(self) -> None:
@@ -166,9 +167,10 @@ class Experiment:
                 or (not self._room.is_running)
             )
 
+            # Something went wrong, stop this experiment
             if in_invalid_state or player_or_room_died:
-                # Something went wrong, stop this experiment
-                await self.stop_lifecycle()
+                with logfire.span("Stop broken experiment"):
+                    await self.stop_lifecycle()
 
             await healthcheck_interval()
 
