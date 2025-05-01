@@ -57,7 +57,6 @@ class Experiment:
         self.lifecycle_task = asyncio.create_task(coro=self.lifecycle_loop())
         self.supervisor_task = asyncio.create_task(coro=self.supervisor_loop())
 
-    @logfire.instrument("Started experiment lifecycle")
     async def lifecycle_loop(self) -> None:  # noqa: WPS217 (This is a lifecycle, the whole point is awaiting lots of stuff)
         """Runs the experiment."""
         with logfire.span("Prepare experiment"):
