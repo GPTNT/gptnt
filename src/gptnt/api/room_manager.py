@@ -113,6 +113,7 @@ class RoomManager:
             _ = task.cancel()
         await self.stop()
 
+    @logfire.instrument("Start services")
     async def start(self, *, start_subservices: bool = True) -> None:
         """Starts the subservices and supervisors."""
         self.lifecycle_stage = RoomStage.boot
@@ -130,6 +131,7 @@ class RoomManager:
         await self._start_supervisors()
         self._restartable_tasks.append(asyncio.create_task(coro=self._lifecycle_loop()))
 
+    @logfire.instrument("Stop services")
     async def stop(self, *, stop_subservices: bool = True) -> None:
         """Cleanly stops any running subservices and supervisors."""
         for task in self._restartable_tasks:
@@ -160,20 +162,22 @@ class RoomManager:
             )
 
             if self._restart_raised.is_set():
-                _logger.exception("RoomManager restarting")
-                await self.stop()
-                await self.start()
-                self._restart_raised.clear()
+                with logfire.span("Restarting room"):
+                    _logger.error("RoomManager restarting")
+                    await self.stop()
+                    await self.start()
+                    self._restart_raised.clear()
 
             elif self.reset_raised.is_set():
-                # Resume the game if need be and wait for it to resume
-                _ = await self.ktane_client.resume_time()
-                await asyncio.sleep(4)
-                await self.stop(stop_subservices=False)
-                _ = await self.ktane_client.reset()
-                self._dialogue_space_server.reset()
-                await self.start(start_subservices=False)
-                self.reset_raised.clear()
+                with logfire.span("Resetting room"):
+                    # Resume the game if need be and wait for it to resume
+                    _ = await self.ktane_client.resume_time()
+                    await asyncio.sleep(4)
+                    await self.stop(stop_subservices=False)
+                    _ = await self.ktane_client.reset()
+                    self._dialogue_space_server.reset()
+                    await self.start(start_subservices=False)
+                    self.reset_raised.clear()
 
     async def _lifecycle_loop(self) -> None:  # noqa: WPS217, WPS213
         """Moves the RoomManager through the lifecycle.
@@ -181,6 +185,7 @@ class RoomManager:
         Restarts on resets and restarts.
         """
 
+        @logfire.instrument("Wait for game state: {target_state=}")
         async def _until_game_state(target_state: GameState) -> None:  # noqa: WPS430
             """Waits until a specific GameState is reached."""
             while self.game_state is not target_state:
@@ -211,6 +216,7 @@ class RoomManager:
         await _until_game_state(target_state=GameState.game_ended)
         self.lifecycle_stage = RoomStage.done
 
+    @logfire.instrument("Start services")
     async def _start_subservices(self) -> None:
         """Start the server and app."""
         # 1. start the game in the room
@@ -246,7 +252,7 @@ class RoomManager:
             asyncio.create_task(coro=self._supervise_experiment_manager_client())
         )
 
-    @logfire.instrument("Stopping all subservices")
+    @logfire.instrument("Stop subservices")
     async def _stop_subservices(self) -> None:  # noqa: WPS213
         """Cleanly stop all of the sub-services and sub-service supervisors."""
         # Close DialogueSpaceServer first to stop players from playing
