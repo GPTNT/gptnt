@@ -97,6 +97,9 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
     observation_window_length: int = 1
     should_save_images: bool = False
 
+    sequential_step_time: float = 3
+    """How long to run the game for before stopping time again in sequential mode."""
+
     def __post_init__(self) -> None:
         """Post init for the defuser player."""
         super().__post_init__()
@@ -140,7 +143,7 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
         if isinstance(agent_output, InteractGameAction):
             _ = await self.game_client.resume_time()
         _ = await self.direct_output_from_agent(agent_output)
-        await asyncio.sleep(3)
+        await asyncio.sleep(self.sequential_step_time)
         _ = await self.game_client.stop_time()
 
     @override
