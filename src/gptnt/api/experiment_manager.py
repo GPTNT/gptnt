@@ -156,6 +156,7 @@ class Experiment:
                     RoomStage.ready_for_config,
                     RoomStage.ready_for_start,
                     RoomStage.in_experiment,
+                    RoomStage.done,
                 ]
             )
             if in_invalid_state:
