@@ -12,6 +12,7 @@ from gptnt.api.room_client import SupervisedRoomManagerClient
 from gptnt.api.structures import RoomMetadata
 from gptnt.common.paths import Paths
 from gptnt.ktane.experiments.experiments import ExperimentSpec
+from gptnt.players.metrics import check_if_experiments_on_wandb
 from gptnt.players.structures import PlayerMetadata
 
 logger = structlog.get_logger()
@@ -111,6 +112,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     manager = ExperimentManager()
     app.state.manager = manager
 
+    # Flag to decide if experiments already on wandb should be filtered out
+    app.state.filter_with_wandb = False
+
     # Add all experiments generated using `src/gptnt/exntrypoints/generate_experiments.py`
     experiments = {
         ExperimentSpec.model_validate_json(path.read_text())
@@ -126,7 +130,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     }
     experiments = experiments | test_experiments  # noqa: WPS350 (Huh? What is this?)
 
-    # experiments = check_if_experiments_on_wandb(experiments=experiments, wandb_path="gptnt/gptnt")
+    if app.state.filter_with_wandb:
+        experiments = check_if_experiments_on_wandb(
+            experiments=experiments, wandb_path="gptnt/gptnt"
+        )
 
     logger.info(f"Starting ExperimentManager with {len(experiments)} experiments.")
 
