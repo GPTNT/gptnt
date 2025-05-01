@@ -10,52 +10,30 @@ logger = structlog.get_logger()
 SoMAction = InteractGameAction[SetOfMarksLocation]
 
 
-actions_to_perform = iter(
-    [
-        SoMAction(action=GameActionType.rotate_left),
-        SoMAction(action=GameActionType.rotate_right),
-        SoMAction(action=GameActionType.flip),
-        SoMAction(action=GameActionType.roll_down),
-        SoMAction(action=GameActionType.roll_up),
-        SoMAction(action=GameActionType.roll_up),
-        SoMAction(action=GameActionType.roll_down),
-        SoMAction(action=GameActionType.flip),
-        # Now back at the front, click the first location
-        SoMAction(action=GameActionType.click_release, location="A"),
-        SoMAction(action=GameActionType.zoom_out),
-        # click again
-        SoMAction(action=GameActionType.click_release, location="A"),
-        # Hold the button once
-        SoMAction(action=GameActionType.hold, location="A"),
-        SoMAction(action=GameActionType.release),
-        # Do it again
-        SoMAction(action=GameActionType.hold, location="A"),
-        SoMAction(action=GameActionType.release),
-        # Last time, and it should explode now (or not?)
-        SoMAction(action=GameActionType.hold, location="A"),
-        SoMAction(action=GameActionType.release),
-    ]
-)
-
-
-def dummy_set_of_marks_action_generator(
-    messages: list[ModelMessage],  # noqa:  ARG001
-    info: AgentInfo,  # noqa: WPS110 ARG001
-) -> ModelResponse:
-    """Dummy function model that generates set of marks actions based on the number of messages."""
-    try:
-        action_to_perform = next(actions_to_perform)
-    except StopIteration:
-        # If we run out of actions, just return a click release action
-        logger.warning("Ran out of actions to perform, returning click release action.")
-        action_to_perform = SoMAction(action=GameActionType.click_release, location="A")
-
-    model_response = action_to_perform.model_dump(mode="json", exclude=["thoughts", "action_type"])  # pyright: ignore[reportArgumentType]
-    model_response["action"] = action_to_perform.action.name
-
-    logger.info("Sending action", action=model_response)
-
-    return ModelResponse(parts=[ToolCallPart("final_result", {"response": model_response})])
+actions_to_perform = [
+    SoMAction(action=GameActionType.rotate_left),
+    SoMAction(action=GameActionType.rotate_right),
+    SoMAction(action=GameActionType.flip),
+    SoMAction(action=GameActionType.roll_down),
+    SoMAction(action=GameActionType.roll_up),
+    SoMAction(action=GameActionType.roll_up),
+    SoMAction(action=GameActionType.roll_down),
+    SoMAction(action=GameActionType.flip),
+    # Now back at the front, click the first location
+    SoMAction(action=GameActionType.click_release, location="A"),
+    SoMAction(action=GameActionType.zoom_out),
+    # click again
+    SoMAction(action=GameActionType.click_release, location="A"),
+    # Hold the button once
+    SoMAction(action=GameActionType.hold, location="A"),
+    SoMAction(action=GameActionType.release),
+    # Do it again
+    SoMAction(action=GameActionType.hold, location="A"),
+    SoMAction(action=GameActionType.release),
+    # Last time, and it should explode now (or not?)
+    SoMAction(action=GameActionType.hold, location="A"),
+    SoMAction(action=GameActionType.release),
+]
 
 
 def dummy_message_generator(
@@ -68,17 +46,47 @@ def dummy_message_generator(
         parts=[
             ToolCallPart(
                 "final_result_SendMessageAction",
-                message.model_dump(exclude=["thoughts", "action_type"], mode="json"),  # pyright: ignore[reportArgumentType]
+                message.model_dump(exclude={"thoughts", "action_type"}, mode="json"),
             )
         ]
     )
+
+
+class DummyDefuserFunction:
+    """Dummy defuser function for the dummy defuser model, but the actions also reset."""
+
+    __name__ = "dummy_defuser_function"
+
+    def __init__(self) -> None:
+        self.actions_to_perform = iter(actions_to_perform)
+
+    def __call__(self, messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:  # noqa: WPS110 ARG002
+        """Run the dummy defuser function."""
+        if len(messages) < 2:  # noqa: PLR2004
+            # Assume that it's a new game and reset it
+            self.actions_to_perform = iter(actions_to_perform)
+
+        try:
+            action_to_perform = next(self.actions_to_perform)
+        except StopIteration:
+            # If we run out of actions, just return a click release action
+            logger.warning("Ran out of actions to perform, returning click release action.")
+            action_to_perform = SoMAction(action=GameActionType.click_release, location="A")
+
+        model_response = action_to_perform.model_dump(
+            mode="json", exclude={"thoughts", "action_type"}
+        )
+        model_response["action"] = action_to_perform.action.name
+
+        logger.info("Sending action", action=model_response)
+        return ModelResponse(parts=[ToolCallPart("final_result", {"response": model_response})])
 
 
 class DummyDefuserModel(FunctionModel):
     """Dummy function model that generates set of marks actions based on the number of messages."""
 
     def __init__(self) -> None:
-        super().__init__(dummy_set_of_marks_action_generator)
+        super().__init__(DummyDefuserFunction())
 
 
 class DummyExpertModel(FunctionModel):

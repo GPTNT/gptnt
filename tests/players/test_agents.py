@@ -5,7 +5,7 @@ from pytest_cases import parametrize_with_cases
 from gptnt.players.actions import InteractGameAction, InteractGameLocation, SetOfMarksLocation
 from gptnt.players.ai.ai_player import AIPlayer
 from gptnt.players.ai.defuser import DefuserOutputT
-from gptnt.players.ai.dummy import DummyDefuserModel
+from gptnt.players.ai.dummy import DummyDefuserModel, actions_to_perform
 from gptnt.players.ai.expert import ExpertOutputT
 from tests.players.fixtures import AIPlayerCases
 
@@ -33,3 +33,8 @@ async def test_functional_model_does_not_crash(player: AIPlayer[None, OutputData
 
             assert response
             assert isinstance(response, InteractGameAction[SetOfMarksLocation])
+    player.reset_message_history()
+
+    with player.agent.override(model=DummyDefuserModel()):
+        response = await player.send_request_to_agent()
+        assert response == actions_to_perform[0]
