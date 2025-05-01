@@ -185,6 +185,9 @@ class KtaneClient(InstrumentationMixin):
             )
             return None
         except httpx.HTTPStatusError as err:
+            if err.response.text == "Cannot get bomb state in Lights Off state":
+                _logger.warning("Cannot get bomb state in Lights Off state")
+                return None
             _logger.exception(
                 f"Failed to receive bomb state. Reason: {err.response.text}", exc_info=err
             )
