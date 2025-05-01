@@ -176,10 +176,10 @@ class Experiment:
     async def _run_sequential(self) -> None:
         """Runs the experiment in sequential mode."""
         while self._room.state is not RoomStage.done:
-            with logfire.span("Expert turn"):
-                _ = await self._expert.client.run_for_turn()
             with logfire.span("Defuser turn"):
                 _ = await self._defuser.client.run_for_turn()
+            with logfire.span("Expert turn"):
+                _ = await self._expert.client.run_for_turn()
 
     @logfire.instrument("Run Experiment (Parallel)")
     async def _run_parallel(self) -> None:
