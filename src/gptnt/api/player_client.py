@@ -79,6 +79,9 @@ class SupervisedPlayerClient(SupervisedClient[PlayerClient, PlayerMetadata]):
             with logfire.suppress_instrumentation():
                 if not await self.client.healthcheck():
                     break
-        _logger.info("Player died")
+        _logger.info(
+            f"Player died ({self.metadata.player_type}/{self.metadata.player_role})",
+            player=self.metadata.player_name,
+        )
         self.is_running = False
         await self.stop()
