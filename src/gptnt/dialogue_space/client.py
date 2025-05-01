@@ -1,6 +1,7 @@
 from typing import Self
 from uuid import uuid4
 
+import logfire
 from httpx import URL
 
 from gptnt.dialogue_space.structures import ClientRequest, SendMessageData
@@ -37,6 +38,7 @@ class DialogueSpaceClient:
         """Check if client is connected to server."""
         return self.client.is_connected
 
+    @logfire.instrument("Connect to dialogue space")
     async def connect(self) -> None:
         """Connect agent to server, get UUID to self-identify."""
         _ = await self.client.connect()
@@ -47,11 +49,13 @@ class DialogueSpaceClient:
         """Disconnect agent from server."""
         await self.client.__aexit__()
 
+    @logfire.instrument("Send message to dialogue space")
     async def send_message(self, message: str) -> None:
         """Send message to dialogue space."""
         message_request = SendMessageData(uuid=self.uuid, message=message)
         _ = await self.client.send_request("send_message", message_request.model_dump_json())
 
+    @logfire.instrument("Pull messages from dialogue space")
     async def pull_messages(self) -> list[str]:
         """Get unread messages from dialogue-space."""
         pull_request = ClientRequest(uuid=self.uuid)

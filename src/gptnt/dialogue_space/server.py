@@ -3,6 +3,7 @@ from types import TracebackType
 from typing import Self
 from uuid import UUID
 
+import logfire
 from structlog import getLogger
 
 from gptnt.dialogue_space.structures import (
@@ -96,6 +97,7 @@ class DialogueSpaceServer:
         """Get the highest message ID in the datastore."""
         return len(self.messages)
 
+    @logfire.instrument("Add message to DS server")
     def add_message(self, sender_uuid: UUID, message: str) -> int:
         """Append message to datastore.
 
@@ -145,7 +147,7 @@ class DialogueSpaceServer:
     def _on_message_sent(self, data: str) -> None:
         parsed = SendMessageData.model_validate_json(data)
         _ = self.add_message(parsed.uuid, parsed.message)
-        log.info(f"Message received: {parsed.message}")
+        log.debug(f"Message received: {parsed.message}")
 
     def _on_agent_connect_request(self, data: str) -> None:
         """Handle when an agent wants to connect to the server."""
