@@ -113,7 +113,6 @@ class RoomManager:
             _ = task.cancel()
         await self.stop()
 
-    @logfire.instrument("Start services")
     async def start(self, *, start_subservices: bool = True) -> None:
         """Starts the subservices and supervisors."""
         self.lifecycle_stage = RoomStage.boot
@@ -125,24 +124,25 @@ class RoomManager:
         self._restart_raised = asyncio.Event()
         self.reset_raised = asyncio.Event()
 
-        if start_subservices:
-            await self._start_subservices()
+        with logfire.span("Start room manager", room=self._uuid):
+            if start_subservices:
+                await self._start_subservices()
 
-        await self._start_supervisors()
+            await self._start_supervisors()
         self._restartable_tasks.append(asyncio.create_task(coro=self._lifecycle_loop()))
 
-    @logfire.instrument("Stop services")
     async def stop(self, *, stop_subservices: bool = True) -> None:
         """Cleanly stops any running subservices and supervisors."""
-        for task in self._restartable_tasks:
-            _ = task.cancel()
-        self._restartable_tasks = []
-        await self._stop_supervisors()
+        with logfire.span("Stop room manager", room=self._uuid):
+            for task in self._restartable_tasks:
+                _ = task.cancel()
+            self._restartable_tasks = []
+            await self._stop_supervisors()
 
-        if stop_subservices:
-            if self._game_process.returncode is None:
-                self._game_process.kill()
-            await self._stop_subservices()
+            if stop_subservices:
+                if self._game_process.returncode is None:
+                    self._game_process.kill()
+                await self._stop_subservices()
 
     # Sub-service handlers
     async def _restart_loop(self) -> None:  # noqa: WPS213, WPS217
@@ -192,31 +192,28 @@ class RoomManager:
                 _ = await self._state_changed.wait()
                 self._state_changed.clear()
 
-        # Lifecycle
-        _logger.debug("Booting room")
-        self.lifecycle_stage = RoomStage.boot
+        with logfire.span("Loading game", room=self._uuid):
+            self.lifecycle_stage = RoomStage.boot
 
-        _logger.debug("Waiting for main menu")
-        await _until_game_state(target_state=GameState.main_menu)
-        _logger.debug("Room in main menu")
-        self.lifecycle_stage = RoomStage.ready_for_config
+            await _until_game_state(target_state=GameState.main_menu)
+            self.lifecycle_stage = RoomStage.ready_for_config
 
-        _logger.debug("Waiting for lights to turn off")
-        await _until_game_state(target_state=GameState.lights_off)
-        _ = await self.ktane_client.stop_time()  # BUG: This might fail
-        _ = await self._players_connected.wait()
-        self._players_connected.clear()
-        self.lifecycle_stage = RoomStage.ready_for_start
+        with logfire.span("Waiting for players", room=self._uuid):
+            await _until_game_state(target_state=GameState.lights_off)
+            _ = await self.ktane_client.stop_time()  # BUG: This might fail
+            _ = await self._players_connected.wait()
+            self._players_connected.clear()
+            self.lifecycle_stage = RoomStage.ready_for_start
 
-        _logger.debug("Waiting for lights to turn on")
-        await _until_game_state(target_state=GameState.lights_on)
-        self.lifecycle_stage = RoomStage.in_experiment
+        with logfire.span("Waiting for game to start", room=self._uuid):
+            await _until_game_state(target_state=GameState.lights_on)
+            self.lifecycle_stage = RoomStage.in_experiment
 
-        _logger.debug("Waiting for game to end")
-        await _until_game_state(target_state=GameState.game_ended)
-        self.lifecycle_stage = RoomStage.done
+        with logfire.span("Waiting for game to end", room=self._uuid):
+            await _until_game_state(target_state=GameState.game_ended)
+            self.lifecycle_stage = RoomStage.done
 
-    @logfire.instrument("Start services")
+    @logfire.instrument("Start subservices")
     async def _start_subservices(self) -> None:
         """Start the server and app."""
         # 1. start the game in the room
