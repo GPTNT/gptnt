@@ -180,6 +180,7 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
                     "Failed to coerce model output; returning `DoNothingAction`",
                     agent_output=agent_output,
                 )
+                self.tracker.num_invalid_formats += 1
                 agent_output = DoNothingAction()
 
         # The return type should be fine but pyright doesn't like it because I'm using a lot of

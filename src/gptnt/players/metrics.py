@@ -233,6 +233,8 @@ class PlayerEpisodeTracker:
         self._observations: list[ObservationMetric] = []
         self._reflections: list[MessageMetric] = []
 
+        self.num_invalid_formats: int = 0
+
         self.start_time: Instant
 
     def on_game_start(
@@ -294,6 +296,7 @@ class PlayerEpisodeTracker:
                     [module for module in last_bomb_state.modules if module.is_solved]
                 ),
                 "total_strikes": len(last_bomb_state.strikes) if last_bomb_state.strikes else 0,
+                "total_invalid_format": self.num_invalid_formats,
             }
 
         # Send tables if they exist
