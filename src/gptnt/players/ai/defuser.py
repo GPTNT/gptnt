@@ -1,5 +1,4 @@
 import abc
-import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any, Union, override
@@ -133,9 +132,7 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
             await busy_wait_interval()
 
         agent_output = await self.send_request_to_agent()
-        if isinstance(agent_output, InteractGameAction):
-            _ = await self.direct_output_from_agent(agent_output)
-        await asyncio.sleep(self.sequential_step_time)
+        _ = await self.direct_output_from_agent(agent_output)
         _ = await self.game_client.advance_time()
 
     @override
