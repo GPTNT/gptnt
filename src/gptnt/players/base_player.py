@@ -61,7 +61,7 @@ class BasePlayer(abc.ABC):
     async def on_experiment_stop(self) -> None:
         """Things to do when the experiment stops."""
         log.debug("Finishing wandb")
-        self.tracker.on_game_end()
+        await self.tracker.on_game_end()
 
     async def disconnect_from_room(self) -> None:
         """Disconnect from the room."""

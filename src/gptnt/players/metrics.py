@@ -17,6 +17,7 @@ from structlog import get_logger
 from unflatten import unflatten
 from whenever import Instant
 
+from gptnt.common.async_ops import run_in_separate_thread
 from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.ktane.experiments.experiments import ExperimentSpec
 from gptnt.ktane.state.bomb import BombState
@@ -243,7 +244,7 @@ class PlayerEpisodeTracker:
         self.start_time = Instant.now()
 
     @logfire.instrument("Send results to wandb")
-    def on_game_end(self) -> None:
+    async def on_game_end(self) -> None:
         """Sends the mission results to wandb and cleans up."""
         data_to_send: dict[str, Any] = {
             "total_defuser_actions": len(self._actions),
@@ -291,8 +292,11 @@ class PlayerEpisodeTracker:
         if observations_table:
             data_to_send["observations"] = observations_table
 
-        wandb.log(data_to_send)
-        wandb.finish()
+        wandb.log(data_to_send, commit=False)
+
+        with logfire.span("Sending data to wandb"):
+            await run_in_separate_thread(wandb.finish)
+
         self.reset()
 
     def add_action(self, action: InteractGameAction[InteractGameLocation]) -> None:
