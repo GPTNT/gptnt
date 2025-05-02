@@ -111,15 +111,11 @@ class KtaneClient(InstrumentationMixin):
             return False
         return True
 
-    async def advance_time(self, milliseconds: int) -> bool:
-        """Move the game forward in time by a given number of milliseconds, then pause it."""
-        response_set_step_unit = await self.client.get(
-            "/setstepunit", params={"value": milliseconds}
-        )
+    async def advance_time(self) -> bool:
+        """Do one, in game time step."""
         response_time_step = await self.client.get("/timestep")
-
         try:
-            _ = response_set_step_unit.raise_for_status(), response_time_step.raise_for_status()
+            _ = response_time_step.raise_for_status()
         except httpx.HTTPError:
             _logger.exception("Failed to advance time")
             return False

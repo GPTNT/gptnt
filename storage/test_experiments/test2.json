@@ -8,7 +8,7 @@
 		"needy_time": 60,
 		"force_modules_to_front": true,
 		"time_scale": 1.0,
-		"time_step_size": 250
+		"time_step_size": 3000
 	},
 	"pairing": {
 		"defuser": "test",

@@ -48,9 +48,7 @@ class KtaneMissionSpec(BaseModel):
         description="Time scale multiplier",
     )
     time_step_size: int = Field(
-        default=250,  # noqa: WPS432
-        ge=50,  # noqa: WPS432
-        le=500,  # noqa: WPS432
+        default=3000,  # noqa: WPS432
         serialization_alias="timeStepSize",
         description="Step size in milliseconds",
     )

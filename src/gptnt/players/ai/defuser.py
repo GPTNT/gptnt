@@ -134,10 +134,9 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
 
         agent_output = await self.send_request_to_agent()
         if isinstance(agent_output, InteractGameAction):
-            _ = await self.game_client.resume_time()
-        _ = await self.direct_output_from_agent(agent_output)
+            _ = await self.direct_output_from_agent(agent_output)
         await asyncio.sleep(self.sequential_step_time)
-        _ = await self.game_client.stop_time()
+        _ = await self.game_client.advance_time()
 
     @override
     @logfire.instrument("Map agent output to function", record_return=True)
