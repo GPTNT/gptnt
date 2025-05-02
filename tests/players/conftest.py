@@ -9,7 +9,7 @@ from whenever import Instant
 
 from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.dialogue_space.client import DialogueSpaceClient
-from gptnt.ktane.client import KtaneClient
+from gptnt.ktane.client import KtaneClient, Observation
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.metrics import PlayerEpisodeTracker
 
@@ -22,7 +22,7 @@ def dialogue_space_client(mocker: MockerFixture) -> DialogueSpaceClient:
 
 
 @pytest.fixture(scope="session")
-def images(fixture_path: Path) -> tuple[bytes, bytes]:
+def observation_frames(fixture_path: Path) -> Observation:
     """Fixture to provide a segmentation screenshot and a screenshot as numpy arrays."""
     segmentation_image_path = fixture_path.joinpath("segmentation1.png")
     screenshot_image_path = fixture_path.joinpath("screenshot1.png")
@@ -38,16 +38,20 @@ def images(fixture_path: Path) -> tuple[bytes, bytes]:
     screenshot_image.save(screenshot_buffer, format="PNG")
     segmentation_buffer = BytesIO()
     segmentation_image.save(segmentation_buffer, format="PNG")
-    return screenshot_buffer.getvalue(), segmentation_buffer.getvalue()
+    return Observation(
+        frames=[screenshot_buffer.getvalue()],
+        segm_mask=segmentation_buffer.getvalue(),
+        som_image=screenshot_buffer.getvalue(),
+    )
 
 
 @pytest.fixture
-def game_client(mocker: MockerFixture, images: tuple[bytes, bytes]) -> KtaneClient:
+def game_client(mocker: MockerFixture, observation_frames: Observation) -> KtaneClient:
     base_url = "http://localhost:1"
 
     game_client = KtaneClient(client=httpx.AsyncClient(base_url=base_url))
-    game_client.get_observation = mocker.AsyncMock()
-    game_client.get_observation.return_value = images[0], images[1], images[0]
+    game_client.get_observation_frames = mocker.AsyncMock()
+    game_client.get_observation_frames.return_value = observation_frames
     game_client.get_state = mocker.AsyncMock()
     game_client.get_state.return_value = BombState.model_validate(
         {

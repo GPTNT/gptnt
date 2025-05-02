@@ -1,6 +1,5 @@
 import abc
 import asyncio
-from collections import deque
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any, Union, override
@@ -94,7 +93,7 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
     """
 
     game_client: KtaneClient
-    observation_window_length: int = 1
+    observation_window_length: int = 12
     should_save_images: bool = False
 
     sequential_step_time: float = 3
@@ -105,8 +104,6 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
         super().__post_init__()
         if not does_model_support_structured_outputs(self.agent):
             self.agent.output_validator(coerce_model_string_outputs)  # pyright: ignore[reportArgumentType,reportCallIssue]
-
-        self.observation_cache: deque[BinaryContent] = deque(maxlen=self.observation_window_length)
 
     @override
     async def connect(self) -> None:
@@ -204,24 +201,26 @@ class MDPDefuserPlayer[LocationDataT: InteractGameLocation](
         # Get the messages from the dialogue space
         messages = await self.pull_unread_messages_from_dialogue_space()
 
-        # Frame is/should be a JPEG that is encoded as bytes
-        raw_image, segm_mask, som_image = await self.game_client.get_observation()
-        current_frame = BinaryContent(data=som_image, media_type="image/png")
-
-        self.tracker.add_observation(raw_image=raw_image, segm_mask=segm_mask, som_image=som_image)
-        self.observation_cache.append(BinaryContent(data=raw_image, media_type="image/png"))
+        # Frame is/should be a PNG that is encoded as bytes
+        frames, segm_mask, som_image = await self.game_client.get_observation_frames()
+        self.tracker.add_observation(frames=frames, segm_mask=segm_mask, som_image=som_image)
 
         if self.should_save_images:
             paths.output.joinpath("images").mkdir(parents=True, exist_ok=True)
             _ = (
                 paths.output.joinpath("images")
                 .joinpath(f"frame_{whenever.Instant.now()}.png")
-                .write_bytes(current_frame.data)
+                .write_bytes(som_image)
             )
 
-        agent_input = [messages, *list(self.observation_cache)]
-        # remove the last frame since thats the current frame and replace it with the som one
-        agent_input[-1] = current_frame
+        som_frame = BinaryContent(data=som_image, media_type="image/png")
+        current_frames = [BinaryContent(data=frame, media_type="image/png") for frame in frames]
+
+        # Build the observations by getting all the frames and replacing the last one with the SoM
+        # frame. Then, we take the last N frames to build the observation window
+        observations = [*current_frames[:-1], som_frame][-self.observation_window_length :]
+
+        agent_input = [messages, *observations]
         return agent_input
 
     @override

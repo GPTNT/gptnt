@@ -30,7 +30,7 @@ class Observation(NamedTuple):
     processed image.
     """
 
-    raw_image: bytes
+    frames: list[bytes]
     segm_mask: bytes
     som_image: bytes
 
@@ -200,52 +200,73 @@ class KtaneClient(InstrumentationMixin):
         return state
 
     @logfire.instrument("Get observation from environment")
-    async def get_observation(self) -> Observation:  # noqa: WPS615
-        """Get the current observation from the game as a png."""
-        # If we are not resizing or using SoM, we can just get the screenshot as bytes and pass it
-        # on as is
-        if self.set_of_marks_painter is None and self.image_resizer is None:
-            return Observation(b"", b"", await self._get_screenshot())
+    async def get_observation_frames(self) -> Observation:
+        """Gets frames and segmentation mask.
 
-        # Incase we are going to be using SoM, we need to get the screenshot and the segmentation
-        observation_bytes, segmentation_bytes = await self._get_screenshot_with_segm()
-        observation = load_observation_from_bytes(observation_bytes)
+        Frames are upto 12 frames and a segmentation mask of the last, most recent frame.
+        """
+        frames, segmentation = await self._get_frames_with_segm()
+        # If we are not resizing nor applying SoM, we can just use the last frame
+        if self.image_resizer is None and self.set_of_marks_painter is None:
+            return Observation(
+                frames=frames,
+                segm_mask=segmentation if segmentation else b"",
+                som_image=frames[-1],
+            )
 
-        # If we are resizing the image, we need to resize it before passing it on
+        # Make a list of images
+        images = [load_observation_from_bytes(frame) for frame in frames]
+        # Resize the images if needed
         if self.image_resizer:
-            with logfire.span("Resizing image", image=observation):
-                observation = self.image_resizer.resize_image(observation)
+            with logfire.span("Resizing images", images=images):
+                images = [self.image_resizer.resize_image(image) for image in images]
 
-        if self.set_of_marks_painter and segmentation_bytes:
-            segmentation = load_observation_from_bytes(segmentation_bytes)
+        # Apply set of marks only on the last image
+        last_image = images[-1]
+        if self.set_of_marks_painter and segmentation:
+            segm_image = load_observation_from_bytes(segmentation)
 
-            # If we are using SoM, we also need to resize the segmentation image
             if self.image_resizer:
-                with logfire.span("Resizing image", image=segmentation):
-                    segmentation = self.image_resizer.resize_image(segmentation)
+                with logfire.span("Resizing segmentation mask", image=segm_image):
+                    segm_image = self.image_resizer.resize_image(segm_image)
 
-            # Apply SoM onto the image
             with logfire.span(
-                "Perform Set of Marks", observation=observation, segmentation=segmentation
+                "Perform Set of Marks", observation=last_image, segmentation=segm_image
             ):
-                observation = self.set_of_marks_painter.run(
-                    observation=np.asarray(observation),
-                    colorful_image=np.asarray(segmentation),
-                    state=self.current_bomb_state.zoomed_in_component
-                    if self.current_bomb_state
-                    else None,
+                last_image = self._apply_som(
+                    raw_image=last_image,
+                    segmentation_image=segm_image,
+                    set_of_marks_painter=self.set_of_marks_painter,
                 )
 
-            # convert back to pillow image
-            observation = Image.fromarray(observation.astype(np.uint8), "RGB")
+        # convert the resized / som images back to bytes
+        som_buffer = BytesIO()
+        last_image.save(som_buffer, format="PNG")
 
-        buffer = BytesIO()
-        observation.save(buffer, format="PNG")
+        frames = []
+        for image in images:
+            image_buffer = BytesIO()
+            image.save(image_buffer, format="PNG")
+            frames.append(image_buffer.getvalue())
+
         return Observation(
-            raw_image=observation_bytes,
-            segm_mask=segmentation_bytes if segmentation_bytes else b"",
-            som_image=buffer.getvalue(),
+            frames=frames,
+            segm_mask=segmentation if segmentation else b"",
+            som_image=som_buffer.getvalue(),
         )
+
+    def _apply_som(
+        self,
+        raw_image: Image.Image,
+        segmentation_image: Image.Image,
+        set_of_marks_painter: SetOfMarksHandler,
+    ) -> Image.Image:
+        som_rgb_array = set_of_marks_painter.run(
+            observation=np.asarray(raw_image),
+            colorful_image=np.asarray(segmentation_image),
+            state=self.current_bomb_state.zoomed_in_component if self.current_bomb_state else None,
+        )
+        return Image.fromarray(som_rgb_array.astype(np.uint8), "RGB")
 
     async def _get_screenshot(self) -> bytes:
         response = await self.client.get("/screenshot")
@@ -284,3 +305,28 @@ class KtaneClient(InstrumentationMixin):
         )
 
         return screenshot_png_data, segm_png_data
+
+    async def _get_frames_with_segm(self) -> tuple[list[bytes], bytes | None]:
+        """Get the most recent frames from the game.
+
+        Including a segmentation mask.
+        """
+        response = await self.client.get("/buffer")
+
+        try:
+            _ = response.raise_for_status()
+        except httpx.HTTPError as err:
+            raise InvalidGameError("Failed to get observation") from err
+
+        response_json = response.json()
+
+        frames_png_data = [base64.b64decode(frame) for frame in response_json.get("frames", [])]
+
+        # When the segmentation is empty, we return an empty byte string.
+        segm_png_data = (
+            base64.b64decode(response_json.get("segmentation"))
+            if response_json["segmentation"]
+            else None
+        )
+
+        return frames_png_data, segm_png_data

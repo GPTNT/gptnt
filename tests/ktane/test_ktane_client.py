@@ -10,7 +10,7 @@ from pytest_mock import MockerFixture
 
 from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.ktane.actions import GameActionType, KtaneAction, KtaneBaseAction
-from gptnt.ktane.client import KtaneClient
+from gptnt.ktane.client import KtaneClient, Observation
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.game import GameState
 from gptnt.ktane.state.modules import KtaneComponent
@@ -93,13 +93,15 @@ async def test_start_mission_returns_false_on_failing(
 async def test_get_observation_returns_screenshot_as_bytes(
     client: KtaneClient, screenshot: str
 ) -> None:
-    route = respx.get(f"{client.client.base_url}/screenshot").mock(
-        return_value=httpx.Response(httpx.codes.OK, text=screenshot)
+    route = respx.get(f"{client.client.base_url}/buffer").mock(
+        return_value=httpx.Response(
+            httpx.codes.OK, json={"frames": [screenshot], "segmentation": None}
+        )
     )
-    _, _, screenshot_response = await client.get_observation()
+    screenshot_response = await client.get_observation_frames()
     assert route.called is True
-    assert screenshot_response == base64.b64decode(screenshot)
-    assert isinstance(screenshot_response, bytes)
+    assert screenshot_response.som_image == base64.b64decode(screenshot)
+    assert isinstance(screenshot_response.som_image, bytes)
 
 
 @pytest.mark.parametrize("action_type", list(GameActionType))
@@ -129,12 +131,12 @@ def test_ktane_coordinate_action_correctly_converts_to_query_params(
 
 @respx.mock
 @pytest.mark.asyncio
-async def test_get_observation_resizes_image(client: KtaneClient, screenshot: str) -> None:
+async def test_get_observation_frames_resizes_image(client: KtaneClient, screenshot: str) -> None:
     """Test that the KtaneClient correctly resizes the image."""
-    # Mock the get_observation method to return the image and segmentation bytes
-    _ = respx.get(f"{client.client.base_url}/observation").mock(
+    # Mock the get_observation_frames method to return the image and segmentation bytes
+    _ = respx.get(f"{client.client.base_url}/buffer").mock(
         return_value=httpx.Response(
-            httpx.codes.OK, json={"screenshot": screenshot, "segmentation": None}
+            httpx.codes.OK, json={"frames": [screenshot], "segmentation": None}
         )
     )
 
@@ -142,12 +144,13 @@ async def test_get_observation_resizes_image(client: KtaneClient, screenshot: st
     client.image_resizer = ImageResizer(target_width=100, target_height=200)
 
     # Get the observation
-    _, _, observation = await client.get_observation()
-    assert isinstance(observation, bytes)
+    observation: Observation = await client.get_observation_frames()
+    last_frame = observation.frames[-1]
+    assert isinstance(last_frame, bytes)
 
-    observation_image = load_observation_from_bytes(observation)
+    last_frame_image = load_observation_from_bytes(last_frame)
     # Check that the observation is resized
-    assert observation_image.size == (
+    assert last_frame_image.size == (
         client.image_resizer.target_width,
         client.image_resizer.target_height,
     )
@@ -178,11 +181,11 @@ async def test_set_of_mark_actions_are_converted_to_relative_coordinates(
     image_bytes, segm_bytes = screenshot_segmentation_pair
 
     # Mock the get_observation method to return the image and segmentation bytes
-    _ = respx.get(f"{client_with_som.client.base_url}/observation").mock(
+    _ = respx.get(f"{client_with_som.client.base_url}/buffer").mock(
         return_value=httpx.Response(
             httpx.codes.OK,
             json={
-                "screenshot": base64.b64encode(image_bytes).decode("utf-8"),
+                "frames": [base64.b64encode(image_bytes).decode("utf-8")],
                 "segmentation": base64.b64encode(segm_bytes).decode("utf-8"),
             },
         )
@@ -196,7 +199,7 @@ async def test_set_of_mark_actions_are_converted_to_relative_coordinates(
     som_location = "A" if som_mark_style == "alphabet" else 1
 
     # Get the observation
-    _ = await client_with_som.get_observation()
+    _ = await client_with_som.get_observation_frames()
     # Make sure that the mapping of marks to coords exists
     assert client_with_som.set_of_marks_painter._mark_to_coordinate is not None
 

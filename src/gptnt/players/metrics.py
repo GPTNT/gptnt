@@ -152,23 +152,16 @@ class BombStateMetric(BombState, TimestampMixin):
 
 
 class ObservationMetric(TimestampMixin):
-    """Observation metric class for observability logging."""
+    """Observation metric class for observability logging.
 
-    raw_image: bytes
+    This class represents an observation in the form of multiple frames (images) instead of a
+    singular raw image. Each frame is stored as a byte array. Additional attributes include
+    a segmentation mask (`segm_mask`) and a secondary observation metric image (`som_image`).
+    """
+
+    frames: list[bytes]
     segm_mask: bytes | None
     som_image: bytes
-
-    @classmethod
-    def from_observation(
-        cls, *, raw_image: bytes, segm_mask: bytes, som_image: bytes, timestamp: float
-    ) -> Self:
-        """Create an ObservationMetric from an observation."""
-        return cls(
-            raw_image=raw_image,
-            segm_mask=segm_mask if segm_mask else None,
-            som_image=som_image,
-            timestamp=timestamp,
-        )
 
     @model_serializer(mode="plain")
     def serialize_wandb(self, info: SerializationInfo) -> dict[str, Any]:  # noqa: WPS110
@@ -184,7 +177,13 @@ class ObservationMetric(TimestampMixin):
 
     def _to_wandb_images(self) -> dict[str, Any]:
         # Convert the images to WandB images
-        raw_image = wandb.Image(load_observation_from_bytes(self.raw_image), caption="Raw Image")
+        frames = [
+            wandb.Image(
+                load_observation_from_bytes(self.frames[frame_index]),
+                caption=f"Frame {frame_index}",
+            )
+            for frame_index in range(len(self.frames))
+        ]
         segm_mask = (
             wandb.Image(load_observation_from_bytes(self.segm_mask), caption="Segmentation Mask")
             if self.segm_mask
@@ -193,7 +192,7 @@ class ObservationMetric(TimestampMixin):
         som_image = wandb.Image(load_observation_from_bytes(self.som_image), caption="SoM Image")
 
         return {
-            "raw_image": raw_image,
+            "frames": frames,
             "segmentation_mask": segm_mask,
             "som_image": som_image,
             "timestamp": self.timestamp,
@@ -317,10 +316,10 @@ class PlayerEpisodeTracker:
         )
         self._bomb_states.append(bomb_state_metric)
 
-    def add_observation(self, raw_image: bytes, segm_mask: bytes, som_image: bytes) -> None:
+    def add_observation(self, frames: list[bytes], segm_mask: bytes, som_image: bytes) -> None:
         """Add an observation to the player's observation list."""
-        observation_metric = ObservationMetric.from_observation(
-            raw_image=raw_image,
+        observation_metric = ObservationMetric(
+            frames=frames,
             segm_mask=segm_mask,
             som_image=som_image,
             timestamp=self._compute_time_delta(),
@@ -395,11 +394,11 @@ class PlayerEpisodeTracker:
             self._observations, context={"wandb": True}
         )
         observations_table = wandb.Table(
-            columns=["raw_image", "segmentation_mask", "som_image", "timestamp"]
+            columns=["frames", "segmentation_mask", "som_image", "timestamp"]
         )
         for row in observations_data:
             observations_table.add_data(
-                row["raw_image"], row["segmentation_mask"], row["som_image"], row["timestamp"]
+                row["frames"], row["segmentation_mask"], row["som_image"], row["timestamp"]
             )
         return observations_table
 
