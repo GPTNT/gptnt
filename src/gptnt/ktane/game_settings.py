@@ -12,6 +12,18 @@ logger = structlog.get_logger()
 DEFAULT_PLAYER_SETTINGS_XML = Path(__file__).parent.joinpath("playerSettings.xml").read_text()
 
 
+class KtaneGameSettings(BaseSettings):
+    """Game settings for KTANE."""
+
+    game_width: int = Field(default=512, description="Width of the game window")
+    game_height: int = Field(default=512, description="Height of the game window")
+
+    def update_environment_variables(self) -> None:
+        """Set the environment variables for the game settings."""
+        os.environ["GAME_WIDTH"] = str(self.game_width)
+        os.environ["GAME_HEIGHT"] = str(self.game_height)
+
+
 def get_default_windows_location() -> Path:
     """Get the default location for the playerSettings.xml file on Windows."""
     return Path(os.getenv("APPDATA", "")).parent.joinpath(
@@ -96,9 +108,10 @@ class KtanePlayerSettings(BaseSettings):
         # Write the settings
         _ = settings_path.write_text(DEFAULT_PLAYER_SETTINGS_XML, encoding="utf-8")
 
+        logger.info(f"Settings file created at {settings_path}")
+
 
 if __name__ == "__main__":
     # This is just for testing the settings file
     settings = KtanePlayerSettings()
     settings.create_settings_file()
-    logger.info(f"Settings file created at {settings.get_settings_path()}")
