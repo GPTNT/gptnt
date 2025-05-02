@@ -17,5 +17,5 @@ gradio_launch_kwargs:
 tracker:
   _target_: gptnt.players.metrics.PlayerEpisodeTracker
   wandb_init_kwargs:
-    project: gptnt
-    entity: gptnt
+    project: "${oc.env:WANDB_PROJECT,gptnt}"
+    entity: "${oc.env:WANDB_ENTITY,gptnt}"

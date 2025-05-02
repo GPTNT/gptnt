@@ -1,4 +1,5 @@
 import asyncio
+import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Annotated
@@ -106,14 +107,11 @@ async def connect_room(
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+async def lifespan(app: FastAPI, *, filter_with_wandb: bool = False) -> AsyncGenerator[None]:
     """Lifespan to run the room manager API."""
     # Create the manager
     manager = ExperimentManager()
     app.state.manager = manager
-
-    # Flag to decide if experiments already on wandb should be filtered out
-    app.state.filter_with_wandb = False
 
     # Add all experiments generated using `src/gptnt/exntrypoints/generate_experiments.py`
     experiments = {
@@ -130,9 +128,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     }
     experiments = experiments | test_experiments  # noqa: WPS350 (Huh? What is this?)
 
-    if app.state.filter_with_wandb:
+    # Flag to decide if experiments already on wandb should be filtered out
+    if filter_with_wandb:
         experiments = check_if_experiments_on_wandb(
-            experiments=experiments, wandb_path="gptnt/gptnt"
+            experiments=experiments,
+            wandb_entity=os.getenv("WANDB_ENTITY", "gptnt"),
+            wandb_project=os.getenv("WANDB_PROJECT", "gptnt"),
         )
 
     logger.info(f"Starting ExperimentManager with {len(experiments)} experiments.")
