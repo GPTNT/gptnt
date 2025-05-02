@@ -7,7 +7,7 @@ import logfire
 from structlog import get_logger
 
 from gptnt.common.instrumentation import InstrumentationMixin
-from gptnt.common.servers import ClientMetadata
+from gptnt.common.servers import ClientMetadata, httpx_create_async_client
 
 _logger = get_logger()
 
@@ -16,7 +16,7 @@ class BaseClient(InstrumentationMixin, abc.ABC):
     """Base class for all clients."""
 
     def __init__(self, url: str | httpx.URL) -> None:
-        self.client = httpx.AsyncClient(base_url=url)
+        self.client = httpx_create_async_client(base_url=url)
 
     @property
     def url(self) -> httpx.URL:

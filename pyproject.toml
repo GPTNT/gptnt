@@ -13,6 +13,7 @@ dependencies = [
     "deepdiff>=8.4.2",
     "gradio>=5.20.1",
     "httpx>=0.28.1",
+    "httpx-aiohttp>=0.1.2",
     "hydra-core>=1.3.2",
     "logfire[fastapi,httpx,system-metrics]>=3.14.0",
     "omegaconf>=2.3.0",

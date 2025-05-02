@@ -13,7 +13,7 @@ from structlog import get_logger
 from gptnt.api.experiment_manager_client import ExperimentManagerClient
 from gptnt.api.structures import RoomMetadata, RoomStage
 from gptnt.common.async_ops import healthcheck_interval
-from gptnt.common.servers import get_available_port
+from gptnt.common.servers import get_available_port, httpx_create_async_client
 from gptnt.dialogue_space.server import DialogueSpaceServer
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.executable import get_executable_path
@@ -234,7 +234,7 @@ class RoomManager:
         # 3. Start the ktane client
         _logger.info("Starting `KtaneClient`", port=game_server_port)
         self.ktane_client = await KtaneClient(
-            client=httpx.AsyncClient(
+            client=httpx_create_async_client(
                 base_url=f"http://{self.hostname}:{game_server_port}", timeout=1
             )
         ).__aenter__()
@@ -268,7 +268,7 @@ class RoomManager:
 
     async def _start_supervisors(self) -> None:
         """Starts the sub-service supervisors."""
-        self._fastapi_supervisor_client = await httpx.AsyncClient(
+        self._fastapi_supervisor_client = await httpx_create_async_client(
             base_url=f"http://{self.hostname}:{self._fastapi_server_port}"
         ).__aenter__()
         self._restartable_tasks.extend(

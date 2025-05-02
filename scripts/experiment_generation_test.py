@@ -6,7 +6,6 @@ from itertools import combinations
 from pathlib import Path
 from typing import Any
 
-import httpx
 import numpy as np
 import structlog
 from deepdiff import DeepDiff
@@ -14,6 +13,7 @@ from omegaconf import OmegaConf
 
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
+from gptnt.common.servers import httpx_create_async_client
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.experiments.experiments import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
@@ -154,7 +154,7 @@ async def get_seed_difference_rating() -> list[float] | None:
         "multiple_modules_5": [],
     }
 
-    client = KtaneClient(client=httpx.AsyncClient(base_url="http://localhost:8085"))
+    client = KtaneClient(client=httpx_create_async_client(base_url="http://localhost:8085"))
 
     # Put missions into correct lists
     for mission_spec, condition in unique_missions:

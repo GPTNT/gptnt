@@ -12,7 +12,8 @@ metadata:
 game_client:
   _target_: gptnt.ktane.client.KtaneClient
   client:
-    _target_: httpx.AsyncClient
+    _target_: gptnt.common.servers.httpx_create_async_client
+
     base_url: "http://localhost:1245"
   image_resizer:
     _target_: gptnt.processors.image_resizer.ImageResizer

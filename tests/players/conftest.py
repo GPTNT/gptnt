@@ -1,13 +1,13 @@
 from io import BytesIO
 from pathlib import Path
 
-import httpx
 import pytest
 from PIL.Image import Resampling
 from pytest_mock import MockerFixture
 from whenever import Instant
 
 from gptnt.common.image_ops import load_observation_from_bytes
+from gptnt.common.servers import httpx_create_async_client
 from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.ktane.client import KtaneClient, Observation
 from gptnt.ktane.state.bomb import BombState
@@ -49,7 +49,7 @@ def observation_frames(fixture_path: Path) -> Observation:
 def game_client(mocker: MockerFixture, observation_frames: Observation) -> KtaneClient:
     base_url = "http://localhost:1"
 
-    game_client = KtaneClient(client=httpx.AsyncClient(base_url=base_url))
+    game_client = KtaneClient(client=httpx_create_async_client(base_url=base_url))
     game_client.get_observation_frames = mocker.AsyncMock()
     game_client.get_observation_frames.return_value = observation_frames
     game_client.get_state = mocker.AsyncMock()

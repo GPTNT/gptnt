@@ -59,11 +59,8 @@ class PlayerClient(BaseClient):
 
         This also signals experiment logging and returning to lobby.
         """
-        timeout = httpx.Timeout(60)
         try:
-            _ = (
-                await self.client.post(url="/stop-experiment", timeout=timeout)
-            ).raise_for_status()
+            _ = (await self.client.post(url="/stop-experiment", timeout=60)).raise_for_status()
         except httpx.HTTPError:
             _logger.exception("Could not stop experiment")
             return False
