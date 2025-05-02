@@ -7,7 +7,7 @@ from typing import Any, Union, override
 import logfire
 import structlog
 import whenever
-from pydantic import TypeAdapter
+from pydantic import TypeAdapter, ValidationError
 from pydantic_ai import Agent, BinaryContent
 from pydantic_ai.messages import ModelMessage, ModelRequest, UserPromptPart
 from pydantic_ai.models import Model
@@ -41,14 +41,10 @@ https://ai.pydantic.dev/results/#structured-result-validation
 """
 
 
-def coerce_model_string_outputs(
-    output: str | DefuserOutputT[InteractGameLocation],
-) -> DefuserOutputT[InteractGameLocation]:
+def coerce_model_string_outputs(output: str) -> DefuserOutputT[InteractGameLocation]:
     """Parse the output from the agent for gemini/models that don't support structured output."""
-    if isinstance(output, str):
-        output = output.strip().replace("```json", "").replace("```", "")
-        return TypeAdapter(DefuserOutputT[InteractGameLocation]).validate_json(output)
-    return output
+    output = output.strip().replace("```json", "").replace("```", "")
+    return TypeAdapter(DefuserOutputT[InteractGameLocation]).validate_json(output)
 
 
 def does_model_support_structured_outputs(agent: Agent[Any, Any]) -> bool:
@@ -171,6 +167,28 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
             for message in messages
         ]
         self._message_history.extend(messages_to_add)
+
+    @override
+    async def send_request_to_agent(self) -> DefuserOutputT[LocationDataT]:
+        """Send a request to the agent and coerce the output if we need to.
+
+        Just super() from the parent class and then coerce the output to the correct type because
+        we can't trust Gemini.
+        """
+        agent_output = await super().send_request_to_agent()
+        if isinstance(agent_output, str):
+            try:
+                agent_output = coerce_model_string_outputs(agent_output)
+            except ValidationError:
+                log.exception(
+                    "Failed to coerce model output; returning `DoNothingAction`",
+                    agent_output=agent_output,
+                )
+                agent_output = DoNothingAction()
+
+        # The return type should be fine but pyright doesn't like it because I'm using a lot of
+        # generics everything and I think it's getting confused
+        return agent_output  # pyright: ignore[reportReturnType]
 
 
 class MDPDefuserPlayer[LocationDataT: InteractGameLocation](
