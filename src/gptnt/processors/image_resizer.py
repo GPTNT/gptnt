@@ -20,10 +20,4 @@ class ImageResizer:
 
     def resize_image(self, image: Image) -> Image:
         """Resize image to target specifications."""
-        if image.height <= self.target_height and image.width <= self.target_width:
-            logger.warning(
-                f"Provided image ({image.width}, {image.height}) is smaller than target ({self.target_width}, {self.target_height})."
-            )
-            return image
-
         return image.resize((self.target_width, self.target_height), self.resampling_method)

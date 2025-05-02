@@ -40,15 +40,3 @@ def test_resize_images(target_width: int, target_height: int, test_image: Image.
 
     assert resized_image is not None
     assert resized_image.size == (target_width, target_height)
-
-
-@given(
-    target_width=st.integers(min_value=1512, max_value=2048),
-    target_height=st.integers(min_value=982, max_value=2048),
-)
-def test_upscale_images(target_width: int, target_height: int, test_image: Image.Image) -> None:
-    resizer = ImageResizer(target_width=target_width, target_height=target_height)
-    resized_image = resizer.resize_image(test_image)
-
-    # Shouldn't be able to resize if target dimensions > provided
-    assert resized_image.size == test_image.size
