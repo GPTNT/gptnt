@@ -296,6 +296,7 @@ class PlayerEpisodeTracker:
 
         with logfire.span("Sending data to wandb"):
             await run_in_separate_thread(wandb.finish)
+        _logger.debug("WandB run finished")
 
         self.reset()
 
