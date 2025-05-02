@@ -316,7 +316,8 @@ class KtaneClient(InstrumentationMixin):
         try:
             _ = response.raise_for_status()
         except httpx.HTTPError as err:
-            raise InvalidGameError("Failed to get observation") from err
+            _logger.exception(f"Failed to get frames. Reason: {response.text}", exc_info=err)
+            raise InvalidGameError("Failed to get frames") from err
 
         response_json = response.json()
 
