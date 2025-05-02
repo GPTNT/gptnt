@@ -175,14 +175,11 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         message_input = await self.build_agent_input()
         request_deps = self.build_deps_for_request()
         agent_output = await self.agent.run(
-            message_input,
-            deps=request_deps,
-            usage=self.usage,
-            message_history=self._message_history,
+            message_input, deps=request_deps, message_history=self._message_history
         )
 
         # Updage usage after the request
-        self.usage = agent_output.usage()
+        self.usage = agent_output.usage() + self.usage
 
         # Update the message history
         self.add_new_messages_to_history(agent_output.new_messages())
@@ -221,8 +218,8 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         response = await self.agent.run(
             [final_message, reflection_message],
             deps=self.build_deps_for_request(),
-            usage=self.usage,
             message_history=self._message_history,
             output_type=SendMessageAction,
         )
+        self.usage = response.usage() + self.usage
         return response.output
