@@ -5,6 +5,5 @@ pairing_generator:
     - gpt4o
     - claude37
     - gemini-25
-    - llama32-vision
     - internvl3-38b
     - qwen25vl-32b
