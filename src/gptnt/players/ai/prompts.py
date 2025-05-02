@@ -1,13 +1,54 @@
 from functools import lru_cache
+from typing import Literal
+
+import httpx
+import logfire
+import structlog
 
 from gptnt.common.paths import Paths
+from gptnt.dialogue_space.client import DialogueSpaceClient
+from gptnt.ktane.client import KtaneClient
 
 paths = Paths()
 
-reflection_prompt_path = paths.storage.joinpath("reflection_prompt")
+logger = structlog.get_logger()
 
 
 @lru_cache(maxsize=1)
 def load_reflection_prompt() -> str:
     """Load the prompt for the given state."""
-    return reflection_prompt_path.joinpath("reflection_prompt.txt").read_text()
+    return paths.storage.joinpath("reflection_prompt", "reflection_prompt.txt").read_text()
+
+
+BombStateMessage = Literal["terminated-exploded", "truncated-exploded", "terminated-defused"]
+
+
+@logfire.instrument("Send reflection message to agents")
+async def send_reflection_message(*, ktane_url: str, dialogue_space_url: str) -> None:
+    """Send the reflection message to the agent from the bomb state."""
+    async with KtaneClient(client=httpx.AsyncClient(base_url=ktane_url)) as ktane_client:
+        last_bomb_state = await ktane_client.get_state()
+
+    if last_bomb_state is None:
+        logger.exception("No bomb state found")
+        return
+
+    final_message: BombStateMessage | None = None
+    if last_bomb_state.is_detonated is True:
+        if last_bomb_state.timer_module.seconds_remaining <= 0:
+            # bomb detonated because player ran out of time
+            final_message = "terminated-exploded"
+        else:
+            # bomb detonated because player made too many mistakes
+            final_message = "truncated-exploded"
+
+    if last_bomb_state.is_solved is True:
+        # player solved all modules on bomb
+        final_message = "terminated-defused"
+
+    if not final_message:
+        logger.exception("No logic connecting bomb state to final message")
+        return
+
+    async with DialogueSpaceClient.from_url(dialogue_space_url) as ds_client:
+        _ = await ds_client.send_message(final_message)

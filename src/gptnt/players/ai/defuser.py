@@ -116,7 +116,6 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
         last_bomb_state = await self.game_client.get_state()
         if last_bomb_state is not None:
             self.tracker.add_bomb_state(last_bomb_state)
-
         await super().on_experiment_stop()
 
     @logfire.instrument("Send action to the game")

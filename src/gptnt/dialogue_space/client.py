@@ -1,3 +1,4 @@
+from types import TracebackType
 from typing import Self
 from uuid import uuid4
 
@@ -32,6 +33,20 @@ class DialogueSpaceClient:
 
         client = WebsocketClient(host=parsed_url.host, port=parsed_url.port)
         return cls(client=client)
+
+    async def __aenter__(self) -> Self:
+        """Enter async context manager."""
+        await self.connect()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None = None,
+        exc_value: BaseException | None = None,
+        traceback: TracebackType | None = None,
+    ) -> None:
+        """Exit async context manager."""
+        await self.disconnect()
 
     @property
     def is_connected(self) -> bool:

@@ -11,6 +11,7 @@ from gptnt.api.structures import GameMetadata, RoomStage
 from gptnt.api.tinder import get_playable_pairings
 from gptnt.common.async_ops import busy_wait_interval, healthcheck_interval, until
 from gptnt.ktane.experiments.experiments import ExperimentSpec
+from gptnt.players.ai.prompts import send_reflection_message
 
 _logger = get_logger()
 
@@ -108,8 +109,12 @@ class Experiment:
                 await self._run_sequential()
 
         # 5. Stop experiment
+        self.completed_successfully = True
+        await send_reflection_message(
+            ktane_url=self._room.metadata.ktane_url,
+            dialogue_space_url=self._room.metadata.dialogue_space_url,
+        )
         with logfire.span("Stop successful experiment"):
-            self.completed_successfully = True
             await self.stop_lifecycle()
 
     @logfire.instrument("Stop experiment lifecycle")

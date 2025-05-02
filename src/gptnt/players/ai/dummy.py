@@ -1,9 +1,19 @@
+from contextlib import suppress
+from typing import get_args
+
 import structlog
-from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ModelResponse,
+    ToolCallPart,
+    UserPromptPart,
+)
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from gptnt.ktane.actions import GameActionType
 from gptnt.players.actions import InteractGameAction, SendMessageAction, SetOfMarksLocation
+from gptnt.players.ai.prompts import BombStateMessage
 
 logger = structlog.get_logger()
 
@@ -36,11 +46,43 @@ actions_to_perform = [
 ]
 
 
+def check_for_reflection_message(messages: list[ModelMessage]) -> SendMessageAction | None:  # noqa: WPS218
+    """Check if the last message is a reflection message.
+
+    Theres a lot of indexing here...
+    """
+    with suppress(AssertionError):
+        assert isinstance(messages[-1], ModelRequest)  # noqa: WPS204
+        assert isinstance(messages[-1].parts, list)
+        assert isinstance(messages[-1].parts[0], UserPromptPart)
+        assert isinstance(messages[-1].parts[0].content, list)
+        expected_reflection_message = messages[-1].parts[0].content[0]  # noqa: WPS219
+        assert expected_reflection_message in get_args(BombStateMessage)
+        assert isinstance(expected_reflection_message, str)
+        return SendMessageAction(message=expected_reflection_message)
+
+    return None
+
+
 def dummy_message_generator(
     messages: list[ModelMessage],
     info: AgentInfo,  # noqa: WPS110 ARG001
 ) -> ModelResponse:
     """Dummy function model that generates set of marks actions based on the number of messages."""
+    if reflection_message := check_for_reflection_message(messages):  # noqa: WPS332
+        # If we get a reflection message, we need to send it back
+        logger.info("Sending reflection message", message=reflection_message)
+        return ModelResponse(
+            parts=[
+                ToolCallPart(
+                    "final_result",
+                    reflection_message.model_dump(
+                        exclude={"thoughts", "action_type"}, mode="json"
+                    ),
+                )
+            ]
+        )
+
     message = SendMessageAction(message=f"Message {len(messages)}")
     return ModelResponse(
         parts=[
@@ -60,11 +102,23 @@ class DummyDefuserFunction:
     def __init__(self) -> None:
         self.actions_to_perform = iter(actions_to_perform)
 
-    def __call__(self, messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:  # noqa: WPS110 ARG002
+    def __call__(self, messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:  # noqa: WPS110
         """Run the dummy defuser function."""
         if len(messages) < 2:  # noqa: PLR2004
             # Assume that it's a new game and reset it
             self.actions_to_perform = iter(actions_to_perform)
+
+        with suppress(ValueError):
+            return ModelResponse(
+                parts=[
+                    ToolCallPart(
+                        "final_result",
+                        self._maybe_send_reflection_message(messages, info).model_dump(
+                            mode="json"
+                        ),
+                    )
+                ]
+            )
 
         try:
             action_to_perform = next(self.actions_to_perform)
@@ -80,6 +134,18 @@ class DummyDefuserFunction:
 
         logger.info("Sending action", action=model_response)
         return ModelResponse(parts=[ToolCallPart("final_result", {"response": model_response})])
+
+    def _maybe_send_reflection_message(
+        self,
+        messages: list[ModelMessage],
+        info: AgentInfo,  # noqa: ARG002 WPS110
+    ) -> SendMessageAction:
+        """Send a reflection message if needed."""
+        if reflection_message := check_for_reflection_message(messages):  # noqa: WPS332
+            # If we get a reflection message, we need to send it back
+            logger.info("Sending reflection message", message=reflection_message)
+            return SendMessageAction(message=reflection_message.message)
+        raise ValueError("no reflection message found")
 
 
 class DummyDefuserModel(FunctionModel):

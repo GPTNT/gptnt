@@ -18,6 +18,8 @@ from gptnt.players.structures import UnhealthyPlayerError
 
 log = structlog.get_logger()
 
+NO_NEW_MESSAGES_SENTINEL = "<no_new_messages>"
+
 
 @dataclass(kw_only=True)
 class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixin, abc.ABC):
@@ -41,7 +43,7 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
     # # PAI expects either messages or None, so we can just init with None
     _message_history: list[ModelMessage] = field(default_factory=list)
 
-    _no_new_messages_sentinel_token: str = field(default="<no_new_messages>")
+    _no_new_messages_sentinel_token: str = field(default=NO_NEW_MESSAGES_SENTINEL)
 
     @override
     def perform_instrumentation(self) -> None:
@@ -70,8 +72,9 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         """Things to do when the experiment stops."""
         if self.should_reflect_on_game_at_end:
             log.debug("Reflecting on the game at end")
-            reflection = await self.send_reflection_prompt()
-            self.tracker.add_reflection(message=reflection, role=self.metadata.player_role)
+            reflection = await self.handle_reflection_prompt()
+            if reflection is not None:
+                self.tracker.add_reflection(message=reflection, role=self.metadata.player_role)
 
         await super().on_experiment_stop()
 
@@ -206,17 +209,21 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         """Add a new message to the message history."""
         raise NotImplementedError
 
-    @logfire.instrument("Send reflection prompt")
-    async def send_reflection_prompt(self) -> SendMessageAction:
+    @logfire.instrument("Reflect on the game")
+    async def handle_reflection_prompt(self) -> SendMessageAction | None:
         """Send/get the reflection message from the AI given the state."""
         # pull final message from dialogue space
         final_message = await self.pull_unread_messages_from_dialogue_space()
 
+        if final_message == self._no_new_messages_sentinel_token:
+            log.exception("No new messages to send to the agent.")
+            return None
+
         # Load the reflection prompt
-        reflection_message = load_reflection_prompt()
+        reflection_prompt = load_reflection_prompt()
 
         response = await self.agent.run(
-            [final_message, reflection_message],
+            [final_message, reflection_prompt],
             deps=self.build_deps_for_request(),
             message_history=self._message_history,
             output_type=SendMessageAction,
