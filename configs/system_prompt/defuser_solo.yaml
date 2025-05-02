@@ -14,7 +14,7 @@ system_prompt: >
 
   1. Actions without location requirements
 
-  {"action_type": "interact_game", "game_action": {GAME_ACTION}}
+  {"action_type": "interact_game", "action": {GAME_ACTION}}
 
   where {GAME_ACTION} can be one of:
 
@@ -30,7 +30,7 @@ system_prompt: >
 
   2. Actions with location requirements
 
-  {"action_type": "interact_game", "game_action": {GAME_ACTION}, "location": {LOCATION}}
+  {"action_type": "interact_game", "action": {GAME_ACTION}, "location": {LOCATION}}
 
   where {GAME_ACTION} can be one of:
 
@@ -43,8 +43,8 @@ system_prompt: >
 
   If you are thinking through a problem step by step, output these thoughts in the format "thoughts": "{THOUGHTS}". You need to replace {THOUGHTS} with your thoughts. For instance:
 
-  * for actions without location requirements: {"action_type": "interact_game", "game_action": {GAME_ACTION}, "thoughts": {THOUGHTS}}
-  * for actions with location requirements:  {"action_type": "interact_game", "game_action": {GAME_ACTION}, "location": {LOCATION}, "thoughts": {THOUGHTS}}
+  * for actions without location requirements: {"action_type": "interact_game", "action": {GAME_ACTION}, "thoughts": {THOUGHTS}}
+  * for actions with location requirements:  {"action_type": "interact_game", "action": {GAME_ACTION}, "location": {LOCATION}, "thoughts": {THOUGHTS}}
 
   If you do not have any thoughts, you can provide "thoughts": "", or leave out the "thoughts" entirely.
 
