@@ -9,8 +9,8 @@ import numpy as np
 import structlog
 from PIL import Image
 
+from gptnt.common.base_client import BaseClient
 from gptnt.common.image_ops import load_observation_from_bytes
-from gptnt.common.instrumentation import InstrumentationMixin
 from gptnt.ktane.actions import KtaneAction, KtaneBaseAction
 from gptnt.ktane.exceptions import InvalidGameError
 from gptnt.ktane.mission_spec import KtaneMissionSpec
@@ -35,17 +35,17 @@ class Observation(NamedTuple):
     som_image: bytes
 
 
-class KtaneClient(InstrumentationMixin):
+class KtaneClient(BaseClient):
     """Create a client to interact with the KTANE game."""
 
     def __init__(
         self,
         *,
-        client: httpx.AsyncClient,
+        url: str | httpx.URL,
         set_of_marks_painter: SetOfMarksHandler | None = None,
         image_resizer: ImageResizer | None = None,
     ) -> None:
-        self.client = client
+        super().__init__(url=url)
         self.set_of_marks_painter = set_of_marks_painter
         self.image_resizer = image_resizer
 
@@ -60,9 +60,9 @@ class KtaneClient(InstrumentationMixin):
         _logger.debug("Instrumenting KtaneClient")
         logfire.instrument_httpx(self.client, capture_all=True)
 
-    def update_client(self, client: httpx.AsyncClient) -> None:
+    def update_url(self, url: str | httpx.URL) -> None:
         """Create a new client with the given base URL."""
-        self.client = client
+        self._client.base_url = url
         self.perform_instrumentation()
 
     async def __aenter__(self) -> Self:
@@ -79,7 +79,7 @@ class KtaneClient(InstrumentationMixin):
         """Close the client."""
         await self.client.__aexit__()
 
-    async def healthcheck(self) -> GameState:
+    async def gamestate(self) -> GameState:
         """Check if the server is running."""
         response = await self.client.get("/health")
         try:
@@ -100,6 +100,7 @@ class KtaneClient(InstrumentationMixin):
             return False
         return True
 
+    @logfire.instrument("Start mission")
     async def start_mission(self, specification: KtaneMissionSpec) -> bool:
         """Start a new mission in the environment."""
         response = await self.client.get("/startMission", params=specification.to_query_params())
@@ -111,8 +112,10 @@ class KtaneClient(InstrumentationMixin):
             return False
         return True
 
+    @logfire.instrument("Advance time")
     async def advance_time(self) -> bool:
         """Do one, in game time step."""
+        _ = await self.resume_time()
         response_time_step = await self.client.get("/timestep")
         try:
             _ = response_time_step.raise_for_status()
@@ -121,6 +124,7 @@ class KtaneClient(InstrumentationMixin):
             return False
         return True
 
+    @logfire.instrument("Stop time")
     async def stop_time(self) -> bool:
         """Pause the game."""
         response = await self.client.get("/settimescale", params={"value": 0})

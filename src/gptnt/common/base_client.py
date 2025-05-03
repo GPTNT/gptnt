@@ -16,12 +16,21 @@ class BaseClient(InstrumentationMixin, abc.ABC):
     """Base class for all clients."""
 
     def __init__(self, url: str | httpx.URL) -> None:
-        self.client = httpx_create_async_client(base_url=url)
+        self._client = httpx_create_async_client(base_url=url)
 
     @property
     def url(self) -> httpx.URL:
         """The base URL of the API."""
         return self.client.base_url
+
+    @property
+    def client(self) -> httpx.AsyncClient:
+        """The HTTP client."""
+        if self._client.is_closed:
+            _logger.debug("Creating new httpx client")
+            self._client = httpx_create_async_client(base_url=self.url)
+            self.perform_instrumentation()
+        return self._client
 
     @property
     def is_closed(self) -> bool:

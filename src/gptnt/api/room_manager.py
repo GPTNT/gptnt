@@ -248,9 +248,7 @@ class RoomManager:
         # 3. Start the ktane client
         _logger.info("Starting `KtaneClient`", port=game_server_port)
         self.ktane_client = await KtaneClient(
-            client=httpx_create_async_client(
-                base_url=f"http://{self.hostname}:{game_server_port}", timeout=1
-            )
+            url=f"http://{self.hostname}:{game_server_port}"
         ).__aenter__()
 
         # 4. Start the experiment manager client
@@ -363,7 +361,7 @@ class RoomManager:
             # See if the game server is still alive
             try:
                 with logfire.suppress_instrumentation():
-                    response = await self.ktane_client.client.get(url="/health")
+                    new_game_state = await self.ktane_client.gamestate()
 
             # If it's not alive, raise an exception
             except (httpx.HTTPError, TimeoutError):
@@ -373,7 +371,6 @@ class RoomManager:
 
             # If it is alive, check and set the game state
             else:
-                new_game_state = GameState(value=response.content.decode(encoding="utf-8"))
                 if new_game_state != self.game_state:
                     _logger.info(
                         "Game state changed",

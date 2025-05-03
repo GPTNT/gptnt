@@ -4,9 +4,9 @@ import httpx
 import logfire
 from structlog import get_logger
 
-from gptnt.api.base_client import BaseClient, SupervisedClient
 from gptnt.api.structures import GameMetadata, RoomMetadata
 from gptnt.common.async_ops import healthcheck_interval
+from gptnt.common.base_client import BaseClient, SupervisedClient
 from gptnt.players.structures import PlayerMetadata
 
 _logger = get_logger()

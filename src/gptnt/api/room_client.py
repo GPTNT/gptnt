@@ -4,9 +4,9 @@ import httpx
 import logfire
 from structlog import get_logger
 
-from gptnt.api.base_client import BaseClient, SupervisedClient
 from gptnt.api.structures import RoomMetadata, RoomStage
 from gptnt.common.async_ops import healthcheck_interval
+from gptnt.common.base_client import BaseClient, SupervisedClient
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 
 _logger = get_logger()

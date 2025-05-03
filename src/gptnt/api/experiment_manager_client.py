@@ -4,8 +4,8 @@ from contextlib import asynccontextmanager
 import httpx
 from structlog import get_logger
 
-from gptnt.api.base_client import BaseClient
 from gptnt.api.structures import RoomMetadata
+from gptnt.common.base_client import BaseClient
 from gptnt.ktane.experiments.experiments import ExperimentSpec
 from gptnt.players.structures import PlayerMetadata
 

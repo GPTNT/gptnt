@@ -133,12 +133,9 @@ class Experiment:
             self._defuser.in_experiment = False
 
         # Reset the room
-        _logger.debug("Resetting room")
-        # If the room/client is closed for some reasn, don't try to reset it since it will raise a
-        # runtime error which is annoying
-        if not self._room.is_closed:
+        with logfire.span("Reset room"):
             _ = await self._room.client.reset_room()
-        self._room.in_experiment = False
+            self._room.in_experiment = False
 
         # Stop
         _logger.debug("Stopping tasks")
