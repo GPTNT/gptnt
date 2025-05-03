@@ -117,7 +117,7 @@ class Experiment:
             await self.stop_lifecycle()
 
     @logfire.instrument("Stop experiment lifecycle")
-    async def stop_lifecycle(self) -> None:
+    async def stop_lifecycle(self, *, is_broken: bool = False) -> None:
         """Stops the current experiment.
 
         Either because the mission is over or an error occurred.
@@ -125,11 +125,11 @@ class Experiment:
         _logger.info(f"Finishing game [{self._uuid}]")
 
         with logfire.span("Stop expert"):
-            _ = await self._expert.client.stop_experiment()
+            _ = await self._expert.client.stop_experiment(has_crashed=is_broken)
             self._expert.in_experiment = False
 
         with logfire.span("Stop defuser"):
-            _ = await self._defuser.client.stop_experiment()
+            _ = await self._defuser.client.stop_experiment(has_crashed=is_broken)
             self._defuser.in_experiment = False
 
         # Reset the room
@@ -172,7 +172,7 @@ class Experiment:
             # Something went wrong, stop this experiment
             if in_invalid_state or player_or_room_died:
                 with logfire.span("Stop broken experiment"):
-                    await self.stop_lifecycle()
+                    await self.stop_lifecycle(is_broken=True)
 
             await healthcheck_interval()
 
