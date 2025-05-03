@@ -4,7 +4,6 @@ import typer
 from structlog import get_logger
 
 from gptnt.common.logger import configure_logging
-from gptnt.common.servers import httpx_create_async_client
 from gptnt.entrypoints._async_typer import AsyncTyper
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.mission_spec import KtaneMissionSpec
@@ -35,7 +34,7 @@ async def start_mission(
         }
     )
 
-    client = KtaneClient(client=httpx_create_async_client(base_url=url))
+    client = KtaneClient(url=url)
 
     async with client:
         if not await client.healthcheck():

@@ -3,6 +3,7 @@ from typing import Any
 import httpx
 import pytest_asyncio
 from pytest_cases import fixture, parametrize
+from pytest_mock import MockerFixture
 from typing_extensions import AsyncGenerator
 
 from gptnt.ktane.client import KtaneClient
@@ -13,11 +14,13 @@ from gptnt.processors.set_of_marks import MaskDrawingParams, SetOfMarksHandler
 
 
 @pytest_asyncio.fixture
-async def client(host: str, port: int) -> AsyncGenerator[KtaneClient, None]:
+async def client(host: str, port: int, mocker: MockerFixture) -> KtaneClient:
     """Provides an instance of the Ktane Client for testing."""
-    http_client = httpx.AsyncClient(base_url=f"http://{host}:{port}")
-    async with KtaneClient(client=http_client) as client:
-        yield client
+    ktane_client = KtaneClient(url=f"http://{host}:{port}")
+    type(ktane_client).client = mocker.PropertyMock(  # pyright: ignore[reportAttributeAccessIssue]
+        return_value=httpx.AsyncClient(base_url=f"http://{host}:{port}")
+    )
+    return ktane_client
 
 
 @fixture

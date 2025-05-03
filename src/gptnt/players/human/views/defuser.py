@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import override
 
 import gradio as gr
-from httpx import AsyncClient
 from structlog import getLogger
 
 from gptnt.common.servers import get_available_port
@@ -22,7 +21,7 @@ class DefuserPlayerView(BaseView):
     def __init__(self) -> None:
         super().__init__()
         self.ktane_client: KtaneClient = KtaneClient(
-            client=AsyncClient(base_url=f"http://localhost:{get_available_port()}")
+            url=f"http://localhost:{get_available_port()}"
         )
         self.port = int(str(self.ktane_client.client.base_url).split(":")[2])
 

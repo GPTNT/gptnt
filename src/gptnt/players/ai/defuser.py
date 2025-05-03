@@ -88,11 +88,6 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
         self.player_usage.num_images_per_message = self.observation_window_length
 
     @override
-    async def connect(self) -> None:
-        await super().connect()
-        _ = await self.game_client.__aenter__()
-
-    @override
     async def disconnect_from_room(self) -> None:
         await super().disconnect_from_room()
         _ = await self.game_client.__aexit__()

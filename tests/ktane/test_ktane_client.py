@@ -48,7 +48,7 @@ async def test_healthcheck_returns_true(client: KtaneClient) -> None:
     )
 
     is_healthy = await client.healthcheck()
-    assert is_healthy is GameState.lights_on
+    assert is_healthy is True
 
 
 @respx.mock
@@ -59,7 +59,7 @@ async def test_healthcheck_returns_false_and_no_exception(client: KtaneClient) -
     )
 
     is_healthy = await client.healthcheck()
-    assert is_healthy is GameState.unknown
+    assert is_healthy is False
 
 
 @respx.mock
