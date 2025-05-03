@@ -1,4 +1,5 @@
 import abc
+import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any, Union, override
@@ -119,6 +120,7 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
         agent_output = await self.send_request_to_agent()
         _ = await self.direct_output_from_agent(agent_output)
         _ = await self.game_client.advance_time()
+        await asyncio.sleep(self.sequential_step_time)
 
     @override
     @logfire.instrument("Map agent output to function", record_return=True)
