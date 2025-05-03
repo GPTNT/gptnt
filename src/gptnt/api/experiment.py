@@ -31,6 +31,8 @@ class Experiment:
     _mission_configured: bool = False
     _mission_started: bool = False
     completed_successfully: bool = False
+    sequential_fail_count_threshold: int = 3
+    """Number of times the endpoint can fail in a row before stopping the experiment."""
 
     def __init__(
         self,
@@ -179,11 +181,25 @@ class Experiment:
     @logfire.instrument("Run Experiment (Sequential)")
     async def _run_sequential(self) -> None:
         """Runs the experiment in sequential mode."""
+        defuser_sequential_fail_count = 0
+        expert_sequential_fail_count = 0
         while self._room.state is not RoomStage.done:
             with logfire.span("Defuser turn"):
-                _ = await self._defuser.client.run_for_turn()
+                is_success = await self._defuser.client.run_for_turn()
+                if not is_success:
+                    defuser_sequential_fail_count += 1
+
+                if defuser_sequential_fail_count > self.sequential_fail_count_threshold:
+                    _logger.error("Defuser failed too many times in a row. Stopping experiment")
+                    await self.stop_lifecycle(is_broken=True)
+
             with logfire.span("Expert turn"):
-                _ = await self._expert.client.run_for_turn()
+                is_success = await self._expert.client.run_for_turn()
+                if not is_success:
+                    expert_sequential_fail_count += 1
+                if expert_sequential_fail_count > self.sequential_fail_count_threshold:
+                    _logger.error("Expert failed too many times in a row. Stopping experiment")
+                    await self.stop_lifecycle(is_broken=True)
 
     @logfire.instrument("Run Experiment (Parallel)")
     async def _run_parallel(self) -> None:
