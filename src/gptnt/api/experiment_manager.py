@@ -40,6 +40,9 @@ dead_players_gauge = logfire.metric_gauge(
 active_players = logfire.metric_gauge(
     "active_players", description="Number of players in an experiment"
 )
+finished_experiment_counter = logfire.metric_counter(
+    "finished_experiment", description="Number of finished experiments"
+)
 remaining_experimnts_gauge = logfire.metric_gauge(
     "remaining_experiments", description="Number of remaining experiments"
 )
@@ -124,6 +127,8 @@ class ExperimentManager:
                     _logger.warning("Experiment ended early, re-adding to todo pool")
                     failed_experiment_counter.add(1)
                     self.experiments.add(experiment.spec)
+                if experiment.completed_successfully:
+                    finished_experiment_counter.add(1)
             self.running_experiments = {
                 running_experiment
                 for running_experiment in self.running_experiments
