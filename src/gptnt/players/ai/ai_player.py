@@ -5,6 +5,7 @@ from typing import override
 
 import logfire
 import structlog
+import wandb
 from pydantic_ai import Agent, BinaryContent, UsageLimitExceeded
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.models import Model
@@ -207,6 +208,13 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         request_deps = self.build_deps_for_request()
         agent_output = await self.agent.run(
             message_input, deps=request_deps, message_history=self.player_usage.to_history()
+        )
+
+        wandb.log(
+            {
+                "request_tokens": agent_output.usage().request_tokens,
+                "response_tokens": agent_output.usage().response_tokens,
+            }
         )
 
         # Updage usage after the request
