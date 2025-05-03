@@ -793,3 +793,7 @@ storage/keys/
 
 # do not commit any wandb logs or config
 wandb
+
+# reflex ignores
+.web
+.states
