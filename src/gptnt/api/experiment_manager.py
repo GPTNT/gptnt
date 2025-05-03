@@ -30,6 +30,12 @@ connected_players_gauge = logfire.metric_gauge(
 available_players_gauge = logfire.metric_gauge(
     "available_players", description="Number of available players"
 )
+remaining_experimnts_gauge = logfire.metric_gauge(
+    "remaining_experiments", description="Number of remaining experiments"
+)
+running_experiments_gauge = logfire.metric_gauge(
+    "running_experiments", description="Number of running experiments"
+)
 
 
 class ExperimentManager:
@@ -102,6 +108,8 @@ class ExperimentManager:
                 for running_experiment in self.running_experiments
                 if not running_experiment.lifecycle_task.done()
             }
+            running_experiments_gauge.set(len(self.running_experiments))
+            remaining_experimnts_gauge.set(len(self.experiments))
 
             # Short delay to let the system breathe
             await busy_wait_interval()
