@@ -90,7 +90,7 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         return  # noqa: WPS324
 
     @override
-    async def on_experiment_stop(self) -> None:
+    async def on_experiment_stop(self, *, has_crashed: bool = False) -> None:
         """Things to do when the experiment stops."""
         if self.should_reflect_on_game_at_end:
             log.debug("Reflecting on the game at end")
@@ -101,7 +101,7 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         # Update tracker with usage
         self.tracker.num_prompt_truncations = self.player_usage.num_times_truncated
 
-        await super().on_experiment_stop()
+        await super().on_experiment_stop(has_crashed=has_crashed)
 
     @override
     async def run_parallel(self) -> None:

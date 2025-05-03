@@ -58,10 +58,10 @@ class BasePlayer(abc.ABC):
             additional_metadata=additional_metadata,
         )
 
-    async def on_experiment_stop(self) -> None:
+    async def on_experiment_stop(self, *, has_crashed: bool = False) -> None:
         """Things to do when the experiment stops."""
         log.debug("Finishing wandb")
-        await self.tracker.on_game_end()
+        await self.tracker.on_game_end(has_crashed=has_crashed)
 
     async def disconnect_from_room(self) -> None:
         """Disconnect from the room."""

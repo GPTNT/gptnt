@@ -78,7 +78,9 @@ async def run_for_turn(player: PlayerDep, request: Request) -> None:
 
 
 @player_router.post("/stop-experiment")
-async def stop_experiment(player: PlayerDep, request: Request) -> None:
+async def stop_experiment(
+    player: PlayerDep, request: Request, *, has_crashed: bool = False
+) -> None:
     """Stop the experiment and disconnect from the room."""
     # Stop AI from taking any more actions
     loop_task = getattr(request.app.state, "main_loop_task", None)
@@ -86,7 +88,7 @@ async def stop_experiment(player: PlayerDep, request: Request) -> None:
         loop_task.cancel()
 
     if isinstance(player, AIPlayer):
-        await player.on_experiment_stop()
+        await player.on_experiment_stop(has_crashed=has_crashed)
 
     # Disconnect from the room
     await player.disconnect_from_room()

@@ -54,13 +54,17 @@ class PlayerClient(BaseClient):
             return False
         return True
 
-    async def stop_experiment(self) -> bool:
+    async def stop_experiment(self, *, has_crashed: bool = False) -> bool:
         """Command the player to stop performing actions and using the dialogue space.
 
         This also signals experiment logging and returning to lobby.
         """
         try:
-            _ = (await self.client.post(url="/stop-experiment", timeout=60)).raise_for_status()
+            _ = (
+                await self.client.post(
+                    url="/stop-experiment", timeout=60, params={"has_crashed": has_crashed}
+                )
+            ).raise_for_status()
         except httpx.HTTPError:
             _logger.exception("Could not stop experiment")
             return False

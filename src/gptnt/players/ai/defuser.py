@@ -97,12 +97,12 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
         _ = await self.game_client.__aexit__()
 
     @override
-    async def on_experiment_stop(self) -> None:
+    async def on_experiment_stop(self, *, has_crashed: bool = False) -> None:
         log.debug("Getting last bomb state")
         last_bomb_state = await self.game_client.get_state()
         if last_bomb_state is not None:
             self.tracker.add_bomb_state(last_bomb_state)
-        await super().on_experiment_stop()
+        await super().on_experiment_stop(has_crashed=has_crashed)
 
     @logfire.instrument("Send action to the game")
     async def send_action_to_game(self, action: InteractGameAction[LocationDataT]) -> None:
