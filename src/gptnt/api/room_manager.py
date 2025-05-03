@@ -353,7 +353,7 @@ class RoomManager:
         with logfire.suppress_instrumentation():
             while not self._should_exit:
                 with suppress(httpx.HTTPError, TimeoutError):
-                    if await self.ktane_client.healthcheck():
+                    if await self.ktane_client.healthcheck(skip_logger=True):
                         break  # noqa: WPS220
 
         _logger.info("KtaneClient connected to game server")
