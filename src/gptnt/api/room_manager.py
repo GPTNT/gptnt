@@ -29,8 +29,14 @@ _logger = get_logger()
 game_crash_counter = logfire.metric_counter(
     "game_crash_count", description="Number of times the game crashed"
 )
+game_health_fail_counter = logfire.metric_counter(
+    "game_health_fail_count", description="Number of times the game failed a healthcheck"
+)
 room_restart_counter = logfire.metric_counter(
     "room_restart_count", description="Number of times the room was restarted"
+)
+em_health_fail_counter = logfire.metric_counter(
+    "em_health_fail_count", description="Number of restarts because the EM failed the healthcheck"
 )
 
 
@@ -317,6 +323,7 @@ class RoomManager:
         while not self._restart_raised.is_set():
             if self._game_process.returncode is not None:
                 _logger.exception("Game sub-process exited unexpectedly")
+                game_crash_counter.add(1)
                 self._restart_raised.set()
 
             await healthcheck_interval()
@@ -361,7 +368,7 @@ class RoomManager:
             # If it's not alive, raise an exception
             except (httpx.HTTPError, TimeoutError):
                 _logger.exception("Ktane failed healthcheck")
-                game_crash_counter.add(1)
+                game_health_fail_counter.add(1)
                 self._restart_raised.set()
 
             # If it is alive, check and set the game state
@@ -400,6 +407,7 @@ class RoomManager:
             while not self._should_exit:
                 if not await self._experiment_manager_client.healthcheck():
                     _logger.error("ExperimentManager failed healthcheck")
+                    em_health_fail_counter.add(1)
                     self._restart_raised.set()
                     break
 
