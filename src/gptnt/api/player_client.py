@@ -2,6 +2,7 @@ from typing import override
 
 import httpx
 import logfire
+from aiohttp.client_exceptions import ClientError
 from structlog import get_logger
 
 from gptnt.api.structures import GameMetadata, RoomMetadata
@@ -39,7 +40,7 @@ class PlayerClient(BaseClient):
         """Command the player to start making actions and messaging in the dialogue space."""
         try:
             _ = (await self.client.post(url="/run-for-game")).raise_for_status()
-        except httpx.HTTPError:
+        except (httpx.HTTPError, ClientError):
             _logger.exception("Could not start game")
             return False
         return True
@@ -49,7 +50,7 @@ class PlayerClient(BaseClient):
         """Command the player to make a single action."""
         try:
             _ = (await self.client.post(url="/run-for-turn", timeout=None)).raise_for_status()  # noqa: WPS432
-        except httpx.HTTPError:
+        except (httpx.HTTPError, ClientError):
             _logger.exception("Could not command to take single step")
             return False
         return True
@@ -65,7 +66,7 @@ class PlayerClient(BaseClient):
                     url="/stop-experiment", timeout=60, params={"has_crashed": has_crashed}
                 )
             ).raise_for_status()
-        except httpx.HTTPError:
+        except (httpx.HTTPError, ClientError):
             _logger.exception("Could not stop experiment")
             return False
         return True
