@@ -1,3 +1,4 @@
+from contextlib import suppress
 from functools import partial
 from typing import Any, Self, cast
 
@@ -334,6 +335,11 @@ class PlayerEpisodeTracker:
         _logger.debug("WandB run finished")
 
         self.reset()
+
+    def step(self, **kwargs: bool | str | None | float) -> None:
+        """Step the player with the given kwargs."""
+        with suppress(wandb.Error):
+            wandb.log(kwargs)
 
     def add_action(self, action: InteractGameAction[InteractGameLocation]) -> None:
         """Add an action to the player's action list."""
