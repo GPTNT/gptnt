@@ -234,6 +234,7 @@ class PlayerEpisodeTracker:
         self._reflections: list[MessageMetric] = []
 
         self.num_invalid_formats: int = 0
+        self.num_prompt_truncations: int = 0
 
         self.start_time: Instant
 
@@ -297,6 +298,7 @@ class PlayerEpisodeTracker:
                 ),
                 "total_strikes": len(last_bomb_state.strikes) if last_bomb_state.strikes else 0,
                 "total_invalid_format": self.num_invalid_formats,
+                "total_prompt_truncations": self.num_prompt_truncations,
             }
 
         # Send tables if they exist

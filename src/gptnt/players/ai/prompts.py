@@ -4,10 +4,14 @@ from typing import Literal
 import httpx
 import logfire
 import structlog
+from pydantic_ai import BinaryContent
 
 from gptnt.common.paths import Paths
 from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.ktane.client import KtaneClient
+from gptnt.ktane.manual import MANUAL_NUM_PAGES, KtaneManualPaths
+
+log = structlog.get_logger()
 
 paths = Paths()
 
@@ -52,3 +56,23 @@ async def send_reflection_message(*, ktane_url: str, dialogue_space_url: str) ->
 
     async with DialogueSpaceClient.from_url(dialogue_space_url) as ds_client:
         _ = await ds_client.send_message(final_message)
+
+
+@lru_cache(maxsize=1)
+def load_manual_as_prompt(*, num_pages: int = MANUAL_NUM_PAGES) -> list[str | BinaryContent]:
+    """Load the content for the manual."""
+    log.debug(f"Loading {num_pages} pages of the manual")
+    manual_paths = KtaneManualPaths()
+
+    manual = []
+    for page_num in range(1, num_pages + 1):
+        # Load the text for the page first
+        text = manual_paths.load_text(page_num)
+        manual.append(text)
+
+        # Load the image for the page afterwards
+        image = manual_paths.load_image(page_num, kind="512")
+        image = BinaryContent(image, media_type="image/png")
+        manual.append(image)
+
+    return manual

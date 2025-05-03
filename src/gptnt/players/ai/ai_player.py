@@ -7,12 +7,15 @@ import logfire
 import structlog
 from pydantic_ai import Agent, BinaryContent, UsageLimitExceeded
 from pydantic_ai.messages import ModelMessage
+from pydantic_ai.models import Model
 from pydantic_ai.usage import Usage, UsageLimits
 
 from gptnt.common.async_ops import busy_wait_interval
 from gptnt.common.instrumentation import InstrumentationDataclassMixin
 from gptnt.players.actions import DoNothingAction, SendMessageAction
 from gptnt.players.ai.prompts import load_reflection_prompt
+from gptnt.players.ai.tokens import estimate_tokens_for_image_per_model
+from gptnt.players.ai.usage import PlayerUsage
 from gptnt.players.base_player import BasePlayer
 from gptnt.players.structures import UnhealthyPlayerError
 
@@ -38,12 +41,31 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
     usage: Usage = field(default_factory=Usage)
     usage_limits: UsageLimits = field(default_factory=UsageLimits)
 
+    player_usage: PlayerUsage = field(init=False)
+
     should_reflect_on_game_at_end: bool = field(default=False)
 
-    # # PAI expects either messages or None, so we can just init with None
-    _message_history: list[ModelMessage] = field(default_factory=list)
+    _no_new_messages_sentinel_token: str = field(default="<no_new_messages>")
 
-    _no_new_messages_sentinel_token: str = field(default=NO_NEW_MESSAGES_SENTINEL)
+    @override
+    def __post_init__(self) -> None:
+        self.player_usage = PlayerUsage(
+            role=self.metadata.player_role,
+            tokens_per_image=estimate_tokens_for_image_per_model(
+                self.model_name, width=512, height=384
+            ),
+        )
+
+        return super().__post_init__()
+
+    @property
+    def model_name(self) -> str:
+        """Get the name of the model."""
+        if isinstance(self.agent.model, str):
+            return self.agent.model
+        if isinstance(self.agent.model, Model):
+            return self.agent.model.model_name
+        raise ValueError("Model name not found")
 
     @override
     def perform_instrumentation(self) -> None:
@@ -75,6 +97,9 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
             reflection = await self.handle_reflection_prompt()
             if reflection is not None:
                 self.tracker.add_reflection(message=reflection, role=self.metadata.player_role)
+
+        # Update tracker with usage
+        self.tracker.num_prompt_truncations = self.player_usage.num_times_truncated
 
         await super().on_experiment_stop()
 
@@ -175,17 +200,19 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
             `pydantic_ai.exceptions.UsageLimitExceeded`: If next request would exceed the usage
             limit.
         """
+        # Check if we need to truncate the history
+        self.truncate_message_history()
+
         message_input = await self.build_agent_input()
         request_deps = self.build_deps_for_request()
         agent_output = await self.agent.run(
-            message_input, deps=request_deps, message_history=self._message_history
+            message_input, deps=request_deps, message_history=self.player_usage.to_history()
         )
 
         # Updage usage after the request
-        self.usage = agent_output.usage() + self.usage
-
-        # Update the message history
-        self.add_new_messages_to_history(agent_output.new_messages())
+        self.player_usage.update(
+            new_messages=agent_output.new_messages(), usage=agent_output.usage()
+        )
 
         # Return the actual data
         return agent_output.output
@@ -201,13 +228,30 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         Useful when we want to clear the dialogue history and start fresh, such as when the context
         length gets too long.
         """
-        self._message_history = []
+        self.player_usage.reset()
         self.usage = Usage()
 
-    @abc.abstractmethod
-    def add_new_messages_to_history(self, messages: list[ModelMessage]) -> None:
-        """Add a new message to the message history."""
-        raise NotImplementedError
+    @logfire.instrument("Truncate message history")
+    def truncate_message_history(self) -> None:
+        """Reduce the context window by removing the oldest messages.
+
+        This is useful when the context length gets too long and we need to reduce it, however we
+        need to make sure that we don't remove the manual from the context for the expert.
+        """
+        if not self.usage_limits.total_tokens_limit:
+            log.debug("No usage limit set, not truncating message history.")
+            return
+
+        while self.player_usage.should_truncate_message_history(
+            model_context_length=self.usage_limits.total_tokens_limit
+        ):
+            log.info(
+                "Truncating message history",
+                history_length=len(self.player_usage.to_history()),
+                context_length=self.player_usage.context_length,
+                num_times_truncated=self.player_usage.num_times_truncated,
+            )
+            self.player_usage.truncate_history()
 
     @logfire.instrument("Reflect on the game")
     async def handle_reflection_prompt(self) -> SendMessageAction | None:
@@ -225,8 +269,16 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         response = await self.agent.run(
             [final_message, reflection_prompt],
             deps=self.build_deps_for_request(),
-            message_history=self._message_history,
+            message_history=self.player_usage.to_history(),
             output_type=SendMessageAction,
         )
-        self.usage = response.usage() + self.usage
+        # update the usage
+        self.usage = response.usage()
+        self.player_usage.update(new_messages=response.new_messages(), usage=response.usage())
+        # return the response
         return response.output
+
+    @property
+    def _message_history(self) -> list[ModelMessage]:
+        """Get the message history for the player."""
+        return self.player_usage.to_history()

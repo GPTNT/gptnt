@@ -8,7 +8,6 @@ import structlog
 import whenever
 from pydantic import TypeAdapter, ValidationError
 from pydantic_ai import Agent, BinaryContent
-from pydantic_ai.messages import ModelMessage, ModelRequest, UserPromptPart
 from pydantic_ai.models import Model
 
 from gptnt.common.async_ops import busy_wait_interval
@@ -58,18 +57,6 @@ def does_model_support_structured_outputs(agent: Agent[Any, Any]) -> bool:
     return "gemini" not in model_name_string
 
 
-def remove_binary_content_from_user_message(message: ModelMessage) -> ModelMessage:
-    """Remove binary content from the message."""
-    if isinstance(message, ModelRequest):
-        for part in message.parts:
-            # Check if its a thing we need to remove binary content from
-            if isinstance(part, UserPromptPart) and isinstance(part.content, list):
-                part.content = [
-                    piece for piece in part.content if not isinstance(piece, BinaryContent)
-                ]
-    return message
-
-
 @dataclass(kw_only=True)
 class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
     AIPlayer[AgentDepsT, DefuserOutputT[LocationDataT]], abc.ABC
@@ -97,8 +84,7 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
     def __post_init__(self) -> None:
         """Post init for the defuser player."""
         super().__post_init__()
-        if not does_model_support_structured_outputs(self.agent):
-            self.agent.output_validator(coerce_model_string_outputs)  # pyright: ignore[reportArgumentType,reportCallIssue]
+        self.player_usage.num_images_per_message = self.observation_window_length
 
     @override
     async def connect(self) -> None:
@@ -148,20 +134,6 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
             InteractGameAction: self.send_action_to_game,
         }
         return switcher[output_type]
-
-    @override
-    def add_new_messages_to_history(self, messages: list[ModelMessage]) -> None:
-        """Add new messages to the message history.
-
-        This removes any observations from the messages before adding them to the history.
-        """
-        messages_to_add = [
-            remove_binary_content_from_user_message(message)
-            if isinstance(message, ModelRequest)
-            else message
-            for message in messages
-        ]
-        self._message_history.extend(messages_to_add)
 
     @override
     async def send_request_to_agent(self) -> DefuserOutputT[LocationDataT]:

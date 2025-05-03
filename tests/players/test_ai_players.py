@@ -65,14 +65,14 @@ async def test_usage_updates_correctly_after_run(
         return_value=["message1", "message2"]
     )
 
-    assert player.usage.requests == 0
+    assert player.player_usage.num_requests == 0
 
     _ = await player.send_request_to_agent()
 
-    assert player.usage.requests == 1
+    assert player.player_usage.num_requests == 1
 
     _ = await player.send_request_to_agent()
-    assert player.usage.requests == 2
+    assert player.player_usage.num_requests == 2
 
 
 @pytest.mark.asyncio
@@ -84,13 +84,15 @@ async def test_message_history_updates_after_run(
     player.dialogue_space_client.pull_messages = mocker.AsyncMock(
         return_value=["message1", "message2"]
     )
-
-    assert player.usage.requests == 0
+    assert player.player_usage.num_requests == 0
     assert not player._message_history
 
     _ = await player.send_request_to_agent()
+    assert player._message_history
+    assert player.player_usage.num_requests == 1
 
-    assert player.usage.requests == 1
+    _ = await player.send_request_to_agent()
+    assert player.player_usage.num_requests == 2
     assert player._message_history
 
 
@@ -105,13 +107,13 @@ async def test_message_history_does_not_contain_observation_images(
         return_value=["message1", "message2"]
     )
 
-    assert player.usage.requests == 0
+    assert player.player_usage.num_requests == 0
     assert not player._message_history
 
     _ = await player.send_request_to_agent()
     _ = await player.send_request_to_agent()
 
-    assert player.usage.requests == 2
+    assert player.player_usage.num_requests == 2
     assert player._message_history
 
     for idx, message in enumerate(player._message_history):

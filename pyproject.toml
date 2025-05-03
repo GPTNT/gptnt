@@ -26,6 +26,7 @@ dependencies = [
     "rich>=13.9.4",
     "scikit-image>=0.25.2",
     "structlog>=25.1.0",
+    "tiktoken>=0.9.0",
     "typer>=0.15.1",
     "unflatten>=0.2.0",
     "wandb[media]>=0.19.9",
@@ -117,7 +118,7 @@ allowed-domain-names = ["data", "params"]
 # WPS211: Increase number of arguments allowed for a function
 max-arguments = 10
 # WPS214: Increase number of methods allowed for a class
-max-methods = 20
+max-methods = 25
 # WPS235: Increase number of imports allowed from a module
 max-import-from-members = 10
 # WPS226: Increase number of string literals allowed before wemake complains
