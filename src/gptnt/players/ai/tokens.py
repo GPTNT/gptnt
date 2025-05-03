@@ -15,7 +15,7 @@ def estimate_tokens_for_image_per_model(model: str, *, width: int, height: int) 
         return math.ceil(width * height / 750)
     if "gemini" in model:
         return 1290
-    if "gpt4o" in model:
+    if "gpt4o" in model or "gpt-4o" in model:
         return 85
     if "Qwen" in model:
         # resized to 504x504 (multiples of 28)
