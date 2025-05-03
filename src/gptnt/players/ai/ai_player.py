@@ -277,13 +277,13 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
             [final_message, reflection_prompt],
             deps=self.build_deps_for_request(),
             message_history=self.player_usage.to_history(),
-            output_type=SendMessageAction,
+            output_type=str,
         )
         # update the usage
         self.usage = response.usage()
         self.player_usage.update(new_messages=response.new_messages(), usage=response.usage())
         # return the response
-        return response.output
+        return SendMessageAction(message=response.output)
 
     @property
     def _message_history(self) -> list[ModelMessage]:
