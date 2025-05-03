@@ -212,8 +212,11 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
 
         wandb.log(
             {
+                "step": agent_output.usage().requests,
                 "request_tokens": agent_output.usage().request_tokens,
                 "response_tokens": agent_output.usage().response_tokens,
+                "total_tokens": agent_output.usage().total_tokens,
+                "num_times_truncated": self.player_usage.num_times_truncated,
             }
         )
 
