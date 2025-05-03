@@ -13,9 +13,7 @@ DEFAULT_CONNECTION_LIMITS = httpx.Limits(
 )
 
 
-def httpx_create_async_client(
-    base_url: str | httpx.URL, timeout: TimeoutTypes = None
-) -> AsyncClient:
+def httpx_create_async_client(base_url: str | httpx.URL, timeout: TimeoutTypes = 5) -> AsyncClient:
     """Make shared client instance with httpx_aiohttp."""
     return httpx.AsyncClient(
         limits=DEFAULT_CONNECTION_LIMITS,
