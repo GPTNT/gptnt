@@ -26,6 +26,13 @@ if TYPE_CHECKING:
 
 _logger = get_logger()
 
+game_crash_counter = logfire.metric_counter(
+    "game_crash_count", description="Number of times the game crashed"
+)
+room_restart_counter = logfire.metric_counter(
+    "room_restart_count", description="Number of times the room was restarted"
+)
+
 
 class RoomManager:
     """Manages a game "room".
@@ -162,6 +169,7 @@ class RoomManager:
             )
 
             if self._restart_raised.is_set():
+                room_restart_counter.add(1)
                 with logfire.span("Restarting room"):
                     _logger.error("RoomManager restarting")
                     await self.stop()
@@ -327,7 +335,7 @@ class RoomManager:
 
             await healthcheck_interval()
 
-    async def _supervise_ktane_client(self) -> None:  # noqa: WPS231
+    async def _supervise_ktane_client(self) -> None:  # noqa: WPS231, WPS213
         """Supervises the KtaneClient.
 
         Waits until the game server first connects, then triggers a failure if it ever fails a
@@ -353,6 +361,7 @@ class RoomManager:
             # If it's not alive, raise an exception
             except (httpx.HTTPError, TimeoutError):
                 _logger.exception("Ktane failed healthcheck")
+                game_crash_counter.add(1)
                 self._restart_raised.set()
 
             # If it is alive, check and set the game state
