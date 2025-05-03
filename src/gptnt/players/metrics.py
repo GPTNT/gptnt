@@ -268,16 +268,11 @@ class PlayerEpisodeTracker:
         _logger.info("WandB run started", run_id=run.id, config=run.config)
         self.start_time = Instant.now()
 
+    @logfire.instrument("Send results to wandb")
     async def on_game_end(self, *, has_crashed: bool = False) -> None:
         """Sends the mission results to wandb and cleans up."""
-        self.send_results()
-        await self.finish_run(has_crashed=has_crashed)
-        _logger.debug("WandB run finished")
-
-    @logfire.instrument("Send results to wandb")
-    def send_results(self) -> None:
-        """Send the results to wandb."""
         data_to_send: dict[str, Any] = {
+            "hard_crash": has_crashed,
             "total_defuser_actions": len(self._actions),
             "total_messages_sent": len(self._messages_sent),
             "total_defuser_messages_sent": len(
@@ -326,6 +321,9 @@ class PlayerEpisodeTracker:
             data_to_send["observations"] = observations_table
 
         wandb.log(data_to_send, commit=False)
+
+        await self.finish_run(has_crashed=has_crashed)
+        _logger.debug("WandB run finished")
 
     @logfire.instrument("Finish wandb run")
     async def finish_run(self, *, has_crashed: bool = False) -> None:
