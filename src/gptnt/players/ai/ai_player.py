@@ -210,7 +210,7 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         )
 
         self.tracker.step(
-            step=agent_output.usage().requests,
+            step=self.player_usage.num_requests + 1,
             request_tokens=agent_output.usage().request_tokens,
             response_tokens=agent_output.usage().response_tokens,
             total_tokens=agent_output.usage().total_tokens,
@@ -221,7 +221,6 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         self.player_usage.update(
             new_messages=agent_output.new_messages(), usage=agent_output.usage()
         )
-
         # Return the actual data
         return agent_output.output
 
