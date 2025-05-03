@@ -1,7 +1,6 @@
 from functools import lru_cache
 from typing import Literal
 
-import httpx
 import logfire
 import structlog
 from pydantic_ai import BinaryContent
@@ -30,7 +29,7 @@ BombStateMessage = Literal["terminated-exploded", "truncated-exploded", "termina
 @logfire.instrument("Send reflection message to agents")
 async def send_reflection_message(*, ktane_url: str, dialogue_space_url: str) -> None:
     """Send the reflection message to the agent from the bomb state."""
-    async with KtaneClient(client=httpx.AsyncClient(base_url=ktane_url)) as ktane_client:
+    async with KtaneClient(url=ktane_url) as ktane_client:
         last_bomb_state = await ktane_client.get_state()
 
     if last_bomb_state is None:
