@@ -124,11 +124,13 @@ class ExperimentManager:
             # Clear any dead experiments and add failed specs back into the pool
             for experiment in self.running_experiments:
                 if experiment.lifecycle_task.done() and not experiment.completed_successfully:
-                    _logger.warning("Experiment ended early, re-adding to todo pool")
+                    _logger.error("Experiment ended early")
                     failed_experiment_counter.add(1)
-                    self.experiments.add(experiment.spec)
+                    # self.experiments.add(experiment.spec)
+
                 if experiment.completed_successfully:
                     finished_experiment_counter.add(1)
+
             self.running_experiments = {
                 running_experiment
                 for running_experiment in self.running_experiments
