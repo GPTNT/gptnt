@@ -85,7 +85,7 @@ class ExperimentManager:
         connected_rooms_gauge.set(len(self.rooms))
         available_rooms_gauge.set(len(available_rooms))
         dead_rooms_gauge.set(len(self.rooms) - len(running_rooms))
-        active_rooms.set(len(self.running_experiments))
+        active_rooms.set(len(self.rooms) - len(running_rooms) - len(available_rooms))
         return available_rooms
 
     def get_available_players(self) -> set[SupervisedPlayerClient]:
@@ -101,7 +101,7 @@ class ExperimentManager:
         connected_players_gauge.set(len(self.players))
         available_players_gauge.set(len(available_players))
         dead_players_gauge.set(len(self.players) - len(running_players))
-        active_players.set(len(self.running_experiments))
+        active_players.set(len(self.players) - len(running_players) - len(available_players))
         return available_players
 
     # Experiment logic
