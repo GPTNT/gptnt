@@ -8,15 +8,17 @@ from pydantic import BaseModel
 
 TimeoutTypes = float | httpx.Timeout | None
 
+DEFAULT_CONNECTION_LIMITS = httpx.Limits(
+    max_connections=1000, max_keepalive_connections=100, keepalive_expiry=120
+)
+
 
 def httpx_create_async_client(
     base_url: str | httpx.URL, timeout: TimeoutTypes = None
 ) -> AsyncClient:
     """Make shared client instance with httpx_aiohttp."""
     return httpx.AsyncClient(
-        limits=httpx.Limits(
-            max_connections=None, max_keepalive_connections=None, keepalive_expiry=None
-        ),
+        limits=DEFAULT_CONNECTION_LIMITS,
         timeout=timeout,
         base_url=base_url,
         transport=AiohttpTransport(client=lambda: ClientSession()),  # noqa: WPS506
