@@ -16,6 +16,7 @@ class BombState(BaseModel):
     is_detonated: bool
     is_solved: bool
     is_light_on: bool
+    bomb_side: str
     timer_module: TimerState
     widgets: list[WidgetStates]
     modules: list[ModuleStates]

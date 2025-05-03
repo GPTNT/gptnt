@@ -46,6 +46,7 @@ class StateCases:
             "isDetonated": False,
             "isSolved": False,
             "isLightOn": True,
+            "bombSide": "front",
             "timerModule": {
                 "secondsRemaining": 290.366852,
                 "onFront": True,

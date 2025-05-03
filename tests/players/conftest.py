@@ -60,6 +60,7 @@ def game_client(mocker: MockerFixture, observation_frames: Observation) -> Ktane
             "isDetonated": False,
             "isSolved": False,
             "isLightOn": True,
+            "bombSide": "front",
             "timerModule": {
                 "secondsRemaining": 290.366852,
                 "onFront": True,
