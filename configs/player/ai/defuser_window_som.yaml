@@ -6,4 +6,4 @@ defaults:
 
 _target_: gptnt.players.ai.defuser.MDPDefuserPlayer
 
-observation_window_length: 10
+observation_window_length: 12
