@@ -9,10 +9,24 @@ from fastapi import FastAPI
 from gptnt.api.experiment_manager_routes import lifespan, router
 from gptnt.common.logger import configure_logging
 
-cli = typer.Typer(no_args_is_help=True)
-
 _ = logfire.configure(service_name="experiment-manager", scrubbing=False)
+logfire.instrument_system_metrics(
+    config={
+        "process.cpu.utilization": None,
+        "system.cpu.simple_utilization": None,
+        "process.memory.usage": None,
+        "process.memory.virtual": None,
+        "process.open_file_descriptor.count": None,
+        "process.thread.count": None,
+        "system.disk.io": ["read", "write"],
+        "system.memory.utilization": ["available"],
+        "system.disk.operations": ["read", "write"],
+        "system.network.errors": ["transmit", "receive"],
+    }
+)
 configure_logging()
+
+cli = typer.Typer(no_args_is_help=True)
 
 _logger = structlog.get_logger()
 

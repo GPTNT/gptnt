@@ -11,7 +11,19 @@ from gptnt.ktane.game_settings import KtaneGameSettings, KtanePlayerSettings
 
 _ = logfire.configure(service_name="room-manager", scrubbing=False)
 configure_logging()
-
+logfire.instrument_system_metrics(
+    config={
+        "process.cpu.utilization": None,
+        "process.memory.usage": None,
+        "process.memory.virtual": None,
+        "process.open_file_descriptor.count": None,
+        "process.thread.count": None,
+        "system.disk.io": ["read", "write"],
+        "system.memory.utilization": ["available"],
+        "system.disk.operations": ["read", "write"],
+        "system.network.errors": ["transmit", "receive"],
+    }
+)
 _logger = structlog.get_logger()
 
 
