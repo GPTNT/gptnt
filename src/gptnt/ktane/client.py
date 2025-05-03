@@ -100,7 +100,6 @@ class KtaneClient(BaseClient):
             return False
         return True
 
-    @logfire.instrument("Start mission")
     async def start_mission(self, specification: KtaneMissionSpec) -> bool:
         """Start a new mission in the environment."""
         response = await self.client.get("/startMission", params=specification.to_query_params())
@@ -112,7 +111,6 @@ class KtaneClient(BaseClient):
             return False
         return True
 
-    @logfire.instrument("Advance time")
     async def advance_time(self) -> bool:
         """Do one, in game time step."""
         _ = await self.resume_time()
@@ -124,7 +122,6 @@ class KtaneClient(BaseClient):
             return False
         return True
 
-    @logfire.instrument("Stop time")
     async def stop_time(self) -> bool:
         """Pause the game."""
         response = await self.client.get("/settimescale", params={"value": 0})
@@ -135,7 +132,6 @@ class KtaneClient(BaseClient):
             return False
         return True
 
-    @logfire.instrument("Resume time")
     async def resume_time(self) -> bool:
         """Resume the game."""
         response = await self.client.get("/settimescale", params={"value": 1})
