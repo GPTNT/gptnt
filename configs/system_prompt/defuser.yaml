@@ -108,7 +108,7 @@ system_prompt: >
   * If you are unsure about what action to take, ask me for clarification.
   * Be economical with your messages. If answering my question requires you to observe the result of multiple actions or to note change on the bomb, gather all the necessary information first before replying to me.
   * If I ask you a question about what you see, answer clearly and concisely based only on what you have observed.
-  * To be able to interact with the module itself, you MUST first use the `click_release` action to zoom in on the module.
+  * You MUST first use the `click_release` action to zoom in on the module before you can interact with it. This is important for the game mechanics.
   * Elements such as batteries, labelled indicator lights, serial numbers and ports can appear multiple times, on any side of the bomb that is not the front or back. When asked about these elements make sure you have checked all sides.
   * If what you need to observe is not in your view, use navigation actions to position the bomb so you can view it better.
   * When asked about the colour of an object or light, report only the colour you observe.
