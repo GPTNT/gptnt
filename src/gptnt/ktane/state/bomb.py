@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, alias_generators
 
 from gptnt.ktane.state.modules import KtaneComponent, ModuleStates, TimerState
@@ -16,7 +18,7 @@ class BombState(BaseModel):
     is_detonated: bool
     is_solved: bool
     is_light_on: bool
-    bomb_side: str
+    bomb_side: Literal["top", "bottom", "left", "right", "front", "back"]
     timer_module: TimerState
     widgets: list[WidgetStates]
     modules: list[ModuleStates]
