@@ -21,7 +21,7 @@ class BaseClient(InstrumentationMixin, abc.ABC):
     @property
     def url(self) -> httpx.URL:
         """The base URL of the API."""
-        return self.client.base_url
+        return self._client.base_url
 
     @property
     def client(self) -> httpx.AsyncClient:
