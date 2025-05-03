@@ -12,7 +12,7 @@ from structlog import get_logger
 
 from gptnt.api.experiment_manager_client import ExperimentManagerClient
 from gptnt.api.structures import RoomMetadata, RoomStage
-from gptnt.common.async_ops import healthcheck_interval
+from gptnt.common.async_ops import busy_wait_interval, healthcheck_interval
 from gptnt.common.servers import get_available_port, httpx_create_async_client
 from gptnt.dialogue_space.server import DialogueSpaceServer
 from gptnt.ktane.client import KtaneClient
@@ -352,6 +352,7 @@ class RoomManager:
         _logger.info("Waiting for KtaneClient to connect to game server")
         with logfire.suppress_instrumentation():
             while not self._should_exit:
+                await busy_wait_interval()
                 with suppress(httpx.HTTPError, TimeoutError):
                     if await self.ktane_client.healthcheck(skip_logger=True):
                         break  # noqa: WPS220
