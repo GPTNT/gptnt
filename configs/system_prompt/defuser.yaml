@@ -80,6 +80,9 @@ system_prompt: >
   For example, if you see a button marked with an "E", and you need to press that button, you would use:
   {"action_type": "interact_game", "action": "click_release", "location": "E"}
 
+  Importantly, remember that releasing an action must be performed WITHOUT a location marker. So if you need to release a button, you would use:
+  {"action_type": "interact_game", "action": "release"}
+
   When describing what you see to me, please:
   - Distinguish between the actual bomb elements, which may contain text, and these reference markers
   - Do not report the reference markers as if they are part of the physical appearance of the bomb
