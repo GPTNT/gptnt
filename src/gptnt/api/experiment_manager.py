@@ -17,18 +17,28 @@ if TYPE_CHECKING:
 
 _logger = get_logger()
 
-
+# TODO: There must be a better way of doing this instead of global vars at the top
 connected_rooms_gauge = logfire.metric_gauge(
     "connected_rooms", description="Number of connected rooms"
 )
 available_rooms_gauge = logfire.metric_gauge(
     "available_rooms", description="Number of available rooms"
 )
+dead_rooms_gauge = logfire.metric_gauge(
+    "dead_rooms", description="Number of dead rooms that are not running"
+)
+active_rooms = logfire.metric_gauge("active_rooms", description="Number of rooms in an experiment")
 connected_players_gauge = logfire.metric_gauge(
     "connected_players", description="Number of connected players"
 )
 available_players_gauge = logfire.metric_gauge(
     "available_players", description="Number of available players"
+)
+dead_players_gauge = logfire.metric_gauge(
+    "dead_players", description="Number of dead players that are not running"
+)
+active_players = logfire.metric_gauge(
+    "active_players", description="Number of players in an experiment"
 )
 remaining_experimnts_gauge = logfire.metric_gauge(
     "remaining_experiments", description="Number of remaining experiments"
@@ -59,29 +69,36 @@ class ExperimentManager:
 
     def get_available_rooms(self) -> list[SupervisedRoomManagerClient]:
         """Returns a list of all available rooms."""
+        # Ensure room is running
+        running_rooms = [room for room in self.rooms if room.is_running]
         available_rooms = [
             room
-            for room in self.rooms
-            # Ensure room is running and not in an experiment
-            if room.is_running
-            and not room.in_experiment
+            for room in running_rooms
+            # Ensure room is not in an experiment
+            if not room.in_experiment
             # And also ensure the room is waiting for a config
             and room.state is RoomStage.ready_for_config
         ]
         connected_rooms_gauge.set(len(self.rooms))
         available_rooms_gauge.set(len(available_rooms))
+        dead_rooms_gauge.set(len(self.rooms) - len(running_rooms))
+        active_rooms.set(len(self.running_experiments))
         return available_rooms
 
     def get_available_players(self) -> set[SupervisedPlayerClient]:
         """Returns a list of all available players."""
+        # Ensure player is running
+        running_players = [player for player in self.players if player.is_running]
         available_players = {
             player
-            for player in self.players
-            # Ensure player is running and not in an experiment
-            if player.is_running and not player.in_experiment
+            for player in running_players
+            # Ensure is not in an experiment
+            if not player.in_experiment
         }
         connected_players_gauge.set(len(self.players))
         available_players_gauge.set(len(available_players))
+        dead_players_gauge.set(len(self.players) - len(running_players))
+        active_players.set(len(self.running_experiments))
         return available_players
 
     # Experiment logic
