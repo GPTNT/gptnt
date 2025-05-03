@@ -17,7 +17,7 @@ def estimate_tokens_for_image_per_model(model: str, *, width: int, height: int) 
         return 1290
     if "gpt4o" in model:
         return 85
-    if "qwen" in model:
+    if "Qwen" in model:
         # resized to 504x504 (multiples of 28)
         # patch size is 14x14 - 2x2 token merging
         # (504 / 14)^2 / 2^2 = 324
@@ -25,7 +25,7 @@ def estimate_tokens_for_image_per_model(model: str, *, width: int, height: int) 
     if "llama" in model:
         # return math.ceil(width * height / LLAMA_32_VISION_PATCH_SIZE / LLAMA_32_VISION_PATCH_SIZE)
         raise NotImplementedError
-    if "internvl3" in model:
+    if "InternVL3" in model:
         # resized to 448x448 (multiples of 448)
         # patch size is 14x14 - pixel unshuffle == 2x2 token reduction
         # (448 / 14)^2 / 2^2 = 256
