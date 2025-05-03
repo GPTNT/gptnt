@@ -113,7 +113,6 @@ class KtaneClient(BaseClient):
 
     async def advance_time(self) -> bool:
         """Do one, in game time step."""
-        _ = await self.resume_time()
         response_time_step = await self.client.get("/timestep")
         try:
             _ = response_time_step.raise_for_status()
