@@ -67,6 +67,11 @@ class PlayerClient(BaseClient):
         return True
 
 
+player_death_counter = logfire.metric_counter(
+    "player_dead_count", description="Number of times a player has died"
+)
+
+
 class SupervisedPlayerClient(SupervisedClient[PlayerClient, PlayerMetadata]):
     """Client for players, with a supervisor to keep track of the health."""
 
@@ -84,4 +89,5 @@ class SupervisedPlayerClient(SupervisedClient[PlayerClient, PlayerMetadata]):
             player=self.metadata.player_name,
         )
         self.is_running = False
+        player_death_counter.add(1)
         await self.stop()
