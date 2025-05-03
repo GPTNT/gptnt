@@ -47,7 +47,7 @@ running_experiments_gauge = logfire.metric_gauge(
     "running_experiments", description="Number of running experiments"
 )
 failed_experiment_counter = logfire.metric_counter(
-    "failed_experiment_counter", description="Number of failed experiments"
+    "failed_experiment", description="Number of failed experiments"
 )
 
 
@@ -85,7 +85,7 @@ class ExperimentManager:
         connected_rooms_gauge.set(len(self.rooms))
         available_rooms_gauge.set(len(available_rooms))
         dead_rooms_gauge.set(len(self.rooms) - len(running_rooms))
-        active_rooms.set(len(self.rooms) - len(running_rooms) - len(available_rooms))
+        active_rooms.set(len([room for room in running_rooms if room.in_experiment]))
         return available_rooms
 
     def get_available_players(self) -> set[SupervisedPlayerClient]:
@@ -101,7 +101,7 @@ class ExperimentManager:
         connected_players_gauge.set(len(self.players))
         available_players_gauge.set(len(available_players))
         dead_players_gauge.set(len(self.players) - len(running_players))
-        active_players.set(len(self.players) - len(running_players) - len(available_players))
+        active_players.set(len([player for player in running_players if player.in_experiment]))
         return available_players
 
     # Experiment logic
