@@ -46,6 +46,9 @@ remaining_experimnts_gauge = logfire.metric_gauge(
 running_experiments_gauge = logfire.metric_gauge(
     "running_experiments", description="Number of running experiments"
 )
+failed_experiment_counter = logfire.metric_counter(
+    "failed_experiment_counter", description="Number of failed experiments"
+)
 
 
 class ExperimentManager:
@@ -119,6 +122,7 @@ class ExperimentManager:
             for experiment in self.running_experiments:
                 if experiment.lifecycle_task.done() and not experiment.completed_successfully:
                     _logger.warning("Experiment ended early, re-adding to todo pool")
+                    failed_experiment_counter.add(1)
                     self.experiments.add(experiment.spec)
             self.running_experiments = {
                 running_experiment
