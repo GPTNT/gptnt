@@ -48,7 +48,7 @@ class PlayerClient(BaseClient):
     async def run_for_turn(self) -> bool:
         """Command the player to make a single action."""
         try:
-            _ = (await self.client.post(url="/run-for-turn", timeout=30)).raise_for_status()  # noqa: WPS432
+            _ = (await self.client.post(url="/run-for-turn", timeout=None)).raise_for_status()  # noqa: WPS432
         except httpx.HTTPError:
             _logger.exception("Could not command to take single step")
             return False
