@@ -12,6 +12,7 @@ from pydantic_ai.usage import Usage, UsageLimits
 
 from gptnt.common.async_ops import busy_wait_interval
 from gptnt.common.instrumentation import InstrumentationDataclassMixin
+from gptnt.ktane.game_settings import KtaneGameSettings
 from gptnt.players.actions import DoNothingAction, SendMessageAction
 from gptnt.players.ai.prompts import load_reflection_prompt
 from gptnt.players.ai.tokens import estimate_tokens_for_image_per_model
@@ -49,10 +50,11 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
 
     @override
     def __post_init__(self) -> None:
+        game_settings = KtaneGameSettings()
         self.player_usage = PlayerUsage(
             role=self.metadata.player_role,
             tokens_per_image=estimate_tokens_for_image_per_model(
-                self.model_name, width=512, height=384
+                self.model_name, width=game_settings.game_width, height=game_settings.game_height
             ),
         )
 
