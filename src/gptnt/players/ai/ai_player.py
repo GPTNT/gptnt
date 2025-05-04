@@ -18,11 +18,9 @@ from gptnt.players.ai.prompts import load_reflection_prompt
 from gptnt.players.ai.tokens import estimate_tokens_for_image_per_model
 from gptnt.players.ai.usage import PlayerUsage
 from gptnt.players.base_player import BasePlayer
-from gptnt.players.structures import UnhealthyPlayerError
+from gptnt.players.structures import NO_NEW_MESSAGES_SENTINEL, UnhealthyPlayerError
 
 log = structlog.get_logger()
-
-NO_NEW_MESSAGES_SENTINEL = "<no_new_messages>"
 
 
 @dataclass(kw_only=True)

@@ -10,6 +10,9 @@ type PlayerType = Literal["ai", "human"]
 type PlayerRole = Literal["defuser", "expert"]
 
 
+NO_NEW_MESSAGES_SENTINEL = "<no_new_messages>"
+
+
 class UnhealthyPlayerError(Exception):
     """Raise when the player is unhealthy."""
 

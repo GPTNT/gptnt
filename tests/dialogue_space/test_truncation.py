@@ -6,7 +6,7 @@ import pytest_asyncio
 from gptnt.api.room_manager import were_last_n_messages_empty
 from gptnt.dialogue_space.server import DialogueSpaceServer
 from gptnt.dialogue_space.structures import DialogueSpaceMessage
-from gptnt.players.ai.ai_player import NO_NEW_MESSAGES_SENTINEL
+from gptnt.players.structures import NO_NEW_MESSAGES_SENTINEL
 
 
 @pytest_asyncio.fixture

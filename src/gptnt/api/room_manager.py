@@ -18,7 +18,7 @@ from gptnt.dialogue_space.server import DialogueSpaceServer
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.executable import get_executable_path
 from gptnt.ktane.state.game import GameState
-from gptnt.players.ai.ai_player import NO_NEW_MESSAGES_SENTINEL
+from gptnt.players.structures import NO_NEW_MESSAGES_SENTINEL
 
 if TYPE_CHECKING:
     from asyncio.tasks import Task
