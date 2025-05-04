@@ -6,6 +6,7 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
+    TextPart,
     ToolCallPart,
     UserPromptPart,
 )
@@ -46,7 +47,7 @@ actions_to_perform = [
 ]
 
 
-def check_for_reflection_message(messages: list[ModelMessage]) -> SendMessageAction | None:  # noqa: WPS218
+def check_for_reflection_message(messages: list[ModelMessage]) -> str | None:  # noqa: WPS218
     """Check if the last message is a reflection message.
 
     Theres a lot of indexing here...
@@ -59,7 +60,7 @@ def check_for_reflection_message(messages: list[ModelMessage]) -> SendMessageAct
         expected_reflection_message = messages[-1].parts[0].content[0]  # noqa: WPS219
         assert expected_reflection_message in get_args(BombStateMessage)
         assert isinstance(expected_reflection_message, str)
-        return SendMessageAction(message=expected_reflection_message)
+        return expected_reflection_message
 
     return None
 
@@ -72,16 +73,7 @@ def dummy_message_generator(
     if reflection_message := check_for_reflection_message(messages):  # noqa: WPS332
         # If we get a reflection message, we need to send it back
         logger.info("Sending reflection message", message=reflection_message)
-        return ModelResponse(
-            parts=[
-                ToolCallPart(
-                    "final_result",
-                    reflection_message.model_dump(
-                        exclude={"thoughts", "action_type"}, mode="json"
-                    ),
-                )
-            ]
-        )
+        return ModelResponse(parts=[TextPart(reflection_message)])
 
     message = SendMessageAction(message=f"Message {len(messages)}")
     return ModelResponse(
@@ -109,16 +101,7 @@ class DummyDefuserFunction:
             self.actions_to_perform = iter(actions_to_perform)
 
         with suppress(ValueError):
-            return ModelResponse(
-                parts=[
-                    ToolCallPart(
-                        "final_result",
-                        self._maybe_send_reflection_message(messages, info).model_dump(
-                            mode="json"
-                        ),
-                    )
-                ]
-            )
+            return self._maybe_send_reflection_message(messages, info)
 
         try:
             action_to_perform = next(self.actions_to_perform)
@@ -139,12 +122,12 @@ class DummyDefuserFunction:
         self,
         messages: list[ModelMessage],
         info: AgentInfo,  # noqa: ARG002 WPS110
-    ) -> SendMessageAction:
+    ) -> ModelResponse:
         """Send a reflection message if needed."""
         if reflection_message := check_for_reflection_message(messages):  # noqa: WPS332
             # If we get a reflection message, we need to send it back
             logger.info("Sending reflection message", message=reflection_message)
-            return SendMessageAction(message=reflection_message.message)
+            return ModelResponse(parts=[TextPart(reflection_message)])
         raise ValueError("no reflection message found")
 
 
