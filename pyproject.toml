@@ -102,6 +102,8 @@ extend-ignore = [
     "WPS237",
     # Imports happen. That's fine
     "WPS201",
+    # Allow init logic because makes importing easier
+    "WPS412",
     # Handled by ruff PLR2004
     "WPS432",
 ]
