@@ -8,13 +8,16 @@ SECONDS_PER_ACTION = 3
 NUM_EXTRA_DIALOGUE_TURNS = 30
 """Number of extra dialogue turns to add to the time limit."""
 
+NUM_ROTATION_TURNS = 10
+"""Number of extra turns allowed to rotate the bomb."""
+
 NUM_ZOOMING_TURNS_PER_MODULE = 3
 """Number of extra turns allowed for zooming in and output per module."""
 
 NUM_TURNS_PER_MODULE = types.MappingProxyType(
     {
         KtaneComponent.wires: 60,
-        KtaneComponent.big_button: 60,
+        KtaneComponent.big_button: 5,
         KtaneComponent.keypad: 60,
         KtaneComponent.simon: 60,
         KtaneComponent.whos_on_first: 60,
@@ -35,5 +38,6 @@ def get_time_limit_for_mission(components: list[KtaneComponent]) -> int:
     turns += sum([NUM_TURNS_PER_MODULE[component] for component in components])
     turns += NUM_ZOOMING_TURNS_PER_MODULE * len(components)
     turns += NUM_EXTRA_DIALOGUE_TURNS
+    turns += NUM_ROTATION_TURNS
 
     return turns * SECONDS_PER_ACTION
