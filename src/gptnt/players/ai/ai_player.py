@@ -46,7 +46,7 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
 
     should_reflect_on_game_at_end: bool = field(default=False)
 
-    _no_new_messages_sentinel_token: str = field(default="<no_new_messages>")
+    _no_new_messages_sentinel_token: str = field(default=NO_NEW_MESSAGES_SENTINEL)
 
     @override
     def __post_init__(self) -> None:
