@@ -6,3 +6,7 @@ defaults:
   - communication_style: parallel
   - condition: multiple_modules_n
   - players: default
+
+mission_generator:
+  config:
+    time_limit: 300

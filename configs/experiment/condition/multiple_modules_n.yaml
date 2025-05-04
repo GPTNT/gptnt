@@ -6,7 +6,7 @@ experiment_generator:
 mission_generator:
   config:
     _target_: gptnt.ktane.experiments.missions.MissionGeneratorConfig
-    time_limit: 300
+    # time_limit: 300
     allow_back_placement: true
 
     n_modules_min: 3

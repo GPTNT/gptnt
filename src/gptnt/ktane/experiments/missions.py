@@ -4,6 +4,7 @@ from typing import cast
 import numpy as np
 from pydantic import BaseModel, Field, NonNegativeInt
 
+from gptnt.ktane.experiments.time_limits import get_time_limit_for_mission
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.modules import KtaneComponent
 
@@ -11,8 +12,11 @@ from gptnt.ktane.state.modules import KtaneComponent
 class MissionGeneratorConfig(BaseModel):
     """Config to generate missions for KTANE from."""
 
-    time_limit: NonNegativeInt
-    """Time limit for the game, in seconds."""
+    time_limit: NonNegativeInt | None
+    """Time limit for the game, in seconds.
+
+    If None, the time limit will be calculated based on the modules.
+    """
 
     allow_back_placement: bool
     """Are any modules allowed to be placed on the back?"""
@@ -104,10 +108,16 @@ class MissionGenerator:
             else self._sample_from_all_modules(n_components=n_components)
         )
 
+        time_limit = (
+            get_time_limit_for_mission(components)
+            if self.spec.time_limit is None
+            else self.spec.time_limit
+        )
+
         mission = KtaneMissionSpec.model_validate(
             {
                 "seed": seed,
-                "time_limit": self.spec.time_limit,
+                "time_limit": time_limit,
                 "components": components,
                 "optional_widgets": int(
                     self._rng.integers(

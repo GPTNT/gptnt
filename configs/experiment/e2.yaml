@@ -8,3 +8,7 @@ defaults:
   - players: smaller
 # pairing_generator:
 # best_model: gpt4o
+
+mission_generator:
+  config:
+    time_limit: null

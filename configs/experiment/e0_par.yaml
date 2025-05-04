@@ -6,3 +6,7 @@ defaults:
   - communication_style: parallel
   - condition: single_module
   - players: test
+
+mission_generator:
+  config:
+    time_limit: 150
