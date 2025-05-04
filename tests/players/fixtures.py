@@ -6,7 +6,7 @@ from gptnt.ktane.client import KtaneClient
 from gptnt.players.actions import SetOfMarksLocation
 from gptnt.players.ai.defuser import DefuserOutputT, MDPDefuserPlayer
 from gptnt.players.ai.expert import ExpertOutputT, ExpertPlayer
-from gptnt.players.metrics import PlayerEpisodeTracker
+from gptnt.players.metrics.tracker import PlayerEpisodeTracker
 from gptnt.players.structures import PlayerMetadata
 
 

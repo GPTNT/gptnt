@@ -12,11 +12,12 @@ from gptnt.players.actions import (
     SendMessageAction,
     SetOfMarksLocation,
 )
-from gptnt.players.ai.ai_player import NO_NEW_MESSAGES_SENTINEL, AIPlayer
+from gptnt.players.ai.ai_player import AIPlayer
 from gptnt.players.ai.defuser import DefuserOutputT
 from gptnt.players.ai.dummy import DummyDefuserModel, DummyExpertModel, actions_to_perform
 from gptnt.players.ai.expert import ExpertOutputT
 from gptnt.players.ai.prompts import BombStateMessage
+from gptnt.players.structures import NO_NEW_MESSAGES_SENTINEL
 from tests.players.fixtures import AIPlayerCases
 
 OutputDataT = ExpertOutputT | DefuserOutputT[InteractGameLocation]

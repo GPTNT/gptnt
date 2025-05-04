@@ -16,8 +16,9 @@ class DialogueSpaceClient:
         # Self-generate identifying uuid
         self.uuid = uuid4()
 
-        # Client for connecting to dialogue-space
         self.client = client
+
+        self.messages_pulled: list[str] = []
 
     @classmethod
     def from_host_and_port(cls, host: str, port: int) -> Self:
@@ -75,4 +76,5 @@ class DialogueSpaceClient:
         """Get unread messages from dialogue-space."""
         pull_request = ClientRequest(uuid=self.uuid)
         response = await self.client.send_request("pull_messages", pull_request.model_dump_json())
+        self.messages_pulled.extend(response)
         return response

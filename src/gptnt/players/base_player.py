@@ -6,7 +6,7 @@ import structlog
 
 from gptnt.api.structures import GameMetadata
 from gptnt.dialogue_space.client import DialogueSpaceClient
-from gptnt.players.metrics import PlayerEpisodeTracker
+from gptnt.players.metrics.tracker import PlayerEpisodeTracker
 from gptnt.players.structures import PlayerMetadata
 
 log = structlog.get_logger()

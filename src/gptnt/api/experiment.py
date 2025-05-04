@@ -9,10 +9,27 @@ from gptnt.api.player_client import SupervisedPlayerClient
 from gptnt.api.room_client import SupervisedRoomManagerClient
 from gptnt.api.structures import GameMetadata, RoomStage
 from gptnt.common.async_ops import healthcheck_interval, until
+from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.ktane.experiments.experiments import ExperimentSpec
 from gptnt.players.ai.prompts import send_reflection_message
+from gptnt.players.structures import NO_NEW_MESSAGES_SENTINEL
 
 _logger = get_logger()
+
+
+def were_last_n_messages_empty(
+    *,
+    raw_ds_messages: list[str],
+    num_to_check: int = 5,
+    no_new_message_sentinel: str = NO_NEW_MESSAGES_SENTINEL,
+) -> bool:
+    """Detect if the last n messages were just `"do nothing".
+
+    Because messages can go on for a while, we use some iterators for this.
+    """
+    # Get the last n messages from the dialogue space
+    message_keys_to_check = raw_ds_messages[-num_to_check:]
+    return all(message == no_new_message_sentinel for message in message_keys_to_check)
 
 
 class Experiment:
@@ -54,6 +71,11 @@ class Experiment:
 
         # Persistent UUID for the session/game/experiment/run (whatever you want to call it)
         self._uuid = uuid.uuid4()
+
+        # Create a watcher for the dialogue space
+        self._dialogue_watcher = DialogueSpaceClient.from_url(
+            self._room.metadata.dialogue_space_url
+        )
 
         # Lifecycle
         self.lifecycle_task = asyncio.create_task(coro=self.lifecycle_loop())
@@ -102,6 +124,8 @@ class Experiment:
             )
             self._mission_started = True
 
+        # TODO: Connect the dialogue watcher
+
         # 4. Run correct experiment
         match self.spec.communication_style:
             case "parallel":
@@ -148,21 +172,10 @@ class Experiment:
         """Runs the experiment supervisor."""
         while not self.completed_successfully:
             # Stop the experiment if there are any problems
-            in_invalid_state: bool = (
-                self._mission_started
-                and self._room.state
-                not in [RoomStage.ready_for_start, RoomStage.in_experiment, RoomStage.done]
-            ) or (
-                self._mission_configured
-                and self._room.state
-                not in [
-                    RoomStage.ready_for_config,
-                    RoomStage.ready_for_start,
-                    RoomStage.in_experiment,
-                    RoomStage.done,
-                ]
+            is_invalid_room_state = (
+                self._is_started_room_in_bad_state or self._is_configured_room_in_bad_state
             )
-            if in_invalid_state:
+            if is_invalid_room_state:
                 _logger.info(f"Wrong state entered: {self._room.state}")
 
             player_or_room_died: bool = (
@@ -172,7 +185,7 @@ class Experiment:
             )
 
             # Something went wrong, stop this experiment
-            if in_invalid_state or player_or_room_died:
+            if is_invalid_room_state or player_or_room_died:
                 with logfire.span("Stop broken experiment"):
                     await self.stop_lifecycle(is_broken=True)
 
@@ -208,3 +221,33 @@ class Experiment:
             self._expert.client.run_for_game(), self._defuser.client.run_for_game()
         )
         await until(get_value=lambda: self._room.state, target=RoomStage.done)
+
+    @property
+    def _is_started_room_in_bad_state(self) -> bool:
+        """Returns True if the room is in a bad state."""
+        return self._room.state not in [
+            RoomStage.ready_for_start,
+            RoomStage.in_experiment,
+            RoomStage.done,
+        ]
+
+    @property
+    def _is_configured_room_in_bad_state(self) -> bool:
+        """Returns True if the room is in a bad state."""
+        return self._room.state not in [
+            RoomStage.ready_for_config,
+            RoomStage.ready_for_start,
+            RoomStage.in_experiment,
+            RoomStage.done,
+        ]
+
+    @property
+    async def _consecutive_do_nothing_over_threshold(self) -> bool:
+        """Returns True if the agents have sent too many do nothing messages in a row."""
+        # Pull messages with the watcher client
+        _ = await self._dialogue_watcher.pull_messages()
+
+        is_too_many_do_nothings = were_last_n_messages_empty(
+            raw_ds_messages=self._dialogue_watcher.messages_pulled, num_to_check=5
+        )
+        return is_too_many_do_nothings

@@ -18,7 +18,6 @@ from gptnt.dialogue_space.server import DialogueSpaceServer
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.executable import get_executable_path
 from gptnt.ktane.state.game import GameState
-from gptnt.players.structures import NO_NEW_MESSAGES_SENTINEL
 
 if TYPE_CHECKING:
     from asyncio.tasks import Task
@@ -39,30 +38,6 @@ room_restart_counter = logfire.metric_counter(
 em_health_fail_counter = logfire.metric_counter(
     "em_health_fail_count", description="Number of restarts because the EM failed the healthcheck"
 )
-
-
-def were_last_n_messages_empty(
-    *,
-    ds_server: DialogueSpaceServer,
-    num_to_check: int = 5,
-    no_new_message_sentinel: str = NO_NEW_MESSAGES_SENTINEL,
-) -> bool:
-    """Detect if the last n messages were just `"do nothing".
-
-    Because messages can go on for a while, we use some iterators for this.
-    """
-    # Get the last n messages from the dialogue space
-    message_keys_to_check = ds_server.messages.__reversed__()
-
-    all_messages_are_do_nothing = []
-    for idx, message_key in enumerate(message_keys_to_check):
-        if idx >= num_to_check:
-            break
-        all_messages_are_do_nothing.append(
-            ds_server.messages[message_key].message_content == no_new_message_sentinel
-        )
-
-    return all(all_messages_are_do_nothing)
 
 
 class RoomManager:

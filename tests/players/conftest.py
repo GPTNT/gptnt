@@ -10,7 +10,7 @@ from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.ktane.client import KtaneClient, Observation
 from gptnt.ktane.state.bomb import BombState
-from gptnt.players.metrics import PlayerEpisodeTracker
+from gptnt.players.metrics.tracker import PlayerEpisodeTracker
 
 
 @pytest.fixture
