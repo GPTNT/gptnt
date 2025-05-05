@@ -17,3 +17,17 @@ agent:
     provider:
       _target_: pydantic_ai.providers.google_vertex.GoogleVertexProvider
       service_account_file: "storage/keys/gemini.json"
+
+  model_settings:
+    _target_: pydantic_ai.models.gemini.GeminiModelSettings
+    gemini_safety_settings:
+      - category: HARM_CATEGORY_HARASSMENT
+        level: BLOCK_NONE
+      - category: HARM_CATEGORY_DANGEROUS_CONTENT
+        level: BLOCK_NONE
+      - category: HARM_CATEGORY_HATE_SPEECH
+        level: BLOCK_NONE
+      - category: HARM_CATEGORY_SEXUALLY_EXPLICIT
+        level: BLOCK_NONE
+      - category: HARM_CATEGORY_CIVIC_INTEGRITY
+        level: BLOCK_NONE
