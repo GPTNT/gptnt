@@ -6,6 +6,7 @@ from typing import Union, override
 import logfire
 import structlog
 from pydantic_ai import Agent, BinaryContent, UsageLimitExceeded
+from pydantic_ai.exceptions import ModelHTTPError
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.models import Model
 from pydantic_ai.usage import Usage, UsageLimits
@@ -211,9 +212,15 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
 
         message_input = await self.build_agent_input()
         request_deps = self.build_deps_for_request()
-        agent_output = await self.agent.run(
-            message_input, deps=request_deps, message_history=self.player_usage.to_history()
-        )
+        try:
+            agent_output = await self.agent.run(
+                message_input, deps=request_deps, message_history=self.player_usage.to_history()
+            )
+        except ModelHTTPError as err:
+            if "filtered due to the prompt triggering Azure OpenAI's content" in err.message:
+                log.exception("Filtered due to content policy", error=err)
+                self.tracker.guardrail_violations += 1
+            raise
 
         # Updage usage after the request
         self.player_usage.update(

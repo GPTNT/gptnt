@@ -40,6 +40,7 @@ class PlayerEpisodeTracker:
 
         self.num_invalid_formats: int = 0
         self.num_prompt_truncations: int = 0
+        self.guardrail_violations: int = 0
 
         self.start_time: Instant
 
@@ -90,6 +91,7 @@ class PlayerEpisodeTracker:
             ),
             "total_invalid_format": self.num_invalid_formats,
             "total_prompt_truncations": self.num_prompt_truncations,
+            "total_guardrail_violations": self.guardrail_violations,
             **additional_end_game_metrics.model_dump(mode="json"),
         }
 
