@@ -57,14 +57,23 @@ async def send_reflection_message(*, ktane_url: str, dialogue_space_url: str) ->
         _ = await ds_client.send_message(final_message)
 
 
+NEEDY_MODULE_PAGE_NUMS = tuple(range(17, 21))
+
+
 @lru_cache(maxsize=1)
-def load_manual_as_prompt(*, num_pages: int = MANUAL_NUM_PAGES) -> list[str | BinaryContent]:
+def load_manual_as_prompt(
+    *, num_pages: int = MANUAL_NUM_PAGES, skip_needy_modules: bool = True
+) -> list[str | BinaryContent]:
     """Load the content for the manual."""
     log.debug(f"Loading {num_pages} pages of the manual")
     manual_paths = KtaneManualPaths()
 
     manual = []
     for page_num in range(1, num_pages + 1):
+        if skip_needy_modules and page_num in NEEDY_MODULE_PAGE_NUMS:
+            # Skip the needy module pages
+            continue
+
         # Load the text for the page first
         text = manual_paths.load_text(page_num)
         manual.append(text)
