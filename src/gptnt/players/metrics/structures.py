@@ -9,8 +9,13 @@ from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.modules import KtaneComponent, ModuleStates
 from gptnt.ktane.state.widget import WidgetStates
-from gptnt.players.actions import InteractGameAction, InteractGameLocation, SendMessageAction
-from gptnt.players.structures import NO_NEW_MESSAGES_SENTINEL, PlayerRole
+from gptnt.players.actions import (
+    DoNothingAction,
+    InteractGameAction,
+    InteractGameLocation,
+    SendMessageAction,
+)
+from gptnt.players.structures import PlayerRole
 
 _logger = get_logger()
 
@@ -51,10 +56,18 @@ class MessageMetric(SendMessageAction, TimestampMixin):
             message=action.message, role=role, thoughts=action.thoughts, timestamp=timestamp
         )
 
-    @property
-    def is_do_nothing(self) -> bool:
-        """Check if the action is a do nothing action."""
-        return self.message == NO_NEW_MESSAGES_SENTINEL
+
+class DoNothingMetric(DoNothingAction, TimestampMixin):
+    """Metric class for do nothing actions."""
+
+    role: PlayerRole | None
+
+    @classmethod
+    def from_action(
+        cls, *, action: DoNothingAction, role: PlayerRole | None, timestamp: float
+    ) -> Self:
+        """Create a DoNothingMetric from a DoNothingAction."""
+        return cls(thoughts=action.thoughts, role=role, timestamp=timestamp)
 
 
 class BombStateMetric(BombState, TimestampMixin):

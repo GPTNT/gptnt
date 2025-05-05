@@ -12,11 +12,17 @@ from whenever import Instant
 from gptnt.common.async_ops import run_in_separate_thread
 from gptnt.ktane.experiments.experiments import ExperimentSpec
 from gptnt.ktane.state.bomb import BombState
-from gptnt.players.actions import InteractGameAction, InteractGameLocation, SendMessageAction
+from gptnt.players.actions import (
+    DoNothingAction,
+    InteractGameAction,
+    InteractGameLocation,
+    SendMessageAction,
+)
 from gptnt.players.metrics.structures import (
     ActionMetric,
     AdditionalEndGameMetrics,
     BombStateMetric,
+    DoNothingMetric,
     MessageMetric,
     ObservationMetric,
 )
@@ -34,6 +40,7 @@ class PlayerEpisodeTracker:
 
         self._actions: list[ActionMetric] = []
         self._messages_sent: list[MessageMetric] = []
+        self._do_nothing_actions: list[DoNothingMetric] = []
         self._bomb_states: list[BombStateMetric] = []
         self._observations: list[ObservationMetric] = []
         self._reflections: list[MessageMetric] = []
@@ -89,6 +96,12 @@ class PlayerEpisodeTracker:
             "total_expert_messages_sent": len(
                 [message for message in self._messages_sent if message.role == "expert"]
             ),
+            "total_defuser_do_nothing_actions": len(
+                [action for action in self._do_nothing_actions if action.role == "defuser"]
+            ),
+            "total_expert_do_nothing_actions": len(
+                [action for action in self._do_nothing_actions if action.role == "expert"]
+            ),
             "total_invalid_format": self.num_invalid_formats,
             "total_prompt_truncations": self.num_prompt_truncations,
             "total_guardrail_violations": self.guardrail_violations,
@@ -116,6 +129,7 @@ class PlayerEpisodeTracker:
         # Send tables if they exist
         actions_table = self._compute_actions_table()
         messages_table = self._compute_messages_table()
+        do_nothing_table = self._compute_do_nothing_table()
         bomb_states_table = self._compute_bomb_states_table()
         observations_table = self._compute_observations_table()
         reflections_table = self._compute_reflections_table()
@@ -125,6 +139,8 @@ class PlayerEpisodeTracker:
             data_to_send["actions"] = actions_table
         if messages_table:
             data_to_send["messages"] = messages_table
+        if do_nothing_table:
+            data_to_send["do_nothing_actions"] = do_nothing_table
         if bomb_states_table:
             data_to_send["bomb_states"] = bomb_states_table
         if observations_table:
@@ -163,6 +179,13 @@ class PlayerEpisodeTracker:
             action=message, role=role, timestamp=self._compute_time_delta()
         )
         self._messages_sent.append(message_metric)
+
+    def add_do_nothing(self, action: DoNothingAction, role: PlayerRole | None) -> None:
+        """Add a do nothing action to the player's action list."""
+        nothing_metric = DoNothingMetric.from_action(
+            action=action, role=role, timestamp=self._compute_time_delta()
+        )
+        self._do_nothing_actions.append(nothing_metric)
 
     def add_bomb_state(self, bomb_state: BombState) -> None:
         """Add the current bomb state for the player."""
@@ -239,6 +262,20 @@ class PlayerEpisodeTracker:
             allow_mixed_types=True,
         )
         return messages_table
+
+    def _compute_do_nothing_table(self) -> wandb.Table | None:
+        """Compute the do nothing actions table."""
+        if not self._do_nothing_actions:
+            return None
+        do_nothing_table = wandb.Table(
+            dataframe=pl.from_dicts(
+                TypeAdapter(list[DoNothingMetric]).dump_python(
+                    self._do_nothing_actions, mode="json", exclude={"action_type"}
+                )
+            ).to_pandas(),
+            allow_mixed_types=True,
+        )
+        return do_nothing_table
 
     def _compute_observations_table(self) -> wandb.Table | None:
         """Compute the observations table."""

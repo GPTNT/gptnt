@@ -195,8 +195,9 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         return await method(agent_output)
 
     @logfire.instrument("Do nothing")
-    async def do_nothing_action(self, _: DoNothingAction) -> None:
+    async def do_nothing_action(self, do_nothing: DoNothingAction) -> None:
         """Do nothing action."""
+        self.tracker.add_do_nothing(action=do_nothing, role=self.metadata.player_role)
         log.debug("Doing nothing.")
 
     @logfire.instrument("Send request to agent")
