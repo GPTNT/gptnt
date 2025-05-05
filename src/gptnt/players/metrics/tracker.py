@@ -217,6 +217,8 @@ class PlayerEpisodeTracker:
         self._messages_sent.clear()
         self._bomb_states.clear()
         self._observations.clear()
+        self._do_nothing_actions.clear()
+        self._reflections.clear()
 
     def _compute_time_delta(self) -> float:
         """Compute the time delta between the start time and now."""
