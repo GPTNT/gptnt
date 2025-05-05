@@ -20,8 +20,10 @@ agent:
 
   model_settings:
     _target_: pydantic_ai.models.gemini.GeminiModelSettings
+    _convert_: all
     gemini_safety_settings:
-      - category: HARM_CATEGORY_HARASSMENT
+      - _target_: pydantic_ai.models.gemini.GeminiSafetySettings
+        category: HARM_CATEGORY_HARASSMENT
         level: BLOCK_NONE
       - category: HARM_CATEGORY_DANGEROUS_CONTENT
         level: BLOCK_NONE
