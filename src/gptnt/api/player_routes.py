@@ -12,6 +12,7 @@ from gptnt.players.ai.defuser import BaseDefuserPlayer
 from gptnt.players.base_player import BasePlayer
 from gptnt.players.human.controller import Controller
 from gptnt.players.human.views.defuser import DefuserPlayerView
+from gptnt.players.metrics.structures import AdditionalEndGameMetrics
 
 logger = structlog.get_logger()
 
@@ -78,7 +79,10 @@ async def run_for_turn(player: PlayerDep, request: Request) -> None:
 
 @player_router.post("/stop-experiment")
 async def stop_experiment(
-    player: PlayerDep, request: Request, *, has_crashed: bool = False
+    player: PlayerDep,
+    request: Request,
+    *,
+    additional_end_game_metrics: AdditionalEndGameMetrics | None = None,
 ) -> None:
     """Stop the experiment and disconnect from the room."""
     # Stop AI from taking any more actions
@@ -87,7 +91,7 @@ async def stop_experiment(
         loop_task.cancel()
 
     if isinstance(player, AIPlayer):
-        await player.on_experiment_stop(has_crashed=has_crashed)
+        await player.on_experiment_stop(additional_end_game_metrics=additional_end_game_metrics)
 
     # Disconnect from the room
     await player.disconnect_from_room()

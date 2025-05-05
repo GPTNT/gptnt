@@ -6,6 +6,7 @@ import structlog
 
 from gptnt.api.structures import GameMetadata
 from gptnt.dialogue_space.client import DialogueSpaceClient
+from gptnt.players.metrics.structures import AdditionalEndGameMetrics
 from gptnt.players.metrics.tracker import PlayerEpisodeTracker
 from gptnt.players.structures import PlayerMetadata
 
@@ -58,10 +59,12 @@ class BasePlayer(abc.ABC):
             additional_metadata=additional_metadata,
         )
 
-    async def on_experiment_stop(self, *, has_crashed: bool = False) -> None:
+    async def on_experiment_stop(
+        self, *, additional_end_game_metrics: AdditionalEndGameMetrics | None = None
+    ) -> None:
         """Things to do when the experiment stops."""
         log.debug("Finishing wandb")
-        await self.tracker.on_game_end(has_crashed=has_crashed)
+        await self.tracker.on_game_end(additional_end_game_metrics=additional_end_game_metrics)
 
     async def disconnect_from_room(self) -> None:
         """Disconnect from the room."""

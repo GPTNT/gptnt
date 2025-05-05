@@ -15,6 +15,7 @@ from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import InteractGameAction, InteractGameLocation, SendMessageAction
 from gptnt.players.metrics.structures import (
     ActionMetric,
+    AdditionalEndGameMetrics,
     BombStateMetric,
     MessageMetric,
     ObservationMetric,
@@ -28,11 +29,8 @@ _logger = get_logger()
 class PlayerEpisodeTracker:
     """Track an entire game for a single game and set it to WandB."""
 
-    def __init__(
-        self, *, wandb_init_kwargs: dict[str, Any], max_allowed_sequential_do_nothings: int = 5
-    ) -> None:
+    def __init__(self, *, wandb_init_kwargs: dict[str, Any]) -> None:
         self._wandb_init_kwargs = wandb_init_kwargs
-        self._max_allowed_sequential_do_nothings = max_allowed_sequential_do_nothings
 
         self._actions: list[ActionMetric] = []
         self._messages_sent: list[MessageMetric] = []
@@ -44,16 +42,6 @@ class PlayerEpisodeTracker:
         self.num_prompt_truncations: int = 0
 
         self.start_time: Instant
-
-    @property
-    def num_sequential_do_nothings(self) -> int:
-        """Count the number of sequential do nothing messages."""
-        return len(
-            [
-                message.is_do_nothing
-                for message in self._messages_sent[self._max_allowed_sequential_do_nothings :]
-            ]
-        )
 
     def on_game_start(
         self,
@@ -86,10 +74,12 @@ class PlayerEpisodeTracker:
         self.start_time = Instant.now()
 
     @logfire.instrument("Send results to wandb")
-    async def on_game_end(self, *, has_crashed: bool = False) -> None:
+    async def on_game_end(
+        self, *, additional_end_game_metrics: AdditionalEndGameMetrics | None = None
+    ) -> None:
         """Sends the mission results to wandb and cleans up."""
+        additional_end_game_metrics = additional_end_game_metrics or AdditionalEndGameMetrics()
         data_to_send: dict[str, Any] = {
-            "hard_crash": has_crashed,
             "total_defuser_actions": len(self._actions),
             "total_messages_sent": len(self._messages_sent),
             "total_defuser_messages_sent": len(
@@ -98,6 +88,9 @@ class PlayerEpisodeTracker:
             "total_expert_messages_sent": len(
                 [message for message in self._messages_sent if message.role == "expert"]
             ),
+            "total_invalid_format": self.num_invalid_formats,
+            "total_prompt_truncations": self.num_prompt_truncations,
+            **additional_end_game_metrics.model_dump(mode="json"),
         }
 
         if self._bomb_states:
@@ -116,8 +109,6 @@ class PlayerEpisodeTracker:
                     [module for module in last_bomb_state.modules if module.is_solved]
                 ),
                 "total_strikes": len(last_bomb_state.strikes) if last_bomb_state.strikes else 0,
-                "total_invalid_format": self.num_invalid_formats,
-                "total_prompt_truncations": self.num_prompt_truncations,
             }
 
         # Send tables if they exist
@@ -139,7 +130,7 @@ class PlayerEpisodeTracker:
 
         wandb.log(data_to_send, commit=False)
 
-        await self.finish_run(has_crashed=has_crashed)
+        await self.finish_run(has_crashed=additional_end_game_metrics.has_crashed)
         _logger.debug("WandB run finished")
 
     @logfire.instrument("Finish wandb run")

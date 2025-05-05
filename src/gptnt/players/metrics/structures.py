@@ -154,3 +154,18 @@ class ObservationMetric(TimestampMixin):
             "som_image": som_image,
             "timestamp": self.timestamp,
         }
+
+
+class AdditionalEndGameMetrics(BaseModel):
+    """Pass additional end game metrics to the players for wandb."""
+
+    hard_crash: bool = False
+    """Whether something broke and we are exiting out."""
+
+    is_too_many_do_nothings: bool = False
+    """If we are stopping because too many do nothings."""
+
+    @property
+    def has_crashed(self) -> bool:
+        """Check if the game has crashed."""
+        return self.hard_crash

@@ -8,6 +8,7 @@ from structlog import get_logger
 from gptnt.api.structures import GameMetadata, RoomMetadata
 from gptnt.common.async_ops import healthcheck_interval
 from gptnt.common.base_client import BaseClient, SupervisedClient
+from gptnt.players.metrics.structures import AdditionalEndGameMetrics
 from gptnt.players.structures import PlayerMetadata
 
 _logger = get_logger()
@@ -55,15 +56,20 @@ class PlayerClient(BaseClient):
             return False
         return True
 
-    async def stop_experiment(self, *, has_crashed: bool = False) -> bool:
+    async def stop_experiment(
+        self, *, additional_end_game_metrics: AdditionalEndGameMetrics | None = None
+    ) -> bool:
         """Command the player to stop performing actions and using the dialogue space.
 
         This also signals experiment logging and returning to lobby.
         """
+        additional_end_game_metrics = additional_end_game_metrics or AdditionalEndGameMetrics()
         try:
             _ = (
                 await self.client.post(
-                    url="/stop-experiment", timeout=60, params={"has_crashed": has_crashed}
+                    url="/stop-experiment",
+                    timeout=120,
+                    json=additional_end_game_metrics.model_dump(mode="json"),
                 )
             ).raise_for_status()
         except (httpx.HTTPError, ClientError):

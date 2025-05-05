@@ -21,6 +21,7 @@ from gptnt.players.actions import (
     SendMessageAction,
 )
 from gptnt.players.ai.ai_player import AIPlayer
+from gptnt.players.metrics.structures import AdditionalEndGameMetrics
 
 log = structlog.get_logger()
 
@@ -93,12 +94,14 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
         _ = await self.game_client.__aexit__()
 
     @override
-    async def on_experiment_stop(self, *, has_crashed: bool = False) -> None:
+    async def on_experiment_stop(
+        self, *, additional_end_game_metrics: AdditionalEndGameMetrics | None = None
+    ) -> None:
         log.debug("Getting last bomb state")
         last_bomb_state = await self.game_client.get_state()
         if last_bomb_state is not None:
             self.tracker.add_bomb_state(last_bomb_state)
-        await super().on_experiment_stop(has_crashed=has_crashed)
+        await super().on_experiment_stop(additional_end_game_metrics=additional_end_game_metrics)
 
     @logfire.instrument("Send action to the game")
     async def send_action_to_game(self, action: InteractGameAction[LocationDataT]) -> None:

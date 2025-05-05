@@ -18,6 +18,7 @@ from gptnt.players.ai.prompts import load_reflection_prompt
 from gptnt.players.ai.tokens import estimate_tokens_for_image_per_model
 from gptnt.players.ai.usage import PlayerUsage
 from gptnt.players.base_player import BasePlayer
+from gptnt.players.metrics.structures import AdditionalEndGameMetrics
 from gptnt.players.structures import NO_NEW_MESSAGES_SENTINEL, UnhealthyPlayerError
 
 log = structlog.get_logger()
@@ -90,7 +91,9 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         return  # noqa: WPS324
 
     @override
-    async def on_experiment_stop(self, *, has_crashed: bool = False) -> None:
+    async def on_experiment_stop(
+        self, *, additional_end_game_metrics: AdditionalEndGameMetrics | None = None
+    ) -> None:
         """Things to do when the experiment stops."""
         if self.should_reflect_on_game_at_end:
             log.debug("Reflecting on the game at end")
@@ -101,7 +104,7 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         # Update tracker with usage
         self.tracker.num_prompt_truncations = self.player_usage.num_times_truncated
 
-        await super().on_experiment_stop(has_crashed=has_crashed)
+        await super().on_experiment_stop(additional_end_game_metrics=additional_end_game_metrics)
 
     @override
     async def run_parallel(self) -> None:
