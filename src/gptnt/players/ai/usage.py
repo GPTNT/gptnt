@@ -49,6 +49,9 @@ class PlayerUsage(BaseModel):
     request_tokens: list[int] = Field(default_factory=list)
     response_tokens: list[int] = Field(default_factory=list)
 
+    original_request_tokens: list[int] = Field(default_factory=list)
+    original_response_tokens: list[int] = Field(default_factory=list)
+
     def __bool__(self) -> bool:
         """Check if the player has any messages."""
         return bool(self.message_history)
@@ -120,8 +123,10 @@ class PlayerUsage(BaseModel):
         self.message_history.append(new_messages)
 
         if usage.request_tokens is not None:
+            self.original_request_tokens.append(usage.request_tokens)
             self.request_tokens.append(usage.request_tokens - sum(self.request_tokens))
         if usage.response_tokens is not None:
+            self.original_response_tokens.append(usage.response_tokens)
             self.response_tokens.append(usage.response_tokens - sum(self.response_tokens))
 
     def to_history(self) -> list[ModelMessage]:
@@ -157,11 +162,11 @@ class PlayerUsage(BaseModel):
 
     def message_request_tokens_cost(self, *, message_idx: int) -> float:
         """Get the cost of the request tokens for a message."""
-        return self.request_tokens[message_idx] * self.cost_per_request_token
+        return self.original_response_tokens[message_idx] * self.cost_per_request_token
 
     def message_response_tokens_cost(self, *, message_idx: int) -> float:
         """Get the cost of the response tokens for a message."""
-        return self.response_tokens[message_idx] * self.cost_per_response_token
+        return self.original_response_tokens[message_idx] * self.cost_per_response_token
 
     def message_total_cost(self, *, message_idx: int) -> float:
         """Get the total cost of a message."""
