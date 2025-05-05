@@ -51,6 +51,7 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
     def __post_init__(self) -> None:
         game_settings = KtaneSettings()
         self.player_usage = PlayerUsage(
+            model_name=self.model_name,
             role=self.metadata.player_role,
             tokens_per_image=estimate_tokens_for_image_per_model(
                 self.model_name, width=game_settings.game_width, height=game_settings.game_height
@@ -103,6 +104,8 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
 
         # Update tracker with usage
         self.tracker.num_prompt_truncations = self.player_usage.num_times_truncated
+        # Finalize the tracking of usage metrics for the current step
+        self._track_step()
 
         await super().on_experiment_stop(additional_end_game_metrics=additional_end_game_metrics)
 
@@ -212,18 +215,12 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
             message_input, deps=request_deps, message_history=self.player_usage.to_history()
         )
 
-        self.tracker.step(
-            step=self.player_usage.num_requests + 1,
-            request_tokens=agent_output.usage().request_tokens,
-            response_tokens=agent_output.usage().response_tokens,
-            total_tokens=agent_output.usage().total_tokens,
-            num_times_truncated=self.player_usage.num_times_truncated,
-        )
-
         # Updage usage after the request
         self.player_usage.update(
             new_messages=agent_output.new_messages(), usage=agent_output.usage()
         )
+        self._track_step(agent_output.usage())
+
         # Return the actual data
         return agent_output.output
 
@@ -292,3 +289,22 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
     def _message_history(self) -> list[ModelMessage]:
         """Get the message history for the player."""
         return self.player_usage.to_history()
+
+    def _track_step(self, agent_output_usage: Usage | None = None) -> None:
+        """Track the step for the player."""
+        output_data = {
+            "step": self.player_usage.num_requests,
+            "num_times_truncated": self.player_usage.num_times_truncated,
+            "game_cost": self.player_usage.total_cost(),
+        }
+        if agent_output_usage is not None:
+            output_data = {
+                **output_data,
+                "request_tokens": agent_output_usage.request_tokens,
+                "response_tokens": agent_output_usage.response_tokens,
+                "total_tokens": agent_output_usage.total_tokens,
+                "request_cost": self.player_usage.message_request_tokens_cost(message_idx=-1),
+                "response_cost": self.player_usage.message_response_tokens_cost(message_idx=-1),
+                "message_cost": self.player_usage.message_total_cost(message_idx=-1),
+            }
+        self.tracker.step(**output_data)

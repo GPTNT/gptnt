@@ -32,14 +32,6 @@ class BasePlayer(abc.ABC):
         """
         raise NotImplementedError
 
-    # @abc.abstractmethod
-    # async def on_shutdown(self) -> None:
-    #     """Run on shutdown.
-
-    #     Basically, to run AFTER the player disconnects from the Experiment Manager.
-    #     """
-    #     raise NotImplementedError
-
     @abc.abstractmethod
     async def connect(self) -> None:
         """Connect to all the clients."""

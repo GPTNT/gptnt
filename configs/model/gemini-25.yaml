@@ -7,5 +7,6 @@ defaults:
 metadata:
   player_name: gemini-25
 
+agent:
   model:
     model_name: gemini-2.5-flash-preview-04-17
