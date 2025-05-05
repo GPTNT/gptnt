@@ -1,7 +1,7 @@
 import abc
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import override
+from typing import Union, override
 
 import logfire
 import structlog
@@ -277,13 +277,15 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
             [final_message, reflection_prompt],
             deps=self.build_deps_for_request(),
             message_history=self.player_usage.to_history(),
-            output_type=str,
+            output_type=Union[str, SendMessageAction],  # noqa: UP007
         )
         # update the usage
         self.usage = response.usage()
         self.player_usage.update(new_messages=response.new_messages(), usage=response.usage())
         # return the response
-        return SendMessageAction(message=response.output)
+        if isinstance(response.output, str):
+            return SendMessageAction(message=response.output)
+        return response.output
 
     @property
     def _message_history(self) -> list[ModelMessage]:
