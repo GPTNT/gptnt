@@ -22,7 +22,7 @@ def create_experiment(expert: str, defuser: str) -> ExperimentSpec:
     return ExperimentSpec(
         mission_spec=KtaneMissionSpec(seed=0, time_limit=1, optional_widgets=0, components=[]),
         condition="single_module",
-        pairing=Pairing(pairing_type="pairwise", expert=expert, defuser=defuser),
+        pairing=Pairing(expert=expert, defuser=defuser),
         communication_style="parallel",
     )
 

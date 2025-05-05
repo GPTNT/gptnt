@@ -11,7 +11,6 @@ def test_pairing_with_self_works() -> None:
     for pairing in pairings:
         assert pairing.defuser == pairing.expert, "Defuser and expert should be the same"
         assert pairing.defuser in ALL_PLAYERS, "Defuser should be in all players"
-        assert pairing.pairing_type == "with_self", "Pairing type should be with_self"
 
 
 def test_pairing_with_best_works() -> None:
@@ -30,7 +29,6 @@ def test_pairing_with_best_works() -> None:
         assert pairing.expert == "gemini" or pairing.defuser == "gemini", (
             "One of them should be the best model"
         )
-        assert pairing.pairing_type == "with_best", "Pairing type should be with_best"
 
 
 def test_pairing_no_partner_works() -> None:
@@ -42,7 +40,6 @@ def test_pairing_no_partner_works() -> None:
         assert pairing.expert is None, "Expert should be None"
         assert pairing.defuser != pairing.expert, "Defuser and expert should be different"
         assert pairing.defuser in ALL_PLAYERS, "Defuser should be in all players"
-        assert pairing.pairing_type == "no_partner", "Pairing type should be no_partner"
 
 
 def test_pairing_pairwise_works() -> None:
@@ -55,4 +52,3 @@ def test_pairing_pairwise_works() -> None:
     for pairing in pairings:
         assert pairing.defuser in ALL_PLAYERS, "Defuser should be in all players"
         assert pairing.expert in ALL_PLAYERS, "Expert should be in all players"
-        assert pairing.pairing_type == "pairwise", "Pairing type should be pairwise"

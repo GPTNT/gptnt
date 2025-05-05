@@ -202,6 +202,6 @@ async def test_first_expert_message_includes_manual(
 
     assert isinstance(user_prompt, list)
     assert len(user_prompt) > 1
-    # (23 pages * 2) + 1
-    assert len(user_prompt) == 47
+    # (19 pages * 2) + 1  --- it's 19 because we are skipping the needy modules
+    assert len(user_prompt) == 39
     assert user_prompt[-1] == "message1"
