@@ -35,7 +35,13 @@ def check_if_experiments_on_wandb(
     ]
     wandb_runs = wandb.Api().runs(
         path=f"{wandb_entity}/{wandb_project}",
-        filters={"$and": [{"state": "finished"}, {"$or": experiment_names}]},
+        filters={
+            "$and": [
+                {"state": "finished"},
+                {"$or": experiment_names},
+                {"summary_metrics.hard_crash": False},
+            ]
+        },
     )
 
     _logger.info(
