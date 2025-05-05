@@ -27,4 +27,5 @@ def model_name(model_config_name: Path) -> str:
 
 def test_cost_exists_for_all_models(model_name: str) -> None:
     token_cost = load_model_token_cost(model_name=model_name)
-    assert token_cost
+    assert token_cost.input_token_cost > 0
+    assert token_cost.output_token_cost > 0

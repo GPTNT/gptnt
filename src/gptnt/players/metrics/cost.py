@@ -31,6 +31,7 @@ def load_model_token_cost(*, model_name: str) -> ModelTokenCost:
     """Load the token cost JSON file."""
     loaded_json_as_dict = load_cost_json()
 
+    model_name = model_name.removeprefix("eu.")
     model_costs = loaded_json_as_dict.get(model_name)
     if model_costs is None:
         _logger.warning(f"Model {model_name} not found in cost JSON file. Defaulting to 0 cost.")
