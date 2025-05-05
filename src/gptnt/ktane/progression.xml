@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ProgressionData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <MissionProgression>
+    <item>
+      <key>
+        <string>gameoverviewtutorial</string>
+      </key>
+      <value>
+        <boolean>true</boolean>
+      </value>
+    </item>
+    <item>
+      <key>
+        <string>controlstutorial</string>
+      </key>
+      <value>
+        <boolean>true</boolean>
+      </value>
+    </item>
+    <item>
+      <key>
+        <string>firsttime</string>
+      </key>
+      <value>
+        <boolean>true</boolean>
+      </value>
+    </item>
+    <item>
+      <key>
+        <string>custom</string>
+      </key>
+      <value>
+        <boolean>true</boolean>
+      </value>
+    </item>
+  </MissionProgression>
+  <LastUnlockedBombClass>1</LastUnlockedBombClass>
+  <HasWatchedGameOverview>true</HasWatchedGameOverview>
+  <HasCompletedControlsTutorial>true</HasCompletedControlsTutorial>
+  <HasStartedAGame>true</HasStartedAGame>
+  <DisarmedComponentTypes>
+    <ComponentTypeEnum>BigButton</ComponentTypeEnum>
+  </DisarmedComponentTypes>
+</ProgressionData>

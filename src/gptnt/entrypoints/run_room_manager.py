@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from gptnt.api.room_endpoints import lifespan, router
 from gptnt.common.logger import configure_logging
 from gptnt.common.servers import get_available_port
-from gptnt.ktane.game_settings import KtaneGameSettings, KtanePlayerSettings
+from gptnt.ktane.game_settings import KtaneSettings
 
 _ = logfire.configure(service_name="room-manager", scrubbing=False)
 configure_logging()
@@ -33,8 +33,9 @@ api_port = get_available_port()
 def run() -> FastAPI:
     """Runs the room forever, gracefully exiting (without zombies!) on Ctrl+C."""
     # Update KTANE settings
-    KtaneGameSettings().update_environment_variables()
-    KtanePlayerSettings().create_settings_file()
+    ktane_settings = KtaneSettings()
+    ktane_settings.update_environment_variables()
+    ktane_settings.create_settings_files()
 
     # Run the game
     app = FastAPI(lifespan=partial(lifespan, api_host="localhost", api_port=api_port))
