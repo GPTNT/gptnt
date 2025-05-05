@@ -225,7 +225,7 @@ class Experiment:
     @property
     def _is_started_room_in_bad_state(self) -> bool:
         """Returns True if the room is in a bad state."""
-        return self._room.state not in [
+        return self._mission_started and self._room.state not in [
             RoomStage.ready_for_start,
             RoomStage.in_experiment,
             RoomStage.done,
@@ -234,7 +234,7 @@ class Experiment:
     @property
     def _is_configured_room_in_bad_state(self) -> bool:
         """Returns True if the room is in a bad state."""
-        return self._room.state not in [
+        return self._mission_configured and self._room.state not in [
             RoomStage.ready_for_config,
             RoomStage.ready_for_start,
             RoomStage.in_experiment,
