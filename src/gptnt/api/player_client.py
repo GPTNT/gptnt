@@ -68,7 +68,7 @@ class PlayerClient(BaseClient):
             _ = (
                 await self.client.post(
                     url="/stop-experiment",
-                    timeout=120,
+                    timeout=None,
                     json=additional_end_game_metrics.model_dump(mode="json"),
                 )
             ).raise_for_status()
