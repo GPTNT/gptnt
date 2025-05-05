@@ -11,16 +11,15 @@ class Pairing(BaseModel):
 
     defuser: str
     expert: str | None
-    pairing_type: PairingType
 
     @override
     def __str__(self) -> str:
-        output = f"{self.defuser}_{self.expert}_{self.pairing_type}"
+        output = f"{self.defuser}_{self.expert}"
         return output
 
     @override
     def __hash__(self) -> int:
-        return hash((self.defuser, self.expert, self.pairing_type))
+        return hash((self.defuser, self.expert))
 
 
 class PairingGenerator:
@@ -59,26 +58,20 @@ class PairingGenerator:
 
         for player in all_players:
             yield from (
-                Pairing(defuser=player, expert=self.best_model, pairing_type=self.pairing_type),
-                Pairing(defuser=self.best_model, expert=player, pairing_type=self.pairing_type),
+                Pairing(defuser=player, expert=self.best_model),
+                Pairing(defuser=self.best_model, expert=player),
             )
 
     def _generate_with_self(self, all_players: list[str]) -> Iterator[Pairing]:
         """Generate pairings with self."""
-        yield from (
-            Pairing(defuser=player, expert=player, pairing_type=self.pairing_type)
-            for player in all_players
-        )
+        yield from (Pairing(defuser=player, expert=player) for player in all_players)
 
     def _generate_no_partner(self, all_players: list[str]) -> Iterator[Pairing]:
         """Generate pairings with no partner, therefore only defuser given."""
-        yield from (
-            Pairing(defuser=player, expert=None, pairing_type=self.pairing_type)
-            for player in all_players
-        )
+        yield from (Pairing(defuser=player, expert=None) for player in all_players)
 
     def _generate_pairwise(self, all_players: list[str]) -> Iterator[Pairing]:
         """Generate pairwise pairings."""
         for player in all_players:
             for partner in all_players:
-                yield Pairing(defuser=player, expert=partner, pairing_type=self.pairing_type)
+                yield Pairing(defuser=player, expert=partner)
