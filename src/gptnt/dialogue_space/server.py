@@ -50,11 +50,16 @@ class DialogueSpaceServer:
         return self.server.port
 
     @property
+    def active_players(self) -> int:
+        """Get the number of active players."""
+        return len([agent for agent in self.agents.values() if agent.is_player])
+
+    @property
     def active_connections(self) -> int:
         """Get the number of active connections."""
         if self.server.server is None:
             return 0
-        return len(self.server.server.connections)
+        return min(len(self.server.server.connections), self.active_players)
 
     async def start(self) -> Self:
         """Start the dialogue space server."""
@@ -159,4 +164,4 @@ class DialogueSpaceServer:
         if parsed.uuid in self.agents:
             raise ValueError(f"Agent with UUID {parsed.uuid} already connected.")
 
-        self.agents[parsed.uuid] = DialogueSpaceAgent(uuid=parsed.uuid)
+        self.agents[parsed.uuid] = DialogueSpaceAgent(uuid=parsed.uuid, is_player=parsed.is_player)

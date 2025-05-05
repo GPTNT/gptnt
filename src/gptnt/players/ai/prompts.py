@@ -53,8 +53,10 @@ async def send_reflection_message(*, ktane_url: str, dialogue_space_url: str) ->
         logger.exception("No logic connecting bomb state to final message")
         return
 
-    async with DialogueSpaceClient.from_url(dialogue_space_url) as ds_client:
-        _ = await ds_client.send_message(final_message)
+    ds_client = DialogueSpaceClient.from_url(dialogue_space_url)
+    await ds_client.connect(is_player=False)
+    _ = await ds_client.send_message(final_message)
+    await ds_client.disconnect()
 
 
 NEEDY_MODULE_PAGE_NUMS = tuple(range(17, 21))

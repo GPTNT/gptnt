@@ -9,6 +9,7 @@ class DialogueSpaceAgent(BaseModel):
 
     uuid: UUID
     last_read_message_id: int = -1
+    is_player: bool = True
 
 
 class DialogueSpaceMessage(BaseModel):
@@ -25,6 +26,7 @@ class ClientRequest(BaseModel):
     """Generic client request data model."""
 
     uuid: UUID
+    is_player: bool = True
 
 
 class SendMessageData(ClientRequest):

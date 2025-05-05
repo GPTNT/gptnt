@@ -89,9 +89,15 @@ class Experiment:
         self.lifecycle_task = asyncio.create_task(coro=self.lifecycle_loop())
         self.supervisor_task = asyncio.create_task(coro=self.supervisor_loop())
 
-    async def lifecycle_loop(self) -> None:  # noqa: WPS217 (This is a lifecycle, the whole point is awaiting lots of stuff)
-        """Runs the experiment."""
+    async def lifecycle_loop(self) -> None:  # noqa: WPS217, WPS213
+        """Runs the experiment.
+
+        This is a lifecycle, the whole point is awaiting lots of stuff.
+        """
         with logfire.span("Prepare experiment"):
+            # Connect the dialogue watcher
+            await self._dialogue_watcher.connect(is_player=False)
+
             # 1. Configure the experiment
             await until(get_value=lambda: self._room.state, target=RoomStage.ready_for_config)
             # TODO: Do something when we can't configure the experiment
@@ -131,8 +137,6 @@ class Experiment:
                 self._room.client.start_experiment(),
             )
             self._mission_started = True
-
-        # TODO: Connect the dialogue watcher
 
         # 4. Run correct experiment
         match self.spec.communication_style:
