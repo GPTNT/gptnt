@@ -48,7 +48,7 @@ def run_player(config: DictConfig) -> None:  # noqa: WPS210
 
     # Include the router with the endpoints.
     app.include_router(player_router)
-    _ = logfire.instrument_fastapi(app, excluded_urls=["/health"])
+    _ = logfire.instrument_fastapi(app, excluded_urls=["/health", "/stagecheck"])
     # Start the server.
     uvicorn.run(app, host=api_host, port=api_port, log_level="warning")
     _logger.info("Player closed")

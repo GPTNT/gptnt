@@ -9,6 +9,7 @@ from gptnt.api.room_client import SupervisedRoomManagerClient
 from gptnt.api.structures import RoomStage
 from gptnt.api.tinder import get_playable_pairings
 from gptnt.common.async_ops import busy_wait_interval
+from gptnt.players.structures import PlayerStage
 
 if TYPE_CHECKING:
     import asyncio
@@ -16,6 +17,7 @@ if TYPE_CHECKING:
     from gptnt.ktane.experiments.experiments import ExperimentSpec
 
 _logger = get_logger()
+
 
 # TODO: There must be a better way of doing this instead of global vars at the top
 connected_rooms_gauge = logfire.metric_gauge(
@@ -36,6 +38,9 @@ available_players_gauge = logfire.metric_gauge(
 )
 dead_players_gauge = logfire.metric_gauge(
     "dead_players", description="Number of dead players that are not running"
+)
+uploading_players_gauge = logfire.metric_gauge(
+    "uploading_players", description="Number of players uploading to WandB"
 )
 active_players = logfire.metric_gauge(
     "active_players", description="Number of players in an experiment"
@@ -99,12 +104,15 @@ class ExperimentManager:
             player
             for player in running_players
             # Ensure is not in an experiment
-            if not player.in_experiment
+            if not player.in_experiment and player.state is PlayerStage.waiting_for_experiment
         }
         connected_players_gauge.set(len(self.players))
         available_players_gauge.set(len(available_players))
         dead_players_gauge.set(len(self.players) - len(running_players))
         active_players.set(len([player for player in running_players if player.in_experiment]))
+        uploading_players_gauge.set(
+            len([player for player in running_players if player.state is PlayerStage.stopping])
+        )
         return available_players
 
     # Experiment logic

@@ -13,7 +13,7 @@ from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.ktane.experiments.experiments import ExperimentSpec
 from gptnt.players.ai.prompts import send_reflection_message
 from gptnt.players.metrics.structures import AdditionalEndGameMetrics
-from gptnt.players.structures import NO_NEW_MESSAGES_SENTINEL
+from gptnt.players.structures import NO_NEW_MESSAGES_SENTINEL, PlayerStage
 
 _logger = get_logger()
 
@@ -155,24 +155,16 @@ class Experiment:
             await self.stop_lifecycle()
 
     @logfire.instrument("Stop experiment lifecycle")
-    async def stop_lifecycle(self) -> None:
+    async def stop_lifecycle(self) -> None:  # noqa: WPS217
         """Stops the current experiment.
 
         Either because the mission is over or an error occurred.
         """
         _logger.info(f"Finishing game [{self._uuid}]")
+        await self._stop_expert()
+        await self._stop_defuser()
 
-        with logfire.span("Stop expert"):
-            _ = await self._expert.client.stop_experiment(
-                additional_end_game_metrics=self._additional_end_game_metrics
-            )
-            self._expert.in_experiment = False
-
-        with logfire.span("Stop defuser"):
-            _ = await self._defuser.client.stop_experiment(
-                additional_end_game_metrics=self._additional_end_game_metrics
-            )
-            self._defuser.in_experiment = False
+        await self._dialogue_watcher.disconnect()
 
         # Reset the room
         with logfire.span("Reset room"):
@@ -181,7 +173,6 @@ class Experiment:
 
         # Stop
         _logger.debug("Stopping tasks")
-        await self._dialogue_watcher.disconnect()
         _ = self.lifecycle_task.cancel()
         _ = self.supervisor_task.cancel()
 
@@ -280,3 +271,23 @@ class Experiment:
         )
         self._additional_end_game_metrics.is_too_many_do_nothings = is_too_many_do_nothings
         return is_too_many_do_nothings
+
+    @logfire.instrument("Stop expert")
+    async def _stop_expert(self) -> None:
+        """Stop the expert."""
+        _ = await self._expert.client.stop_experiment(
+            additional_end_game_metrics=self._additional_end_game_metrics
+        )
+        # When its stopping, we can assume its in its wandb upload phase
+        await until(get_value=lambda: self._expert.state, target=PlayerStage.stopping)
+        self._expert.in_experiment = False
+
+    @logfire.instrument("Stop defuser")
+    async def _stop_defuser(self) -> None:
+        """Stop the defuser."""
+        _ = await self._defuser.client.stop_experiment(
+            additional_end_game_metrics=self._additional_end_game_metrics
+        )
+        # When its stopping, we can assume its in its wandb upload phase
+        await until(get_value=lambda: self._defuser.state, target=PlayerStage.stopping)
+        self._defuser.in_experiment = False

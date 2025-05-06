@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Self
 import anyio
 import httpx
 import logfire
+from aiohttp.client_exceptions import ClientError
 from structlog import get_logger
 
 from gptnt.api.experiment_manager_client import ExperimentManagerClient
@@ -37,6 +38,9 @@ room_restart_counter = logfire.metric_counter(
 )
 em_health_fail_counter = logfire.metric_counter(
     "em_health_fail_count", description="Number of restarts because the EM failed the healthcheck"
+)
+room_api_fail_counter = logfire.metric_counter(
+    "room_api_fail_count", description="Number of times the room API failed a healthcheck"
 )
 
 
@@ -146,6 +150,8 @@ class RoomManager:
 
     async def stop(self, *, stop_subservices: bool = True) -> None:
         """Cleanly stops any running subservices and supervisors."""
+        self.lifecycle_stage = RoomStage.boot
+
         with logfire.span("Stop room manager", room=self._uuid):
             for task in self._restartable_tasks:
                 _ = task.cancel()
@@ -176,22 +182,26 @@ class RoomManager:
 
             if self._restart_raised.is_set():
                 room_restart_counter.add(1)
-                with logfire.span("Restarting room"):
-                    _logger.error("RoomManager restarting")
+                with logfire.span("Restarting room", room=self._uuid):
+                    _logger.error("RoomManager restarting", room=self._uuid)
                     await self.stop()
-                    await self.start()
-                    self._restart_raised.clear()
+                await self.start()
+                self._restart_raised.clear()
 
             elif self.reset_raised.is_set():
-                with logfire.span("Resetting room"):
+                with logfire.span("Resetting room", room=self._uuid):
                     # Resume the game if need be and wait for it to resume
                     _ = await self.ktane_client.resume_time()
                     await asyncio.sleep(4)
                     await self.stop(stop_subservices=False)
                     _ = await self.ktane_client.reset()
                     self._dialogue_space_server.reset()
-                    await self.start(start_subservices=False)
-                    self.reset_raised.clear()
+
+            with logfire.span("Start room manager", room=self._uuid):
+                # only if restart was raised, and reset was not raised
+                should_start_subservices = self._restart_raised.is_set()
+                await self.start(start_subservices=should_start_subservices)
+                self.reset_raised.clear()
 
     async def _lifecycle_loop(self) -> None:  # noqa: WPS217, WPS213
         """Moves the RoomManager through the lifecycle.
@@ -223,16 +233,16 @@ class RoomManager:
             await _until_game_state(target_state=GameState.lights_on)
             self.lifecycle_stage = RoomStage.in_experiment
 
-        with logfire.span("Waiting for game to end", room=self._uuid):
-            await _until_game_state(target_state=GameState.game_ended)
-            self.lifecycle_stage = RoomStage.done
+        _logger.info("Game started, waiting for game to end")
+        await _until_game_state(target_state=GameState.game_ended)
+        self.lifecycle_stage = RoomStage.done
 
     @logfire.instrument("Start subservices")
     async def _start_subservices(self) -> None:
         """Start the server and app."""
         # 1. start the game in the room
         game_server_port = get_available_port()
-        _logger.info("Starting `KTANE` (as subprocess)", port=game_server_port)
+        _logger.info("Starting `KTANE` (as subprocess)", port=game_server_port, room=self._uuid)
         self._game_process = await anyio.open_process(
             cwd=get_executable_path().parent,
             command=[get_executable_path()],
@@ -240,19 +250,19 @@ class RoomManager:
         )
         # 2. start the dialogue space server
         ds_server_port = get_available_port()
-        _logger.info("Starting `DialogueSpaceServer`", port=ds_server_port)
+        _logger.info("Starting `DialogueSpaceServer`", port=ds_server_port, room=self._uuid)
         self._dialogue_space_server = await DialogueSpaceServer.from_host_and_port(
             host=self.hostname, port=ds_server_port
         ).start()
 
         # 3. Start the ktane client
-        _logger.info("Starting `KtaneClient`", port=game_server_port)
+        _logger.info("Starting `KtaneClient`", port=game_server_port, room=self._uuid)
         self.ktane_client = await KtaneClient(
             url=f"http://{self.hostname}:{game_server_port}"
         ).__aenter__()
 
         # 4. Start the experiment manager client
-        _logger.info("Starting `ExperimentManagerClient`", port=8099)  # noqa: WPS432
+        _logger.info("Starting `ExperimentManagerClient`", port=8099, room=self._uuid)  # noqa: WPS432
         self._experiment_manager_client = await ExperimentManagerClient(
             url="http://localhost:8099"
         ).start()
@@ -306,8 +316,9 @@ class RoomManager:
         while not self._restart_raised.is_set():
             try:
                 _ = (await self._fastapi_supervisor_client.get(url="/health")).raise_for_status()
-            except httpx.HTTPError:
-                _logger.exception("FastAPI server failed healthcheck")
+            except (httpx.HTTPError, TimeoutError, ClientError):
+                _logger.exception("FastAPI server failed healthcheck", room=self._uuid)
+                room_api_fail_counter.add(1)
                 self._restart_raised.set()
 
             await healthcheck_interval()
@@ -320,7 +331,7 @@ class RoomManager:
         _logger.info("Starting game sub-process supervisor")
         while not self._restart_raised.is_set():
             if self._game_process.returncode is not None:
-                _logger.exception("Game sub-process exited unexpectedly")
+                _logger.exception("Game sub-process exited unexpectedly", room=self._uuid)
                 game_crash_counter.add(1)
                 self._restart_raised.set()
 
@@ -366,7 +377,7 @@ class RoomManager:
 
             # If it's not alive, raise an exception
             except (httpx.HTTPError, TimeoutError):
-                _logger.exception("Ktane failed healthcheck")
+                _logger.exception("Ktane failed healthcheck", room=self._uuid)
                 game_health_fail_counter.add(1)
                 self._restart_raised.set()
 
@@ -377,6 +388,7 @@ class RoomManager:
                         "Game state changed",
                         old_state=self.game_state.name,
                         new_state=new_game_state.name,
+                        room=self._uuid,
                     )
                     self.game_state = new_game_state
                 self._state_changed.set()
@@ -404,7 +416,7 @@ class RoomManager:
         with logfire.suppress_instrumentation():
             while not self._should_exit:
                 if not await self._experiment_manager_client.healthcheck():
-                    _logger.error("ExperimentManager failed healthcheck")
+                    _logger.error("ExperimentManager failed healthcheck", room=self._uuid)
                     em_health_fail_counter.add(1)
                     self._restart_raised.set()
                     break

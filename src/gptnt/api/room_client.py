@@ -2,6 +2,7 @@ from typing import override
 
 import httpx
 import logfire
+from aiohttp.client_exceptions import ClientError
 from structlog import get_logger
 
 from gptnt.api.structures import RoomMetadata, RoomStage
@@ -20,7 +21,7 @@ class RoomManagerClient(BaseClient):
         response = await self.client.get(url="/health")
         try:
             _ = response.raise_for_status()
-        except httpx.HTTPError:
+        except (httpx.HTTPError, ClientError):
             _logger.exception("Could not get room state")
 
         # There are `"` characters in the response, so we need to strip them out for some reason
@@ -30,7 +31,7 @@ class RoomManagerClient(BaseClient):
         """Resets the room, back to a state ready to receive a new experiment config."""
         try:
             _ = (await self.client.post(url="/reset-room")).raise_for_status()
-        except httpx.HTTPError as err:
+        except (httpx.HTTPError, ClientError) as err:
             _logger.exception("Could not reset room", exc_info=err)
             return False
         return True
@@ -43,7 +44,7 @@ class RoomManagerClient(BaseClient):
                     url="/configure-experiment", json=config.model_dump(mode="json")
                 )
             ).raise_for_status()
-        except httpx.HTTPError:
+        except (httpx.HTTPError, ClientError):
             _logger.exception("Could not configure experiment")
             return False
         return True
@@ -52,7 +53,7 @@ class RoomManagerClient(BaseClient):
         """Starts the currently configured experiment."""
         try:
             _ = (await self.client.post(url="/start-experiment")).raise_for_status()
-        except httpx.HTTPError:
+        except (httpx.HTTPError, ClientError):
             _logger.exception("Could not start experiment")
             return False
         return True
@@ -75,7 +76,7 @@ class SupervisedRoomManagerClient(SupervisedClient[RoomManagerClient, RoomMetada
             try:
                 with logfire.suppress_instrumentation():
                     self.metadata.state = await self.client.statecheck()
-            except httpx.HTTPError:
+            except (httpx.HTTPError, ClientError):
                 break
             await healthcheck_interval()
         _logger.info("Room died")

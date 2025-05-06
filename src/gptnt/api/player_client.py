@@ -9,13 +9,24 @@ from gptnt.api.structures import GameMetadata, RoomMetadata
 from gptnt.common.async_ops import healthcheck_interval
 from gptnt.common.base_client import BaseClient, SupervisedClient
 from gptnt.players.metrics.structures import AdditionalEndGameMetrics
-from gptnt.players.structures import PlayerMetadata
+from gptnt.players.structures import PlayerMetadata, PlayerStage
 
 _logger = get_logger()
 
 
 class PlayerClient(BaseClient):
     """API for externally interacting with the PlayerAPI."""
+
+    async def statecheck(self) -> PlayerStage:
+        """Returns the current state of the Player in its lifecycle."""
+        response = await self.client.get(url="/stagecheck")
+        try:
+            _ = response.raise_for_status()
+        except (httpx.HTTPError, ClientError):
+            _logger.exception("Could not get player state")
+
+        # There are `"` characters in the response, so we need to strip them out for some reason
+        return PlayerStage(value=response.text.replace('"', ""))
 
     async def join_room(self, room: RoomMetadata) -> None:
         """Makes player join the passed RoomManager's dialogue space."""
@@ -31,7 +42,7 @@ class PlayerClient(BaseClient):
                     url="/start-experiment", json=game_metadata.model_dump(mode="json")
                 )
             ).raise_for_status()
-        except httpx.HTTPError:
+        except (httpx.HTTPError, ClientError):
             _logger.exception("Could not start experiment")
             return False
         return True
@@ -68,7 +79,7 @@ class PlayerClient(BaseClient):
             _ = (
                 await self.client.post(
                     url="/stop-experiment",
-                    timeout=None,
+                    timeout=60,
                     json=additional_end_game_metrics.model_dump(mode="json"),
                 )
             ).raise_for_status()
@@ -88,11 +99,17 @@ class SupervisedPlayerClient(SupervisedClient[PlayerClient, PlayerMetadata]):
 
     client_constructor = PlayerClient
 
+    @property
+    def state(self) -> PlayerStage:
+        """Returns the current state of the Player in its lifecycle."""
+        return self.metadata.stage
+
     @override
     async def supervisor_loop(self) -> None:
         while self.is_running:
             await healthcheck_interval()
             with logfire.suppress_instrumentation():
+                self.metadata.stage = await self.client.statecheck()
                 if not await self.client.healthcheck():
                     break
         _logger.info(

@@ -3,7 +3,7 @@ from contextlib import suppress
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 
 from gptnt.api.structures import GameMetadata, RoomMetadata
 from gptnt.dialogue_space.client import DialogueSpaceClient
@@ -13,6 +13,7 @@ from gptnt.players.base_player import BasePlayer
 from gptnt.players.human.controller import Controller
 from gptnt.players.human.views.defuser import DefuserPlayerView
 from gptnt.players.metrics.structures import AdditionalEndGameMetrics
+from gptnt.players.structures import PlayerStage
 
 logger = structlog.get_logger()
 
@@ -23,13 +24,24 @@ async def _get_player(request: Request) -> BasePlayer:
     return request.app.state.player
 
 
+async def _get_stage(request: Request) -> PlayerStage:
+    return request.app.state.player.metadata.stage  # noqa: WPS219
+
+
 PlayerDep = Annotated[BasePlayer, Depends(_get_player)]
+StageDep = Annotated[PlayerStage, Depends(_get_stage)]
 
 
 @player_router.get("/health")
 async def health() -> bool:
     """Get the health of the API."""
     return True
+
+
+@player_router.get("/stagecheck")
+async def stagecheck(stage: StageDep) -> str:
+    """Check the stage of the player."""
+    return stage.value
 
 
 @player_router.post("/join-room")
@@ -50,12 +62,14 @@ async def join_room(room: RoomMetadata, player: PlayerDep) -> None:
         player.game_client.update_url(room.ktane_url)
 
     await player.connect()
+    player.metadata.stage = PlayerStage.ready_to_start_experiment
 
 
 @player_router.post("/start-experiment")
 async def start_experiment(player: PlayerDep, game_metadata: GameMetadata) -> bool:
     """Start the experiment."""
     await player.on_experiment_start(game_metadata=game_metadata)
+    player.metadata.stage = PlayerStage.in_experiment
     return True
 
 
@@ -77,22 +91,36 @@ async def run_for_turn(player: PlayerDep, request: Request) -> None:
         await request.app.state.main_loop_task
 
 
-@player_router.post("/stop-experiment")
-async def stop_experiment(
-    player: PlayerDep,
-    request: Request,
-    *,
-    additional_end_game_metrics: AdditionalEndGameMetrics | None = None,
+async def _stop_experiment(
+    player: BasePlayer, additional_end_game_metrics: AdditionalEndGameMetrics | None = None
 ) -> None:
     """Stop the experiment and disconnect from the room."""
-    # Stop AI from taking any more actions
-    loop_task = getattr(request.app.state, "main_loop_task", None)
-    if player.metadata.player_type == "ai" and loop_task:
-        loop_task.cancel()
-
     if isinstance(player, AIPlayer):
         await player.on_experiment_stop(additional_end_game_metrics=additional_end_game_metrics)
 
     # Disconnect from the room
     await player.disconnect_from_room()
     logger.info("Stopped experiment for player")
+
+    # And now they're ready for another one
+    player.metadata.stage = PlayerStage.waiting_for_experiment
+
+
+@player_router.post("/stop-experiment")
+async def stop_experiment(
+    player: PlayerDep,
+    request: Request,
+    *,
+    additional_end_game_metrics: AdditionalEndGameMetrics | None = None,
+    background_tasks: BackgroundTasks,
+) -> None:
+    """Stop the experiment and disconnect from the room."""
+    # Stop AI from taking any more actions
+    loop_task = getattr(request.app.state, "main_loop_task", None)
+    if player.metadata.player_type == "ai" and loop_task:
+        loop_task.cancel()
+    # Stop the experiment in the background
+    background_tasks.add_task(
+        _stop_experiment, player, additional_end_game_metrics=additional_end_game_metrics
+    )
+    logger.info("Stopping experiment for player")

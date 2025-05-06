@@ -20,7 +20,7 @@ from gptnt.players.ai.tokens import estimate_tokens_for_image_per_model
 from gptnt.players.ai.usage import PlayerUsage
 from gptnt.players.base_player import BasePlayer
 from gptnt.players.metrics.structures import AdditionalEndGameMetrics
-from gptnt.players.structures import NO_NEW_MESSAGES_SENTINEL, UnhealthyPlayerError
+from gptnt.players.structures import NO_NEW_MESSAGES_SENTINEL, PlayerStage, UnhealthyPlayerError
 
 log = structlog.get_logger()
 
@@ -98,16 +98,18 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
     ) -> None:
         """Things to do when the experiment stops."""
         if self.should_reflect_on_game_at_end:
+            self.metadata.stage = PlayerStage.reflecting
             log.debug("Reflecting on the game at end")
             reflection = await self.handle_reflection_prompt()
             if reflection is not None:
                 self.tracker.add_reflection(message=reflection, role=self.metadata.player_role)
 
+        self.metadata.stage = PlayerStage.stopping
         # Update tracker with usage
         self.tracker.num_prompt_truncations = self.player_usage.num_times_truncated
         # Finalize the tracking of usage metrics for the current step
         self._track_step()
-
+        await busy_wait_interval()
         await super().on_experiment_stop(additional_end_game_metrics=additional_end_game_metrics)
 
     @override

@@ -8,6 +8,7 @@ from fastapi import FastAPI
 
 from gptnt.api.experiment_manager_client import ExperimentManagerClient
 from gptnt.players.base_player import BasePlayer
+from gptnt.players.structures import PlayerStage
 
 logger = structlog.get_logger()
 
@@ -27,6 +28,8 @@ async def player_lifespan(
 
     # Ensure that we connect to the experiment manager before running the app
     async with app.state.experiment_manager_client.connect(connection=player.metadata):
+        # Set the player as ready to go
+        app.state.player.metadata.stage = PlayerStage.waiting_for_experiment
         # Run the app and wait here until the app is shut down
         yield
 
