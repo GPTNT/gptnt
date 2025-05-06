@@ -9,6 +9,6 @@ metadata:
 
 agent:
   model:
-    model_name: OpenGVLab/InternVL3-38B
+    model_name: OpenGVLab/InternVL3-38B-AWQ
     provider:
       base_url: http://localhost:11434/v1

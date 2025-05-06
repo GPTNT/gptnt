@@ -9,6 +9,6 @@ metadata:
 
 agent:
   model:
-    model_name: Qwen/Qwen2.5-VL-7B-Instruct-AWQ
+    model_name: Qwen/Qwen2.5-VL-7B-Instruct
     provider:
       base_url: http://localhost:11434/v1
