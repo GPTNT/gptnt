@@ -2,7 +2,7 @@ import abc
 import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Union, override
+from typing import Any, Union, override
 
 import logfire
 import structlog
@@ -10,6 +10,7 @@ import whenever
 from pydantic import TypeAdapter, ValidationError
 from pydantic_ai import BinaryContent
 
+from gptnt.api.structures import GameMetadata
 from gptnt.common.async_ops import busy_wait_interval
 from gptnt.common.paths import Paths
 from gptnt.ktane.client import KtaneClient
@@ -64,21 +65,39 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
     """
 
     game_client: KtaneClient
-    observation_window_length: int = 12
+    max_observation_window_length: int = 12
     should_save_images: bool = False
 
     sequential_step_time: float = 3
     """How long to run the game for before stopping time again in sequential mode."""
 
-    def __post_init__(self) -> None:
-        """Post init for the defuser player."""
-        super().__post_init__()
-        self.player_usage.num_images_per_message = self.observation_window_length
+    current_observation_window_length: int = 1
+    """Current observation window length."""
 
     @override
     async def disconnect_from_room(self) -> None:
         await super().disconnect_from_room()
         _ = await self.game_client.__aexit__()
+
+    @override
+    async def on_experiment_start(
+        self, *, game_metadata: GameMetadata, additional_metadata: dict[str, Any] | None = None
+    ) -> None:
+        """Things to do when the experiment starts."""
+        # Check for number of observations
+        should_use_bigger_window = game_metadata.requires_multiple_images_per_observation
+        self.current_observation_window_length = (
+            self.max_observation_window_length if should_use_bigger_window else 1
+        )
+        log.debug(
+            f"Setting observation window length (to={self.current_observation_window_length})"
+        )
+
+        self.player_usage.num_images_per_message = self.current_observation_window_length
+
+        await super().on_experiment_start(
+            game_metadata=game_metadata, additional_metadata=additional_metadata
+        )
 
     @override
     async def on_experiment_stop(
@@ -176,7 +195,11 @@ class MDPDefuserPlayer[LocationDataT: InteractGameLocation](
 
         # Frame is/should be a PNG that is encoded as bytes
         frames, segm_mask, som_image = await self.game_client.get_observation_frames()
-        self.tracker.add_observation(frames=frames, segm_mask=segm_mask, som_image=som_image)
+        self.tracker.add_observation(
+            frames=frames[-self.current_observation_window_length :],
+            segm_mask=segm_mask,
+            som_image=som_image,
+        )
 
         if self.should_save_images:
             paths.output.joinpath("images").mkdir(parents=True, exist_ok=True)
@@ -191,7 +214,7 @@ class MDPDefuserPlayer[LocationDataT: InteractGameLocation](
 
         # Build the observations by getting all the frames and replacing the last one with the SoM
         # frame. Then, we take the last N frames to build the observation window
-        observations = [*current_frames[:-1], som_frame][-self.observation_window_length :]
+        observations = [*current_frames[:-1], som_frame][-self.current_observation_window_length :]
 
         agent_input = [messages, *observations]
         return agent_input

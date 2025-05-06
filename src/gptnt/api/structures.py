@@ -47,3 +47,8 @@ class GameMetadata(BaseModel):
 
     game_id: UUID4
     """The ID of the game."""
+
+    @property
+    def requires_multiple_images_per_observation(self) -> bool:
+        """Whether the experiment requires multiple images per observation."""
+        return self.experiment_spec.mission_spec.requires_multiple_images_per_observation

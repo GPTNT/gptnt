@@ -54,6 +54,24 @@ NUM_STAGES_PER_MODULE = types.MappingProxyType(
     }
 )
 
+# Whether or not a module requires multiple images
+NEEDS_MULTIPLE_IMAGES = types.MappingProxyType(
+    {
+        KtaneComponent.wires: False,
+        KtaneComponent.big_button: False,
+        KtaneComponent.keypad: False,
+        # because of the blinking lights
+        KtaneComponent.simon: True,
+        KtaneComponent.whos_on_first: False,
+        KtaneComponent.memory: False,
+        # because of the blinking lights
+        KtaneComponent.morse_code: True,
+        KtaneComponent.venn: False,
+        KtaneComponent.wire_sequence: False,
+        KtaneComponent.maze: False,
+        KtaneComponent.password: False,
+    }
+)
 
 NUM_ACTION_TURNS_PER_MODULE = types.MappingProxyType(
     {

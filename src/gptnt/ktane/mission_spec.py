@@ -3,6 +3,7 @@ from typing import cast, override
 from httpx import QueryParams
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from gptnt.ktane.experiments.time_limits import NEEDS_MULTIPLE_IMAGES
 from gptnt.ktane.state.modules import KtaneComponent
 
 MAX_COMPONENTS = 11
@@ -52,6 +53,11 @@ class KtaneMissionSpec(BaseModel):
         serialization_alias="timeStepSize",
         description="Step size in milliseconds",
     )
+
+    @property
+    def requires_multiple_images_per_observation(self) -> bool:
+        """Check if the mission requires multiple images per observation."""
+        return any(NEEDS_MULTIPLE_IMAGES.get(component, False) for component in self.components)
 
     @field_validator("components", mode="before")
     @classmethod

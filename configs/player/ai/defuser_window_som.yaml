@@ -6,4 +6,4 @@ defaults:
 
 _target_: gptnt.players.ai.defuser.MDPDefuserPlayer
 should_save_images: true
-observation_window_length: 12
+max_observation_window_length: 12
