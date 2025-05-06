@@ -8,6 +8,9 @@ metadata:
   player_name: qwen25vl-7b
 
 agent:
+  output_type:
+    variant: "gemini"
+
   model:
     model_name: Qwen/Qwen2.5-VL-7B-Instruct
     provider:

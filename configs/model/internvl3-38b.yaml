@@ -8,6 +8,9 @@ metadata:
   player_name: internvl3-38b
 
 agent:
+  output_type:
+    variant: "gemini"
+
   model:
     model_name: OpenGVLab/InternVL3-38B-AWQ
     provider:

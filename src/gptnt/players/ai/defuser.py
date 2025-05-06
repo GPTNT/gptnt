@@ -2,14 +2,13 @@ import abc
 import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any, Union, override
+from typing import Union, override
 
 import logfire
 import structlog
 import whenever
 from pydantic import TypeAdapter, ValidationError
-from pydantic_ai import Agent, BinaryContent
-from pydantic_ai.models import Model
+from pydantic_ai import BinaryContent
 
 from gptnt.common.async_ops import busy_wait_interval
 from gptnt.common.paths import Paths
@@ -45,18 +44,6 @@ def coerce_model_string_outputs(output: str) -> DefuserOutputT[InteractGameLocat
     """Parse the output from the agent for gemini/models that don't support structured output."""
     output = output.strip().replace("```json", "").replace("```", "")
     return TypeAdapter(DefuserOutputT[InteractGameLocation]).validate_json(output)
-
-
-def does_model_support_structured_outputs(agent: Agent[Any, Any]) -> bool:
-    """Check if the model supports structured outputs."""
-    if isinstance(agent.model, str):
-        model_name_string = agent.model
-    elif isinstance(agent.model, Model):
-        model_name_string = agent.model.model_name
-    else:
-        raise TypeError("Cannot determine model name from agent")
-
-    return "gemini" not in model_name_string
 
 
 @dataclass(kw_only=True)
