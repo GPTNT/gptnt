@@ -138,7 +138,9 @@ def test_actions_are_parsed_correctly_from_json(action: BaseAction) -> None:
 
     This is a regression test to ensure that the actions are parsed correctly.
     """
-    action_as_json = action.model_dump(mode="json")
+    action_as_json = action.model_dump(
+        mode="json", exclude={"action_type"}, exclude_none=True, exclude_defaults=True
+    )
 
     # Note: actions can be validated by their name or the value, so we check that too
     if isinstance(action, InteractGameAction):
