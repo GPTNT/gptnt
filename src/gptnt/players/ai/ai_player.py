@@ -1,7 +1,7 @@
 import abc
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Union, override
+from typing import cast, override
 
 import logfire
 import structlog
@@ -15,7 +15,7 @@ from gptnt.common.async_ops import busy_wait_interval
 from gptnt.common.instrumentation import InstrumentationDataclassMixin
 from gptnt.ktane.game_settings import KtaneSettings
 from gptnt.players.actions import DoNothingAction, SendMessageAction
-from gptnt.players.ai.prompts import load_reflection_prompt
+from gptnt.players.ai.prompts import coerce_reflection_message_output, load_reflection_prompt
 from gptnt.players.ai.tokens import estimate_tokens_for_image_per_model
 from gptnt.players.ai.usage import PlayerUsage
 from gptnt.players.base_player import BasePlayer
@@ -281,19 +281,20 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         # Load the reflection prompt
         reflection_prompt = load_reflection_prompt()
 
+        # Coerce the final response in case it goes wrong
+        self.agent.output_validator(coerce_reflection_message_output)  # pyright: ignore[reportCallIssue,reportArgumentType]
+
         response = await self.agent.run(
             [final_message, reflection_prompt],
             deps=self.build_deps_for_request(),
             message_history=self.player_usage.to_history(),
-            output_type=Union[str, SendMessageAction],  # noqa: UP007
         )
         # update the usage
         self.usage = response.usage()
         self.player_usage.update(new_messages=response.new_messages(), usage=response.usage())
-        # return the response
-        if isinstance(response.output, str):
-            return SendMessageAction(message=response.output)
-        return response.output
+
+        # return the response, which is a SendMessageAction (since we are coercing it)
+        return cast("SendMessageAction", response.output)
 
     @property
     def _message_history(self) -> list[ModelMessage]:

@@ -1,14 +1,17 @@
+from contextlib import suppress
 from functools import lru_cache
-from typing import Literal
+from typing import Any, Literal
 
 import logfire
 import structlog
+from pydantic import ValidationError
 from pydantic_ai import BinaryContent
 
 from gptnt.common.paths import Paths
 from gptnt.dialogue_space.client import DialogueSpaceClient
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.manual import MANUAL_NUM_PAGES, KtaneManualPaths
+from gptnt.players.actions import SendMessageAction
 
 log = structlog.get_logger()
 
@@ -57,6 +60,30 @@ async def send_reflection_message(*, ktane_url: str, dialogue_space_url: str) ->
     await ds_client.connect(is_player=False)
     _ = await ds_client.send_message(final_message)
     await ds_client.disconnect()
+
+
+async def coerce_reflection_message_output(output: Any) -> SendMessageAction:
+    """Allow any output for reflection.
+
+    This is a workaround for the fact that sometimes the thing is wrong, so we just take whatever
+    we got and output it to a SendMessageAction.
+    """
+    if isinstance(output, SendMessageAction):
+        return output
+
+    # If its a string, just return it
+    if isinstance(output, str):
+        return SendMessageAction(message=output)
+
+    log.warning("Output not supported for reflection.", output=output)
+    if isinstance(output, dict) and "response" in output:
+        # This is a special case for the reflection message, where the output is a dict with a
+        # response key.
+        with suppress(ValidationError):
+            return SendMessageAction.model_validate(output["response"])
+
+    # If its json serialisable, try to convert it to a string
+    return SendMessageAction(message=str(output))
 
 
 NEEDY_MODULE_PAGE_NUMS = tuple(range(17, 21))

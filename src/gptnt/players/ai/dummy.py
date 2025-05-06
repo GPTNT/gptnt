@@ -6,7 +6,6 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
     ModelResponse,
-    TextPart,
     ToolCallPart,
     UserPromptPart,
 )
@@ -73,7 +72,16 @@ def dummy_message_generator(
     if reflection_message := check_for_reflection_message(messages):  # noqa: WPS332
         # If we get a reflection message, we need to send it back
         logger.info("Sending reflection message", message=reflection_message)
-        return ModelResponse(parts=[TextPart(reflection_message)])
+        return ModelResponse(
+            parts=[
+                ToolCallPart(
+                    "final_result_SendMessageAction",
+                    SendMessageAction(message=reflection_message).model_dump(
+                        exclude={"thoughts", "action_type"}, mode="json"
+                    ),
+                )
+            ]
+        )
 
     message = SendMessageAction(message=f"Message {len(messages)}")
     return ModelResponse(
@@ -127,7 +135,18 @@ class DummyDefuserFunction:
         if reflection_message := check_for_reflection_message(messages):  # noqa: WPS332
             # If we get a reflection message, we need to send it back
             logger.info("Sending reflection message", message=reflection_message)
-            return ModelResponse(parts=[TextPart(reflection_message)])
+            return ModelResponse(
+                parts=[
+                    ToolCallPart(
+                        "final_result",
+                        {
+                            "response": SendMessageAction(message=reflection_message).model_dump(
+                                exclude={"thoughts", "action_type"}, mode="json"
+                            )
+                        },
+                    )
+                ]
+            )
         raise ValueError("no reflection message found")
 
 
