@@ -1,3 +1,4 @@
+import io
 from contextlib import suppress
 from functools import partial
 from typing import Any
@@ -5,14 +6,19 @@ from typing import Any
 import logfire
 import polars as pl
 import wandb
-from pydantic import UUID4, TypeAdapter
+import weave
+from PIL import Image
+from pydantic import BaseModel, TypeAdapter
+from pydantic_ai.messages import BinaryContent, ModelMessage
+from pydantic_ai.usage import Usage
 from structlog import get_logger
 from whenever import Instant
 
+from gptnt.api.structures import GameMetadata
 from gptnt.common.async_ops import run_in_separate_thread
-from gptnt.ktane.experiments.experiments import ExperimentSpec
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import (
+    BaseAction,
     DoNothingAction,
     InteractGameAction,
     InteractGameLocation,
@@ -27,7 +33,7 @@ from gptnt.players.metrics.structures import (
     ObservationMetric,
 )
 from gptnt.players.metrics.wandb import flatten_dict
-from gptnt.players.structures import PlayerRole
+from gptnt.players.structures import PlayerMetadata, PlayerRole
 
 _logger = get_logger()
 
@@ -37,6 +43,9 @@ class PlayerEpisodeTracker:
 
     def __init__(self, *, wandb_init_kwargs: dict[str, Any]) -> None:
         self._wandb_init_kwargs = wandb_init_kwargs
+        entity = wandb_init_kwargs.get("entity", "gptnt")
+        project = wandb_init_kwargs.get("project", "gptnt")
+        self.weave_client = weave.init(project_name=f"{entity}/{project}")
 
         self._actions: list[ActionMetric] = []
         self._messages_sent: list[MessageMetric] = []
@@ -51,35 +60,44 @@ class PlayerEpisodeTracker:
 
         self.start_time: Instant
 
+        self._call: Any | None = None
+        self._game_metadata: GameMetadata | None = None
+
     def on_game_start(
         self,
         *,
-        experiment_spec: ExperimentSpec,
-        game_id: UUID4,
-        player_id: UUID4,
-        role: PlayerRole | None,
+        game_metadata: GameMetadata,
+        player_metadata: PlayerMetadata,
         additional_metadata: dict[str, Any],
     ) -> None:
         """Start the run for the current player.
 
         All configs given are flattened using dot notation.
         """
+        self._game_metadata = game_metadata
+
         run = wandb.init(
             config=flatten_dict(
                 {
-                    "game_id": game_id,
-                    "player_id": player_id,
-                    "role": role,
-                    "experiment_name": experiment_spec.experiment_name,
-                    "resume": "never",
-                    **experiment_spec.model_dump(mode="json"),
+                    "game_id": game_metadata.game_id,
+                    "player_id": player_metadata.uuid,
+                    "role": player_metadata.player_role,
+                    "experiment_name": game_metadata.experiment_spec.experiment_name,
+                    **game_metadata.experiment_spec.model_dump(mode="json"),
                     **additional_metadata,
                 }
             ),
+            resume="never",
             **self._wandb_init_kwargs,
         )
         _logger.info("WandB run started", run_id=run.id, config=run.config)
         self.start_time = Instant.now()
+
+    def on_close(self) -> None:
+        """Close the tracker."""
+        self.weave_client.flush()
+        self.weave_client.finish()
+        wandb.finish()
 
     @logfire.instrument("Send results to wandb")
     async def on_game_end(
@@ -147,6 +165,7 @@ class PlayerEpisodeTracker:
             data_to_send["observations"] = observations_table
 
         wandb.log(data_to_send, commit=False)
+        self._game_metadata = None
 
         await self.finish_run(has_crashed=additional_end_game_metrics.has_crashed)
         _logger.debug("WandB run finished")
@@ -160,6 +179,63 @@ class PlayerEpisodeTracker:
         _logger.debug("WandB run finished")
 
         self.reset()
+
+    def start_weave_trace(
+        self,
+        message_input: str | list[str | BinaryContent],
+        message_history: list[ModelMessage],
+        metadata: PlayerMetadata,
+    ) -> None:
+        """Start a trace to Weave."""
+        inputs: dict[str, Any] = {"role": metadata.player_role, "history": message_history}
+
+        attributes: dict[str, Any] = {"player_id": metadata.uuid, "role": metadata.player_role}
+
+        if self._game_metadata:
+            attributes["game_id"] = self._game_metadata.game_id
+            attributes["experiment_name"] = self._game_metadata.experiment_spec.experiment_name
+
+        if self._bomb_states:
+            inputs["bomb_states"] = self._bomb_states[-1]
+
+        if isinstance(message_input, str):
+            inputs["message_input"] = message_input
+
+        if isinstance(message_input, list):
+            inputs["message_input"] = [
+                message if isinstance(message, str) else Image.open(io.BytesIO(message.data))
+                for message in message_input
+            ]
+
+        self._call = self.weave_client.create_call(
+            f"{metadata.player_name} ({metadata.player_role})",
+            inputs=inputs,
+            attributes=attributes,
+        )
+
+    def finish_weave_trace(
+        self, outputs: BaseAction | str | Any, model_name: str, usage: Usage
+    ) -> None:
+        """Finish the trace to Weave."""
+        if self._call is None:
+            return
+
+        if isinstance(outputs, BaseModel):
+            outputs = outputs.model_dump(mode="json")
+
+        self.weave_client.finish_call(
+            self._call,
+            output={
+                "usage": {
+                    "input_tokens": usage.request_tokens,
+                    "output_tokens": usage.response_tokens,
+                    "total_tokens": usage.total_tokens,
+                },
+                "model": model_name.lstrip("eu."),
+                "output": outputs,
+            },
+        )
+        self._call = None
 
     def step(self, **kwargs: bool | str | None | float) -> None:
         """Step the player with the given kwargs."""
@@ -247,7 +323,7 @@ class PlayerEpisodeTracker:
         actions_table = wandb.Table(
             dataframe=pl.from_dicts(
                 TypeAdapter(list[ActionMetric]).dump_python(
-                    self._actions, mode="json", exclude={"action_type"}
+                    self._actions, mode="json", exclude={"command"}
                 )
             ).to_pandas(),
             allow_mixed_types=True,
@@ -261,7 +337,7 @@ class PlayerEpisodeTracker:
         messages_table = wandb.Table(
             dataframe=pl.from_dicts(
                 TypeAdapter(list[MessageMetric]).dump_python(
-                    self._messages_sent, mode="json", exclude={"action_type"}
+                    self._messages_sent, mode="json", exclude={"command"}
                 )
             ).to_pandas(),
             allow_mixed_types=True,
@@ -275,7 +351,7 @@ class PlayerEpisodeTracker:
         do_nothing_table = wandb.Table(
             dataframe=pl.from_dicts(
                 TypeAdapter(list[DoNothingMetric]).dump_python(
-                    self._do_nothing_actions, mode="json", exclude={"action_type"}
+                    self._do_nothing_actions, mode="json", exclude={"command"}
                 )
             ).to_pandas(),
             allow_mixed_types=True,
@@ -306,7 +382,7 @@ class PlayerEpisodeTracker:
         reflections_table = wandb.Table(
             dataframe=pl.from_dicts(
                 TypeAdapter(list[MessageMetric]).dump_python(
-                    self._reflections, mode="json", exclude={"action_type"}
+                    self._reflections, mode="json", exclude={"command"}
                 )
             ).to_pandas(),
             allow_mixed_types=True,

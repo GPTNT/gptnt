@@ -215,6 +215,13 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
 
         message_input = await self.build_agent_input()
         request_deps = self.build_deps_for_request()
+
+        self.tracker.start_weave_trace(
+            message_input=message_input,
+            message_history=self.player_usage.to_history(),
+            metadata=self.metadata,
+        )
+
         try:
             agent_output = await self.agent.run(
                 message_input, deps=request_deps, message_history=self.player_usage.to_history()
@@ -225,6 +232,9 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
                 self.tracker.guardrail_violations += 1
             raise
 
+        self.tracker.finish_weave_trace(
+            outputs=agent_output.output, model_name=self.model_name, usage=agent_output.usage()
+        )
         # Updage usage after the request
         self.player_usage.update(
             new_messages=agent_output.new_messages(), usage=agent_output.usage()
@@ -291,6 +301,9 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
             deps=self.build_deps_for_request(),
             message_history=self.player_usage.to_history(),
         )
+        # TODO: This needs to change in case we use output validators in the future, but for now
+        # this should work
+        self.agent._output_validators.clear()  # noqa: SLF001
         # update the usage
         self.usage = response.usage()
         self.player_usage.update(new_messages=response.new_messages(), usage=response.usage())

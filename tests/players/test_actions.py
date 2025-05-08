@@ -23,16 +23,16 @@ from tests.players.fixtures import AIPlayerCases
 OutputDataT = ExpertOutputT | DefuserOutputT[InteractGameLocation]
 
 
-def test_all_actions_have_action_type_attribute() -> None:
-    """Test that all actions have the action_type attribute."""
+def test_all_actions_have_command_attribute() -> None:
+    """Test that all actions have the command attribute."""
     # Pull all the action types from the `OutputDataT` union in this file
-    action_types = set(
+    commands = set(
         itertools.chain.from_iterable(
             [get_args(data_type.__value__) for data_type in get_args(OutputDataT)]
         )
     )
-    for action_type in action_types:
-        assert "action_type" in action_type.model_fields
+    for command in commands:
+        assert "command" in command.model_fields
 
 
 @pytest.mark.asyncio
@@ -75,8 +75,8 @@ async def test_send_message_action_sends_message_to_dialogue_space(
     assert spy.call_args[0][0] == message_content
 
 
-game_action_type = param_fixture(
-    "game_action_type", list(GameActionType), ids=[action.value for action in GameActionType]
+game_command = param_fixture(
+    "game_command", list(GameActionType), ids=[action.value for action in GameActionType]
 )
 
 
@@ -93,40 +93,38 @@ class PlayerActionCases:
     def case_send_message_with_thoughts(self) -> SendMessageAction:
         return SendMessageAction(message="Test message", thoughts="Test thoughts")
 
-    def case_interact_set_of_marks(
-        self, game_action_type: GameActionType
-    ) -> InteractGameAction[int]:
+    def case_interact_set_of_marks(self, game_command: GameActionType) -> InteractGameAction[int]:
         return InteractGameAction[int](
-            action=game_action_type,
-            location=2 if game_action_type in GameActionType.require_location() else None,
+            action=game_command,
+            location=2 if game_command in GameActionType.require_location() else None,
         )
 
     def case_interact_relative_coordinate(
-        self, game_action_type: GameActionType
+        self, game_command: GameActionType
     ) -> InteractGameAction[RelativeCoordinate]:
         return InteractGameAction[RelativeCoordinate](
-            action=game_action_type,
+            action=game_command,
             location=RelativeCoordinate(x_pos=0.5, y_pos=0.5)
-            if game_action_type in GameActionType.require_location()
+            if game_command in GameActionType.require_location()
             else None,
         )
 
     def case_interact_set_of_marks_with_thoughts(
-        self, game_action_type: GameActionType
+        self, game_command: GameActionType
     ) -> InteractGameAction[int]:
         return InteractGameAction[int](
-            action=game_action_type,
-            location=2 if game_action_type in GameActionType.require_location() else None,
+            action=game_command,
+            location=2 if game_command in GameActionType.require_location() else None,
             thoughts="Test thoughts",
         )
 
     def case_interact_relative_coordinate_with_thoughts(
-        self, game_action_type: GameActionType
+        self, game_command: GameActionType
     ) -> InteractGameAction[RelativeCoordinate]:
         return InteractGameAction[RelativeCoordinate](
-            action=game_action_type,
+            action=game_command,
             location=RelativeCoordinate(x_pos=0.5, y_pos=0.5)
-            if game_action_type in GameActionType.require_location()
+            if game_command in GameActionType.require_location()
             else None,
             thoughts="Test thoughts",
         )
@@ -139,7 +137,7 @@ def test_actions_are_parsed_correctly_from_json(action: BaseAction) -> None:
     This is a regression test to ensure that the actions are parsed correctly.
     """
     action_as_json = action.model_dump(
-        mode="json", exclude={"action_type"}, exclude_none=True, exclude_defaults=True
+        mode="json", exclude={"command"}, exclude_none=True, exclude_defaults=True
     )
 
     # Note: actions can be validated by their name or the value, so we check that too

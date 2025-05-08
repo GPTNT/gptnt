@@ -16,13 +16,13 @@ class BaseAction(BaseModel):
 class DoNothingAction(BaseAction):
     """Create a 'do nothing' action."""
 
-    action_type: Literal["do_nothing"] = "do_nothing"
+    command: Literal["do_nothing"] = "do_nothing"
 
 
 class SendMessageAction(BaseAction):
     """Create a 'send message' action."""
 
-    action_type: Literal["send_message"] = "send_message"
+    command: Literal["send_message"] = "send_message"
     message: str
 
 
@@ -52,4 +52,4 @@ class InteractGameAction[LocationDataT: InteractGameLocation](
 ):
     """Interaction action for the player to take in the game."""
 
-    action_type: Literal["interact_game"] = "interact_game"
+    command: Literal["interact_game"] = "interact_game"

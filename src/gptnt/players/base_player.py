@@ -44,10 +44,8 @@ class BasePlayer(abc.ABC):
         additional_metadata = additional_metadata or {}
         log.debug("Starting wandb")
         self.tracker.on_game_start(
-            experiment_spec=game_metadata.experiment_spec,
-            game_id=game_metadata.game_id,
-            role=game_metadata.player_metadata.player_role,
-            player_id=self.metadata.uuid,
+            game_metadata=game_metadata,
+            player_metadata=self.metadata,
             additional_metadata=additional_metadata,
         )
 

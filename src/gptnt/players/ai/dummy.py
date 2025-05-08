@@ -77,7 +77,7 @@ def dummy_message_generator(
                 ToolCallPart(
                     "final_result_SendMessageAction",
                     SendMessageAction(message=reflection_message).model_dump(
-                        exclude={"thoughts", "action_type"}, mode="json"
+                        exclude={"thoughts", "command"}, mode="json"
                     ),
                 )
             ]
@@ -88,7 +88,7 @@ def dummy_message_generator(
         parts=[
             ToolCallPart(
                 "final_result_SendMessageAction",
-                message.model_dump(exclude={"thoughts", "action_type"}, mode="json"),
+                message.model_dump(exclude={"thoughts", "command"}, mode="json"),
             )
         ]
     )
@@ -118,9 +118,7 @@ class DummyDefuserFunction:
             logger.warning("Ran out of actions to perform, returning click release action.")
             action_to_perform = SoMAction(action=GameActionType.click_release, location="A")
 
-        model_response = action_to_perform.model_dump(
-            mode="json", exclude={"thoughts", "action_type"}
-        )
+        model_response = action_to_perform.model_dump(mode="json", exclude={"thoughts", "command"})
         model_response["action"] = action_to_perform.action.name
 
         logger.info("Sending action", action=model_response)
@@ -141,7 +139,7 @@ class DummyDefuserFunction:
                         "final_result",
                         {
                             "response": SendMessageAction(message=reflection_message).model_dump(
-                                exclude={"thoughts", "action_type"}, mode="json"
+                                exclude={"thoughts", "command"}, mode="json"
                             )
                         },
                     )

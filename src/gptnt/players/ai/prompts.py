@@ -62,7 +62,7 @@ async def send_reflection_message(*, ktane_url: str, dialogue_space_url: str) ->
     await ds_client.disconnect()
 
 
-async def coerce_reflection_message_output(output: Any) -> SendMessageAction:
+async def coerce_reflection_message_output(output: Any) -> SendMessageAction | Any:
     """Allow any output for reflection.
 
     This is a workaround for the fact that sometimes the thing is wrong, so we just take whatever
