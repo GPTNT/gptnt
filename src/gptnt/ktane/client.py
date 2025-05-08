@@ -259,7 +259,9 @@ class KtaneClient(BaseClient):
         som_rgb_array = set_of_marks_painter.run(
             observation=np.asarray(raw_image),
             colorful_image=np.asarray(segmentation_image),
-            state=self.current_bomb_state.zoomed_in_component if self.current_bomb_state else None,
+            zoomed_in_component=self.current_bomb_state.zoomed_in_component
+            if self.current_bomb_state
+            else None,
         )
         return Image.fromarray(som_rgb_array.astype(np.uint8), "RGB")
 

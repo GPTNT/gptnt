@@ -118,6 +118,7 @@ with st.sidebar:
     _ = st.header("Mask")
     mask_thickness = st.number_input("Mask thickness", min_value=0, max_value=10, value=1, step=1)
     mask_alpha = st.number_input("Mask alpha", min_value=0.0, max_value=1.0, value=0.10, step=0.01)
+    square_size = st.number_input("Minimum square size", min_value=0, step=1)
 
 som = SetOfMarksHandler(
     annotation_background_params=AnnotationBackgroundParams(
@@ -130,7 +131,10 @@ som = SetOfMarksHandler(
         space_between_boxes=annotation_text_space_between,
     ),
     mask_drawing_params=MaskDrawingParams(
-        mask_thickness=mask_thickness, soft_mask_alpha=mask_alpha, bw_outside_mask=bw_outside_mask
+        mask_thickness=mask_thickness,
+        soft_mask_alpha=mask_alpha,
+        bw_outside_mask=bw_outside_mask,
+        mask_highlight_size=[square_size, square_size],
     ),
     add_labels=add_labels,
     add_mask_outline=add_mask_outline,
@@ -159,7 +163,9 @@ for module, screenshot, segmentation in image_pairs:
     segm_image = np.asarray(load_observation_from_bytes(segmentation.read_bytes()))
     segm_image = segm_image.copy()
 
-    display_image = som.run(observation=image, colorful_image=segm_image, state=module)
+    display_image = som.run(
+        observation=image, colorful_image=segm_image, zoomed_in_component=module
+    )
 
     # _ = plot_label(image, region)
     # image = add_center_grid(image)

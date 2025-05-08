@@ -26,10 +26,12 @@ from gptnt.processors.labels.drawing import (
     AnnotationTextParams,
     draw_annotation,
 )
+from gptnt.processors.labels.highlighting import highlight_module_with_square
 from gptnt.processors.labels.keypad import keypad
 from gptnt.processors.labels.maze import maze
 from gptnt.processors.labels.memory import memory
 from gptnt.processors.labels.morse import morse_code
+from gptnt.processors.labels.ordering import relabel_regions_in_reading_order
 from gptnt.processors.labels.password import password
 from gptnt.processors.labels.simon import simon
 from gptnt.processors.labels.types import (  # noqa: WPS235
@@ -84,7 +86,7 @@ def blend_with_image(image: RGBArray, mask: RGBArray, alpha: float = 0.3) -> RGB
     return np.asarray(blended, dtype=np.uint8)
 
 
-def convert_colorful_segm_to_labeled(image_as_array: RGBArray) -> NDArray[np.int8]:  # noqa: WPS210
+def convert_colorful_segm_to_labeled(image_as_array: RGBArray) -> NDArray[np.uint8]:  # noqa: WPS210
     """Convert colourful segmentation to a labelled image.
 
     Input shape: (height, width, channels = 3)
@@ -109,10 +111,10 @@ def convert_colorful_segm_to_labeled(image_as_array: RGBArray) -> NDArray[np.int
 
     # reshape the labels to image dimensions again
     # shape: (height, width)
-    return inverse.reshape(height, width).astype(np.int8)
+    return inverse.reshape(height, width).astype(np.uint8)
 
 
-def get_region_properties(labeled_image: NDArray[np.int8]) -> list[RegionProperties]:
+def get_region_properties(labeled_image: NDArray[np.uint8]) -> list[RegionProperties]:
     """Extract region properties from a labelled image."""
     props = regionprops(labeled_image)
     props = [props for props in props if props.area > PROPS_AREA_THRESHOLD]
@@ -285,6 +287,9 @@ class MaskDrawingParams:
     soft_mask_alpha: float
     bw_outside_mask: bool
 
+    mask_highlight_size: int | None = None
+    # Minimum size of the square to highlight the module
+
 
 def draw_region_masks(  # noqa: WPS210, WPS211
     *,
@@ -367,28 +372,39 @@ class SetOfMarksHandler:
         self._mark_type = mark_type
         self._mark_to_coordinate: dict[SetOfMarksLocation, RelativeCoordinate] = {}
 
-    def extract_regions(self, colorful_image: RGBArray) -> list[RegionProperties]:
+    def extract_regions(self, colorful_image: RGBArray) -> tuple[RGBArray, list[RegionProperties]]:
         """Extract regions from a colourful segmentation image."""
         labeled_segmentation = convert_colorful_segm_to_labeled(colorful_image)
         regions = get_region_properties(labeled_segmentation)
+        labeled_segmentation, regions = relabel_regions_in_reading_order(
+            labeled_segmentation, regions
+        )
         self._update_mark_to_coordinate_mapping(regions)
-        return regions
+        return labeled_segmentation, regions
 
     def run(
         self,
         *,
         observation: RGBArray,
         colorful_image: RGBArray,
-        state: KtaneComponent | None = None,
+        zoomed_in_component: KtaneComponent | None = None,
     ) -> RGBArray:
         """Handle the labelling and bounding box drawing on the screenshot based on segmentation.
 
         Output: Annotated screenshot with bounding boxes and labels drawn.
         """
-        regions = self.extract_regions(colorful_image)
+        labelled_image, regions = self.extract_regions(colorful_image)
 
-        # find which bomb component is currently selected
-        zoomed_in_component = state
+        if zoomed_in_component and self._mask_drawing_params.mask_highlight_size is not None:
+            observation = highlight_module_with_square(
+                observation,
+                [region.label for region in regions],
+                labelled_image,
+                min_square_size=(
+                    self._mask_drawing_params.mask_highlight_size,
+                    self._mask_drawing_params.mask_highlight_size,
+                ),
+            )
 
         # convert regions to relative coordinates and store them
         annotated_image = draw_region_masks(
