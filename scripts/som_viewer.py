@@ -134,7 +134,7 @@ som = SetOfMarksHandler(
         mask_thickness=mask_thickness,
         soft_mask_alpha=mask_alpha,
         bw_outside_mask=bw_outside_mask,
-        mask_highlight_size=[square_size, square_size],
+        mask_highlight_size=square_size,
     ),
     add_labels=add_labels,
     add_mask_outline=add_mask_outline,

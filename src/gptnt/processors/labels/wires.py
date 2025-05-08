@@ -7,7 +7,6 @@ from gptnt.processors.labels.types import (
     RegionProperties,
 )
 
-OVERCROWDING_THRESHOLD = 4
 VERTICAL_OFFSET = 7
 
 
@@ -69,42 +68,13 @@ def wires(  # noqa: WPS210
         coord = Coordinates(y_pos=y_coord, x_pos=x_coord)
         ideal_coords.append(coord)
 
-    overcrowded = number_of_wires > OVERCROWDING_THRESHOLD
-
-    # if too many wires, put a couple above and below the wires
-    if overcrowded:
-        ideal_coords[0] = Coordinates(
-            y_pos=sorted_regions[0].bbox[0]
-            - box_dims.height // 2
-            - box_dims.padding
-            - VERTICAL_OFFSET,
-            x_pos=int(sorted_regions[0].centroid[1]),
-        )
-        ideal_coords[-1] = Coordinates(
-            y_pos=sorted_regions[-1].bbox[2]
-            + box_dims.height // 2
-            + box_dims.padding
-            + VERTICAL_OFFSET,
-            x_pos=int(sorted_regions[0].centroid[1]),
-        )
-
     # index of centre label (i.e. label that will always be ideally placed)
     center_label_index = (number_of_wires - 1) // 2  # rounds up when n is even
 
-    if overcrowded:
-        # only resolve overlaps for the middle labels
-        middle_coords = ideal_coords[1:-1]
-        middle_center_index = (len(middle_coords) - 1) // 2
-        resolved_middle = _resolve_overlaps(
-            middle_coords, box_dims, center_label_index=middle_center_index
-        )
-        # reconstruct full list
-        resolved_coords = [ideal_coords[0], *resolved_middle, ideal_coords[-1]]
-    else:
-        # resolve all coordinates normally
-        resolved_coords = _resolve_overlaps(
-            ideal_coords, box_dims, center_label_index=center_label_index
-        )
+    # resolve all coordinates normally
+    resolved_coords = _resolve_overlaps(
+        ideal_coords, box_dims, center_label_index=center_label_index
+    )
 
     # yield final drawing data
     for coord, region in zip(resolved_coords, sorted_regions, strict=False):
