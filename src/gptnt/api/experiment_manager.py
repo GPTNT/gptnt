@@ -155,9 +155,9 @@ class ExperimentManager:
         available_rooms = self.get_available_rooms()
         available_players = self.get_available_players()
 
-        _logger.debug(
-            f"Available rooms: {len(available_rooms)}, available players: {len(available_players)}"
-        )
+        # _logger.debug(
+        #     f"Available rooms: {len(available_rooms)}, available players: {len(available_players)}"
+        # )
 
         if not available_rooms or not available_players:
             # No rooms or players available, nothing to do
