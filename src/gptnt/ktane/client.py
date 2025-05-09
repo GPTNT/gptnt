@@ -51,8 +51,6 @@ class KtaneClient(BaseClient):
 
         self.current_bomb_state: BombState | None = None
 
-        # self.zoomed_in_component: KtaneComponent | None = None
-
         assert self.client.base_url is not None, "Base URL must be set"
 
     @override
