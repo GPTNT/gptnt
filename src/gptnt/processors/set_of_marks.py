@@ -430,6 +430,7 @@ class SetOfMarksHandler:
             _logger.exception(
                 "Mark ID not found in mapping", mark_id=mark_id, mapping=self._mark_to_coordinate
             )
+            raise KeyError(f"Mark ID {mark_id} not found in mapping")
         return self._mark_to_coordinate[mark_id]
 
     def draw_labels(
