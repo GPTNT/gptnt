@@ -8,7 +8,7 @@ import logfire
 import structlog
 from pydantic import ValidationError
 from pydantic_ai import Agent, BinaryContent, UsageLimitExceeded
-from pydantic_ai.exceptions import ModelHTTPError
+from pydantic_ai.exceptions import AgentRunError, ModelHTTPError
 from pydantic_ai.messages import ModelMessage, TextPart, ToolReturnPart
 from pydantic_ai.models import Model
 from pydantic_ai.usage import Usage, UsageLimits
@@ -382,12 +382,12 @@ class AIPlayer[AgentDepsT, OutputDataT: BaseAction](
             agent_output = await self.agent.run(
                 message_input, deps=request_deps, message_history=self.player_usage.to_history()
             )
-        except ModelHTTPError as err:
+        except (ModelHTTPError, AgentRunError) as err:
             if "filtered due to the prompt triggering Azure OpenAI's content" in err.message:
                 log.exception("Filtered due to content policy", error=err)
                 self.tracker.guardrail_violations += 1
             else:
-                raise
+                log.exception("Something has gone wrong, defaulting to `DoNothing`", error=err)
 
             # These need to exist if we get an error above
             return AgentOutput(output=DoNothingAction(), usage=Usage(), messages=[])
