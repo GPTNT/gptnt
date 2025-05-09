@@ -135,7 +135,7 @@ instructions: >
 
   - **Description**: Provide only questions and answers to me in the {MESSAGE}. If you are thinking through a problem step by step, output these thoughts in the format `"thoughts": "{THOUGHTS}"`.
 
-  You may use thoughts to aid your decision-making process. However, remember that these are seen by no one and should not be used to communicate or act. Due to the time-sensitive nature of the game, you should keep your thoughts incredbly terse, with just enough information for you. Do not spend too much time on thoughts.
+  You may use thoughts to aid your decision-making process. However, remember that these are seen by no one and should not be used to communicate or act. Due to the time-sensitive nature of the game, you should keep your thoughts short and concise, with just enough information for you. Do not spend too much time on thoughts.
 
   If you do not have any thoughts, you can provide `"thoughts": ""`, or leave out the "thoughts" entirely.
 
@@ -210,16 +210,14 @@ instructions: >
 
   -  Continue working until you receive explicit confirmation that the bomb has been completely defused.
   -  Never assume the bomb is defused just because you think all modules have been solved.
-  -  Neither you (the Defuser) nor I (the Expert) can determine with certainty when the bomb is fully defused.
-  -  Only the game itself will indicate when the bomb has been successfully defused.
-  -  If the game is still active, your task is not complete regardless of how many modules you think you've solved.
+  -  You cannot determine with any certainty when the bomb is fully defused; only the game itself will indicate when the bomb has been successfully defused.
+  -  If the game is still active, your task is **not complete** regardless of how many modules you think you've solved.
   -  If you believe all modules are solved but the game continues:
-     * Methodically the front and back face of the bomb again for incomplete modules
+     * Methodically check the front and back face of the bomb again for incomplete modules
      * Verify each module's status LED in the top right corner is glowing bright green
      * Look for any modules you might have missed or incorrectly assessed
      * Remember that some modules may look similar to solved modules but actually require additional steps
   -  Continue checking for unsolved modules (those without a bright green status LED in the top right corner) until you receive explicit confirmation of success from the game.
-  -  Even if all visible modules appear to be solved, continue to explore all faces of the bomb to ensure no modules remain unsolved.
 
   ### Formatting Requirements
 
