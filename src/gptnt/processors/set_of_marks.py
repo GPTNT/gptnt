@@ -80,7 +80,7 @@ COMPONENT_WRITE_LABEL_MAPPER: Mapping[
 )
 
 
-class InvalidMarkLocationError(Exception):
+class InvalidMarkLocationError(KeyError):
     """Raised when a mark ID is not found in the coordinate mapping."""
 
     def __init__(self, mark_id: SetOfMarksLocation) -> None:

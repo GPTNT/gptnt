@@ -1,20 +1,22 @@
 import abc
 from collections.abc import Awaitable, Callable
+from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import cast, override
+from typing import NamedTuple, cast, override
 
 import logfire
 import structlog
+from pydantic import ValidationError
 from pydantic_ai import Agent, BinaryContent, UsageLimitExceeded
 from pydantic_ai.exceptions import ModelHTTPError
-from pydantic_ai.messages import ModelMessage
+from pydantic_ai.messages import ModelMessage, TextPart, ToolReturnPart
 from pydantic_ai.models import Model
 from pydantic_ai.usage import Usage, UsageLimits
 
 from gptnt.common.async_ops import busy_wait_interval
 from gptnt.common.instrumentation import InstrumentationDataclassMixin
 from gptnt.ktane.game_settings import KtaneSettings
-from gptnt.players.actions import DoNothingAction, SendMessageAction
+from gptnt.players.actions import BaseAction, DoNothingAction, SendMessageAction
 from gptnt.players.ai.prompts import coerce_reflection_message_output, load_reflection_prompt
 from gptnt.players.ai.tokens import estimate_tokens_for_image_per_model
 from gptnt.players.ai.usage import PlayerUsage
@@ -25,8 +27,41 @@ from gptnt.players.structures import NO_NEW_MESSAGES_SENTINEL, PlayerStage, Unhe
 log = structlog.get_logger()
 
 
+class AgentOutput(NamedTuple):
+    """Model output for the AI player."""
+
+    output: BaseAction
+    usage: Usage
+    messages: list[ModelMessage]
+
+
+def set_model_output(
+    messages: list[ModelMessage], return_content_as_json: str
+) -> list[ModelMessage]:
+    """Set the output tool return for the messages.
+
+    This is a helper function that sets the output tool return for the messages. This is useful
+    when we want to set the output tool return for the messages.
+
+    This copy-pastes what Pydantic AI does, but adds in the text part too.
+    """
+    messages = deepcopy(messages)
+    last_message = messages[-1]
+    for part in last_message.parts:
+        if isinstance(part, ToolReturnPart):
+            part.content = return_content_as_json
+            return messages
+        if isinstance(part, TextPart):
+            part.content = return_content_as_json
+            return messages
+
+    raise LookupError("Could not find the last message to set the output to")
+
+
 @dataclass(kw_only=True)
-class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixin, abc.ABC):
+class AIPlayer[AgentDepsT, OutputDataT: BaseAction](
+    BasePlayer, InstrumentationDataclassMixin, abc.ABC
+):
     """Base generic class for AI actors/agents that play the game.
 
     This class brings together all the other clients that are needed for this actor to have a role
@@ -186,6 +221,14 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
         """Build the input for the agent."""
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def coerce_model_string_outputs(self, output: str) -> OutputDataT:
+        """Coerce the model string outputs to the correct type.
+
+        This is useful for models that don't support structured outputs.
+        """
+        raise NotImplementedError
+
     async def direct_output_from_agent(self, agent_output: OutputDataT) -> None:
         """Process output from Agent and direct to correct function.
 
@@ -222,27 +265,19 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
             metadata=self.metadata,
         )
 
-        try:
-            agent_output = await self.agent.run(
-                message_input, deps=request_deps, message_history=self.player_usage.to_history()
-            )
-        except ModelHTTPError as err:
-            if "filtered due to the prompt triggering Azure OpenAI's content" in err.message:
-                log.exception("Filtered due to content policy", error=err)
-                self.tracker.guardrail_violations += 1
-            raise
+        agent_output = await self._send_to_model(
+            message_input=message_input, request_deps=request_deps
+        )
 
         self.tracker.finish_weave_trace(
-            outputs=agent_output.output, model_name=self.model_name, usage=agent_output.usage()
+            outputs=agent_output.output, model_name=self.model_name, usage=agent_output.usage
         )
         # Updage usage after the request
-        self.player_usage.update(
-            new_messages=agent_output.new_messages(), usage=agent_output.usage()
-        )
-        self._track_step(agent_output.usage())
+        self.player_usage.update(new_messages=agent_output.messages, usage=agent_output.usage)
+        self._track_step(agent_output.usage)
 
         # Return the actual data
-        return agent_output.output
+        return agent_output.output  # pyright: ignore[reportReturnType]
 
     @abc.abstractmethod
     def build_deps_for_request(self) -> AgentDepsT:
@@ -334,3 +369,51 @@ class AIPlayer[AgentDepsT, OutputDataT](BasePlayer, InstrumentationDataclassMixi
                 "message_cost": self.player_usage.message_total_cost(message_idx=-1),
             }
         self.tracker.step(**output_data)
+
+    async def _send_to_model(
+        self, *, message_input: str | list[str | BinaryContent], request_deps: AgentDepsT
+    ) -> AgentOutput:
+        """Send the message to the model and get the response.
+
+        This is a wrapper around the agent.run() method that allows us to send the message to the
+        model and get the response.
+        """
+        try:  # noqa: WPS229
+            agent_output = await self.agent.run(
+                message_input, deps=request_deps, message_history=self.player_usage.to_history()
+            )
+        except ModelHTTPError as err:
+            if "filtered due to the prompt triggering Azure OpenAI's content" in err.message:
+                log.exception("Filtered due to content policy", error=err)
+                self.tracker.guardrail_violations += 1
+            else:
+                raise
+
+            # These need to exist if we get an error above
+            return AgentOutput(output=DoNothingAction(), usage=Usage(), messages=[])
+
+        agent_return: OutputDataT | BaseAction | DoNothingAction | str = agent_output.output
+
+        # Handle models that don't do structured outputs
+        if isinstance(agent_return, str):
+            try:
+                agent_return = self.coerce_model_string_outputs(agent_return)
+            except ValidationError:
+                log.exception(
+                    "Failed to coerce model output; returning `DoNothingAction`",
+                    agent_output=agent_return,
+                )
+                self.tracker.num_invalid_formats += 1
+                agent_return = DoNothingAction()
+
+        assert not isinstance(agent_return, str)
+        assert isinstance(agent_return, (BaseAction, DoNothingAction))
+
+        return AgentOutput(
+            output=agent_return,
+            usage=agent_output.usage(),
+            messages=set_model_output(
+                messages=agent_output.new_messages(),
+                return_content_as_json=agent_return.model_dump_json(),
+            ),
+        )

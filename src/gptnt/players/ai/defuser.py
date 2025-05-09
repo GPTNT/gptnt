@@ -20,8 +20,9 @@ from gptnt.players.actions import (
     InteractGameLocation,
     SendMessageAction,
 )
-from gptnt.players.ai.ai_player import AIPlayer
+from gptnt.players.ai.ai_player import AIPlayer, set_model_output
 from gptnt.players.metrics.structures import AdditionalEndGameMetrics
+from gptnt.processors.set_of_marks import InvalidMarkLocationError
 
 log = structlog.get_logger()
 
@@ -39,12 +40,6 @@ choose locations to act in the environment.
 Note: Needs to be Union until PEP-747 lands.
 https://ai.pydantic.dev/results/#structured-result-validation
 """
-
-
-def coerce_model_string_outputs(output: str) -> DefuserOutputT[InteractGameLocation]:
-    """Parse the output from the agent for gemini/models that don't support structured output."""
-    output = output.strip().replace("```json", "").replace("```", "")
-    return TypeAdapter(DefuserOutputT[InteractGameLocation]).validate_json(output)
 
 
 @dataclass(kw_only=True)
@@ -73,6 +68,15 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
 
     current_observation_window_length: int = 1
     """Current observation window length."""
+
+    @override
+    def coerce_model_string_outputs(self, output: str) -> DefuserOutputT[LocationDataT]:
+        output = output.strip().replace("```json", "").replace("```", "")
+        try:
+            return TypeAdapter(DefuserOutputT[InteractGameLocation]).validate_json(output)
+        except ValidationError:
+            log.warning('Trying with the `"}` on the end', output=output)
+            return TypeAdapter(DefuserOutputT[InteractGameLocation]).validate_json(output + '"}')  # noqa: WPS336
 
     @override
     async def disconnect_from_room(self) -> None:
@@ -112,7 +116,18 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
     @logfire.instrument("Send action to the game")
     async def send_action_to_game(self, action: InteractGameAction[LocationDataT]) -> None:
         """Send an action to the game client."""
-        _ = await self.game_client.send_action(action)
+        try:
+            _ = await self.game_client.send_action(action)
+        except InvalidMarkLocationError:
+            log.exception("SoM failed, replacing with `DoNothing` action", action=action)
+            action = DoNothingAction()  # pyright: ignore[reportAssignmentType]
+            # Update the last message in the history to reflect that nothing happened
+            self.player_usage.message_history[-1] = set_model_output(
+                messages=self.player_usage.message_history[-1],
+                return_content_as_json=action.model_dump_json(),
+            )
+            self.tracker.num_invalid_locations += 1
+
         self.tracker.add_action(action=action)
 
     @override
@@ -140,29 +155,6 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
             InteractGameAction: self.send_action_to_game,
         }
         return switcher[output_type]
-
-    @override
-    async def send_request_to_agent(self) -> DefuserOutputT[LocationDataT]:
-        """Send a request to the agent and coerce the output if we need to.
-
-        Just super() from the parent class and then coerce the output to the correct type because
-        we can't trust Gemini.
-        """
-        agent_output = await super().send_request_to_agent()
-        if isinstance(agent_output, str):
-            try:
-                agent_output = coerce_model_string_outputs(agent_output)
-            except ValidationError:
-                log.exception(
-                    "Failed to coerce model output; returning `DoNothingAction`",
-                    agent_output=agent_output,
-                )
-                self.tracker.num_invalid_formats += 1
-                agent_output = DoNothingAction()
-
-        # The return type should be fine but pyright doesn't like it because I'm using a lot of
-        # generics everything and I think it's getting confused
-        return agent_output  # pyright: ignore[reportReturnType]
 
 
 class MDPDefuserPlayer[LocationDataT: InteractGameLocation](

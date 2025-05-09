@@ -4,6 +4,7 @@ from typing import Union, override
 
 import logfire
 import structlog
+from pydantic import TypeAdapter, ValidationError
 from pydantic_ai import BinaryContent
 
 from gptnt.players.actions import DoNothingAction, SendMessageAction
@@ -23,6 +24,15 @@ https://ai.pydantic.dev/results/#structured-result-validation
 @dataclass(kw_only=True)
 class ExpertPlayer(AIPlayer[None, ExpertOutputT]):
     """Class for all Expert players."""
+
+    @override
+    def coerce_model_string_outputs(self, output: str) -> ExpertOutputT:
+        output = output.strip().replace("```json", "").replace("```", "")
+        try:
+            return TypeAdapter(ExpertOutputT).validate_json(output)
+        except ValidationError:
+            log.warning('Trying with the `"}` on the end', output=output)
+            return TypeAdapter(ExpertOutputT).validate_json(output + '"}')  # noqa: WPS336
 
     @override
     @logfire.instrument("Build agent input")

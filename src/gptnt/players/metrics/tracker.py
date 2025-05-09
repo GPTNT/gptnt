@@ -215,7 +215,7 @@ class PlayerEpisodeTracker:
         )
 
     def finish_weave_trace(
-        self, outputs: BaseAction | str | Any, model_name: str, usage: Usage
+        self, outputs: BaseAction | str | Any, model_name: str, usage: Usage | None
     ) -> None:
         """Finish the trace to Weave."""
         if self._call is None:
@@ -223,6 +223,8 @@ class PlayerEpisodeTracker:
 
         if isinstance(outputs, BaseModel):
             outputs = outputs.model_dump(mode="json")
+
+        usage = usage or Usage()
 
         self.weave_client.finish_call(
             self._call,
