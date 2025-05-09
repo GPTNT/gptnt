@@ -195,10 +195,15 @@ class MDPDefuserPlayer[LocationDataT: InteractGameLocation](
 
         # Frame is/should be a PNG that is encoded as bytes
         frames, segm_mask, som_image = await self.game_client.get_observation_frames()
+
+        num_frames_to_use = (
+            self.max_observation_window_length
+            if state is not None and state.view_needs_multiple_frames
+            else 1
+        )
+
         self.tracker.add_observation(
-            frames=frames[-self.current_observation_window_length :],
-            segm_mask=segm_mask,
-            som_image=som_image,
+            frames=frames[-num_frames_to_use:], segm_mask=segm_mask, som_image=som_image
         )
 
         if self.should_save_images:

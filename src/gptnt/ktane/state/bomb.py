@@ -2,6 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, alias_generators
 
+from gptnt.ktane.experiments.time_limits import NEEDS_MULTIPLE_IMAGES
 from gptnt.ktane.state.modules import KtaneComponent, ModuleStates, TimerState
 from gptnt.ktane.state.widget import WidgetStates
 
@@ -30,6 +31,13 @@ class BombState(BaseModel):
             if module.in_focus:
                 return module.name
         return None
+
+    @property
+    def view_needs_multiple_frames(self) -> bool:
+        """Check if the current view needs multiple frames."""
+        if self.zoomed_in_component is not None:
+            return NEEDS_MULTIPLE_IMAGES.get(self.zoomed_in_component, False)
+        return False
 
     @property
     def is_timed_out(self) -> bool:
