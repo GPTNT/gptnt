@@ -102,7 +102,6 @@ class DialogueSpaceServer:
         """Get the highest message ID in the datastore."""
         return len(self.messages)
 
-    @logfire.instrument("Add message to DS server")
     def add_message(self, sender_uuid: UUID, message: str) -> int:
         """Append message to datastore.
 
@@ -119,7 +118,6 @@ class DialogueSpaceServer:
         log.debug(f"Added message with ID {self.next_message_id}")
         return self.next_message_id
 
-    @logfire.instrument("Get unread messages for agent")
     def get_unread_messages(self, agent_id: UUID) -> list[DialogueSpaceMessage]:
         """Return list of messages with id greater than agent's last read message ID."""
         agent = self.agents[agent_id]
