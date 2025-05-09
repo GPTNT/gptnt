@@ -109,7 +109,9 @@ class MissionGenerator:
         )
 
         time_limit = (
-            get_time_limit_for_mission(components)
+            get_time_limit_for_mission(
+                components, allow_back_placement=self.spec.allow_back_placement
+            )
             if self.spec.time_limit is None
             else self.spec.time_limit
         )
