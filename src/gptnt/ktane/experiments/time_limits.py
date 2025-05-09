@@ -17,25 +17,23 @@ NUM_ZOOMING_TURNS_PER_MODULE = 2
 MAX_NUM_STRIKES_PER_GAME = 3
 """Maximum number of strikes allowed per game."""
 
-
 # Mapping of whether a module needs side info
 NEEDS_SIDE_INFO = types.MappingProxyType(
     {
-        KtaneComponent.wires: True,  # Needs serial number
-        KtaneComponent.big_button: True,  # Needs batteries/labels
-        KtaneComponent.keypad: False,
-        KtaneComponent.simon: True,  # Needs serial number
-        KtaneComponent.whos_on_first: False,
-        KtaneComponent.memory: False,
-        KtaneComponent.morse_code: False,
-        KtaneComponent.venn: True,  # Needs LED indicators
-        KtaneComponent.wire_sequence: False,
-        KtaneComponent.maze: False,
-        KtaneComponent.password: False,
+        KtaneComponent.wires: 1,
+        KtaneComponent.big_button: 2,
+        KtaneComponent.keypad: 0,
+        KtaneComponent.simon: 1,
+        KtaneComponent.whos_on_first: 0,
+        KtaneComponent.memory: 0,
+        KtaneComponent.morse_code: 0,
+        KtaneComponent.venn: 2,
+        KtaneComponent.wire_sequence: 0,
+        KtaneComponent.maze: 0,
+        KtaneComponent.password: 0,
     }
 )
 """Whether a module needs information from the sides of the bomb."""
-
 
 # Mapping of module stages
 NUM_STAGES_PER_MODULE = types.MappingProxyType(
@@ -86,7 +84,7 @@ NUM_ACTION_TURNS_PER_MODULE = types.MappingProxyType(
         # Memory is strike specific: max 5 stages, strike resets each time,
         KtaneComponent.memory: 5,
         # 6 do nothing to gather information + up to 15 clicks set frequency + press transmit
-        KtaneComponent.morse_code: 22,
+        KtaneComponent.morse_code: 32,
         # Max 6 wires
         KtaneComponent.venn: 6,
         # 3 wires, 1 click to move to next panel, max 4 panels
