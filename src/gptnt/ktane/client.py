@@ -155,15 +155,7 @@ class KtaneClient(BaseClient):
         if self.set_of_marks_painter and isinstance(action.location, (int, str)):
             # Convert the SoM to relative coordinates
             _logger.info(f"Mark to click is: {action.location}")
-            try:
-                action.location = self.set_of_marks_painter.mark_to_coordinate(
-                    mark_id=action.location
-                )
-            except KeyError as key_error:
-                _logger.warning(
-                    f"Do nothing: Invalid mark ID {action.location}. Error: {key_error}"
-                )
-                return None
+            action.location = self.set_of_marks_painter.mark_to_coordinate(mark_id=action.location)
 
         response = await self.client.get("/action", params=action.to_query_params())
         try:

@@ -54,6 +54,7 @@ class PlayerEpisodeTracker:
         self._observations: list[ObservationMetric] = []
         self._reflections: list[MessageMetric] = []
 
+        self.num_invalid_locations: int = 0
         self.num_invalid_formats: int = 0
         self.num_prompt_truncations: int = 0
         self.guardrail_violations: int = 0
@@ -295,6 +296,7 @@ class PlayerEpisodeTracker:
         self._observations.clear()
         self._do_nothing_actions.clear()
         self._reflections.clear()
+        self.num_invalid_locations = 0
         self.num_invalid_formats = 0
         self.num_prompt_truncations = 0
         self.guardrail_violations = 0

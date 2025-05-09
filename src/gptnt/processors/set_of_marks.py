@@ -80,6 +80,14 @@ COMPONENT_WRITE_LABEL_MAPPER: Mapping[
 )
 
 
+class InvalidMarkLocationError(Exception):
+    """Raised when a mark ID is not found in the coordinate mapping."""
+
+    def __init__(self, mark_id: SetOfMarksLocation) -> None:
+        super().__init__(f"Invalid mark location: {mark_id}")
+        self.mark_id = mark_id
+
+
 def blend_with_image(image: RGBArray, mask: RGBArray, alpha: float = 0.3) -> RGBArray:
     """Blend a mask with an image using alpha transparency."""
     blended = cv2.addWeighted(mask, alpha, image, 1 - alpha, 0)
@@ -430,7 +438,7 @@ class SetOfMarksHandler:
             _logger.exception(
                 "Mark ID not found in mapping", mark_id=mark_id, mapping=self._mark_to_coordinate
             )
-            raise KeyError(f"Mark ID {mark_id} not found in mapping")
+            raise InvalidMarkLocationError(mark_id)
         return self._mark_to_coordinate[mark_id]
 
     def draw_labels(
