@@ -8,8 +8,8 @@ GEMINI_PLAYERS=$3
 GPT4O_PLAYERS=$4
 DISPLAY_NUM=3
 
-if [[ -z "$NUM_ROOMS" || "$NUM_ROOMS" -lt 1 || -z "$CLAUDE_PLAYERS" || "$CLAUDE_PLAYERS" -lt 0 || -z "$GEMINI_PLAYERS" || "$GEMINI_PLAYERS"
--lt 0 || -z "$GPT4O_PLAYERS" || "$GPT4O_PLAYERS" -lt 0 ]]; then
+
+if [[ -z $NUM_ROOMS || $NUM_ROOMS -lt 1 || -z $CLAUDE_PLAYERS || $CLAUDE_PLAYERS -lt 0 || -z $GEMINI_PLAYERS || $GEMINI_PLAYERS -lt 0 || -z $GPT4O_PLAYERS || $GPT4O_PLAYERS -lt 0 ]]; then
   echo "Usage: $0 <number_of_rooms> <claude37_bedrock_players> <gemini_25_players> <gpt4o_players>"
   exit 1
 fi
