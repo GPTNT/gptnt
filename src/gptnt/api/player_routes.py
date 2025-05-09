@@ -3,7 +3,7 @@ from contextlib import suppress
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, BackgroundTasks, Depends, Request
+from fastapi import APIRouter, Depends, Request
 
 from gptnt.api.structures import GameMetadata, RoomMetadata
 from gptnt.dialogue_space.client import DialogueSpaceClient
@@ -112,15 +112,13 @@ async def stop_experiment(
     request: Request,
     *,
     additional_end_game_metrics: AdditionalEndGameMetrics | None = None,
-    background_tasks: BackgroundTasks,
 ) -> None:
     """Stop the experiment and disconnect from the room."""
     # Stop AI from taking any more actions
     loop_task = getattr(request.app.state, "main_loop_task", None)
     if player.metadata.player_type == "ai" and loop_task:
         loop_task.cancel()
-    # Stop the experiment in the background
-    background_tasks.add_task(
-        _stop_experiment, player, additional_end_game_metrics=additional_end_game_metrics
-    )
+
+    await _stop_experiment(player, additional_end_game_metrics=additional_end_game_metrics)
+
     logger.info("Stopping experiment for player")
