@@ -91,21 +91,6 @@ async def run_for_turn(player: PlayerDep, request: Request) -> None:
         await request.app.state.main_loop_task
 
 
-async def _stop_experiment(
-    player: BasePlayer, additional_end_game_metrics: AdditionalEndGameMetrics | None = None
-) -> None:
-    """Stop the experiment and disconnect from the room."""
-    if isinstance(player, AIPlayer):
-        await player.on_experiment_stop(additional_end_game_metrics=additional_end_game_metrics)
-
-    # Disconnect from the room
-    await player.disconnect_from_room()
-    logger.info("Stopped experiment for player")
-
-    # And now they're ready for another one
-    player.metadata.stage = PlayerStage.waiting_for_experiment
-
-
 @player_router.post("/stop-experiment")
 async def stop_experiment(
     player: PlayerDep,
@@ -119,6 +104,13 @@ async def stop_experiment(
     if player.metadata.player_type == "ai" and loop_task:
         loop_task.cancel()
 
-    await _stop_experiment(player, additional_end_game_metrics=additional_end_game_metrics)
-
     logger.info("Stopping experiment for player")
+    if isinstance(player, AIPlayer):
+        await player.on_experiment_stop(additional_end_game_metrics=additional_end_game_metrics)
+
+    # Disconnect from the room
+    await player.disconnect_from_room()
+
+    # And now they're ready for another one
+    player.metadata.stage = PlayerStage.waiting_for_experiment
+    logger.info("Stopped experiment for player")
