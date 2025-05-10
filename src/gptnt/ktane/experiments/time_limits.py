@@ -2,7 +2,7 @@ import types
 
 from gptnt.ktane.state.modules import KtaneComponent
 
-SECONDS_PER_ACTION = 3
+SECONDS_PER_ACTION = 4
 """Seconds per sequential action taken."""
 
 NUM_EXTRA_DIALOGUE_TURNS = 10
