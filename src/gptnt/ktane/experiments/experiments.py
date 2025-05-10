@@ -34,14 +34,10 @@ class ExperimentSpec(BaseModel, frozen=True):
     @property
     def experiment_name(self) -> str:
         """Get the name for the experiment."""
-        module = (
-            self.mission_spec.components[0].value
-            if len(self.mission_spec.components) == 1
-            else None
+        module_names = "-".join(
+            sorted({component.value for component in self.mission_spec.components})
         )
-        mission_name = (
-            f"{module}_{self.mission_spec.seed}" if module else str(self.mission_spec.seed)
-        )
+        mission_name = f"{module_names}_{self.mission_spec.seed}"
         return f"{self.condition}_{self.communication_style}_{self.pairing}_{mission_name}"
 
     @override

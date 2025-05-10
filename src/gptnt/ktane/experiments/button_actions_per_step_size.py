@@ -56,4 +56,4 @@ def compute_button_holding_steps(step_size: int) -> int:
     max_iterations = max(
         count_steps_to_see_digits(step_size, last_digit) for last_digit in last_digits
     )
-    return max_iterations
+    return max_iterations - 1
