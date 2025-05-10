@@ -6,7 +6,6 @@ from pydantic_ai.messages import ModelMessage, ModelRequest, UserPromptPart
 from pydantic_ai.usage import Usage
 
 from gptnt.players.ai.tokens import count_tokens_from_text
-from gptnt.players.metrics.cost import load_model_token_cost
 from gptnt.players.structures import PlayerRole
 
 
@@ -59,16 +58,6 @@ class PlayerUsage(BaseModel):
     def __len__(self) -> int:
         """Get the number of messages in the history."""
         return len(self.message_history)
-
-    @property
-    def cost_per_request_token(self) -> float:
-        """Get the cost per request token."""
-        return load_model_token_cost(model_name=self.model_name).input_token_cost
-
-    @property
-    def cost_per_response_token(self) -> float:
-        """Get the cost per response token."""
-        return load_model_token_cost(model_name=self.model_name).output_token_cost
 
     @property
     def context_length(self) -> int:
@@ -159,23 +148,3 @@ class PlayerUsage(BaseModel):
         self.request_tokens = []
         self.response_tokens = []
         self.num_times_truncated = 0
-
-    def message_request_tokens_cost(self, *, message_idx: int) -> float:
-        """Get the cost of the request tokens for a message."""
-        return self.original_response_tokens[message_idx] * self.cost_per_request_token
-
-    def message_response_tokens_cost(self, *, message_idx: int) -> float:
-        """Get the cost of the response tokens for a message."""
-        return self.original_response_tokens[message_idx] * self.cost_per_response_token
-
-    def message_total_cost(self, *, message_idx: int) -> float:
-        """Get the total cost of a message."""
-        return self.message_request_tokens_cost(
-            message_idx=message_idx
-        ) + self.message_response_tokens_cost(message_idx=message_idx)
-
-    def total_cost(self) -> float:
-        """Get the total cost of all messages."""
-        return sum(
-            self.message_total_cost(message_idx=idx) for idx in range(len(self.message_history))
-        )

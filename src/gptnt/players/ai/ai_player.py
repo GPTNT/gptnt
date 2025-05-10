@@ -274,7 +274,7 @@ class AIPlayer[AgentDepsT, OutputDataT: BaseAction](
         )
         # Updage usage after the request
         self.player_usage.update(new_messages=agent_output.messages, usage=agent_output.usage)
-        self._track_step(agent_output.usage)
+        self._track_step()
 
         # Return the actual data
         return agent_output.output  # pyright: ignore[reportReturnType]
@@ -351,23 +351,12 @@ class AIPlayer[AgentDepsT, OutputDataT: BaseAction](
         """Get the message history for the player."""
         return self.player_usage.to_history()
 
-    def _track_step(self, agent_output_usage: Usage | None = None) -> None:
+    def _track_step(self) -> None:
         """Track the step for the player."""
         output_data = {
             "step": self.player_usage.num_requests,
             "num_times_truncated": self.player_usage.num_times_truncated,
-            "game_cost": self.player_usage.total_cost(),
         }
-        if agent_output_usage is not None:
-            output_data = {
-                **output_data,
-                "request_tokens": agent_output_usage.request_tokens,
-                "response_tokens": agent_output_usage.response_tokens,
-                "total_tokens": agent_output_usage.total_tokens,
-                "request_cost": self.player_usage.message_request_tokens_cost(message_idx=-1),
-                "response_cost": self.player_usage.message_response_tokens_cost(message_idx=-1),
-                "message_cost": self.player_usage.message_total_cost(message_idx=-1),
-            }
         self.tracker.step(**output_data)
 
     async def _send_to_model(
