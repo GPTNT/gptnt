@@ -264,7 +264,7 @@ class WhosOnFirstModuleState(InteractiveModuleState):
 
     display_word: str
     button_words: list[str]
-    stage: Annotated[int, Field(le=3, ge=1)]
+    stage: Annotated[int, Field(le=4, ge=1)]
 
 
 type StandardModuleStates = Union[  # noqa: UP007
