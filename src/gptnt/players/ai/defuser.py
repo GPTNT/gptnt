@@ -14,6 +14,7 @@ from gptnt.api.structures import GameMetadata
 from gptnt.common.async_ops import busy_wait_interval
 from gptnt.common.paths import Paths
 from gptnt.ktane.client import KtaneClient
+from gptnt.ktane.experiments.time_limits import SECONDS_PER_ACTION
 from gptnt.players.actions import (
     DoNothingAction,
     InteractGameAction,
@@ -63,7 +64,7 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
     max_observation_window_length: int = 12
     should_save_images: bool = False
 
-    sequential_step_time: float = 3
+    sequential_step_time: float = SECONDS_PER_ACTION
     """How long to run the game for before stopping time again in sequential mode."""
 
     current_observation_window_length: int = 1
