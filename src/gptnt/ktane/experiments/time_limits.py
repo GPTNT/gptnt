@@ -1,5 +1,6 @@
 import types
 
+from gptnt.ktane.experiments.button_actions_per_step_size import compute_button_holding_steps
 from gptnt.ktane.state.modules import KtaneComponent
 
 SECONDS_PER_ACTION = 4
@@ -85,8 +86,8 @@ NEEDS_MULTIPLE_IMAGES = types.MappingProxyType(
 NUM_ACTION_TURNS_PER_MODULE = types.MappingProxyType(
     {
         KtaneComponent.wires: 1,  # noqa: WPS345
-        # 1 for pressing the button, 9 for waiting for the timer, 1 for releasing the button
-        KtaneComponent.big_button: 12,
+        # 1 for pressing the button, N for waiting for the timer, 1 for releasing the button
+        KtaneComponent.big_button: 2 + compute_button_holding_steps(SECONDS_PER_ACTION),
         KtaneComponent.keypad: 4,
         # Max seq length is 5, and you have to press all the old ones too
         KtaneComponent.simon: 15,
@@ -94,7 +95,7 @@ NUM_ACTION_TURNS_PER_MODULE = types.MappingProxyType(
         KtaneComponent.whos_on_first: 3,
         # Memory is strike specific: max 5 stages, strike resets each time,
         KtaneComponent.memory: 5,
-        # 6 do nothing to gather information + up to 15 clicks set frequency + press transmit
+        # 6 do nothing to gather information per letter + up to 15 clicks set frequency + press transmit
         KtaneComponent.morse_code: 22,
         # Max 6 wires
         KtaneComponent.venn: 6,
