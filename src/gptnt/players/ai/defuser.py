@@ -120,15 +120,16 @@ class BaseDefuserPlayer[AgentDepsT, LocationDataT: InteractGameLocation](
             _ = await self.game_client.send_action(action)
         except InvalidMarkLocationError:
             log.exception("SoM failed, replacing with `DoNothing` action", action=action)
-            action = DoNothingAction()  # pyright: ignore[reportAssignmentType]
+            do_nothing = DoNothingAction()
             # Update the last message in the history to reflect that nothing happened
             self.player_usage.message_history[-1] = set_model_output(
                 messages=self.player_usage.message_history[-1],
-                return_content_as_json=action.model_dump_json(),
+                return_content_as_json=do_nothing.model_dump_json(),
             )
             self.tracker.num_invalid_locations += 1
-
-        self.tracker.add_action(action=action)
+            self.tracker.add_do_nothing(action=do_nothing, role="defuser")
+        else:
+            self.tracker.add_action(action=action)
 
     @override
     async def run_sequential(self) -> None:  # noqa: WPS217
