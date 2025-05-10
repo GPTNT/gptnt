@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Annotated, NamedTuple, Union
+from typing import Annotated, NamedTuple
 
 from pydantic import (
     BaseModel,
@@ -11,6 +11,7 @@ from pydantic import (
     computed_field,
     field_validator,
 )
+from pydantic.types import Tag
 
 from gptnt.ktane.state import constants
 
@@ -267,21 +268,6 @@ class WhosOnFirstModuleState(InteractiveModuleState):
     stage: Annotated[int, Field(le=4, ge=1)]
 
 
-type StandardModuleStates = Union[  # noqa: UP007
-    WireSetModuleState,
-    ButtonModuleState,
-    KeypadModuleState,
-    SimonSaysModuleState,
-    ComplicatedWiresModuleState,
-    MazeModuleState,
-    MemoryModuleState,
-    MorseCodeModuleState,
-    PasswordModuleState,
-    WhosOnFirstModuleState,
-    WireSequenceModuleState,
-]
-
-
 class DischargeModuleState(InteractiveModuleState):
     """State of the Capacitor Discharge module."""
 
@@ -305,5 +291,25 @@ class GasModuleState(InteractiveModuleState):
     timer: int
 
 
-type NeedyModuleStates = DischargeModuleState | KnobModuleState | GasModuleState
-type ModuleStates = StandardModuleStates | NeedyModuleStates
+type StandardModuleStates = (
+    Annotated[WireSetModuleState, Tag("WireSet")]
+    | Annotated[ButtonModuleState, Tag("Button")]
+    | Annotated[KeypadModuleState, Tag("Keypad")]
+    | Annotated[SimonSaysModuleState, Tag("Simon")]
+    | Annotated[ComplicatedWiresModuleState, Tag("ComplicatedWires")]
+    | Annotated[MazeModuleState, Tag("Maze")]
+    | Annotated[MemoryModuleState, Tag("Memory")]
+    | Annotated[MorseCodeModuleState, Tag("Morse")]
+    | Annotated[PasswordModuleState, Tag("Password")]
+    | Annotated[WhosOnFirstModuleState, Tag("WhosOnFirst")]
+    | Annotated[WireSequenceModuleState, Tag("WireSequence")]
+)
+
+type NeedyModuleStates = (
+    Annotated[DischargeModuleState, Tag("NeedyCapacitor")]
+    | Annotated[KnobModuleState, Tag("NeedyKnob")]
+    | Annotated[GasModuleState, Tag("NeedyVentGas")]
+)
+type ModuleStates = (
+    Annotated[StandardModuleStates, Tag("Standard")] | Annotated[NeedyModuleStates, Tag("Needy")]
+)

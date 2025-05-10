@@ -30,7 +30,7 @@ pairing_generator:
 mission_generator:
   _target_: gptnt.ktane.experiments.missions.MissionGenerator
   num_seeds_per_mission: ${seeds_per_condition.${experiment_generator.condition}}
-  seed: 34
+  seed: 10
   config: ???
 
 experiment_generator:

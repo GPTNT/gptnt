@@ -785,7 +785,9 @@ storage/ktane/*
 # The experiment jsons, but not the tests
 storage/experiments/*
 storage/missions/*
-
+storage/bomb_states/
+storage/unique_experiments/
+storage/seed_differences/
 
 # do NOT commit any keys that might be stored in this dir
 storage/keys/
