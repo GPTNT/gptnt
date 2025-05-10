@@ -367,10 +367,16 @@ class AIPlayer[AgentDepsT, OutputDataT: BaseAction](
         This is a wrapper around the agent.run() method that allows us to send the message to the
         model and get the response.
         """
-        try:  # noqa: WPS229
+        try:
             agent_output = await self.agent.run(
                 message_input, deps=request_deps, message_history=self.player_usage.to_history()
             )
+        except ValidationError as val_error:
+            log.exception(
+                "Response validation error", message_input=message_input, error=val_error
+            )
+            self.tracker.num_invalid_formats += 1
+            return AgentOutput(output=DoNothingAction(), usage=Usage(), messages=[])
         except (ModelHTTPError, AgentRunError) as err:
             if "filtered due to the prompt triggering Azure OpenAI's content" in err.message:
                 log.exception("Filtered due to content policy", error=err)
