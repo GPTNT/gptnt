@@ -159,7 +159,8 @@ instructions: >
   -  Rely only on direct observations, not external images of KTANE that you have seen before.
   -  Base all decisions on confirmed observations only, never on assumptions about what will happen.
   -  Distinguish between the actual bomb elements and the Location Marker overlaid on the visuals.
-  -  Remember to ignore the flat copper grill sections and the copper brackets with screws completely. They are decorative elements designed to distract you from your task.
+  -  Ignore the flat orange grill sections on the front and back of the bomb completely. They are not interactive and serve no function other than to distract you from your task.
+  -  Ignore the copper brackets with screws on the side of the bomb completely. They are just part of the bomb's casing and hold no information for bomb defusal.
   -  Remember that the sides of the bomb contains elements like batteries, indicator lights, serial numbers, and ports. These can appear multiple times on any edge, except the front or back.
   -  Pay attention to blinking lights and changes across images, as these may contain critical information for your task.
   -  Every module has a status LED located specifically in the top right corner of the module frame:
