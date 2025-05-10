@@ -1,6 +1,3 @@
-from itertools import islice
-
-
 def count_steps_to_see_digits(step_size: int, start_time: int) -> int:
     """Count how many steps it will take to see digits 1, 4, and 5 in the time format mins:secs.
 
@@ -51,9 +48,7 @@ def count_steps_to_see_digits(step_size: int, start_time: int) -> int:
 def compute_button_holding_steps(step_size: int) -> int:
     """Count the number of steps needed to see digits 1, 4, and 5 in the time format mins:secs."""
     # Use itertools to generate multiples of step_size efficiently
-    multiples = islice((multiplier * step_size for multiplier in range(1, 11)), 10)
-    last_digits = {multiple % 10 for multiple in multiples}
     max_iterations = max(
-        count_steps_to_see_digits(step_size, last_digit) for last_digit in last_digits
+        count_steps_to_see_digits(step_size, last_digit) for last_digit in range(10)
     )
     return max_iterations - 1

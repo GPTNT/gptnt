@@ -83,7 +83,7 @@ NEEDS_MULTIPLE_IMAGES = types.MappingProxyType(
     }
 )
 
-NUM_ACTION_TURNS_PER_MODULE = types.MappingProxyType(
+NUM_ACTIONS_PER_MODULE = types.MappingProxyType(
     {
         KtaneComponent.wires: 1,  # noqa: WPS345
         # 1 for pressing the button, N for waiting for the timer, 1 for releasing the button
@@ -117,7 +117,7 @@ def get_time_limit_for_mission(
     """Get the time limit for a mission based on the components."""
     turns = 0
     # Add module-specific interaction actions
-    turns += sum([NUM_ACTION_TURNS_PER_MODULE[component] for component in components])
+    turns += sum([NUM_ACTIONS_PER_MODULE[component] for component in components])
     # Add one message turn per stage
     turns += sum([NUM_STAGES_PER_MODULE[component] for component in components])
     # Calculate the maximum rotations allowed based on components needing side info
