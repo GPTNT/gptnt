@@ -3,8 +3,12 @@ import types
 from gptnt.ktane.experiments.button_actions_per_step_size import compute_button_holding_steps
 from gptnt.ktane.state.modules import KtaneComponent
 
-SECONDS_PER_ACTION = 4
-"""Seconds per sequential action taken."""
+SECONDS_PER_ACTION = 3
+"""Seconds per sequential action taken.
+
+This is the same as the maximum time it takes for the game to process a single action and update
+its visuals. This not the same as the maximum buffer time we build since that is different.
+"""
 
 NUM_EXTRA_DIALOGUE_TURNS = 10
 """Number of extra dialogue turns to add to the time limit."""
