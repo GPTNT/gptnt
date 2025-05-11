@@ -1,0 +1,15 @@
+# @package _global_
+
+defaults:
+  - _self_
+  - pairing: with_self
+  - communication_style: sequential
+  - condition: single_module
+
+mission_generator:
+  config:
+    time_limit: null
+
+pairing_generator:
+  all_players:
+    - gemini-25pro
