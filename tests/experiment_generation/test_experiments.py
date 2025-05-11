@@ -18,7 +18,10 @@ def missions(config: MissionGeneratorConfig) -> Iterator[KtaneMissionSpec]:
 
 
 @fixture
-@parametrize("pairing_type", ["with_best", "with_self", "no_partner", "pairwise"])
+@parametrize(
+    "pairing_type",
+    ["with_best_defuser", "with_best_expert", "with_self", "no_partner", "pairwise"],
+)
 def pairings(pairing_type: PairingType) -> Iterator[Pairing]:
     generator = PairingGenerator(
         pairing_type=pairing_type, all_players=ALL_PLAYERS, best_model="gemini"

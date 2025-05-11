@@ -20,7 +20,7 @@ def test_pairing_with_best_defuser_works() -> None:
     )
     pairings = list(generator.generate())
 
-    assert len(pairings) == (len(ALL_PLAYERS) - 1) * 2, (
+    assert len(pairings) == (len(ALL_PLAYERS) - 1), (
         "Should generate two pairings per player except the best"
     )
 
@@ -38,7 +38,7 @@ def test_pairing_with_best_expert_works() -> None:
     )
     pairings = list(generator.generate())
 
-    assert len(pairings) == (len(ALL_PLAYERS) - 1) * 2, (
+    assert len(pairings) == (len(ALL_PLAYERS) - 1), (
         "Should generate two pairings per player except the best"
     )
 
