@@ -1,0 +1,11 @@
+{
+	"seed": 286,
+	"time_limit": 300,
+	"num_strikes_allowed": 3,
+	"components": ["BigButton", "Simon", "Venn"],
+	"optional_widgets": 5,
+	"needy_time": 60,
+	"force_modules_to_front": false,
+	"time_scale": 1.0,
+	"time_step_size": 3000
+}

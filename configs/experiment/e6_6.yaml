@@ -10,3 +10,4 @@ defaults:
 mission_generator:
   config:
     time_limit: 300
+    mission_specs_dir: configs/experiment/mission_specs/multiple_module_n

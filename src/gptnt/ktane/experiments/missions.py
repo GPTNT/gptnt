@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from pathlib import Path
 from typing import cast
 
 import numpy as np
@@ -41,6 +42,12 @@ class MissionGeneratorConfig(BaseModel):
         }
     )
 
+    mission_specs_dir: Path | None = None
+    """Directory to save mission specs to.
+
+    If not None, the mission specs will not be generated, but will default to the given directory.
+    """
+
     @property
     def available_modules(self) -> list[KtaneComponent]:
         """Get a list of available modules."""
@@ -54,6 +61,11 @@ class MissionGeneratorConfig(BaseModel):
         if self.sample_from_modules:
             return 1
         return len(self.available_modules)
+
+    @property
+    def should_load_mission_specs(self) -> bool:
+        """Check if mission specs should be loaded from the directory."""
+        return self.mission_specs_dir is not None and self.mission_specs_dir.exists()
 
 
 class MissionGenerator:
@@ -74,24 +86,22 @@ class MissionGenerator:
         )
 
     def generate(self) -> Iterator[KtaneMissionSpec]:
-        """Generate mission specs based on the experiment condition.
+        """Generate mission specs based on the experiment condition."""
+        if self.spec.should_load_mission_specs and self.spec.mission_specs_dir:
+            for mission_file in self.spec.mission_specs_dir.glob("*.json"):
+                yield self._load_mission_specs(mission_file=mission_file)
+        else:
+            for seed in self.seeds:
+                self._reset_rng(seed)
+                yield from self._generate_for_seed(seed)
 
-        There are two main cases here: either we are generating a single mission spec for each seed
-        by sampling from the available modules, OR we are going to be generating a mission spec for
-        each possible module. The main "chooser" here is whether or not we want to sample from the
-        middle of modules or not.
-
-        This might have pain later but I don't really see it right now, so we do this.
-        """
-        for seed in self.seeds:
-            self._reset_rng(seed)
-            if self.spec.sample_from_modules:
-                # Generate a single mission spec for each seed
-                yield self._generate_mission(seed=seed, chosen_module=None)
-            else:
-                # Generate a mission spec for each module and seed combination
-                for module in self._available_modules:
-                    yield self._generate_mission(seed=seed, chosen_module=KtaneComponent(module))
+    def _generate_for_seed(self, seed: int) -> Iterator[KtaneMissionSpec]:
+        """Generate mission specs for a specific seed."""
+        if self.spec.sample_from_modules:
+            yield self._generate_mission(seed=seed, chosen_module=None)
+        else:
+            for module in self._available_modules:
+                yield self._generate_mission(seed=seed, chosen_module=KtaneComponent(module))
 
     def _generate_mission(
         self, seed: int, *, chosen_module: KtaneComponent | None
@@ -143,6 +153,10 @@ class MissionGenerator:
             return self._sample_from_all_modules(n_components)
 
         return [KtaneComponent(module) for module in sampled_modules]
+
+    def _load_mission_specs(self, mission_file: Path) -> KtaneMissionSpec:
+        """Load mission specs from a JSON file."""
+        return KtaneMissionSpec.model_validate_json(mission_file.read_text())
 
     def _reset_rng(self, seed: int) -> None:
         """Reset the random number generator with a specific seed."""
