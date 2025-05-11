@@ -43,7 +43,7 @@ instructions: >
 
   ### Time Progression
 
-  Every command you execute consumes 4 seconds of game time. This includes all "do_nothing", "send_message", and "interact_game" commands. The bomb's countdown timer will decrease by 4 seconds after each command, bringing you closer to detonation.
+  Every command you execute consumes 3 seconds of game time. This includes all "do_nothing", "send_message", and "interact_game" commands. The bomb's countdown timer will decrease by 3 seconds after each command, bringing you closer to detonation.
 
   ### Observation Frequency
 
