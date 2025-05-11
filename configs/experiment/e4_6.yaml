@@ -4,8 +4,10 @@ defaults:
   - _self_
   - pairing: with_best_expert
   - communication_style: sequential
-  - condition: multiple_modules_n
+  - condition: repeated_modules_4
   - players: default
+# pairing_generator:
+# best_model: claude37
 
 mission_generator:
   config:

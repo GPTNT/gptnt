@@ -2,10 +2,12 @@
 
 defaults:
   - _self_
-  - pairing: with_best_expert
+  - pairing: with_best_defuser
   - communication_style: sequential
-  - condition: multiple_modules_n
-  - players: default
+  - condition: single_module
+  - players: smaller
+# pairing_generator:
+# best_model: gpt4o
 
 mission_generator:
   config:

@@ -2,7 +2,7 @@
 
 defaults:
   - _self_
-  - pairing: pairwise
+  - pairing: with_best_expert
   - communication_style: sequential
   - condition: single_module
   - players: default
