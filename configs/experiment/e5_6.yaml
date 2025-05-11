@@ -2,12 +2,10 @@
 
 defaults:
   - _self_
-  - pairing: with_self
+  - pairing: with_best
   - communication_style: sequential
-  - condition: repeated_modules_2
+  - condition: multiple_modules_n
   - players: default
-# pairing_generator:
-# best_model: gpt4o
 
 mission_generator:
   config:

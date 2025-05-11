@@ -2,7 +2,7 @@
 
 defaults:
   - _self_
-  - pairing: with_self
+  - pairing: with_best
   - communication_style: parallel
   - condition: multiple_modules_n
   - players: default

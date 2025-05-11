@@ -2,9 +2,9 @@
 
 defaults:
   - _self_
-  - pairing: with_best
+  - pairing: with_self
   - communication_style: sequential
-  - condition: repeated_modules_5
+  - condition: repeated_modules_4
   - players: default
 # pairing_generator:
 # best_model: gpt4o

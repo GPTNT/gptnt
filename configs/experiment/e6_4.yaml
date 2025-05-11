@@ -2,11 +2,11 @@
 
 defaults:
   - _self_
-  - pairing: with_self
+  - pairing: with_best
   - communication_style: parallel
-  - condition: multiple_modules_n
+  - condition: multiple_modules_2_front
   - players: default
 
 mission_generator:
   config:
-    time_limit: 300
+    time_limit: 150
