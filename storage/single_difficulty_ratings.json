@@ -1,0 +1,21 @@
+{
+	"single_module": {
+		"easy": {
+			"Keypad": 2.5,
+			"Wires": 3.5,
+			"Venn": 4.5
+		},
+		"medium": {
+			"Maze": 5.5,
+			"WhosOnFirst": 8.0,
+			"WireSequence": 8.5,
+			"BigButton": 8.5,
+			"Morse": 10.0,
+			"Password": 10.0
+		},
+		"hard": {
+			"Memory": 11.5,
+			"Simon": 14.0
+		}
+	}
+}
