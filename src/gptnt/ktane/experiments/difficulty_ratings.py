@@ -97,7 +97,7 @@ single_difficulty_ratings_structure: dict[str, dict[str, dict[str, dict[str, flo
     "single_module": {"easy": {}, "medium": {}, "hard": {}}
 }
 
-multiple_difficulty_ratings_structure: dict[str, dict[str, dict[str, float]]] = {
+multiple_difficulty_ratings_structure: dict[str, dict[str, dict[str, float | list[str]]]] = {
     "multiple_modules_n": {}
 }
 paths = Paths()
@@ -112,7 +112,6 @@ def get_difficulty_rating(bomb: list[KtaneComponent]) -> list[int]:
     module_stages = 0
     multiple_images_needed = 0
     strike_affects_progress = 0
-    number_of_modules = 0
 
     for module in bomb:
         needs_info_on_sides += NEEDS_SIDE_INFO[module]
@@ -120,42 +119,47 @@ def get_difficulty_rating(bomb: list[KtaneComponent]) -> list[int]:
         multiple_images_needed += int(NUM_IMAGES_NEEDED[module])
         number_of_actions_per_module += BINNED_NUMBER_OF_ACTIONS_NEEDED[module]
         strike_affects_progress += PROGRESS_AFFECTED_BY_STRIKES[module]
-        number_of_modules += 1
         if module in seen_modules:
             repeated_modules += 1
         seen_modules.append(module)
 
     return [
         needs_info_on_sides,
-        number_of_actions_per_module,
         module_stages,
         multiple_images_needed,
         number_of_actions_per_module,
         strike_affects_progress,
         repeated_modules,
-        number_of_modules,
     ]
 
 
 def calculate_ratings_of_bombs() -> None:
     """Go through each single module/multiple module n bomb and get its difficulty rating."""
     unique_missions: set[tuple[KtaneMissionSpec, str]] = get_unique_missions()
-    multiple_bomb_difficulties: list[tuple[str, float, list[int]]] = []
+    multiple_bomb_difficulties: list[tuple[str, float, list[int], list[str]]] = []
     single_bomb_difficulties: list[tuple[str, float, list[int]]] = []
     for mission in unique_missions:
+        bomb_components = mission[0].components
         if mission[1] == "single_module":
-            difficulty_rating = get_difficulty_rating(mission[0].components)
+            difficulty_rating = get_difficulty_rating(bomb_components)
             single_bomb_difficulties.append(
                 (
-                    str(mission[0].components[0].value),
+                    str(bomb_components[0].value),
                     get_difficulty_sum(difficulty_rating),
                     difficulty_rating,
                 )
             )
         if mission[1] == "multiple_modules_n":
-            difficulty_rating = get_difficulty_rating(mission[0].components)
+            difficulty_rating = get_difficulty_rating(bomb_components)
+            components_list: list[str] = [component.value for component in bomb_components]
+
             multiple_bomb_difficulties.append(
-                (str(mission[0].seed), get_difficulty_sum(difficulty_rating), difficulty_rating)
+                (
+                    str(mission[0].seed),
+                    get_difficulty_sum(difficulty_rating),
+                    difficulty_rating,
+                    components_list,
+                )
             )
 
     single_bomb_difficulties.sort(key=lambda single_sort_key: single_sort_key[1])
@@ -182,7 +186,7 @@ def calculate_ratings_of_bombs() -> None:
             "multiple_images_needed": bomb_difficulty_details[2],
             "number_of_actions_per_module": bomb_difficulty_details[3],
             "strike_affects_progress": bomb_difficulty_details[4],
-            "number_of_modules": bomb_difficulty_details[6],
+            "modules": bomb[3],
         }
 
     with (paths.storage / "single_difficulty_ratings.json").open("w", encoding="utf-8") as out:
@@ -214,8 +218,7 @@ def get_unique_missions() -> set[tuple[KtaneMissionSpec, str]]:
 
 def get_difficulty_sum(difficulty_rating: list[int]) -> float:
     """Calculates the difficulty of a given bomb."""
-    *ratings_repeated, number_of_modules = difficulty_rating
-    *ratings, repeated_modules = ratings_repeated
+    *ratings, repeated_modules = difficulty_rating
 
     if len(ratings) != len(DIFFICULTY_RATING_WEIGHTS):
         raise ValueError("difficulty_rating and weight must be the same length")

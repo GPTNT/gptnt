@@ -41,14 +41,6 @@
 				"number_of_actions_per_module": 2,
 				"strike_affects_progress": 0
 			},
-			"WireSequence": {
-				"difficulty": 5,
-				"needs_info_on_sides": 0,
-				"module_stages": 1,
-				"multiple_images_needed": 1,
-				"number_of_actions_per_module": 1,
-				"strike_affects_progress": 0
-			},
 			"WhosOnFirst": {
 				"difficulty": 5,
 				"needs_info_on_sides": 0,
@@ -56,6 +48,14 @@
 				"multiple_images_needed": 1,
 				"number_of_actions_per_module": 0,
 				"strike_affects_progress": 1
+			},
+			"WireSequence": {
+				"difficulty": 5,
+				"needs_info_on_sides": 0,
+				"module_stages": 1,
+				"multiple_images_needed": 1,
+				"number_of_actions_per_module": 1,
+				"strike_affects_progress": 0
 			}
 		},
 		"medium": {

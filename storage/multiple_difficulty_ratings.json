@@ -7,7 +7,7 @@
 			"multiple_images_needed": 1,
 			"number_of_actions_per_module": 0,
 			"strike_affects_progress": 1,
-			"number_of_modules": 3
+			"modules": ["WhosOnFirst", "Venn", "Wires"]
 		},
 		"318": {
 			"difficulty": 17,
@@ -16,7 +16,7 @@
 			"multiple_images_needed": 4,
 			"number_of_actions_per_module": 3,
 			"strike_affects_progress": 0,
-			"number_of_modules": 3
+			"modules": ["Password", "Venn", "WireSequence"]
 		},
 		"850": {
 			"difficulty": 20,
@@ -25,7 +25,7 @@
 			"multiple_images_needed": 6,
 			"number_of_actions_per_module": 1,
 			"strike_affects_progress": 1,
-			"number_of_modules": 4
+			"modules": ["Morse", "Memory", "BigButton", "Keypad"]
 		},
 		"841": {
 			"difficulty": 25,
@@ -34,7 +34,7 @@
 			"multiple_images_needed": 5,
 			"number_of_actions_per_module": 4,
 			"strike_affects_progress": 1,
-			"number_of_modules": 5
+			"modules": ["BigButton", "Password", "WhosOnFirst", "Maze", "Venn"]
 		},
 		"743": {
 			"difficulty": 28,
@@ -43,7 +43,7 @@
 			"multiple_images_needed": 6,
 			"number_of_actions_per_module": 5,
 			"strike_affects_progress": 1,
-			"number_of_modules": 4
+			"modules": ["Morse", "Simon", "WireSequence", "Maze"]
 		},
 		"808": {
 			"difficulty": 29,
@@ -52,7 +52,7 @@
 			"multiple_images_needed": 7,
 			"number_of_actions_per_module": 3,
 			"strike_affects_progress": 1,
-			"number_of_modules": 5
+			"modules": ["Venn", "WireSequence", "BigButton", "Password", "Memory"]
 		},
 		"593": {
 			"difficulty": 30,
@@ -61,7 +61,7 @@
 			"multiple_images_needed": 7,
 			"number_of_actions_per_module": 3,
 			"strike_affects_progress": 2,
-			"number_of_modules": 5
+			"modules": ["Password", "Keypad", "Memory", "Simon", "Wires"]
 		},
 		"803": {
 			"difficulty": 37,
@@ -70,7 +70,7 @@
 			"multiple_images_needed": 8,
 			"number_of_actions_per_module": 5,
 			"strike_affects_progress": 2,
-			"number_of_modules": 5
+			"modules": ["Maze", "Password", "BigButton", "Simon", "Memory"]
 		}
 	}
 }
