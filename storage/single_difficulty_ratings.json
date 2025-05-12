@@ -1,21 +1,98 @@
 {
 	"single_module": {
 		"easy": {
-			"Keypad": 2.5,
-			"Wires": 3.5,
-			"Venn": 4.5
+			"Keypad": {
+				"difficulty": 0,
+				"needs_info_on_sides": 0,
+				"module_stages": 0,
+				"multiple_images_needed": 0,
+				"number_of_actions_per_module": 0,
+				"strike_affects_progress": 0
+			},
+			"Wires": {
+				"difficulty": 1,
+				"needs_info_on_sides": 1,
+				"module_stages": 0,
+				"multiple_images_needed": 0,
+				"number_of_actions_per_module": 0,
+				"strike_affects_progress": 0
+			},
+			"Venn": {
+				"difficulty": 2,
+				"needs_info_on_sides": 2,
+				"module_stages": 0,
+				"multiple_images_needed": 0,
+				"number_of_actions_per_module": 0,
+				"strike_affects_progress": 0
+			},
+			"BigButton": {
+				"difficulty": 4,
+				"needs_info_on_sides": 2,
+				"module_stages": 0,
+				"multiple_images_needed": 1,
+				"number_of_actions_per_module": 0,
+				"strike_affects_progress": 0
+			},
+			"Maze": {
+				"difficulty": 4,
+				"needs_info_on_sides": 0,
+				"module_stages": 0,
+				"multiple_images_needed": 0,
+				"number_of_actions_per_module": 2,
+				"strike_affects_progress": 0
+			},
+			"WireSequence": {
+				"difficulty": 5,
+				"needs_info_on_sides": 0,
+				"module_stages": 1,
+				"multiple_images_needed": 1,
+				"number_of_actions_per_module": 1,
+				"strike_affects_progress": 0
+			},
+			"WhosOnFirst": {
+				"difficulty": 5,
+				"needs_info_on_sides": 0,
+				"module_stages": 1,
+				"multiple_images_needed": 1,
+				"number_of_actions_per_module": 0,
+				"strike_affects_progress": 1
+			}
 		},
 		"medium": {
-			"Maze": 5.5,
-			"WhosOnFirst": 8.0,
-			"WireSequence": 8.5,
-			"BigButton": 8.5,
-			"Morse": 10.0,
-			"Password": 10.0
+			"Memory": {
+				"difficulty": 8,
+				"needs_info_on_sides": 0,
+				"module_stages": 2,
+				"multiple_images_needed": 2,
+				"number_of_actions_per_module": 0,
+				"strike_affects_progress": 1
+			},
+			"Morse": {
+				"difficulty": 8,
+				"needs_info_on_sides": 0,
+				"module_stages": 0,
+				"multiple_images_needed": 3,
+				"number_of_actions_per_module": 1,
+				"strike_affects_progress": 0
+			},
+			"Password": {
+				"difficulty": 10,
+				"needs_info_on_sides": 0,
+				"module_stages": 0,
+				"multiple_images_needed": 3,
+				"number_of_actions_per_module": 2,
+				"strike_affects_progress": 0
+			}
 		},
 		"hard": {
-			"Memory": 11.5,
-			"Simon": 14.0
+			"Simon": {
+				"difficulty": 11,
+				"needs_info_on_sides": 1,
+				"module_stages": 2,
+				"multiple_images_needed": 2,
+				"number_of_actions_per_module": 1,
+				"strike_affects_progress": 1
+			}
 		}
 	}
 }

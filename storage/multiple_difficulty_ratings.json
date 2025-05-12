@@ -1,12 +1,76 @@
 {
 	"multiple_modules_n": {
-		"976": 16.0,
-		"318": 23.0,
-		"850": 32.5,
-		"841": 36.5,
-		"743": 38.0,
-		"593": 41.5,
-		"808": 43.0,
-		"803": 49.5
+		"976": {
+			"difficulty": 8,
+			"needs_info_on_sides": 3,
+			"module_stages": 1,
+			"multiple_images_needed": 1,
+			"number_of_actions_per_module": 0,
+			"strike_affects_progress": 1,
+			"number_of_modules": 3
+		},
+		"318": {
+			"difficulty": 17,
+			"needs_info_on_sides": 2,
+			"module_stages": 1,
+			"multiple_images_needed": 4,
+			"number_of_actions_per_module": 3,
+			"strike_affects_progress": 0,
+			"number_of_modules": 3
+		},
+		"850": {
+			"difficulty": 20,
+			"needs_info_on_sides": 2,
+			"module_stages": 2,
+			"multiple_images_needed": 6,
+			"number_of_actions_per_module": 1,
+			"strike_affects_progress": 1,
+			"number_of_modules": 4
+		},
+		"841": {
+			"difficulty": 25,
+			"needs_info_on_sides": 4,
+			"module_stages": 1,
+			"multiple_images_needed": 5,
+			"number_of_actions_per_module": 4,
+			"strike_affects_progress": 1,
+			"number_of_modules": 5
+		},
+		"743": {
+			"difficulty": 28,
+			"needs_info_on_sides": 1,
+			"module_stages": 3,
+			"multiple_images_needed": 6,
+			"number_of_actions_per_module": 5,
+			"strike_affects_progress": 1,
+			"number_of_modules": 4
+		},
+		"808": {
+			"difficulty": 29,
+			"needs_info_on_sides": 4,
+			"module_stages": 3,
+			"multiple_images_needed": 7,
+			"number_of_actions_per_module": 3,
+			"strike_affects_progress": 1,
+			"number_of_modules": 5
+		},
+		"593": {
+			"difficulty": 30,
+			"needs_info_on_sides": 2,
+			"module_stages": 4,
+			"multiple_images_needed": 7,
+			"number_of_actions_per_module": 3,
+			"strike_affects_progress": 2,
+			"number_of_modules": 5
+		},
+		"803": {
+			"difficulty": 37,
+			"needs_info_on_sides": 3,
+			"module_stages": 4,
+			"multiple_images_needed": 8,
+			"number_of_actions_per_module": 5,
+			"strike_affects_progress": 2,
+			"number_of_modules": 5
+		}
 	}
 }
