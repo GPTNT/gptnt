@@ -1,5 +1,5 @@
 # @package player.agent
-instructions: >
+instructions: |
   # Bomb Defusal Protocol
 
   ## Scenario

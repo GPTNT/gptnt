@@ -29,6 +29,5 @@ def get_expert_output_type(variant: Literal["structured", "string"]) -> Any:
 
     This is mainly for Hydra and shouldn't be used anywhere else.
     """
-    if variant == "structured":
-        return str
-    return ExpertOutputT
+    switcher = {"structured": ExpertOutputT, "string": str}
+    return switcher[variant]
