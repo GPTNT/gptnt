@@ -9,14 +9,8 @@ from gptnt.ktane.experiments.time_limits import NEEDS_SIDE_INFO
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.modules import KtaneComponent
 
-"""
-Binning for how many images a module needs.
+paths = Paths()
 
-0 = needs only 1 image
-1 = needs 2-3 Images
-2 = needs 4-5 Images
-3 = needs 6+
-"""
 NUM_IMAGES_NEEDED = types.MappingProxyType(
     {
         KtaneComponent.wires: 0,  # 1
@@ -32,10 +26,11 @@ NUM_IMAGES_NEEDED = types.MappingProxyType(
         KtaneComponent.password: 3,  # 50
     }
 )
-"""Binning for how many stages there are to a module.
+"""Binning for how many images a module needs.
 
-0 = 1-2 stages 1 = 3-4 stages 2 = 5+ stages
+0 = needs only 1 image 1 = needs 2-3 Images 2 = needs 4-5 Images 3 = needs 6+
 """
+
 STAGES_PER_MODULE = types.MappingProxyType(
     {
         KtaneComponent.wires: 0,  # 1
@@ -51,7 +46,11 @@ STAGES_PER_MODULE = types.MappingProxyType(
         KtaneComponent.password: 0,  # 1
     }
 )
-"""Whether a users progress is affected by making a mistake."""
+"""Binning for how many stages there are to a module.
+
+0 = 1-2 stages 1 = 3-4 stages 2 = 5+ stages
+"""
+
 PROGRESS_AFFECTED_BY_STRIKES = types.MappingProxyType(
     {
         KtaneComponent.wires: 0,
@@ -67,10 +66,9 @@ PROGRESS_AFFECTED_BY_STRIKES = types.MappingProxyType(
         KtaneComponent.password: 0,
     }
 )
-"""Binning for the max number of actions needed assuming worst case and no mistakes.
+"""Whether a users progress is affected by making a mistake."""
 
-0 = 0-14 1 = 15-29 2 = 30+
-"""
+
 BINNED_NUMBER_OF_ACTIONS_NEEDED = types.MappingProxyType(
     {
         KtaneComponent.wires: 0,  # 1
@@ -86,6 +84,10 @@ BINNED_NUMBER_OF_ACTIONS_NEEDED = types.MappingProxyType(
         KtaneComponent.password: 2,  # 5 * 5 * 2 + 1 = 51
     }
 )
+"""Binning for the max number of actions needed assuming worst case and no mistakes.
+
+0 = 0-14 1 = 15-29 2 = 30+
+"""
 
 # configure these values to change weight of different aspects that contribute to difficulty7
 # side_info, num_of_actions, num_of_stages, multiple_images, strike_affects_progress
@@ -100,7 +102,6 @@ single_difficulty_ratings_structure: dict[str, dict[str, dict[str, dict[str, flo
 multiple_difficulty_ratings_structure: dict[str, dict[str, dict[str, float | list[str]]]] = {
     "multiple_modules_n": {}
 }
-paths = Paths()
 
 
 def get_difficulty_rating(bomb: list[KtaneComponent]) -> list[int]:
