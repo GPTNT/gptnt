@@ -14,7 +14,7 @@ from gptnt.players.structures import PlayerStage
 if TYPE_CHECKING:
     import asyncio
 
-    from gptnt.ktane.experiments.experiments import ExperimentSpec
+    from gptnt.experiments.experiments import ExperimentSpec
 
 _logger = get_logger()
 

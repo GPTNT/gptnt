@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from pydantic.types import UUID4
 
 from gptnt.common.servers import ClientMetadata
-from gptnt.ktane.experiments.experiments import ExperimentSpec
+from gptnt.experiments.experiments import ExperimentSpec
 from gptnt.players.structures import PlayerMetadata
 
 

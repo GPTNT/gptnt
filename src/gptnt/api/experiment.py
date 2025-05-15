@@ -10,7 +10,7 @@ from gptnt.api.room_client import SupervisedRoomManagerClient
 from gptnt.api.structures import GameMetadata, RoomStage
 from gptnt.common.async_ops import healthcheck_interval, until
 from gptnt.dialogue_space.client import DialogueSpaceClient
-from gptnt.ktane.experiments.experiments import ExperimentSpec
+from gptnt.experiments.experiments import ExperimentSpec
 from gptnt.players.ai.prompts import send_reflection_message
 from gptnt.players.metrics.structures import AdditionalEndGameMetrics
 from gptnt.players.structures import NO_NEW_MESSAGES_SENTINEL, PlayerStage

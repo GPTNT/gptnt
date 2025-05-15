@@ -3,8 +3,7 @@ from typing import cast, override
 from httpx import QueryParams
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from gptnt.ktane.experiments.time_limits import NEEDS_MULTIPLE_IMAGES
-from gptnt.ktane.state.modules import KtaneComponent
+from gptnt.ktane.state.modules import NEEDS_MULTIPLE_IMAGES, KtaneComponent
 
 MAX_COMPONENTS = 11
 

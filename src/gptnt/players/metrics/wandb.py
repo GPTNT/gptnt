@@ -7,7 +7,7 @@ from rich.progress import track
 from structlog import get_logger
 from unflatten import unflatten
 
-from gptnt.ktane.experiments.experiments import ExperimentSpec
+from gptnt.experiments.experiments import ExperimentSpec
 
 _logger = get_logger()
 

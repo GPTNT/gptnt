@@ -4,8 +4,8 @@ import types
 import numpy as np
 
 from gptnt.common.paths import Paths
-from gptnt.ktane.experiments.experiments import ExperimentSpec
-from gptnt.ktane.experiments.time_limits import NEEDS_SIDE_INFO
+from gptnt.experiments.experiments import ExperimentSpec
+from gptnt.experiments.time_limits import NEEDS_SIDE_INFO
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.modules import KtaneComponent
 
@@ -236,4 +236,5 @@ def get_difficulty_sum(difficulty_rating: list[int]) -> float:
     return final_difficulty
 
 
-calculate_ratings_of_bombs()
+if __name__ == "__main__":
+    calculate_ratings_of_bombs()

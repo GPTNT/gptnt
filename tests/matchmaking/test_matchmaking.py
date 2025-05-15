@@ -1,7 +1,7 @@
 from gptnt.api.player_client import PlayerClient, SupervisedPlayerClient
 from gptnt.api.tinder import get_playable_pairings
-from gptnt.ktane.experiments.experiments import ExperimentSpec
-from gptnt.ktane.experiments.pairing import Pairing
+from gptnt.experiments.experiments import ExperimentSpec
+from gptnt.experiments.pairing import Pairing
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.structures import PlayerMetadata
 

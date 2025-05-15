@@ -1,3 +1,4 @@
+import types
 from enum import Enum
 from typing import Annotated, NamedTuple
 
@@ -48,6 +49,26 @@ def coerce_color(value: str | None) -> str | None:  # noqa: WPS110
     return value.lower()
 
 
+NEEDS_MULTIPLE_IMAGES = types.MappingProxyType(
+    {
+        KtaneComponent.wires: False,
+        KtaneComponent.big_button: False,
+        KtaneComponent.keypad: False,
+        # because of the blinking lights
+        KtaneComponent.simon: True,
+        KtaneComponent.whos_on_first: False,
+        KtaneComponent.memory: False,
+        # because of the blinking lights
+        KtaneComponent.morse_code: True,
+        KtaneComponent.venn: False,
+        KtaneComponent.wire_sequence: False,
+        KtaneComponent.maze: False,
+        KtaneComponent.password: False,
+    }
+)
+"""Whether a module requires multiple images/frames to be solved."""
+
+
 class BaseModuleState(BaseModel):
     """Base class for all module states."""
 
@@ -76,6 +97,15 @@ class InteractiveModuleState(BaseModuleState):
 
     is_solved: bool
     in_focus: bool
+
+    @computed_field
+    @property
+    def needs_multiple_images(self) -> bool:
+        """Check if the module needs multiple images.
+
+        This is used to determine if the module needs multiple images to be solved.
+        """
+        return NEEDS_MULTIPLE_IMAGES[self.name]
 
 
 class TimerState(BaseModuleState):

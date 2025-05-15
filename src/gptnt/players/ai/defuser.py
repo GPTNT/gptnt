@@ -13,8 +13,8 @@ from pydantic_ai import BinaryContent
 from gptnt.api.structures import GameMetadata
 from gptnt.common.async_ops import busy_wait_interval
 from gptnt.common.paths import Paths
+from gptnt.experiments.time_limits import SECONDS_PER_ACTION
 from gptnt.ktane.client import KtaneClient
-from gptnt.ktane.experiments.time_limits import SECONDS_PER_ACTION
 from gptnt.players.actions import (
     DoNothingAction,
     InteractGameAction,

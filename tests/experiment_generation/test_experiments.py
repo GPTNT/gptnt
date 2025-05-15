@@ -2,9 +2,9 @@ from collections.abc import Iterator
 
 from pytest_cases import fixture, parametrize, parametrize_with_cases
 
-from gptnt.ktane.experiments.experiments import ExperimentGenerator
-from gptnt.ktane.experiments.missions import MissionGenerator, MissionGeneratorConfig
-from gptnt.ktane.experiments.pairing import Pairing, PairingGenerator, PairingType
+from gptnt.experiments.experiments import ExperimentGenerator
+from gptnt.experiments.missions import MissionGenerator, MissionGeneratorConfig
+from gptnt.experiments.pairing import Pairing, PairingGenerator, PairingType
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from tests.experiment_generation.test_missions import MissionGeneratorConfigCases
 from tests.experiment_generation.test_pairings import ALL_PLAYERS

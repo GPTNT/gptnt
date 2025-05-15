@@ -1,27 +1,26 @@
-def count_steps_to_see_digits(step_size: int, start_time: int) -> int:
-    """Count how many steps it will take to see digits 1, 4, and 5 in the time format mins:secs.
+def count_steps_to_see_digits(  # noqa: WPS231
+    step_size: int, start_time: int, *, max_iterations: int = 100000
+) -> int:
+    """Count how many steps it will take to see digits 1, 4, and 5 in the time format MM:SS.
 
     Parameters:
         step_size (int): The increment in seconds for each step.
 
     Returns:
         int: The number of steps needed to see all three digits.
-        -1: If step_size is invalid (≤ 0).
-        -2: If maximum iteration count is reached (safety measure).
     """
     # Handle edge case: invalid step_size
     if step_size <= 0:
-        return -1
+        raise ValueError("step_size must be greater than 0")
 
     # Initialize variables
-    seen_1 = False
-    seen_4 = False
-    seen_5 = False
+    has_seen_1 = False
+    has_seen_4 = False
+    has_seen_5 = False
     steps = 0
-    max_iterations = 100000  # Safeguard against infinite loops
 
     # Continue until we've seen all three digits
-    while not (seen_1 and seen_4 and seen_5):
+    while not (has_seen_1 and has_seen_4 and has_seen_5):
         steps += 1
         start_time += step_size
 
@@ -32,15 +31,17 @@ def count_steps_to_see_digits(step_size: int, start_time: int) -> int:
 
         # Check if the target digits appear in the time string
         if "1" in time_str:
-            seen_1 = True
+            has_seen_1 = True
         if "4" in time_str:
-            seen_4 = True
+            has_seen_4 = True
         if "5" in time_str:
-            seen_5 = True
+            has_seen_5 = True
 
         # Safety check to prevent infinite loops
         if steps >= max_iterations:
-            return -2
+            raise RecursionError(
+                "Maximum iteration count reached. Check your logic or increase `max_iterations`."
+            )
 
     return steps
 

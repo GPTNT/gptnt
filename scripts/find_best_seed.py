@@ -34,7 +34,7 @@ paths = Paths()
 
 DIFFERENCE_THRESHOLD: float = 0.5
 
-SEED_MIN: int = 29
+SEED_MIN: int = 1
 SEED_MAX: int = 51
 
 unique_experiments: Path = paths.storage.joinpath("unique_experiments")

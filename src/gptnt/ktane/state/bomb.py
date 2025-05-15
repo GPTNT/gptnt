@@ -2,8 +2,12 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, alias_generators
 
-from gptnt.ktane.experiments.time_limits import NEEDS_MULTIPLE_IMAGES
-from gptnt.ktane.state.modules import KtaneComponent, ModuleStates, TimerState
+from gptnt.ktane.state.modules import (
+    NEEDS_MULTIPLE_IMAGES,
+    KtaneComponent,
+    ModuleStates,
+    TimerState,
+)
 from gptnt.ktane.state.widget import WidgetStates
 
 

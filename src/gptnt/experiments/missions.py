@@ -5,7 +5,7 @@ from typing import cast
 import numpy as np
 from pydantic import BaseModel, Field, NonNegativeInt
 
-from gptnt.ktane.experiments.time_limits import get_time_limit_for_mission
+from gptnt.experiments.time_limits import get_time_limit_for_mission
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.modules import KtaneComponent
 

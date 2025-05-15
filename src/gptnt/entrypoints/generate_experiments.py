@@ -8,9 +8,9 @@ from structlog import get_logger
 from gptnt.common.paths import Paths
 
 if TYPE_CHECKING:
-    from gptnt.ktane.experiments.experiments import ExperimentGenerator
-    from gptnt.ktane.experiments.missions import MissionGenerator
-    from gptnt.ktane.experiments.pairing import PairingGenerator
+    from gptnt.experiments.experiments import ExperimentGenerator
+    from gptnt.experiments.missions import MissionGenerator
+    from gptnt.experiments.pairing import PairingGenerator
 
 
 logger = get_logger()

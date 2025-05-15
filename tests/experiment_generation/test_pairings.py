@@ -1,4 +1,4 @@
-from gptnt.ktane.experiments.pairing import PairingGenerator
+from gptnt.experiments.pairing import PairingGenerator
 
 ALL_PLAYERS = frozenset(("gpt4o", "claude37", "gemini"))
 

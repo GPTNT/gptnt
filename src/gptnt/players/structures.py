@@ -5,7 +5,7 @@ from uuid import uuid4
 from pydantic import UUID4, Field
 
 from gptnt.common.servers import ClientMetadata
-from gptnt.ktane.experiments.experiments import ExperimentSpec
+from gptnt.experiments.experiments import ExperimentSpec
 
 type PlayerType = Literal["ai", "human"]
 type PlayerRole = Literal["defuser", "expert"]

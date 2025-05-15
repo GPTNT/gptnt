@@ -1,7 +1,7 @@
 from gptnt.api.experiment_manager_client import ExperimentManagerClient
 from gptnt.common.paths import Paths
 from gptnt.entrypoints._async_typer import AsyncTyper
-from gptnt.ktane.experiments.experiments import ExperimentSpec
+from gptnt.experiments.experiments import ExperimentSpec
 
 app = AsyncTyper()
 paths = Paths()

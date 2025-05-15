@@ -4,7 +4,7 @@ from typing import Literal, override
 
 from pydantic import BaseModel
 
-from gptnt.ktane.experiments.pairing import Pairing
+from gptnt.experiments.pairing import Pairing
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 
 type CommunicationStyle = Literal["parallel", "sequential"]

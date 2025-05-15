@@ -1,6 +1,6 @@
 import types
 
-from gptnt.ktane.experiments.button_actions_per_step_size import compute_button_holding_steps
+from gptnt.experiments.button_actions_per_step_size import compute_button_holding_steps
 from gptnt.ktane.state.modules import KtaneComponent
 
 SECONDS_PER_ACTION = 3
@@ -65,25 +65,6 @@ NUM_STAGES_PER_MODULE = types.MappingProxyType(
         KtaneComponent.wire_sequence: 4,  # 4 panels
         KtaneComponent.maze: 1,
         KtaneComponent.password: 1,
-    }
-)
-
-# Whether or not a module requires multiple images
-NEEDS_MULTIPLE_IMAGES = types.MappingProxyType(
-    {
-        KtaneComponent.wires: False,
-        KtaneComponent.big_button: False,
-        KtaneComponent.keypad: False,
-        # because of the blinking lights
-        KtaneComponent.simon: True,
-        KtaneComponent.whos_on_first: False,
-        KtaneComponent.memory: False,
-        # because of the blinking lights
-        KtaneComponent.morse_code: True,
-        KtaneComponent.venn: False,
-        KtaneComponent.wire_sequence: False,
-        KtaneComponent.maze: False,
-        KtaneComponent.password: False,
     }
 )
 

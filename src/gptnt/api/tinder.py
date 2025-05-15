@@ -4,7 +4,7 @@ from typing import NamedTuple
 import structlog
 
 from gptnt.api.player_client import SupervisedPlayerClient
-from gptnt.ktane.experiments.experiments import ExperimentSpec
+from gptnt.experiments.experiments import ExperimentSpec
 
 logger = structlog.get_logger()
 

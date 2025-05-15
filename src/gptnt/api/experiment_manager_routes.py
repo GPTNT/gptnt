@@ -12,7 +12,7 @@ from gptnt.api.player_client import SupervisedPlayerClient
 from gptnt.api.room_client import SupervisedRoomManagerClient
 from gptnt.api.structures import RoomMetadata
 from gptnt.common.paths import Paths
-from gptnt.ktane.experiments.experiments import ExperimentSpec
+from gptnt.experiments.experiments import ExperimentSpec
 from gptnt.players.metrics.wandb import check_if_experiments_on_wandb
 from gptnt.players.structures import PlayerMetadata
 
