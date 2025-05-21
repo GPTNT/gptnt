@@ -799,3 +799,7 @@ wandb
 # reflex ignores
 .web
 .states
+
+# vqa and grounding data
+storage/vqa_and_grounding/state_and_obs.json
+storage/vqa_and_grounding/runs_df.json

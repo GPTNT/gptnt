@@ -1,6 +1,6 @@
 import types
 from enum import Enum
-from typing import Annotated, NamedTuple
+from typing import Annotated, NamedTuple, override
 
 from pydantic import (
     BaseModel,
@@ -72,7 +72,9 @@ NEEDS_MULTIPLE_IMAGES = types.MappingProxyType(
 class BaseModuleState(BaseModel):
     """Base class for all module states."""
 
-    model_config = ConfigDict(alias_generator=alias_generators.to_camel, populate_by_name=True)
+    model_config = ConfigDict(
+        alias_generator=alias_generators.to_camel, populate_by_name=True, extra="ignore"
+    )
 
     name: KtaneComponent
 
@@ -161,9 +163,11 @@ class SimonSaysModuleState(InteractiveModuleState):
 
     @field_validator("beep_sequence", mode="before")
     @classmethod
-    def fix_color(cls, value: list[str]) -> list[str]:  # noqa: WPS110
+    def fix_color(cls, value: list[str] | None) -> list[str]:  # noqa: WPS110
         """Coerce the color to lowercase."""
-        return [color.lower() for color in value]
+        if value is not None:
+            return [color.lower() for color in value]
+        return []
 
 
 class BaseWire[WireColorT](BaseModel):
@@ -203,12 +207,16 @@ class ComplicatedWiresModuleState(InteractiveModuleState):
 
     @field_validator("wires", mode="before")
     @classmethod
-    def remove_nones_from_list(cls, wires: list[ComplicatedWire | None]) -> list[ComplicatedWire]:
+    def remove_nones_from_list(
+        cls, wires: list[ComplicatedWire | None] | None
+    ) -> list[ComplicatedWire]:
         """Remove Nones from the list of wires.
 
         This is used to ensure that the list of wires is always in the correct format.
         """
-        return [wire for wire in wires if wire is not None]
+        if wires is not None:
+            return [wire for wire in wires if wire is not None]
+        return []
 
 
 class WireSequenceModuleState(InteractiveModuleState):
@@ -220,13 +228,15 @@ class WireSequenceModuleState(InteractiveModuleState):
     @field_validator("wires", mode="before")
     @classmethod
     def remove_nones_from_list(
-        cls, wires: list[WireSequenceWire | None]
+        cls, wires: list[WireSequenceWire | None] | None
     ) -> list[WireSequenceWire]:
         """Remove Nones from the list of wires.
 
         This is used to ensure that the list of wires is always in the correct format.
         """
-        return [wire for wire in wires if wire is not None]
+        if wires is not None:
+            return [wire for wire in wires if wire is not None]
+        return []
 
 
 class WireSetModuleState(InteractiveModuleState):
@@ -236,12 +246,14 @@ class WireSetModuleState(InteractiveModuleState):
 
     @field_validator("wires", mode="before")
     @classmethod
-    def remove_nones_from_list(cls, wires: list[WireSetWire | None]) -> list[WireSetWire]:
+    def remove_nones_from_list(cls, wires: list[WireSetWire | None] | None) -> list[WireSetWire]:
         """Remove Nones from the list of wires.
 
         This is used to ensure that the list of wires is always in the correct format.
         """
-        return [wire for wire in wires if wire is not None]
+        if wires is not None:
+            return [wire for wire in wires if wire is not None]
+        return []
 
 
 class MazeCoordinate(NamedTuple):
@@ -249,6 +261,14 @@ class MazeCoordinate(NamedTuple):
 
     row: int
     column: int
+
+    @override
+    def __str__(self) -> str:
+        """Get the string representation of the coordinate.
+
+        This is used to ensure that the coordinate is always in the correct format.
+        """
+        return f"{self.row},{self.column}"
 
 
 class MazeModuleState(InteractiveModuleState):

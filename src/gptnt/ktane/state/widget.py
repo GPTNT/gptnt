@@ -19,7 +19,9 @@ class KtaneWidget(Enum):
 class BaseWidgetState(BaseModel):
     """Base class for all widget states."""
 
-    model_config = ConfigDict(alias_generator=alias_generators.to_camel, populate_by_name=True)
+    model_config = ConfigDict(
+        alias_generator=alias_generators.to_camel, populate_by_name=True, extra="ignore"
+    )
     position: constants.WidgetPosition
     name: KtaneWidget
 

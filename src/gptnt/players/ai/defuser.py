@@ -1,5 +1,7 @@
 import abc
 import asyncio
+import json
+import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any, Union, override
@@ -173,7 +175,7 @@ class MDPDefuserPlayer[LocationDataT: InteractGameLocation](
 
     @override
     @logfire.instrument("Build agent input")
-    async def build_agent_input(self) -> list[str | BinaryContent]:
+    async def build_agent_input(self) -> list[str | BinaryContent]:  # noqa: WPS210
         """Build the input for the defuser."""
         # Wait for a valid bomb state (lights on) before receiving any observations
         while await self.game_client.get_state() is None:
@@ -201,12 +203,24 @@ class MDPDefuserPlayer[LocationDataT: InteractGameLocation](
         )
 
         if self.should_save_images:
-            paths.output.joinpath("images").mkdir(parents=True, exist_ok=True)
-            _ = (
-                paths.output.joinpath("images")
-                .joinpath(f"frame_{whenever.Instant.now()}.png")
-                .write_bytes(som_image)
-            )
+            save_name = f"bomb_{whenever.Instant.now()}"
+            sanitised_save_name = re.sub(r"[:.]", "_", save_name)
+
+            save_dir = paths.output.joinpath("observation_dataset", sanitised_save_name)
+            save_dir.mkdir(parents=True, exist_ok=True)
+
+            _ = save_dir.joinpath("screenshot.png").write_bytes(frames[-1])
+            _ = save_dir.joinpath("segmentation.png").write_bytes(segm_mask)
+            _ = save_dir.joinpath("som_image.png").write_bytes(som_image)
+
+            if state is not None:
+                bomb_state_path = save_dir.joinpath("state.json")
+                with bomb_state_path.open("w", encoding="utf-8") as bomb_state_file:
+                    json.dump(
+                        obj=state.model_dump(mode="json", by_alias=True),
+                        fp=bomb_state_file,
+                        indent=4,
+                    )
 
         som_frame = BinaryContent(data=som_image, media_type="image/png")
         current_frames = [BinaryContent(data=frame, media_type="image/png") for frame in frames]

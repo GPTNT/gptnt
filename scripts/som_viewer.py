@@ -118,7 +118,7 @@ with st.sidebar:
     _ = st.header("Mask")
     mask_thickness = st.number_input("Mask thickness", min_value=0, max_value=10, value=1, step=1)
     mask_alpha = st.number_input("Mask alpha", min_value=0.0, max_value=1.0, value=0.10, step=0.01)
-    square_size = st.number_input("Minimum square size", min_value=0, step=1)
+    square_size = None  # st.number_input("Minimum square size", min_value=0, step=1)
 
 som = SetOfMarksHandler(
     annotation_background_params=AnnotationBackgroundParams(

@@ -10,10 +10,12 @@ class Paths(BaseSettings):
 
     configs: Path = root.joinpath("configs")
     storage: Path = root.joinpath("storage")
+    artifacts: Path = root.joinpath("artifacts")
     output: Path = storage.joinpath("outputs")
 
     experiments: Path = storage.joinpath("experiments")
     test_experiments: Path = storage.joinpath("test_experiments")
+    vqa_and_grounding: Path = storage.joinpath("vqa_and_grounding")
 
     logs: Path = storage.joinpath("logs")
     gradio_chats: Path = output.joinpath("gradio_chats")
