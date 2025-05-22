@@ -6,10 +6,11 @@ readme = "README.md"
 authors = [
     {name = "Amit Parekh", email = "7276308+amitkparekh@users.noreply.github.com"},
 ]
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.12,<3.14"
 dependencies = [
     "anyio>=4.9.0",
     "color-contrast>=0.1.1",
+    "datasets>=3.6.0",
     "deepdiff>=8.4.2",
     "gradio>=5.20.1",
     "httpx>=0.28.1",
@@ -113,9 +114,9 @@ extend-ignore = [
 per-file-ignores = [
     "scripts/*:WPS",
     "tests/*:WPS2,WPS118,WPS432,WPS435,WPS444,WPS476",
-    "src/gptnt/ktane/state/*:WPS202",
-    "src/gptnt/dataset/generate_instructions.py:WPS202",
+    "src/gptnt/ktane/state/*:WPS202,WPS226",
     "src/gptnt/processors/*:WPS203",
+    "src/gptnt/dataset/*:WPS202,WPS204,WPS226",
 ]
 select = ["WPS"]
 max-line-length = 99

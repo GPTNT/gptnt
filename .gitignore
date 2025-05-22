@@ -789,6 +789,9 @@ storage/bomb_states/
 storage/unique_experiments/
 storage/seed_differences/
 
+# The observation + state dataset
+storage/observation_dataset/*
+
 # do NOT commit any keys that might be stored in this dir
 storage/keys/
 
