@@ -55,7 +55,8 @@ def wire_sequence(  # noqa: WPS210
     regions: list[RegionProperties], box_dims: NumberBoxDimensions, *, x_offset: int = 20
 ) -> Generator[DrawData]:
     """Generate draw data for venn module."""
-    sorted_regions = sorted(regions, key=lambda region: region.bbox[0])
+    # sort regions by label as coordinates are unreliable
+    sorted_regions = sorted(regions, key=lambda region: region.label)
 
     # ideal coordinates
     ideal_coords = []
