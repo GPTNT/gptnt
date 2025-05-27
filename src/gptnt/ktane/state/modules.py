@@ -238,6 +238,13 @@ class WireSequenceModuleState(InteractiveModuleState):
             return [wire for wire in wires if wire is not None]
         return []
 
+    @property
+    def panel_wires(self) -> list[WireSequenceWire]:
+        """Get the wires for the current panel."""
+        return [
+            wire for wire in self.wires if (wire.start_position_number // 3) == (self.panel - 1)
+        ]
+
 
 class WireSetModuleState(InteractiveModuleState):
     """State of the Wire Set module."""
