@@ -1,7 +1,6 @@
 # @package player
 
 defaults:
-  - default
   - _self_
 
 agent:
