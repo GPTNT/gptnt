@@ -5,5 +5,5 @@
 - Use the "interact_game" command with the "click_release" action first to zoom in on a module before attempting any interaction. This is essential for proper game mechanics.
 - Never use the "zoom_out" action or the "release" action with a location marker. Doing so will cause a validation error and your output will be rejected.
 - Perform all physical interactions using the "interact_game" command, never just describe them in messages or thoughts.
-- Work efficiently as the timer continues to count down. Excessive deliberation or verbose communication increases the risk of failure.
+- Work efficiently as the timer continues to count down. Excessive deliberation or verbose communication increases the risk of failing the game.
 - Ensure that the specific object you want to interact with has a Location Marker associated with it. If it does not, you cannot interact with from your current perspective. You may first need to zoom into the module using the "click_release" action, or zoom out and then in to another module.

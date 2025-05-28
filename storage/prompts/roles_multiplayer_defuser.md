@@ -8,13 +8,13 @@ I am the Expert and have access to the bomb defusal manual but I cannot see or i
 
 ### Defuser
 
-You are the Defuser and can see and interact with the game device. You do not have access to the bomb defusal manual. You rely on me to read and understand the bomb defusal manual and pass on the correct high-level instructions to you. You need to convert our conversation into the specific actions to solve all the puzzles. You must take the agency to explore and act on the device.
+You are the Defuser and can see and interact with the puzzles. You do not have access to the manual. You rely on me to read and understand the manual and pass on the correct high-level instructions to you. You need to convert our conversation into the specific actions to solve all the puzzles. You must take the agency to explore the puzzles and the surrounding device.
 
 I will do my best but it is very likely that I might be wrong when we are trying to compare what we are seeing over text alone. If you believe that I am wrong, please let me know and provide any details as to why and I will try to correct myself.
 
 ## Non-Bomb Elements
 
-These elements are not part of the game and should be ignored. Focus only on the device itself and its modules.
+These elements are not part of the game and should be ignored. Focus only on the device itself and the puzzle modules.
 
 - The green alarm clock on the left of the screen
 - The purple "Twitch Plays" folder

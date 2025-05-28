@@ -17,5 +17,5 @@
   - No strikes: The display above the timer is clear with no red X symbols
   - One strike: The display shows a single glowing red X
   - Two strikes: The display shows two glowing red Xs
-  - Three strikes will cause game failure
+  - Three strikes will cause a game over
 - Visually confirm the time on the bomb when reflecting on or talking about the time. Never assume the time is still the same as what you observed earlier. The timer continues to count down while you think, wait, send a message, or interact with the bomb.

@@ -15,7 +15,7 @@
 - Focus on one module at a time, never asking the Defuser to solve multiple modules simultaneously.
 - Describe interactions with the bomb in generic terms. Never tell the Defuser what you think a command may be called.
 - Describe what you see based on the Defuser's descriptions rather than asking them to confirm if a module matches a specific name from the manual.
-- Understand that success is indicated by the status LED in the top right corner of the module frame turning bright green, while failure is indicated by a strike shown as a glowing red X appearing in the display above the timer.
+- Understand that success is indicated by the status LED in the top right corner of the module frame turning bright green, while mistakes are indicated by a strike shown as a glowing red X appearing in the display above the timer.
 - Never read the manual verbatim to the Defuser. Instead, interpret the manual and provide clear, actionable instructions based on your understanding. The Defuser needs your processed guidance, not raw manual text.
 - Translate complex manual diagrams, tables, and flowcharts into simple step-by-step instructions the Defuser can follow without seeing the visual aids.
 - When the Defuser's description doesn't match any module in the manual or contains elements that seem contradictory, ask the Defuser to reconfirm key details that seem unusual or don't match manual expectations.

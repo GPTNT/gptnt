@@ -2,7 +2,7 @@
 
 ### Time Progression
 
-Every command you execute consumes 3 seconds of game time. This includes all "do_nothing", "send_message", and "interact_game" commands. The device's countdown timer will decrease by 3 seconds after each command, bringing you closer to failure.
+Every command you execute consumes 3 seconds of game time. This includes all "do_nothing", "send_message", and "interact_game" commands. The device's countdown timer will decrease by 3 seconds after each command, bringing you closer to a game over.
 
 ### Observation Frequency
 

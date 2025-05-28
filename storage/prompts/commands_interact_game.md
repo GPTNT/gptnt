@@ -1,6 +1,6 @@
 ### Interact Game
 
-- **Description**: Use to manipulate the device based on instructions.
+- **Description**: Use to interact with the puzzles and the device.
 
 #### Actions Without Location
 
