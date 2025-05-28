@@ -76,7 +76,7 @@ class BaseEMClient(BaseRabbitMQClient, ABC):
         with suppress(TimeoutError):
             await until(
                 get_value=lambda: self.api_queues.experiment_heartbeat().route.publish_with_ack(
-                    message=HeartbeatEvent(uuid=self.uuid), fail_after=1.0, prefix="heartbeat"
+                    message=HeartbeatEvent(uuid=self.uuid), fail_after=2.0, prefix="heartbeat"
                 ),
                 target=False,
             )

@@ -177,7 +177,7 @@ class RoomInstance(BaseEMClient):
             logger.info("Running defuser forward pass")
             if not await self.api_queues.player_run(
                 experiment.defuser_uuid
-            ).route.publish_with_ack(RunForwardOnceCommand(), fail_after=30.0):
+            ).route.publish_with_ack(RunForwardOnceCommand(), fail_after=120):
                 # TODO: Change timeout for player as AI can take a while
                 raise PlayerTookTooLongError
 
@@ -191,7 +191,7 @@ class RoomInstance(BaseEMClient):
                 logger.info("Running expert forward pass")
                 if not await self.api_queues.player_run(
                     experiment.expert_uuid
-                ).route.publish_with_ack(RunForwardOnceCommand(), fail_after=30.0):
+                ).route.publish_with_ack(RunForwardOnceCommand(), fail_after=120):
                     # TODO: Change timeout for player as AI can take a while
                     raise PlayerTookTooLongError
 
@@ -202,7 +202,7 @@ class RoomInstance(BaseEMClient):
             while self._is_in_progress:
                 logger.info(f"Running {role} forward pass (async)")
                 if not await self.api_queues.player_run(uuid).route.publish_with_ack(
-                    RunForwardOnceCommand(), fail_after=30.0
+                    RunForwardOnceCommand(), fail_after=120
                 ):
                     # TODO: Change timeout for player as AI can take a while
                     raise PlayerTookTooLongError
