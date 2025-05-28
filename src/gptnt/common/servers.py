@@ -4,12 +4,11 @@ import httpx
 from aiohttp import ClientSession
 from httpx._client import AsyncClient
 from httpx_aiohttp import AiohttpTransport
-from pydantic import BaseModel
 
 TimeoutTypes = float | httpx.Timeout | None
 
 DEFAULT_CONNECTION_LIMITS = httpx.Limits(
-    max_connections=1000, max_keepalive_connections=100, keepalive_expiry=120
+    max_connections=None, max_keepalive_connections=None, keepalive_expiry=None
 )
 
 
@@ -30,10 +29,3 @@ def get_available_port() -> int:
     sock = socket.socket()
     sock.bind(("", 0))
     return sock.getsockname()[1]
-
-
-class ClientMetadata(BaseModel):
-    """Metadata for a given client."""
-
-    fastapi_url: str | None = None
-    """The URL of the FastAPI server that it's running on."""

@@ -1,11 +1,56 @@
+[tasks.defuser]
+description = "Run the defuser"
+run = "uv run python src/gptnt/entrypoints/run_player.py model=test_defuser"
+
+[tasks.em]
+description = "Run the experiment-manager"
+run = "uv run python src/gptnt/entrypoints/run_experiment_manager.py"
+
+[tasks.expert]
+description = "Run the expert"
+run = "uv run python src/gptnt/entrypoints/run_player.py model=test_expert"
+
 [tasks.format]
 description = "Format/lint all files in one go"
 run = "uv run pre-commit run -a"
+
+[tasks.game]
+description = "Run the game"
+run = "uv run python src/gptnt/entrypoints/run_game_instance.py"
+
+[tasks.install]
+description = "Install dependencies"
+alias = "i"
+run = "uv sync --all-groups"
+
+[tasks.room]
+description = "Run the room"
+run = "uv run python src/gptnt/entrypoints/run_room_instance.py"
 
 [tasks.tests]
 description = "Run all tests"
 run = "uv run pytest"
 
+[tasks.together]
+description = "Run things together"
+run = """
+#!/usr/bin/env bash
+mise run em &
+pid[0]=$!
+mise run game &
+pid[1]=$!
+mise run room &
+pid[2]=$!
+mise run defuser &
+pid[3]=$!
+mise run expert &
+pid[4]=$!
+trap "kill -9 ${pid[3]} ${pid[4]} ${pid[0]} ${pid[1]} ${pid[2]}; exit 1" INT
+wait
+"""
+
 [tools]
-python = "3.12"
+python = "3.13"
 uv = "latest"
+"asdf:mise-plugins/asdf-rabbitmq" = "latest"
+erlang = "latest"

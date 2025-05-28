@@ -1,18 +1,20 @@
 [project]
 name = "gptnt"
-version = "0.1.0"
+version = "1.0.0"
 description = "Add your description here"
 readme = "README.md"
 authors = [
     {name = "Amit Parekh", email = "7276308+amitkparekh@users.noreply.github.com"},
 ]
-requires-python = ">=3.12,<3.14"
+requires-python = ">=3.13"
 dependencies = [
+    "aiotools>=1.8.2",
     "anyio>=4.9.0",
     "color-contrast>=0.1.1",
     "datasets>=3.6.0",
     "deepdiff>=8.4.2",
-    "gradio>=5.20.1",
+    "fastapi>=0.115.12",
+    "faststream[cli,rabbit]>=0.5.40",
     "httpx>=0.28.1",
     "httpx-aiohttp>=0.1.2",
     "hydra-core>=1.3.2",
@@ -51,7 +53,7 @@ tests = [
     "respx>=0.22.0",
 ]
 lint = [
-    "basedpyright>=1.23.2",
+    "basedpyright>=1.29.2",
     "docformatter>=1.7.5",
     "flake8-pyproject>=1.2.3",
     "pre-commit>=4.0.1",
@@ -111,10 +113,12 @@ extend-ignore = [
     "WPS412",
     # Handled by ruff PLR2004
     "WPS432",
+    # Free the walrus
+    "WPS332",
 ]
 per-file-ignores = [
     "scripts/*:WPS",
-    "tests/*:WPS2,WPS118,WPS432,WPS435,WPS444,WPS476",
+    "tests/*:WPS2,WPS118,WPS432,WPS435,WPS444,WPS476,WPS411",
     "src/gptnt/ktane/state/*:WPS202,WPS226",
     "src/gptnt/processors/*:WPS203",
     "src/gptnt/dataset/*:WPS202,WPS204,WPS226",
@@ -122,7 +126,7 @@ per-file-ignores = [
 select = ["WPS"]
 max-line-length = 99
 nested-classes-whitelist = ["Meta", "Params", "Config"]
-allowed-domain-names = ["data", "params"]
+allowed-domain-names = ["data", "params", "content"]
 # WPS211: Increase number of arguments allowed for a function
 max-arguments = 10
 # WPS214: Increase number of methods allowed for a class
@@ -130,7 +134,7 @@ max-methods = 25
 # WPS235: Increase number of imports allowed from a module
 max-import-from-members = 10
 # WPS226: Increase number of string literals allowed before wemake complains
-max-string-usages = 10
+max-string-usages = 14
 # WPS234: Increase max annotation complexity
 max-annotation-complexity = 5
 # WPS221: Increase max jones compexity
@@ -139,9 +143,12 @@ max-line-complexity = 18
 max-module-members = 15
 # WPS210: Increase max number of variables in a function
 max-local-variables = 10
+# WPS217: increase max number of awaitable
+max-awaits = 10
 
 [tool.logfire]
 pydantic_plugin_record = "failure"
+ignore_no_config = true
 
 [tool.pytest.ini_options]
 filterwarnings = [

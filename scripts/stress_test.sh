@@ -36,22 +36,24 @@ run_and_track() {
 # trap script termination to clean up
 trap cleanup EXIT
 
-# run experiment manager (only one instance needed)
+# start experiment manager
 echo "STRESS_TEST: Starting experiment manager..."
-run_and_track "experiment_manager" env WANDB_RUN_GROUP=STRESS_TEST uv run python ./src/gptnt/entrypoints/run_experiment_manager.py
+run_and_track "experiment_manager" env WANDB_RUN_GROUP=STRESS_TEST uv run python src/gptnt/entrypoints/run_experiment_manager.py
 
-# start room managers
+# start game and room instances
 for (( i=0; i<NUM_ROOMS; i++ )); do
-  echo "STRESS_TEST: Starting room manager on DISPLAY=:$DISPLAY_NUM..."
-  run_and_track "room_manager_$i" env WANDB_RUN_GROUP=STRESS_TEST DISPLAY=:$DISPLAY_NUM uv run python ./src/gptnt/entrypoints/run_room_manager.py
+  echo "STRESS_TEST: Starting game instance $i on DISPLAY=:$DISPLAY_NUM..."
+  run_and_track "game_instance" env WANDB_RUN_GROUP=STRESS_TEST DISPLAY=:$DISPLAY_NUM uv run python src/gptnt/entrypoints/run_game_instance.py
+  echo "STRESS_TEST: Starting room instance $i..."
+  run_and_track "room_instance_$i" env WANDB_RUN_GROUP=STRESS_TEST uv run python src/gptnt/entrypoints/run_room_instance.py
 done
 
 # start players
 for (( i=0; i<NUM_PLAYERS; i++ )); do
   echo "STRESS_TEST: Starting expert player $i..."
-  run_and_track "expert_player_$i" env WANDB_RUN_GROUP=STRESS_TEST uv run python src/gptnt/entrypoints/run_player.py player=ai/expert model=test_expert
+  run_and_track "expert_player_$i" env WANDB_RUN_GROUP=STRESS_TEST uv run python src/gptnt/entrypoints/run_player.py model=test_expert
   echo "STRESS_TEST: Starting defuser player $i..."
-  run_and_track "defuser_player_$i" env WANDB_RUN_GROUP=STRESS_TEST uv run python src/gptnt/entrypoints/run_player.py player=ai/defuser_window_som model=test_defuser
+  run_and_track "defuser_player_$i" env WANDB_RUN_GROUP=STRESS_TEST uv run python src/gptnt/entrypoints/run_player.py model=test_defuser
 done
 
 # wait and monitor
@@ -67,4 +69,4 @@ for i in "${!PIDS[@]}"; do
   fi
 done
 
-echo "STRESS_TEST: All processes ended."
+echo "STRESS_TEST: All processes ended successfully."

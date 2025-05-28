@@ -1,27 +1,16 @@
 from collections.abc import Callable, Iterator
-from typing import Literal, override
-
-from pydantic import BaseModel
+from typing import Literal, NamedTuple
 
 type PairingType = Literal[
-    "with_best_defuser", "with_best_expert", "with_self", "no_partner", "pairwise"
+    "with_best_defuser", "with_best_expert", "with_self", "no_expert", "pairwise"
 ]
 
 
-class Pairing(BaseModel):
+class Pairing(NamedTuple):
     """Pairing for a game."""
 
     defuser: str
     expert: str | None
-
-    @override
-    def __str__(self) -> str:
-        output = f"{self.defuser}_{self.expert}"
-        return output
-
-    @override
-    def __hash__(self) -> int:
-        return hash((self.defuser, self.expert))
 
 
 class PairingGenerator:
@@ -49,7 +38,7 @@ class PairingGenerator:
             "with_best_defuser": self._generate_with_best_defuser,
             "with_best_expert": self._generate_with_best_expert,
             "with_self": self._generate_with_self,
-            "no_partner": self._generate_no_partner,
+            "no_expert": self._generate_no_expert,
             "pairwise": self._generate_pairwise,
         }
         yield from switcher[self.pairing_type](self.all_players)
@@ -78,7 +67,7 @@ class PairingGenerator:
         """Generate pairings with self."""
         yield from (Pairing(defuser=player, expert=player) for player in all_players)
 
-    def _generate_no_partner(self, all_players: list[str]) -> Iterator[Pairing]:
+    def _generate_no_expert(self, all_players: list[str]) -> Iterator[Pairing]:
         """Generate pairings with no partner, therefore only defuser given."""
         yield from (Pairing(defuser=player, expert=None) for player in all_players)
 

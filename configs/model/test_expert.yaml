@@ -1,14 +1,13 @@
 # @package player
 
 defaults:
-  - default
   - _self_
 
 metadata:
-  player_name: test
+  player_name: test-expert
+  supports_structured_output: true
 
 agent:
+  retries: 0
   model:
-    _target_: gptnt.players.ai.dummy.DummyExpertModel
-
-should_reflect_on_game_at_end: true
+    _target_: gptnt.players.dummy.models.DummyExpertModel

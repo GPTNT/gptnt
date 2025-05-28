@@ -1,26 +1,10 @@
 from typing import Any
 
-import httpx
-import pytest_asyncio
 from pytest_cases import fixture, parametrize
-from pytest_mock import MockerFixture
-from typing_extensions import AsyncGenerator
 
-from gptnt.ktane.client import KtaneClient
 from gptnt.players.actions import SetOfMarksLocation
-from gptnt.processors.image_resizer import ImageResizer
 from gptnt.processors.labels.drawing import AnnotationBackgroundParams, AnnotationTextParams
 from gptnt.processors.set_of_marks import MaskDrawingParams, SetOfMarksHandler
-
-
-@pytest_asyncio.fixture
-async def client(host: str, port: int, mocker: MockerFixture) -> KtaneClient:
-    """Provides an instance of the Ktane Client for testing."""
-    ktane_client = KtaneClient(url=f"http://{host}:{port}")
-    type(ktane_client).client = mocker.PropertyMock(  # pyright: ignore[reportAttributeAccessIssue]
-        return_value=httpx.AsyncClient(base_url=f"http://{host}:{port}")
-    )
-    return ktane_client
 
 
 @fixture
@@ -42,14 +26,14 @@ def set_of_marks_handler(mark_type: type[SetOfMarksLocation]) -> SetOfMarksHandl
     return som_handler
 
 
-@pytest_asyncio.fixture
-async def client_with_som(
-    client: KtaneClient, set_of_marks_handler: SetOfMarksHandler
-) -> AsyncGenerator[KtaneClient, None]:
-    """Provides an instance of the Ktane Client with a SoM for testing."""
-    client.set_of_marks_painter = set_of_marks_handler
-    client.image_resizer = ImageResizer(target_width=100, target_height=100)
-    yield client
+# @pytest_asyncio.fixture
+# async def client_with_som(
+#     client: KtaneClient, set_of_marks_handler: SetOfMarksHandler
+# ) -> AsyncGenerator[KtaneClient, None]:
+#     """Provides an instance of the Ktane Client with a SoM for testing."""
+#     client.set_of_marks_painter = set_of_marks_handler
+#     client.image_resizer = ImageResizer(target_width=100, target_height=100)
+#     yield client
 
 
 @fixture(scope="session")

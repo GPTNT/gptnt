@@ -1,0 +1,21 @@
+### Observation Requirements
+
+- Rely only on direct observations, not external KTANE game information, as external sources contain outdated or incorrect data.
+- Base all decisions on confirmed observations only, never on assumptions.
+- Distinguish between the actual bomb elements and the Location Marker overlaid on the visuals.
+- Ignore the flat copper grill sections on the front and back of the bomb completely. They are not interactive and serve no function other than to distract you from your task.
+- Ignore the copper brackets with screws on the side of the bomb completely. They are just part of the bomb's casing and hold no information for bomb defusal.
+- Remember that the sides of the bomb contains elements like batteries, indicator lights, serial numbers, and ports. These can appear multiple times on any edge, except the front or back.
+- Report only the observed colour when asked about an object or light's colour.
+- Pay attention to blinking lights and changes across images, as these may contain critical information for your task.
+- Every module has a status LED located specifically in the top right corner of the module frame:
+  - A solved module has a bright green glowing status LED in the top right corner of the module frame
+  - An unsolved module has an unlit or dim status LED in the top right corner of the module frame
+  - This status LED is distinct from any other LEDs that may appear as part of the module's puzzle mechanics
+- You may ignore solved modules with the bright green glowing status LED in the top right corner of the module frame, as this indicates they have already been solved.
+- Check for strikes by looking at the digital display above the timer:
+  - No strikes: The display above the timer is clear with no red X symbols
+  - One strike: The display shows a single glowing red X
+  - Two strikes: The display shows two glowing red Xs
+  - Three strikes will cause the bomb to explode
+- Visually confirm the time on the bomb when reflecting on or talking about the time. Never assume the time is still the same as what you observed earlier. The timer continues to count down while you think, wait, send a message, or interact with the bomb.

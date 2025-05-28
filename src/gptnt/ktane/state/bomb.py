@@ -1,6 +1,6 @@
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, alias_generators
+from pydantic import BaseModel, ConfigDict, alias_generators, model_validator
 
 from gptnt.ktane.state.modules import (
     NEEDS_MULTIPLE_IMAGES,
@@ -57,3 +57,10 @@ class BombState(BaseModel):
     def is_game_correctly_over(self) -> bool:
         """Check if the game is correctly over."""
         return self.is_detonated or self.is_solved or self.is_timed_out or self.is_strike_out
+
+    @model_validator(mode="after")
+    def check_is_solved_condition(self) -> Self:
+        """Catch edge case where bomb is solved but not marked."""
+        if not self.is_solved and all(module.is_solved for module in self.modules):
+            self.is_solved = True
+        return self

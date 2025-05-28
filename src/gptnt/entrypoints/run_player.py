@@ -1,59 +1,51 @@
-from functools import partial
+import asyncio
+import sys
+from typing import TYPE_CHECKING
 
 import hydra
 import logfire
-import uvicorn
-from fastapi import FastAPI
-from omegaconf import DictConfig
+from faststream.app import FastStream
+from opentelemetry.sdk.trace.sampling import ParentBased
 from structlog import get_logger
 
-from gptnt.api.experiment_manager_client import ExperimentManagerClient
-from gptnt.api.player_lifespan import player_lifespan
-from gptnt.api.player_routes import player_router
+from gptnt.common.instrumentation import HeartbeatFilterSampler
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
-from gptnt.common.servers import get_available_port
 from gptnt.players.base_player import BasePlayer
 
-_ = logfire.configure(service_name="player", scrubbing=False)
-configure_logging()
+if TYPE_CHECKING:
+    from gptnt.players.ai_player import AIPlayer
 
+
+_ = logfire.configure(
+    service_name="player",
+    scrubbing=False,
+    sampling=logfire.SamplingOptions(head=ParentBased(HeartbeatFilterSampler())),
+)
+
+configure_logging()
 _logger = get_logger()
 
 paths = Paths()
 
 
-@hydra.main(version_base="1.3", config_path=str(paths.configs), config_name="player.yaml")
-def run_player(config: DictConfig) -> None:  # noqa: WPS210
-    """Run the player.
-
-    We use Hydra for this to allow us to easily switch between different configurations of players.
-    """
-    api_host = "localhost"
-    api_port = get_available_port()
-
+async def run_player(*, hydra_overrides: list[str]) -> None:
+    """Run the player."""
+    with hydra.initialize_config_dir(version_base="1.3", config_dir=str(paths.configs)):
+        config = hydra.compose(config_name="player.yaml", overrides=hydra_overrides)
     # Instantiate the player from the class
-    player = hydra.utils.instantiate(config.player)
+    player: AIPlayer = hydra.utils.instantiate(config.player)
     assert isinstance(player, BasePlayer)
-    player.metadata.fastapi_url = f"http://{api_host}:{api_port}"
 
-    experiment_manager_client = hydra.utils.instantiate(config.experiment_manager_client)
-    assert isinstance(experiment_manager_client, ExperimentManagerClient)
+    app = FastStream(player.broker, lifespan=player.lifespan, logger=None)
 
-    app = FastAPI(
-        lifespan=partial(
-            player_lifespan, player=player, experiment_manager_client=experiment_manager_client
-        )
-    )
-
-    # Include the router with the endpoints.
-    app.include_router(player_router)
-    _ = logfire.instrument_fastapi(app, excluded_urls=["/health", "/stagecheck"])
-    # Start the server.
-    uvicorn.run(app, host=api_host, port=api_port, log_level="warning")
-    player.tracker.on_close()
-    _logger.info("Player closed")
+    # Run the FastStream app until manual exit
+    await app.run()
 
 
 if __name__ == "__main__":
-    run_player()
+    hydra_overrides = sys.argv[1:] if len(sys.argv) > 1 else []
+    if hydra_overrides:
+        _logger.debug(f"Hydra overrides: {hydra_overrides}")
+    loop = asyncio.new_event_loop()
+    loop.run_until_complete(run_player(hydra_overrides=hydra_overrides))

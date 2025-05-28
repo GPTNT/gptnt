@@ -21,6 +21,9 @@ def configure_logging(root_log_level: int = logging.INFO) -> None:
         structlog.stdlib.add_logger_name,
         # Add the log level
         structlog.stdlib.add_log_level,
+        # structlog.processors.CallsiteParameterAdder(
+        #     [CallsiteParameter.PROCESS, CallsiteParameter.FUNC_NAME, CallsiteParameter.LINENO]
+        # ),
         # Include any extras in the log dict
         structlog.stdlib.ExtraAdder(),
     ]
@@ -37,6 +40,10 @@ def configure_logging(root_log_level: int = logging.INFO) -> None:
         cache_logger_on_first_use=True,
     )
 
+    # Set debug to be a different color
+    log_level_colors = structlog.dev.ConsoleRenderer.get_default_level_styles()
+    log_level_colors["debug"] = "\x1b[34m"
+
     formatter = structlog.stdlib.ProcessorFormatter(
         # These run ONLY on `logging` entries that do NOT originate within
         # structlog.
@@ -45,7 +52,7 @@ def configure_logging(root_log_level: int = logging.INFO) -> None:
         processors=[
             # Remove _record & _from_structlog.
             structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-            structlog.dev.ConsoleRenderer(),
+            structlog.dev.ConsoleRenderer(level_styles=log_level_colors),
         ],
     )
 
@@ -58,3 +65,5 @@ def configure_logging(root_log_level: int = logging.INFO) -> None:
     # Set httpx to WARNING to avoid too much noise
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
+
+    logging.getLogger("gptnt").setLevel(logging.DEBUG)

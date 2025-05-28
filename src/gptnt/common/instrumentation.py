@@ -1,14 +1,20 @@
 import abc
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, override
 
 import logfire
 import structlog
+from opentelemetry.context import Context
+from opentelemetry.sdk.trace.sampling import ALWAYS_OFF, ALWAYS_ON, Sampler, SamplingResult
+from opentelemetry.trace import Link, SpanKind
+from opentelemetry.trace.span import TraceState
+from opentelemetry.util.types import Attributes
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-log = structlog.get_logger()
+logger = structlog.get_logger()
 
 
 class PostInitMeta(abc.ABCMeta):
@@ -63,7 +69,7 @@ class InstrumentationMixin(abc.ABC, metaclass=PostInitMeta):
     def post_init(self) -> None:
         """Post-initialisation method that performs instrumentation."""
         if not logfire.DEFAULT_LOGFIRE_INSTANCE.config.send_to_logfire:
-            log.debug("Logfire is not enabled, skipping instrumentation.")
+            logger.debug("Logfire is not enabled, skipping instrumentation.")
             return
         self.perform_instrumentation()
 
@@ -83,7 +89,7 @@ class InstrumentationDataclassMixin(abc.ABC):
     def __post_init__(self) -> None:
         """Post-initialisation method that performs instrumentation."""
         if not logfire.DEFAULT_LOGFIRE_INSTANCE.config.send_to_logfire:
-            log.debug("Logfire is not enabled, skipping instrumentation.")
+            logger.debug("Logfire is not enabled, skipping instrumentation.")
             return
         self.perform_instrumentation()
 
@@ -91,3 +97,37 @@ class InstrumentationDataclassMixin(abc.ABC):
     def perform_instrumentation(self) -> None:
         """Perform instrumentation on the class."""
         raise NotImplementedError
+
+
+class HeartbeatFilterSampler(Sampler):
+    """Custom sampler that filters out spans with 'heartbeat' in their name."""
+
+    @override
+    def should_sample(
+        self,
+        parent_context: Context | None,
+        trace_id: int,
+        name: str,
+        kind: SpanKind | None = None,
+        attributes: Attributes = None,
+        links: Sequence[Link] | None = None,
+        trace_state: TraceState | None = None,
+    ) -> SamplingResult:
+        # Check if 'heartbeat' is anywhere in the span name (case-insensitive)
+        sampler = ALWAYS_OFF if "experiment.heartbeat" in name.lower() else ALWAYS_ON
+
+        if (
+            "heartbeat" in name.lower()
+            and attributes is not None
+            and attributes.get("messaging.system", None) == "rabbitmq"
+        ):
+            # If the span is a RabbitMQ heartbeat, use ALWAYS_OFF
+            sampler = ALWAYS_OFF
+
+        return sampler.should_sample(
+            parent_context, trace_id, name, kind, attributes, links, trace_state
+        )
+
+    @override
+    def get_description(self) -> str:
+        return "HeartbeatFilterSampler"

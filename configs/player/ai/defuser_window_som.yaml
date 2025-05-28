@@ -1,9 +1,0 @@
-# @package player
-
-defaults:
-  - ai/_defuser_som
-  - _self_
-
-_target_: gptnt.players.ai.defuser.MDPDefuserPlayer
-should_save_images: true
-max_observation_window_length: 16

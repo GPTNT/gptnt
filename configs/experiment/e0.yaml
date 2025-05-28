@@ -1,0 +1,12 @@
+# @package _global_
+
+defaults:
+  - _e
+  - override /pairing: with_best_defuser
+  - override /players: test
+  - override /think_framework: act
+  - _self_
+
+pairing_generator:
+  pairing_type: with_best_defuser
+  best_model: test-defuser

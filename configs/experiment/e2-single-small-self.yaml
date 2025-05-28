@@ -1,0 +1,6 @@
+# @package _global_
+
+defaults:
+  - _e
+  - override /players: smaller
+  - _self_

@@ -1,0 +1,4 @@
+# @package pairing_generator
+
+all_players:
+  - test-expert

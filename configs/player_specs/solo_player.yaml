@@ -1,0 +1,7 @@
+defaults:
+  - _default
+  - _self_
+
+role: "defuser"
+is_playing_alone: true
+include_manual: true

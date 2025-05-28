@@ -4,14 +4,72 @@ defaults:
   - _self_
   - hydra: default
 
-  - player: ai/defuser_mdp_som
   - model: test_defuser
-  - system_prompt: defuser
 
   - override hydra/job_logging: none
   - override hydra/hydra_logging: none
 
 task_name: evaluation
-experiment_manager_client:
-  _target_: gptnt.api.experiment_manager_client.ExperimentManagerClient
-  url: "http://localhost:8099"
+
+player:
+  _target_: gptnt.players.ai_player.AIPlayer
+
+  broker:
+    _target_: faststream.rabbit.RabbitBroker
+    logger: null
+    middlewares:
+      - _target_: faststream.rabbit.opentelemetry.RabbitTelemetryMiddleware
+
+  metadata:
+    _target_: gptnt.players.spec.PlayerMetadata
+    player_type: ai
+    player_name: ???
+    supports_structured_output: ???
+
+  tracker:
+    _target_: gptnt.players.metrics.episode_tracker.EpisodeTracker
+    player_metadata: ${player.metadata}
+    wandb_path: "gptnt/gptnt"
+    wandb_init_kwargs:
+      group: evaluation
+      mode: disabled
+
+  agent:
+    _target_: pydantic_ai.Agent
+
+    model: ???
+
+    model_settings:
+      _target_: pydantic_ai.settings.ModelSettings
+      _convert_: all
+      temperature: 0.0
+      top_p: 1.0
+
+  observation_handler:
+    _target_: gptnt.players.observations.ObservationHandler
+    image_resizer:
+      _target_: gptnt.processors.image_resizer.ImageResizer
+      target_width: 512
+      target_height: 512
+    set_of_marks_painter:
+      _target_: gptnt.processors.set_of_marks.SetOfMarksHandler
+      add_labels: true
+      add_mask_outline: true
+      mark_type: alphabet
+      annotation_text_params:
+        _target_: gptnt.processors.labels.drawing.AnnotationTextParams
+        font: 2
+        font_scale: 0.7
+        thickness: 1
+        space_between_boxes: 2
+      annotation_background_params:
+        _target_: gptnt.processors.labels.drawing.AnnotationBackgroundParams
+        padding: 3
+        alpha: 1
+      mask_drawing_params:
+        _target_: gptnt.processors.set_of_marks.MaskDrawingParams
+        mask_thickness: 1
+        soft_mask_alpha: 0.1
+        bw_outside_mask: False
+        # In pixels, or null
+        mask_highlight_size: null

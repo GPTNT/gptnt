@@ -1,0 +1,7 @@
+# @package _global_
+
+defaults:
+  - override /player_specs@defuser_player_spec: defuser
+  - override /player_specs@expert_player_spec: expert
+  - override /pairing: with_self
+  - _self_

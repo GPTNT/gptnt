@@ -5,6 +5,7 @@ defaults:
 
 metadata:
   player_name: gpt4o
+  supports_structured_output: true
 
 agent:
   model:

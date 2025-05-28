@@ -1,14 +1,13 @@
 # @package player
 
 defaults:
-  - default
   - _self_
 
 metadata:
-  player_name: test
+  player_name: test-defuser
+  supports_structured_output: true
 
 agent:
+  retries: 0
   model:
-    _target_: gptnt.players.ai.dummy.DummyDefuserModel
-
-should_reflect_on_game_at_end: false
+    _target_: gptnt.players.dummy.models.DummyDefuserModel

@@ -1,0 +1,6 @@
+# @package _global_
+
+defaults:
+  - _e
+  - override /communication_style: async
+  - _self_

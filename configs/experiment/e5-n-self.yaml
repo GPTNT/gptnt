@@ -1,0 +1,11 @@
+# @package _global_
+
+defaults:
+  - _e
+  - override /mission_condition: multiple_modules_n
+  - _self_
+
+mission_generator:
+  config:
+    time_limit: null
+    mission_specs_dir: configs/mission_specs/multiple_module_n

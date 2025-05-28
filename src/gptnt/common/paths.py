@@ -25,3 +25,6 @@ class Paths(BaseSettings):
 
     ktane: Path = storage.joinpath("ktane")
     """Path to the where we store the game."""
+
+    prompts: Path = storage.joinpath("prompts")
+    """Path to the where we store the prompts pieces."""

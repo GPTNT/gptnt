@@ -7,7 +7,7 @@ import logfire
 from structlog import get_logger
 
 from gptnt.common.instrumentation import InstrumentationMixin
-from gptnt.common.servers import ClientMetadata, httpx_create_async_client
+from gptnt.common.servers import httpx_create_async_client
 
 _logger = get_logger()
 
@@ -31,6 +31,13 @@ class BaseClient(InstrumentationMixin, abc.ABC):
             self._client = httpx_create_async_client(base_url=self.url)
             self.perform_instrumentation()
         return self._client
+
+    async def restart_client(self) -> None:
+        """Restart the client."""
+        _logger.debug("Restarting client")
+        await self._client.aclose()
+        self._client = httpx_create_async_client(base_url=self.url)
+        self.perform_instrumentation()
 
     @property
     def is_closed(self) -> bool:
@@ -78,47 +85,3 @@ class BaseClient(InstrumentationMixin, abc.ABC):
                 return True
 
         return False
-
-
-class SupervisedClient[ClientT: BaseClient, MetadataT: ClientMetadata](abc.ABC):
-    """Wrapper to supervise clients."""
-
-    client_constructor: type[ClientT]
-
-    def __init__(self, client: ClientT, metadata: MetadataT) -> None:
-        self.is_running = False
-        self.in_experiment = False
-        self.metadata = metadata
-        self.client = client
-
-    @classmethod
-    def from_metadata(cls, metadata: MetadataT) -> Self:
-        """Creates a new client from the metadata."""
-        if not metadata.fastapi_url:
-            raise ValueError("URL is required")
-        return cls(client=cls.client_constructor(metadata.fastapi_url), metadata=metadata)
-
-    @property
-    def url(self) -> httpx.URL:
-        """The base URL of the API."""
-        return self.client.url
-
-    @property
-    def is_closed(self) -> bool:
-        """Returns true if the client is closed."""
-        return self.client.is_closed
-
-    async def start(self) -> None:
-        """Starts the client."""
-        self.is_running = True
-        _ = await self.client.start()
-
-    async def stop(self) -> None:
-        """Stops the client."""
-        self.is_running = False
-        _ = await self.client.stop()
-
-    @abc.abstractmethod
-    async def supervisor_loop(self) -> None:
-        """Returns the supervisor loop for this client."""
-        raise NotImplementedError

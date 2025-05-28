@@ -13,6 +13,15 @@ logger = get_logger()
 MANUAL_NUM_PAGES = 23
 """Number of pages in the KTANE manual."""
 
+NEEDY_MODULE_PAGE_NUMS = tuple(range(17, 21))
+"""Page numbers for needy modules in the KTANE manual."""
+
+MANUAL_PAGE_IDENTIFIER_STRING = "8/28/2020 KeepTalkingandNobodyExplodes-BombDefusalManual-en-v1"
+"""A string that helps identify a manual page the KTANE manual in the text.
+
+There are probably better ways to do this, but for now, this is a good enough heuristic.
+"""
+
 type PageNumType = Annotated[int, Field(gt=0, le=MANUAL_NUM_PAGES, description="Page number")]
 
 

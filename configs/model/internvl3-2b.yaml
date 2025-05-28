@@ -6,11 +6,9 @@ defaults:
 
 metadata:
   player_name: internvl3-2b
+  supports_structured_output: false
 
 agent:
-  output_type:
-    variant: "gemini"
-
   model:
     model_name: OpenGVLab/InternVL3-2B
     provider:

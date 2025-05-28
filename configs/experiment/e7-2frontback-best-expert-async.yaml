@@ -1,0 +1,6 @@
+# @package _global_
+
+defaults:
+  - e7-2frontback-best-defuser-async
+  - override /pairing: with_best_expert
+  - _self_

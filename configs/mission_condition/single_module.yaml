@@ -1,0 +1,19 @@
+# @package _global_
+
+mission_generator:
+  num_seeds_per_mission: 3
+  config:
+    _target_: gptnt.experiments.missions.MissionGeneratorConfig
+    time_limit: 90
+    allow_back_placement: false
+
+    n_modules_min: 1
+    n_modules_max: 1
+    sample_from_modules: false
+    allow_repeat_module: false
+
+    min_optional_widgets: 1
+    max_optional_widgets: 5
+
+experiment_generator:
+  condition: single_module

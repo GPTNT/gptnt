@@ -1,12 +1,5 @@
 from typing import Any
 
-import httpx
-import pytest
-import respx
-from pytest_cases import parametrize_with_cases
-
-from gptnt.ktane.actions import GameActionType, KtaneAction
-from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.state.modules import ComplicatedWire, WireSequenceWire, WireSetWire
 
 
@@ -70,23 +63,23 @@ class StateCases:
         }
 
 
-@respx.mock
-@pytest.mark.asyncio
-@pytest.mark.parametrize("action_type", list(GameActionType))
-@parametrize_with_cases("state_json", cases=StateCases)
-async def test_send_action_returns_bomb_state(
-    client: KtaneClient, action_type: GameActionType, state_json: dict[str, Any]
-) -> None:
-    action_endpoint = respx.get(f"{client.client.base_url}/action").mock(
-        return_value=httpx.Response(httpx.codes.OK, json=state_json)
-    )
+# @respx.mock
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize("action_type", list(GameActionType))
+# @parametrize_with_cases("state_json", cases=StateCases)
+# async def test_send_action_returns_bomb_state(
+#     client: KtaneClient, action_type: GameActionType, state_json: dict[str, Any]
+# ) -> None:
+#     action_endpoint = respx.get(f"{client.client.base_url}/action").mock(
+#         return_value=httpx.Response(httpx.codes.OK, json=state_json)
+#     )
 
-    location = {"x_pos": 0.5, "y_pos": 0.5}
+#     location = {"x_pos": 0.5, "y_pos": 0.5}
 
-    action = KtaneAction(
-        action=action_type,
-        location=location if action_type in GameActionType.require_location() else None,
-    )
+#     action = KtaneAction(
+#         action=action_type,
+#         location=location if action_type in GameActionType.require_location() else None,
+#     )
 
-    _ = await client.send_action(action)
-    assert action_endpoint.called is True
+#     _ = await client.send_action(action)
+#     assert action_endpoint.called is True

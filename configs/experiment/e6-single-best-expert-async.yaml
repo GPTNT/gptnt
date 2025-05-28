@@ -1,0 +1,6 @@
+# @package _global_
+
+defaults:
+  - e6-single-best-defuser-async
+  - override /pairing: with_best_expert
+  - _self_

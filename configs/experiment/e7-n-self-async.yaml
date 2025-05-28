@@ -1,0 +1,12 @@
+# @package _global_
+
+defaults:
+  - _e
+  - override /mission_condition: multiple_modules_n
+  - override /communication_style: async
+  - _self_
+
+mission_generator:
+  config:
+    time_limit: 300
+    mission_specs_dir: configs/mission_specs/multiple_module_n

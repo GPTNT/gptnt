@@ -1,11 +1,20 @@
 # @package _global_
+
 defaults:
   - _self_
   - hydra: default
-  - experiment/pairing: with_self
-  - experiment/communication_style: sequential
-  - experiment/condition: single_module
-  - experiment/players: default
+
+  - mission_condition: single_module
+
+  - communication_style: sync
+
+  - players: default
+  - pairing: no_expert
+
+  - think_framework: react
+
+  - player_specs@defuser_player_spec: solo_defuser
+  - player_specs@expert_player_spec: none
 
   - experiment: null
 
@@ -14,26 +23,29 @@ defaults:
 
 task_name: generate_experiments
 
-seeds_per_condition:
-  single_module: 3
-  repeated_modules_2: 3
-  repeated_modules_5: 3
-  multiple_modules_2_front: 1
-  multiple_modules_2: 1
-  multiple_modules_n: 8
-
-pairing_generator:
-  _target_: gptnt.ktane.experiments.pairing.PairingGenerator
-  pairing_type: ???
-  all_players: ???
+defuser_player_spec: ???
+expert_player_spec: ???
+communication_style: ???
+framework:
+  thinking_framework: ???
+  allow_thoughts_output: ???
+  allow_thoughts_in_history: ???
+  allow_outputs_in_history: ???
 
 mission_generator:
-  _target_: gptnt.ktane.experiments.missions.MissionGenerator
-  num_seeds_per_mission: ${seeds_per_condition.${experiment_generator.condition}}
+  _target_: gptnt.experiments.missions.MissionGenerator
   seed: 10
+  num_seeds_per_mission: ???
   config: ???
 
 experiment_generator:
-  _target_: gptnt.ktane.experiments.experiments.ExperimentGenerator
+  _target_: gptnt.experiments.experiments.ExperimentGenerator
   condition: ???
-  communication_style: ???
+  defuser_player_spec: ${defuser_player_spec}
+  expert_player_spec: ${expert_player_spec}
+
+pairing_generator:
+  _target_: gptnt.experiments.pairing.PairingGenerator
+  pairing_type: "pairwise"
+  best_model: null
+  all_players: ???

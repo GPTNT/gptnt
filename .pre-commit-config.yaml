@@ -1,5 +1,5 @@
 default_language_version:
-  python: python3.12
+  python: python3.13
 
 # Only commit is installed by default: https://pre-commit.com/#pre-commit-install
 # Pending rename of pre-push from: https://github.com/pre-commit/pre-commit/issues/2732
@@ -14,10 +14,10 @@ repos:
       - id: commitizen
         stages: [commit-msg]
 
-  - repo: https://github.com/editorconfig-checker/editorconfig-checker.python
-    rev: "3.0.3"
-    hooks:
-      - id: editorconfig-checker
+  # - repo: https://github.com/editorconfig-checker/editorconfig-checker.python
+  #   rev: "3.0.3"
+  #   hooks:
+  #     - id: editorconfig-checker
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0

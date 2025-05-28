@@ -11,16 +11,22 @@ MAX_COMPONENTS = 11
 class KtaneMissionSpec(BaseModel):
     """Configuration for a mission in KTANE."""
 
-    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True)
+    model_config = ConfigDict(
+        validate_by_name=True, validate_by_alias=True, serialize_by_alias=True
+    )
 
     seed: int = Field(ge=0, description="Random seed for mission generation")
     time_limit: int = Field(
-        gt=0, serialization_alias="timeLimit", description="Time limit in seconds"
+        gt=0,
+        validation_alias="timeLimit",
+        serialization_alias="timeLimit",
+        description="Time limit in seconds",
     )
     num_strikes_allowed: int = Field(
         default=3,
         ge=1,
         le=5,
+        validation_alias="numStrikes",
         serialization_alias="numStrikes",
         description="Allowed mistakes before failure",
     )
@@ -28,29 +34,39 @@ class KtaneMissionSpec(BaseModel):
         max_length=MAX_COMPONENTS, description="List of required components in the mission"
     )
     optional_widgets: int = Field(
-        ge=0, le=10, serialization_alias="optWidgets", description="Number of optional widgets"
+        ge=0,
+        le=10,
+        validation_alias="optWidgets",
+        serialization_alias="optWidgets",
+        description="Number of optional widgets",
     )
 
     needy_time: int = Field(
         default=60,
         gt=0,
+        validation_alias="needyTime",
         serialization_alias="needyTime",
         description="Time before needy modules activate",
     )
     force_modules_to_front: bool = Field(
-        default=False, serialization_alias="isFront", description="Whether bomb is front-facing"
+        default=False,
+        validation_alias="isFront",
+        serialization_alias="isFront",
+        description="Whether bomb is front-facing",
     )
     time_scale: float = Field(
         default=1.0,
         ge=0.1,
         le=10.0,  # noqa: WPS432
+        validation_alias="timeScale",
         serialization_alias="timeScale",
         description="Time scale multiplier",
     )
     time_step_size: int = Field(
         default=3000,  # noqa: WPS432
+        validation_alias="timeStepSize",
         serialization_alias="timeStepSize",
-        description="Step size in milliseconds",
+        description="Used to detremine how long the time should advance for when using the command for it.",
     )
 
     @property

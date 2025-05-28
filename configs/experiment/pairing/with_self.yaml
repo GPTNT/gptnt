@@ -1,4 +1,0 @@
-# @package _global_
-
-pairing_generator:
-  pairing_type: with_self

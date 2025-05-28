@@ -1,0 +1,9 @@
+defaults:
+  - _self_
+
+_target_: gptnt.players.spec.PlayerSpec
+communication_style: ${communication_style}
+thinking_framework: ${framework.thinking_framework}
+allow_thoughts_output: ${framework.allow_thoughts_output}
+allow_thoughts_in_history: ${framework.allow_thoughts_in_history}
+allow_outputs_in_history: ${framework.allow_outputs_in_history}

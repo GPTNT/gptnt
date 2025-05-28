@@ -11,11 +11,14 @@ from gptnt.ktane.state.modules import KtaneComponent, ModuleStates
 from gptnt.ktane.state.widget import WidgetStates
 from gptnt.players.actions import (
     DoNothingAction,
-    InteractGameAction,
+    DoNothingActionWithThoughts,
+    InteractGameActionType,
+    InteractGameActionWithThoughts,
     InteractGameLocation,
     SendMessageAction,
+    SendMessageActionWithThoughts,
 )
-from gptnt.players.structures import PlayerRole
+from gptnt.players.spec import PlayerRole
 
 _logger = get_logger()
 
@@ -26,48 +29,56 @@ class TimestampMixin(BaseModel):
     timestamp: float
 
 
-class ActionMetric(InteractGameAction[InteractGameLocation], TimestampMixin):
+class ActionMetric(InteractGameActionWithThoughts[InteractGameLocation], TimestampMixin):
     """Action metric class for observability logging."""
 
     @classmethod
-    def from_action(
-        cls, *, ktane_action: InteractGameAction[InteractGameLocation], timestamp: float
-    ) -> Self:
+    def from_action(cls, *, ktane_action: InteractGameActionType, timestamp: float) -> Self:
         """Create an ActionMetric from an InteractGameAction."""
+        thoughts = getattr(ktane_action, "thoughts", None)
         return cls(
             action=ktane_action.action,
             location=ktane_action.location,
-            thoughts=ktane_action.thoughts,
+            thoughts=thoughts,
             timestamp=timestamp,
         )
 
 
-class MessageMetric(SendMessageAction, TimestampMixin):
+class MessageMetric(SendMessageActionWithThoughts, TimestampMixin):
     """SendMessageAction for logging."""
 
     role: PlayerRole | None
 
     @classmethod
     def from_action(
-        cls, *, action: SendMessageAction, role: PlayerRole | None, timestamp: float
+        cls,
+        *,
+        action: SendMessageAction | SendMessageActionWithThoughts,
+        role: PlayerRole | None,
+        timestamp: float,
     ) -> Self:
         """Create a MessageMetric from an SendMessageAction."""
-        return cls(
-            message=action.message, role=role, thoughts=action.thoughts, timestamp=timestamp
-        )
+        thoughts = getattr(action, "thoughts", None)
+
+        return cls(message=action.message, role=role, thoughts=thoughts, timestamp=timestamp)
 
 
-class DoNothingMetric(DoNothingAction, TimestampMixin):
+class DoNothingMetric(DoNothingActionWithThoughts, TimestampMixin):
     """Metric class for do nothing actions."""
 
     role: PlayerRole | None
 
     @classmethod
     def from_action(
-        cls, *, action: DoNothingAction, role: PlayerRole | None, timestamp: float
+        cls,
+        *,
+        action: DoNothingAction | DoNothingActionWithThoughts,
+        role: PlayerRole | None,
+        timestamp: float,
     ) -> Self:
         """Create a DoNothingMetric from a DoNothingAction."""
-        return cls(thoughts=action.thoughts, role=role, timestamp=timestamp)
+        thoughts = getattr(action, "thoughts", None)
+        return cls(thoughts=thoughts, role=role, timestamp=timestamp)
 
 
 class BombStateMetric(BombState, TimestampMixin):
@@ -167,18 +178,3 @@ class ObservationMetric(TimestampMixin):
             "som_image": som_image,
             "timestamp": self.timestamp,
         }
-
-
-class AdditionalEndGameMetrics(BaseModel):
-    """Pass additional end game metrics to the players for wandb."""
-
-    hard_crash: bool = False
-    """Whether something broke and we are exiting out."""
-
-    is_too_many_do_nothings: bool = False
-    """If we are stopping because too many do nothings."""
-
-    @property
-    def has_crashed(self) -> bool:
-        """Check if the game has crashed."""
-        return self.hard_crash

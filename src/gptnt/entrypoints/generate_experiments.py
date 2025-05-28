@@ -5,6 +5,7 @@ from omegaconf import DictConfig
 from rich.progress import track
 from structlog import get_logger
 
+from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
 
 if TYPE_CHECKING:
@@ -12,7 +13,7 @@ if TYPE_CHECKING:
     from gptnt.experiments.missions import MissionGenerator
     from gptnt.experiments.pairing import PairingGenerator
 
-
+configure_logging()
 logger = get_logger()
 
 paths = Paths()
@@ -33,11 +34,9 @@ def generate_experiments(cfg: DictConfig) -> None:  # noqa: WPS210
 
     paths.experiments.mkdir(parents=True, exist_ok=True)
     for experiment in track(experiments, description="Generating experiments..."):
-        _ = (
-            paths.experiments.joinpath(experiment.experiment_name)
-            .with_suffix(".json")
-            .write_text(experiment.model_dump_json())
-        )
+        file_path = paths.experiments.joinpath(experiment.experiment_name).with_suffix(".json")
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        _ = file_path.write_text(experiment.model_dump_json())
 
     logger.info("Experiments generated successfully.")
 

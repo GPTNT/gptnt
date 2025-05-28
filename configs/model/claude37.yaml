@@ -5,6 +5,7 @@ defaults:
 
 metadata:
   player_name: claude37
+  supports_structured_output: true
 
 agent:
   model:
