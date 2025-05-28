@@ -6,6 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from structlog import get_logger
 
 from gptnt.common.paths import Paths
+from gptnt.common.prompt_cache import PromptCache
 
 logger = get_logger()
 
@@ -58,7 +59,7 @@ class KtaneManualPaths(BaseSettings):
         if not text_path.exists():
             raise FileNotFoundError("Text file does not exist, and it should?")
 
-        return text_path.read_text()
+        return PromptCache.get_text(text_path)
 
     @validate_call
     def load_image(self, page_num: PageNumType, *, kind: Literal["orig", "512"] = "512") -> bytes:
@@ -72,4 +73,4 @@ class KtaneManualPaths(BaseSettings):
         if not image_path.exists():
             raise FileNotFoundError("Image file does not exist, and it should?")
 
-        return image_path.read_bytes()
+        return PromptCache.get_bytes(image_path)

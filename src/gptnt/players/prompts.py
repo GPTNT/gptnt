@@ -6,6 +6,7 @@ from pydantic_ai import BinaryContent
 from pydantic_ai.tools import RunContext
 
 from gptnt.common.paths import Paths
+from gptnt.common.prompt_cache import PromptCache
 from gptnt.ktane.manual import MANUAL_NUM_PAGES, NEEDY_MODULE_PAGE_NUMS, KtaneManualPaths
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.spec import PlayerDeps, PlayerSpec
@@ -48,7 +49,7 @@ def load_manual_as_prompt(
 @lru_cache(maxsize=1)
 def load_reflection_prompt() -> str:
     """Load the prompt for the given state."""
-    return paths.storage.joinpath("prompts", "reflection.txt").read_text()
+    return PromptCache.get_text(paths.prompts.joinpath("reflection.txt"))
 
 
 def convert_bomb_state_to_reflection(bomb_state: BombState) -> ReflectionMessage | None:
@@ -77,20 +78,20 @@ def _load_scenario_for_spec(spec: PlayerSpec) -> str:
     """Load the scenario for the given player spec."""
     if spec.is_playing_alone:
         logger.debug("Loading scenario for solo")
-        return paths.prompts.joinpath("scenario_solo.md").read_text()
+        return PromptCache.get_text(paths.prompts.joinpath("scenario_solo.md"))
 
     logger.debug("Loading scenario for multiplayer")
-    return paths.prompts.joinpath("scenario_multiplayer.md").read_text()
+    return PromptCache.get_text(paths.prompts.joinpath("scenario_multiplayer.md"))
 
 
 @lru_cache
 def _load_role_for_spec(spec: PlayerSpec) -> str:
     """Load the role for the given player spec."""
     if spec.role == "expert" and not spec.is_playing_alone:
-        return paths.prompts.joinpath("roles_multiplayer_expert.md").read_text()
+        return PromptCache.get_text(paths.prompts.joinpath("roles_multiplayer_expert.md"))
     if spec.role == "defuser":
         path = "roles_solo_defuser.md" if spec.is_playing_alone else "roles_multiplayer_defuser.md"
-        return paths.prompts.joinpath(path).read_text()
+        return PromptCache.get_text(paths.prompts.joinpath(path))
 
     raise ValueError(
         f"Invalid player spec: {spec}. The role is not valid for the given player spec."
@@ -101,7 +102,7 @@ def _load_role_for_spec(spec: PlayerSpec) -> str:
 def _load_mechanics_for_spec(spec: PlayerSpec) -> str:
     """Load the mechanics for the given player spec."""
     if spec.role == "expert":
-        return paths.prompts.joinpath("mechanics_expert.md").read_text()
+        return PromptCache.get_text(paths.prompts.joinpath("mechanics_expert.md"))
 
     if spec.role == "defuser":
         path = (
@@ -109,7 +110,7 @@ def _load_mechanics_for_spec(spec: PlayerSpec) -> str:
             if spec.communication_style == "async"
             else "mechanics_defuser.md"
         )
-        return paths.prompts.joinpath(path).read_text()
+        return PromptCache.get_text(paths.prompts.joinpath(path))
 
     raise ValueError(
         f"Invalid player spec: {spec}. No mechanics exist valid for the given player spec."
@@ -119,20 +120,20 @@ def _load_mechanics_for_spec(spec: PlayerSpec) -> str:
 @lru_cache
 def _load_commands_for_spec(spec: PlayerSpec) -> str:
     """Load the commands for the given player spec."""
-    commands = paths.prompts.joinpath("commands.md").read_text()
+    commands = PromptCache.get_text(paths.prompts.joinpath("commands.md"))
 
     # load do nothing command
-    do_nothing = paths.prompts.joinpath("commands_do_nothing.md").read_text()
+    do_nothing = PromptCache.get_text(paths.prompts.joinpath("commands_do_nothing.md"))
     commands = f"{commands}{do_nothing}"
 
     # load send message
     if spec.allow_message_output:
-        send_message = paths.prompts.joinpath("commands_send_message.md").read_text()
+        send_message = PromptCache.get_text(paths.prompts.joinpath("commands_send_message.md"))
         commands = f"{commands}{send_message}"
 
     # if defuser, load interact game
     if spec.role == "defuser":
-        interact_game = paths.prompts.joinpath("commands_interact_game.md").read_text()
+        interact_game = PromptCache.get_text(paths.prompts.joinpath("commands_interact_game.md"))
         commands = f"{commands}{interact_game}"
 
     return commands
@@ -144,17 +145,17 @@ def _load_thoughts_for_spec(spec: PlayerSpec) -> str:
         logger.debug("Thoughts are not allowed for this player spec", spec=spec)
         return ""
 
-    thoughts = paths.prompts.joinpath("thoughts.md").read_text()
+    thoughts = PromptCache.get_text(paths.prompts.joinpath("thoughts.md"))
 
     if spec.role == "expert":
         # if expert, load thoughts for expert
-        thoughts = f"{thoughts}{paths.prompts.joinpath('thoughts_format_expert.md').read_text()}"
+        thoughts = f"{thoughts}{PromptCache.get_text(paths.prompts.joinpath('thoughts_format_expert.md'))}"
 
     if spec.role == "defuser":
         path = "thoughts_format_defuser{solo}.md".format(
             solo="_solo" if spec.is_playing_alone else ""
         )
-        thoughts = f"{thoughts}{paths.prompts.joinpath(path).read_text()}"
+        thoughts = f"{thoughts}{PromptCache.get_text(paths.prompts.joinpath(path))}"
 
     return thoughts
 
@@ -162,12 +163,12 @@ def _load_thoughts_for_spec(spec: PlayerSpec) -> str:
 @lru_cache
 def _load_requirements_for_spec(spec: PlayerSpec) -> str:
     """Load the requirements for the given player spec."""
-    requirements = paths.prompts.joinpath("requirements.md").read_text()
+    requirements = PromptCache.get_text(paths.prompts.joinpath("requirements.md"))
 
     # if defuser, load action + observation
     if spec.role == "defuser":
-        action = paths.prompts.joinpath("requirements_action.md").read_text()
-        observation = paths.prompts.joinpath("requirements_observation.md").read_text()
+        action = PromptCache.get_text(paths.prompts.joinpath("requirements_action.md"))
+        observation = PromptCache.get_text(paths.prompts.joinpath("requirements_observation.md"))
         requirements = f"{requirements}{action}{observation}"
 
     # Load communication
@@ -175,13 +176,15 @@ def _load_requirements_for_spec(spec: PlayerSpec) -> str:
         communication_path = "requirements_communication{role}{thoughts}.md".format(
             role=f"_{spec.role}", thoughts="_thoughts" if spec.allow_thoughts_output else ""
         )
-        communication = paths.prompts.joinpath(communication_path).read_text()
+        communication = PromptCache.get_text(paths.prompts.joinpath(communication_path))
         requirements = f"{requirements}{communication}"
 
-    completion = paths.prompts.joinpath(f"requirements_completion_{spec.role}.md").read_text()
+    completion = PromptCache.get_text(
+        paths.prompts.joinpath(f"requirements_completion_{spec.role}.md")
+    )
     requirements = f"{requirements}{completion}"
 
-    formatting = paths.prompts.joinpath("requirements_formatting.md").read_text()
+    formatting = PromptCache.get_text(paths.prompts.joinpath("requirements_formatting.md"))
     requirements = f"{requirements}{formatting}"
     return requirements
 

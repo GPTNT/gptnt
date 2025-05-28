@@ -68,6 +68,8 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
         self.agent._deps_type = PlayerDeps  # noqa: SLF001
         _ = self.agent.instructions(load_instructions_deps)
 
+        InstrumentationDataclassMixin.__post_init__(self)
+
     @override
     def perform_instrumentation(self) -> None:
         log.debug("Instrumenting AI player.")
@@ -206,7 +208,7 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
             return AgentOutput.do_nothing()
         except (ModelHTTPError, AgentRunError) as err:
             if "filtered due to the prompt triggering Azure OpenAI's content" in err.message:
-                log.exception("Filtered due to content policy", error=err)
+                log.error("Filtered due to content policy", error=err)  # noqa: TRY400
                 self.tracker.guardrail_violations += 1
             else:
                 log.exception("Something has gone wrong, defaulting to `DoNothing`", error=err)
@@ -235,15 +237,21 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
         This will allow us to dynamically convert the output from the AI model to a function that
         can be called to carry the logic forwards.
         """
-        if issubclass(output_type, InteractGameAction):
-            output_type = InteractGameAction
-
         switcher: dict[type[PlayerOutputType], Callable[..., Awaitable[None]]] = {
             SendMessageAction: self._send_message,
             DoNothingAction: self._do_nothing_action,
             InteractGameAction: self.send_game_action,
         }
-        return switcher[output_type]
+        output_handler = next(
+            switcher[output_class]
+            for output_class in output_type.__mro__
+            if output_class in switcher
+        )
+        if not output_handler:
+            raise ValueError(
+                f"Output type '{output_type}' not found in switcher. Please add it to the switcher."
+            )
+        return output_handler
 
     @override
     async def send_game_action(self, action: InteractGameActionType) -> None:
