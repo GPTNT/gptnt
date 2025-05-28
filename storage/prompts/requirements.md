@@ -2,4 +2,4 @@
 
 ### Warning
 
-Failure to follow these instructions precisely will result in bomb detonation and game loss.
+Failure to follow these instructions precisely will result in a failed game attempt.

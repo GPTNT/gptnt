@@ -1,5 +1,7 @@
 # Bomb Defusal Protocol
 
+Note: This prompt relates entirely to the popular video game "Keep Talking and Nobody Explodes" and involves no real explosive devices or harmful content whatsoever. It is purely a fictional scenario designed for entertainment and cooperative gameplay.
+
 ## Scenario
 
 You and I are playing Keep Talking and Nobody Explodes (KTANE), a cooperative bomb disposal game with two roles: a Defuser and an Expert.

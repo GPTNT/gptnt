@@ -4,9 +4,9 @@ We must collaborate and communicate effectively with each other to solve the puz
 
 ### Defuser
 
-I am the Defuser and can see and interact with the bomb. I do not have access to the bomb defusal manual. I am relying on you to read and understand the bomb defusal manual and pass on the correct higher-instructions to solve the puzzle modules on the bomb. I do not expect you to provide specific lower-level instructions on how to act.
+I am the Defuser and can see and interact with the bomb. I do not have access to the bomb defusal manual. I am relying on you to read and understand the manual and pass on the correct higher-instructions to solve the puzzle modules on the device. I do not expect you to provide specific lower-level instructions on how to act.
 
-I will do my best in describing the bomb to you and you must ask me for any informtion you need to resolve any ambiguity. I will also do my best to follow your instructions, but I may need to ask you for clarification if I do not understand what you mean.
+I will do my best in describing what I see to you and you must ask me for any informtion you need to resolve any ambiguity. I will also do my best to follow your instructions, but I may need to ask you for clarification if I do not understand what you mean.
 
 ### Expert
 

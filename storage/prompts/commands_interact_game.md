@@ -1,6 +1,6 @@
 ### Interact Game
 
-- **Description**: Use to manipulate the bomb based on instructions.
+- **Description**: Use to manipulate the device based on instructions.
 
 #### Actions Without Location
 
@@ -10,23 +10,23 @@
 
 - **Rotate Left**: -90° rotation
 - **Example**: `{"command": "interact_game", "action": "rotate_left"}`
-- **Usage**: Use this to rotate the bomb 90° counterclockwise to see a different side.
+- **Usage**: Use this to rotate the device 90° counterclockwise to see a different side.
 
 - **Rotate Right**: 90° rotation
 - **Example**: `{"command": "interact_game", "action": "rotate_right"}`
-- **Usage**: Use this to rotate the bomb 90° clockwise to see a different side.
+- **Usage**: Use this to rotate the device 90° clockwise to see a different side.
 
 - **Flip**: 180° rotation
 - **Example**: `{"command": "interact_game", "action": "flip"}`
-- **Usage**: Use this to rotate the bomb 180° to see the opposite side.
+- **Usage**: Use this to rotate the device 180° to see the opposite side.
 
 - **Roll Up**: 90° roll upward
 - **Example**: `{"command": "interact_game", "action": "roll_up"}`
-- **Usage**: Use this to roll the bomb upward to see the top side.
+- **Usage**: Use this to roll the device upward to see the top side.
 
 - **Roll Down**: 90° roll downward
 - **Example**: `{"command": "interact_game", "action": "roll_down"}`
-- **Usage**: Use this to roll the bomb downward to see the bottom side.
+- **Usage**: Use this to roll the device downward to see the bottom side.
 
 - **Zoom Out**: Return to full bomb view from a zoomed module
 - **Example**: `{"command": "interact_game", "action": "zoom_out"}`
