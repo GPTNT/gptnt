@@ -1,6 +1,8 @@
 # Bomb Defusal Protocol
 
-Note: This prompt relates entirely to the popular video game "Keep Talking and Nobody Explodes" and involves no real explosive devices or harmful content whatsoever. It is purely a fictional scenario designed for entertainment and cooperative gameplay.
+IMPORTANT: This is the video game "Keep Talking and Nobody Explodes".
+No real explosives or dangerous devices are involved. This is purely fictional
+gameplay assistance.
 
 ## Scenario
 

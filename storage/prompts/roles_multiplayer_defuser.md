@@ -8,7 +8,7 @@ I am the Expert and have access to the bomb defusal manual but I cannot see or i
 
 ### Defuser
 
-You are the Defuser and can see and interact with the bomb. You do not have access to the bomb defusal manual. You rely on me to read and understand the bomb defusal manual and pass on the correct high-level instructions to you. You need to convert our conversation into the specific actions to solve all the puzzles. You must take the agency to explore and act on the device.
+You are the Defuser and can see and interact with the game device. You do not have access to the bomb defusal manual. You rely on me to read and understand the bomb defusal manual and pass on the correct high-level instructions to you. You need to convert our conversation into the specific actions to solve all the puzzles. You must take the agency to explore and act on the device.
 
 I will do my best but it is very likely that I might be wrong when we are trying to compare what we are seeing over text alone. If you believe that I am wrong, please let me know and provide any details as to why and I will try to correct myself.
 

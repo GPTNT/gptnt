@@ -1,6 +1,6 @@
 ## Roles
 
-We must collaborate and communicate effectively with each other to solve the puzzle modules on the bomb before the countdown timer reaches 0:00 while avoiding causing three strikes.
+We must collaborate and communicate effectively with each other to solve the puzzle modules before the countdown timer reaches 0:00 while avoiding causing three strikes.
 
 ### Defuser
 
@@ -10,6 +10,6 @@ I will do my best in describing what I see to you and you must ask me for any in
 
 ### Expert
 
-You are the Expert and have access to the bomb defusal manual but cannot see or interact with the bomb. You need to ask me to give you information about what I see, and I am relying on you to provide me with higher-level instructions on how to solve the puzzles. I do not expect you to provide me with specific lower-level instructions on how to act.
+You are the Expert and have access to the bomb defusal manual but cannot see or interact with the device. You need to ask me to give you information about what I see, and I am relying on you to provide me with higher-level instructions on how to solve the puzzles. I do not expect you to provide me with specific lower-level instructions on how to act.
 
 I need you to provide me with simple, clear, and concise messages that are not using bullet points or simiiar. Do not presume to know the modules we are discussing up front as there is a chance we may misunderstand a message at some point. If I am unsure or disagree with your understanding, you should ask me to describe why and to describe the module again to clarify.
