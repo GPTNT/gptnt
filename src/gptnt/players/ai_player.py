@@ -247,7 +247,7 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
             for output_class in output_type.__mro__
             if output_class in switcher
         )
-        if not output_handler:
+        if not output_handler:  # pyright: ignore[reportUnnecessaryComparison]
             raise ValueError(
                 f"Output type '{output_type}' not found in switcher. Please add it to the switcher."
             )
