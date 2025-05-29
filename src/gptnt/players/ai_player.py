@@ -11,6 +11,7 @@ from pydantic_ai.messages import BinaryContent
 from pydantic_ai.models import Model
 
 from gptnt.api.commands import ReflectionCommand
+from gptnt.api.events import NotReadyEvent
 from gptnt.api.experiment_manager.experiment_descriptor import ExperimentDescriptor
 from gptnt.common.instrumentation import InstrumentationDataclassMixin
 from gptnt.players.actions import (
@@ -150,6 +151,10 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
         self.tracker.num_requests += 1
         self.tracker.step()
 
+        # Stop the experiment if we have too many guardrail violations
+        if self.tracker.sequential_guardrail_violations > 5:  # noqa: PLR2004
+            await self.api_queues.experiment_ready().route.publish(NotReadyEvent(uuid=self.uuid))
+
     @logfire.instrument("Build agent input")
     async def build_agent_input(self) -> AgentMessageInput:
         """Build the input for the agent."""
@@ -209,7 +214,7 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
         except (ModelHTTPError, AgentRunError) as err:
             if "filtered due to the prompt triggering Azure OpenAI's content" in err.message:
                 log.error("Filtered due to content policy", error=err)  # noqa: TRY400
-                self.tracker.guardrail_violations += 1
+                self.tracker.guardrail_violations_per_request.append(True)
             else:
                 log.exception("Something has gone wrong, defaulting to `DoNothing`", error=err)
             return AgentOutput.do_nothing()

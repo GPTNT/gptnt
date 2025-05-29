@@ -1,4 +1,5 @@
 import io
+import itertools
 from contextlib import suppress
 from dataclasses import dataclass, field
 from functools import partial
@@ -74,10 +75,11 @@ class EpisodeTracker:
     """Number of invalid output formats."""
     num_prompt_truncations: int = field(default=0, init=False)
     """Number of prompt truncations (because it got too long)."""
-    guardrail_violations: int = field(default=0, init=False)
-    """Number of guardrail/safety violations."""
 
     # Trackers
+    guardrail_violations_per_request: list[bool] = field(default_factory=list, init=False)
+    """Number of guardrail/safety violations."""
+
     actions: list[ActionMetric] = field(default_factory=list, init=False)
     messages_sent: list[MessageMetric] = field(default_factory=list, init=False)
     do_nothing_actions: list[DoNothingMetric] = field(default_factory=list, init=False)
@@ -88,6 +90,16 @@ class EpisodeTracker:
     def __post_init__(self) -> None:
         """Initialize the Weave client and WandB."""
         self.weave_client = weave.init(project_name=self.wandb_path)
+
+    @property
+    def guardrail_violations(self) -> int:
+        """Get the total number of guardrail violations."""
+        return sum(self.guardrail_violations_per_request)
+
+    @property
+    def sequential_guardrail_violations(self) -> int:
+        """Get the number of sequential guardrail violations."""
+        return sum(itertools.takewhile(bool, reversed(self.guardrail_violations_per_request)))
 
     async def on_experiment_start(
         self,
@@ -284,10 +296,10 @@ class EpisodeTracker:
         self.observations.clear()
         self.do_nothing_actions.clear()
         self.reflections.clear()
+        self.guardrail_violations_per_request.clear()
         self.num_invalid_locations = 0
         self.num_invalid_formats = 0
         self.num_prompt_truncations = 0
-        self.guardrail_violations = 0
         self.num_requests = 0
 
     def add_action(self, action: InteractGameActionType) -> None:
