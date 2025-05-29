@@ -24,7 +24,7 @@ class PromptCache:
     @classmethod
     def initialise(cls, *directory_paths: Path) -> None:
         """Initialize the cache by loading all files from a directory."""
-        logger.info("Caching all prompt files...")
+        logger.debug("Caching all prompt files...")
         cls.cache = {}
         text_files = itertools.chain.from_iterable(
             [
@@ -46,7 +46,7 @@ class PromptCache:
         for file_path in binary_files:
             cls.cache[file_path] = file_path.read_bytes()
 
-        logger.info(f"Cached {len(cls.cache)} files")
+        logger.debug(f"Cached {len(cls.cache)} files")
 
     @classmethod
     def get_text(cls, path: Path) -> str:

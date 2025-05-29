@@ -2,9 +2,19 @@ import pytest
 from pydantic.type_adapter import TypeAdapter
 from pytest_cases import parametrize
 
-from gptnt.ktane.manual import NEEDY_MODULE_PAGE_NUMS
+from gptnt.common.paths import Paths
+from gptnt.common.prompt_cache import PromptCache
+from gptnt.ktane.manual import NEEDY_MODULE_PAGE_NUMS, KtaneManualPaths
 from gptnt.players.prompts import load_instructions_for_spec, load_manual_as_prompt
 from gptnt.players.spec import CommunicationStyle, PlayerRole, PlayerSpec
+
+
+@pytest.fixture(scope="session", autouse=True)
+def prompt_cache() -> None:
+    """Fixture to set up the prompt cache before running tests."""
+    paths = Paths()
+    ktane_manual = KtaneManualPaths()
+    PromptCache.initialise(paths.prompts, ktane_manual.text_dir, ktane_manual.images_512_dir)
 
 
 def test_manual_loads_consistently_without_error() -> None:
