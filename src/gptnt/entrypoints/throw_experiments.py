@@ -92,15 +92,20 @@ async def throw_ai_experiments(
     skip_wandb: Annotated[
         bool, typer.Option(help="If set, skips checking wandb for existing runs")
     ] = False,
+    delete_unneeded: Annotated[
+        bool, typer.Option(help="If set, deletes any unneeded experiments")
+    ] = False,
 ) -> None:
     """Throw the AI experiments."""
     if dry_run:
         logger.warning("Dry run mode is enabled. No experiments will be thrown.")
 
+    experiment_paths = list(experiments_dir.rglob("*.json"))
+
     # Load the experiments from the dir
     loaded_experiments = [
         ExperimentSpec.model_validate_json(experiment_path.read_bytes())
-        for experiment_path in experiments_dir.rglob("*.json")
+        for experiment_path in experiment_paths
     ]
 
     if not loaded_experiments:
@@ -113,6 +118,12 @@ async def throw_ai_experiments(
     else:
         # Filter the experiments by those already run on wandb
         loaded_experiments = _filter_experiments(loaded_experiments, wandb_path=wandb_path)
+
+    if delete_unneeded:
+        all_experiment_names = [experiment.experiment_name for experiment in loaded_experiments]
+        for path in experiment_paths:
+            if path.stem not in all_experiment_names:
+                path.unlink(missing_ok=True)
 
     if not dry_run:
         await _send_experiments(loaded_experiments)
