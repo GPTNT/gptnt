@@ -56,7 +56,7 @@ class ExperimentManager(BaseRabbitMQClient):
     def ready_players(self) -> list[ConnectedPlayerService]:
         """List of all connected and ready players."""
         count = self._filter_ready_services_by_type(connection_type=PlayerConnectEvent)
-        logger.debug(f"Ready players: {len(count)}")
+        # logger.debug(f"Ready players: {len(count)}")
         LogfireGauge.available_players.set(len(count))
         return count
 
@@ -64,7 +64,7 @@ class ExperimentManager(BaseRabbitMQClient):
     def ready_games(self) -> list[ConnectedService]:
         """List of all connected and ready game instances."""
         count = self._filter_ready_services_by_type(connection_type=GameConnectEvent)
-        logger.debug(f"Ready games: {len(count)}")
+        # logger.debug(f"Ready games: {len(count)}")
         LogfireGauge.available_games.set(len(count))
         return count
 
@@ -72,7 +72,7 @@ class ExperimentManager(BaseRabbitMQClient):
     def ready_rooms(self) -> list[ConnectedService]:
         """List of all connected and ready room instances."""
         count = self._filter_ready_services_by_type(connection_type=RoomConnectEvent)
-        logger.debug(f"Ready rooms: {len(count)}")
+        # logger.debug(f"Ready rooms: {len(count)}")
         LogfireGauge.available_rooms.set(len(count))
         return count
 
