@@ -13,6 +13,7 @@ task_name: evaluation
 
 player:
   _target_: gptnt.players.ai_player.AIPlayer
+  _partial_: true
 
   broker:
     _target_: faststream.rabbit.RabbitBroker
