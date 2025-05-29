@@ -3,13 +3,13 @@ import sys
 
 import hydra
 import logfire
-from faststream import ExceptionMiddleware
 from faststream.app import FastStream
 from faststream.rabbit import RabbitBroker
 from faststream.rabbit.opentelemetry import RabbitTelemetryMiddleware
 from opentelemetry.sdk.trace.sampling import ParentBased
 from structlog import get_logger
 
+from gptnt.api.rabbit.exceptions import create_exc_middleware
 from gptnt.common.instrumentation import HeartbeatFilterSampler
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
@@ -29,15 +29,6 @@ _logger = get_logger()
 paths = Paths()
 ktane_manual_paths = KtaneManualPaths()
 
-exc_middleware = ExceptionMiddleware()
-
-
-@exc_middleware.add_handler(Exception, publish=True)
-def error_handler(exc: Exception) -> None:
-    """Handle exceptions raised in the player from handlers."""
-    _logger.exception("An error occurred in the player", exc_info=exc)
-    sys.exit(1)
-
 
 async def run_player(*, hydra_overrides: list[str]) -> None:
     """Run the player."""
@@ -49,7 +40,9 @@ async def run_player(*, hydra_overrides: list[str]) -> None:
     # Instantiate the player from the class
     player_partial = hydra.utils.instantiate(config.player)
 
-    broker = RabbitBroker(logger=None, middlewares=(RabbitTelemetryMiddleware(), exc_middleware))
+    broker = RabbitBroker(
+        logger=None, middlewares=(RabbitTelemetryMiddleware(), create_exc_middleware())
+    )
     player_partial.keywords["broker"] = broker
     player = player_partial()
     assert isinstance(player, BasePlayer)

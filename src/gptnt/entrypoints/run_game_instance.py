@@ -9,6 +9,7 @@ from opentelemetry.sdk.trace.sampling import ParentBased
 from structlog import get_logger
 
 from gptnt.api.game_manager.game_instance import GameInstance
+from gptnt.api.rabbit.exceptions import create_exc_middleware
 from gptnt.common.instrumentation import HeartbeatFilterSampler
 from gptnt.common.logger import configure_logging
 from gptnt.ktane.game_settings import KtaneSettings
@@ -32,7 +33,9 @@ async def run_game_instance() -> None:
             ktane_settings.create_settings_files()
             ktane_settings.update_environment_variables()
 
-        broker = RabbitBroker(logger=None, middlewares=(RabbitTelemetryMiddleware(),))
+        broker = RabbitBroker(
+            logger=None, middlewares=(RabbitTelemetryMiddleware(), create_exc_middleware())
+        )
         game_manager = GameInstance(broker=broker, uuid=uuid4())
         app = FastStream(broker, lifespan=game_manager.lifespan, logger=None)
 
