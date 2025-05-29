@@ -100,6 +100,7 @@ class ExperimentManager(BaseRabbitMQClient):
             logger.warning(
                 f"Service disconnected, UUID: {exc_obj.uuid}", metadata=exc_obj.metadata
             )
+            del self.connected_services[exc_obj.uuid]  # noqa: WPS420
 
             # Stop the experiment this service is part of if one is running
             await self.force_stop_experiment(exc_obj.uuid)
