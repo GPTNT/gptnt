@@ -93,8 +93,7 @@ reportUnusedVariable = false
 executionEnvironments = [
     {root = "tests", extraPaths = ["."], reportArgumentType = false},
 ]
-ignore = ["scripts/**/*"]
-exclude = ["storage", "wandb", "configs"]
+ignore = ["scripts/**/*", "storage", "wandb", "configs"]
 
 [tool.flake8]
 extend-exclude = [".venv"]
