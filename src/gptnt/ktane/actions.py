@@ -4,7 +4,7 @@ from typing import Annotated, Any, Self
 
 import annotated_types
 from httpx import QueryParams
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 
 class GameActionType(Enum):
@@ -58,6 +58,13 @@ class RelativeCoordinate(BaseModel):
 
 class KtaneBaseAction[LocationDataT](BaseModel):
     """Interaction action for the player to take in the game."""
+
+    model_config = ConfigDict(
+        # Replace any unsupported characters for the output type
+        model_title_generator=lambda model_type: model_type.__name__.replace("[", "")
+        .replace("]", "")
+        .strip()
+    )
 
     action: GameActionType
     location: LocationDataT | None = None
