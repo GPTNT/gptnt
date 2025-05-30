@@ -39,6 +39,10 @@ run = "uv run python src/gptnt/entrypoints/run_room_instance.py"
 description = "Run all tests"
 run = "uv run pytest"
 
+[tasks.throw-experiments]
+description = "Throw all the experiments at the EM"
+run = "uv run python src/gptnt/entrypoints/throw_experiments.py --delete-unneeded"
+
 [tasks.together]
 description = "Run things together"
 run = """
