@@ -181,14 +181,14 @@ class RoomInstance(BaseEMClient):
                 ).route.publish_with_ack(
                     RunForwardOnceCommand(), fail_after=PLAYER_TIMEOUT_SECONDS
                 ):
-                    # TODO: Change timeout for player as AI can take a while
+                    logger.error("Defuser player took too long to respond")
                     raise PlayerTookTooLongError
 
             with logfire.span("Advancing time"):
                 await self.api_queues.game_command(experiment.game_uuid).route.publish(
                     AdvanceTimeGameCommand()
                 )
-                await asyncio.sleep(SECONDS_PER_ACTION / 3)
+                await asyncio.sleep(SECONDS_PER_ACTION)
 
             if experiment.expert_uuid:
                 with logfire.span("Running expert forward pass"):
@@ -197,7 +197,7 @@ class RoomInstance(BaseEMClient):
                     ).route.publish_with_ack(
                         RunForwardOnceCommand(), fail_after=PLAYER_TIMEOUT_SECONDS
                     ):
-                        # TODO: Change timeout for player as AI can take a while
+                        logger.error("Expert player took too long to respond")  # noqa: WPS220
                         raise PlayerTookTooLongError  # noqa: WPS220
 
     async def async_experiment_loop(self, experiment: ExperimentDescriptor) -> None:
