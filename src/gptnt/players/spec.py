@@ -113,7 +113,14 @@ class PlayerSpec(BaseModel, frozen=True):
             else:
                 output.append(InteractGameAction[SingleAlphabetLetter])
 
-        return cast("type[PlayerOutputType]", Union[tuple(output)])  # noqa: UP007
+        clean_output: list[type[PlayerOutputType]] = []
+        for output_type in output:
+            # Remove the brackets from the output type name
+            output_type.__name__ = output_type.__name__.replace("[", "").replace("]", "")
+            output_type.__qualname__ = output_type.__qualname__.replace("[", "").replace("]", "")
+            clean_output.append(output_type)
+
+        return cast("type[PlayerOutputType]", Union[tuple(clean_output)])  # noqa: UP007
 
     @property
     def is_solo_player(self) -> bool:
