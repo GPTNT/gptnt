@@ -103,7 +103,10 @@ class RoomInstance(BaseEMClient):
         exc_tb: TracebackType | None = None,
     ) -> None:
         """Handle uncaught exceptions from background_tasks."""
-        if isinstance(
+        if isinstance(exc_obj, (asyncio.CancelledError, GeneratorExit)):
+            # Ignore these exceptions as they are expected
+            logger.info("Background task cancelled or generator exited")
+        elif isinstance(
             exc_obj, (ConfigurationFailedError, GameTooLongError, PlayerTookTooLongError)
         ):
             logger.warning(f"Stopping experiment due to error: {exc_obj}")
