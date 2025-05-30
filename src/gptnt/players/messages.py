@@ -121,14 +121,19 @@ def does_message_contain_manual(message: ModelRequest) -> bool:  # noqa: WPS231
 
 def remove_any_empty_messages(messages: list[ModelMessage]) -> list[ModelMessage]:  # noqa: WPS231
     """Remove any empty messages from the list."""
-    cleaned_messages = []
+    cleaned_messages: list[ModelMessage] = []
     for message in messages:
+        valid_parts = []
         for part in message.parts:
-            if not isinstance(part, ToolCallPart) and part.content:
-                cleaned_messages.append(message)
-            if isinstance(part, ToolCallPart) and part.args:
-                cleaned_messages.append(message)
+            if isinstance(part, ToolCallPart):
+                if part.args:
+                    valid_parts.append(part)
+            elif part.content:
+                valid_parts.append(part)
 
+        if valid_parts:
+            message.parts = valid_parts
+            cleaned_messages.append(message)
     return cleaned_messages
 
 
