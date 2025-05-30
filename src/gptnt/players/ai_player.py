@@ -260,6 +260,7 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
         return output_handler
 
     @override
+    @logfire.instrument("Send game action")
     async def send_game_action(self, action: InteractGameActionType) -> None:
         """Send a game action to the game."""
         self.tracker.add_action(action=action)
@@ -323,11 +324,13 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
         method = self.agent_output_type_to_function(type(agent_output))
         return await method(agent_output)
 
+    @logfire.instrument("Send message")
     async def _send_message(self, action: SendMessageAction) -> None:
         """Send a message to the dialogue space."""
         self.tracker.add_message(message=action, role=self.player_spec.role)
         return await self.send_dialogue_message(action.message)
 
+    @logfire.instrument("Do nothing action")
     async def _do_nothing_action(self, action: DoNothingAction) -> None:
         """Do nothing action."""
         self.tracker.add_do_nothing(action, role=self.player_spec.role)
