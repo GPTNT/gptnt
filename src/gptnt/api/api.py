@@ -67,7 +67,7 @@ class APIQueues:
             broker=self.broker, exchange=experiment_ready, queue_name="experiment.ready"
         )
 
-    def experiment_specs(self) -> APIQueue[ExperimentSpec]:
+    def experiment_specs(self) -> APIQueue[list[ExperimentSpec]]:
         """Experiment specs queue for the experiment manager."""
         return APIQueue(
             broker=self.broker, exchange=experiment_specs, queue_name="experiment.specs"

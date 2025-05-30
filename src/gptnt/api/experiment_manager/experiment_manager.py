@@ -204,9 +204,9 @@ class ExperimentManager(BaseRabbitMQClient):
         with suppress(KeyError):
             self.connected_services[heartbeat.uuid].watchdog_flag.set()
 
-    async def handle_new_spec(self, spec: ExperimentSpec) -> None:
+    async def handle_new_spec(self, spec: list[ExperimentSpec]) -> None:
         """Handles receiving a new experiment spec."""
-        self.specs.add(spec)
+        self.specs.update(set(spec))
         logger.info(f"Total specs: {len(self.specs)}")
 
     async def handle_experiment_done(self, event: ExperimentDoneEvent) -> None:
