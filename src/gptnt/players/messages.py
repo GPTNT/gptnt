@@ -119,6 +119,19 @@ def does_message_contain_manual(message: ModelRequest) -> bool:  # noqa: WPS231
     return False
 
 
+def remove_any_empty_messages(messages: list[ModelMessage]) -> list[ModelMessage]:  # noqa: WPS231
+    """Remove any empty messages from the list."""
+    cleaned_messages = []
+    for message in messages:
+        for part in message.parts:
+            if not isinstance(part, ToolCallPart) and part.content:
+                cleaned_messages.append(message)
+            if isinstance(part, ToolCallPart) and part.args:
+                cleaned_messages.append(message)
+
+    return cleaned_messages
+
+
 @dataclass(kw_only=True)
 class MessageHistory:
     """Hold and manage the message history for the AI player.
@@ -168,7 +181,7 @@ class MessageHistory:
         """Get the message history."""
         return [message for messages in self.messages for message in messages]
 
-    def update(self, *, new_messages: list[ModelMessage], usage: Usage) -> None:
+    def update(self, *, new_messages: list[ModelMessage], usage: Usage) -> None:  # noqa: WPS
         """Update the message history given the player spec.
 
         This will modify the message history in place. The default behaviour is to do nothing, and
@@ -187,6 +200,9 @@ class MessageHistory:
             new_messages = [
                 remove_thoughts_from_model_message(message) for message in new_messages
             ]
+
+        # Remove any empty messages
+        new_messages = remove_any_empty_messages(new_messages)
         self.messages.append(new_messages)
 
     def truncate_history_if_needed(self) -> None:
