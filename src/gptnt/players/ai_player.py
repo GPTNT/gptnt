@@ -179,13 +179,13 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
         return agent_input
 
     @logfire.instrument("Send request to agent")
-    async def send_request_to_agent(self, *, message_input: AgentMessageInput) -> AgentOutput:
+    async def send_request_to_agent(self, *, message_input: AgentMessageInput) -> AgentOutput:  # noqa: WPS213
         """Send a message to the AI.
 
         This will be the main way to send messages to the AI.
         """
         self.message_history.truncate_history_if_needed()
-        # self.tracker.start_weave_trace(message_input, self.message_history.to_history())
+        self.tracker.start_weave_trace(message_input, self.message_history.to_history())
         try:  # noqa: WPS229
             model_output = await self.agent.run(
                 message_input,
@@ -227,7 +227,7 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
         self.message_history.update(
             new_messages=model_output.new_messages(), usage=model_output.usage()
         )
-        # self.tracker.finish_weave_trace(model_output.output, model_output.usage())
+        self.tracker.finish_weave_trace(model_output.output, model_output.usage())
 
         return AgentOutput.with_message_cleanup(
             output=model_output.output,
