@@ -1,6 +1,6 @@
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import override
+from typing import Union, override
 
 import logfire
 import structlog
@@ -20,6 +20,7 @@ from gptnt.players.actions import (
     InteractGameActionType,
     PlayerOutputType,
     SendMessageAction,
+    SendMessageActionWithThoughts,
 )
 from gptnt.players.base_player import BasePlayer
 from gptnt.players.messages import AgentMessageInput, MessageHistory
@@ -131,13 +132,19 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
             f"Handling a reflection message, got case: {reflection_command.reflection_message}"
         )
 
-        response = await self.agent.run(
+        model_output = await self.agent.run(
             [reflection_command.reflection_message, reflection_prompt],
             deps=self._agent_deps,
-            output_type=str,
+            output_type=Union[self._agent_deps.output_type, str],  # noqa: UP007
             message_history=self.message_history.to_history(),
         )
-        response_as_action = SendMessageAction(message=response.output)
+
+        if isinstance(model_output.output, str):
+            response_as_action = SendMessageAction(message=model_output.output)
+        elif isinstance(model_output.output, (SendMessageAction, SendMessageActionWithThoughts)):
+            response_as_action = model_output.output
+        else:
+            response_as_action = SendMessageAction(message=model_output.output.model_dump_json())
 
         self.tracker.add_reflection(message=response_as_action, role=self.player_spec.role)
 
