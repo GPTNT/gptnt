@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Union, override
@@ -194,7 +195,8 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
         self.message_history.truncate_history_if_needed()
         self.tracker.start_weave_trace(message_input, self.message_history.to_history())
         try:  # noqa: WPS229
-            model_output = await self.agent.run(
+            model_output = await asyncio.to_thread(
+                self.agent.run_sync,
                 message_input,
                 deps=self._agent_deps,
                 output_type=self._agent_deps.output_type,
