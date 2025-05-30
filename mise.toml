@@ -28,6 +28,7 @@ description = "Kill all the GPTNT processes"
 run = """
 #!/usr/bin/env bash
 ps -ax | grep python | grep gptnt/entrypoints | awk '{print $1}' | xargs kill -9
+ps -ax | grep ktane | awk '{print $1}' | xargs kill -9
 """
 
 [tasks.room]
