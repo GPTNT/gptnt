@@ -56,7 +56,7 @@ class APIRoute[SendableMessage: AioPikaSendableMessage]:
         _ = await channel.channel.queue_declare(temp_queue, auto_delete=True)
         _ = await channel.channel.basic_consume(queue=temp_queue, consumer_callback=callback)
         _ = await self.broker.publish(
-            message=message, routing_key=self.routing_key, reply_to=temp_queue
+            message=message, routing_key=self.routing_key, reply_to=temp_queue, timeout=fail_after
         )
 
         try:
@@ -95,7 +95,7 @@ class APIRoute[SendableMessage: AioPikaSendableMessage]:
             queue=temp_queue, consumer_callback=partial(callback, return_response)
         )
         _ = await self.broker.publish(
-            message=message, routing_key=self.routing_key, reply_to=temp_queue
+            message=message, routing_key=self.routing_key, reply_to=temp_queue, timeout=fail_after
         )
 
         async with asyncio.timeout(fail_after):

@@ -153,6 +153,7 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
 
         # Stop the experiment if we have too many guardrail violations
         if self.tracker.sequential_guardrail_violations > 5:  # noqa: PLR2004
+            log.warning("Too many guardrail violations, stopping the experiment")
             await self.api_queues.experiment_ready().route.publish(NotReadyEvent(uuid=self.uuid))
 
     @logfire.instrument("Build agent input")

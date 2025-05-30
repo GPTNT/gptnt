@@ -27,6 +27,8 @@ from gptnt.players.spec import NO_NEW_MESSAGES_SENTINEL, PlayerMetadata, PlayerS
 
 logger = get_logger()
 
+DEFAULT_TIMEOUT = 600
+
 
 @dataclass(kw_only=True)
 class BasePlayer(BaseEMClient, ABC):
@@ -140,7 +142,7 @@ class BasePlayer(BaseEMClient, ABC):
             return await self.api_queues.game_command(
                 self._current_game_uuid
             ).route.publish_with_response(
-                GameGetObservationCommand(), fail_after=10.0, response_type=GameObservationResponse
+                GameGetObservationCommand(), fail_after=300, response_type=GameObservationResponse
             )
         except TimeoutError:
             logger.exception("Failed to pull observation, timed out.")

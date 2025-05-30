@@ -100,7 +100,7 @@ class ExperimentManager(BaseRabbitMQClient):
             logger.warning(
                 f"Service disconnected, UUID: {exc_obj.uuid}", metadata=exc_obj.metadata
             )
-            del self.connected_services[exc_obj.uuid]  # noqa: WPS420
+            self.connected_services[exc_obj.uuid].is_ready = False
 
             # Stop the experiment this service is part of if one is running
             await self.force_stop_experiment(exc_obj.uuid)
@@ -135,7 +135,7 @@ class ExperimentManager(BaseRabbitMQClient):
 
             # If the room fails to stop the subservices, stop them manually
             if not await self.api_queues.room_command(experiment.room_uuid).route.publish_with_ack(
-                StopExperimentCommand(hard_crash=True), fail_after=2.5
+                StopExperimentCommand(hard_crash=True), fail_after=15
             ):
                 await remove_experiment_bindings(experiment=experiment, api_queues=self.api_queues)
                 await self.api_queues.game_command(experiment.game_uuid).route.publish(
@@ -159,7 +159,7 @@ class ExperimentManager(BaseRabbitMQClient):
                 connect_event=connect_event,
                 player_metadata=connect_event.metadata,
                 watchdog=HeartbeatWatchdog(
-                    fail_after=4.0,
+                    fail_after=30.0,
                     fail_exception=HeartbeatWatchdogTriggeredError(
                         uuid=connect_event.uuid, metadata=connect_event.metadata.model_dump()
                     ),
@@ -169,7 +169,7 @@ class ExperimentManager(BaseRabbitMQClient):
             service = ConnectedService(
                 connect_event=connect_event,
                 watchdog=HeartbeatWatchdog(
-                    fail_after=2.0,
+                    fail_after=30.0,
                     fail_exception=HeartbeatWatchdogTriggeredError(
                         uuid=connect_event.uuid, metadata={"type": connect_event.event}
                     ),

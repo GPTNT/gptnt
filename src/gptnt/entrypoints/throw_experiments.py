@@ -10,6 +10,7 @@ from rich.progress import track
 from structlog import get_logger
 
 from gptnt.api.api import APIQueues
+from gptnt.common.async_ops import busy_wait_interval
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
 from gptnt.entrypoints._async_typer import AsyncTyper
@@ -27,15 +28,17 @@ console = Console()
 app = AsyncTyper(help="Throw AI experiments to the experiment queue.", no_args_is_help=True)
 
 
-async def _send_experiments(experiments: list[ExperimentSpec]) -> None:
+async def _send_experiments(experiments: list[ExperimentSpec], *, pause_every_n: int = 20) -> None:
     """Send the experiments to the experiment specs queue."""
     # Create the broker and connect to the em client
     broker = RabbitBroker(logger=None)
     _ = await broker.connect()
     queues = APIQueues(broker=broker)
 
-    for experiment in experiments:
+    for idx, experiment in enumerate(experiments):
         _ = await queues.experiment_specs().route.publish(experiment)  # noqa: WPS476
+        if idx % pause_every_n == 0:
+            await busy_wait_interval()  # noqa: WPS476
 
 
 def _filter_experiments(

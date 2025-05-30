@@ -36,8 +36,9 @@ from gptnt.players.prompts import convert_bomb_state_to_reflection
 
 logger = get_logger()
 
-
-WAIT_FOR_GAME_DONE_SECONDS = 600
+PLAYER_TIMEOUT_SECONDS = 600
+"""Time to wait for a player to take an action before timing out."""
+WAIT_FOR_GAME_DONE_SECONDS = 6000
 """Time to wait for a game to be done before timing out."""
 
 
@@ -138,7 +139,7 @@ class RoomInstance(BaseEMClient):
 
         # 2. Wait for the services to enter the correct configuration
         if not await configure_experiment_services(
-            experiment=experiment, api_queues=self.api_queues, fail_after=20.0
+            experiment=experiment, api_queues=self.api_queues, fail_after=30.0
         ):
             # TODO: Handle this error
             raise ConfigurationFailedError
@@ -174,26 +175,30 @@ class RoomInstance(BaseEMClient):
     async def sync_experiment_loop(self, experiment: ExperimentDescriptor) -> None:  # noqa: WPS231
         """Runs the sync-experiment loop."""
         while self._is_in_progress:
-            logger.info("Running defuser forward pass")
-            if not await self.api_queues.player_run(
-                experiment.defuser_uuid
-            ).route.publish_with_ack(RunForwardOnceCommand(), fail_after=120):
-                # TODO: Change timeout for player as AI can take a while
-                raise PlayerTookTooLongError
-
-            logger.info("Advancing time")
-            await self.api_queues.game_command(experiment.game_uuid).route.publish(
-                AdvanceTimeGameCommand()
-            )
-            await asyncio.sleep(SECONDS_PER_ACTION / 3)
-
-            if experiment.expert_uuid:
-                logger.info("Running expert forward pass")
+            with logfire.span("Running defuser forward pass"):
                 if not await self.api_queues.player_run(
-                    experiment.expert_uuid
-                ).route.publish_with_ack(RunForwardOnceCommand(), fail_after=120):
+                    experiment.defuser_uuid
+                ).route.publish_with_ack(
+                    RunForwardOnceCommand(), fail_after=PLAYER_TIMEOUT_SECONDS
+                ):
                     # TODO: Change timeout for player as AI can take a while
                     raise PlayerTookTooLongError
+
+            with logfire.span("Advancing time"):
+                await self.api_queues.game_command(experiment.game_uuid).route.publish(
+                    AdvanceTimeGameCommand()
+                )
+                await asyncio.sleep(SECONDS_PER_ACTION / 3)
+
+            if experiment.expert_uuid:
+                with logfire.span("Running expert forward pass"):
+                    if not await self.api_queues.player_run(
+                        experiment.expert_uuid
+                    ).route.publish_with_ack(
+                        RunForwardOnceCommand(), fail_after=PLAYER_TIMEOUT_SECONDS
+                    ):
+                        # TODO: Change timeout for player as AI can take a while
+                        raise PlayerTookTooLongError  # noqa: WPS220
 
     async def async_experiment_loop(self, experiment: ExperimentDescriptor) -> None:
         """Runs the async-experiment loop."""
@@ -202,7 +207,7 @@ class RoomInstance(BaseEMClient):
             while self._is_in_progress:
                 logger.info(f"Running {role} forward pass (async)")
                 if not await self.api_queues.player_run(uuid).route.publish_with_ack(
-                    RunForwardOnceCommand(), fail_after=120
+                    RunForwardOnceCommand(), fail_after=PLAYER_TIMEOUT_SECONDS
                 ):
                     # TODO: Change timeout for player as AI can take a while
                     raise PlayerTookTooLongError
@@ -244,7 +249,7 @@ class RoomInstance(BaseEMClient):
             final_game_state = await self.api_queues.game_command(
                 experiment.game_uuid
             ).route.publish_with_response(
-                GameGetObservationCommand(), fail_after=30.0, response_type=GameObservationResponse
+                GameGetObservationCommand(), fail_after=300, response_type=GameObservationResponse
             )
 
             if reflection_message := convert_bomb_state_to_reflection(final_game_state.bomb_state):

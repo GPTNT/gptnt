@@ -23,6 +23,13 @@ description = "Install dependencies"
 alias = "i"
 run = "uv sync --all-groups"
 
+[tasks.kill-all]
+description = "Kill all the GPTNT processes"
+run = """
+#!/usr/bin/env bash
+ps -ax | grep python | grep gptnt/entrypoints | awk '{print $1}' | xargs kill -9
+"""
+
 [tasks.room]
 description = "Run the room"
 run = "uv run python src/gptnt/entrypoints/run_room_instance.py"
@@ -48,5 +55,3 @@ wait
 [tools]
 python = "3.13"
 uv = "latest"
-"asdf:mise-plugins/asdf-rabbitmq" = "latest"
-erlang = "latest"

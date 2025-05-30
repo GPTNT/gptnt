@@ -33,7 +33,6 @@ player:
     wandb_path: "gptnt/gptnt"
     wandb_init_kwargs:
       group: evaluation
-      mode: disabled
 
   agent:
     _target_: pydantic_ai.Agent
