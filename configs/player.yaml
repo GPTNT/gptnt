@@ -30,7 +30,8 @@ player:
   tracker:
     _target_: gptnt.players.metrics.episode_tracker.EpisodeTracker
     player_metadata: ${player.metadata}
-    wandb_path: "gptnt/gptnt"
+    wandb_entity: ${oc.env:WANDB_ENTITY,gptnt}
+    wandb_project: ${oc.env:WANDB_PROJECT,gptnt}
     wandb_init_kwargs:
       group: evaluation
 

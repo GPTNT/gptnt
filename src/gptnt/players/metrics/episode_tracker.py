@@ -45,8 +45,8 @@ _logger = get_logger()
 class EpisodeTracker:
     """Tracks metrics for an episode."""
 
-    wandb_path: str
-    """Path to the WandB project, e.g. `entity/project`."""
+    wandb_entity: str
+    wandb_project: str
 
     wandb_init_kwargs: dict[str, Any] = field(default_factory=dict)
     """Keyword arguments for initializing WandB."""
@@ -89,7 +89,7 @@ class EpisodeTracker:
 
     def __post_init__(self) -> None:
         """Initialize the Weave client and WandB."""
-        self.weave_client = weave.init(project_name=self.wandb_path)
+        self.weave_client = weave.init(project_name=f"{self.wandb_entity}/{self.wandb_project}")
 
     @property
     def guardrail_violations(self) -> int:
@@ -114,8 +114,8 @@ class EpisodeTracker:
 
         func = partial(
             wandb.init,
-            entity=self.wandb_path.split("/")[0],
-            project=self.wandb_path.split("/")[1],
+            entity=self.wandb_entity,
+            project=self.wandb_project,
             config={
                 "game_id": experiment_descriptor.game_uuid,
                 "room_id": experiment_descriptor.room_uuid,
