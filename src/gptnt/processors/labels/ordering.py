@@ -5,6 +5,7 @@ import numpy as np
 from skimage.measure import regionprops
 from structlog import get_logger
 
+from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.processors.labels.types import RegionProperties, RGBArray
 
 _logger = get_logger()
@@ -33,7 +34,9 @@ def _check_row_overlap(r1: RegionData, r2: RegionData, *, threshold: float = 0.5
     return (overlap_height / min_height) >= threshold
 
 
-def order_regions_reading_order(regions: Sequence[RegionProperties]) -> list[int]:  # noqa: WPS231
+def order_regions_reading_order(  # noqa: WPS231
+    regions: Sequence[RegionProperties], zoomed_in_component: KtaneComponent | None
+) -> list[int]:
     """Orders region labels in reading order (left-to-right, top-to-bottom)."""
     if not regions:
         return []
@@ -54,11 +57,12 @@ def order_regions_reading_order(regions: Sequence[RegionProperties]) -> list[int
     for region in sorted(region_data, key=lambda row: row["centroid_y"]):
         added_to_row = False
 
-        for row in rows:
-            if any(_check_row_overlap(region, other) for other in row):
-                row.append(region)
-                added_to_row = True
-                break
+        if zoomed_in_component is not KtaneComponent.wire_sequence:
+            for row in rows:
+                if any(_check_row_overlap(region, other) for other in row):
+                    row.append(region)
+                    added_to_row = True
+                    break
 
         if not added_to_row:
             rows.append([region])
@@ -72,7 +76,9 @@ def order_regions_reading_order(regions: Sequence[RegionProperties]) -> list[int
 
 
 def relabel_regions_in_reading_order(
-    labeled_image: RGBArray, regions: list[RegionProperties]
+    labeled_image: RGBArray,
+    regions: list[RegionProperties],
+    zoomed_in_component: KtaneComponent | None,
 ) -> tuple[RGBArray, list[RegionProperties]]:
     """Relabels both the labeled image and region properties in reading order.
 
@@ -85,6 +91,7 @@ def relabel_regions_in_reading_order(
     Args:
         labeled_image: The labeled image array
         regions: List of RegionProperties objects from the original labeled image
+        zoomed_in_component: Do not consider overlapping wires as being on the same row if component is wire_sequence
 
     Returns:
         Tuple containing:
@@ -96,7 +103,7 @@ def relabel_regions_in_reading_order(
         return labeled_image, []
 
     # Get the reading order of the current labels
-    ordered_labels = order_regions_reading_order(regions)
+    ordered_labels = order_regions_reading_order(regions, zoomed_in_component=zoomed_in_component)
 
     # Create mapping from old labels to new sequential labels (starting from 1)
     label_mapping = {old_label: new_label for new_label, old_label in enumerate(ordered_labels, 1)}

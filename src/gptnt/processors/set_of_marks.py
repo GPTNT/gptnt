@@ -380,12 +380,14 @@ class SetOfMarksHandler:
         self._mark_type = mark_type
         self._mark_to_coordinate: dict[SetOfMarksLocation, RelativeCoordinate] = {}
 
-    def extract_regions(self, colorful_image: RGBArray) -> tuple[RGBArray, list[RegionProperties]]:
+    def extract_regions(
+        self, colorful_image: RGBArray, zoomed_in_component: KtaneComponent | None
+    ) -> tuple[RGBArray, list[RegionProperties]]:
         """Extract regions from a colourful segmentation image."""
         labeled_segmentation = convert_colorful_segm_to_labeled(colorful_image)
         regions = get_region_properties(labeled_segmentation)
         labeled_segmentation, regions = relabel_regions_in_reading_order(
-            labeled_segmentation, regions
+            labeled_segmentation, regions, zoomed_in_component=zoomed_in_component
         )
         self._update_mark_to_coordinate_mapping(regions)
         return labeled_segmentation, regions
@@ -401,7 +403,7 @@ class SetOfMarksHandler:
 
         Output: Annotated screenshot with bounding boxes and labels drawn.
         """
-        labelled_image, regions = self.extract_regions(colorful_image)
+        labelled_image, regions = self.extract_regions(colorful_image, zoomed_in_component)
 
         if zoomed_in_component and self._mask_drawing_params.mask_highlight_size is not None:
             observation = highlight_module_with_square(
