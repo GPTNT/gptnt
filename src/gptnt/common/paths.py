@@ -13,6 +13,7 @@ class Paths(BaseSettings):
     artifacts: Path = root.joinpath("artifacts")
     output: Path = storage.joinpath("outputs")
 
+    output_observations: Path = output.joinpath("observations")
     experiments: Path = storage.joinpath("experiments")
     test_experiments: Path = storage.joinpath("test_experiments")
     vqa_and_grounding: Path = storage.joinpath("vqa_and_grounding")

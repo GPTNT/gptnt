@@ -5,6 +5,7 @@ from pydantic.types import UUID4
 
 from gptnt.api.experiment_manager.experiment_descriptor import ExperimentDescriptor
 from gptnt.ktane.mission_spec import KtaneMissionSpec
+from gptnt.ktane.state.bomb import BombState
 from gptnt.players.spec import PlayerSpec
 
 
@@ -45,6 +46,7 @@ class StopExperimentCommand(BaseCommand, frozen=True):
     command: Literal["stop-experiment"] = "stop-experiment"
 
     hard_crash: bool = False
+    bomb_state: BombState | None = None
 
 
 class ConfigurePlayerCommand(BaseCommand, frozen=True):
@@ -104,6 +106,7 @@ class ReflectionCommand(BaseCommand, frozen=True):
 
     command: Literal["reflect"] = "reflect"
     reflection_message: str
+    bomb_state: BombState | None = None
 
 
 class ConfigureGameCommand(BaseCommand, frozen=True):
@@ -196,6 +199,21 @@ class GameGetObservationCommand(BaseCommand, frozen=True):
     command: Literal["game-get-observation"] = "game-get-observation"
 
 
+class GameGetBombStateCommand(BaseCommand, frozen=True):
+    """Command to request the game's current bomb-state.
+
+    Connectivity:
+    ```
+    ┌────────┐     ┌────────┐
+    │  Room  ┼────>│  Game  │
+    └────────┘     └────────┘
+    ```
+    Handler should return game bomb state
+    """
+
+    command: Literal["game-get-bomb-state"] = "game-get-bomb-state"
+
+
 RoomCommand = StartExperimentCommand | StopExperimentCommand
 PlayerCommand = ConfigurePlayerCommand | StopExperimentCommand | ReflectionCommand
 GameCommand = (
@@ -205,4 +223,5 @@ GameCommand = (
     | UnpauseGameCommand
     | GameGetObservationCommand
     | AdvanceTimeGameCommand
+    | GameGetBombStateCommand
 )

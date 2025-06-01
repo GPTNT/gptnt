@@ -46,9 +46,13 @@ class ObservationHandler:
         frames: list[bytes] | list[str],
         segmentation: str | bytes | None,
         bomb_state: BombState,
+        num_frames_to_use: int = 1,
     ) -> Observation:
         """Handle a new observation from the game."""
-        frames = [base64.b64decode(frame) if isinstance(frame, str) else frame for frame in frames]
+        frames = [
+            base64.b64decode(frame) if isinstance(frame, str) else frame
+            for frame in frames[-num_frames_to_use:]
+        ]
         segmentation = (
             base64.b64decode(segmentation) if isinstance(segmentation, str) else segmentation
         )

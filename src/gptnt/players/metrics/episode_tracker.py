@@ -2,9 +2,13 @@ import io
 import itertools
 from contextlib import suppress
 from dataclasses import dataclass, field
+from enum import Enum
 from functools import partial
+from pathlib import Path
 from typing import Any
 
+import anyio
+import dill
 import polars as pl
 import wandb
 import weave
@@ -14,11 +18,13 @@ from pydantic.types import UUID4
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.usage import Usage
 from structlog import get_logger
+from tqdm import tqdm
 from weave.trace.weave_client import WeaveClient
 from whenever import Instant
 
 from gptnt.api.experiment_manager.experiment_descriptor import ExperimentDescriptor
 from gptnt.common.async_ops import run_in_separate_thread
+from gptnt.common.paths import Paths
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import (
     DoNothingAction,
@@ -41,8 +47,18 @@ from gptnt.players.spec import PlayerMetadata, PlayerRole, PlayerSpec
 _logger = get_logger()
 
 
+class AIResponseErrorType(Enum):
+    """Reasons the AI player errored."""
+
+    invalid_som_location = "invalid_som_location"
+    invalid_format = "invalid_format"
+    server_error = "server_error"
+    guardrail_violation = "guardrail_violation"
+    unknown = "unknown"
+
+
 @dataclass(kw_only=True)
-class EpisodeTracker:
+class EpisodeTracker:  # noqa: WPS214
     """Tracks metrics for an episode."""
 
     wandb_entity: str
@@ -71,35 +87,79 @@ class EpisodeTracker:
     num_requests: int = field(default=0, init=False)
     num_invalid_locations: int = field(default=0, init=False)
     """Number of invalid SoM locations."""
-    num_invalid_formats: int = field(default=0, init=False)
-    """Number of invalid output formats."""
     num_prompt_truncations: int = field(default=0, init=False)
     """Number of prompt truncations (because it got too long)."""
 
-    # Trackers
-    guardrail_violations_per_request: list[bool] = field(default_factory=list, init=False)
-    """Number of guardrail/safety violations."""
+    error_event_per_request: list[AIResponseErrorType | None] = field(
+        default_factory=list, init=False
+    )
 
     actions: list[ActionMetric] = field(default_factory=list, init=False)
     messages_sent: list[MessageMetric] = field(default_factory=list, init=False)
     do_nothing_actions: list[DoNothingMetric] = field(default_factory=list, init=False)
     bomb_states: list[BombStateMetric] = field(default_factory=list, init=False)
-    observations: list[ObservationMetric] = field(default_factory=list, init=False)
     reflections: list[MessageMetric] = field(default_factory=list, init=False)
+    observation_files: list[Path] = field(default_factory=list, init=False)
+    """List of observations taken during the episode."""
+
+    _max_sequential_errors: int = 5
+
+    _observations_dir: Path = field(init=False, repr=False, default=Paths().output_observations)
 
     def __post_init__(self) -> None:
         """Initialize the Weave client and WandB."""
         self.weave_client = weave.init(project_name=f"{self.wandb_entity}/{self.wandb_project}")
+        self._observations_dir.mkdir(parents=True, exist_ok=True)
+        _logger.info(f"saving obs to {self._observations_dir}")
+
+    @property
+    def num_server_errors(self) -> int:
+        """Get the total number of server errors."""
+        return sum(
+            error == AIResponseErrorType.server_error for error in self.error_event_per_request
+        )
+
+    @property
+    def sequential_server_errors(self) -> int:
+        """Get the number of sequential server errors."""
+        reversed_errors = (
+            error == AIResponseErrorType.server_error
+            for error in reversed(self.error_event_per_request)
+        )
+        return sum(itertools.takewhile(bool, reversed_errors))
+
+    @property
+    def num_invalid_formats(self) -> int:
+        """Get the total number of invalid formats."""
+        return sum(
+            error == AIResponseErrorType.invalid_format for error in self.error_event_per_request
+        )
+
+    @property
+    def sequential_invalid_formats(self) -> int:
+        """Get the number of sequential invalid formats."""
+        reversed_errors = (
+            error == AIResponseErrorType.invalid_format
+            for error in reversed(self.error_event_per_request)
+        )
+        return sum(itertools.takewhile(bool, reversed_errors))
 
     @property
     def guardrail_violations(self) -> int:
         """Get the total number of guardrail violations."""
-        return sum(self.guardrail_violations_per_request)
+        return sum(
+            error == AIResponseErrorType.guardrail_violation
+            for error in self.error_event_per_request
+        )
 
     @property
     def sequential_guardrail_violations(self) -> int:
         """Get the number of sequential guardrail violations."""
-        return sum(itertools.takewhile(bool, reversed(self.guardrail_violations_per_request)))
+        reversed_errors = (
+            error == AIResponseErrorType.guardrail_violation
+            for error in reversed(self.error_event_per_request)
+        )
+        return sum(itertools.takewhile(bool, reversed_errors))
 
     async def on_experiment_start(
         self,
@@ -137,51 +197,15 @@ class EpisodeTracker:
 
     async def on_experiment_stop(self, *, is_hard_crash: bool = False) -> None:
         """Send results to Wandb."""
-        data_to_send: dict[str, Any] = {
-            "total_defuser_actions": len(self.actions),
-            "total_messages_sent": len(self.messages_sent),
-            "total_defuser_messages_sent": len(
-                [message for message in self.messages_sent if message.role == "defuser"]
-            ),
-            "total_expert_messages_sent": len(
-                [message for message in self.messages_sent if message.role == "expert"]
-            ),
-            "total_defuser_do_nothing_actions": len(
-                [action for action in self.do_nothing_actions if action.role == "defuser"]
-            ),
-            "total_expert_do_nothing_actions": len(
-                [action for action in self.do_nothing_actions if action.role == "expert"]
-            ),
-            "total_invalid_format": self.num_invalid_formats,
-            "total_prompt_truncations": self.num_prompt_truncations,
-            "total_guardrail_violations": self.guardrail_violations,
-            "hard_crash": is_hard_crash,
-        }
-
-        if self.bomb_states:
-            last_bomb_state = self.bomb_states[-1]
-
-            data_to_send = {
-                **data_to_send,
-                "is_solved": last_bomb_state.is_solved,
-                "is_strike_out": last_bomb_state.is_detonated
-                and last_bomb_state.strikes is not None
-                and len(last_bomb_state.strikes) >= last_bomb_state.max_strikes,
-                "is_timed_out": last_bomb_state.is_detonated
-                and last_bomb_state.timer_module.seconds_remaining <= 0,
-                "time_remaining": last_bomb_state.timer_module.seconds_remaining,
-                "total_modules_solved": len(
-                    [module for module in last_bomb_state.modules if module.is_solved]
-                ),
-                "total_strikes": len(last_bomb_state.strikes) if last_bomb_state.strikes else 0,
-            }
+        data_to_send = self._compute_data_to_send()
+        data_to_send["hard_crash"] = is_hard_crash
 
         # Send tables if they exist
         actions_table = self._compute_actions_table()
         messages_table = self._compute_messages_table()
         do_nothing_table = self._compute_do_nothing_table()
         bomb_states_table = self._compute_bomb_states_table()
-        observations_table = self._compute_observations_table()
+        observations_table = await self._compute_observations_table()
         reflections_table = self._compute_reflections_table()
         if reflections_table:
             data_to_send["reflections"] = reflections_table
@@ -278,27 +302,24 @@ class EpisodeTracker:
 
     def step(self, **kwargs: bool | str | None | float) -> None:
         """Step the player with the given kwargs."""
+        data_to_send = self._compute_data_to_send()
         with suppress(wandb.Error):
             wandb.log(
-                {
-                    "step": self.num_requests,
-                    "total_prompt_truncations": self.num_prompt_truncations,
-                    **kwargs,
-                },
+                {"step": self.num_requests, **data_to_send, **kwargs},
+                step=self.num_requests,
                 commit=False,
             )
 
-    def reset(self) -> None:
+    def reset(self) -> None:  # noqa: WPS213
         """Reset the player data."""
         self.actions.clear()
         self.messages_sent.clear()
         self.bomb_states.clear()
-        self.observations.clear()
+        self.observation_files.clear()
         self.do_nothing_actions.clear()
         self.reflections.clear()
-        self.guardrail_violations_per_request.clear()
+        self.error_event_per_request.clear()
         self.num_invalid_locations = 0
-        self.num_invalid_formats = 0
         self.num_prompt_truncations = 0
         self.num_requests = 0
 
@@ -334,7 +355,9 @@ class EpisodeTracker:
         )
         self.bomb_states.append(bomb_state_metric)
 
-    def add_observation(self, frames: list[bytes], segm_mask: bytes, som_image: bytes) -> None:
+    async def add_observation(
+        self, frames: list[bytes], segm_mask: bytes, som_image: bytes
+    ) -> None:
         """Add an observation to the player's observation list."""
         observation_metric = ObservationMetric(
             frames=frames,
@@ -342,7 +365,13 @@ class EpisodeTracker:
             som_image=som_image,
             timestamp=self._compute_time_delta(),
         )
-        self.observations.append(observation_metric)
+        obs_path = self._observations_dir.joinpath(
+            f"{self.player_uuid}_{Instant.now().format_common_iso()}.pkl"
+        )
+        async with await anyio.open_file(obs_path, "wb") as obs_file:
+            _ = await obs_file.write(dill.dumps(observation_metric))
+        self.observation_files.append(obs_path)
+        _logger.info("Observation saved", path=obs_path)
 
     def add_reflection(self, message: SendMessageAction, role: PlayerRole | None) -> None:
         """Add a reflection message to the player's reflection list."""
@@ -350,6 +379,58 @@ class EpisodeTracker:
             action=message, role=role, timestamp=self._compute_time_delta()
         )
         self.reflections.append(message_metric)
+
+    def should_stop_experiments(self) -> bool:
+        """Determine if we should stop the experiment."""
+        return any(
+            [
+                self.sequential_guardrail_violations > self._max_sequential_errors,
+                self.sequential_invalid_formats > self._max_sequential_errors,
+                self.sequential_server_errors > self._max_sequential_errors,
+            ]
+        )
+
+    def _compute_data_to_send(self) -> dict[str, Any]:
+        data_to_send: dict[str, Any] = {
+            "total_defuser_actions": len(self.actions),
+            "total_messages_sent": len(self.messages_sent),
+            "total_defuser_messages_sent": len(
+                [message for message in self.messages_sent if message.role == "defuser"]
+            ),
+            "total_expert_messages_sent": len(
+                [message for message in self.messages_sent if message.role == "expert"]
+            ),
+            "total_defuser_do_nothing_actions": len(
+                [action for action in self.do_nothing_actions if action.role == "defuser"]
+            ),
+            "total_expert_do_nothing_actions": len(
+                [action for action in self.do_nothing_actions if action.role == "expert"]
+            ),
+            "total_invalid_format": self.num_invalid_formats,
+            "total_prompt_truncations": self.num_prompt_truncations,
+            "total_guardrail_violations": self.guardrail_violations,
+            "total_server_errors": self.num_server_errors,
+        }
+        if self.bomb_states:
+            last_bomb_state = self.bomb_states[-1]
+
+            data_to_send = {
+                **data_to_send,
+                "is_solved": last_bomb_state.is_solved,
+                "is_strike_out": last_bomb_state.is_detonated
+                and last_bomb_state.strikes is not None
+                and len(last_bomb_state.strikes) >= last_bomb_state.max_strikes,
+                "is_timed_out": last_bomb_state.is_detonated
+                and last_bomb_state.timer_module.seconds_remaining <= 0,
+                "time_remaining": last_bomb_state.timer_module.seconds_remaining,
+                "total_modules_solved": len(
+                    [module for module in last_bomb_state.modules if module.is_solved]
+                ),
+                "total_strikes": len(last_bomb_state.strikes) if last_bomb_state.strikes else 0,
+                "total_invalid_locations": self.num_invalid_locations,
+            }
+
+        return data_to_send
 
     def _compute_time_delta(self) -> float:
         """Compute the time delta between the start time and now."""
@@ -410,13 +491,20 @@ class EpisodeTracker:
         )
         return do_nothing_table
 
-    def _compute_observations_table(self) -> wandb.Table | None:
+    async def _compute_observations_table(self) -> wandb.Table | None:
         """Compute the observations table."""
-        if not self.observations:
+        if not self.observation_files:
             return None
+        all_observations = []
+        for obs_file in tqdm(self.observation_files, desc="Loading observations"):
+            async with await anyio.open_file(obs_file, "rb") as obs_file_handle:  # noqa: WPS476
+                file_contents = await obs_file_handle.read()  # noqa: WPS476
+                observation = dill.loads(file_contents)  # noqa: S301
+                all_observations.append(observation)
+
         # Use the custom serialiser to convert the images to wandb images
         observations_data = TypeAdapter(list[ObservationMetric]).dump_python(
-            self.observations, context={"wandb": True}
+            all_observations, context={"wandb": True}
         )
         observations_table = wandb.Table(
             columns=["frames", "segmentation_mask", "som_image", "timestamp"]

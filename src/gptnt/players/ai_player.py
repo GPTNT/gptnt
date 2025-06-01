@@ -1,10 +1,10 @@
-import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Union, override
 
 import logfire
 import structlog
+from google.genai.errors import ServerError
 from pydantic import ValidationError
 from pydantic_ai import Agent
 from pydantic_ai.exceptions import AgentRunError, ModelHTTPError
@@ -15,6 +15,7 @@ from gptnt.api.commands import ReflectionCommand
 from gptnt.api.events import NotReadyEvent
 from gptnt.api.experiment_manager.experiment_descriptor import ExperimentDescriptor
 from gptnt.common.instrumentation import InstrumentationDataclassMixin
+from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import (
     DoNothingAction,
     InteractGameAction,
@@ -25,7 +26,7 @@ from gptnt.players.actions import (
 )
 from gptnt.players.base_player import BasePlayer
 from gptnt.players.messages import AgentMessageInput, MessageHistory
-from gptnt.players.metrics.episode_tracker import EpisodeTracker
+from gptnt.players.metrics.episode_tracker import AIResponseErrorType, EpisodeTracker
 from gptnt.players.observations import ObservationHandler
 from gptnt.players.output_validators import (
     AgentOutput,
@@ -104,9 +105,13 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
 
     @override
     @logfire.instrument("Stop experiment")
-    async def on_experiment_stop(self, *, is_hard_crash: bool = False) -> None:
+    async def on_experiment_stop(
+        self, *, is_hard_crash: bool = False, bomb_state: BombState | None = None
+    ) -> None:
         """Things to do when the experiment stops."""
         log.info("Stopping experiment")
+        if bomb_state and self.player_spec.role == "defuser":
+            self.tracker.add_bomb_state(bomb_state=bomb_state)
         self.tracker.num_prompt_truncations = self.message_history.num_times_truncated
         await self.tracker.on_experiment_stop(is_hard_crash=is_hard_crash)
 
@@ -160,8 +165,8 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
         self.tracker.step()
 
         # Stop the experiment if we have too many guardrail violations
-        if self.tracker.sequential_guardrail_violations > 5:  # noqa: PLR2004
-            log.warning("Too many guardrail violations, stopping the experiment")
+        if self.tracker.should_stop_experiments():
+            log.warning("Too many violations, stopping the experiment")
             await self.api_queues.experiment_ready().route.publish(NotReadyEvent(uuid=self.uuid))
 
     @logfire.instrument("Build agent input")
@@ -171,16 +176,19 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
 
         # 1. Do we want to include the manual? Only if first message and we want it.
         if self.player_spec.include_manual and self.message_history.is_empty:
+            log.debug("Loading manual as prompt")
             agent_input.extend(load_manual_as_prompt())
 
         # 2. Pull messages. This should only happen if we are not playing alone, AND this is not
         #    the first message.
         if not self.player_spec.is_playing_alone and not self.message_history.is_empty:
+            log.debug("Pulling messages")
             messages = await self.pull_messages()
             agent_input.append(messages)
 
         # 3. Add observations if we are the defuser
         if self.player_spec.role == "defuser":
+            log.debug("Preparing frames")
             observations = await self._prepare_frames()
             agent_input.extend(observations)
 
@@ -194,9 +202,8 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
         """
         self.message_history.truncate_history_if_needed()
         self.tracker.start_weave_trace(message_input, self.message_history.to_history())
-        try:  # noqa: WPS229
-            model_output = await asyncio.to_thread(
-                self.agent.run_sync,
+        try:  # noqa: WPS229, WPS225
+            model_output = await self.agent.run(
                 message_input,
                 deps=self._agent_deps,
                 output_type=self._agent_deps.output_type,
@@ -205,30 +212,33 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
             model_output.output = structure_string_output(
                 output=model_output.output, output_type=self._agent_deps.structured_output_type
             )
-        except InvalidOutputFormatError as format_error:
+            ai_response_error = None
+        except (InvalidOutputFormatError, ValidationError) as format_error:
             log.exception(
                 "Invalid output format from the agent.",
                 error=format_error,
                 message_input=message_input,
             )
-            self.tracker.num_invalid_formats += 1
-            return AgentOutput.do_nothing()
-        except ValidationError as validation_error:
-            log.exception(
-                "Validation error from the agent.",
-                error=validation_error,
-                message_input=message_input,
-            )
-            self.tracker.num_invalid_formats += 1
+            ai_response_error = AIResponseErrorType.invalid_format
             return AgentOutput.do_nothing()
         except (ModelHTTPError, AgentRunError) as err:
             if "filtered due to the prompt triggering Azure OpenAI's content" in err.message:
                 log.error("Filtered due to content policy", error=err)  # noqa: TRY400
-                self.tracker.guardrail_violations_per_request.append(True)
+                ai_response_error = AIResponseErrorType.guardrail_violation
             else:
                 log.exception("Something has gone wrong, defaulting to `DoNothing`", error=err)
+                ai_response_error = AIResponseErrorType.unknown
+            return AgentOutput.do_nothing()
+        except ServerError as server_err:
+            log.exception(
+                "Server error occurred while running the agent.",
+                error=server_err,
+                message_input=message_input,
+            )
+            ai_response_error = AIResponseErrorType.server_error
             return AgentOutput.do_nothing()
 
+        self.tracker.error_event_per_request.append(ai_response_error)
         # It should not be a string, like if its a string I will be very surprised because we are
         # using the output validator
         assert not isinstance(model_output.output, str)
@@ -281,16 +291,24 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
         """Prepare frames from the game."""
         pulled_observations = await self.pull_observation()
         if not pulled_observations:
+            log.exception("No observations pulled from the game.")
             raise ValueError("No observations pulled from the game.")
 
         bomb_state = pulled_observations.bomb_state
+
+        num_frames_to_use = (
+            self.metadata.max_observation_window_length
+            if bomb_state.view_needs_multiple_frames
+            else 1
+        )
 
         observation = self.observation_handler.handle_new_observtion(
             frames=pulled_observations.observation_frames.frames,
             segmentation=pulled_observations.observation_frames.segm_mask,
             bomb_state=pulled_observations.bomb_state,
+            num_frames_to_use=num_frames_to_use,
         )
-        self.tracker.add_observation(
+        await self.tracker.add_observation(
             frames=observation.frames,
             segm_mask=observation.segm_mask,
             som_image=observation.som_image,
@@ -299,20 +317,13 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
 
         # TODO: save the frames to disk?
 
-        # 3. Figure out how many frames we need to send
-        num_frames_to_use = (
-            self.metadata.max_observation_window_length
-            if bomb_state.view_needs_multiple_frames
-            else 1
-        )
-
         # 4. Build the observations
         observations = [
             *[
                 BinaryContent(data=frame, media_type="image/png")
                 # Get the last `num_frames_to_use` frames, but not the last one in the list since
                 # we want to replace it with the SoM image
-                for frame in observation.frames[-num_frames_to_use:-1]
+                for frame in observation.frames
             ],
             BinaryContent(data=observation.som_image, media_type="image/png"),
         ]

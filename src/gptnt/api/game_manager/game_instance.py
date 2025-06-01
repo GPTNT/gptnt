@@ -114,7 +114,7 @@ class GameInstance(BaseEMClient):
             # Leave the error for parent to handle
             raise ExceptionUnhandledError
 
-    async def handle_command(self, command: GameCommand) -> Any:
+    async def handle_command(self, command: GameCommand) -> Any:  # noqa: WPS213
         """Handles a command from the Experiment Manager."""
         # TODO: Could replace with a switcher
         # TODO: Add error handling to the _ktane_client calls
@@ -124,6 +124,7 @@ class GameInstance(BaseEMClient):
             return None
 
         if isinstance(command, StopExperimentCommand):
+            logger.debug("Received StopExperimentCommand, stopping game.")
             self._kill_game_process()
 
         if isinstance(command, ConfigureGameCommand):
@@ -135,15 +136,19 @@ class GameInstance(BaseEMClient):
             _ = await self._ktane_client.stop_time()
 
         if isinstance(command, PauseGameCommand):
+            logger.debug("Received PauseGameCommand, pausing game.")
             _ = await self._ktane_client.stop_time()
 
         if isinstance(command, UnpauseGameCommand):
+            logger.debug("Received UnpauseGameCommand, unpausing game.")
             _ = await self._ktane_client.resume_time()
 
         if isinstance(command, AdvanceTimeGameCommand):
+            logger.debug("Received AdvanceTimeGameCommand, advancing game time.")
             _ = await self._ktane_client.advance_time()
 
         if isinstance(command, GameGetObservationCommand):
+            logger.debug("Received GameGetObservationCommand, getting observation.")
             # Timout to stop get_state calls after the game ends
             with suppress(TimeoutError):
                 async with asyncio.timeout(30.0):
@@ -228,9 +233,12 @@ class GameInstance(BaseEMClient):
             logger.debug("Waiting for bomb state to be available")
             await busy_wait_interval()
 
-        frames, state = await asyncio.gather(
-            self._ktane_client.get_observation_frames(), self._ktane_client.get_state()
-        )
+        logger.debug("Fetching observation frames")
+        frames = await self._ktane_client.get_observation_frames()
+
+        logger.debug("Fetching bomb state")
+        state = await self._ktane_client.get_state()
+
         assert state is not None, "Bomb state should not be None"
         logger.debug("Received observation frames and bomb state from game")
         return GameObservationResponse(observation_frames=frames, bomb_state=state)

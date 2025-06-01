@@ -8,11 +8,13 @@ authors = [
 ]
 requires-python = ">=3.13"
 dependencies = [
+    "aiomonitor>=0.7.1",
     "aiotools>=1.8.2",
     "anyio>=4.9.0",
     "color-contrast>=0.1.1",
     "datasets>=3.6.0",
     "deepdiff>=8.4.2",
+    "dill>=0.3.8",
     "fastapi>=0.115.12",
     "faststream[cli,rabbit]>=0.5.40",
     "httpx>=0.28.1",

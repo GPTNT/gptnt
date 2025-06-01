@@ -33,6 +33,7 @@ from gptnt.api.game_manager.game_instance import GameObservationResponse
 from gptnt.common.async_ops import busy_wait_interval
 from gptnt.experiments.time_limits import SECONDS_PER_ACTION
 from gptnt.players.prompts import convert_bomb_state_to_reflection
+from gptnt.players.spec import PlayerRole
 
 logger = get_logger()
 
@@ -104,14 +105,17 @@ class RoomInstance(BaseEMClient):
     ) -> None:
         """Handle uncaught exceptions from background_tasks."""
         if isinstance(exc_obj, (asyncio.CancelledError, GeneratorExit)):
-            # Ignore these exceptions as they are expected
-            logger.info("Background task cancelled or generator exited")
-        elif isinstance(
+            # These are expected when shutting down
+            logger.info(f"Background task cancelled: {type(exc_obj).__name__}")
+            # Don't re-raise these - they're normal shutdown signals
+            return
+        if isinstance(
             exc_obj, (ConfigurationFailedError, GameTooLongError, PlayerTookTooLongError)
         ):
             logger.warning(f"Stopping experiment due to error: {exc_obj}")
             await self.stop_experiment(hard_crash=True)
         else:
+            logger.error(f"Unhandled exception in background task: {exc_obj}")
             raise ExceptionUnhandledError
 
     async def handle_command(self, command: RoomCommand) -> None:
@@ -175,33 +179,19 @@ class RoomInstance(BaseEMClient):
         # 4. We are done
         _ = self.background_tasks.create_task(self.stop_experiment(hard_crash=False))
 
-    async def sync_experiment_loop(self, experiment: ExperimentDescriptor) -> None:  # noqa: WPS231
+    async def sync_experiment_loop(self, experiment: ExperimentDescriptor) -> None:
         """Runs the sync-experiment loop."""
-        while self._is_in_progress:
-            with logfire.span("Running defuser forward pass"):
-                if not await self.api_queues.player_run(
-                    experiment.defuser_uuid
-                ).route.publish_with_ack(
-                    RunForwardOnceCommand(), fail_after=PLAYER_TIMEOUT_SECONDS
-                ):
-                    logger.error("Defuser player took too long to respond")
-                    raise PlayerTookTooLongError
-
-            with logfire.span("Advancing time"):
-                await self.api_queues.game_command(experiment.game_uuid).route.publish(
-                    AdvanceTimeGameCommand()
-                )
-                await asyncio.sleep(SECONDS_PER_ACTION)
-
-            if experiment.expert_uuid:
-                with logfire.span("Running expert forward pass"):
-                    if not await self.api_queues.player_run(
-                        experiment.expert_uuid
-                    ).route.publish_with_ack(
-                        RunForwardOnceCommand(), fail_after=PLAYER_TIMEOUT_SECONDS
-                    ):
-                        logger.error("Expert player took too long to respond")  # noqa: WPS220
-                        raise PlayerTookTooLongError  # noqa: WPS220
+        try:
+            while self._is_in_progress:
+                await self._run_single_sync_step(experiment)
+        except GeneratorExit:
+            logger.info("Sync experiment loop cancelled via GeneratorExit")
+            self._is_in_progress = False
+            raise
+        except Exception:
+            logger.exception("Error in sync experiment loop")
+            self._is_in_progress = False
+            raise
 
     async def async_experiment_loop(self, experiment: ExperimentDescriptor) -> None:
         """Runs the async-experiment loop."""
@@ -257,12 +247,16 @@ class RoomInstance(BaseEMClient):
 
             if reflection_message := convert_bomb_state_to_reflection(final_game_state.bomb_state):
                 # final_player_command = StopExperimentCommand()
-                final_player_command = ReflectionCommand(reflection_message=reflection_message)
+                final_player_command = ReflectionCommand(
+                    reflection_message=reflection_message, bomb_state=final_game_state.bomb_state
+                )
             else:
                 logger.error(
                     f"Failed to generate reflection message from final bomb state: {final_game_state.bomb_state}"
                 )
-                final_player_command = StopExperimentCommand()
+                final_player_command = StopExperimentCommand(
+                    bomb_state=final_game_state.bomb_state
+                )
 
         player_stops = [
             self.api_queues.player_command(experiment.defuser_uuid).route.publish(
@@ -290,3 +284,29 @@ class RoomInstance(BaseEMClient):
         logger.info("Experiment stopped")
         await busy_wait_interval()
         await self.ready()
+
+    async def _run_single_sync_step(self, experiment: ExperimentDescriptor) -> None:
+        """Run a single step of the sync experiment loop."""
+        # Run defuser
+        await self._run_player_forward_pass(experiment.defuser_uuid, "defuser")
+        # Advance time
+        await self._advance_game_time(experiment.game_uuid)
+        # Run expert if present
+        if experiment.expert_uuid:
+            await self._run_player_forward_pass(experiment.expert_uuid, "expert")
+
+    @logfire.instrument("Run {role} forward pass")
+    async def _run_player_forward_pass(self, player_uuid: UUID4, role: PlayerRole) -> None:
+        """Run a forward pass for a single player."""
+        success = await self.api_queues.player_run(player_uuid).route.publish_with_ack(
+            RunForwardOnceCommand(), fail_after=PLAYER_TIMEOUT_SECONDS
+        )
+        if not success:
+            logger.error(f"{role.capitalize()} player took too long to respond")
+            raise PlayerTookTooLongError
+
+    @logfire.instrument("Advance game time")
+    async def _advance_game_time(self, game_uuid: UUID4) -> None:
+        """Advance the game time by one step."""
+        await self.api_queues.game_command(game_uuid).route.publish(AdvanceTimeGameCommand())
+        await asyncio.sleep(SECONDS_PER_ACTION)

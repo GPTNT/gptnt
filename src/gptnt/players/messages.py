@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 
+import logfire
 import pydantic_core
 import structlog
 from pydantic_ai import BinaryContent
@@ -210,6 +211,7 @@ class MessageHistory:
         new_messages = remove_any_empty_messages(new_messages)
         self.messages.append(new_messages)
 
+    @logfire.instrument("Truncate message history")
     def truncate_history_if_needed(self) -> None:
         """Truncate the message history to fit within the usage limits."""
         if self.metadata.usage_limits.request_tokens_limit is None:
@@ -233,6 +235,7 @@ class MessageHistory:
             self.num_times_truncated += 1
             self.messages = history
 
+    @logfire.instrument("Remove observations from messages")
     def _remove_observations_from_messages(
         self, new_messages: list[ModelMessage]
     ) -> list[ModelMessage]:

@@ -1,6 +1,7 @@
 import asyncio
 import sys
 
+import aiomonitor
 import hydra
 import logfire
 from faststream.app import FastStream
@@ -14,6 +15,7 @@ from gptnt.common.instrumentation import HeartbeatFilterSampler
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
 from gptnt.common.prompt_cache import PromptCache
+from gptnt.common.servers import is_port_available
 from gptnt.ktane.manual import KtaneManualPaths
 from gptnt.players.base_player import BasePlayer
 
@@ -58,4 +60,9 @@ if __name__ == "__main__":
     if hydra_overrides:
         _logger.debug(f"Hydra overrides: {hydra_overrides}")
     loop = asyncio.new_event_loop()
-    loop.run_until_complete(run_player(hydra_overrides=hydra_overrides))
+    asyncio.set_event_loop(loop)
+    port = 20101 if is_port_available(20101) else 20201
+    _logger.warning(f"Using port {port} for aiomonitor")
+    with aiomonitor.start_monitor(loop=loop, port=port, locals={"overrides": hydra_overrides}):
+        # Run the player with the provided hydra overrides
+        loop.run_until_complete(run_player(hydra_overrides=hydra_overrides))

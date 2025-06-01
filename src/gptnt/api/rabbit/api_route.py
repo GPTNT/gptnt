@@ -1,17 +1,35 @@
 import asyncio
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from functools import partial
 from typing import Any
 from uuid import uuid4
 
+from aio_pika import RobustChannel
 from aio_pika.abc import DateType
-from aiormq.abc import DeliveredMessage
+from aiormq.abc import ConsumerCallback, DeliveredMessage
 from faststream.rabbit import RabbitBroker, RabbitExchange
 from faststream.rabbit.types import AioPikaSendableMessage
 from pydantic import BaseModel
 from structlog import get_logger
 
 logger = get_logger()
+
+
+@asynccontextmanager
+async def temporary_queue(
+    channel: RobustChannel, consumer_callback: ConsumerCallback, prefix: str = "testing"
+) -> AsyncGenerator[str, None]:
+    """Creates a temporary queue for consuming messages."""
+    temp_queue = f"{prefix}.{uuid4()}"
+    _ = await channel.channel.queue_declare(temp_queue, auto_delete=True)
+    consume_ok = await channel.channel.basic_consume(
+        queue=temp_queue, consumer_callback=consumer_callback
+    )
+    assert consume_ok.consumer_tag, "Consumer tag should not be None"
+    yield temp_queue
+    _ = await channel.channel.basic_cancel(consume_ok.consumer_tag)
+    _ = await channel.channel.queue_delete(queue=temp_queue)
 
 
 @dataclass(kw_only=True)
@@ -46,28 +64,36 @@ class APIRoute[SendableMessage: AioPikaSendableMessage]:
         if not (channel := self.broker._channel):  # noqa: SLF001
             return False
 
-        temp_queue = f"{prefix}.{uuid4()}"
         return_flag = asyncio.Event()
 
         async def callback(_message: Any) -> None:  # noqa: WPS430
             """Sets the flag on message delivery."""
             return_flag.set()
 
-        _ = await channel.channel.queue_declare(temp_queue, auto_delete=True)
-        _ = await channel.channel.basic_consume(queue=temp_queue, consumer_callback=callback)
-        _ = await self.broker.publish(
-            message=message, routing_key=self.routing_key, reply_to=temp_queue, timeout=fail_after
-        )
+        async with temporary_queue(
+            channel=channel, consumer_callback=callback, prefix=f"{prefix}.{uuid4()}"
+        ) as temp_queue:
+            logger.debug("Temporary queue created", temp_queue=temp_queue)
 
-        try:
-            async with asyncio.timeout(fail_after):
-                _ = await return_flag.wait()
-        except TimeoutError:
-            logger.exception("`TimeoutError` while waiting for response", message=message)
-            _ = await channel.channel.queue_delete(queue=temp_queue)
-            return False
-        _ = await channel.channel.queue_delete(queue=temp_queue)
-        return True
+            _ = await channel.channel.queue_declare(temp_queue, auto_delete=True)
+            consume_ok = await channel.channel.basic_consume(
+                queue=temp_queue, consumer_callback=callback
+            )
+            assert consume_ok.consumer_tag, "Consumer tag should not be None"
+            _ = await self.broker.publish(
+                message=message,
+                routing_key=self.routing_key,
+                reply_to=temp_queue,
+                timeout=fail_after,
+            )
+
+            try:
+                async with asyncio.timeout(fail_after):
+                    _ = await return_flag.wait()
+            except TimeoutError:
+                logger.exception("`TimeoutError` while waiting for response", message=message)
+                return False
+            return True
 
     async def publish_with_response[SendableResponse: BaseModel](
         self, message: SendableMessage, *, fail_after: float, response_type: type[SendableResponse]
@@ -78,27 +104,39 @@ class APIRoute[SendableMessage: AioPikaSendableMessage]:
         Raises a Pydantic validation error if the received message is of an unexpected type.
         """
         if not (channel := self.broker._channel):  # noqa: SLF001
+            logger.error("No channel available for publishing", message=message)
             # TODO: this should be a unique error type
             raise TimeoutError
 
-        temp_queue = f"testing.{uuid4()}"
         return_flag = asyncio.Event()
-        return_response: set[bytes] = set()
+        response_data: list[bytes] = []
 
-        async def callback(response: set[bytes], message: DeliveredMessage) -> None:  # noqa: WPS430
+        async def callback(message: DeliveredMessage) -> None:  # noqa: WPS430
             """Sets the flag on message delivery."""
-            response.add(message.body)
+            response_data.append(message.body)
             return_flag.set()
 
-        _ = await channel.channel.queue_declare(temp_queue, auto_delete=True)
-        _ = await channel.channel.basic_consume(
-            queue=temp_queue, consumer_callback=partial(callback, return_response)
-        )
-        _ = await self.broker.publish(
-            message=message, routing_key=self.routing_key, reply_to=temp_queue, timeout=fail_after
-        )
+        async with temporary_queue(
+            channel=channel, consumer_callback=callback, prefix="testing"
+        ) as temp_queue:
+            logger.debug("Temporary queue created", temp_queue=temp_queue)
 
-        async with asyncio.timeout(fail_after):
-            _ = await return_flag.wait()
-            _ = await channel.channel.queue_delete(queue=temp_queue)
-            return response_type.model_validate_json(return_response.pop())
+            _ = await self.broker.publish(
+                message=message,
+                routing_key=self.routing_key,
+                reply_to=temp_queue,
+                timeout=fail_after,
+            )
+
+            logger.debug("Waiting for response")
+            try:
+                async with asyncio.timeout(fail_after):
+                    _ = await return_flag.wait()
+            except TimeoutError:
+                logger.exception("`TimeoutError` while waiting for response", message=message)
+                raise
+            try:
+                return response_type.model_validate_json(response_data[0])
+            except Exception:
+                logger.exception("Failed to validate response data", message=message)
+                raise

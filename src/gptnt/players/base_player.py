@@ -23,6 +23,7 @@ from gptnt.api.events import PlayerConnectEvent
 from gptnt.api.experiment_manager.experiment_descriptor import ExperimentDescriptor
 from gptnt.api.game_manager.game_instance import GameObservationResponse
 from gptnt.ktane.actions import KtaneBaseAction, RelativeCoordinate
+from gptnt.ktane.state.bomb import BombState
 from gptnt.players.spec import NO_NEW_MESSAGES_SENTINEL, PlayerMetadata, PlayerSpec
 
 logger = get_logger()
@@ -86,7 +87,9 @@ class BasePlayer(BaseEMClient, ABC):
             if isinstance(command, ReflectionCommand):
                 await self.handle_reflection_message(command)
             is_hard_crash = isinstance(command, StopExperimentCommand) and command.hard_crash
-            await self.on_experiment_stop(is_hard_crash=is_hard_crash)
+            await self.on_experiment_stop(
+                is_hard_crash=is_hard_crash, bomb_state=command.bomb_state
+            )
 
             logger.info("Received StopExperimentCommand, stopping experiment.")
             self._current_game_uuid = None
@@ -96,6 +99,7 @@ class BasePlayer(BaseEMClient, ABC):
     async def handle_run(self, _: RunForwardOnceCommand) -> None:
         """Runs a single forward pass."""
         await self.forward_pass()
+        logger.debug("Forward pass completed")
 
     @logfire.instrument("Send dialogue message")
     async def send_dialogue_message(self, message: str) -> None:
@@ -107,6 +111,7 @@ class BasePlayer(BaseEMClient, ABC):
         await self.api_routes.game_messages(
             self._current_game_uuid, self._current_spec.role
         ).publish(message)
+        logger.debug("Sent dialogue message", message=message, from_role=self._current_spec.role)
 
     @logfire.instrument("Send game action")
     async def send_game_action(self, action: KtaneBaseAction[RelativeCoordinate]) -> None:
@@ -116,6 +121,7 @@ class BasePlayer(BaseEMClient, ABC):
             return
 
         await self.api_queues.game_actions(self._current_game_uuid).route.publish(action)
+        logger.debug("Sent game action", action=action, from_role=self._current_spec.role)
 
     async def pull_messages(self) -> str:
         """Pull messages from the queue.
@@ -124,6 +130,7 @@ class BasePlayer(BaseEMClient, ABC):
         sentinel.
         """
         if not self._unpulled_messages:
+            logger.debug("No new messages to pull.")
             return NO_NEW_MESSAGES_SENTINEL
 
         # Flatten the messages into a single string
@@ -139,7 +146,7 @@ class BasePlayer(BaseEMClient, ABC):
             return None
 
         try:
-            return await self.api_queues.game_command(
+            observations = await self.api_queues.game_command(
                 self._current_game_uuid
             ).route.publish_with_response(
                 GameGetObservationCommand(), fail_after=300, response_type=GameObservationResponse
@@ -148,9 +155,14 @@ class BasePlayer(BaseEMClient, ABC):
             logger.exception("Failed to pull observation, timed out.")
             return None
 
+        logger.debug("Pulled observations.")
+        return observations
+
+    @logfire.instrument("Handle message")
     async def handle_message(self, message: str) -> None:
         """Handler for new (dialogue) messages."""
         self._unpulled_messages.append(message)
+        logger.debug("Received message", message=message)
 
     @abstractmethod
     async def on_experiment_start(
@@ -163,7 +175,9 @@ class BasePlayer(BaseEMClient, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def on_experiment_stop(self, *, is_hard_crash: bool = False) -> None:
+    async def on_experiment_stop(
+        self, *, is_hard_crash: bool = False, bomb_state: BombState | None = None
+    ) -> None:
         """Logic for ending an experiment."""
         raise NotImplementedError
 
