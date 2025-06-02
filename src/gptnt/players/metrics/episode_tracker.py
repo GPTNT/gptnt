@@ -177,8 +177,10 @@ class EpisodeTracker:  # noqa: WPS214
             entity=self.wandb_entity,
             project=self.wandb_project,
             config={
-                "game_id": experiment_descriptor.game_uuid,
+                # We call it the `game_id` due to legacy reasons
+                "game_id": experiment_descriptor.experiment_id,
                 "room_id": experiment_descriptor.room_uuid,
+                "game_uuid": experiment_descriptor.game_uuid,
                 "player_id": self.player_uuid,
                 "experiment_name": experiment_descriptor.experiment_spec.experiment_name,
                 **player_spec.model_dump(mode="json"),

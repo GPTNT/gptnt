@@ -2,6 +2,7 @@ from contextlib import suppress
 from dataclasses import dataclass, field
 from types import TracebackType
 from typing import overload, override
+from uuid import uuid4
 
 import logfire
 from pydantic.types import UUID4
@@ -240,6 +241,7 @@ class ExperimentManager(BaseRabbitMQClient):
                     defuser_uuid=pairing.defuser.uuid,
                     expert_uuid=pairing.expert.uuid if pairing.expert else None,
                     experiment_spec=pairing.experiment,
+                    experiment_id=uuid4(),
                 )
                 await self.start_experiment(experiment=next_experiment)  # noqa: WPS476
                 self.running_experiments.add(next_experiment)

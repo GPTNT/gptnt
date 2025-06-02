@@ -13,6 +13,9 @@ class ExperimentDescriptor(BaseModel, frozen=True):
 
     experiment_spec: ExperimentSpec
 
+    experiment_id: UUID4
+    """Unique identifier for the experiment being run."""
+
     expert_uuid: UUID4 | None
     defuser_uuid: UUID4
     game_uuid: UUID4
