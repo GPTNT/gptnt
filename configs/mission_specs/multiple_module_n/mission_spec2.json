@@ -1,5 +1,5 @@
 {
-	"seed": 286,
+	"seed": 337,
 	"time_limit": 300,
 	"num_strikes_allowed": 3,
 	"components": ["BigButton", "Simon", "Venn"],

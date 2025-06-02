@@ -1,5 +1,5 @@
 {
-	"seed": 286,
+	"seed": 619,
 	"time_limit": 180,
 	"num_strikes_allowed": 3,
 	"components": ["BigButton", "Memory", "WhosOnFirst"],

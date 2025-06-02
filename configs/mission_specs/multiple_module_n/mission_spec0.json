@@ -1,5 +1,5 @@
 {
-	"seed": 286,
+	"seed": 110,
 	"time_limit": 300,
 	"num_strikes_allowed": 3,
 	"components": ["Keypad", "Wires", "Maze"],
