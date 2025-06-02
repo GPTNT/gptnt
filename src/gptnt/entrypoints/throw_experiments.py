@@ -51,6 +51,7 @@ def _filter_experiments(
                 {"state": "finished"},
                 {"$or": [{"config.experiment_name": name} for name in loaded_experiment_names]},
                 {"summary_metrics.hard_crash": False},
+                {"tags": {"$nin": ["old"]}},
             ]
         },
     )
