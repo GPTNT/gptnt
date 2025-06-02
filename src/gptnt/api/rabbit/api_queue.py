@@ -2,11 +2,15 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
+import structlog
 from aio_pika import RobustExchange, RobustQueue
+from aiormq import ChannelNotFoundEntity
 from faststream.rabbit import RabbitBroker, RabbitExchange, RabbitQueue
 from faststream.rabbit.types import AioPikaSendableMessage
 
 from gptnt.api.rabbit.api_route import APIRoute
+
+logger = structlog.get_logger()
 
 
 @dataclass(kw_only=True)
@@ -50,12 +54,27 @@ class APIQueue[SendableMessage: AioPikaSendableMessage]:
         """Unbinds the routing key from the queue, or all bindings if none is provided."""
         pika_queue = await self._pika_queue()
 
-        _ = await pika_queue.unbind(exchange=await self._pika_exchange(), routing_key=routing_key)
-
+        try:
+            _ = await pika_queue.unbind(
+                exchange=await self._pika_exchange(), routing_key=routing_key
+            )
+        except ChannelNotFoundEntity:
+            logger.warning(
+                "Queue doesn't exist, skipping unbind operation.",
+                routing_key=routing_key,
+                queue_name=self.queue_name,
+            )
         # All queues also bind to their own name
-        _ = await pika_queue.bind(
-            exchange=await self._pika_exchange(), routing_key=self.queue_name
-        )
+        try:
+            _ = await pika_queue.bind(
+                exchange=await self._pika_exchange(), routing_key=self.queue_name
+            )
+        except ChannelNotFoundEntity:
+            logger.warning(
+                "Queue doesn't exist, skipping bind operation.",
+                routing_key=self.queue_name,
+                queue_name=self.queue_name,
+            )
 
     @property
     def _queue(self) -> RabbitQueue:
