@@ -338,7 +338,7 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
                 BinaryContent(data=frame, media_type="image/png")
                 # Get the last `num_frames_to_use` frames, but not the last one in the list since
                 # we want to replace it with the SoM image
-                for frame in observation.frames
+                for frame in observation.frames[-num_frames_to_use:-1]
             ],
             BinaryContent(data=observation.som_image, media_type="image/png"),
         ]
