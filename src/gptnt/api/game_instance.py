@@ -14,7 +14,6 @@ from pydantic.main import BaseModel
 from structlog import get_logger
 
 from gptnt.api.base_em_client import BaseEMClient
-from gptnt.api.base_rabbitmq_client import ExceptionUnhandledError
 from gptnt.api.commands import (
     AdvanceTimeGameCommand,
     ConfigureGameCommand,
@@ -26,6 +25,7 @@ from gptnt.api.commands import (
     UnpauseGameCommand,
 )
 from gptnt.api.events import GameConnectEvent, NotReadyEvent, ReadyEvent
+from gptnt.api.exceptions import ExceptionUnhandledError, GameProcessDiedError
 from gptnt.common.async_ops import busy_wait_interval, until
 from gptnt.common.servers import get_available_port
 from gptnt.ktane.actions import KtaneAction
@@ -42,10 +42,6 @@ class GameObservationResponse(BaseModel, frozen=True):
 
     observation_frames: ObservationFrames
     bomb_state: BombState
-
-
-class GameProcessDiedError(Exception):
-    """Exception indicating the game process has died."""
 
 
 @dataclass(kw_only=True)
@@ -116,44 +112,35 @@ class GameInstance(BaseEMClient):
 
     async def handle_command(self, command: GameCommand) -> Any:  # noqa: WPS213
         """Handles a command from the Experiment Manager."""
-        # TODO: Could replace with a switcher
         # TODO: Add error handling to the _ktane_client calls
         logger.info(f"Received command: {command}")
 
         if self._game_process.returncode is not None:
             return None
 
-        if isinstance(command, StopExperimentCommand):
-            logger.debug("Received StopExperimentCommand, stopping game.")
-            self._kill_game_process()
-
-        if isinstance(command, ConfigureGameCommand):
-            await until(
-                get_value=lambda: self._ktane_client.start_mission(command.mission_spec),
-                target=True,
-            )
-            await until(get_value=lambda: self._game_state, target=GameState.lights_off)
-            _ = await self._ktane_client.stop_time()
-
-        if isinstance(command, PauseGameCommand):
-            logger.debug("Received PauseGameCommand, pausing game.")
-            _ = await self._ktane_client.stop_time()
-
-        if isinstance(command, UnpauseGameCommand):
-            logger.debug("Received UnpauseGameCommand, unpausing game.")
-            _ = await self._ktane_client.resume_time()
-
-        if isinstance(command, AdvanceTimeGameCommand):
-            logger.debug("Received AdvanceTimeGameCommand, advancing game time.")
-            _ = await self._ktane_client.advance_time()
-
-        if isinstance(command, GameGetObservationCommand):
-            logger.debug("Received GameGetObservationCommand, getting observation.")
-            # Timout to stop get_state calls after the game ends
-            with suppress(TimeoutError):
+        match command:
+            case StopExperimentCommand():
+                logger.debug("Received StopExperimentCommand, stopping game.")
+                self._kill_game_process()
+            case ConfigureGameCommand():
+                await until(
+                    get_value=lambda: self._ktane_client.start_mission(command.mission_spec),
+                    target=True,
+                )
+                await until(get_value=lambda: self._game_state, target=GameState.lights_off)
+                _ = await self._ktane_client.stop_time()
+            case PauseGameCommand():
+                _ = await self._ktane_client.stop_time()
+            case UnpauseGameCommand():
+                _ = await self._ktane_client.resume_time()
+            case AdvanceTimeGameCommand():
+                _ = await self._ktane_client.advance_time()
+            case GameGetObservationCommand():
+                # Timeout to stop get_state calls after the game ends
                 async with asyncio.timeout(30.0):
-                    return await self._get_observation()
-            return None
+                    with suppress(TimeoutError):
+                        return await self._get_observation()  # noqa: WPS220
+                return None
 
         return None
 

@@ -8,7 +8,7 @@ from faststream.rabbit.opentelemetry import RabbitTelemetryMiddleware
 from opentelemetry.sdk.trace.sampling import ParentBased
 from structlog import get_logger
 
-from gptnt.api.game_manager.game_instance import GameInstance
+from gptnt.api.game_instance import GameInstance
 from gptnt.api.rabbit.exceptions import create_exc_middleware
 from gptnt.common.instrumentation import HeartbeatFilterSampler
 from gptnt.common.logger import configure_logging

@@ -1,26 +1,20 @@
 from abc import ABC, abstractmethod
-from contextlib import suppress
-from dataclasses import dataclass
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager, suppress
+from dataclasses import dataclass, field
 from functools import cached_property
 from types import TracebackType
 from typing import override
 
 import logfire
+from aiotools import PersistentTaskGroup
 from pydantic.types import UUID4
 from structlog import get_logger
 
 from gptnt.api.base_rabbitmq_client import BaseRabbitMQClient
 from gptnt.api.events import ConnectEvent, HeartbeatEvent, ReadyEvent
+from gptnt.api.exceptions import EMConnectionClosedError, EMConnectionFailedError
 from gptnt.common.async_ops import busy_wait_interval, until
-
-
-class EMConnectionFailedError(Exception):
-    """Error representing failure to connect with the EM."""
-
-
-class EMConnectionClosedError(Exception):
-    """Error represeting the EM connection being closed."""
-
 
 logger = get_logger()
 
@@ -33,6 +27,20 @@ class BaseEMClient(BaseRabbitMQClient, ABC):
     """
 
     uuid: UUID4
+
+    heartbeat_tasks: PersistentTaskGroup = field(init=False)
+    """Task group for managing heartbeat tasks.
+
+    These shouldn't ever really die.
+    """
+
+    def __post_init__(self) -> None:
+        """Initialises the EM client."""
+        super().__post_init__()
+        self.heartbeat_tasks = PersistentTaskGroup(
+            name="heartbeat_tasks",
+            exception_handler=self._background_task_exception_handler_wrapper,
+        )
 
     @cached_property
     @abstractmethod
@@ -54,6 +62,16 @@ class BaseEMClient(BaseRabbitMQClient, ABC):
         """EM clients require extra startup logic on top of base handler logic."""
         _ = self.background_tasks.create_task(self._connect())
 
+    @asynccontextmanager
+    @override
+    async def lifespan(self) -> AsyncGenerator[None]:
+        """Lifespan for the EM client.
+
+        This ensure the heartbeat tasks stay wrapped around the background tasks.
+        """
+        async with self.heartbeat_tasks, super().lifespan():
+            yield
+
     async def _connect(self) -> None:
         """Blocks until a succesful connection to the EM is established."""
         with logfire.span("Connect to EM"):
@@ -66,7 +84,8 @@ class BaseEMClient(BaseRabbitMQClient, ABC):
             logger.info("Connected to Experiment Manager")
 
         if is_connected:
-            _ = self.background_tasks.create_task(self._heartbeat())
+            # Establish the heartbeat
+            _ = self.heartbeat_tasks.create_task(self._heartbeat())
         else:
             logger.error("Failed to connect to Experiment Manager")
             raise EMConnectionFailedError
@@ -80,6 +99,8 @@ class BaseEMClient(BaseRabbitMQClient, ABC):
                 ),
                 target=False,
             )
+
+        # TODO: can we use signal or something to ignore this error when SIGINT?
         logger.error("Experiment Manager failed heartbeat, assumed dead")
         raise EMConnectionClosedError
 

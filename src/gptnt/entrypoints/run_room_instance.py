@@ -9,7 +9,7 @@ from opentelemetry.sdk.trace.sampling import ParentBased
 from structlog import get_logger
 
 from gptnt.api.rabbit.exceptions import create_exc_middleware
-from gptnt.api.room_manager.room_instance import RoomInstance
+from gptnt.api.room_instance import RoomInstance
 from gptnt.common.instrumentation import HeartbeatFilterSampler
 from gptnt.common.logger import configure_logging
 

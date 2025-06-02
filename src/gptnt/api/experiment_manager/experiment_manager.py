@@ -8,7 +8,7 @@ import logfire
 from pydantic.types import UUID4
 from structlog import get_logger
 
-from gptnt.api.base_rabbitmq_client import BaseRabbitMQClient, ExceptionUnhandledError
+from gptnt.api.base_rabbitmq_client import BaseRabbitMQClient
 from gptnt.api.commands import StartExperimentCommand, StopExperimentCommand
 from gptnt.api.events import (
     ConnectEvent,
@@ -21,12 +21,10 @@ from gptnt.api.events import (
     ReadyEvent,
     RoomConnectEvent,
 )
+from gptnt.api.exceptions import ExceptionUnhandledError, HeartbeatWatchdogTriggeredError
 from gptnt.api.experiment_manager.experiment_bindings import remove_experiment_bindings
 from gptnt.api.experiment_manager.experiment_descriptor import ExperimentDescriptor
-from gptnt.api.experiment_manager.heartbeat_watchdog import (
-    HeartbeatWatchdog,
-    HeartbeatWatchdogTriggeredError,
-)
+from gptnt.api.experiment_manager.heartbeat_watchdog import HeartbeatWatchdog
 from gptnt.api.experiment_manager.metrics import LogfireGauge
 from gptnt.api.experiment_manager.structures import ConnectedPlayerService, ConnectedService
 from gptnt.api.experiment_manager.tinder import get_playable_pairings

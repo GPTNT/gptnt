@@ -10,7 +10,6 @@ from pydantic.types import UUID4
 from structlog import get_logger
 
 from gptnt.api.base_em_client import BaseEMClient
-from gptnt.api.base_rabbitmq_client import ExceptionUnhandledError
 from gptnt.api.commands import (
     AdvanceTimeGameCommand,
     GameDoneCommand,
@@ -23,13 +22,19 @@ from gptnt.api.commands import (
     UnpauseGameCommand,
 )
 from gptnt.api.events import ExperimentDoneEvent, RoomConnectEvent
+from gptnt.api.exceptions import (
+    ConfigurationFailedError,
+    ExceptionUnhandledError,
+    GameTooLongError,
+    PlayerTookTooLongError,
+)
 from gptnt.api.experiment_manager.experiment_bindings import (
     configure_experiment_services,
     remove_experiment_bindings,
     set_experiment_bindings,
 )
 from gptnt.api.experiment_manager.experiment_descriptor import ExperimentDescriptor
-from gptnt.api.game_manager.game_instance import GameObservationResponse
+from gptnt.api.game_instance import GameObservationResponse
 from gptnt.common.async_ops import busy_wait_interval
 from gptnt.experiments.time_limits import SECONDS_PER_ACTION
 from gptnt.players.prompts import convert_bomb_state_to_reflection
@@ -41,21 +46,6 @@ PLAYER_TIMEOUT_SECONDS = 600
 """Time to wait for a player to take an action before timing out."""
 WAIT_FOR_GAME_DONE_SECONDS = 6000
 """Time to wait for a game to be done before timing out."""
-
-
-class ConfigurationFailedError(Exception):
-    """Error representing the failure to configure the room subservices."""
-
-
-class PlayerTookTooLongError(Exception):
-    """Error representing a player taking too long to take an action."""
-
-
-class GameTooLongError(Exception):
-    """Error representing a game taking too long.
-
-    May wish to remove this error in the future.
-    """
 
 
 @dataclass(kw_only=True)

@@ -16,122 +16,49 @@ class BaseEvent(BaseModel, frozen=True):
 
 
 class HeartbeatEvent(BaseEvent, frozen=True):
-    """Event for tracking heartbeats.
-
-    Connectivity:
-    ```
-    ┌────────┐
-    │ Player ┼─┐
-    └────────┘ │
-    ┌────────┐ │   ┌────────┐
-    │  Game  ┼─┼──>│   EM   │
-    └────────┘ │   └────────┘
-    ┌────────┐ │
-    │  Room  ┼─┘
-    └────────┘
-    ```
-    Handler should always return immediately.
-    """
+    """Event for a service to indicate that it is alive and well."""
 
     event: Literal["heartbeat"] = "heartbeat"
-
     opt: Base64Str = ""
 
 
 class ReadyEvent(BaseEvent, frozen=True):
-    """Event for a service to indicate that it is ready for an experiment.
-
-    Connectivity:
-    ```
-    ┌────────┐
-    │ Player ┼─┐
-    └────────┘ │
-    ┌────────┐ │   ┌────────┐
-    │  Game  ┼─┼──>│   EM   │
-    └────────┘ │   └────────┘
-    ┌────────┐ │
-    │  Room  ┼─┘
-    └────────┘
-    ```
-    """
+    """Event for a service to indicate that it is ready for an experiment."""
 
     event: Literal["ready"] = "ready"
 
 
 class NotReadyEvent(BaseEvent, frozen=True):
-    """Event for a service to indicate that it is no longer ready for an experiment.
+    """Event for a service to indicate that it is not ready for an experiment.
 
-    Could be due to a game crash or human player closing the UI. If this is sent while
-    the service is in an experiment then the experiment will be stopped.
-
-    Connectivity:
-    ```
-    ┌────────┐     ┌────────┐
-    │ Player ┼─┬──>│   EM   │
-    └────────┘ │   └────────┘
-    ┌────────┐ │
-    │  Game  ┼─┘
-    └────────┘
-    ```
+    Could be due to a game crash or human player closing the UI. If this is sent while the service
+    is in an experiment then the experiment will be stopped.
     """
 
     event: Literal["not-ready"] = "not-ready"
 
 
 class PlayerConnectEvent(BaseEvent, frozen=True):
-    """Event for player service connecting to EM.
-
-    Connectivity:
-    ```
-    ┌────────┐     ┌────────┐
-    │ Player ┼────>│   EM   │
-    └────────┘     └────────┘
-    ```
-    """
+    """Event for player service connecting to EM."""
 
     event: Literal["player-connect"] = "player-connect"
-
     metadata: PlayerMetadata
 
 
 class GameConnectEvent(BaseEvent, frozen=True):
-    """Event for game service connecting to EM.
-
-    Connectivity:
-    ```
-    ┌────────┐     ┌────────┐
-    │  Game  ┼────>│   EM   │
-    └────────┘     └────────┘
-    ```
-    """
+    """Event for game service connecting to EM."""
 
     event: Literal["game-connect"] = "game-connect"
 
 
 class RoomConnectEvent(BaseEvent, frozen=True):
-    """Event for room service connecting to EM.
-
-    Connectivty:
-    ```
-    ┌────────┐     ┌────────┐
-    │  Room  ┼────>│   EM   │
-    └────────┘     └────────┘
-    ```
-    """
+    """Event for room service connecting to EM."""
 
     event: Literal["room-connect"] = "room-connect"
 
 
 class ExperimentDoneEvent(BaseEvent, frozen=True):
-    """Event for room service signaling experiment completion to EM.
-
-    Connectivty:
-    ```
-    ┌────────┐     ┌────────┐
-    │  Room  ┼────>│   EM   │
-    └────────┘     └────────┘
-    ```
-    """
+    """Event for room service signaling experiment completion to EM."""
 
     event: Literal["experiment-done"] = Field(default="experiment-done", init=False)
 

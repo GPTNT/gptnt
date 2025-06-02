@@ -10,10 +10,7 @@ from aiotools import PersistentTaskGroup
 from faststream.rabbit import RabbitBroker
 
 from gptnt.api.api import APIQueues, APIRoutes
-
-
-class ExceptionUnhandledError(Exception):
-    """Error represeting an exception in a background task not being handled by the child class."""
+from gptnt.api.exceptions import ExceptionUnhandledError
 
 
 @dataclass(kw_only=True)

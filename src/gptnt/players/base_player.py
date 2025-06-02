@@ -11,7 +11,6 @@ from pydantic.types import UUID4
 from structlog import get_logger
 
 from gptnt.api.base_em_client import BaseEMClient
-from gptnt.api.base_rabbitmq_client import ExceptionUnhandledError
 from gptnt.api.commands import (
     ConfigurePlayerCommand,
     GameGetObservationCommand,
@@ -21,8 +20,9 @@ from gptnt.api.commands import (
     StopExperimentCommand,
 )
 from gptnt.api.events import PlayerConnectEvent
+from gptnt.api.exceptions import ExceptionUnhandledError
 from gptnt.api.experiment_manager.experiment_descriptor import ExperimentDescriptor
-from gptnt.api.game_manager.game_instance import GameObservationResponse
+from gptnt.api.game_instance import GameObservationResponse
 from gptnt.ktane.actions import KtaneBaseAction, RelativeCoordinate
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.spec import NO_NEW_MESSAGES_SENTINEL, PlayerMetadata, PlayerSpec

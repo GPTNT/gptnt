@@ -1,16 +1,5 @@
 import asyncio
 from dataclasses import dataclass, field
-from typing import Any
-
-from pydantic.types import UUID4
-
-
-@dataclass(kw_only=True)
-class HeartbeatWatchdogTriggeredError(Exception):
-    """Error representing a failed heartbeat watchdog."""
-
-    uuid: UUID4
-    metadata: dict[str, Any]
 
 
 @dataclass(kw_only=True)
