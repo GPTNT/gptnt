@@ -599,27 +599,22 @@ def load_wandb_table(run, table_name):
         return pl.DataFrame()
 
     except json.JSONDecodeError as e:
-        if "debug_mode" in st.session_state and st.session_state.debug_mode:
-            st.sidebar.error(f"JSON decode error loading table {table_name}: {e}")
+        st.sidebar.error(f"JSON decode error loading table {table_name}: {e}")
         return pl.DataFrame()
     except OSError as e:
-        if "debug_mode" in st.session_state and st.session_state.debug_mode:
-            st.sidebar.error(f"I/O error loading table {table_name}: {e}")
+        st.sidebar.error(f"I/O error loading table {table_name}: {e}")
         return pl.DataFrame()
     except Exception as e:  # noqa: BLE001
-        if "debug_mode" in st.session_state and st.session_state.debug_mode:
-            st.sidebar.error(f"Error loading table {table_name}: {e}")
+        st.sidebar.error(f"Error loading table {table_name}: {e}")
         return pl.DataFrame()
 
     finally:
         if artifact_dir and Path(artifact_dir).exists():
             try:
                 shutil.rmtree(artifact_dir)
-                if "debug_mode" in st.session_state and st.session_state.debug_mode:
-                    st.sidebar.info(f"Cleaned up artifact directory: {artifact_dir}")
+                st.sidebar.info(f"Cleaned up artifact directory: {artifact_dir}")
             except OSError as cleanup_error:
-                if "debug_mode" in st.session_state and st.session_state.debug_mode:
-                    st.sidebar.warning(f"Failed to clean up artifact directory: {cleanup_error}")
+                st.sidebar.warning(f"Failed to clean up artifact directory: {cleanup_error}")
 
 
 def process_actions_table(actions_df):
