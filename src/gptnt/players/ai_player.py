@@ -39,6 +39,7 @@ from gptnt.players.prompts import (
     load_reflection_prompt,
 )
 from gptnt.players.spec import PlayerDeps, PlayerMetadata, PlayerSpec
+from gptnt.processors.set_of_marks import InvalidMarkLocationError
 
 log = structlog.get_logger()
 
@@ -282,8 +283,16 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
     @logfire.instrument("Send game action")
     async def send_game_action(self, action: InteractGameActionType) -> None:
         """Send a game action to the game."""
+        try:
+            game_action = self.observation_handler.convert_to_game_action(action=action)
+        except InvalidMarkLocationError:
+            log.exception(
+                "Invalid mark location in action, defaulting to DoNothing", action=action
+            )
+            self.tracker.num_invalid_locations += 1
+            return await self._do_nothing_action(action=DoNothingAction())
+
         self.tracker.add_action(action=action)
-        game_action = self.observation_handler.convert_to_game_action(action=action)
         return await super().send_game_action(action=game_action)
 
     @logfire.instrument("Prepare frames")
