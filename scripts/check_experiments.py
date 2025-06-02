@@ -29,7 +29,6 @@ def check_if_experiments_on_wandb(
                 {"state": "finished"},
                 {"$or": experiment_names},
                 {"summary_metrics.hard_crash": False},
-                {"tags": {"$nin": ["old"]}},
             ]
         },
     )
