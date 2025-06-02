@@ -73,8 +73,6 @@ class APIRoute[SendableMessage: AioPikaSendableMessage]:
         async with temporary_queue(
             channel=channel, consumer_callback=callback, prefix=f"{prefix}.{uuid4()}"
         ) as temp_queue:
-            logger.debug("Temporary queue created", temp_queue=temp_queue)
-
             _ = await channel.channel.queue_declare(temp_queue, auto_delete=True)
             consume_ok = await channel.channel.basic_consume(
                 queue=temp_queue, consumer_callback=callback
@@ -119,8 +117,6 @@ class APIRoute[SendableMessage: AioPikaSendableMessage]:
         async with temporary_queue(
             channel=channel, consumer_callback=callback, prefix="testing"
         ) as temp_queue:
-            logger.debug("Temporary queue created", temp_queue=temp_queue)
-
             _ = await self.broker.publish(
                 message=message,
                 routing_key=self.routing_key,
