@@ -2,7 +2,7 @@
 
 ### Time Progression
 
-Every command you execute consumes game time in real time, bringing you closer to failure. This includes all "do_nothing", "send_message", and "interact_game" commands. How much the game's countdown timer will decrease after each command depends on how long it takes you to formulate your response.
+Every command you execute consumes game time in real time, bringing you closer to detonation. This includes all "do_nothing", "send_message", and "interact_game" commands. How much the bomb's countdown timer will decrease after each command depends on how long it takes you to formulate your response.
 
 ### Observation Frequency
 
