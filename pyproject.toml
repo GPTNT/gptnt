@@ -116,6 +116,8 @@ extend-ignore = [
     "WPS432",
     # Free the walrus
     "WPS332",
+    # I disagree with demanding the use of dict.get()
+    "WPS529",
 ]
 per-file-ignores = [
     "scripts/*:WPS",

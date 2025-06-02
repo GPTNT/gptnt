@@ -46,10 +46,15 @@ def remove_thoughts_from_tool_call(tool_call_part: ToolCallPart) -> ToolCallPart
         tool_args = tool_call_part.args_as_dict()
     except (AssertionError, ValueError):
         logger.warning("tool args were not a valid json dict", args=tool_call_part.args)
-    else:
-        tool_call_part.args = tool_args
+        return tool_call_part
+
+    tool_call_part.args = tool_args
+    if "thoughts" in tool_call_part.args:
         tool_call_part.args["thoughts"] = None
     return tool_call_part
+
+
+TOOL_RETURN_TO_IGNORE = frozenset(("Final result processed.",))
 
 
 def remove_thought_from_tool_return(tool_return_part: ToolReturnPart) -> ToolReturnPart:
@@ -57,12 +62,17 @@ def remove_thought_from_tool_return(tool_return_part: ToolReturnPart) -> ToolRet
     try:
         structured_output = pydantic_core.from_json(tool_return_part.content)
     except ValueError:
-        logger.warning("tool return part was not a valid json dict", args=tool_return_part.content)
+        # Often, its one of these values that we don't care about so we can skip the log
+        if tool_return_part.content not in TOOL_RETURN_TO_IGNORE:
+            logger.warning(
+                "tool return part was not a valid json dict", args=tool_return_part.content
+            )
         return tool_return_part
 
     # Remove the thoughts from the content
-    structured_output["thoughts"] = None
-    tool_return_part.content = pydantic_core.to_json(structured_output).decode()
+    if "thoughts" in structured_output:
+        structured_output["thoughts"] = None
+        tool_return_part.content = pydantic_core.to_json(structured_output).decode()
 
     return tool_return_part
 
@@ -75,11 +85,14 @@ def remove_thoughts_from_text(text_part: TextPart) -> TextPart:
     try:
         structured_output = pydantic_core.from_json(text_part.content)
     except ValueError:
-        logger.warning("text part was not a valid json dict", args=text_part.content)
+        # If we are using structured outputs, this is then blank so we can just skip the log
+        if text_part.content:
+            logger.warning("text part was not a valid json dict", args=text_part.content)
         return text_part
 
-    structured_output["thoughts"] = None
-    text_part.content = pydantic_core.to_json(structured_output).decode()
+    if "thoughts" in structured_output:
+        structured_output["thoughts"] = None
+        text_part.content = pydantic_core.to_json(structured_output).decode()
 
     return text_part
 
