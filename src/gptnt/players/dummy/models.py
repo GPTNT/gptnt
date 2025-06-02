@@ -124,9 +124,7 @@ class DummyDefuserFunction:
         logger.info("Sending action", action=model_response)
         return ModelResponse(
             parts=[
-                ToolCallPart(
-                    "final_result_InteractGameAction[SingleAlphabetLetter]", model_response
-                )
+                ToolCallPart("final_result_InteractGameActionSingleAlphabetLetter", model_response)
             ]
         )
 
