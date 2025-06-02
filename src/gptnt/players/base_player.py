@@ -6,6 +6,7 @@ from typing import override
 from uuid import uuid4
 
 import logfire
+from pydantic import ValidationError
 from pydantic.types import UUID4
 from structlog import get_logger
 
@@ -153,6 +154,9 @@ class BasePlayer(BaseEMClient, ABC):
             )
         except TimeoutError:
             logger.exception("Failed to pull observation, timed out.")
+            return None
+        except ValidationError:
+            logger.exception("Failed to pull observation, validation error.")
             return None
 
         logger.debug("Pulled observations.")

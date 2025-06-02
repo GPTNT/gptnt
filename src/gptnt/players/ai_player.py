@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Union, override
@@ -300,8 +301,13 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
         """Prepare frames from the game."""
         pulled_observations = await self.pull_observation()
         if not pulled_observations:
-            log.exception("No observations pulled from the game.")
-            raise ValueError("No observations pulled from the game.")
+            log.exception(
+                "No observations pulled from the game. Something must be wrong. Killing the experiment."
+            )
+            await self.api_queues.experiment_ready().route.publish(NotReadyEvent(uuid=self.uuid))
+            # Wait for the EM to kill the experiment
+            await asyncio.sleep(10)
+            return []
 
         bomb_state = pulled_observations.bomb_state
 

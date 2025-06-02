@@ -131,8 +131,5 @@ class APIRoute[SendableMessage: AioPikaSendableMessage]:
             except TimeoutError:
                 logger.exception("`TimeoutError` while waiting for response", message=message)
                 raise
-            try:
-                return response_type.model_validate_json(response_data[0])
-            except Exception:
-                logger.exception("Failed to validate response data", message=message)
-                raise
+
+            return response_type.model_validate_json(response_data[0])
