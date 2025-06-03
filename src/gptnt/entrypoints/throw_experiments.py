@@ -1,4 +1,5 @@
 import asyncio
+from collections import defaultdict
 from pathlib import Path
 from typing import Annotated
 
@@ -43,42 +44,50 @@ def _filter_experiments(
     """Filter the experiments by those already run on wandb."""
     loaded_experiment_names = [experiment.experiment_name for experiment in loaded_experiments]
 
-    # Get all the runs that have the same experiment names as the loaded experiments
-    wandb_runs = wandb.Api().runs(
-        path=wandb_path,
-        filters={
-            "$and": [
-                {"state": "finished"},
-                {"$or": [{"config.experiment_name": name} for name in loaded_experiment_names]},
-                {"summary_metrics.hard_crash": False},
-                {"tags": {"$nin": ["old"]}},
-            ]
-        },
-    )
-    # Get the number of runs that exist
     with console.status("Checking for existing runs on wandb..."):
+        wandb_runs = wandb.Api().runs(
+            path=wandb_path,
+            filters={
+                "$and": [
+                    {
+                        "$or": [
+                            {"config.experiment_name": name} for name in loaded_experiment_names
+                        ]
+                    },
+                    {"tags": {"$nin": ["old"]}},
+                ]
+            },
+        )
         num_runs = len(wandb_runs)
+        logger.info(f"Found {num_runs} existing runs on wandb", runs=num_runs, path=wandb_path)
 
-    logger.info(f"Found {num_runs} existing runs on wandb", runs=num_runs, path=wandb_path)
+        # If there are no runs, return all loaded experiments
+        if num_runs == 0:
+            logger.info("No existing runs found on wandb, throwing all experiments.")
+            return loaded_experiments
 
-    # If there are no runs, return all loaded experiments
-    if num_runs == 0:
-        logger.info("No existing runs found on wandb, throwing all experiments.")
-        return loaded_experiments
+    runs_per_experiment = defaultdict(list)
+    for run in track(wandb_runs, description="Collating runs...", total=num_runs):
+        runs_per_experiment[run.config["experiment_name"]].append(run)
 
-    thrown_experiment_names = [
-        run.config["experiment_name"]
-        for run in track(wandb_runs, description="Filtering experiments", transient=True)
+    # I am aware this logic is confusing, but here it is.
+    valid_experiments = [
+        name
+        for name, experiments in track(runs_per_experiment.items())
+        if all(exp_run.summary.get("hard_crash", True) is False for exp_run in experiments)
     ]
-    unthrown_experiments: list[ExperimentSpec] = [
+
+    invalid_experiments: list[ExperimentSpec] = [
         experiment
         for experiment in loaded_experiments
-        if experiment.experiment_name not in thrown_experiment_names
+        if experiment.experiment_name not in valid_experiments
     ]
     logger.info(
-        f"{len(unthrown_experiments)} experiments to throw", unthrown=len(unthrown_experiments)
+        f"{len(invalid_experiments)} experiments to throw",
+        invalid=len(invalid_experiments),
+        valid=len(valid_experiments),
     )
-    return unthrown_experiments
+    return invalid_experiments
 
 
 @app.command()
