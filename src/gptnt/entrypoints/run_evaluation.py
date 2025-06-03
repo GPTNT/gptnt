@@ -7,7 +7,7 @@ from structlog import get_logger
 
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
-from gptnt.dataset.evaluation_logger import send_to_weave, throw_weave_eval
+from gptnt.evaluation.run import RunExpertVQAEvaluation, RunGroundingEvaluation
 
 configure_logging()
 logger = get_logger()
@@ -41,12 +41,11 @@ def run_grounding_evaluation(
     """Run the defuser grounding evaluation."""
     agent = load_agent(model)
     logger.info("Running evaluation", agent=agent)
-
+    run_eval = RunGroundingEvaluation(agent=agent)
     if should_throw:
-        throw_weave_eval(name="grounding", agent=agent, hf_dataset="GPTNT/grounding-dataset")
+        run_eval.throw()
     if should_upload:
-        send_to_weave(name="grounding", agent=agent, hf_dataset="GPTNT/grounding-dataset")
-
+        run_eval.upload()
     logger.info("Evaluation completed successfully", agent=agent)
 
 
@@ -71,10 +70,11 @@ def run_expert_vqa_evaluation(
     """Run the expert VQA evaluation."""
     agent = load_agent(model)
     logger.info("Running expert VQA evaluation", agent=agent)
+    run_eval = RunExpertVQAEvaluation(agent=agent, task_name="expert_vqa")
     if should_throw:
-        raise NotImplementedError
+        run_eval.throw()
     if should_upload:
-        raise NotImplementedError
+        run_eval.upload()
     logger.info("Expert VQA evaluation completed successfully", agent=agent)
 
 
