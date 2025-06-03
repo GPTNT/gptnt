@@ -177,11 +177,9 @@ class RoomInstance(BaseEMClient):
         except GeneratorExit:
             logger.info("Sync experiment loop cancelled via GeneratorExit")
             self._is_in_progress = False
-            raise
         except Exception:
             logger.exception("Error in sync experiment loop")
             self._is_in_progress = False
-            raise
 
     async def async_experiment_loop(self, experiment: ExperimentDescriptor) -> None:
         """Runs the async-experiment loop."""
