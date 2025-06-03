@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 import polars as pl
 import streamlit as st
+from PIL import Image, ImageDraw
 
 from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.ktane.state.modules import KtaneComponent
@@ -13,6 +14,7 @@ from gptnt.processors.set_of_marks import (
     MaskDrawingParams,
     SetOfMarksHandler,
     convert_colorful_segm_to_labeled,
+    get_centered_stepped_coordinate,
     get_region_properties,
 )
 
@@ -167,9 +169,30 @@ for module, screenshot, segmentation in image_pairs:
         observation=image, colorful_image=segm_image, zoomed_in_component=module
     )
 
+    pil_img = Image.fromarray(display_image)
+    draw = ImageDraw.Draw(pil_img)
+    for region in regions:
+        if module == KtaneComponent.wire_sequence:
+            coords = get_centered_stepped_coordinate(region)
+        else:
+            flipped_coords = region.centroid
+            coords = (flipped_coords[1], flipped_coords[0])
+
+        size = 5
+        draw.line(
+            (coords[0] - size, coords[1] - size, coords[0] + size, coords[1] + size),
+            fill="red",
+            width=2,
+        )
+        draw.line(
+            (coords[0] - size, coords[1] + size, coords[0] + size, coords[1] - size),
+            fill="red",
+            width=2,
+        )
+
     # _ = plot_label(image, region)
     # image = add_center_grid(image)
-    _ = st.image(display_image, use_container_width=True)
+    _ = st.image(pil_img, use_container_width=True)
 
     # # region colors
     # for region in regions:

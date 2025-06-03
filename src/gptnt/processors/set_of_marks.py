@@ -339,6 +339,40 @@ def draw_region_masks(  # noqa: WPS210, WPS211
     return annotated_image
 
 
+def get_centered_stepped_coordinate(
+    region: RegionProperties, step_in: int = 5
+) -> tuple[float, float]:
+    """Returns (x, y) coordinate within region, stepping in from left before calculating y.
+
+    - x = step_in from leftmost x (or closest available)
+    - y = mean y of pixels at that x
+    """
+    coords = region.coords
+    all_xs = coords[:, 1]
+    unique_xs_sorted = np.sort(np.unique(all_xs))
+
+    if len(unique_xs_sorted) == 0:
+        x_coord = region.centroid[1]
+        y_coord = region.centroid[0]
+    else:
+        leftmost_x = unique_xs_sorted[0]
+        stepped_x = leftmost_x + step_in
+        valid_xs = unique_xs_sorted[unique_xs_sorted >= stepped_x]
+        x_coord = (
+            valid_xs[0] if len(valid_xs) > 0 else unique_xs_sorted[len(unique_xs_sorted) // 2]
+        )
+
+        # Now get all y values at that x
+        ys_at_x = coords[coords[:, 1] == x_coord][:, 0]
+        if len(ys_at_x) == 0:
+            x_coord = region.centroid[1]
+            y_coord = region.centroid[0]
+        else:
+            y_coord = ys_at_x.mean()
+
+    return x_coord, y_coord
+
+
 @lru_cache(maxsize=1)
 def compute_sample_text_dimensions(*, text: str, params: AnnotationTextParams) -> tuple[int, int]:
     """Compute the dimensions of a sample text using the given parameters."""
@@ -389,7 +423,7 @@ class SetOfMarksHandler:
         labeled_segmentation, regions = relabel_regions_in_reading_order(
             labeled_segmentation, regions, zoomed_in_component=zoomed_in_component
         )
-        self._update_mark_to_coordinate_mapping(regions)
+        self._update_mark_to_coordinate_mapping(regions, zoomed_in_component=zoomed_in_component)
         return labeled_segmentation, regions
 
     def run(
@@ -488,15 +522,25 @@ class SetOfMarksHandler:
 
         return annotated_image
 
-    def _update_mark_to_coordinate_mapping(self, regions: list[RegionProperties]) -> None:
+    def _update_mark_to_coordinate_mapping(
+        self, regions: list[RegionProperties], zoomed_in_component: KtaneComponent | None
+    ) -> None:
         """Map the region label to a relative coordinate."""
-        label_to_coord = {
-            self._format_label(region.label): RelativeCoordinate(
-                x_pos=region.centroid[1] / region._label_image.shape[1],  # noqa: SLF001
-                y_pos=region.centroid[0] / region._label_image.shape[0],  # noqa: SLF001
+        label_to_coord = {}
+        for region in regions:
+            if zoomed_in_component == KtaneComponent.wire_sequence:
+                coords = get_centered_stepped_coordinate(region)
+            else:
+                coords = region.centroid
+
+            # Normalize to [0,1] relative coordinates
+            norm_x = coords[0] / region._label_image.shape[1]  # noqa: SLF001
+            norm_y = coords[1] / region._label_image.shape[0]  # noqa: SLF001
+
+            label_to_coord[self._format_label(region.label)] = RelativeCoordinate(
+                x_pos=norm_x, y_pos=norm_y
             )
-            for region in regions
-        }
+
         self._mark_to_coordinate = label_to_coord
 
     def _format_label(self, label_num: int) -> str | int:
