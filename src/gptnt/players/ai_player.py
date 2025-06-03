@@ -216,7 +216,7 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
             )
             ai_response_error = None
         except (InvalidOutputFormatError, ValidationError) as format_error:
-            log.exception(
+            log.warning(
                 "Invalid output format from the agent.",
                 error=format_error,
                 message_input=message_input,
@@ -225,14 +225,14 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
             return AgentOutput.do_nothing()
         except (ModelHTTPError, AgentRunError) as err:
             if "filtered due to the prompt triggering Azure OpenAI's content" in err.message:
-                log.error("Filtered due to content policy", error=err)  # noqa: TRY400
+                log.warning("Filtered due to content policy", error=err)
                 ai_response_error = AIResponseErrorType.guardrail_violation
             else:
-                log.exception("Something has gone wrong, defaulting to `DoNothing`", error=err)
+                log.warning("Something has gone wrong, defaulting to `DoNothing`", error=err)
                 ai_response_error = AIResponseErrorType.unknown
             return AgentOutput.do_nothing()
         except ServerError as server_err:
-            log.exception(
+            log.warning(
                 "Server error occurred while running the agent.",
                 error=server_err,
                 message_input=message_input,
@@ -287,9 +287,7 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
         try:
             game_action = self.observation_handler.convert_to_game_action(action=action)
         except InvalidMarkLocationError:
-            log.exception(
-                "Invalid mark location in action, defaulting to DoNothing", action=action
-            )
+            log.warning("Invalid mark location in action, defaulting to DoNothing", action=action)
             self.tracker.num_invalid_locations += 1
             return await self._do_nothing_action(action=DoNothingAction())
 
@@ -301,7 +299,7 @@ class AIPlayer(BasePlayer, InstrumentationDataclassMixin):
         """Prepare frames from the game."""
         pulled_observations = await self.pull_observation()
         if not pulled_observations:
-            log.exception(
+            log.error(
                 "No observations pulled from the game. Something must be wrong. Killing the experiment."
             )
             await self.api_queues.experiment_ready().route.publish(NotReadyEvent(uuid=self.uuid))

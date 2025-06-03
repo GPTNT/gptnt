@@ -68,7 +68,7 @@ def convert_bomb_state_to_reflection(bomb_state: BombState) -> ReflectionMessage
         final_message = "terminated-defused"
 
     if not final_message:
-        logger.exception("No logic connecting bomb state to final message")
+        logger.error("No logic connecting bomb state to final message", bomb_state=bomb_state)
 
     return final_message
 

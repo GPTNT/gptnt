@@ -437,7 +437,7 @@ class SetOfMarksHandler:
     def mark_to_coordinate(self, *, mark_id: SetOfMarksLocation) -> RelativeCoordinate:
         """Convert a mark ID to a relative coordinate."""
         if mark_id not in self._mark_to_coordinate:
-            _logger.exception(
+            _logger.warning(
                 "Mark ID not found in mapping", mark_id=mark_id, mapping=self._mark_to_coordinate
             )
             raise InvalidMarkLocationError(mark_id)

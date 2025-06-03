@@ -153,10 +153,10 @@ class BasePlayer(BaseEMClient, ABC):
                 GameGetObservationCommand(), fail_after=300, response_type=GameObservationResponse
             )
         except TimeoutError:
-            logger.exception("Failed to pull observation, timed out.")
+            logger.warning("Failed to pull observation, timed out.")
             return None
         except ValidationError:
-            logger.exception("Failed to pull observation, validation error.")
+            logger.warning("Failed to pull observation, validation error.")
             return None
 
         logger.debug("Pulled observations.")
