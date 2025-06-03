@@ -232,7 +232,13 @@ class EpisodeTracker:  # noqa: WPS214
     async def finish_run(self, *, has_crashed: bool = False) -> None:
         """Finish the run and clean up."""
         func = partial(wandb.finish, exit_code=1 if has_crashed else 0)
-        await run_in_separate_thread(func)
+        try:
+            await run_in_separate_thread(func)
+        except wandb.Error as err:
+            if err.message == "You must call wandb.init() before wandb.log()":
+                _logger.warning("It seems like the run was never started, skipping finish??")
+            else:
+                _logger.exception("Error finishing WandB run", error=err)
         _logger.debug("WandB run finished")
         self.reset()
 
