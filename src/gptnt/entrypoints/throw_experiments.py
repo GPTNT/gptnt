@@ -84,6 +84,7 @@ def _filter_experiments(  # noqa: WPS210
             game_id
             for game_id, runs in runs_per_game.items()
             if all(game_run.summary.get("hard_crash", True) is False for game_run in runs)
+            and all(game_run.state == "finished" for game_run in runs)
         ]
         if valid_games:
             valid_experiments.append(experiment_name)
