@@ -31,6 +31,7 @@ from gptnt.common.servers import get_available_port
 from gptnt.ktane.actions import KtaneAction
 from gptnt.ktane.client import KtaneClient, ObservationFrames
 from gptnt.ktane.executable import get_executable_path
+from gptnt.ktane.game_settings import KtaneSettings
 from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.game import GameState
 
@@ -183,6 +184,8 @@ class GameInstance(BaseEMClient):
     async def _run_game(self) -> None:
         """Runs a game until it crashes or exits."""
         with logfire.span("Start game"):
+            ktane_settings = KtaneSettings()
+            ktane_settings.create_settings_files()
             # Start a new game instance and connect a ktane client
             self._game_process = await anyio.open_process(
                 cwd=get_executable_path().parent,
