@@ -38,11 +38,11 @@ async def _send_experiments(experiments: list[ExperimentSpec]) -> None:
     _ = await queues.experiment_specs().route.publish(experiments)
 
 
-def _filter_experiments(
+def _filter_experiments(  # noqa: WPS210
     loaded_experiments: list[ExperimentSpec], *, wandb_path: str
 ) -> list[ExperimentSpec]:
     """Filter the experiments by those already run on wandb."""
-    loaded_experiment_names = [experiment.experiment_name for experiment in loaded_experiments]
+    loaded_experiment_names = (experiment.experiment_name for experiment in loaded_experiments)
 
     with console.status("Checking for existing runs on wandb..."):
         wandb_runs = wandb.Api().runs(
@@ -58,24 +58,35 @@ def _filter_experiments(
                 ]
             },
         )
-        num_runs = len(wandb_runs)
-        logger.info(f"Found {num_runs} existing runs on wandb", runs=num_runs, path=wandb_path)
+        logger.info(
+            f"Found {len(wandb_runs)} existing runs on wandb",
+            runs=len(wandb_runs),
+            path=wandb_path,
+        )
 
         # If there are no runs, return all loaded experiments
-        if num_runs == 0:
+        if len(wandb_runs) == 0:
             logger.info("No existing runs found on wandb, throwing all experiments.")
             return loaded_experiments
 
-    runs_per_experiment = defaultdict(list)
-    for run in track(wandb_runs, description="Collating runs...", total=num_runs):
-        runs_per_experiment[run.config["experiment_name"]].append(run)
+    runs_per_experiment_per_game = defaultdict(lambda: defaultdict(list))
+    for run in track(wandb_runs, description="Collating runs...", total=len(wandb_runs)):
+        runs_per_experiment_per_game[run.config["experiment_name"]][run.config["game_id"]].append(
+            run
+        )
 
-    # I am aware this logic is confusing, but here it is.
-    valid_experiments = [
-        name
-        for name, experiments in track(runs_per_experiment.items())
-        if all(exp_run.summary.get("hard_crash", True) is False for exp_run in experiments)
-    ]
+    # Ensure that we have a single game that is valid for all experiments
+    valid_experiments = []
+    for experiment_name, runs_per_game in track(
+        runs_per_experiment_per_game.items(), description="Filtering valid experiments..."
+    ):
+        valid_games = [
+            game_id
+            for game_id, runs in runs_per_game.items()
+            if all(game_run.summary.get("hard_crash", True) is False for game_run in runs)
+        ]
+        if valid_games:
+            valid_experiments.append(experiment_name)
 
     invalid_experiments: list[ExperimentSpec] = [
         experiment
