@@ -340,7 +340,7 @@ def draw_region_masks(  # noqa: WPS210, WPS211
 
 
 def get_centered_stepped_coordinate(
-    region: RegionProperties, step_in: int = 5
+    region: RegionProperties, step_in: int = 10
 ) -> tuple[float, float]:
     """Returns (x, y) coordinate within region, stepping in from left before calculating y.
 
