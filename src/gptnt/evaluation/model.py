@@ -1,7 +1,7 @@
 import io
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, Self, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict
 
 import structlog
 import weave
@@ -61,7 +61,12 @@ class EvalModel(WeaveModel):
         self._output_dir = output_dir
 
     @weave.op
-    def grounding_predict(self, model_input: str, som_image: Image.Image) -> ModelOutput:
+    def grounding_predict(
+        self,
+        model_input: str,
+        som_image: Image.Image,
+        **kwargs: Any,  # noqa: ARG002
+    ) -> ModelOutput:
         """Run the model on the input."""
         buffer = io.BytesIO()
         som_image.save(buffer, format="PNG")
@@ -81,7 +86,12 @@ class EvalModel(WeaveModel):
         )
 
     @weave.op
-    def expert_vqa_predict(self, model_input: str, manual: list[str | Image.Image]) -> ModelOutput:
+    def expert_vqa_predict(
+        self,
+        model_input: str,
+        manual: list[str | Image.Image],
+        **kwargs: Any,  # noqa: ARG002
+    ) -> ModelOutput:
         """Run the model on the input."""
         loaded_manual: list[str | BinaryContent] = []
         for page in manual:
@@ -106,7 +116,7 @@ class EvalModel(WeaveModel):
         )
 
     @weave.op
-    def predict(self, index: int) -> ModelOutput:
+    def predict(self, index: int, **kwargs: Any) -> ModelOutput:  # noqa: ARG002
         """Fetch the model answer from the json."""
         prediction_path = self._output_dir.joinpath(f"prediction_{index}.json")
 

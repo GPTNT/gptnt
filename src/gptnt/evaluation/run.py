@@ -4,7 +4,7 @@ import json
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import ClassVar, override
+from typing import Any, ClassVar, override
 
 import datasets
 import polars as pl
@@ -42,26 +42,27 @@ def convert_hf_dataset_to_weave_dataset(
     return weave_dataset
 
 
-def run_eval(
+@weave.op
+def run_eval_step(
     *,
+    instance: dict[str, Any],
     preprocess_func: PostprocessInputsFunc,
     predict_method: Callable[..., ModelOutput],
-    dataset: WeaveDataset,
     output_dir: Path,
-) -> None:
-    """Run the evaluation and save the outputs."""
-    for idx, instance in enumerate(tqdm(dataset)):
-        prediction_output_file = output_dir.joinpath(f"prediction_{idx}.json")
-        if prediction_output_file.exists():
-            logger.info(f"Skipping instance {idx}, output already exists.")
-            continue
+) -> ModelOutput | None:
+    """Run a single evaluation step for an instance."""
+    idx = instance["index"]
+    prediction_output_file = output_dir.joinpath(f"prediction_{idx}.json")
+    if prediction_output_file.exists():
+        logger.info(f"Skipping instance {idx}, output already exists.")
+        return None
 
-        preprocessed_instance = preprocess_func(instance)
-        prediction = predict_method(**preprocessed_instance)
-        # Add index to prediction content
-        prediction_with_index = {"index": idx, **prediction}
-
-        _ = prediction_output_file.write_text(json.dumps(prediction_with_index))
+    preprocessed_instance = preprocess_func(instance)
+    prediction = predict_method(**preprocessed_instance)
+    # Add index to prediction content
+    prediction_with_index = {"index": idx, **prediction}
+    _ = prediction_output_file.write_text(json.dumps(prediction_with_index))
+    return prediction
 
 
 @dataclass(kw_only=True)
@@ -76,9 +77,9 @@ class RunEvaluation(abc.ABC):
 
     agent: Agent
     task_name: str
+    weave_project: str
 
     instructions: str = DEFAULT_INSTRUCTION
-    weave_project: str = "gptnt/vqa"
 
     eval_model: EvalModel = field(init=False, repr=False)
     model_name: str = field(init=False, repr=False)
@@ -109,12 +110,15 @@ class RunEvaluation(abc.ABC):
             "EvalModel must have the specified predict method"
         )
         logger.info(f"Running grounding evaluation for task: {self.task_name}")
-        run_eval(
-            preprocess_func=self.preprocess_instance_func,
-            predict_method=getattr(self.eval_model, self.predict_method_name),
-            dataset=self.load_dataset(),
-            output_dir=self.output_dir,
-        )
+        for instance in tqdm(self.load_dataset()):
+            _ = run_eval_step(
+                instance=instance,
+                preprocess_func=self.preprocess_instance_func,
+                predict_method=getattr(self.eval_model, self.predict_method_name),
+                output_dir=self.output_dir,
+            )
+            break
+        logger.info(f"Evaluation completed. Results saved to {self.output_dir}")
         weave_client.finish()
 
     def upload(self) -> None:
@@ -136,6 +140,7 @@ class RunGroundingEvaluation(RunEvaluation):
 
     hf_dataset_name: str = "GPTNT/grounding-dataset"
     task_name: str = "grounding"
+    weave_project: str = "gptnt/grounding"
 
     preprocess_instance_func: PostprocessInputsFunc = preprocess_grounding_instance
     predict_method_name = "grounding_predict"
@@ -155,6 +160,7 @@ class RunExpertVQAEvaluation(RunEvaluation):
 
     task_name: str = "expert_vqa"
 
+    weave_project: str = "gptnt/expert-vqa"
     preprocess_instance_func: PostprocessInputsFunc = preprocess_expert_vqa_instance
     predict_method_name = "expert_vqa_predict"
 

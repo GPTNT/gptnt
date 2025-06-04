@@ -7,11 +7,14 @@ from structlog import get_logger
 
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
+from gptnt.common.prompt_cache import PromptCache
 from gptnt.evaluation.run import RunExpertVQAEvaluation, RunGroundingEvaluation
+from gptnt.ktane.manual import KtaneManualPaths
 
 configure_logging()
 logger = get_logger()
 paths = Paths()
+ktane_manual_paths = KtaneManualPaths()
 
 
 app = typer.Typer()
@@ -68,6 +71,9 @@ def run_expert_vqa_evaluation(
     *, model: ModelOption, should_throw: ThrowOption = False, should_upload: UploadOption = False
 ) -> None:
     """Run the expert VQA evaluation."""
+    PromptCache.initialise(
+        paths.prompts, ktane_manual_paths.text_dir, ktane_manual_paths.images_512_dir
+    )
     agent = load_agent(model)
     logger.info("Running expert VQA evaluation", agent=agent)
     run_eval = RunExpertVQAEvaluation(agent=agent, task_name="expert_vqa")
