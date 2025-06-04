@@ -192,7 +192,7 @@ score_hallucination = _create_prefix_scorer(
 
 def load_all_scorers() -> list[Op[..., Any] | weave.Scorer]:
     """Load all scorers."""
-    keypad_scorer = KeypadScorer()
+    keypad_scorer = KeypadScorer(name="keypad")
     keypad_scorer.load_model()
     return [
         score_timer,
