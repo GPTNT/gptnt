@@ -48,19 +48,13 @@ def run_eval_step(
     instance: dict[str, Any],
     preprocess_func: PostprocessInputsFunc,
     predict_method: Callable[..., ModelOutput],
-    output_dir: Path,
+    prediction_output_file: Path,
 ) -> ModelOutput | None:
     """Run a single evaluation step for an instance."""
-    idx = instance["index"]
-    prediction_output_file = output_dir.joinpath(f"prediction_{idx}.json")
-    if prediction_output_file.exists():
-        logger.info(f"Skipping instance {idx}, output already exists.")
-        return None
-
     preprocessed_instance = preprocess_func(instance)
     prediction = predict_method(**preprocessed_instance)
     # Add index to prediction content
-    prediction_with_index = {"index": idx, **prediction}
+    prediction_with_index = {"index": instance["index"], **prediction}
     _ = prediction_output_file.write_text(json.dumps(prediction_with_index))
     return prediction
 
@@ -111,13 +105,18 @@ class RunEvaluation(abc.ABC):
         )
         logger.info(f"Running grounding evaluation for task: {self.task_name}")
         for instance in tqdm(self.load_dataset()):
+            prediction_output_file = self.output_dir.joinpath(
+                f"prediction_{instance['index']}.json"
+            )
+            if prediction_output_file.exists():
+                logger.info(f"Skipping instance {instance['index']}, output already exists.")
+                continue
             _ = run_eval_step(
                 instance=instance,
                 preprocess_func=self.preprocess_instance_func,
                 predict_method=getattr(self.eval_model, self.predict_method_name),
                 output_dir=self.output_dir,
             )
-            break
         logger.info(f"Evaluation completed. Results saved to {self.output_dir}")
         weave_client.finish()
 
