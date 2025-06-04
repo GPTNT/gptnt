@@ -13,10 +13,7 @@ type PredictionOutput = dict[Literal["output"], str]
 
 
 def general_scorer(
-    output: PredictionOutput,
-    ground_truth: str | list[str],
-    input_type: TaskType,
-    categories: list[str],
+    output: PredictionOutput, ground_truth: str | list[str], categories: list[str]
 ) -> dict[str, bool | int | float] | None:
     """Score the prediction.
 
@@ -30,9 +27,6 @@ def general_scorer(
     # log whether it is correct or not
     score_output: dict[str, bool | int | float] = {"correct": is_correct}
 
-    # log the input type
-    score_output[str(input_type)] = is_correct
-
     # add each category with value is_correct
     for category in categories:
         score_output[category] = is_correct
@@ -44,16 +38,13 @@ def _create_module_scorer(*, module_name: str) -> Op[..., dict[str, bool | int |
     """Factory function to create a general-scorer for a specific module."""
 
     def scorer(  # noqa: WPS430
-        output: PredictionOutput,
-        ground_truth: str | list[str],
-        input_type: TaskType,
-        categories: list[str],
+        output: PredictionOutput, ground_truth: str | list[str], categories: list[str]
     ) -> dict[str, bool | int | float] | None:
         if f"module={module_name}" not in categories:
             return None
-        return general_scorer(output, ground_truth, input_type, categories)
+        return general_scorer(output, ground_truth, categories)
 
-    scorer.__name__ = f"score_{module_name}"
+    scorer.__name__ = f"{module_name}"
     scorer.__doc__ = f"Score the {module_name} prediction."
     return weave.op(scorer)
 
@@ -64,17 +55,14 @@ def _create_prefix_scorer(
     """Factory function to create prefix-based scorers."""
 
     def scorer(  # noqa: WPS430
-        output: PredictionOutput,
-        ground_truth: str | list[str],
-        input_type: TaskType,
-        categories: list[str],
+        output: PredictionOutput, ground_truth: str | list[str], categories: list[str]
     ) -> dict[str, bool | int | float] | None:
         matching_categories = [cat for cat in categories if cat.startswith(f"{prefix}=")]
         if not matching_categories:
             return None
-        return general_scorer(output, ground_truth, input_type, matching_categories)
+        return general_scorer(output, ground_truth, matching_categories)
 
-    scorer.__name__ = f"score_{scorer_name}"
+    scorer.__name__ = f"{scorer_name}"
     scorer.__doc__ = f"Score the {scorer_name} prediction."
     return weave.op(scorer)
 
@@ -149,24 +137,23 @@ class KeypadScorer(weave.Scorer):
         """Score the keypad prediction."""
         if "module=keypad" not in categories:
             return None
-        if input_type != "grounding":
+
+        general_scorer_output: dict[str, bool | int | float] | None = general_scorer(
+            output=output, ground_truth=ground_truth, categories=categories
+        )
+        if general_scorer_output is not None and input_type == "vqa":
             output_string = output["output"]
 
+            # TODO: is this right?
             if isinstance(ground_truth, list):
                 ground_truth = ground_truth[0]
 
             is_correct = self.check_keypad_result(
                 input_string=output_string, correct_symbol=ground_truth
             )
-            score_output: dict[str, bool | int | float] | None = {"correct": is_correct}
-            score_output[str(input_type)] = is_correct
-            for category in categories:
-                score_output[category] = is_correct
-            return score_output
+            general_scorer_output = dict.fromkeys(general_scorer_output, is_correct)
 
-        return general_scorer(
-            output=output, ground_truth=ground_truth, input_type=input_type, categories=categories
-        )
+        return general_scorer_output
 
 
 # Create all the simple module scorers
