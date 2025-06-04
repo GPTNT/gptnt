@@ -28,7 +28,8 @@ logger = structlog.get_logger()
 paths = Paths()
 
 
-DEFAULT_INSTRUCTION = "Answer the following question based on the image. Output only the one word/number required to answer the question, nothing else."
+DEFAULT_INSTRUCTION = "Answer the following question based on given context. Output only the one letter/word/number required to answer the question, nothing else."
+MCQ_INSTRUCTION = "Answer the following multiple choice question based on the given context. Output only the letter of the correct answer, nothing else."
 
 
 def convert_hf_dataset_to_weave_dataset(
@@ -159,6 +160,7 @@ class RunExpertVQAEvaluation(RunEvaluation):
 
     task_name: str = "expert_vqa"
 
+    instructions = MCQ_INSTRUCTION
     weave_project: str = "gptnt/expert-vqa"
     preprocess_instance_func: PostprocessInputsFunc = preprocess_expert_vqa_instance
     predict_method_name = "expert_vqa_predict"
