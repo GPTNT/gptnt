@@ -128,7 +128,7 @@ class PlayerSpec(BaseModel, frozen=True):
 
         This is used to determine whether the player is playing alone or with others.
         """
-        return self.is_playing_alone and self.role == "defuser" and self.include_manual
+        return self.is_playing_alone and self.role == "defuser"
 
     @computed_field
     @property
