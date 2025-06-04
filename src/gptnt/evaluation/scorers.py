@@ -14,7 +14,7 @@ type PredictionOutput = dict[Literal["output"], str]
 
 def general_scorer(
     output: PredictionOutput, ground_truth: str | list[str], categories: list[str]
-) -> dict[str, bool | int | float] | None:
+) -> dict[str, Any] | None:
     """Score the prediction.
 
     Each key in the output dict will be a different grouping of metric for the weave.
@@ -25,42 +25,54 @@ def general_scorer(
         is_correct = output["output"] == ground_truth
 
     # log whether it is correct or not
-    score_output: dict[str, bool | int | float] = {"correct": is_correct}
+    score_output: dict[str, Any] = {"correct": is_correct}
 
     # add each category with value is_correct
     for category in categories:
-        score_output[category] = is_correct
+        category_name, category_value = category.split("=", 1)
+        if category_name not in score_output:
+            score_output[category_name] = {}
+        score_output[category_name][category_value] = is_correct
 
     return score_output
 
 
-def _create_module_scorer(*, module_name: str) -> Op[..., dict[str, bool | int | float] | None]:
+def _create_module_scorer(*, module_name: str) -> Op[..., dict[str, Any] | None]:
     """Factory function to create a general-scorer for a specific module."""
+    module_category = f"module={module_name}"
 
     def scorer(  # noqa: WPS430
         output: PredictionOutput, ground_truth: str | list[str], categories: list[str]
-    ) -> dict[str, bool | int | float] | None:
-        if f"module={module_name}" not in categories:
+    ) -> dict[str, Any] | None:
+        if module_category not in categories:
             return None
-        return general_scorer(output, ground_truth, categories)
+        return general_scorer(
+            output,
+            ground_truth,
+            [category for category in categories if category != module_category],
+        )
 
     scorer.__name__ = f"{module_name}"
     scorer.__doc__ = f"Score the {module_name} prediction."
     return weave.op(scorer)
 
 
-def _create_prefix_scorer(
-    *, prefix: str, scorer_name: str
-) -> Op[..., dict[str, bool | int | float] | None]:
+def _create_prefix_scorer(*, prefix: str, scorer_name: str) -> Op[..., dict[str, Any] | None]:
     """Factory function to create prefix-based scorers."""
 
     def scorer(  # noqa: WPS430
         output: PredictionOutput, ground_truth: str | list[str], categories: list[str]
-    ) -> dict[str, bool | int | float] | None:
+    ) -> dict[str, Any] | None:
         matching_categories = [cat for cat in categories if cat.startswith(f"{prefix}=")]
         if not matching_categories:
             return None
-        return general_scorer(output, ground_truth, matching_categories)
+
+        scorer_output = general_scorer(output, ground_truth, matching_categories)
+        if scorer_output is None:
+            return None
+        category_options = [category.split("=", 1)[1] for category in matching_categories]
+        score_output = dict.fromkeys(category_options, scorer_output["correct"])
+        return score_output
 
     scorer.__name__ = f"{scorer_name}"
     scorer.__doc__ = f"Score the {scorer_name} prediction."
@@ -133,12 +145,13 @@ class KeypadScorer(weave.Scorer):
         input_type: TaskType,
         categories: list[str],
         **kwargs: Any,
-    ) -> dict[str, bool | int | float] | None:
+    ) -> dict[str, Any] | None:
         """Score the keypad prediction."""
         if "module=keypad" not in categories:
             return None
+        categories = [category for category in categories if category != "module=keypad"]
 
-        general_scorer_output: dict[str, bool | int | float] | None = general_scorer(
+        general_scorer_output: dict[str, Any] | None = general_scorer(
             output=output, ground_truth=ground_truth, categories=categories
         )
         if general_scorer_output is not None and input_type == "vqa":
@@ -167,13 +180,13 @@ score_simon_says = _create_module_scorer(module_name="simon")
 score_memory = _create_module_scorer(module_name="memory")
 score_password = _create_module_scorer(module_name="password")
 score_whos_on_first = _create_module_scorer(module_name="whos_on_first")
-score_morse_code = _create_module_scorer(module_name="morse_code")
+score_morse_code = _create_module_scorer(module_name="morse")
 
 # Create prefix-based scorers
-score_detection = _create_prefix_scorer(prefix="detect", scorer_name="detection")
-score_question_type = _create_prefix_scorer(prefix="question_type", scorer_name="question")
+score_detection = _create_prefix_scorer(prefix="detect", scorer_name="detect")
+score_question_type = _create_prefix_scorer(prefix="question_type", scorer_name="question_type")
 score_hallucination = _create_prefix_scorer(
-    prefix="hallucination_type", scorer_name="hallucination"
+    prefix="hallucination_type", scorer_name="hallucination_type"
 )
 
 
