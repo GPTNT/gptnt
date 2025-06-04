@@ -44,7 +44,7 @@ def run_grounding_evaluation(
     """Run the defuser grounding evaluation."""
     agent = load_agent(model)
     logger.info("Running evaluation", agent=agent)
-    run_eval = RunGroundingEvaluation(agent=agent)
+    run_eval = RunGroundingEvaluation(agent=agent, task_name="grounding")
     if should_throw:
         run_eval.throw()
     if should_upload:
