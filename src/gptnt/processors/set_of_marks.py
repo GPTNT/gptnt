@@ -534,8 +534,8 @@ class SetOfMarksHandler:
                 coords = region.centroid
 
             # Normalize to [0,1] relative coordinates
-            norm_x = coords[0] / region._label_image.shape[1]  # noqa: SLF001
-            norm_y = coords[1] / region._label_image.shape[0]  # noqa: SLF001
+            norm_x = coords[1] / region._label_image.shape[1]  # noqa: SLF001
+            norm_y = coords[0] / region._label_image.shape[0]  # noqa: SLF001
 
             label_to_coord[self._format_label(region.label)] = RelativeCoordinate(
                 x_pos=norm_x, y_pos=norm_y
