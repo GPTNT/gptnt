@@ -3,6 +3,7 @@ from pydantic.fields import computed_field
 from pydantic.types import UUID4
 
 from gptnt.experiments.experiments import ExperimentSpec
+from gptnt.players.spec import CommunicationStyle
 
 
 class ExperimentDescriptor(BaseModel, frozen=True):
@@ -29,3 +30,8 @@ class ExperimentDescriptor(BaseModel, frozen=True):
         if self.expert_uuid:
             services.append(self.expert_uuid)
         return services
+
+    @property
+    def communication_style(self) -> CommunicationStyle:
+        """Get the communication style for the experiment."""
+        return self.experiment_spec.communication_style
