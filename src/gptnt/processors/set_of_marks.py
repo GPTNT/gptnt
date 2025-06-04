@@ -83,9 +83,9 @@ COMPONENT_WRITE_LABEL_MAPPER: Mapping[
 class InvalidMarkLocationError(KeyError):
     """Raised when a mark ID is not found in the coordinate mapping."""
 
-    def __init__(self, mark_id: SetOfMarksLocation) -> None:
-        super().__init__(f"Invalid mark location: {mark_id}")
-        self.mark_id = mark_id
+    def __init__(self, location: SetOfMarksLocation | RelativeCoordinate) -> None:
+        super().__init__(f"Invalid location: {location}")
+        self.mark_id = location
 
 
 def blend_with_image(image: RGBArray, mask: RGBArray, alpha: float = 0.3) -> RGBArray:
@@ -476,6 +476,15 @@ class SetOfMarksHandler:
             )
             raise InvalidMarkLocationError(mark_id)
         return self._mark_to_coordinate[mark_id]
+
+    def coordinate_to_mark(self, *, coordinate: RelativeCoordinate) -> SetOfMarksLocation:
+        """Convert a relative coordinate to a mark ID."""
+        for mark_id, coord in self._mark_to_coordinate.items():
+            if np.isclose(coord.x_pos, coordinate.x_pos) and np.isclose(
+                coord.y_pos, coordinate.y_pos
+            ):
+                return mark_id
+        raise InvalidMarkLocationError(location=coordinate)
 
     def draw_labels(
         self,
