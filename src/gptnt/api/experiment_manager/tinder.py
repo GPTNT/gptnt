@@ -38,7 +38,6 @@ def find_valid_pairing_for_multi_player(
     Returns None if no valid pairing is found.
     """
     if experiment.is_single_player or experiment.expert_name is None:
-        logger.warning("Invalid experiment for multiplayer pairing", experiment=experiment)
         return None
 
     for player1, player2 in itertools.permutations(available_players, 2):
