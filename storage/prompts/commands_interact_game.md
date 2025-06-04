@@ -48,7 +48,7 @@
   - `{"command": "interact_game", "action": "click_release", "location": "A"}`
     - **Usage**: Use this to press and immediately release a module currently in your field of view marked with "A".
   - `{"command": "interact_game", "action": "click_release", "location": "B"}`
-    - **Usage**: Use this to zoom in on a module currently in your field of view marked with "B" so that you can then interact with it. This is essential for proper game mechanics.
+    - **Usage**: Use this to activate a module currently in your field of view marked with "B" so that you can then see the interactable elements within it. This is essential for proper game mechanics.
 
 - **Hold**: Click and hold on location
 - **Examples**:
