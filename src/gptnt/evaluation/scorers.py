@@ -1,8 +1,8 @@
-from functools import lru_cache
-from typing import Any, Literal
+from typing import Any, Literal, override
 
 import numpy as np
 import weave
+from pydantic import PrivateAttr
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import cos_sim as cosine_similarity
 from weave.trace.op import Op
@@ -10,17 +10,6 @@ from weave.trace.op import Op
 from gptnt.dataset.generate_instructions import KEYPAD_SYMBOL_DESCRIPTIONS, TaskType
 
 type PredictionOutput = dict[Literal["output"], str]
-
-SIMILARITY_RATIO_THRESHOLD = 1.5
-keypad_embeddings_cache = None
-
-
-@lru_cache(maxsize=1)
-def sentence_transformer_model() -> SentenceTransformer:
-    """Return the pre-trained sentence transformer model."""
-    # Load a pre-trained model (this one is good for general-purpose sentence embeddings)
-    sentence_transformer_model = SentenceTransformer("all-MiniLM-L6-v2")
-    return sentence_transformer_model
 
 
 def general_scorer(
@@ -90,87 +79,94 @@ def _create_prefix_scorer(
     return weave.op(scorer)
 
 
-def _check_keypad_metrics(
-    most_similar_score: float, non_correct_clusters: dict[str, float]
-) -> bool:
-    """Calculate contrast ratio and separation score."""
-    similarity_ratio = most_similar_score / np.mean(list(non_correct_clusters.values())).item()
+class KeypadScorer(weave.Scorer):
+    """Scorer for the keypad module."""
 
-    return similarity_ratio > SIMILARITY_RATIO_THRESHOLD
+    similarity_ratio_threshold: float = 1.5
 
+    _sentence_transformer = PrivateAttr()
+    _keypad_cache = PrivateAttr()
 
-def _precompute_keypad_embeddings(
-    sentence_transformer: SentenceTransformer,
-) -> dict[str, np.ndarray[Any, Any]]:
-    """Precompute and cache embeddings for KEYPAD_SYMBOL_DESCRIPTIONS."""
-    embeddings_cache = {}
-    for symbol, descriptions in KEYPAD_SYMBOL_DESCRIPTIONS.items():
-        embeddings = [
-            sentence_transformer.encode([description], normalize_embeddings=True)[0]
-            for description in descriptions
-        ]
-        embeddings_cache[symbol] = np.mean(embeddings, axis=0)
-    return embeddings_cache
+    def load_model(self) -> None:
+        """Load the SentenceTransformer model."""
+        self._sentence_transformer = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
+        self._keypad_cache = self.precompute_keypad_embeddings()
 
+    def precompute_keypad_embeddings(self) -> dict[str, np.ndarray[Any, Any]]:
+        """Precompute and cache embeddings for KEYPAD_SYMBOL_DESCRIPTIONS."""
+        embeddings_cache = {}
+        for symbol, descriptions in KEYPAD_SYMBOL_DESCRIPTIONS.items():
+            embeddings = [
+                self._sentence_transformer.encode([description], normalize_embeddings=True)[0]
+                for description in descriptions
+            ]
+            embeddings_cache[symbol] = np.mean(embeddings, axis=0)
+        return embeddings_cache
 
-def check_keypad_result(
-    input_string: str, correct_symbol: str, sentence_transformer: SentenceTransformer
-) -> bool:
-    """Checks if the input string aligns with the correct symbol based on similarity metrics."""
-    input_embedding = sentence_transformer.encode([input_string], normalize_embeddings=True)[0]
+    def check_keypad_metrics(
+        self, most_similar_score: float, non_correct_clusters: dict[str, float]
+    ) -> bool:
+        """Calculate contrast ratio and separation score."""
+        similarity_ratio = most_similar_score / np.mean(list(non_correct_clusters.values())).item()
 
-    global keypad_embeddings_cache  # noqa: WPS420, PLW0603
-    if keypad_embeddings_cache is None:
-        keypad_embeddings_cache = _precompute_keypad_embeddings(sentence_transformer)
+        return similarity_ratio > self.similarity_ratio_threshold
 
-    cluster_similarities = {}
-    for symbol, mean_embedding in keypad_embeddings_cache.items():
-        cluster_similarities[symbol] = cosine_similarity(mean_embedding, input_embedding).item()
+    def check_keypad_result(self, input_string: str, correct_symbol: str) -> bool:
+        """Checks if the input aligns with the correct symbol based on similarity metrics."""
+        input_embedding = self._sentence_transformer.encode(
+            [input_string], normalize_embeddings=True
+        )[0]
 
-    sorted_clusters = sorted(cluster_similarities.items(), key=lambda pair: pair[1], reverse=True)
-    most_similar_symbol, most_similar_score = sorted_clusters[0]
-    _, second_most_similar_score = sorted_clusters[1]
+        cluster_similarities = {}
+        for symbol, mean_embedding in self._keypad_cache.items():
+            cluster_similarities[symbol] = cosine_similarity(
+                mean_embedding, input_embedding
+            ).item()
 
-    if most_similar_symbol != correct_symbol:
-        return False
-
-    # Remove the correct symbol from the sorted clusters to calculate similarity ratio
-    _ = cluster_similarities.pop(correct_symbol)
-
-    return _check_keypad_metrics(most_similar_score, cluster_similarities)
-
-
-@weave.op
-def score_keypad(
-    output: PredictionOutput,
-    ground_truth: str | list[str],
-    input_type: TaskType,
-    categories: list[str],
-) -> dict[str, bool | int | float] | None:
-    """Score the keypad prediction."""
-    if "module=keypad" not in categories:
-        return None
-    if input_type != "grounding":
-        output_string = output["output"]
-
-        if isinstance(ground_truth, list):
-            ground_truth = ground_truth[0]
-
-        is_correct = check_keypad_result(
-            input_string=output_string,
-            correct_symbol=ground_truth,
-            sentence_transformer=sentence_transformer_model(),
+        sorted_clusters = sorted(
+            cluster_similarities.items(), key=lambda pair: pair[1], reverse=True
         )
-        score_output: dict[str, bool | int | float] | None = {"correct": is_correct}
-        score_output[str(input_type)] = is_correct
-        for category in categories:
-            score_output[category] = is_correct
+        most_similar_symbol, most_similar_score = sorted_clusters[0]
+        _, second_most_similar_score = sorted_clusters[1]
 
-        return score_output
+        if most_similar_symbol != correct_symbol:
+            return False
 
-    return general_scorer(
-        output=output, ground_truth=ground_truth, input_type=input_type, categories=categories
-    )
+        # Remove the correct symbol from the sorted clusters to calculate similarity ratio
+        _ = cluster_similarities.pop(correct_symbol)
+        return self.check_keypad_metrics(most_similar_score, cluster_similarities)
+
+    @weave.op
+    @override
+    def score(  # pyright: ignore[reportIncompatibleVariableOverride]
+        self,
+        output: PredictionOutput,
+        ground_truth: str | list[str],
+        input_type: TaskType,
+        categories: list[str],
+        **kwargs: Any,
+    ) -> dict[str, bool | int | float] | None:
+        """Score the keypad prediction."""
+        if "module=keypad" not in categories:
+            return None
+        if input_type != "grounding":
+            output_string = output["output"]
+
+            if isinstance(ground_truth, list):
+                ground_truth = ground_truth[0]
+
+            is_correct = self.check_keypad_result(
+                input_string=output_string, correct_symbol=ground_truth
+            )
+            score_output: dict[str, bool | int | float] | None = {"correct": is_correct}
+            score_output[str(input_type)] = is_correct
+            for category in categories:
+                score_output[category] = is_correct
+            return score_output
+
+        return general_scorer(
+            output=output, ground_truth=ground_truth, input_type=input_type, categories=categories
+        )
 
 
 # Create all the simple module scorers
@@ -193,20 +189,25 @@ score_hallucination = _create_prefix_scorer(
     prefix="hallucination_type", scorer_name="hallucination"
 )
 
-ALL_SCORERS = (
-    score_timer,
-    score_wires,
-    score_wire_sequence,
-    score_venn,
-    score_maze,
-    score_button,
-    score_keypad,
-    score_simon_says,
-    score_memory,
-    score_password,
-    score_whos_on_first,
-    score_morse_code,
-    score_detection,
-    score_question_type,
-    score_hallucination,
-)
+
+def load_all_scorers() -> list[Op[..., Any] | weave.Scorer]:
+    """Load all scorers."""
+    keypad_scorer = KeypadScorer()
+    keypad_scorer.load_model()
+    return [
+        score_timer,
+        score_wires,
+        score_wire_sequence,
+        score_venn,
+        score_maze,
+        score_button,
+        score_simon_says,
+        score_memory,
+        score_password,
+        score_whos_on_first,
+        score_morse_code,
+        score_detection,
+        score_question_type,
+        score_hallucination,
+        keypad_scorer,
+    ]

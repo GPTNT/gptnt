@@ -22,7 +22,7 @@ from gptnt.evaluation.preprocess import (
     preprocess_expert_vqa_instance,
     preprocess_grounding_instance,
 )
-from gptnt.evaluation.scorers import ALL_SCORERS
+from gptnt.evaluation.scorers import load_all_scorers
 
 logger = structlog.get_logger()
 paths = Paths()
@@ -115,7 +115,7 @@ class RunEvaluation(abc.ABC):
                 instance=instance,
                 preprocess_func=self.preprocess_instance_func,
                 predict_method=getattr(self.eval_model, self.predict_method_name),
-                output_dir=self.output_dir,
+                prediction_output_file=prediction_output_file,
             )
         logger.info(f"Evaluation completed. Results saved to {self.output_dir}")
         weave_client.finish()
@@ -126,7 +126,7 @@ class RunEvaluation(abc.ABC):
         dataset = self.load_dataset()
         evaluation = weave.Evaluation(
             dataset=dataset,
-            scorers=list(ALL_SCORERS),
+            scorers=load_all_scorers(),
             preprocess_model_input=self.preprocess_instance_func,
         )
         asyncio.run(evaluation.evaluate(self.eval_model))
