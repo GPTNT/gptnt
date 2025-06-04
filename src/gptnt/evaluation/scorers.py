@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from typing import Any, Literal, override
 
 import numpy as np
@@ -11,114 +12,47 @@ from gptnt.dataset.generate_instructions import KEYPAD_SYMBOL_DESCRIPTIONS, Task
 
 type PredictionOutput = dict[Literal["output"], str]
 
-
-def general_scorer(
-    output: PredictionOutput, ground_truth: str | list[str], categories: list[str]
-) -> dict[str, Any] | None:
-    """Score the prediction.
-
-    Each key in the output dict will be a different grouping of metric for the weave.
-    """
-    if isinstance(ground_truth, list):
-        is_correct = output["output"] in ground_truth
-    else:
-        is_correct = output["output"] == ground_truth
-
-    # log whether it is correct or not
-    score_output: dict[str, Any] = {"correct": is_correct}
-
-    # add each category with value is_correct
-    for category in categories:
-        category_name, category_value = category.split("=", 1)
-        if category_name not in score_output:
-            score_output[category_name] = {}
-        score_output[category_name][category_value] = is_correct
-
-    return score_output
+trick_question_categories = ["hallucination_type=type_a", "hallucination_type=type_b"]
 
 
-def _create_module_scorer(*, module_name: str) -> Op[..., dict[str, Any] | None]:
-    """Factory function to create a general-scorer for a specific module."""
-    module_category = f"module={module_name}"
+@dataclass(kw_only=True)
+class CompareToGroundTruth:  # noqa: WPS338
+    """Give a module, is the answer correct."""
 
-    def scorer(  # noqa: WPS430
-        output: PredictionOutput, ground_truth: str | list[str], categories: list[str]
-    ) -> dict[str, Any] | None:
-        if module_category not in categories:
-            return None
-        return general_scorer(
-            output,
-            ground_truth,
-            [category for category in categories if category != module_category],
-        )
-
-    scorer.__name__ = f"{module_name}"
-    scorer.__doc__ = f"Score the {module_name} prediction."
-    return weave.op(scorer)
-
-
-def _create_prefix_scorer(*, prefix: str, scorer_name: str) -> Op[..., dict[str, Any] | None]:
-    """Factory function to create prefix-based scorers."""
-
-    def scorer(  # noqa: WPS430
-        output: PredictionOutput, ground_truth: str | list[str], categories: list[str]
-    ) -> dict[str, Any] | None:
-        matching_categories = [cat for cat in categories if cat.startswith(f"{prefix}=")]
-        if not matching_categories:
-            return None
-
-        scorer_output = general_scorer(output, ground_truth, matching_categories)
-        if scorer_output is None:
-            return None
-        category_options = [category.split("=", 1)[1] for category in matching_categories]
-        score_output = dict.fromkeys(category_options, scorer_output["correct"])
-        return score_output
-
-    scorer.__name__ = f"{scorer_name}"
-    scorer.__doc__ = f"Score the {scorer_name} prediction."
-    return weave.op(scorer)
-
-
-class KeypadScorer(weave.Scorer):
-    """Scorer for the keypad module."""
-
+    task_type: TaskType
     similarity_ratio_threshold: float = 1.5
+    sentence_transformer: SentenceTransformer = field(init=False, repr=False)
+    keypad_cache: dict[str, Any] = field(init=False, repr=False)
 
-    _sentence_transformer = PrivateAttr()
-    _keypad_cache = PrivateAttr()
+    def __post_init__(self) -> None:
+        """Initialize the SentenceTransformer model and keypad cache."""
+        self.sentence_transformer = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
+        self.keypad_cache = self.precompute_keypad_embeddings()
 
-    def load_model(self) -> None:
-        """Load the SentenceTransformer model."""
-        self._sentence_transformer = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
-        self._keypad_cache = self.precompute_keypad_embeddings()
-
-    def precompute_keypad_embeddings(self) -> dict[str, np.ndarray[Any, Any]]:
-        """Precompute and cache embeddings for KEYPAD_SYMBOL_DESCRIPTIONS."""
-        embeddings_cache = {}
-        for symbol, descriptions in KEYPAD_SYMBOL_DESCRIPTIONS.items():
-            embeddings = [
-                self._sentence_transformer.encode([description], normalize_embeddings=True)[0]
-                for description in descriptions
-            ]
-            embeddings_cache[symbol] = np.mean(embeddings, axis=0)
-        return embeddings_cache
-
-    def check_keypad_metrics(
-        self, most_similar_score: float, non_correct_clusters: dict[str, float]
+    def __call__(
+        self, output: PredictionOutput, ground_truth: str | list[str], *, module: str
     ) -> bool:
-        """Calculate contrast ratio and separation score."""
-        similarity_ratio = most_similar_score / np.mean(list(non_correct_clusters.values())).item()
-
-        return similarity_ratio > self.similarity_ratio_threshold
+        """Compare the output to the ground truth."""
+        if module == "keypad" and self.task_type == "vqa":
+            ground_truth_symbol = (
+                ground_truth[0] if isinstance(ground_truth, list) else ground_truth
+            )
+            is_correct = self.check_keypad_result(
+                input_string=output["output"], correct_symbol=ground_truth_symbol
+            )
+            return is_correct
+        if isinstance(ground_truth, list):
+            return output["output"] in ground_truth
+        return output["output"] == ground_truth
 
     def check_keypad_result(self, input_string: str, correct_symbol: str) -> bool:
         """Checks if the input aligns with the correct symbol based on similarity metrics."""
-        input_embedding = self._sentence_transformer.encode(
+        input_embedding = self.sentence_transformer.encode(
             [input_string], normalize_embeddings=True
         )[0]
 
         cluster_similarities = {}
-        for symbol, mean_embedding in self._keypad_cache.items():
+        for symbol, mean_embedding in self.keypad_cache.items():
             cluster_similarities[symbol] = cosine_similarity(
                 mean_embedding, input_embedding
             ).item()
@@ -136,78 +70,102 @@ class KeypadScorer(weave.Scorer):
         _ = cluster_similarities.pop(correct_symbol)
         return self.check_keypad_metrics(most_similar_score, cluster_similarities)
 
+    def check_keypad_metrics(
+        self, most_similar_score: float, non_correct_clusters: dict[str, float]
+    ) -> bool:
+        """Calculate contrast ratio and separation score."""
+        similarity_ratio = most_similar_score / np.mean(list(non_correct_clusters.values())).item()
+
+        return similarity_ratio > self.similarity_ratio_threshold
+
+    def precompute_keypad_embeddings(self) -> dict[str, np.ndarray[Any, Any]]:
+        """Precompute and cache embeddings for KEYPAD_SYMBOL_DESCRIPTIONS."""
+        embeddings_cache = {}
+        for symbol, descriptions in KEYPAD_SYMBOL_DESCRIPTIONS.items():
+            embeddings = [
+                self.sentence_transformer.encode([description], normalize_embeddings=True)[0]
+                for description in descriptions
+            ]
+            embeddings_cache[symbol] = np.mean(embeddings, axis=0)
+        return embeddings_cache
+
+
+class ModuleScorer(weave.Scorer):
+    """Module Scorer."""
+
+    skip_trick_questions: bool = True
+    _compute_ground_truth: CompareToGroundTruth = PrivateAttr()
+
     @weave.op
     @override
     def score(  # pyright: ignore[reportIncompatibleVariableOverride]
-        self,
-        output: PredictionOutput,
-        ground_truth: str | list[str],
-        input_type: TaskType,
-        categories: list[str],
-        **kwargs: Any,
+        self, output: PredictionOutput, ground_truth: str | list[str], categories: list[str]
     ) -> dict[str, Any] | None:
-        """Score the keypad prediction."""
-        if "module=keypad" not in categories:
+        """Score the prediction based on the module."""
+        if self.skip_trick_questions and any(
+            category in trick_question_categories for category in categories
+        ):
             return None
-        categories = [category for category in categories if category != "module=keypad"]
 
-        general_scorer_output: dict[str, Any] | None = general_scorer(
-            output=output, ground_truth=ground_truth, categories=categories
-        )
-        if general_scorer_output is not None and input_type == "vqa":
-            output_string = output["output"]
+        # Find the module
+        module_tag = [category for category in categories if category.startswith("module=")]
+        if not module_tag:
+            return None
 
-            # TODO: is this right?
-            if isinstance(ground_truth, list):
-                ground_truth = ground_truth[0]
-
-            is_correct = self.check_keypad_result(
-                input_string=output_string, correct_symbol=ground_truth
-            )
-            general_scorer_output = dict.fromkeys(general_scorer_output, is_correct)
-
-        return general_scorer_output
+        module_name = module_tag[0].split("=", 1)[1]
+        is_correct = self._compute_ground_truth(output, ground_truth, module=module_name)
+        return {"total": is_correct, module_name: is_correct}
 
 
-# Create all the simple module scorers
-score_timer = _create_module_scorer(module_name="timer")
-score_wires = _create_module_scorer(module_name="wires")
-score_wire_sequence = _create_module_scorer(module_name="wire_sequence")
-score_venn = _create_module_scorer(module_name="venn")
-score_maze = _create_module_scorer(module_name="maze")
-score_button = _create_module_scorer(module_name="button")
-score_simon_says = _create_module_scorer(module_name="simon")
-score_memory = _create_module_scorer(module_name="memory")
-score_password = _create_module_scorer(module_name="password")
-score_whos_on_first = _create_module_scorer(module_name="whos_on_first")
-score_morse_code = _create_module_scorer(module_name="morse")
+class PrefixScorer(weave.Scorer):
+    """Scorer for a given category prefix."""
 
-# Create prefix-based scorers
-score_detection = _create_prefix_scorer(prefix="detect", scorer_name="detect")
-score_question_type = _create_prefix_scorer(prefix="question_type", scorer_name="question_type")
-score_hallucination = _create_prefix_scorer(
-    prefix="hallucination_type", scorer_name="hallucination_type"
-)
+    prefix: str
+    skip_trick_questions: bool = True
+
+    _compute_ground_truth: CompareToGroundTruth = PrivateAttr()
+
+    @weave.op
+    @override
+    def score(  # pyright: ignore[reportIncompatibleVariableOverride]
+        self, output: PredictionOutput, ground_truth: str | list[str], categories: list[str]
+    ) -> dict[str, Any] | None:
+        """Score the prediction based on the prefix."""
+        if self.skip_trick_questions and any(
+            category in trick_question_categories for category in categories
+        ):
+            return None
+
+        # Find the module
+        module_tag = [category for category in categories if category.startswith("module=")]
+        if not module_tag:
+            return None
+
+        # Find the prefix
+        prefix_tag = [
+            category for category in categories if category.startswith(f"{self.prefix}=")
+        ]
+        if not prefix_tag:
+            return None
+
+        module_name = module_tag[0].split("=", 1)[1]
+        category_name = prefix_tag[0].split("=", 1)[1]
+        is_correct = self._compute_ground_truth(output, ground_truth, module=module_name)
+        return {category_name: {"total": is_correct, "module": {module_name: is_correct}}}
 
 
-def load_all_scorers() -> list[Op[..., Any] | weave.Scorer]:
+def load_all_scorers(task_type: TaskType) -> list[Op[..., Any] | weave.Scorer]:
     """Load all scorers."""
-    keypad_scorer = KeypadScorer(name="keypad")
-    keypad_scorer.load_model()
-    return [
-        score_timer,
-        score_wires,
-        score_wire_sequence,
-        score_venn,
-        score_maze,
-        score_button,
-        score_simon_says,
-        score_memory,
-        score_password,
-        score_whos_on_first,
-        score_morse_code,
-        score_detection,
-        score_question_type,
-        score_hallucination,
-        keypad_scorer,
-    ]
+    compare_to_ground_truth_fn = CompareToGroundTruth(task_type=task_type)
+    score_modules = ModuleScorer(name="module")
+    score_modules._compute_ground_truth = compare_to_ground_truth_fn  # noqa: SLF001
+    score_detection = PrefixScorer(name="detect", prefix="detect")
+    score_detection._compute_ground_truth = compare_to_ground_truth_fn  # noqa: SLF001
+    score_question_type = PrefixScorer(name="question_type", prefix="question_type")
+    score_question_type._compute_ground_truth = compare_to_ground_truth_fn  # noqa: SLF001
+    score_hallucination = PrefixScorer(
+        name="hallucination_type", prefix="hallucination_type", skip_trick_questions=False
+    )
+    score_hallucination._compute_ground_truth = compare_to_ground_truth_fn  # noqa: SLF001
+
+    return [score_modules, score_detection, score_hallucination, score_question_type]

@@ -17,6 +17,7 @@ from weave.trace.op import PostprocessInputsFunc
 
 from gptnt.common.paths import Paths
 from gptnt.dataset.expert_vqa import load_expert_vqa_dataset
+from gptnt.dataset.generate_instructions import TaskType
 from gptnt.evaluation.model import EvalModel, ModelOutput
 from gptnt.evaluation.preprocess import (
     preprocess_expert_vqa_instance,
@@ -71,7 +72,7 @@ class RunEvaluation(abc.ABC):
     """The function to preprocess the instance before prediction."""
 
     agent: Agent
-    task_name: str
+    task_name: TaskType
     weave_project: str
 
     instructions: str = DEFAULT_INSTRUCTION
@@ -127,7 +128,7 @@ class RunEvaluation(abc.ABC):
         dataset = self.load_dataset()
         evaluation = weave.Evaluation(
             dataset=dataset,
-            scorers=load_all_scorers(),
+            scorers=load_all_scorers(task_type=self.task_name),
             preprocess_model_input=self.preprocess_instance_func,
         )
         asyncio.run(evaluation.evaluate(self.eval_model))
@@ -139,7 +140,7 @@ class RunGroundingEvaluation(RunEvaluation):
     """Run the grounding evaluation."""
 
     hf_dataset_name: str = "GPTNT/grounding-dataset"
-    task_name: str = "grounding"
+    task_name = "grounding"
     weave_project: str = "gptnt/grounding"
 
     preprocess_instance_func: PostprocessInputsFunc = preprocess_grounding_instance
@@ -158,7 +159,7 @@ class RunGroundingEvaluation(RunEvaluation):
 class RunExpertVQAEvaluation(RunEvaluation):
     """Run the expert VQA evaluation."""
 
-    task_name: str = "expert_vqa"
+    task_name = "expert_vqa"
 
     instructions = MCQ_INSTRUCTION
     weave_project: str = "gptnt/expert-vqa"
