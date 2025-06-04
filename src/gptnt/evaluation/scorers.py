@@ -51,7 +51,7 @@ def general_scorer(
     return score_output
 
 
-def _create_module_scorer(module_name: str) -> Op[..., dict[str, bool | int | float] | None]:
+def _create_module_scorer(*, module_name: str) -> Op[..., dict[str, bool | int | float] | None]:
     """Factory function to create a general-scorer for a specific module."""
 
     def scorer(  # noqa: WPS430
@@ -70,7 +70,7 @@ def _create_module_scorer(module_name: str) -> Op[..., dict[str, bool | int | fl
 
 
 def _create_prefix_scorer(
-    prefix: str, scorer_name: str
+    *, prefix: str, scorer_name: str
 ) -> Op[..., dict[str, bool | int | float] | None]:
     """Factory function to create prefix-based scorers."""
 
@@ -174,21 +174,24 @@ def score_keypad(
 
 
 # Create all the simple module scorers
-score_timer = _create_module_scorer("timer")
-score_wires = _create_module_scorer("wires")
-score_wire_sequence = _create_module_scorer("wire_sequence")
-score_venn = _create_module_scorer("venn")
-score_maze = _create_module_scorer("maze")
-score_button = _create_module_scorer("button")
-score_simon_says = _create_module_scorer("simon")
-score_memory = _create_module_scorer("memory")
-score_password = _create_module_scorer("password")
-score_whos_on_first = _create_module_scorer("whos_on_first")
-score_morse_code = _create_module_scorer("morse_code")
+score_timer = _create_module_scorer(module_name="timer")
+score_wires = _create_module_scorer(module_name="wires")
+score_wire_sequence = _create_module_scorer(module_name="wire_sequence")
+score_venn = _create_module_scorer(module_name="venn")
+score_maze = _create_module_scorer(module_name="maze")
+score_button = _create_module_scorer(module_name="button")
+score_simon_says = _create_module_scorer(module_name="simon")
+score_memory = _create_module_scorer(module_name="memory")
+score_password = _create_module_scorer(module_name="password")
+score_whos_on_first = _create_module_scorer(module_name="whos_on_first")
+score_morse_code = _create_module_scorer(module_name="morse_code")
 
 # Create prefix-based scorers
-score_detection = _create_prefix_scorer("detect", "detection")
-score_question_type = _create_prefix_scorer("question_type", "question_type")
+score_detection = _create_prefix_scorer(prefix="detect", scorer_name="detection")
+score_question_type = _create_prefix_scorer(prefix="question_type", scorer_name="question")
+score_hallucination = _create_prefix_scorer(
+    prefix="hallucination_type", scorer_name="hallucination"
+)
 
 ALL_SCORERS = (
     score_timer,
@@ -205,4 +208,5 @@ ALL_SCORERS = (
     score_morse_code,
     score_detection,
     score_question_type,
+    score_hallucination,
 )
