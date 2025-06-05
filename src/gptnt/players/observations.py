@@ -49,6 +49,10 @@ class ObservationHandler:
         num_frames_to_use: int = 1,
     ) -> Observation:
         """Handle a new observation from the game."""
+        # Reset any existing mark-to-coordinate mappings so we don't leak them between observations
+        if self.set_of_marks_painter:
+            self.set_of_marks_painter.reset()
+
         frames = [
             base64.b64decode(frame) if isinstance(frame, str) else frame
             for frame in frames[-num_frames_to_use:]
@@ -107,6 +111,9 @@ class ObservationHandler:
         """Convert the action to the game action.
 
         This will convert the action to the game action, which is a list of bytes.
+
+        Note: This will the location in the action object instead of creating a new action object,
+        therefore if you are using this, expect it to modify the action in place.
         """
         # Convert from SoM to relative coordinates if needed
         if self.set_of_marks_painter and isinstance(action.location, (int, str)):

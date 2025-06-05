@@ -414,6 +414,10 @@ class SetOfMarksHandler:
         self._mark_type = mark_type
         self._mark_to_coordinate: dict[SetOfMarksLocation, RelativeCoordinate] = {}
 
+    def reset(self) -> None:
+        """Reset the mark to coordinate mapping."""
+        self._mark_to_coordinate = {}
+
     def extract_regions(
         self, colorful_image: RGBArray, zoomed_in_component: KtaneComponent | None
     ) -> tuple[RGBArray, list[RegionProperties]]:
