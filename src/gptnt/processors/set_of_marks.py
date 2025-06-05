@@ -1,4 +1,5 @@
 import itertools
+import math
 import string
 from collections.abc import Callable, Generator, Mapping
 from dataclasses import dataclass
@@ -475,6 +476,17 @@ class SetOfMarksHandler:
             )
             raise InvalidMarkLocationError(mark_id)
         return self._mark_to_coordinate[mark_id]
+
+    def coordinate_to_mark(self, *, coordinate: RelativeCoordinate) -> SetOfMarksLocation:
+        """Convert a relative coordinate to a mark ID."""
+        distances = {}
+        for mark_id, coord in self._mark_to_coordinate.items():
+            distance = math.sqrt(
+                (coord.x_pos - coordinate.x_pos) ** 2 + (coord.y_pos - coordinate.y_pos) ** 2
+            )
+            distances[mark_id] = distance
+        closest_mark = min(distances, key=distances.get)  # pyright: ignore[reportCallIssue, reportArgumentType]
+        return closest_mark
 
     def draw_labels(
         self,

@@ -14,14 +14,9 @@ import streamlit as st
 import structlog
 import wandb
 
-# Set page configuration for better performance
-st.set_page_config(
-    page_title="GPTNT Results Visualizer", layout="wide", initial_sidebar_state="expanded"
-)
-
 # Initialize session state
-if "data_loaded" not in st.session_state:
-    st.session_state.data_loaded = False
+if "results_data_loaded" not in st.session_state:
+    st.session_state.results_data_loaded = False
 if "df" not in st.session_state:
     st.session_state.df = None
 if "aggregate_metrics" not in st.session_state:
@@ -562,64 +557,163 @@ def format_config_data(
     return formatted_data
 
 
-def load_wandb_table(run, table_name):
-    """Load a W&B table directly from a run object."""
-    artifact_dir = None
+def cleanup_artifact_directory(artifact_dir: str | Path) -> None:
+    """Clean up artifact directory."""
+    if artifact_dir and Path(artifact_dir).exists():
+        try:
+            shutil.rmtree(artifact_dir)
+            if "debug_mode" in st.session_state and st.session_state.debug_mode:
+                st.sidebar.info(f"Cleaned up artifact directory: {artifact_dir}")
+        except OSError as cleanup_error:
+            if "debug_mode" in st.session_state and st.session_state.debug_mode:
+                st.sidebar.warning(f"Failed to clean up artifact directory: {cleanup_error}")
+
+
+def find_matching_artifact(run, table_name):
+    """Find the artifact that matches the given table name."""
+    run_tables = run.logged_artifacts()
+    for artifact in run_tables:
+        if artifact.name.split("-")[-1].split(":")[0] == table_name:
+            return artifact
+    return None
+
+
+def handle_cache_cleared_cleanup(artifact):
+    """Clean up existing artifact if cache was deliberately cleared."""
+    if not st.session_state.get("cache_cleared", False):
+        return
+
     try:
-        run_tables = run.logged_artifacts()
+        existing_dir = artifact.download()
+        if existing_dir and Path(existing_dir).exists():
+            cleanup_artifact_directory(existing_dir)
+            if "debug_mode" in st.session_state and st.session_state.debug_mode:
+                st.sidebar.info("Cleaned existing artifact before fresh download")
+    except Exception as e:  # noqa: BLE001
+        if "debug_mode" in st.session_state and st.session_state.debug_mode:
+            st.sidebar.warning(f"Could not clean existing artifact: {e}")
 
-        for artifact in run_tables:
-            if table_name in artifact.name:
-                artifact_dir = artifact.download()
 
-                table_files = []
-                for root, _, _files in Path(artifact_dir).glob("**/*.table.json"):
-                    table_files.append(root)
+def load_table_from_artifact(artifact_dir):
+    """Load table data from artifact directory."""
+    table_files = list(Path(artifact_dir).glob("**/*.table.json"))
 
-                if table_files:
-                    with Path.open(table_files[0]) as f:
-                        table_data = json.load(f)
+    if not table_files:
+        return None
 
-                    if "columns" in table_data and "data" in table_data:
-                        columns = table_data["columns"]
-                        data = table_data["data"]
+    try:
+        with table_files[0].open() as f:
+            table_data = json.load(f)
 
-                        df = pd.DataFrame(data, columns=columns)
-                        return pl.from_pandas(df)
-
-        history = run.history()
-        if table_name in history.columns:
-            table_data = history[table_name].dropna().iloc[0]
-            if isinstance(table_data, dict) and "data" in table_data and "columns" in table_data:
-                columns = table_data["columns"]
-                data = table_data["data"]
-                df = pd.DataFrame(data, columns=columns)
-                return pl.from_pandas(df)
-
-        return pl.DataFrame()
-
+        if "columns" in table_data and "data" in table_data:
+            df = pd.DataFrame(table_data["data"], columns=table_data["columns"])
+            df["artifact_dir"] = artifact_dir
+            return pl.from_pandas(df)
     except json.JSONDecodeError as e:
         if "debug_mode" in st.session_state and st.session_state.debug_mode:
-            st.sidebar.error(f"JSON decode error loading table {table_name}: {e}")
-        return pl.DataFrame()
-    except OSError as e:
+            st.sidebar.error(f"JSON decode error loading table: {e}")
+
+    return None
+
+
+def load_table_from_history(run, table_name):
+    """Fallback to load table from run history."""
+    try:
+        history = run.history()
+        if table_name not in history.columns:
+            return None
+
+        table_data = history[table_name].dropna().iloc[0]
+        if isinstance(table_data, dict) and "data" in table_data and "columns" in table_data:
+            columns = table_data["columns"]
+            data = table_data["data"]
+            df = pd.DataFrame(data, columns=columns)
+            return pl.from_pandas(df)
+    except Exception as e:  # noqa: BLE001
         if "debug_mode" in st.session_state and st.session_state.debug_mode:
-            st.sidebar.error(f"I/O error loading table {table_name}: {e}")
+            st.sidebar.error(f"Error loading from history: {e}")
+
+    return None
+
+
+def load_wandb_table(run, table_name):
+    """Load a W&B table directly from a run object."""
+    try:
+        # Find matching artifact
+        artifact = find_matching_artifact(run, table_name)
+        if not artifact:
+            return pl.DataFrame()
+
+        # Clean up existing artifacts if cache was cleared
+        handle_cache_cleared_cleanup(artifact)
+
+        # Download artifact
+        artifact_dir = artifact.download()
+        if not artifact_dir:
+            return pl.DataFrame()
+
+        # Cache the artifact directory for image loading
+        cache_key = f"{run.id}_{table_name}"
+        cache_artifact_directory(artifact_dir, cache_key)
+
+        # Try to load from artifact files
+        df = load_table_from_artifact(artifact_dir)
+        if df is not None:
+            return df
+
+        # Fallback to history
+        df = load_table_from_history(run, table_name)
+        if df is not None:
+            return df
+
         return pl.DataFrame()
+
     except Exception as e:  # noqa: BLE001
         if "debug_mode" in st.session_state and st.session_state.debug_mode:
             st.sidebar.error(f"Error loading table {table_name}: {e}")
         return pl.DataFrame()
 
-    finally:
-        if artifact_dir and Path(artifact_dir).exists():
-            try:
-                shutil.rmtree(artifact_dir)
-                if "debug_mode" in st.session_state and st.session_state.debug_mode:
-                    st.sidebar.info(f"Cleaned up artifact directory: {artifact_dir}")
-            except OSError as cleanup_error:
-                if "debug_mode" in st.session_state and st.session_state.debug_mode:
-                    st.sidebar.warning(f"Failed to clean up artifact directory: {cleanup_error}")
+
+def handle_cache_clearing():
+    """Handle cache clearing functionality."""
+    if st.sidebar.button("Clear Cache"):
+        try:
+            shutil.rmtree(CACHE_DIR)
+            # Set flag to indicate cache was deliberately cleared
+            st.session_state.cache_cleared = True
+            st.sidebar.success("Cache cleared successfully!")
+        except OSError as e:
+            st.sidebar.error(f"Error clearing cache: {e}")
+    else:
+        # Reset the flag if cache clearing button wasn't pressed
+        if "cache_cleared" not in st.session_state:
+            st.session_state.cache_cleared = False
+
+
+def process_run_data(run, role):
+    """Process data from a single W&B run."""
+    config_data = format_config_data(run.config, role)
+    summary_data = format_summary_data(run.summary_metrics, role)
+
+    run_data = {**config_data, **summary_data, f"{role}_run_id": run.id}
+
+    if role == "defuser":
+        actions_df = load_wandb_table(run, "actions")
+        if not actions_df.is_empty():
+            action_stats = process_actions_table(actions_df)
+            run_data.update(action_stats)
+
+    messages_df = load_wandb_table(run, "messages")
+    if not messages_df.is_empty():
+        message_stats = process_messages_table(messages_df, role)
+        run_data.update(message_stats)
+
+    reflections_df = load_wandb_table(run, "reflections")
+    if not reflections_df.is_empty():
+        reflection = process_reflections_table(reflections_df, role)
+        run_data.update(reflection)
+
+    return run_data
 
 
 def process_actions_table(actions_df):
@@ -684,32 +778,6 @@ def process_reflections_table(reflections_df, role):
         return {}
 
 
-def process_run_data(run, role):
-    """Process data from a single W&B run."""
-    config_data = format_config_data(run.config, role)
-    summary_data = format_summary_data(run.summary_metrics, role)
-
-    run_data = {**config_data, **summary_data, f"{role}_run_id": run.id}
-
-    if role == "defuser":
-        actions_df = load_wandb_table(run, "actions")
-        if not actions_df.is_empty():
-            action_stats = process_actions_table(actions_df)
-            run_data.update(action_stats)
-
-    messages_df = load_wandb_table(run, "messages")
-    if not messages_df.is_empty():
-        message_stats = process_messages_table(messages_df, role)
-        run_data.update(message_stats)
-
-    reflections_df = load_wandb_table(run, "reflections")
-    if not reflections_df.is_empty():
-        reflection = process_reflections_table(reflections_df, role)
-        run_data.update(reflection)
-
-    return run_data
-
-
 def prepare_dataframe(dfs):
     """Prepare and join dataframes from expert and defuser data."""
     expert_df = dfs["expert"].clone() if dfs["expert"] is not None else pl.DataFrame()
@@ -726,9 +794,12 @@ def prepare_dataframe(dfs):
         return None
 
     try:
-        if not expert_df.is_empty() and not defuser_df.is_empty() and common_df is not None:
-            joined_df = common_df.join(expert_df, on="game_id", how="inner")
-            joined_df = joined_df.join(defuser_df, on="game_id", how="inner")
+        if not defuser_df.is_empty() and common_df is not None:
+            if not expert_df.is_empty():
+                joined_df = common_df.join(expert_df, on="game_id", how="inner")
+                joined_df = joined_df.join(defuser_df, on="game_id", how="inner")
+            else:
+                joined_df = common_df.join(defuser_df, on="game_id", how="inner")
 
             joined_df = clean_joined_dataframe(joined_df)
 
@@ -910,6 +981,14 @@ def process_role_data(role, runs, total_runs, role_idx, progress_bar, status_tex
         runs_data.append(run_data)
 
     return pl.DataFrame(runs_data)
+
+
+def cache_artifact_directory(artifact_dir: str, identifier: str) -> None:
+    """Cache artifact directory for later image loading."""
+    if not hasattr(st.session_state, "wandb_artifact_cache"):
+        st.session_state.wandb_artifact_cache = {}
+
+    st.session_state.wandb_artifact_cache[identifier] = artifact_dir
 
 
 @disk_memoize(max_age_seconds=60 * 60 * 2)
@@ -1266,16 +1345,6 @@ def setup_debug_mode():
     return debug_mode
 
 
-def handle_cache_clearing():
-    """Handle cache clearing functionality."""
-    if st.sidebar.button("Clear Cache"):
-        try:
-            shutil.rmtree(CACHE_DIR)
-            st.sidebar.success("Cache cleared successfully!")
-        except OSError as e:
-            st.sidebar.error(f"Error clearing cache: {e}")
-
-
 def select_filtering_method():
     """Select between predefined experiment or custom criteria."""
     st.sidebar.subheader("Select Data Filtering Method")
@@ -1316,7 +1385,7 @@ def handle_predefined_experiment():
     if experiment != st.session_state.previous_experiment:
         criteria_changed = True
         st.session_state.previous_experiment = experiment
-        st.session_state.data_loaded = False
+        st.session_state.results_data_loaded = False
         st.session_state.df = None
 
     if not experiment:
@@ -1344,7 +1413,7 @@ def handle_custom_criteria():
     if criteria_json != st.session_state.previous_custom_criteria:
         criteria_changed = True
         st.session_state.previous_custom_criteria = criteria_json
-        st.session_state.data_loaded = False
+        st.session_state.results_data_loaded = False
         st.session_state.df = None
 
     return None, experiment_criteria, criteria_changed
@@ -1383,14 +1452,20 @@ def fetch_and_process_data(experiment_criteria, criteria_changed, debug_mode):
         st.info("Criteria have changed. Please click 'Fetch runs!' to update the data.")
         return False
 
-    st.session_state.data_loaded = False
+    st.session_state.results_data_loaded = False
     st.session_state.df = None
 
-    df = load_and_process_data(experiment_criteria)
+    result = load_and_process_data(experiment_criteria)
+
+    if result is None:
+        st.error("Failed to load or process data")
+        return False
+
+    df = result
 
     if df is not None and not df.is_empty():
         st.session_state.df = df
-        st.session_state.data_loaded = True
+        st.session_state.results_data_loaded = True
         st.success("Data loaded and processed successfully!")
 
         csv = df.to_pandas().to_csv()
@@ -1531,6 +1606,7 @@ def get_groupby_options(df, create_model_column):
         "is_playing_alone",
         "include_manual",
         "seed",
+        "game_id",
         "num_widgets",
         "outcome",
     ]
@@ -1565,7 +1641,7 @@ def get_groupby_options(df, create_model_column):
             df = df.explode("components")
             st.info("Components have been exploded. Each row now represents a single component.")
 
-    available_groupby = [col for col in groupby_options if col in df.columns]
+    available_groupby = sorted([col for col in groupby_options if col in df.columns])
 
     if not available_groupby:
         st.warning("No groupby columns available")
@@ -1576,7 +1652,9 @@ def get_groupby_options(df, create_model_column):
         st.session_state.groupby_cols = [available_groupby[0]] if available_groupby else []
 
     # Use available_groupby to filter any stale selections in session state
-    valid_selections = [col for col in st.session_state.groupby_cols if col in available_groupby]
+    valid_selections = sorted(
+        [col for col in st.session_state.groupby_cols if col in available_groupby]
+    )
 
     groupby_cols = st.sidebar.multiselect("Group by", available_groupby, default=valid_selections)
 
@@ -1686,6 +1764,35 @@ def apply_outcome_filter(df):
     return df
 
 
+def display_visualizations_for_aggregation(df, aggregate_metrics_by, groupby_cols):
+    """Display visualizations for aggregated data."""
+    # Empty function for now
+
+
+def setup_visualization_viewer():
+    """Setup visualization viewer controls."""
+    if st.session_state.get("aggregation_performed", False):
+        # Initialize session state for show_visualizations
+        if "show_visualizations" not in st.session_state:
+            st.session_state.show_visualizations = False
+
+        st.sidebar.subheader("Enable visualisations")
+
+        show_visualizations = st.sidebar.checkbox(
+            "Show visualizations", value=st.session_state.show_visualizations
+        )
+
+        # Update session state
+        st.session_state.show_visualizations = show_visualizations
+
+        if show_visualizations and st.sidebar.button("Generate Visualizations"):
+            # Set flag to show visualizations instead of calling display function directly
+            st.session_state.show_visualizations_for_data = True
+
+        return show_visualizations
+    return False
+
+
 def perform_and_display_aggregation(df, groupby_cols, aggregate_metrics_by, agg_functions):
     """Perform aggregation and display results."""
     # Use a unique key for this button to avoid conflicts
@@ -1712,14 +1819,14 @@ def perform_and_display_aggregation(df, groupby_cols, aggregate_metrics_by, agg_
             st.sidebar.warning(
                 "Please select metrics, group by columns, and aggregation functions"
             )
-        return
+        return None
 
     st.subheader("Aggregation Results")
 
     aggregated_df = perform_aggregation(df, groupby_cols, aggregate_metrics_by, agg_functions)
 
     if aggregated_df is None:
-        return
+        return None
 
     st.dataframe(aggregated_df)
 
@@ -1731,25 +1838,11 @@ def perform_and_display_aggregation(df, groupby_cols, aggregate_metrics_by, agg_
         mime="text/csv",
     )
 
-    # Initialize session state for show_visualizations
-    if "show_visualizations" not in st.session_state:
-        st.session_state.show_visualizations = False
-
-    show_visualizations = st.checkbox(
-        "Show visualizations", value=st.session_state.show_visualizations
-    )
-
-    # Update session state
-    st.session_state.show_visualizations = show_visualizations
-
-    if show_visualizations:
-        create_visualizations(df, aggregate_metrics_by, groupby_cols)
+    return aggregated_df  # Return the aggregated dataframe for visualizations
 
 
 def main() -> None:
     """Main function for the GPTNT Results Visualizer."""
-    st.title("GPTNT Results Visualizer")
-
     # Setup debug mode
     debug_mode = setup_debug_mode()
 
@@ -1774,14 +1867,19 @@ def main() -> None:
         display_debug_criteria(experiment_criteria, filter_method)
 
     # Check if data is already loaded or needs to be loaded
-    if not st.session_state.get("data_loaded", False):
-        data_loaded = fetch_and_process_data(experiment_criteria, criteria_changed, debug_mode)
-        if not data_loaded:
+    if not st.session_state.get("results_data_loaded", False):
+        results_data_loaded = fetch_and_process_data(
+            experiment_criteria, criteria_changed, debug_mode
+        )
+        if not results_data_loaded:
             st.info("Please fetch data first using the 'Fetch runs!' button in the sidebar.")
             return
 
     # Work with the loaded data
-    if st.session_state.get("data_loaded", False) and st.session_state.get("df") is not None:
+    if (
+        st.session_state.get("results_data_loaded", False)
+        and st.session_state.get("df") is not None
+    ):
         df = st.session_state.df
 
         main_content = st.container()
@@ -1831,7 +1929,20 @@ def main() -> None:
         df = apply_outcome_filter(df)
 
         # Perform and display aggregation
-        perform_and_display_aggregation(df, groupby_cols, aggregate_metrics_by, agg_functions)
+    perform_and_display_aggregation(df, groupby_cols, aggregate_metrics_by, agg_functions)
+
+    # Setup visualization viewer controls
+    show_visualization_viewer = setup_visualization_viewer()
+
+    # Show visualizations if requested
+    if show_visualization_viewer and st.session_state.get("show_visualizations_for_data"):
+        st.write("---")  # Add separator
+        display_visualizations_for_aggregation(df, aggregate_metrics_by, groupby_cols)
+
+        # Add button to close visualization viewer
+        if st.button("Close Visualization Viewer"):
+            del st.session_state.show_visualizations_for_data
+            st.rerun()
 
 
 if __name__ == "__main__":
