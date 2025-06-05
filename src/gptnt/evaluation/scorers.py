@@ -41,9 +41,18 @@ class CompareToGroundTruth:  # noqa: WPS338
                 input_string=output["output"], correct_symbol=ground_truth_symbol
             )
             return is_correct
+
+        model_output = output["output"].lower().strip()
+        if module == "morse":
+            model_output = model_output.replace("mhz", "").strip()
+        cleaned_ground_truth = (
+            ground_truth.lower().strip()
+            if isinstance(ground_truth, str)
+            else [answer.lower().strip() for answer in ground_truth]
+        )
         if isinstance(ground_truth, list):
-            return output["output"] in ground_truth
-        return output["output"] == ground_truth
+            return model_output in cleaned_ground_truth
+        return model_output == cleaned_ground_truth
 
     def check_keypad_result(self, input_string: str, correct_symbol: str) -> bool:
         """Checks if the input aligns with the correct symbol based on similarity metrics."""
