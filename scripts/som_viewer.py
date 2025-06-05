@@ -173,10 +173,10 @@ for module, screenshot, segmentation in image_pairs:
     draw = ImageDraw.Draw(pil_img)
     for region in regions:
         if module == KtaneComponent.wire_sequence:
-            coords = get_centered_stepped_coordinate(region)
+            flipped_coords = get_centered_stepped_coordinate(region)
         else:
             flipped_coords = region.centroid
-            coords = (flipped_coords[1], flipped_coords[0])
+        coords = (flipped_coords[1], flipped_coords[0])
 
         size = 5
         draw.line(

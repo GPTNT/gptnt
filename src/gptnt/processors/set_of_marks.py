@@ -339,9 +339,7 @@ def draw_region_masks(  # noqa: WPS210, WPS211
     return annotated_image
 
 
-def get_centered_stepped_coordinate(
-    region: RegionProperties, step_in: int = 10
-) -> tuple[float, float]:
+def get_centered_stepped_coordinate(region: RegionProperties) -> tuple[float, float]:
     """Returns (x, y) coordinate within region, stepping in from left before calculating y.
 
     - x = step_in from leftmost x (or closest available)
@@ -352,25 +350,21 @@ def get_centered_stepped_coordinate(
     unique_xs_sorted = np.sort(np.unique(all_xs))
 
     if len(unique_xs_sorted) == 0:
+        _logger.warning("No unique x coordinates found in region, returning centroid.")
         x_coord = region.centroid[1]
         y_coord = region.centroid[0]
     else:
-        leftmost_x = unique_xs_sorted[0]
-        stepped_x = leftmost_x + step_in
-        valid_xs = unique_xs_sorted[unique_xs_sorted >= stepped_x]
-        x_coord = (
-            valid_xs[0] if len(valid_xs) > 0 else unique_xs_sorted[len(unique_xs_sorted) // 2]
-        )
-
+        x_coord = unique_xs_sorted[len(unique_xs_sorted) // 6]
         # Now get all y values at that x
         ys_at_x = coords[coords[:, 1] == x_coord][:, 0]
         if len(ys_at_x) == 0:
+            _logger.warning("No y coordinates found at stepped x, using centroid instead.")
             x_coord = region.centroid[1]
             y_coord = region.centroid[0]
         else:
-            y_coord = ys_at_x.mean()
+            y_coord = np.round(ys_at_x.mean())
 
-    return x_coord, y_coord
+    return y_coord, x_coord
 
 
 @lru_cache(maxsize=1)
@@ -470,6 +464,7 @@ class SetOfMarksHandler:
             regions=regions,
             module=zoomed_in_component,
         )
+
         return annotated_image
 
     def mark_to_coordinate(self, *, mark_id: SetOfMarksLocation) -> RelativeCoordinate:
@@ -480,15 +475,6 @@ class SetOfMarksHandler:
             )
             raise InvalidMarkLocationError(mark_id)
         return self._mark_to_coordinate[mark_id]
-
-    def coordinate_to_mark(self, *, coordinate: RelativeCoordinate) -> SetOfMarksLocation:
-        """Convert a relative coordinate to a mark ID."""
-        for mark_id, coord in self._mark_to_coordinate.items():
-            if np.isclose(coord.x_pos, coordinate.x_pos) and np.isclose(
-                coord.y_pos, coordinate.y_pos
-            ):
-                return mark_id
-        raise InvalidMarkLocationError(location=coordinate)
 
     def draw_labels(
         self,
@@ -553,7 +539,7 @@ class SetOfMarksHandler:
             label_to_coord[self._format_label(region.label)] = RelativeCoordinate(
                 x_pos=norm_x, y_pos=norm_y
             )
-
+        _logger.info("Label to coord", label_to_coord=label_to_coord)
         self._mark_to_coordinate = label_to_coord
 
     def _format_label(self, label_num: int) -> str | int:
