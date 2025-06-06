@@ -1,5 +1,7 @@
 from collections.abc import Generator
 
+import numpy as np
+
 from gptnt.processors.labels.types import (
     Coordinates,
     DrawData,
@@ -28,10 +30,12 @@ def _resolve_overlaps(
         ):
             # push current label upwards
             new_y = (
-                below_label.y_pos - box_dims.height - box_dims.padding * 2 - box_dims.space_between
+                current_label.y_pos
+                - box_dims.height
+                - box_dims.padding * 2
+                - box_dims.space_between
             )
-            new_coords[idx] = Coordinates(y_pos=new_y, x_pos=current_label.x_pos)
-
+            new_coords[idx + 1] = Coordinates(y_pos=new_y, x_pos=below_label.x_pos)
     # move downwards from centre label
     for idx in range(center_label_index + 1, len(new_coords)):  # noqa: WPS518
         above_label = new_coords[idx - 1]
@@ -44,9 +48,12 @@ def _resolve_overlaps(
         ):
             # push current label downwards
             new_y = (
-                above_label.y_pos + box_dims.height + box_dims.padding * 2 + box_dims.space_between
+                current_label.y_pos
+                - box_dims.height
+                - box_dims.padding * 2
+                - box_dims.space_between
             )
-            new_coords[idx] = Coordinates(y_pos=new_y, x_pos=current_label.x_pos)
+            new_coords[idx - 1] = Coordinates(y_pos=new_y, x_pos=above_label.x_pos)
 
     return new_coords
 
@@ -54,7 +61,7 @@ def _resolve_overlaps(
 def wire_sequence(  # noqa: WPS210
     regions: list[RegionProperties], box_dims: NumberBoxDimensions, *, x_offset: int = 20
 ) -> Generator[DrawData]:
-    """Generate draw data for venn module."""
+    """Generate draw data for wire sequence module."""
     # sort regions by label as coordinates are unreliable
     sorted_regions = sorted(regions, key=lambda region: region.label)
 
@@ -62,7 +69,8 @@ def wire_sequence(  # noqa: WPS210
     ideal_coords = []
     for region in sorted_regions:
         x_coord = region.bbox[1] - box_dims.width // 2 - box_dims.padding - x_offset
-        y_coord = int(region.centroid[0])
+        angle = np.rad2deg(region.orientation)
+        y_coord = region.bbox[2] if angle < 0 else region.bbox[0]
 
         coord = Coordinates(y_pos=y_coord, x_pos=x_coord)
         ideal_coords.append(coord)

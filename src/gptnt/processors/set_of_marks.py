@@ -526,7 +526,6 @@ class SetOfMarksHandler:
             label_to_coord[self._format_label(region.label)] = RelativeCoordinate(
                 x_pos=norm_x, y_pos=norm_y
             )
-        _logger.info("Label to coord", label_to_coord=label_to_coord)
         self._mark_to_coordinate = label_to_coord
 
     def _format_label(self, label_num: int) -> str | int:
