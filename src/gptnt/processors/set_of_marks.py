@@ -32,7 +32,10 @@ from gptnt.processors.labels.keypad import keypad
 from gptnt.processors.labels.maze import maze
 from gptnt.processors.labels.memory import memory
 from gptnt.processors.labels.morse import morse_code
-from gptnt.processors.labels.ordering import relabel_regions_in_reading_order
+from gptnt.processors.labels.ordering import (
+    get_centered_stepped_coordinate,
+    relabel_regions_in_reading_order,
+)
 from gptnt.processors.labels.password import password
 from gptnt.processors.labels.simon import simon
 from gptnt.processors.labels.types import (  # noqa: WPS235
@@ -338,34 +341,6 @@ def draw_region_masks(  # noqa: WPS210, WPS211
         annotated_image[~combined_mask] = gray_image[~combined_mask]
 
     return annotated_image
-
-
-def get_centered_stepped_coordinate(region: RegionProperties) -> tuple[float, float]:
-    """Returns (x, y) coordinate within region, stepping in from left before calculating y.
-
-    - x = step_in from leftmost x (or closest available)
-    - y = mean y of pixels at that x
-    """
-    coords = region.coords
-    all_xs = coords[:, 1]
-    unique_xs_sorted = np.sort(np.unique(all_xs))
-
-    if len(unique_xs_sorted) == 0:
-        _logger.warning("No unique x coordinates found in region, returning centroid.")
-        x_coord = region.centroid[1]
-        y_coord = region.centroid[0]
-    else:
-        x_coord = unique_xs_sorted[len(unique_xs_sorted) // 6]
-        # Now get all y values at that x
-        ys_at_x = coords[coords[:, 1] == x_coord][:, 0]
-        if len(ys_at_x) == 0:
-            _logger.warning("No y coordinates found at stepped x, using centroid instead.")
-            x_coord = region.centroid[1]
-            y_coord = region.centroid[0]
-        else:
-            y_coord = np.round(ys_at_x.mean())
-
-    return y_coord, x_coord
 
 
 @lru_cache(maxsize=1)

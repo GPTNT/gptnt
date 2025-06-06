@@ -34,6 +34,35 @@ def _check_row_overlap(r1: RegionData, r2: RegionData, *, threshold: float = 0.5
     return (overlap_height / min_height) >= threshold
 
 
+def get_centered_stepped_coordinate(region: RegionProperties) -> tuple[float, float]:
+    """Returns (x, y) coordinate within region, stepping in from left before calculating y.
+
+    - x = step_in from leftmost x (or closest available)
+    - y = mean y of pixels at that x
+    """
+    coords = region.coords
+    all_xs = coords[:, 1]
+    unique_xs_sorted = np.sort(np.unique(all_xs))
+
+    if len(unique_xs_sorted) == 0:
+        _logger.warning("No unique x coordinates found in region, returning centroid.")
+        x_coord = region.centroid[1]
+        y_coord = region.centroid[0]
+    else:
+        x_coord = unique_xs_sorted[len(unique_xs_sorted) // 6]
+        # Now get all y values at that x
+        ys_at_x = coords[coords[:, 1] == x_coord][:, 0]
+        if len(ys_at_x) == 0:
+            _logger.warning("No y coordinates found at stepped x, using centroid instead.")
+            x_coord = region.centroid[1]
+            y_coord = region.centroid[0]
+        else:
+            # Use median to select a y value that is part of the regions
+            y_coord = float(np.median(ys_at_x))
+
+    return y_coord, x_coord
+
+
 def order_regions_reading_order(  # noqa: WPS231
     regions: Sequence[RegionProperties], zoomed_in_component: KtaneComponent | None
 ) -> list[int]:
@@ -41,17 +70,22 @@ def order_regions_reading_order(  # noqa: WPS231
     if not regions:
         return []
 
-    region_data = [
-        RegionData(
-            label=region.label,
-            centroid_y=region.centroid[0],
-            centroid_x=region.centroid[1],
-            min_y=region.bbox[0],
-            max_y=region.bbox[2],
-            height=region.bbox[2] - region.bbox[0],
+    region_data = []
+    for region in regions:
+        if zoomed_in_component == KtaneComponent.wire_sequence:
+            coords = get_centered_stepped_coordinate(region)
+        else:
+            coords = region.centroid
+        region_data.append(
+            RegionData(
+                label=region.label,
+                centroid_y=coords[0],
+                centroid_x=coords[1],
+                min_y=region.bbox[0],
+                max_y=region.bbox[2],
+                height=region.bbox[2] - region.bbox[0],
+            )
         )
-        for region in regions
-    ]
 
     rows = []
     for region in sorted(region_data, key=lambda row: row["centroid_y"]):
