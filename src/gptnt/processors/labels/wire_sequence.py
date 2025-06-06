@@ -1,6 +1,7 @@
 from collections.abc import Generator
 
 import numpy as np
+import structlog
 
 from gptnt.processors.labels.types import (
     Coordinates,
@@ -10,6 +11,7 @@ from gptnt.processors.labels.types import (
 )
 
 VERTICAL_OFFSET = 5
+logger = structlog.get_logger()
 
 
 def _resolve_overlaps(
@@ -17,43 +19,19 @@ def _resolve_overlaps(
 ) -> list[Coordinates]:
     """Resolve overlaps between labels by pushing them apart."""
     new_coords = coords.copy()
-
+    logger.info("labels", new_coords=new_coords, center_label_index=center_label_index)
     # move upwards from centre label
-    for idx in range(center_label_index - 1, -1, -1):
-        below_label = new_coords[idx + 1]
-        current_label = new_coords[idx]
-
-        # if label's top side overlaps with next label's bottom side
+    for idx in range(center_label_index, 0, -1):
+        prev_idx = idx - 1
         if (
-            current_label.y_pos + box_dims.height + box_dims.padding * 2 + box_dims.space_between
-            > below_label.y_pos
+            new_coords[idx].y_pos
+            <= new_coords[prev_idx].y_pos + box_dims.height + box_dims.padding * 2
         ):
-            # push current label upwards
-            new_y = (
-                current_label.y_pos
-                - box_dims.height
-                - box_dims.padding * 2
-                - box_dims.space_between
+            new_coords[prev_idx] = Coordinates(
+                y_pos=new_coords[idx].y_pos - box_dims.height - box_dims.padding * 2,
+                x_pos=new_coords[prev_idx].x_pos,
             )
-            new_coords[idx + 1] = Coordinates(y_pos=new_y, x_pos=below_label.x_pos)
-    # move downwards from centre label
-    for idx in range(center_label_index + 1, len(new_coords)):  # noqa: WPS518
-        above_label = new_coords[idx - 1]
-        current_label = new_coords[idx]
-
-        # if label's top side overlaps with previous label's bottom side
-        if (
-            current_label.y_pos
-            < above_label.y_pos + box_dims.height + box_dims.padding * 2 + box_dims.space_between
-        ):
-            # push current label downwards
-            new_y = (
-                current_label.y_pos
-                - box_dims.height
-                - box_dims.padding * 2
-                - box_dims.space_between
-            )
-            new_coords[idx - 1] = Coordinates(y_pos=new_y, x_pos=above_label.x_pos)
+            logger.info("moved label up", index=prev_idx, new_coord=new_coords[prev_idx])
 
     return new_coords
 
