@@ -45,6 +45,8 @@ run_and_track "experiment_manager" env uv run python ./src/gptnt/entrypoints/run
 # Set up trap to clean up on exit
 trap 'echo "Script interrupted."; exit 1' INT TERM
 
+sleep 10
+
 # Script continues here after successful response
 echo "Continuing with the rest of the script..."
 
@@ -52,25 +54,30 @@ echo "Continuing with the rest of the script..."
 for ((i = 0; i < NUM_ROOMS; i++)); do
   echo "THROWING: Starting room manager on DISPLAY=:$DISPLAY_NUM..."
   run_and_track "game_$i" env DISPLAY=:$DISPLAY_NUM uv run python ./src/gptnt/entrypoints/run_game_instance.py
+  sleep 5
   run_and_track "room_$i" env uv run python ./src/gptnt/entrypoints/run_room_instance.py
+  sleep 2
 done
 
 # spawn claude37_bedrock players
 for ((i = 0; i < CLAUDE_PLAYERS; i++)); do
   echo "THROWING: Starting claude37_bedrock player $i..."
   run_and_track "claude37_bedrock_$i" env WANDB_RUN_GROUP=THROWING uv run python src/gptnt/entrypoints/run_player.py model=claude37_bedrock
+  sleep 1
 done
 
 # spawn gemini-25 players
 for ((i = 0; i < GEMINI_PLAYERS; i++)); do
   echo "THROWING: Starting gemini-25 player $i..."
   run_and_track "gemini_25_player_$i" env WANDB_RUN_GROUP=THROWING uv run python src/gptnt/entrypoints/run_player.py model=gemini-25
+  sleep 1
 done
 
 # spawn gpt4o players
 for ((i = 0; i < GPT4O_PLAYERS; i++)); do
   echo "THROWING: Starting gpt4o player $i..."
   run_and_track "gpt4o_player_$i" env WANDB_RUN_GROUP=THROWING uv run python src/gptnt/entrypoints/run_player.py model=gpt4o
+  sleep 1
 done
 
 # wait and monitor
