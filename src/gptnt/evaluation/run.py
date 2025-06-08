@@ -34,12 +34,12 @@ MCQ_INSTRUCTION = "Answer the following multiple choice question based on the gi
 
 
 def convert_hf_dataset_to_weave_dataset(
-    hf_dataset: datasets.Dataset, task_name: str
+    hf_dataset: datasets.Dataset, task_name: TaskType
 ) -> WeaveDataset:
     """Convert a Hugging Face dataset to a Weave dataset."""
     polars_df = datasets.Dataset.to_polars(self=hf_dataset)
     assert isinstance(polars_df, pl.DataFrame)
-    polars_df = polars_df.with_row_index("index")
+    polars_df = polars_df.with_row_index("index").filter(pl.col("input_type") == task_name)
     weave_dataset = WeaveDataset(name=task_name, rows=weave.Table(polars_df.to_dicts()))
     return weave_dataset
 
@@ -139,7 +139,7 @@ class RunEvaluation(abc.ABC):
 class RunGroundingEvaluation(RunEvaluation):
     """Run the grounding evaluation."""
 
-    hf_dataset_name: str = "GPTNT/grounding-dataset"
+    hf_dataset_name: str = "GPTNT/defuser-vqa-and-grounding-dataset"
     task_name = "grounding"
     weave_project: str = "gptnt/grounding"
 
