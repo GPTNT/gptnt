@@ -8,7 +8,11 @@ from structlog import get_logger
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
 from gptnt.common.prompt_cache import PromptCache
-from gptnt.evaluation.run import RunExpertVQAEvaluation, RunGroundingEvaluation
+from gptnt.evaluation.run import (
+    RunDefuserVQAEvaluation,
+    RunExpertVQAEvaluation,
+    RunGroundingEvaluation,
+)
 from gptnt.ktane.manual import KtaneManualPaths
 
 configure_logging()
@@ -44,7 +48,7 @@ def run_grounding_evaluation(
     """Run the defuser grounding evaluation."""
     agent = load_agent(model)
     logger.info("Running evaluation", agent=agent)
-    run_eval = RunGroundingEvaluation(agent=agent, task_name="grounding")
+    run_eval = RunGroundingEvaluation(agent=agent)
     if should_throw:
         run_eval.throw()
     if should_upload:
@@ -59,10 +63,11 @@ def run_vqa_evaluation(
     """Run the defuser VQA."""
     agent = load_agent(model)
     logger.info("Running VQA evaluation", agent=agent)
+    run_eval = RunDefuserVQAEvaluation(agent=agent)
     if should_throw:
-        raise NotImplementedError
+        run_eval.throw()
     if should_upload:
-        raise NotImplementedError
+        run_eval.upload()
     logger.info("VQA evaluation completed successfully", agent=agent)
 
 
@@ -76,7 +81,7 @@ def run_expert_vqa_evaluation(
     )
     agent = load_agent(model)
     logger.info("Running expert VQA evaluation", agent=agent)
-    run_eval = RunExpertVQAEvaluation(agent=agent, task_name="expert_vqa")
+    run_eval = RunExpertVQAEvaluation(agent=agent)
     if should_throw:
         run_eval.throw()
     if should_upload:

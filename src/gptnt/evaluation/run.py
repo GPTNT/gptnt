@@ -140,7 +140,7 @@ class RunGroundingEvaluation(RunEvaluation):
     """Run the grounding evaluation."""
 
     hf_dataset_name: str = "GPTNT/defuser-vqa-and-grounding-dataset"
-    task_name = "grounding"
+    task_name: TaskType = "grounding"
     weave_project: str = "gptnt/grounding"
 
     preprocess_instance_func: PostprocessInputsFunc = preprocess_grounding_instance
@@ -155,11 +155,18 @@ class RunGroundingEvaluation(RunEvaluation):
         return weave_dataset
 
 
+class RunDefuserVQAEvaluation(RunGroundingEvaluation):
+    """Run the defuser VQA evaluation."""
+
+    task_name: TaskType = "vqa"
+    weave_project: str = "gptnt/defuser-vqa"
+
+
 @dataclass(kw_only=True)
 class RunExpertVQAEvaluation(RunEvaluation):
     """Run the expert VQA evaluation."""
 
-    task_name = "expert_vqa"
+    task_name: TaskType = "expert_vqa"
 
     instructions = MCQ_INSTRUCTION
     weave_project: str = "gptnt/expert-vqa"
