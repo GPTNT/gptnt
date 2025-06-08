@@ -21,6 +21,9 @@ def preprocess_grounding_instance(instance: dict[str, Any]) -> dict[str, Any]:
     if isinstance(som_image, str):
         som_image = Image.open(som_image).copy()
 
+    if isinstance(som_image, dict) and "bytes" in som_image:
+        som_image = Image.open(io.BytesIO(som_image["bytes"])).copy()
+
     return {
         "model_input": instance["model_input"],
         "ground_truth": instance["ground_truth"],
