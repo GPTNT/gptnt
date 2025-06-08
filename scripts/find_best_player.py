@@ -28,7 +28,6 @@ def create_leaderboard(counter: Counter, title: str) -> Table:
 
 def create_pairwise_table(pair_counter: Counter) -> Table:
     """Create a pairwise matrix table."""
-    console.print(pair_counter)
     # Get all unique players
     all_players = set()
     for defuser, expert in pair_counter:
