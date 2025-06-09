@@ -1,13 +1,10 @@
 import asyncio
-from collections import defaultdict
 from pathlib import Path
 from typing import Annotated
 
 import typer
-import wandb
 from faststream.rabbit import RabbitBroker
 from rich.console import Console
-from rich.progress import track
 from structlog import get_logger
 
 from gptnt.api.api import APIQueues
@@ -15,9 +12,11 @@ from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
 from gptnt.entrypoints._async_typer import AsyncTyper
 from gptnt.experiments.experiments import ExperimentSpec
-
-# TODO: to throw the human experiments, we need a list of their participant IDs ---- which are also
-# the UUIDs wtih which we are going to be connecting.
+from gptnt.experiments.wandb import (
+    collate_runs_per_experiment_per_game,
+    get_runs_from_wandb,
+    get_valid_experiments_from_collated_runs,
+)
 
 configure_logging()
 logger = get_logger()
@@ -45,23 +44,11 @@ def _filter_experiments(  # noqa: WPS210
     loaded_experiment_names = (experiment.experiment_name for experiment in loaded_experiments)
 
     with console.status("Checking for existing runs on wandb..."):
-        wandb_runs = wandb.Api().runs(
-            path=wandb_path,
-            filters={
-                "$and": [
-                    {
-                        "$or": [
-                            {"config.experiment_name": name} for name in loaded_experiment_names
-                        ]
-                    },
-                    {"tags": {"$nin": ["old"]}},
-                ]
-            },
-        )
-        logger.info(
-            f"Found {len(wandb_runs)} existing runs on wandb",
-            runs=len(wandb_runs),
-            path=wandb_path,
+        wandb_runs = get_runs_from_wandb(
+            wandb_path,
+            additional_filters=[
+                {"$or": [{"config.experiment_name": name} for name in loaded_experiment_names]}
+            ],
         )
 
         # If there are no runs, return all loaded experiments
@@ -69,26 +56,8 @@ def _filter_experiments(  # noqa: WPS210
             logger.info("No existing runs found on wandb, throwing all experiments.")
             return loaded_experiments
 
-    runs_per_experiment_per_game = defaultdict(lambda: defaultdict(list))
-    for run in track(wandb_runs, description="Collating runs...", total=len(wandb_runs)):
-        runs_per_experiment_per_game[run.config["experiment_name"]][run.config["game_id"]].append(
-            run
-        )
-
-    # Ensure that we have a single game that is valid for all experiments
-    valid_experiments = []
-    for experiment_name, runs_per_game in track(
-        runs_per_experiment_per_game.items(), description="Filtering valid experiments..."
-    ):
-        valid_games = [
-            game_id
-            for game_id, runs in runs_per_game.items()
-            if all(game_run.summary.get("hard_crash", True) is False for game_run in runs)
-            and all(game_run.state == "finished" for game_run in runs)
-        ]
-        if valid_games:
-            valid_experiments.append(experiment_name)
-
+    runs_per_experiment_per_game = collate_runs_per_experiment_per_game(wandb_runs)
+    valid_experiments = get_valid_experiments_from_collated_runs(runs_per_experiment_per_game)
     invalid_experiments: list[ExperimentSpec] = [
         experiment
         for experiment in loaded_experiments

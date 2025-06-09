@@ -14,6 +14,8 @@ import streamlit as st
 import structlog
 import wandb
 
+from gptnt.experiments.wandb import get_runs_from_wandb
+
 # Initialize session state
 if "results_data_loaded" not in st.session_state:
     st.session_state.results_data_loaded = False
@@ -460,16 +462,9 @@ def fetch_runs(
 ) -> list[Any] | None:
     """Fetch runs from Weights & Biases API."""
     try:
-        inclusion_criteria = [
-            {"state": "finished"},
-            {"summary_metrics.hard_crash": False},
-            {"tags": {"$nin": ["old"]}},
-            {"config.role": role},
-        ]
-        inclusion_criteria += experiment_criteria
-
-        return wandb_api.runs(
-            f"{wandb_entity}/{wandb_project}", filters={"$and": inclusion_criteria}
+        return get_runs_from_wandb(
+            f"{wandb_entity}/{wandb_project}",
+            additional_filters=[{"config.role": role}, *experiment_criteria],
         )
     except wandb.errors.CommError as e:
         st.error(f"Communication error with W&B API: {e}")
