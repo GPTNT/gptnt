@@ -1,10 +1,5 @@
-import functools
-import hashlib
 import json
-import pickle
 import shutil
-from collections.abc import Callable
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
@@ -30,52 +25,6 @@ wandb_project = "for-real"
 wandb_api = wandb.Api()
 
 logger = structlog.get_logger()
-
-CACHE_DIR = ".cache"
-
-
-def disk_memoize(cache_dir: str = CACHE_DIR, max_age_seconds: int | None = None):
-    """Memoize function results to disk with optional expiration."""
-    Path(cache_dir).mkdir(exist_ok=True)
-
-    def decorator(func: Callable):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            # Generate unique cache key
-            hash_input = (func.__name__, args, frozenset(kwargs.items()))
-            hash_str = hashlib.md5(pickle.dumps(hash_input)).hexdigest()
-            cache_path = Path(cache_dir) / f"{func.__name__}_{hash_str}.pkl"
-
-            # Try to load from cache
-            if cache_path.exists():
-                try:
-                    with Path.open(cache_path, "rb") as f:
-                        cache_data = pickle.load(f)
-                        cached_time = cache_data["timestamp"]
-                        result = cache_data["result"]
-
-                        if (
-                            max_age_seconds is None
-                            or (datetime.now(UTC) - cached_time).total_seconds() <= max_age_seconds
-                        ):
-                            return result  # valid cache
-                except (OSError, pickle.PickleError) as e:
-                    logger.warning(f"Failed to load cache: {e}")
-
-            # Compute and save to cache
-            result = func(*args, **kwargs)
-            cache_data = {"timestamp": datetime.now(UTC), "result": result}
-            try:
-                with Path.open(cache_path, "wb") as f:
-                    pickle.dump(cache_data, f)
-            except (OSError, pickle.PickleError) as e:
-                logger.warning(f"Failed to save cache: {e}")
-
-            return result
-
-        return wrapper
-
-    return decorator
 
 
 def update_available_options(
@@ -354,7 +303,7 @@ def get_custom_criteria():
             manual_access = False
 
     # Store in session state for use in fetch_runs
-    st.session_state.playing_alone = "Alone" in defuser_playing
+    st.session_state.playing_alone = defuser_playing == ["Alone"]
     st.session_state.manual_access = manual_access
 
     # Store the user's selections in session state for debugging
@@ -401,6 +350,8 @@ def handle_experiment_3_selection() -> list[dict[str, Any]] | None:
         {"config.is_playing_alone": True},
     ]
 
+    st.session_state.playing_alone = True
+
     # Initialize session state for manual checkbox
     if "manual_exp3" not in st.session_state:
         st.session_state.manual_exp3 = False
@@ -410,10 +361,9 @@ def handle_experiment_3_selection() -> list[dict[str, Any]] | None:
     # Update session state
     st.session_state.manual_exp3 = manual
 
-    if manual:
-        criteria.append({"config.include_manual": True})
-        return criteria
-    return None
+    criteria.append({"config.include_manual": manual})
+
+    return criteria
 
 
 def get_experiment_criteria(experiment) -> list[dict[str, Any]]:
@@ -673,7 +623,7 @@ def handle_cache_clearing():
     """Handle cache clearing functionality."""
     if st.sidebar.button("Clear Cache"):
         try:
-            shutil.rmtree(CACHE_DIR)
+            st.cache_data.clear()
             # Set flag to indicate cache was deliberately cleared
             st.session_state.cache_cleared = True
             st.sidebar.success("Cache cleared successfully!")
@@ -918,6 +868,7 @@ def extract_defuser_metrics(defuser_df):
     ]
     defuser_cols.extend(action_cols)
     defuser_cols.extend(message_cols)
+    defuser_cols.append("reflection_defuser")
 
     if len(defuser_cols) > 1:
         return defuser_df.select(defuser_cols)
@@ -928,7 +879,9 @@ def clean_joined_dataframe(joined_df):
     """Clean and standardize the joined dataframe."""
     # Filter out rows with null expert or defuser names
     joined_df = joined_df.filter(
-        pl.col("expert_name").is_not_null() & pl.col("defuser_name").is_not_null()
+        pl.when(pl.col("is_playing_alone"))
+        .then(pl.col("defuser_name").is_not_null())
+        .otherwise(pl.col("expert_name").is_not_null() & pl.col("defuser_name").is_not_null())
     )
 
     # Convert boolean columns to integers
@@ -986,8 +939,8 @@ def cache_artifact_directory(artifact_dir: str, identifier: str) -> None:
     st.session_state.wandb_artifact_cache[identifier] = artifact_dir
 
 
-@disk_memoize(max_age_seconds=60 * 60 * 2)
-def load_and_process_data(experiment_criteria):
+@st.cache_data
+def load_and_process_run_data(experiment_criteria):
     """Load and process data from Weights & Biases with caching."""
     with st.spinner("Loading and processing data..."):
         status_text = st.empty()
@@ -1167,6 +1120,15 @@ def transform_to_model_based(df):
     return pl.concat([expert_data, defuser_data])
 
 
+def add_partial_success_column(df):
+    """Add a column indicating partial success based on solved modules."""
+    if "modules_solved" in df.columns and "components" in df.columns:
+        df = df.with_columns(
+            (pl.col("modules_solved") / pl.col("components").list.len()).alias("partial_success")
+        )
+    return df
+
+
 def add_component_analysis_columns(df):
     """Add component analysis columns to the dataframe."""
     if "components" in df.columns:
@@ -1274,40 +1236,48 @@ def find_best_models(df, experiment):
         # Initialize session state for best models
         if "best_expert_model" not in st.session_state:
             st.session_state.best_expert_model = expert_options[0] if expert_options else None
-        if "best_defuser_model" not in st.session_state:
-            st.session_state.best_defuser_model = defuser_options[0] if defuser_options else None
 
-        best_expert = st.sidebar.selectbox(
-            "Best 'Expert' model",
-            expert_options,
-            index=expert_options.index(st.session_state.best_expert_model)
-            if st.session_state.best_expert_model in expert_options
-            else 0,
-        )
+        # We skip the best defuser selection for analyses of runs without expert
+        if st.session_state.best_expert_model is not None:
+            if "best_defuser_model" not in st.session_state:
+                st.session_state.best_defuser_model = (
+                    defuser_options[0] if defuser_options else None
+                )
 
-        # Update session state
-        st.session_state.best_expert_model = best_expert
+            best_expert = st.sidebar.selectbox(
+                "Best 'Expert' model",
+                expert_options,
+                index=expert_options.index(st.session_state.best_expert_model)
+                if st.session_state.best_expert_model in expert_options
+                else 0,
+            )
 
-        if not best_expert:
-            st.warning("Please select a best expert model")
-            return None, None
+            # Update session state
+            st.session_state.best_expert_model = best_expert
 
-        best_defuser = st.sidebar.selectbox(
-            "Best 'Defuser' model",
-            defuser_options,
-            index=defuser_options.index(st.session_state.best_defuser_model)
-            if st.session_state.best_defuser_model in defuser_options
-            else 0,
-        )
+            if not best_expert:
+                st.warning("Please select a best expert model")
+                return None, None
 
-        # Update session state
-        st.session_state.best_defuser_model = best_defuser
+            best_defuser = st.sidebar.selectbox(
+                "Best 'Defuser' model",
+                defuser_options,
+                index=defuser_options.index(st.session_state.best_defuser_model)
+                if st.session_state.best_defuser_model in defuser_options
+                else 0,
+            )
 
-        if not best_defuser:
-            st.warning("Please select a best defuser model")
-            return None, None
+            # Update session state
+            st.session_state.best_defuser_model = best_defuser
 
-    return best_expert, best_defuser
+            if not best_defuser:
+                st.warning("Please select a best defuser model")
+                return None, None
+
+        else:
+            st.session_state.best_defuser_model = None
+
+    return st.session_state.best_expert_model, st.session_state.best_defuser_model
 
 
 def apply_pairing_filters(df, filter_same, filter_best_expert, filter_best_defuser, filter_rest):
@@ -1450,7 +1420,7 @@ def fetch_and_process_data(experiment_criteria, criteria_changed, debug_mode):
     st.session_state.results_data_loaded = False
     st.session_state.df = None
 
-    result = load_and_process_data(experiment_criteria)
+    result = load_and_process_run_data(experiment_criteria)
 
     if result is None:
         st.error("Failed to load or process data")
@@ -1488,9 +1458,14 @@ def fetch_and_process_data(experiment_criteria, criteria_changed, debug_mode):
 
 def prepare_dataframe_for_analysis(df, experiment, debug_mode):
     """Prepare the dataframe for analysis by adding columns and determining outcomes."""
+    # Calculate the partial success column
+    df = add_partial_success_column(df)
+
     # Find best models
     best_expert, best_defuser = find_best_models(df, experiment)
-    if best_expert is None or best_defuser is None:
+    if (best_expert is None or best_defuser is None) and not st.session_state.get(
+        "playing_alone", False
+    ):
         return None, None, None
 
     # Add pairing columns
@@ -1604,6 +1579,8 @@ def get_groupby_options(df, create_model_column):
         "game_id",
         "num_widgets",
         "outcome",
+        "reflection_defuser",
+        "reflection_expert",
     ]
 
     if create_model_column:
@@ -1882,10 +1859,30 @@ def main() -> None:
             header_placeholder = st.empty()
             header_placeholder.header("Runs have been fetched!")
 
+        # Check if we're in a scenario where we don't need expert-defuser pairing analysis
+        is_experiment_3 = experiment == 3
+        is_only_alone = filter_method == "Custom Criteria" and st.session_state.get(
+            "defuser_playing"
+        ) == ["Alone"]
+        skip_pairing_analysis = is_experiment_3 or is_only_alone
+
         # Prepare dataframe for analysis
-        df, best_expert, best_defuser = prepare_dataframe_for_analysis(df, experiment, debug_mode)
-        if df is None:
-            return
+        if skip_pairing_analysis:
+            # For Experiment 3 or "Alone" only scenarios, skip best model finding
+            df = add_partial_success_column(df)
+            df = determine_outcome(df)
+            best_expert, best_defuser = None, None
+
+            if debug_mode and "outcome" in df.columns:
+                outcome_counts = df.group_by("outcome").count().sort("count", descending=True)
+                st.sidebar.write("Outcome distribution:", outcome_counts.to_pandas())
+        else:
+            # Normal case with expert-defuser pairings
+            df, best_expert, best_defuser = prepare_dataframe_for_analysis(
+                df, experiment, debug_mode
+            )
+            if df is None:
+                return
 
         # Prepare numeric columns
         df, numeric_cols = prepare_numeric_columns(df, debug_mode)
@@ -1907,37 +1904,42 @@ def main() -> None:
         if groupby_cols is None:
             return
 
-        # Setup pairing filters
-        filter_same, filter_best_expert, filter_best_defuser, filter_rest = setup_pairing_filters(
-            groupby_cols, best_expert, best_defuser
-        )
+        # Setup pairing filters ONLY when we have expert-defuser pairings
+        if not skip_pairing_analysis and best_expert is not None and best_defuser is not None:
+            filter_same, filter_best_expert, filter_best_defuser, filter_rest = (
+                setup_pairing_filters(groupby_cols, best_expert, best_defuser)
+            )
 
-        # Apply pairing filters
-        df = apply_pairing_filters(
-            df, filter_same, filter_best_expert, filter_best_defuser, filter_rest
-        )
+            # Apply pairing filters
+            df = apply_pairing_filters(
+                df, filter_same, filter_best_expert, filter_best_defuser, filter_rest
+            )
 
-        if filter_same or filter_best_expert or filter_best_defuser or filter_rest:
-            st.sidebar.info(f"Showing {len(df)} runs after applying filters.")
+            if filter_same or filter_best_expert or filter_best_defuser or filter_rest:
+                st.sidebar.info(f"Showing {len(df)} runs after applying filters.")
 
         # Apply outcome filter
         df = apply_outcome_filter(df)
 
         # Perform and display aggregation
-    perform_and_display_aggregation(df, groupby_cols, aggregate_metrics_by, agg_functions)
+        perform_and_display_aggregation(df, groupby_cols, aggregate_metrics_by, agg_functions)
 
-    # Setup visualization viewer controls
-    show_visualization_viewer = setup_visualization_viewer()
+        # Setup visualization viewer controls
+        show_visualization_viewer = setup_visualization_viewer()
 
-    # Show visualizations if requested
-    if show_visualization_viewer and st.session_state.get("show_visualizations_for_data"):
-        st.write("---")  # Add separator
-        display_visualizations_for_aggregation(df, aggregate_metrics_by, groupby_cols)
+        # Show visualizations if requested
+        if show_visualization_viewer and st.session_state.get("show_visualizations_for_data"):
+            st.write("---")  # Add separator
+            display_visualizations_for_aggregation(df, aggregate_metrics_by, groupby_cols)
 
-        # Add button to close visualization viewer
-        if st.button("Close Visualization Viewer"):
-            del st.session_state.show_visualizations_for_data
-            st.rerun()
+            # Add button to close visualization viewer
+            if st.button("Close Visualization Viewer"):
+                del st.session_state.show_visualizations_for_data
+                st.rerun()
+
+
+if __name__ == "__main__":
+    main()
 
 
 if __name__ == "__main__":

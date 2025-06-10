@@ -1,12 +1,7 @@
-import functools
-import hashlib
 import itertools
 import json
-import pickle
 import shutil
 import warnings
-from collections.abc import Callable
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -56,53 +51,8 @@ wandb_api = wandb.Api()
 
 logger = structlog.get_logger()
 
-CACHE_DIR = ".cache"
 
 warnings.filterwarnings("ignore", message=".*st.experimental_user.*")
-
-
-def disk_memoize(cache_dir: str = CACHE_DIR, max_age_seconds: int | None = None):
-    """Memoize function results to disk with optional expiration."""
-    Path(cache_dir).mkdir(exist_ok=True)
-
-    def decorator(func: Callable):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            # Generate unique cache key
-            hash_input = (func.__name__, args, frozenset(kwargs.items()))
-            hash_str = hashlib.md5(pickle.dumps(hash_input)).hexdigest()
-            cache_path = Path(cache_dir) / f"{func.__name__}_{hash_str}.pkl"
-
-            # Try to load from cache
-            if cache_path.exists():
-                try:
-                    with Path.open(cache_path, "rb") as f:
-                        cache_data = pickle.load(f)
-                        cached_time = cache_data["timestamp"]
-                        result = cache_data["result"]
-
-                        if (
-                            max_age_seconds is None
-                            or (datetime.now(UTC) - cached_time).total_seconds() <= max_age_seconds
-                        ):
-                            return result  # valid cache
-                except (OSError, pickle.PickleError) as e:
-                    logger.warning(f"Failed to load cache: {e}")
-
-            # Compute and save to cache
-            result = func(*args, **kwargs)
-            cache_data = {"timestamp": datetime.now(UTC), "result": result}
-            try:
-                with Path.open(cache_path, "wb") as f:
-                    pickle.dump(cache_data, f)
-            except (OSError, pickle.PickleError) as e:
-                logger.warning(f"Failed to save cache: {e}")
-
-            return result
-
-        return wrapper
-
-    return decorator
 
 
 def fetch_runs(wandb_project: str, game_id: str | None = None) -> list[Any] | None:
@@ -247,7 +197,7 @@ def handle_cache_clearing():
     button = st.sidebar.button("Clear Cache")
     if button:
         try:
-            shutil.rmtree(CACHE_DIR)
+            st.cache_data.clear()
             # Set flag to indicate cache was deliberately cleared
             st.session_state.cache_cleared = True
             st.sidebar.success("Cache cleared successfully!")
@@ -507,8 +457,8 @@ def process_dialogue_data(dialogue_data: dict) -> None:
     return processed_data
 
 
-@disk_memoize(max_age_seconds=60 * 60 * 2)
-def load_and_process_data(game_id):
+@st.cache_data
+def load_and_process_dialogue_data(game_id):
     """Load and process data from Weights & Biases with caching."""
     with st.spinner("Loading and processing data..."):
         runs = fetch_runs(wandb_project, game_id)
@@ -537,7 +487,7 @@ def fetch_and_process_data(game_id=None):
     st.session_state.dialogue_data_loaded = False
     st.session_state.dialogue_data = st.session_state.dialogue_data
 
-    result = load_and_process_data(game_id)
+    result = load_and_process_dialogue_data(game_id)
 
     if result is None:
         st.error("Failed to load or process data")
