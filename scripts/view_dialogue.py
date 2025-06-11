@@ -364,7 +364,7 @@ def create_action_metric(
             coordinate=RelativeCoordinate(**rel_coordinates)
         )
     else:
-        som_location = rel_coordinates
+        som_location = None
 
     return ActionMetric(
         timestamp=action_row.get("timestamp", 0.0),
@@ -435,24 +435,29 @@ def process_table_rows(
 
 def process_dialogue_data(dialogue_data: dict) -> None:
     """Process a single dialogue entry and add metrics to ordered_data."""
-
     processed_data = []
+
     for player_role, player_data in dialogue_data.items():
+        # Skip if player_data is None (case when expert is missing)
+        if player_data is None:
+            continue
+
         for table_name, df in player_data.items():
             if table_name in ["game_id", "role"] or not hasattr(df, "iter_rows"):
                 continue
 
             if table_name == "actions":
+                # Ensure required dataframes exist before processing actions
+                bomb_states_df = player_data.get("bomb_states", pl.DataFrame())
+                observations_df = player_data.get("observations", pl.DataFrame())
+
                 metrics = process_table_rows(
-                    table_name,
-                    df,
-                    player_role,
-                    player_data["bomb_states"],
-                    player_data["observations"],
+                    table_name, df, player_role, bomb_states_df, observations_df
                 )
             else:
                 metrics = process_table_rows(table_name, df, player_role)
             processed_data.extend(metrics)
+
     processed_data.sort(key=lambda x: x.timestamp)
     return processed_data
 
@@ -469,11 +474,15 @@ def load_and_process_dialogue_data(game_id):
 
         dialogue_data = {run.config["role"]: process_run_data(run) for run in runs}
 
-        if "expert" not in dialogue_data and runs[0].config["is_playing_alone"]:
-            dialogue_data["expert"] = None
+        # Check if playing alone and handle missing expert data
+        if len(runs) == 1 and runs[0].config.get("is_playing_alone", False):
+            # Only one run exists and it's playing alone
+            pass  # dialogue_data already contains only the defuser data
+        elif "expert" not in dialogue_data:
+            # Multiple runs but no expert found - this might be an error case
+            st.warning("Expected expert data but none found")
 
         processed_dialogue_data = process_dialogue_data(dialogue_data)
-
         return processed_dialogue_data
 
 
@@ -561,12 +570,21 @@ def display_dialogue_for_game(game_id: str):
 
     st.subheader(f"Showing dialogue for Game: {game_id}")
 
+    # Check if this is a solo game
+    roles_present = {getattr(event, "role", "defuser") for event in dialogue_events}
+    if len(roles_present) == 1 and "defuser" in roles_present:
+        st.info("🎮 Solo Game - Defuser playing alone")
+
     grouped_events = itertools.groupby(
         dialogue_events, key=lambda x: getattr(x, "role", "defuser")
     )
 
     for role, events in grouped_events:
+        # Use different styling for solo games
+        role_display = "defuser (solo)" if role == "defuser" and len(roles_present) == 1 else role
+
         with st.container(border=True), st.chat_message(role):
+            st.caption(f"Role: {role_display}")
             col1, col2 = st.columns([1, 3])
             for event in events:
                 match event:
@@ -584,7 +602,7 @@ def display_dialogue_for_game(game_id: str):
                             display_do_nothing_metric(event)
                     case _:
                         # Fallback for unknown event types
-                        st.write(f"**Unknown Event Type:** {event.__name__}")
+                        st.write(f"**Unknown Event Type:** {type(event).__name__}")
                         st.write(f"**Timestamp:** {format_timestamp(event.timestamp)}")
                         st.json(event.model_dump() if hasattr(event, "model_dump") else str(event))
 
