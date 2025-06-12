@@ -105,7 +105,7 @@ class RunEvaluation(abc.ABC):
         assert getattr(self.eval_model, self.predict_method_name, None) is not None, (
             "EvalModel must have the specified predict method"
         )
-        logger.info(f"Running grounding evaluation for task: {self.task_name}")
+        logger.info(f"Running evaluation for task: {self.task_name}")
         for instance in tqdm(self.load_dataset()):
             prediction_output_file = self.output_dir.joinpath(
                 f"prediction_{instance['index']}.json"
@@ -155,6 +155,7 @@ class RunGroundingEvaluation(RunEvaluation):
         return weave_dataset
 
 
+@dataclass(kw_only=True)
 class RunDefuserVQAEvaluation(RunGroundingEvaluation):
     """Run the defuser VQA evaluation."""
 
