@@ -13,12 +13,15 @@ type CollatedRuns = dict[str, dict[UUID4, list[Run]]]
 
 
 def get_runs_from_wandb(
-    wandb_path: str, *, additional_filters: list[dict[str, Any]] | None = None
+    wandb_path: str,
+    *,
+    additional_filters: list[dict[str, Any]] | None = None,
+    timeout: int | None = None,
 ) -> Runs:
     """Get runs from wandb API with specified filters."""
     additional_filters = additional_filters or []
 
-    api = wandb.Api()
+    api = wandb.Api(timeout=timeout)
     runs = api.runs(
         wandb_path,
         filters={

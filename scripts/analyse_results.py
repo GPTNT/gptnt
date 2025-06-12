@@ -8,6 +8,7 @@ import polars as pl
 import streamlit as st
 import structlog
 import wandb
+from wandb.apis.public.runs import Runs
 
 from gptnt.experiments.wandb import get_runs_from_wandb
 
@@ -22,7 +23,6 @@ if "aggregate_metrics" not in st.session_state:
 wandb_entity = wandb.env.get_entity() or "gptnt"
 wandb_project = "for-real"
 
-wandb_api = wandb.Api()
 
 logger = structlog.get_logger()
 
@@ -407,21 +407,21 @@ def get_experiment_criteria(experiment) -> list[dict[str, Any]]:
     return [{"config.condition": "single_module"}, {"config.communication_style": "sync"}]
 
 
+@st.cache_data(persist="disk")
 def fetch_runs(
     wandb_project: str, experiment_criteria: list, role: Literal["expert", "defuser"]
-) -> list[Any] | None:
+) -> Runs:
     """Fetch runs from Weights & Biases API."""
     try:
         return get_runs_from_wandb(
             f"{wandb_entity}/{wandb_project}",
             additional_filters=[{"config.role": role}, *experiment_criteria],
+            timeout=150,
         )
-    except wandb.errors.CommError as e:
-        st.error(f"Communication error with W&B API: {e}")
-        return None
-    except Exception as e:  # noqa: BLE001
-        st.error(f"Error fetching runs: {e}")
-        return None
+    except wandb.errors.errors.CommError as err:
+        headers = err.response.headers
+        st.error("Headers: ", headers)
+        st.error("Received an error from W&B API. Please try again later.")
 
 
 def format_summary_data(summary_json: Any, role: Literal["defuser", "expert"]) -> dict[str, Any]:
@@ -939,7 +939,7 @@ def cache_artifact_directory(artifact_dir: str, identifier: str) -> None:
     st.session_state.wandb_artifact_cache[identifier] = artifact_dir
 
 
-@st.cache_data
+@st.cache_data(persist="disk")
 def load_and_process_run_data(experiment_criteria):
     """Load and process data from Weights & Biases with caching."""
     with st.spinner("Loading and processing data..."):
@@ -954,7 +954,7 @@ def load_and_process_run_data(experiment_criteria):
         for role_idx, role in enumerate(roles_to_process):
             status_text.text(f"Fetching {role} runs...")
 
-            runs = fetch_runs(wandb_project, experiment_criteria, role)
+            runs = fetch_runs(wandb_project, experiment_criteria, role)[:10]
 
             if not runs or len(runs) == 0:
                 if role == "expert" and playing_alone:
@@ -1369,8 +1369,6 @@ def handle_custom_criteria():
         st.session_state.previous_custom_criteria = None
 
     experiment_criteria = get_custom_criteria()
-
-    import json
 
     criteria_json = json.dumps(experiment_criteria, sort_keys=True)
 
@@ -1936,10 +1934,6 @@ def main() -> None:
             if st.button("Close Visualization Viewer"):
                 del st.session_state.show_visualizations_for_data
                 st.rerun()
-
-
-if __name__ == "__main__":
-    main()
 
 
 if __name__ == "__main__":
