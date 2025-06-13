@@ -1,4 +1,5 @@
 import base64
+import binascii
 from dataclasses import dataclass
 from io import BytesIO
 from typing import NamedTuple, cast
@@ -57,9 +58,16 @@ class ObservationHandler:
             base64.b64decode(frame) if isinstance(frame, str) else frame
             for frame in frames[-num_frames_to_use:]
         ]
-        segmentation = (
-            base64.b64decode(segmentation) if isinstance(segmentation, str) else segmentation
-        )
+        try:
+            segmentation = (
+                base64.b64decode(segmentation) if isinstance(segmentation, str) else segmentation
+            )
+        except binascii.Error:
+            _logger.exception(
+                "Failed to decode segmentation mask, it might not be base64 encoded.",
+                segmentation=segmentation,
+            )
+            segmentation = None
 
         # If we are not resizing nor applying SoM, we can just use the last frame
         if self.image_resizer is None and self.set_of_marks_painter is None:
