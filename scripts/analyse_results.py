@@ -1,4 +1,7 @@
+# ruff: noqa: FBT001
+# flake8: noqa: FBT001
 import json
+import re
 import shutil
 from pathlib import Path
 from typing import Any, Literal
@@ -8,11 +11,21 @@ import polars as pl
 import streamlit as st
 import structlog
 import wandb
+from polars.dataframe.frame import DataFrame
 from wandb.apis.public.runs import Runs
+from wandb.wandb_run import Run
 
 from gptnt.experiments.wandb import get_runs_from_wandb
 
 # Initialize session state
+
+
+def maybe_clear_session_state() -> None:
+    """Clear session state if the user chooses to do so."""
+
+
+if "session_just_started" not in st.session_state:
+    st.session_state.session_just_started = True
 if "results_data_loaded" not in st.session_state:
     st.session_state.results_data_loaded = False
 if "df" not in st.session_state:
@@ -20,8 +33,9 @@ if "df" not in st.session_state:
 if "aggregate_metrics" not in st.session_state:
     st.session_state.aggregate_metrics = []
 
-wandb_entity = wandb.env.get_entity() or "gptnt"
-wandb_project = "for-real"
+
+wandb_entity: str = wandb.env.get_entity() or "gptnt"
+wandb_project: str = "for-real"
 
 
 logger = structlog.get_logger()
@@ -31,9 +45,9 @@ def update_available_options(
     module_types: list[str], comm_styles: list[str], agent_frameworks: list[str]
 ) -> tuple[list[str], list[str], list[str]]:
     """Update available options based on user selections."""
-    available_comm_styles = ["Synchronous", "Asynchronous"]
-    available_agent_frameworks = ["ReAct", "Act", "DReAct", "ReDAct"]
-    available_defuser_playing = ["With Expert", "Alone"]
+    available_comm_styles: list[str] = ["Synchronous", "Asynchronous"]
+    available_agent_frameworks: list[str] = ["ReAct", "Act", "DReAct", "ReDAct"]
+    available_defuser_playing: list[str] = ["With Expert", "Alone"]
 
     # Update based on Module Type selection
     if "Repeated Modules" in module_types:
@@ -104,10 +118,10 @@ def build_criteria_from_selections(
     manual_access: bool | None,
 ) -> list[dict[str, Any]]:
     """Build W&B query criteria from user selections."""
-    criteria = []
+    criteria: list[dict[str, Any]] = []
 
     # Module type criteria
-    condition_criteria = []
+    condition_criteria: list[str] = []
     if "Single Modules" in module_types:
         condition_criteria.append("single_module")
     if "Repeated Modules" in module_types:
@@ -122,7 +136,7 @@ def build_criteria_from_selections(
     criteria.append({"config.condition": {"$in": condition_criteria}})
 
     # Communication style criteria
-    comm_style_values = []
+    comm_style_values: list[str] = []
     if "Synchronous" in comm_styles:
         comm_style_values.append("sync")
     if "Asynchronous" in comm_styles:
@@ -138,7 +152,7 @@ def build_criteria_from_selections(
         )
     elif any(framework != "ReAct" for framework in agent_frameworks):
         # If ReAct is selected along with others, we need special handling
-        non_react_frameworks = [f.lower() for f in agent_frameworks if f != "ReAct"]
+        non_react_frameworks: list[str] = [f.lower() for f in agent_frameworks if f != "ReAct"]
         criteria.append({"config.thinking_framework": {"$in": non_react_frameworks}})
     else:
         # Only ReAct selected
@@ -157,17 +171,17 @@ def build_criteria_from_selections(
     return criteria
 
 
-def get_custom_criteria():
+def get_custom_criteria() -> list[dict[str, Any]]:
     """Allow users to select individual criteria instead of predefined experiments."""
     # Track which options are available for each selection
-    available_module_types = ["Single Modules", "Repeated Modules", "Multiple Modules"]
+    available_module_types: list[str] = ["Single Modules", "Repeated Modules", "Multiple Modules"]
 
     # Initialize session state for module types
     if "module_types" not in st.session_state:
         st.session_state.module_types = ["Single Modules"]
 
     # Start with the first selection - Module Type(s)
-    module_types = st.sidebar.multiselect(
+    module_types: list[str] = st.sidebar.multiselect(
         "Module Type(s)", available_module_types, default=st.session_state.module_types
     )
 
@@ -188,7 +202,7 @@ def get_custom_criteria():
         st.session_state.comm_styles = [available_comm_styles[0]] if available_comm_styles else []
 
     # Communication Style selection
-    comm_styles = (
+    comm_styles: list[str] = (
         st.sidebar.multiselect(
             "Communication Style(s)", available_comm_styles, default=st.session_state.comm_styles
         )
@@ -215,7 +229,7 @@ def get_custom_criteria():
         )
 
     # Agent Framework selection
-    agent_frameworks = (
+    agent_frameworks: list[str] = (
         st.sidebar.multiselect(
             "Agent Framework(s)",
             available_agent_frameworks,
@@ -248,7 +262,7 @@ def get_custom_criteria():
         )
 
     # Defuser Playing selection
-    defuser_playing = (
+    defuser_playing: list[str] = (
         st.sidebar.multiselect(
             "Defuser Playing", available_defuser_playing, default=st.session_state.defuser_playing
         )
@@ -272,13 +286,13 @@ def get_custom_criteria():
         return []
 
     # Manual Access selection (only if Defuser Playing Alone)
-    manual_access = None
+    manual_access: bool | None = None
     if "Alone" in defuser_playing:
         # Initialize session state for manual access
         if "manual_access_options" not in st.session_state:
             st.session_state.manual_access_options = ["Without Manual"]
 
-        manual_access_options = st.sidebar.multiselect(
+        manual_access_options: list[str] = st.sidebar.multiselect(
             "Manual Access",
             ["With Manual", "Without Manual"],
             default=st.session_state.manual_access_options,
@@ -323,13 +337,16 @@ def get_custom_criteria():
 
 def handle_experiment_1_selection() -> list[dict[str, Any]] | None:
     """Handle experiment 1 specific selections."""
-    criteria = [{"config.condition": "single_module"}, {"config.communication_style": "sync"}]
+    criteria: list[dict[str, Any]] = [
+        {"config.condition": "single_module"},
+        {"config.communication_style": "sync"},
+    ]
 
     # Initialize session state for agent framework
     if "agent_framework_exp1" not in st.session_state:
         st.session_state.agent_framework_exp1 = None
 
-    agent_framework = st.sidebar.selectbox(
+    agent_framework: str | None = st.sidebar.selectbox(
         "Agent framework (for default use ReAct)", ("ReAct", "Act", "DReAct", "ReDAct"), index=None
     )
 
@@ -344,7 +361,7 @@ def handle_experiment_1_selection() -> list[dict[str, Any]] | None:
 
 def handle_experiment_3_selection() -> list[dict[str, Any]] | None:
     """Handle experiment 3 specific selections."""
-    criteria = [
+    criteria: list[dict[str, Any]] = [
         {"config.condition": "single_module"},
         {"config.communication_style": "sync"},
         {"config.is_playing_alone": True},
@@ -356,7 +373,7 @@ def handle_experiment_3_selection() -> list[dict[str, Any]] | None:
     if "manual_exp3" not in st.session_state:
         st.session_state.manual_exp3 = False
 
-    manual = st.sidebar.checkbox("Manual", value=st.session_state.manual_exp3)
+    manual: bool = st.sidebar.checkbox("Manual", value=st.session_state.manual_exp3)
 
     # Update session state
     st.session_state.manual_exp3 = manual
@@ -366,7 +383,7 @@ def handle_experiment_3_selection() -> list[dict[str, Any]] | None:
     return criteria
 
 
-def get_experiment_criteria(experiment) -> list[dict[str, Any]]:
+def get_experiment_criteria(experiment: int) -> list[dict[str, Any]] | None:
     """Get criteria for predefined experiments."""
     if experiment == 1:
         return handle_experiment_1_selection()
@@ -407,26 +424,94 @@ def get_experiment_criteria(experiment) -> list[dict[str, Any]]:
     return [{"config.condition": "single_module"}, {"config.communication_style": "sync"}]
 
 
-@st.cache_data(persist="disk")
-def fetch_runs(
-    wandb_project: str, experiment_criteria: list, role: Literal["expert", "defuser"]
-) -> Runs:
+def extract_run_id(string: str) -> str | None:
+    """Extract run ID from an artificat dir name."""
+    match = re.search(r"run-([^-]+)", string)
+    return match.group(1) if match else None
+
+
+def get_existing_runs_from_local_dir() -> list[str]:
+    """Extract run IDS from artifact directories from local dirs."""
+    run_data_dir: Path = Path("wandb/runs")
+    if not run_data_dir.exists():
+        return []
+
+    run_data_dir_names: list[str] = [
+        run_data_dir.name
+        for run_data_dir in list(run_data_dir.glob("*/"))
+        if run_data_dir.is_dir()
+    ]
+
+    run_ids: set[str] = {
+        extract_run_id(dir_name)
+        for dir_name in run_data_dir_names
+        if extract_run_id(dir_name) is not None
+    }
+
+    return list(run_ids)
+
+
+def fetch_runs(role: Literal["expert", "defuser"], valid_run_ids: list[str]) -> Runs | None:
     """Fetch runs from Weights & Biases API."""
     try:
         return get_runs_from_wandb(
             f"{wandb_entity}/{wandb_project}",
-            additional_filters=[{"config.role": role}, *experiment_criteria],
+            additional_filters=[
+                {"config.role": role},
+                {"config.run_id": {"$nin": valid_run_ids}},
+                *st.session_state.experiment_criteria,
+            ],
             timeout=150,
         )
     except wandb.errors.errors.CommError as err:
         headers = err.response.headers
         st.error("Headers: ", headers)
         st.error("Received an error from W&B API. Please try again later.")
+        return None
+
+
+def dump_run_data(run: Run) -> None:
+    """Dump the configuration data to a JSON file."""
+    run_dir: Path = Path("wandb/runs") / f"run-{run.id}"
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    config_filepath: Path = run_dir / "config.json"
+    summary_filepath: Path = run_dir / "summary.json"
+
+    if not config_filepath.exists():
+        with config_filepath.open("w") as f:
+            json.dump(run.config, f, indent=4)
+
+        if "debug_mode" in st.session_state and st.session_state.debug_mode:
+            st.sidebar.info(f"Configuration data dumped to {config_filepath}")
+
+    if not summary_filepath.exists():
+        with summary_filepath.open("w") as f:
+            json.dump(run.summary_metrics, f, indent=4)
+
+        if "debug_mode" in st.session_state and st.session_state.debug_mode:
+            st.sidebar.info(f"Configuration data dumped to {summary_filepath}")
+
+
+def download_artifacts(run: Run) -> None:
+    """Download the artifacts for the run."""
+    run_dir: Path = Path("wandb/runs") / f"run-{run.id}"
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    # Download all artifacts
+    for artifact in run.logged_artifacts():
+        if "table" in artifact.type:
+            artifact.download(root=run_dir)
+            if "debug_mode" in st.session_state and st.session_state.debug_mode:
+                st.sidebar.info(f"Downloaded artifact: {artifact.name} to {run_dir}")
+        else:
+            if "debug_mode" in st.session_state and st.session_state.debug_mode:
+                st.sidebar.warning(f"Skipping non-table artifact: {artifact.name}")
 
 
 def format_summary_data(summary_json: Any, role: Literal["defuser", "expert"]) -> dict[str, Any]:
     """Format summary data from W&B API."""
-    defuser_include_only_keys = [
+    defuser_include_only_keys: list[str] = [
         "is_solved",
         "is_strike_out",
         "is_timed_out",
@@ -439,15 +524,18 @@ def format_summary_data(summary_json: Any, role: Literal["defuser", "expert"]) -
         "total_defuser_messages_sent",
     ]
 
-    expert_include_only_keys = ["total_expert_do_nothing_actions", "total_expert_messages_sent"]
+    expert_include_only_keys: list[str] = [
+        "total_expert_do_nothing_actions",
+        "total_expert_messages_sent",
+    ]
 
-    shared_include_only_keys = [
+    shared_include_only_keys: list[str] = [
         "total_guardrail_violations",
         "total_invalid_format",
         "total_prompt_truncations",
     ]
 
-    formatted_data = {}
+    formatted_data: dict[str, Any] = {}
     for key, value in summary_json.items():
         if (
             role == "expert"
@@ -475,7 +563,7 @@ def format_config_data(
     if role == "expert":
         return {"game_id": config_dict["game_id"]}
 
-    include_only_keys = [
+    include_only_keys: list[str] = [
         "game_id",
         "condition",
         "communication_style",
@@ -490,7 +578,7 @@ def format_config_data(
         "defuser_name",
     ]
 
-    formatted_data = {}
+    formatted_data: dict[str, Any] = {}
     for key, value in config_dict.items():
         if key not in include_only_keys:
             continue
@@ -502,174 +590,52 @@ def format_config_data(
     return formatted_data
 
 
-def cleanup_artifact_directory(artifact_dir: str | Path) -> None:
-    """Clean up artifact directory."""
-    if artifact_dir and Path(artifact_dir).exists():
-        try:
-            shutil.rmtree(artifact_dir)
-            if "debug_mode" in st.session_state and st.session_state.debug_mode:
-                st.sidebar.info(f"Cleaned up artifact directory: {artifact_dir}")
-        except OSError as cleanup_error:
-            if "debug_mode" in st.session_state and st.session_state.debug_mode:
-                st.sidebar.warning(f"Failed to clean up artifact directory: {cleanup_error}")
-
-
-def find_matching_artifact(run, table_name):
-    """Find the artifact that matches the given table name."""
-    run_tables = run.logged_artifacts()
-    for artifact in run_tables:
-        if artifact.name.split("-")[-1].split(":")[0] == table_name:
-            return artifact
-    return None
-
-
-def handle_cache_cleared_cleanup(artifact):
-    """Clean up existing artifact if cache was deliberately cleared."""
-    if not st.session_state.get("cache_cleared", False):
-        return
-
-    try:
-        existing_dir = artifact.download()
-        if existing_dir and Path(existing_dir).exists():
-            cleanup_artifact_directory(existing_dir)
-            if "debug_mode" in st.session_state and st.session_state.debug_mode:
-                st.sidebar.info("Cleaned existing artifact before fresh download")
-    except Exception as e:  # noqa: BLE001
-        if "debug_mode" in st.session_state and st.session_state.debug_mode:
-            st.sidebar.warning(f"Could not clean existing artifact: {e}")
-
-
-def load_table_from_artifact(artifact_dir):
-    """Load table data from artifact directory."""
-    table_files = list(Path(artifact_dir).glob("**/*.table.json"))
-
-    if not table_files:
-        return None
-
-    try:
-        with table_files[0].open() as f:
-            table_data = json.load(f)
-
-        if "columns" in table_data and "data" in table_data:
-            df = pd.DataFrame(table_data["data"], columns=table_data["columns"])
-            df["artifact_dir"] = artifact_dir
-            return pl.from_pandas(df)
-    except json.JSONDecodeError as e:
-        if "debug_mode" in st.session_state and st.session_state.debug_mode:
-            st.sidebar.error(f"JSON decode error loading table: {e}")
-
-    return None
-
-
-def load_table_from_history(run, table_name):
-    """Fallback to load table from run history."""
-    try:
-        history = run.history()
-        if table_name not in history.columns:
-            return None
-
-        table_data = history[table_name].dropna().iloc[0]
-        if isinstance(table_data, dict) and "data" in table_data and "columns" in table_data:
-            columns = table_data["columns"]
-            data = table_data["data"]
-            df = pd.DataFrame(data, columns=columns)
-            return pl.from_pandas(df)
-    except Exception as e:  # noqa: BLE001
-        if "debug_mode" in st.session_state and st.session_state.debug_mode:
-            st.sidebar.error(f"Error loading from history: {e}")
-
-    return None
-
-
-def load_wandb_table(run, table_name):
+def load_wandb_table(run_id: str, table_name: str) -> pl.DataFrame | None:
     """Load a W&B table directly from a run object."""
-    try:
-        # Find matching artifact
-        artifact = find_matching_artifact(run, table_name)
-        if not artifact:
-            return pl.DataFrame()
-
-        # Clean up existing artifacts if cache was cleared
-        handle_cache_cleared_cleanup(artifact)
-
-        # Download artifact
-        artifact_dir = artifact.download()
-        if not artifact_dir:
-            return pl.DataFrame()
-
-        # Cache the artifact directory for image loading
-        cache_key = f"{run.id}_{table_name}"
-        cache_artifact_directory(artifact_dir, cache_key)
-
-        # Try to load from artifact files
-        df = load_table_from_artifact(artifact_dir)
-        if df is not None:
-            return df
-
-        # Fallback to history
-        df = load_table_from_history(run, table_name)
-        if df is not None:
-            return df
-
-        return pl.DataFrame()
-
-    except Exception as e:  # noqa: BLE001
-        if "debug_mode" in st.session_state and st.session_state.debug_mode:
-            st.sidebar.error(f"Error loading table {table_name}: {e}")
-        return pl.DataFrame()
+    table_filepath: Path = Path("wandb/runs/") / f"run-{run_id}/{table_name}.table.json"
+    with table_filepath.open() as f:
+        table_data: dict[str, Any] = json.load(f)
+    if "columns" in table_data and "data" in table_data:
+        df: pd.DataFrame = pd.DataFrame(table_data["data"], columns=table_data["columns"])
+        return pl.from_pandas(df)
+    return None
 
 
-def handle_cache_clearing():
-    """Handle cache clearing functionality."""
-    if st.sidebar.button("Clear Cache"):
-        try:
-            st.cache_data.clear()
-            # Set flag to indicate cache was deliberately cleared
-            st.session_state.cache_cleared = True
-            st.sidebar.success("Cache cleared successfully!")
-        except OSError as e:
-            st.sidebar.error(f"Error clearing cache: {e}")
-    else:
-        # Reset the flag if cache clearing button wasn't pressed
-        if "cache_cleared" not in st.session_state:
-            st.session_state.cache_cleared = False
-
-
-def process_run_data(run, role):
+def process_run_data(run_id: str, role: Literal["defuser", "expert"]) -> dict[str, Any]:
     """Process data from a single W&B run."""
-    config_data = format_config_data(run.config, role)
-    summary_data = format_summary_data(run.summary_metrics, role)
+    config_data: dict[str, Any] = format_config_data(load_run_config(run_id), role)
+    summary_data: dict[str, Any] = format_summary_data(load_run_summary(run_id), role)
 
-    run_data = {**config_data, **summary_data, f"{role}_run_id": run.id}
+    run_data: dict[str, Any] = {**config_data, **summary_data, f"{role}_run_id": run_id}
 
     if role == "defuser":
-        actions_df = load_wandb_table(run, "actions")
-        if not actions_df.is_empty():
-            action_stats = process_actions_table(actions_df)
+        actions_df: pl.DataFrame | None = load_wandb_table(run_id, "actions")
+        if actions_df is not None and not actions_df.is_empty():
+            action_stats: dict[str, int] = process_actions_table(actions_df)
             run_data.update(action_stats)
 
-    messages_df = load_wandb_table(run, "messages")
-    if not messages_df.is_empty():
-        message_stats = process_messages_table(messages_df, role)
+    messages_df: pl.DataFrame | None = load_wandb_table(run_id, "messages")
+    if messages_df is not None and not messages_df.is_empty():
+        message_stats: dict[str, int | float] = process_messages_table(messages_df, role)
         run_data.update(message_stats)
 
-    reflections_df = load_wandb_table(run, "reflections")
-    if not reflections_df.is_empty():
-        reflection = process_reflections_table(reflections_df, role)
+    reflections_df: pl.DataFrame | None = load_wandb_table(run_id, "reflections")
+    if reflections_df is not None and not reflections_df.is_empty():
+        reflection: dict[str, str] = process_reflections_table(reflections_df, role)
         run_data.update(reflection)
 
     return run_data
 
 
-def process_actions_table(actions_df):
+def process_actions_table(actions_df: pl.DataFrame) -> dict[str, int]:
     """Process actions table to get counts for each action type."""
     if actions_df.is_empty() or "action" not in actions_df.columns:
         return {}
 
     try:
-        action_counts = actions_df.group_by("action").agg(pl.count().alias("count"))
+        action_counts: pl.DataFrame = actions_df.group_by("action").agg(pl.count().alias("count"))
 
-        action_dict = {
+        action_dict: dict[str, int] = {
             f"{action}_action_count": int(count)
             for action, count in zip(
                 action_counts["action"].to_list(), action_counts["count"].to_list(), strict=False
@@ -682,7 +648,7 @@ def process_actions_table(actions_df):
         return {}
 
 
-def process_messages_table(messages_df, role):
+def process_messages_table(messages_df: pl.DataFrame, role: str) -> dict[str, int | float]:
     """Process messages table to get statistics."""
     if messages_df.is_empty() or "message" not in messages_df.columns:
         return {}
@@ -691,12 +657,12 @@ def process_messages_table(messages_df, role):
         messages_df = messages_df.with_columns(pl.col("message").str.len_chars().alias("length"))
 
         if len(messages_df) > 0:
-            length_sum = messages_df["length"].sum()
-            length_mean = messages_df["length"].mean()
-            length_min = messages_df["length"].min()
-            length_max = messages_df["length"].max()
+            length_sum: int = messages_df["length"].sum()
+            length_mean: float = messages_df["length"].mean()
+            length_min: int = messages_df["length"].min()
+            length_max: int = messages_df["length"].max()
 
-            message_stats = {
+            message_stats: dict[str, int | float] = {
                 f"message_length_sum_{role}": length_sum,
                 f"message_length_mean_{role}": length_mean,
                 f"message_length_min_{role}": length_min,
@@ -710,30 +676,34 @@ def process_messages_table(messages_df, role):
     return {}
 
 
-def process_reflections_table(reflections_df, role):
+def process_reflections_table(reflections_df: pl.DataFrame, role: str) -> dict[str, str]:
     """Process reflections table to get statistics."""
     if reflections_df.is_empty() or "message" not in reflections_df.columns:
         return {}
 
     try:
-        reflection = reflections_df.select("message").item()
+        reflection: str = reflections_df.select("message").item()
         return {f"reflection_{role}": reflection}  # noqa: TRY300
     except Exception as e:  # noqa: BLE001
         logger.warning(f"Error processing reflections table: {e}")
         return {}
 
 
-def prepare_dataframe(dfs):
+def prepare_dataframe(dfs: dict[str, pl.DataFrame | None]) -> DataFrame | None:
     """Prepare and join dataframes from expert and defuser data."""
-    expert_df = dfs["expert"].clone() if dfs["expert"] is not None else pl.DataFrame()
-    defuser_df = dfs["defuser"].clone() if dfs["defuser"] is not None else pl.DataFrame()
+    expert_df: pl.DataFrame = (
+        dfs["expert"].clone() if dfs["expert"] is not None else pl.DataFrame()
+    )
+    defuser_df: pl.DataFrame = (
+        dfs["defuser"].clone() if dfs["defuser"] is not None else pl.DataFrame()
+    )
 
     if not expert_df.is_empty():
         expert_df = rename_expert_columns(expert_df)
 
     if not defuser_df.is_empty():
         defuser_df = rename_defuser_columns(defuser_df)
-        common_df = create_common_dataframe(defuser_df)
+        common_df: pl.DataFrame | None = create_common_dataframe(defuser_df)
         defuser_df = extract_defuser_metrics(defuser_df)
     else:
         return None
@@ -741,7 +711,7 @@ def prepare_dataframe(dfs):
     try:
         if not defuser_df.is_empty() and common_df is not None:
             if not expert_df.is_empty():
-                joined_df = common_df.join(expert_df, on="game_id", how="inner")
+                joined_df: pl.DataFrame = common_df.join(expert_df, on="game_id", how="inner")
                 joined_df = joined_df.join(defuser_df, on="game_id", how="inner")
             else:
                 joined_df = common_df.join(defuser_df, on="game_id", how="inner")
@@ -757,9 +727,9 @@ def prepare_dataframe(dfs):
         return None
 
 
-def rename_expert_columns(expert_df):
+def rename_expert_columns(expert_df: pl.DataFrame) -> DataFrame:
     """Rename columns in the expert dataframe for consistency."""
-    rename_dict = {
+    rename_dict: dict[str, str] = {
         "total_expert_do_nothing_actions": "num_do_nothing_actions_expert",
         "total_expert_messages_sent": "num_messages_sent_expert",
         "total_guardrail_violations": "num_guardrail_violations_expert",
@@ -774,10 +744,10 @@ def rename_expert_columns(expert_df):
         expert_df = expert_df.rename(rename_dict)
 
     # Add _expert suffix to remaining columns
-    cols_to_suffix = [
+    cols_to_suffix: list[str] = [
         col for col in expert_df.columns if not col.endswith("_expert") and col != "game_id"
     ]
-    suffix_dict = {col: f"{col}_expert" for col in cols_to_suffix}
+    suffix_dict: dict[str, str] = {col: f"{col}_expert" for col in cols_to_suffix}
 
     if suffix_dict:
         expert_df = expert_df.rename(suffix_dict)
@@ -785,9 +755,9 @@ def rename_expert_columns(expert_df):
     return expert_df
 
 
-def rename_defuser_columns(defuser_df):
+def rename_defuser_columns(defuser_df: pl.DataFrame) -> DataFrame:
     """Rename columns in the defuser dataframe for consistency."""
-    rename_dict = {
+    rename_dict: dict[str, str] = {
         "_runtime": "runtime",
         "step": "steps",
         "total_defuser_do_nothing_actions": "num_do_nothing_actions_defuser",
@@ -805,8 +775,8 @@ def rename_defuser_columns(defuser_df):
         defuser_df = defuser_df.rename(rename_dict)
 
     # Replace total_ prefix
-    total_cols = [col for col in defuser_df.columns if "total_" in col]
-    rename_total_dict = {col: col.replace("total_", "") for col in total_cols}
+    total_cols: list[str] = [col for col in defuser_df.columns if "total_" in col]
+    rename_total_dict: dict[str, str] = {col: col.replace("total_", "") for col in total_cols}
 
     if rename_total_dict:
         defuser_df = defuser_df.rename(rename_total_dict)
@@ -814,9 +784,9 @@ def rename_defuser_columns(defuser_df):
     return defuser_df
 
 
-def create_common_dataframe(defuser_df):
+def create_common_dataframe(defuser_df: pl.DataFrame) -> DataFrame | None:
     """Create a common dataframe with shared metadata."""
-    common_cols_to_keep = [
+    common_cols_to_keep: list[str] = [
         "game_id",
         "condition",
         "communication_style",
@@ -846,13 +816,13 @@ def create_common_dataframe(defuser_df):
     return pl.DataFrame({"game_id": defuser_df["game_id"]})
 
 
-def extract_defuser_metrics(defuser_df):
+def extract_defuser_metrics(defuser_df: pl.DataFrame) -> DataFrame:
     """Extract defuser-specific metrics."""
-    defuser_cols = ["game_id"]
+    defuser_cols: list[str] = ["game_id"]
     if "defuser_run_id" in defuser_df.columns:
         defuser_cols.append("defuser_run_id")
 
-    standard_metrics = [
+    standard_metrics: list[str] = [
         "num_do_nothing_actions_defuser",
         "num_messages_sent_defuser",
         "num_actions_defuser",
@@ -862,8 +832,8 @@ def extract_defuser_metrics(defuser_df):
     ]
     defuser_cols.extend([col for col in standard_metrics if col in defuser_df.columns])
 
-    action_cols = [col for col in defuser_df.columns if col.endswith("_action_count")]
-    message_cols = [
+    action_cols: list[str] = [col for col in defuser_df.columns if col.endswith("_action_count")]
+    message_cols: list[str] = [
         col for col in defuser_df.columns if col.startswith("message_") and col.endswith("defuser")
     ]
     defuser_cols.extend(action_cols)
@@ -875,7 +845,7 @@ def extract_defuser_metrics(defuser_df):
     return pl.DataFrame({"game_id": defuser_df["game_id"]})
 
 
-def clean_joined_dataframe(joined_df):
+def clean_joined_dataframe(joined_df: pl.DataFrame) -> DataFrame:
     """Clean and standardize the joined dataframe."""
     # Filter out rows with null expert or defuser names
     joined_df = joined_df.filter(
@@ -885,13 +855,13 @@ def clean_joined_dataframe(joined_df):
     )
 
     # Convert boolean columns to integers
-    bool_cols = ["is_solved", "is_strike_out", "is_timed_out"]
+    bool_cols: list[str] = ["is_solved", "is_strike_out", "is_timed_out"]
     for col in bool_cols:
         if col in joined_df.columns:
             joined_df = joined_df.with_columns(pl.col(col).cast(pl.Int32).alias(col))
 
     # Convert float columns to integers where appropriate
-    float_cols = [
+    float_cols: list[str] = [
         col
         for col in joined_df.columns
         if (joined_df[col].dtype == pl.Float64 or joined_df[col].dtype == pl.Float32)
@@ -915,59 +885,133 @@ def clean_joined_dataframe(joined_df):
     return joined_df
 
 
-def process_role_data(role, runs, total_runs, role_idx, progress_bar, status_text):
+def process_role_data(role: str, role_idx: int, progress_bar: Any, status_text: Any) -> DataFrame:
     """Process data for a specific role (expert or defuser)."""
-    runs_data = []
-    for run_idx, run in enumerate(runs):
-        progress = (role_idx * total_runs + run_idx) / (2 * total_runs)
+    runs_data: list[dict[str, Any]] = []
+    total_runs: int = len(st.session_state.valid_run_ids)
+    for run_idx, run_id in enumerate(st.session_state.valid_run_ids):
+        progress: float = (role_idx * total_runs + run_idx) / (2 * total_runs)
         progress_bar.progress(progress)
 
-        game_id = run.config.get("game_id")
+        run_config: dict[str, Any] = load_run_config(run_id)
+        game_id: Any = run_config.get("game_id")
         status_text.text(f"Processing {role} run {run_idx + 1}/{total_runs} (game {game_id})")
 
-        run_data = process_run_data(run, role)
+        run_data: dict[str, Any] = process_run_data(run_id, role)
         runs_data.append(run_data)
 
     return pl.DataFrame(runs_data)
 
 
-def cache_artifact_directory(artifact_dir: str, identifier: str) -> None:
-    """Cache artifact directory for later image loading."""
-    if not hasattr(st.session_state, "wandb_artifact_cache"):
-        st.session_state.wandb_artifact_cache = {}
+def load_run_config(run_id: str) -> dict[str, Any]:
+    """Load the configuration for a specific run."""
+    config_path: Path = Path(f"wandb/runs/run-{run_id}/config.json")
+    if config_path.exists():
+        with config_path.open() as f:
+            return json.load(f)
+    return {}
 
-    st.session_state.wandb_artifact_cache[identifier] = artifact_dir
+
+def load_run_summary(run_id: str) -> dict[str, Any]:
+    """Load the summary for a specific run."""
+    summary_path: Path = Path(f"wandb/runs/run-{run_id}/summary.json")
+    if summary_path.exists():
+        with summary_path.open() as f:
+            return json.load(f)
+    return {}
 
 
-@st.cache_data(persist="disk")
-def load_and_process_run_data(experiment_criteria):
-    """Load and process data from Weights & Biases with caching."""
+def remove_run_data_from_local(invalid_run_id: str) -> None:
+    """Remove run data from local storage."""
+    run_dir: Path = Path("wandb/runs") / f"run-{invalid_run_id}"
+    shutil.rmtree(run_dir, ignore_errors=True)
+
+
+def has_all_data(run_id: str) -> bool:
+    """Check if a run has all required data."""
+    run_dir: Path = Path("wandb/runs") / f"run-{run_id}"
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    run_config: dict[str, Any] = load_run_config(run_id)
+
+    # not requiring presence of a "do_nothing_actions" table as it is not always present
+    required_tables: list[str] = ["messages", "reflections"]
+    if run_config.get("role") == "defuser":
+        required_tables.extend(["actions", "observations", "bomb_states"])
+
+    existing_files: list[Path] = list(run_dir.glob("*.json"))
+    existing_filenames: list[str] = [file.stem.replace(".table", "") for file in existing_files]
+
+    if "summary" not in existing_filenames or not all(
+        table in existing_filenames for table in required_tables
+    ):
+        remove_run_data_from_local(run_id)
+        return False
+
+    return True
+
+
+def is_relevant_run(run_id: str, role: str) -> bool:
+    """Check if a run matches the given experiment criteria."""
+    run_config: dict[str, Any] = load_run_config(run_id)
+    if not run_config:
+        return False
+
+    if "role" not in run_config or run_config["role"] != role:
+        return False
+
+    for criterion in st.session_state.experiment_criteria:
+        for key, value in criterion.items():
+            if isinstance(value, dict) and "$in" in value:
+                if run_config.get(key.replace("config.", "")) not in value["$in"]:
+                    return False
+            elif run_config.get(key.replace("config.", "")) != value:
+                return False
+    return True
+
+
+def maybe_fetch_runs_from_wandb(role: str) -> bool:
+    existing_run_ids: list[str] = get_existing_runs_from_local_dir()
+    relevant_run_ids: list[str] = [
+        run_id for run_id in existing_run_ids if is_relevant_run(run_id, role)
+    ]
+    valid_run_ids: list[str] = [run_id for run_id in relevant_run_ids if has_all_data(run_id)]
+
+    st.session_state.valid_run_ids = valid_run_ids
+
+    runs: Runs | None = fetch_runs(role, valid_run_ids)
+    if runs and len(runs):
+        for run in runs:
+            dump_run_data(run)
+            download_artifacts(run)
+        return True
+
+    if not valid_run_ids and not runs:
+        st.warning(f"No runs found for {role}. Please check your criteria or try again later.")
+
+    return False
+
+
+def load_and_process_run_data() -> DataFrame | None:
+    """Load and process data from Weights & Biases."""
     with st.spinner("Loading and processing data..."):
         status_text = st.empty()
         progress_bar = st.progress(0)
 
-        dfs = {"expert": None, "defuser": None}
+        dfs: dict[str, pl.DataFrame | None] = {"expert": None, "defuser": None}
 
-        playing_alone = st.session_state.get("playing_alone", False)
-        roles_to_process = ["defuser"] if playing_alone else ["expert", "defuser"]
+        roles_to_process: list[str] = (
+            ["defuser"] if st.session_state.get("playing_alone", False) else ["expert", "defuser"]
+        )
 
         for role_idx, role in enumerate(roles_to_process):
-            status_text.text(f"Fetching {role} runs...")
+            status_text.text(f"Collating data for {role} runs...")
 
-            runs = fetch_runs(wandb_project, experiment_criteria, role)[:10]
+            unchecked_runs: bool = True
+            while unchecked_runs:
+                unchecked_runs = maybe_fetch_runs_from_wandb(role)
 
-            if not runs or len(runs) == 0:
-                if role == "expert" and playing_alone:
-                    continue
-                st.warning(f"No runs found for {role}")
-                return None
-
-            total_runs = len(runs)
-            status_text.text(f"Processing {role} data ({total_runs} runs)...")
-
-            dfs[role] = process_role_data(
-                role, runs, total_runs, role_idx, progress_bar, status_text
-            )
+            dfs[role] = process_role_data(role, role_idx, progress_bar, status_text)
 
         status_text.text("Processing dataframes...")
 
@@ -975,7 +1019,7 @@ def load_and_process_run_data(experiment_criteria):
             if df_name in dfs and dfs[df_name] is not None and "game_id" in dfs[df_name].columns:
                 dfs[df_name] = dfs[df_name].sort("game_id")
 
-        joined_df = prepare_dataframe(dfs)
+        joined_df: DataFrame | None = prepare_dataframe(dfs)
 
         status_text.empty()
         progress_bar.empty()
@@ -983,9 +1027,11 @@ def load_and_process_run_data(experiment_criteria):
         return joined_df
 
 
-def create_aggregate_expressions(aggregate_metrics_by, agg_functions):
+def create_aggregate_expressions(
+    aggregate_metrics_by: list[str], agg_functions: list[str]
+) -> list[Any]:
     """Create polars expressions for aggregation."""
-    agg_exprs = []
+    agg_exprs: list[Any] = []
     for metric in aggregate_metrics_by:
         for func in agg_functions:
             if func == "mean":
@@ -1003,35 +1049,36 @@ def create_aggregate_expressions(aggregate_metrics_by, agg_functions):
     return agg_exprs
 
 
-def perform_aggregation(df, groupby_cols, aggregate_metrics_by, agg_functions):
+def perform_aggregation(
+    df: pl.DataFrame,
+    groupby_cols: list[str],
+    aggregate_metrics_by: list[str],
+    agg_functions: list[str],
+) -> DataFrame:
     """Perform aggregation on the dataframe."""
-    try:
-        agg_exprs = create_aggregate_expressions(aggregate_metrics_by, agg_functions)
-        aggregated_df = df.group_by(groupby_cols).agg(agg_exprs)
+    agg_exprs: list[Any] = create_aggregate_expressions(aggregate_metrics_by, agg_functions)
+    aggregated_df: pl.DataFrame = df.group_by(groupby_cols).agg(agg_exprs)
 
-        # Round floating point columns
-        for col in aggregated_df.columns:
-            if col not in groupby_cols:
-                col_dtype = aggregated_df[col].dtype
-                if str(col_dtype).startswith(("f32", "f64", "decimal")):
-                    aggregated_df = aggregated_df.with_columns(pl.col(col).round(2).alias(col))
+    # Round floating point columns
+    for col in aggregated_df.columns:
+        if col not in groupby_cols:
+            col_dtype = aggregated_df[col].dtype
+            if str(col_dtype).startswith(("f32", "f64", "decimal")):
+                aggregated_df = aggregated_df.with_columns(pl.col(col).round(2).alias(col))
 
-        return aggregated_df  # noqa: TRY300
-    except Exception as e:  # noqa: BLE001
-        st.error(f"Error during aggregation: {e!s}")
-        if "debug_mode" in st.session_state and st.session_state.debug_mode:
-            st.exception(e)
-        return None
+    return aggregated_df
 
 
-def create_visualizations(df, aggregate_metrics_by, groupby_cols):
+def create_visualizations(
+    df: pl.DataFrame, aggregate_metrics_by: list[str], groupby_cols: list[str]
+) -> None:
     """Create visualizations for the aggregated data."""
     for metric in aggregate_metrics_by:
         st.subheader(f"Visualization for {metric}")
 
         if len(groupby_cols) == 1:
             try:
-                chart_data = (
+                chart_data: pd.DataFrame = (
                     df.group_by(groupby_cols[0]).agg(pl.mean(metric).alias(metric)).to_pandas()
                 )
                 st.bar_chart(chart_data.set_index(groupby_cols[0]))
@@ -1040,7 +1087,7 @@ def create_visualizations(df, aggregate_metrics_by, groupby_cols):
 
         elif len(groupby_cols) == 2 and "mean" in ["mean"]:  # Always include mean
             try:
-                pivot_data = (
+                pivot_data: pd.DataFrame = (
                     df.select([*groupby_cols, metric])
                     .to_pandas()
                     .pivot_table(
@@ -1056,10 +1103,10 @@ def create_visualizations(df, aggregate_metrics_by, groupby_cols):
                 st.warning(f"Could not create pivot table: {e}")
 
 
-def get_numeric_columns(df):
+def get_numeric_columns(df: pl.DataFrame) -> list[str]:
     """Extract numeric columns from the dataframe."""
     try:
-        numeric_cols = []
+        numeric_cols: list[str] = []
         for col in df.columns:
             dtype = df[col].dtype
             if (
@@ -1081,7 +1128,7 @@ def get_numeric_columns(df):
                 numeric_cols.append(col)
 
         # Add action and message columns
-        action_message_cols = [
+        action_message_cols: list[str] = [
             col
             for col in df.columns
             if (col.endswith("_action_count"))
@@ -1105,14 +1152,14 @@ def get_numeric_columns(df):
         return []
 
 
-def transform_to_model_based(df):
+def transform_to_model_based(df: pl.DataFrame) -> pl.DataFrame:
     """Transform dataframe to model-based format."""
-    expert_data = df.clone()
+    expert_data: pl.DataFrame = df.clone()
     expert_data = expert_data.with_columns(
         [pl.col("expert_name").alias("model"), pl.lit("expert").alias("role")]
     )
 
-    defuser_data = df.clone()
+    defuser_data: pl.DataFrame = df.clone()
     defuser_data = defuser_data.with_columns(
         [pl.col("defuser_name").alias("model"), pl.lit("defuser").alias("role")]
     )
@@ -1120,7 +1167,7 @@ def transform_to_model_based(df):
     return pl.concat([expert_data, defuser_data])
 
 
-def add_partial_success_column(df):
+def add_partial_success_column(df: pl.DataFrame) -> pl.DataFrame:
     """Add a column indicating partial success based on solved modules."""
     if "modules_solved" in df.columns and "components" in df.columns:
         df = df.with_columns(
@@ -1129,12 +1176,12 @@ def add_partial_success_column(df):
     return df
 
 
-def add_component_analysis_columns(df):
+def add_component_analysis_columns(df: pl.DataFrame) -> pl.DataFrame:
     """Add component analysis columns to the dataframe."""
     if "components" in df.columns:
-        sample_row = df.filter(pl.col("components").is_not_null()).head(1)
+        sample_row: pl.DataFrame = df.filter(pl.col("components").is_not_null()).head(1)
         if len(sample_row) > 0:
-            sample_components = sample_row[0, "components"]
+            sample_components: Any = sample_row[0, "components"]
 
             if isinstance(sample_components, list):
                 df = df.with_columns(pl.col("components").list.first().alias("component_type"))
@@ -1143,7 +1190,7 @@ def add_component_analysis_columns(df):
     return df
 
 
-def determine_outcome(df):
+def determine_outcome(df: pl.DataFrame) -> pl.DataFrame:
     """Determine the outcome of each run."""
     if all(col in df.columns for col in ["is_solved", "is_strike_out", "is_timed_out"]):
         df = df.with_columns(pl.lit("unknown").alias("outcome"))
@@ -1180,7 +1227,9 @@ def determine_outcome(df):
     return df
 
 
-def add_pairing_columns(df, best_expert, best_defuser):
+def add_pairing_columns(
+    df: pl.DataFrame, best_expert: str | None, best_defuser: str | None
+) -> pl.DataFrame:
     """Add columns to identify different types of model pairings."""
     df = df.with_columns(
         [pl.lit(best_expert).alias("best_expert"), pl.lit(best_defuser).alias("best_defuser")]
@@ -1203,15 +1252,15 @@ def add_pairing_columns(df, best_expert, best_defuser):
     return df
 
 
-def find_best_models(df, experiment):
+def find_best_models(df: pl.DataFrame, experiment: int | None) -> tuple[str | None, str | None]:
     """Find the best expert and defuser models based on solved count."""
     if experiment == 1:
         if len(df.select("expert_name").unique().to_series()) > 0:
-            grouped_expert = df.group_by("expert_name").agg(
+            grouped_expert: pl.DataFrame = df.group_by("expert_name").agg(
                 pl.sum("is_solved").alias("solved_count")
             )
             grouped_expert = grouped_expert.sort("solved_count", descending=True)
-            best_expert = grouped_expert.row(0)[0]
+            best_expert: str = grouped_expert.row(0)[0]
 
             if "debug_mode" in st.session_state and st.session_state.debug_mode:
                 st.sidebar.text(f"Best Expert: {best_expert}")
@@ -1219,19 +1268,23 @@ def find_best_models(df, experiment):
             best_expert = None
 
         if len(df.select("defuser_name").unique().to_series()) > 0:
-            grouped_defuser = df.group_by("defuser_name").agg(
+            grouped_defuser: pl.DataFrame = df.group_by("defuser_name").agg(
                 pl.sum("is_solved").alias("solved_count")
             )
             grouped_defuser = grouped_defuser.sort("solved_count", descending=True)
-            best_defuser = grouped_defuser.row(0)[0]
+            best_defuser: str = grouped_defuser.row(0)[0]
 
             if "debug_mode" in st.session_state and st.session_state.debug_mode:
                 st.sidebar.text(f"Best Defuser: {best_defuser}")
         else:
             best_defuser = None
     else:
-        expert_options = df.select("expert_name").unique().to_series().drop_nulls().to_list()
-        defuser_options = df.select("defuser_name").unique().to_series().drop_nulls().to_list()
+        expert_options: list[str] = (
+            df.select("expert_name").unique().to_series().drop_nulls().to_list()
+        )
+        defuser_options: list[str] = (
+            df.select("defuser_name").unique().to_series().drop_nulls().to_list()
+        )
 
         # Initialize session state for best models
         if "best_expert_model" not in st.session_state:
@@ -1280,7 +1333,13 @@ def find_best_models(df, experiment):
     return st.session_state.best_expert_model, st.session_state.best_defuser_model
 
 
-def apply_pairing_filters(df, filter_same, filter_best_expert, filter_best_defuser, filter_rest):
+def apply_pairing_filters(
+    df: pl.DataFrame,
+    filter_same: bool,
+    filter_best_expert: bool,
+    filter_best_defuser: bool,
+    filter_rest: bool,
+) -> pl.DataFrame:
     """Apply filters based on model pairings."""
     if filter_same:
         df = df.filter(pl.col("with_same"))
@@ -1294,13 +1353,13 @@ def apply_pairing_filters(df, filter_same, filter_best_expert, filter_best_defus
     return df
 
 
-def setup_debug_mode():
+def setup_debug_mode() -> bool:
     """Setup debug mode and display version information."""
     # Initialize session state for debug mode
     if "debug_mode" not in st.session_state:
         st.session_state.debug_mode = False
 
-    debug_mode = st.sidebar.checkbox("Debug Mode", value=st.session_state.debug_mode)
+    debug_mode: bool = st.sidebar.checkbox("Debug Mode", value=st.session_state.debug_mode)
     st.session_state.debug_mode = debug_mode
 
     if debug_mode:
@@ -1310,7 +1369,7 @@ def setup_debug_mode():
     return debug_mode
 
 
-def select_filtering_method():
+def select_filtering_method() -> str:
     """Select between predefined experiment or custom criteria."""
     st.sidebar.subheader("Select Data Filtering Method")
 
@@ -1318,7 +1377,7 @@ def select_filtering_method():
     if "filter_method" not in st.session_state:
         st.session_state.filter_method = "Predefined Experiment"
 
-    filter_method = st.sidebar.radio(
+    filter_method: str = st.sidebar.radio(
         "Filter Method",
         ["Predefined Experiment", "Custom Criteria"],
         index=0 if st.session_state.filter_method == "Predefined Experiment" else 1,
@@ -1330,7 +1389,7 @@ def select_filtering_method():
     return filter_method
 
 
-def handle_predefined_experiment():
+def handle_predefined_experiment() -> tuple[int | None, bool]:
     """Handle selection of predefined experiment."""
     st.sidebar.subheader("Select Experiment")
 
@@ -1338,7 +1397,7 @@ def handle_predefined_experiment():
         st.session_state.previous_experiment = None
 
     # Use session state to maintain selection
-    experiment = st.sidebar.selectbox(
+    experiment: int | None = st.sidebar.selectbox(
         "Experiment #",
         list(range(1, 8)),
         index=st.session_state.previous_experiment - 1
@@ -1346,7 +1405,7 @@ def handle_predefined_experiment():
         else None,
     )
 
-    criteria_changed = False
+    criteria_changed: bool = False
     if experiment != st.session_state.previous_experiment:
         criteria_changed = True
         st.session_state.previous_experiment = experiment
@@ -1355,39 +1414,40 @@ def handle_predefined_experiment():
 
     if not experiment:
         st.info("Please select an experiment number")
-        return None, None, criteria_changed
+        return None, criteria_changed
 
-    experiment_criteria = get_experiment_criteria(experiment)
-    return experiment, experiment_criteria, criteria_changed
+    st.session_state.experiment_criteria = get_experiment_criteria(experiment)
+    return experiment, criteria_changed
 
 
-def handle_custom_criteria():
+def handle_custom_criteria() -> tuple[None, bool]:
     """Handle selection of custom criteria."""
     st.sidebar.subheader("Select Custom Criteria")
 
     if "previous_custom_criteria" not in st.session_state:
         st.session_state.previous_custom_criteria = None
 
-    experiment_criteria = get_custom_criteria()
+    experiment_criteria: list[dict[str, Any]] = get_custom_criteria()
+    st.session_state.experiment_criteria = experiment_criteria
 
-    criteria_json = json.dumps(experiment_criteria, sort_keys=True)
+    criteria_json: str = json.dumps(experiment_criteria, sort_keys=True)
 
-    criteria_changed = False
+    criteria_changed: bool = False
     if criteria_json != st.session_state.previous_custom_criteria:
         criteria_changed = True
         st.session_state.previous_custom_criteria = criteria_json
         st.session_state.results_data_loaded = False
         st.session_state.df = None
 
-    return None, experiment_criteria, criteria_changed
+    return None, criteria_changed
 
 
-def display_debug_criteria(experiment_criteria, filter_method):
+def display_debug_criteria() -> None:
     """Display debug information about the criteria."""
     st.sidebar.subheader("Debug: W&B Query Criteria")
 
-    formatted_criteria = []
-    for criterion in experiment_criteria:
+    formatted_criteria: list[str] = []
+    for criterion in st.session_state.experiment_criteria:
         for key, value in criterion.items():
             if isinstance(value, dict) and "$in" in value:
                 formatted_criteria.append(f"{key} in {value['$in']}")
@@ -1397,16 +1457,19 @@ def display_debug_criteria(experiment_criteria, filter_method):
     for criterion in formatted_criteria:
         st.sidebar.text(criterion)
 
-    if filter_method == "Custom Criteria" and "debug_selections" in st.session_state:
+    if (
+        st.session_state.filter_method == "Custom Criteria"
+        and "debug_selections" in st.session_state
+    ):
         st.sidebar.subheader("Debug: User Selections")
         for key, value in st.session_state.debug_selections.items():
             if value is not None:
                 st.sidebar.text(f"{key}: {value}")
 
 
-def fetch_and_process_data(experiment_criteria, criteria_changed, debug_mode):
+def fetch_and_process_data(criteria_changed: bool, debug_mode: bool) -> bool:
     """Fetch and process data based on criteria."""
-    fetch_button = st.sidebar.button("Fetch runs!")
+    fetch_button: bool = st.sidebar.button("Fetch runs!")
 
     if not fetch_button and not criteria_changed:
         return False
@@ -1418,20 +1481,20 @@ def fetch_and_process_data(experiment_criteria, criteria_changed, debug_mode):
     st.session_state.results_data_loaded = False
     st.session_state.df = None
 
-    result = load_and_process_run_data(experiment_criteria)
+    result: DataFrame | None = load_and_process_run_data()
 
     if result is None:
         st.error("Failed to load or process data")
         return False
 
-    df = result
+    df: DataFrame = result
 
     if df is not None and not df.is_empty():
         st.session_state.df = df
         st.session_state.results_data_loaded = True
         st.success("Data loaded and processed successfully!")
 
-        csv = df.to_pandas().to_csv()
+        csv: str = df.to_pandas().to_csv()
         st.download_button(
             label="Download full dataset as CSV",
             data=csv,
@@ -1454,7 +1517,9 @@ def fetch_and_process_data(experiment_criteria, criteria_changed, debug_mode):
     return False
 
 
-def prepare_dataframe_for_analysis(df, experiment, debug_mode):
+def prepare_dataframe_for_analysis(
+    df: pl.DataFrame, experiment: int | None, debug_mode: bool
+) -> tuple[pl.DataFrame | None, str | None, str | None]:
     """Prepare the dataframe for analysis by adding columns and determining outcomes."""
     # Calculate the partial success column
     df = add_partial_success_column(df)
@@ -1473,7 +1538,9 @@ def prepare_dataframe_for_analysis(df, experiment, debug_mode):
     df = determine_outcome(df)
 
     if debug_mode and "outcome" in df.columns:
-        outcome_counts = df.group_by("outcome").count().sort("count", descending=True)
+        outcome_counts: pl.DataFrame = (
+            df.group_by("outcome").count().sort("count", descending=True)
+        )
         st.sidebar.write("Outcome distribution:", outcome_counts.to_pandas())
 
         if "unknown" in df["outcome"].unique():
@@ -1486,7 +1553,9 @@ def prepare_dataframe_for_analysis(df, experiment, debug_mode):
     return df, best_expert, best_defuser
 
 
-def prepare_numeric_columns(df, debug_mode):
+def prepare_numeric_columns(
+    df: pl.DataFrame, debug_mode: bool
+) -> tuple[pl.DataFrame, list[str] | None]:
     """Prepare numeric columns for aggregation."""
     if "numeric_cols" not in st.session_state:
         try:
@@ -1520,7 +1589,7 @@ def prepare_numeric_columns(df, debug_mode):
                 st.exception(e)
             return df, None
 
-    numeric_cols = st.session_state.numeric_cols
+    numeric_cols: list[str] = st.session_state.numeric_cols
 
     if not numeric_cols:
         st.warning("No numeric columns found in the data")
@@ -1529,7 +1598,7 @@ def prepare_numeric_columns(df, debug_mode):
     return df, numeric_cols
 
 
-def setup_aggregation_options(numeric_cols):
+def setup_aggregation_options(numeric_cols: list[str]) -> tuple[list[str], bool]:
     """Set up aggregation options in the sidebar."""
     st.sidebar.subheader("Select Metrics and Aggregation Options")
 
@@ -1538,7 +1607,7 @@ def setup_aggregation_options(numeric_cols):
         st.session_state.aggregate_metrics_selection = []
 
     # Use session state to maintain selection
-    aggregate_metrics_by = st.sidebar.multiselect(
+    aggregate_metrics_by: list[str] = st.sidebar.multiselect(
         "Select metrics to aggregate",
         numeric_cols,
         default=st.session_state.aggregate_metrics_selection,
@@ -1555,7 +1624,7 @@ def setup_aggregation_options(numeric_cols):
         st.session_state.create_model_column = False
 
     # Use session state to maintain checkbox state
-    create_model_column = st.sidebar.checkbox(
+    create_model_column: bool = st.sidebar.checkbox(
         "Enable model-based analysis", value=st.session_state.create_model_column
     )
 
@@ -1565,9 +1634,11 @@ def setup_aggregation_options(numeric_cols):
     return aggregate_metrics_by, create_model_column
 
 
-def get_groupby_options(df, create_model_column):
+def get_groupby_options(
+    df: pl.DataFrame, create_model_column: bool
+) -> tuple[pl.DataFrame, list[str] | None, list[str] | None]:
     """Get groupby options based on dataframe columns and model-based analysis."""
-    base_groupby_options = [
+    base_groupby_options: list[str] = [
         "condition",
         "communication_style",
         "thinking_framework",
@@ -1582,7 +1653,7 @@ def get_groupby_options(df, create_model_column):
     ]
 
     if create_model_column:
-        groupby_options = ["model", "role", *base_groupby_options]
+        groupby_options: list[str] = ["model", "role", *base_groupby_options]
     else:
         groupby_options = ["expert_name", "defuser_name", *base_groupby_options]
 
@@ -1600,7 +1671,7 @@ def get_groupby_options(df, create_model_column):
         if "explode_components" not in st.session_state:
             st.session_state.explode_components = False
 
-        explode_components = st.sidebar.checkbox(
+        explode_components: bool = st.sidebar.checkbox(
             "Explode Components for Analysis", value=st.session_state.explode_components
         )
 
@@ -1611,7 +1682,7 @@ def get_groupby_options(df, create_model_column):
             df = df.explode("components")
             st.info("Components have been exploded. Each row now represents a single component.")
 
-    available_groupby = sorted([col for col in groupby_options if col in df.columns])
+    available_groupby: list[str] = sorted([col for col in groupby_options if col in df.columns])
 
     if not available_groupby:
         st.warning("No groupby columns available")
@@ -1622,11 +1693,13 @@ def get_groupby_options(df, create_model_column):
         st.session_state.groupby_cols = [available_groupby[0]] if available_groupby else []
 
     # Use available_groupby to filter any stale selections in session state
-    valid_selections = sorted(
+    valid_selections: list[str] = sorted(
         [col for col in st.session_state.groupby_cols if col in available_groupby]
     )
 
-    groupby_cols = st.sidebar.multiselect("Group by", available_groupby, default=valid_selections)
+    groupby_cols: list[str] = st.sidebar.multiselect(
+        "Group by", available_groupby, default=valid_selections
+    )
 
     # Update session state
     st.session_state.groupby_cols = groupby_cols
@@ -1635,7 +1708,7 @@ def get_groupby_options(df, create_model_column):
     if "agg_functions" not in st.session_state:
         st.session_state.agg_functions = ["mean", "count"]
 
-    agg_functions = st.sidebar.multiselect(
+    agg_functions: list[str] = st.sidebar.multiselect(
         "Aggregation functions",
         ["mean", "median", "min", "max", "count", "sum"],
         default=st.session_state.agg_functions,
@@ -1647,7 +1720,9 @@ def get_groupby_options(df, create_model_column):
     return df, groupby_cols, agg_functions
 
 
-def setup_pairing_filters(groupby_cols, best_expert, best_defuser):
+def setup_pairing_filters(
+    groupby_cols: list[str], best_expert: str | None, best_defuser: str | None
+) -> tuple[bool, bool, bool, bool]:
     """Set up pairing filters in the sidebar."""
     st.sidebar.subheader("Pairing Filters")
 
@@ -1661,14 +1736,14 @@ def setup_pairing_filters(groupby_cols, best_expert, best_defuser):
     if "filter_rest" not in st.session_state:
         st.session_state.filter_rest = False
 
-    filter_same = st.sidebar.checkbox(
+    filter_same: bool = st.sidebar.checkbox(
         "Pairings where Expert = Defuser", value=st.session_state.filter_same
     )
     st.session_state.filter_same = filter_same
 
     # Configure pairing filters
-    filter_best_expert = False
-    filter_best_defuser = False
+    filter_best_expert: bool = False
+    filter_best_defuser: bool = False
 
     if groupby_cols:
         if "defuser_name" in groupby_cols and "expert_name" not in groupby_cols:
@@ -1696,31 +1771,31 @@ def setup_pairing_filters(groupby_cols, best_expert, best_defuser):
             )
             st.session_state.filter_best_defuser = filter_best_defuser
 
-    filter_rest = st.sidebar.checkbox("Other pairings", value=st.session_state.filter_rest)
+    filter_rest: bool = st.sidebar.checkbox("Other pairings", value=st.session_state.filter_rest)
     st.session_state.filter_rest = filter_rest
 
     return filter_same, filter_best_expert, filter_best_defuser, filter_rest
 
 
-def apply_outcome_filter(df):
+def apply_outcome_filter(df: pl.DataFrame) -> pl.DataFrame:
     """Apply outcome filter if available."""
     if "outcome" not in df.columns:
         return df
 
     st.sidebar.subheader("Outcome Filter")
 
-    unique_outcomes = sorted(df["outcome"].unique().to_list())
+    unique_outcomes: list[str] = sorted(df["outcome"].unique().to_list())
 
     # Initialize session state for selected outcomes
     if "selected_outcomes" not in st.session_state:
         st.session_state.selected_outcomes = unique_outcomes
 
     # Filter out any outcomes that no longer exist in the data
-    valid_selections = [
+    valid_selections: list[str] = [
         outcome for outcome in st.session_state.selected_outcomes if outcome in unique_outcomes
     ]
 
-    selected_outcomes = st.sidebar.multiselect(
+    selected_outcomes: list[str] = st.sidebar.multiselect(
         "Filter by outcomes", options=unique_outcomes, default=valid_selections
     )
 
@@ -1734,12 +1809,14 @@ def apply_outcome_filter(df):
     return df
 
 
-def display_visualizations_for_aggregation(df, aggregate_metrics_by, groupby_cols):
+def display_visualizations_for_aggregation(
+    df: pl.DataFrame, aggregate_metrics_by: list[str], groupby_cols: list[str]
+) -> None:
     """Display visualizations for aggregated data."""
     # Empty function for now
 
 
-def setup_visualization_viewer():
+def setup_visualization_viewer() -> bool:
     """Setup visualization viewer controls."""
     if st.session_state.get("aggregation_performed", False):
         # Initialize session state for show_visualizations
@@ -1748,7 +1825,7 @@ def setup_visualization_viewer():
 
         st.sidebar.subheader("Enable visualisations")
 
-        show_visualizations = st.sidebar.checkbox(
+        show_visualizations: bool = st.sidebar.checkbox(
             "Show visualizations", value=st.session_state.show_visualizations
         )
 
@@ -1763,10 +1840,15 @@ def setup_visualization_viewer():
     return False
 
 
-def perform_and_display_aggregation(df, groupby_cols, aggregate_metrics_by, agg_functions):
+def perform_and_display_aggregation(
+    df: pl.DataFrame,
+    groupby_cols: list[str],
+    aggregate_metrics_by: list[str],
+    agg_functions: list[str],
+) -> pl.DataFrame | None:
     """Perform aggregation and display results."""
     # Use a unique key for this button to avoid conflicts
-    confirm_aggregate = st.sidebar.button("Aggregate!", key="confirm_aggregate_button")
+    confirm_aggregate: bool = st.sidebar.button("Aggregate!", key="confirm_aggregate_button")
 
     # Store aggregation state in session
     if "aggregation_performed" not in st.session_state:
@@ -1777,7 +1859,7 @@ def perform_and_display_aggregation(df, groupby_cols, aggregate_metrics_by, agg_
         st.session_state.aggregation_performed = True
 
     # Check if we should perform aggregation
-    should_aggregate = (
+    should_aggregate: bool = (
         st.session_state.aggregation_performed
         and aggregate_metrics_by
         and groupby_cols
@@ -1793,14 +1875,16 @@ def perform_and_display_aggregation(df, groupby_cols, aggregate_metrics_by, agg_
 
     st.subheader("Aggregation Results")
 
-    aggregated_df = perform_aggregation(df, groupby_cols, aggregate_metrics_by, agg_functions)
+    aggregated_df: pl.DataFrame = perform_aggregation(
+        df, groupby_cols, aggregate_metrics_by, agg_functions
+    )
 
     if aggregated_df is None:
         return None
 
     st.dataframe(aggregated_df)
 
-    csv = aggregated_df.to_pandas().to_csv()
+    csv: str = aggregated_df.to_pandas().to_csv()
     st.download_button(
         label="Download aggregated data as CSV",
         data=csv,
@@ -1814,33 +1898,29 @@ def perform_and_display_aggregation(df, groupby_cols, aggregate_metrics_by, agg_
 def main() -> None:
     """Main function for the GPTNT Results Visualizer."""
     # Setup debug mode
-    debug_mode = setup_debug_mode()
-
-    # Handle cache clearing
-    handle_cache_clearing()
+    maybe_clear_session_state()
+    debug_mode: bool = setup_debug_mode()
 
     # Select filtering method
-    filter_method = select_filtering_method()
+    filter_method: str = select_filtering_method()
 
     # Get experiment criteria based on filtering method
-    if filter_method == "Predefined Experiment":
-        experiment, experiment_criteria, criteria_changed = handle_predefined_experiment()
+    if st.session_state.filter_method == "Predefined Experiment":
+        experiment, criteria_changed = handle_predefined_experiment()
     else:
-        experiment, experiment_criteria, criteria_changed = handle_custom_criteria()
+        experiment, criteria_changed = handle_custom_criteria()
 
-    if not experiment_criteria:
+    if not st.session_state.get("experiment_criteria", False):
         st.warning("No criteria selected")
         return
 
     # Display debug information if needed
     if debug_mode:
-        display_debug_criteria(experiment_criteria, filter_method)
+        display_debug_criteria()
 
     # Check if data is already loaded or needs to be loaded
     if not st.session_state.get("results_data_loaded", False):
-        results_data_loaded = fetch_and_process_data(
-            experiment_criteria, criteria_changed, debug_mode
-        )
+        results_data_loaded: bool = fetch_and_process_data(criteria_changed, debug_mode)
         if not results_data_loaded:
             st.info("Please fetch data first using the 'Fetch runs!' button in the sidebar.")
             return
@@ -1850,7 +1930,7 @@ def main() -> None:
         st.session_state.get("results_data_loaded", False)
         and st.session_state.get("df") is not None
     ):
-        df = st.session_state.df
+        df: pl.DataFrame = st.session_state.df
 
         main_content = st.container()
         with main_content:
@@ -1858,11 +1938,11 @@ def main() -> None:
             header_placeholder.header("Runs have been fetched!")
 
         # Check if we're in a scenario where we don't need expert-defuser pairing analysis
-        is_experiment_3 = experiment == 3
-        is_only_alone = filter_method == "Custom Criteria" and st.session_state.get(
+        is_experiment_3: bool = experiment == 3
+        is_only_alone: bool = filter_method == "Custom Criteria" and st.session_state.get(
             "defuser_playing"
         ) == ["Alone"]
-        skip_pairing_analysis = is_experiment_3 or is_only_alone
+        skip_pairing_analysis: bool = is_experiment_3 or is_only_alone
 
         # Prepare dataframe for analysis
         if skip_pairing_analysis:
@@ -1872,7 +1952,9 @@ def main() -> None:
             best_expert, best_defuser = None, None
 
             if debug_mode and "outcome" in df.columns:
-                outcome_counts = df.group_by("outcome").count().sort("count", descending=True)
+                outcome_counts: pl.DataFrame = (
+                    df.group_by("outcome").count().sort("count", descending=True)
+                )
                 st.sidebar.write("Outcome distribution:", outcome_counts.to_pandas())
         else:
             # Normal case with expert-defuser pairings
@@ -1923,7 +2005,7 @@ def main() -> None:
         perform_and_display_aggregation(df, groupby_cols, aggregate_metrics_by, agg_functions)
 
         # Setup visualization viewer controls
-        show_visualization_viewer = setup_visualization_viewer()
+        show_visualization_viewer: bool = setup_visualization_viewer()
 
         # Show visualizations if requested
         if show_visualization_viewer and st.session_state.get("show_visualizations_for_data"):
