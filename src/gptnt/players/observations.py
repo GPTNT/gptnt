@@ -63,7 +63,7 @@ class ObservationHandler:
                 base64.b64decode(segmentation) if isinstance(segmentation, str) else segmentation
             )
         except binascii.Error:
-            _logger.exception(
+            _logger.warning(
                 "Failed to decode segmentation mask, it might not be base64 encoded.",
                 segmentation=segmentation,
             )
