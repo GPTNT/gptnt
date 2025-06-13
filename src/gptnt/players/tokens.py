@@ -17,12 +17,12 @@ def estimate_tokens_for_image_per_model(model: str, *, width: int, height: int) 
         return 1290
     if "gpt4o" in model or "gpt-4o" in model:
         return 85
-    if "Qwen" in model:
+    if "qwen" in model.lower():
         # resized to 504x504 (multiples of 28)
         # patch size is 14x14 - 2x2 token merging
         # (504 / 14)^2 / 2^2 = 324
         return 324
-    if "InternVL3" in model:
+    if "internVL3" in model.lower():
         # resized to 448x448 (multiples of 448)
         # patch size is 14x14 - pixel unshuffle == 2x2 token reduction
         # (448 / 14)^2 / 2^2 = 256
