@@ -13,3 +13,7 @@ agent:
     model_name: Qwen/Qwen2.5-VL-32B-Instruct-AWQ
     provider:
       base_url: http://localhost:11434/v1
+  model_settings:
+    _target_: pydantic_ai.models.openai.OpenAIResponsesModelSettings
+    _convert_: all
+    max_tokens: 1000
