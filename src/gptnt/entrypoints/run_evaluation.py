@@ -9,7 +9,8 @@ from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
 from gptnt.common.prompt_cache import PromptCache
 from gptnt.evaluation.run import (
-    RunDefuserVQAEvaluation,
+    RunDefuserVQAMCQEvaluation,
+    RunDefuserVQAOpenEndedEvaluation,
     RunExpertVQAEvaluation,
     RunGroundingEvaluation,
 )
@@ -56,19 +57,34 @@ def run_grounding_evaluation(
     logger.info("Evaluation completed successfully", agent=agent)
 
 
-@app.command("vqa")
+@app.command("defuser-oe-vqa")
 def run_vqa_evaluation(
     *, model: ModelOption, should_throw: ThrowOption = False, should_upload: UploadOption = False
 ) -> None:
     """Run the defuser VQA."""
     agent = load_agent(model)
     logger.info("Running VQA evaluation", agent=agent)
-    run_eval = RunDefuserVQAEvaluation(agent=agent)
+    run_eval = RunDefuserVQAOpenEndedEvaluation(agent=agent)
     if should_throw:
         run_eval.throw()
     if should_upload:
         run_eval.upload()
-    logger.info("VQA evaluation completed successfully", agent=agent)
+    logger.info("Defuser OE VQA evaluation completed successfully", agent=agent)
+
+
+@app.command("defuser-mcq-vqa")
+def run_mcq_vqa_evaluation(
+    *, model: ModelOption, should_throw: ThrowOption = False, should_upload: UploadOption = False
+) -> None:
+    """Run the defuser VQA evaluation on multiple choice questions."""
+    agent = load_agent(model)
+    logger.info("Running MCQ VQA evaluation", agent=agent)
+    run_eval = RunDefuserVQAMCQEvaluation(agent=agent)
+    if should_throw:
+        run_eval.throw()
+    if should_upload:
+        run_eval.upload()
+    logger.info("Defuser MCQ VQA evaluation completed successfully", agent=agent)
 
 
 @app.command("expert-vqa")

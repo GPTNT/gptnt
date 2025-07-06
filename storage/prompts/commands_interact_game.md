@@ -44,7 +44,6 @@
 
 - **Click Release**: Click on location and release immediately
 - **Examples**:
-
   - `{"command": "interact_game", "action": "click_release", "location": "A"}`
     - **Usage**: Use this to press and immediately release a module currently in your field of view marked with "A".
   - `{"command": "interact_game", "action": "click_release", "location": "B"}`

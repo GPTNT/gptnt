@@ -86,6 +86,33 @@ class EvalModel(WeaveModel):
         )
 
     @weave.op
+    def defuser_vqa_open_ended_predict(
+        self,
+        model_input: str,
+        input_images: list[Image.Image],
+        **kwargs: Any,  # noqa: ARG002
+    ) -> ModelOutput:
+        """Run the model on the input."""
+        loaded_images: list[BinaryContent] = []
+        for image in input_images:
+            buffer = io.BytesIO()
+            image.save(buffer, format="PNG")
+            binary_image = BinaryContent(data=buffer.getvalue(), media_type="image/png")
+            loaded_images.append(binary_image)
+
+        model_output: AgentRunResult[str] = self._agent.run_sync([*loaded_images, model_input])
+        output_string = model_output.output.strip()
+        return ModelOutput(
+            usage={
+                "input_tokens": model_output.usage().request_tokens or 0,
+                "output_tokens": model_output.usage().response_tokens or 0,
+                "total_tokens": model_output.usage().total_tokens or 0,
+            },
+            model=self.name or "",
+            output=output_string,
+        )
+
+    @weave.op
     def expert_vqa_predict(
         self,
         model_input: str,
