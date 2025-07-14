@@ -256,7 +256,7 @@ async def play_simon_says(*, ktane_client: KtaneClient, should_save_images) -> N
 
         current_bomb_state = await ktane_client.get_state()
         simon_module = current_bomb_state.modules[0]
-        strikes = current_bomb_state.current_strikes
+        strikes = len(current_bomb_state.strikes) if current_bomb_state.strikes else 0
 
         if simon_module.is_solved:
             break

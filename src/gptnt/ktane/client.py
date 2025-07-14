@@ -1,4 +1,3 @@
-import base64
 from types import TracebackType
 from typing import NamedTuple, Self, override
 
@@ -188,41 +187,3 @@ class KtaneClient(BaseClient):
         )
 
         return ObservationFrames(frames=frames_png_data, segm_mask=segm_png_data)
-
-    async def _get_screenshot(self) -> bytes:
-        response = await self.client.get("/screenshot")
-
-        try:
-            _ = response.raise_for_status()
-        except httpx.HTTPError as err:
-            _logger.exception("Failed to get screenshot", exc_info=err)
-            raise InvalidGameError("Failed to get screenshot") from err
-
-        base64_data = response.text
-        png_data = base64.b64decode(base64_data)
-        return png_data
-
-    async def _get_screenshot_with_segm(self) -> tuple[bytes, bytes | None]:
-        """Get the current observation from the game as two pngs.
-
-        First is the raw screenshot, second is the segmentation image.
-        """
-        response = await self.client.get("/observation")
-
-        try:
-            _ = response.raise_for_status()
-        except httpx.HTTPError as err:
-            raise InvalidGameError("Failed to get observation") from err
-
-        response_json = response.json()
-
-        screenshot_png_data = base64.b64decode(response_json.get("screenshot"))
-
-        # When the segmentation is empty, we return an empty byte string.
-        segm_png_data = (
-            base64.b64decode(response_json.get("segmentation"))
-            if response_json["segmentation"]
-            else None
-        )
-
-        return screenshot_png_data, segm_png_data

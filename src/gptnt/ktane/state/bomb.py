@@ -18,7 +18,6 @@ class BombState(BaseModel):
 
     seed: int
     max_strikes: int = 3
-    current_strikes: int = 0
     strikes: list[KtaneComponent] | None
     is_detonated: bool
     is_solved: bool
@@ -51,7 +50,9 @@ class BombState(BaseModel):
     @property
     def is_strike_out(self) -> bool:
         """Check if the bomb is strike out."""
-        return self.current_strikes >= self.max_strikes
+        if self.strikes is None:
+            return False
+        return len(self.strikes) >= self.max_strikes
 
     @property
     def is_game_correctly_over(self) -> bool:

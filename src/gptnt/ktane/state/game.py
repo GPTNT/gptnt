@@ -14,10 +14,10 @@ class GameState(Enum):
     transitioning = "Transitioning"
     """The game is in a loading screen."""
 
-    lights_off = "Lights Off"
+    lights_off = "LightsOff"
     """The game is in a mission, with the lights off."""
 
-    lights_on = "Lights On"
+    lights_on = "LightsOn"
     """The game is in a mission, with the lights on."""
 
     game_ended = "PostGame"
