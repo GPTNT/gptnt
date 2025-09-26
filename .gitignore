@@ -806,3 +806,6 @@ wandb
 # vqa and grounding data
 storage/vqa_and_grounding/state_and_obs.json
 storage/vqa_and_grounding/runs_df.json
+
+# Human eval data
+storage/human_eval
