@@ -1,9 +1,13 @@
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, BeforeValidator, NonNegativeInt
-from pydantic.types import Tag
+from annotated_types import MaxLen, Predicate
+from pydantic import BaseModel, BeforeValidator, NonNegativeInt, Tag
 
 from gptnt.ktane.actions import KtaneBaseAction, RelativeCoordinate
+
+NO_NEW_MESSAGES_SENTINEL = "<no_new_messages>"
+"""Sentinel for no new messages."""
+
 
 type ActionType = Literal["do_nothing", "send_message", "interact_game"]
 """Type of action to take."""
@@ -29,17 +33,12 @@ class SendMessageAction(BaseModel):
     message: str
 
 
-def validate_single_alphabet_letter(letter: str) -> str:
-    """Validate that the letter is a single alphabet letter."""
-    if len(letter) != 1 or not letter.isalpha():
-        raise ValueError("Must be a single alphabet letter (a-z).")
-    return letter
-
-
 type SingleAlphabetLetter = Annotated[
     str,
     BeforeValidator(lambda letter: letter.upper()),
-    AfterValidator(validate_single_alphabet_letter),
+    MaxLen(1),
+    Predicate(str.isalpha),
+    Predicate(str.isupper),
 ]
 
 
@@ -75,7 +74,7 @@ ExpertOutputType = Annotated[
     | Annotated[SendMessageAction, Tag("send_message")],
     Tag("expert"),
 ]
-ExpertOutputThoughtsType = Annotated[
+ExpertWithThoughtsOutputType = Annotated[
     Annotated[DoNothingActionWithThoughts, Tag("do_nothing")]
     | Annotated[SendMessageActionWithThoughts, Tag("send_message")],
     Tag("expert"),
@@ -88,7 +87,7 @@ DefuserOutputType = Annotated[
     Tag("defuser"),
 ]
 
-DefuserOutputThoughtsType = Annotated[
+DefuserWithThoughtsOutputType = Annotated[
     Annotated[DoNothingActionWithThoughts, Tag("do_nothing")]
     | Annotated[SendMessageActionWithThoughts, Tag("send_message")]
     | Annotated[InteractGameActionWithThoughts[SingleAlphabetLetter], Tag("interact_game")],
@@ -100,7 +99,7 @@ SoloDefuserOutputType = Annotated[
     | Annotated[InteractGameAction[SingleAlphabetLetter], Tag("interact_game")],
     Tag("defuser"),
 ]
-SoloDefuserOutputThoughtsType = Annotated[
+SoloDefuserWithThoughtsOutputType = Annotated[
     Annotated[DoNothingActionWithThoughts, Tag("do_nothing")]
     | Annotated[InteractGameActionWithThoughts[SingleAlphabetLetter], Tag("interact_game")],
     Tag("defuser"),
@@ -110,9 +109,9 @@ PlayerOutputType = (
     ExpertOutputType
     | DefuserOutputType
     | SoloDefuserOutputType
-    | ExpertOutputThoughtsType
-    | DefuserOutputThoughtsType
-    | SoloDefuserOutputThoughtsType
+    | ExpertWithThoughtsOutputType
+    | DefuserWithThoughtsOutputType
+    | SoloDefuserWithThoughtsOutputType
 )
 
 

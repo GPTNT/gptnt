@@ -1,5 +1,3 @@
-# ruff: noqa: FBT001
-# flake8: noqa: FBT001
 import itertools
 import json
 import re

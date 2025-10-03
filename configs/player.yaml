@@ -12,46 +12,43 @@ defaults:
 task_name: evaluation
 
 player:
-  _target_: gptnt.players.ai_player.AIPlayer
+  _target_: gptnt.services.player.supervisor.PlayerSupervisor
   _partial_: true
 
-  broker:
-    _target_: faststream.rabbit.RabbitBroker
-    logger: null
-    middlewares:
-      - _target_: faststream.rabbit.opentelemetry.RabbitTelemetryMiddleware
+  redis:
+    _target_: redis.Redis
 
-  metadata:
-    _target_: gptnt.players.spec.PlayerMetadata
+  capabilities:
+    _target_: gptnt.players.specification.PlayerCapabilities
     player_type: ai
     player_name: ???
     supports_structured_output: ???
 
-  tracker:
+  episode_tracker:
     _target_: gptnt.players.metrics.episode_tracker.EpisodeTracker
-    player_metadata: ${player.metadata}
+    capabilities: ${player.capabilities}
     wandb_entity: ${oc.env:WANDB_ENTITY,gptnt}
     wandb_project: ${oc.env:WANDB_PROJECT,gptnt}
     wandb_init_kwargs:
       group: evaluation
 
-  agent:
-    _target_: pydantic_ai.Agent
+  action_predictor:
+    _target_: gptnt.players.ai.action_predictor.ActionPredictor
+    capabilities: ${player.capabilities}
+    agent:
+      _target_: pydantic_ai.Agent
 
-    model: ???
+      model: ???
 
-    model_settings:
-      _target_: pydantic_ai.settings.ModelSettings
-      _convert_: all
-      temperature: 0.0
-      top_p: 1.0
+      model_settings:
+        _target_: pydantic_ai.settings.ModelSettings
+        _convert_: all
+        temperature: 0.0
+        top_p: 1.0
 
   observation_handler:
-    _target_: gptnt.players.observations.ObservationHandler
-    image_resizer:
-      _target_: gptnt.processors.image_resizer.ImageResizer
-      target_width: 512
-      target_height: 512
+    _target_: gptnt.players.observation_handler.ObservationHandler
+    image_resizer: null
     set_of_marks_painter:
       _target_: gptnt.processors.set_of_marks.SetOfMarksHandler
       add_labels: true

@@ -36,7 +36,7 @@ def screenshot(fixture_path: Path) -> str:
 
 
 @respx.mock
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_healthcheck_returns_true(ktane_client: KtaneClient) -> None:
     _ = respx.get(f"{ktane_client.client.base_url}/health").mock(
         return_value=httpx.Response(httpx.codes.OK, text=GameState.lights_on.value)
@@ -47,7 +47,7 @@ async def test_healthcheck_returns_true(ktane_client: KtaneClient) -> None:
 
 
 @respx.mock
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_healthcheck_returns_false_and_no_exception(ktane_client: KtaneClient) -> None:
     _ = respx.get(f"{ktane_client.client.base_url}/health").mock(
         return_value=httpx.Response(httpx.codes.BAD_REQUEST)
@@ -58,7 +58,7 @@ async def test_healthcheck_returns_false_and_no_exception(ktane_client: KtaneCli
 
 
 @respx.mock
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_start_mission_returns_true_on_success(
     ktane_client: KtaneClient, mission_spec: KtaneMissionSpec
 ) -> None:
@@ -71,20 +71,20 @@ async def test_start_mission_returns_true_on_success(
 
 
 @respx.mock
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_start_mission_returns_false_on_failing(
     ktane_client: KtaneClient, mission_spec: KtaneMissionSpec
 ) -> None:
     route = respx.get(f"{ktane_client.client.base_url}/startMission").mock(
         return_value=httpx.Response(httpx.codes.BAD_REQUEST, text="Mission failed")
     )
-    start_mission_response = await ktane_client.start_mission(mission_spec)
+    with pytest.raises(httpx.HTTPStatusError):
+        _ = await ktane_client.start_mission(mission_spec)
     assert route.called is True
-    assert start_mission_response is False
 
 
 @respx.mock
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_get_observation_returns_screenshot_as_bytes(
     ktane_client: KtaneClient, screenshot: str
 ) -> None:
@@ -124,7 +124,7 @@ def test_ktane_coordinate_action_correctly_converts_to_query_params(
 
 
 # @respx.mock
-# @pytest.mark.asyncio
+# @pytest.mark.anyio
 # @pytest.mark.skip(reason="Needs updating to phase3")
 # async def test_get_observation_frames_resizes_image(client: KtaneClient, screenshot: str) -> None:
 #     """Test that the KtaneClient correctly resizes the image."""
@@ -160,7 +160,7 @@ def test_ktane_coordinate_action_correctly_converts_to_query_params(
 
 
 # @respx.mock
-# @pytest.mark.asyncio
+# @pytest.mark.anyio
 # @pytest.mark.parametrize("action_type", list(GameActionType))
 # @pytest.mark.skip(reason="Needs updating to phase3")
 # async def test_set_of_mark_actions_are_converted_to_relative_coordinates(

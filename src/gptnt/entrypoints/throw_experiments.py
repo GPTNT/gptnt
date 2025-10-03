@@ -1,16 +1,15 @@
-import asyncio
 from pathlib import Path
 from typing import Annotated
 
+import anyio
+import httpx
 import typer
-from faststream.rabbit import RabbitBroker
 from rich.console import Console
 from structlog import get_logger
 
-from gptnt.api.api import APIQueues
-from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
 from gptnt.entrypoints._async_typer import AsyncTyper
+from gptnt.entrypoints.run_experiment_manager import EM_PORT
 from gptnt.experiments.experiments import ExperimentSpec
 from gptnt.experiments.wandb import (
     collate_runs_per_experiment_per_game,
@@ -18,7 +17,6 @@ from gptnt.experiments.wandb import (
     get_valid_experiments_from_collated_runs,
 )
 
-configure_logging()
 logger = get_logger()
 paths = Paths()
 console = Console()
@@ -29,12 +27,11 @@ app = AsyncTyper(help="Throw AI experiments to the experiment queue.", no_args_i
 
 async def _send_experiments(experiments: list[ExperimentSpec]) -> None:
     """Send the experiments to the experiment specs queue."""
-    # Create the broker and connect to the em client
-    broker = RabbitBroker(logger=None)
-    _ = await broker.connect()
-    queues = APIQueues(broker=broker)
-
-    _ = await queues.experiment_specs().route.publish(experiments)
+    async with httpx.AsyncClient() as client:
+        _ = await client.post(
+            f"http://127.0.0.1:{EM_PORT}/add-specs",
+            json={"specs": [experiment.model_dump(mode="json") for experiment in experiments]},
+        )
 
 
 def _filter_experiments(  # noqa: WPS210
@@ -121,4 +118,6 @@ async def throw_ai_experiments(
 
 
 if __name__ == "__main__":
-    asyncio.run(app())
+    # configure_logging()
+
+    anyio.run(app())

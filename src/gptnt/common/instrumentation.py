@@ -6,7 +6,13 @@ from typing import TYPE_CHECKING, Any, override
 import logfire
 import structlog
 from opentelemetry.context import Context
-from opentelemetry.sdk.trace.sampling import ALWAYS_OFF, ALWAYS_ON, Sampler, SamplingResult
+from opentelemetry.sdk.trace.sampling import (
+    ALWAYS_OFF,
+    ALWAYS_ON,
+    Sampler,
+    SamplingResult,
+    TraceIdRatioBased,
+)
 from opentelemetry.trace import Link, SpanKind
 from opentelemetry.trace.span import TraceState
 from opentelemetry.util.types import Attributes
@@ -114,7 +120,7 @@ class HeartbeatFilterSampler(Sampler):
         trace_state: TraceState | None = None,
     ) -> SamplingResult:
         # Check if 'heartbeat' is anywhere in the span name (case-insensitive)
-        sampler = ALWAYS_OFF if "experiment.heartbeat" in name.lower() else ALWAYS_ON
+        sampler = ALWAYS_OFF if "heartbeat" in name.lower() else ALWAYS_ON
 
         if (
             "heartbeat" in name.lower()
@@ -131,3 +137,70 @@ class HeartbeatFilterSampler(Sampler):
     @override
     def get_description(self) -> str:
         return "HeartbeatFilterSampler"
+
+
+class SpanNameFilterSampler(Sampler):
+    """Custom sampler that filters out spans with specific names."""
+
+    def __init__(self, *, span_names: list[str], ratio: float = 0.1) -> None:
+        self.span_names = span_names
+        self.ratio = ratio
+
+    @override
+    def should_sample(
+        self,
+        parent_context: Context | None,
+        trace_id: int,
+        name: str,
+        kind: SpanKind | None = None,
+        attributes: Attributes = None,
+        links: Sequence[Link] | None = None,
+        trace_state: TraceState | None = None,
+    ) -> SamplingResult:
+        sampler = TraceIdRatioBased(self.ratio) if name in self.span_names else ALWAYS_ON
+
+        return sampler.should_sample(
+            parent_context, trace_id, name, kind, attributes, links, trace_state
+        )
+
+    @override
+    def get_description(self) -> str:
+        return f"SpanNameFilterSampler({self.span_names})"
+
+
+class ChainedFilterSampler(Sampler):
+    """Sampler that chains multiple filter-based samplers together, picking the lowest value."""
+
+    def __init__(self, *samplers: Sampler) -> None:
+        self.samplers = samplers
+
+    @override
+    def should_sample(
+        self,
+        parent_context: Context | None,
+        trace_id: int,
+        name: str,
+        kind: SpanKind | None = None,
+        attributes: Attributes = None,
+        links: Sequence[Link] | None = None,
+        trace_state: TraceState | None = None,
+    ) -> SamplingResult:
+        all_sampling_results = [
+            sampler.should_sample(
+                parent_context, trace_id, name, kind, attributes, links, trace_state
+            )
+            for sampler in self.samplers
+        ]
+        # Pick the sampler with the decision that has the lowest value
+        sampling_result = min(
+            all_sampling_results, key=lambda sample_result: sample_result.decision.value
+        )
+        return sampling_result
+
+    @override
+    def get_description(self) -> str:
+        return (
+            "ChainedSampler("
+            + ",".join(sampler.get_description() for sampler in self.samplers)
+            + ")"
+        )

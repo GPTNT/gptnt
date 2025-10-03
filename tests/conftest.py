@@ -4,12 +4,16 @@ from pathlib import Path
 
 import httpx
 import pytest
-import pytest_asyncio
 from pytest_mock import MockerFixture
 
+from gptnt.common.paths import Paths
+from gptnt.common.prompt_cache import PromptCache
 from gptnt.ktane.client import KtaneClient
+from gptnt.ktane.manual import KtaneManualPaths
 
+# disable Weave and WandB for testing
 os.environ["WEAVE_DISABLED"] = "true"
+os.environ["WANDB_MODE"] = "disabled"
 
 
 @pytest.fixture
@@ -36,11 +40,19 @@ def fixture_path() -> Path:
     return path
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def ktane_client(host: str, port: int, mocker: MockerFixture) -> KtaneClient:
     """Provides an instance of the Ktane Client for testing."""
     ktane_client = KtaneClient(url=f"http://{host}:{port}")
-    type(ktane_client).client = mocker.PropertyMock(  # pyright: ignore[reportAttributeAccessIssue]
+    type(ktane_client)._client = mocker.PropertyMock(
         return_value=httpx.AsyncClient(base_url=f"http://{host}:{port}")
     )
     return ktane_client
+
+
+@pytest.fixture(scope="session", autouse=True)
+def prompt_cache() -> None:
+    """Fixture to set up the prompt cache before running tests."""
+    paths = Paths()
+    ktane_manual = KtaneManualPaths()
+    PromptCache.initialise(paths.prompts, ktane_manual.text_dir, ktane_manual.images_512_dir)

@@ -217,7 +217,7 @@ async def run_seed_gathering_process(
         "experiment=e1_1,e2,e3,e4_1,e4_2,e5_1,e5_2,e5_3",
         f"mission_generator.seed={seed}",
     )
-    stdout, stderr = await process.communicate()
+    _stdout, _stderr = await process.communicate()
 
     logger.info(f"Experiment generation completed for seed {seed}")
 
@@ -705,7 +705,7 @@ async def get_bomb_details(client: KtaneClient, mission_spec: KtaneMissionSpec) 
         logger.warning("Waiting for server to start")
         await asyncio.sleep(1)
 
-    await until(get_value=client.gamestate, target=GameState.main_menu)
+    await until(get_value=client.get_game_state, target=GameState.main_menu)
 
     _ = await client.start_mission(mission_spec)
 
@@ -725,18 +725,18 @@ async def get_bomb_details(client: KtaneClient, mission_spec: KtaneMissionSpec) 
     await asyncio.sleep(3)
 
     # Retrieve the bomb state
-    await until(get_value=client.gamestate, target=GameState.lights_on)
+    await until(get_value=client.get_game_state, target=GameState.lights_on)
     await asyncio.sleep(1)
     bomb_state = await client.client.get("/state")
     bomb_state = bomb_state.json()
     assert bomb_state is not None
 
-    await until(get_value=client.gamestate, target=GameState.lights_on)
+    await until(get_value=client.get_game_state, target=GameState.lights_on)
     await asyncio.sleep(1)
 
     # Reset the game after processing
     _ = await client.reset()
-    await until(get_value=client.gamestate, target=GameState.main_menu)
+    await until(get_value=client.get_game_state, target=GameState.main_menu)
 
     return bomb_state
 

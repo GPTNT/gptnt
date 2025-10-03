@@ -15,17 +15,20 @@ def configure_logging(root_log_level: int = logging.INFO) -> None:
     https://www.structlog.org/en/stable/standard-library.html#rendering-using-structlog-based-formatters-within-logging
     """
     shared_processors = [
+        structlog.contextvars.merge_contextvars,
         # Add a timestamp
         structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S"),
         # Add the name of the logger
         structlog.stdlib.add_logger_name,
         # Add the log level
         structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
         # structlog.processors.CallsiteParameterAdder(
         #     [CallsiteParameter.PROCESS, CallsiteParameter.FUNC_NAME, CallsiteParameter.LINENO]
         # ),
         # Include any extras in the log dict
         structlog.stdlib.ExtraAdder(),
+        structlog.processors.StackInfoRenderer(),
     ]
 
     # Configure structlog to use the standard library logging module, with the processors from
@@ -62,8 +65,23 @@ def configure_logging(root_log_level: int = logging.INFO) -> None:
     root_logger = logging.getLogger()
     root_logger.addHandler(handler)
     root_logger.setLevel(root_log_level)
+
     # Set httpx to WARNING to avoid too much noise
     logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.INFO)
 
     logging.getLogger("gptnt").setLevel(logging.DEBUG)
+
+    # def handle_exception(exc_type, exc_value, exc_traceback) -> None:
+    #     """Log any uncaught exception instead of letting it be printed by Python.
+
+    #     (but leave KeyboardInterrupt untouched to allow users to Ctrl+C to stop)
+    #     See https://stackoverflow.com/a/16993115/3641865.
+    #     """
+    #     if issubclass(exc_type, KeyboardInterrupt):
+    #         sys.__excepthook__(exc_type, exc_value, exc_traceback)
+    #         return
+
+    #     root_logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+    # sys.excepthook = handle_exception

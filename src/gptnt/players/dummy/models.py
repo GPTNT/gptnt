@@ -13,8 +13,6 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 from gptnt.ktane.actions import GameActionType
 from gptnt.players.actions import InteractGameAction, SendMessageAction, SetOfMarksLocation
 
-# from gptnt.players.prompts import BombStateMessage
-
 logger = structlog.get_logger()
 
 SoMAction = InteractGameAction[SetOfMarksLocation]
@@ -115,7 +113,7 @@ class DummyDefuserFunction:
             action_to_perform = next(self.actions_to_perform)
         except StopIteration:
             # If we run out of actions, just return a click release action
-            logger.warning("Ran out of actions to perform, returning click release action.")
+            logger.debug("Ran out of actions to perform, returning click release action.")
             action_to_perform = SoMAction(action=GameActionType.click_release, location="A")
 
         model_response = action_to_perform.model_dump(mode="json", exclude={"thoughts", "command"})

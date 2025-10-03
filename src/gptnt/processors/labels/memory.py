@@ -24,7 +24,12 @@ def _resolve_overlaps(
 
     # move left from centre label
     for idx in range(CENTER_LABEL - 1, -1, -1):
-        right = new_coords[idx + 1]
+        try:
+            right = new_coords[idx + 1]
+        except IndexError:
+            # Happens when there might be an issue with the coords in the list
+            continue
+
         current = new_coords[idx]
 
         # if label's right side overlaps with next label's left side

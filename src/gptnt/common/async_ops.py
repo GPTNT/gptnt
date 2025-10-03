@@ -1,40 +1,107 @@
-import asyncio
 import inspect
-from collections.abc import Callable, Coroutine
-from threading import Thread
-from typing import Any
+import os
+from collections.abc import AsyncIterator, Callable, Coroutine
+from typing import Any, Self, override
 
-
-def healthcheck_interval() -> Coroutine[Any, Any, None]:
-    """Returns after the standard healthcheck interval has passed."""
-    return asyncio.sleep(1.0)
-
-
-def busy_wait_interval() -> Coroutine[Any, Any, None]:
-    """Returns after the standard busy-wait interval has passed."""
-    return asyncio.sleep(1.0)
+import anyio
 
 
 async def until[TargetT](
     get_value: Callable[[], TargetT] | Callable[[], Coroutine[TargetT, Any, Any]],  # noqa: WPS221
     target: TargetT,
+    *,
+    sleep_duration: float = 1,
 ) -> None:
-    """Await until a value (specified by passed getter) becomes the target."""
-    # This now works with partial coroutinefunctions and functions returning awaitables which
-    # are not explicitly marked as coroutinefunctions
-    while (await v if inspect.isawaitable(v := get_value()) else v) is not target:  # noqa: WPS509, WPS111
-        await busy_wait_interval()
+    """Await until a value (specified by passed getter) becomes the target.
 
-
-async def run_in_separate_thread(to_thread_func: Callable[[], Any]) -> None:
-    """Run a function in a separate thread and wait for it to finish.
-
-    Do not expect a return.
+    This now works with partial coroutinefunctions and functions returning awaitables which are not
+    explicitly marked as coroutinefunctions.
     """
-    worker_thread = Thread(target=to_thread_func)
-    worker_thread.start()
+    while await output if inspect.isawaitable(output := get_value()) else output is not target:  # noqa: ASYNC110, WPS444
+        await anyio.sleep(sleep_duration)
 
-    while worker_thread.is_alive():
-        await busy_wait_interval()
 
-    worker_thread.join()
+async def periodic(interval: float) -> AsyncIterator[tuple[float, float | None]]:
+    """Yield periodically with elapsed time."""
+    start_time = anyio.current_time()
+    last_time = start_time
+    while True:  # noqa: WPS457
+        await anyio.sleep(interval)
+        current_time = anyio.current_time()
+        elapsed = current_time - start_time
+        delta = current_time - last_time
+        last_time = current_time
+        yield elapsed, delta
+
+
+class Event(anyio.Event):
+    """Wrapped event class to help with testing.
+
+    Wait is troublesome to test with for some reason so we wrap it during tests to make it work.
+    """
+
+    @override
+    def __new__(cls) -> Self:
+        """Just inherit from the super for the __new__.
+
+        This is needed to appease the typechecker for some reason. I don't get it.
+        """
+        return super().__new__(cls)  # pyright: ignore[reportReturnType]
+
+    @override
+    async def wait(self) -> None:
+        """Wait for the event to be set."""
+        if self._is_testing:
+            async for _ in periodic(1):
+                if self.is_set():
+                    return None
+
+        return await super().wait()
+
+    @property
+    def _is_testing(self) -> bool:
+        """Determine if we are in a testing environment."""
+        return os.environ.get("TESTING", "0") == "1"
+
+
+class AsyncValue[T]:  # noqa: WPS111
+    """Simple AsyncValue implementation for AnyIO."""
+
+    def __init__(self, initial_value: T) -> None:
+        self._value = initial_value  # noqa: WPS110
+        self._event = Event()
+
+    @property
+    def value(self) -> T:  # noqa: WPS110
+        """Get the current value."""
+        return self._value
+
+    @value.setter
+    def value(self, new_value: T) -> None:  # noqa: WPS110
+        self._value = new_value  # noqa: WPS110
+        self._event.set()
+        # Reset for next change
+        self._event = Event()
+
+    async def wait_value(self, target: T | Callable[[T], bool]) -> T:
+        """Wait for a specific value or condition."""
+        while True:
+            if callable(target):
+                if target(self._value):
+                    return self._value
+            elif self._value == target:
+                return self._value
+            await self._event.wait()
+
+    async def wait_transition(self) -> tuple[T, T]:
+        """Wait for any value change."""
+        old_value = self._value
+        await self._event.wait()
+        return self._value, old_value
+
+
+class AsyncBool(AsyncValue[bool]):
+    """Boolean AsyncValue."""
+
+    def __init__(self, *, initial_value: bool = False) -> None:
+        super().__init__(initial_value)

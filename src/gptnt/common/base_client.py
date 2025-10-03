@@ -1,25 +1,31 @@
 import abc
 from contextlib import suppress
+from dataclasses import InitVar, dataclass, field
 from typing import Self, override
 
 import httpx
 import logfire
 from structlog import get_logger
 
-from gptnt.common.instrumentation import InstrumentationMixin
+from gptnt.common.instrumentation import InstrumentationDataclassMixin
 from gptnt.common.servers import httpx_create_async_client
 
 _logger = get_logger()
 
 
-class BaseClient(InstrumentationMixin, abc.ABC):
+@dataclass(kw_only=True)
+class BaseClient(InstrumentationDataclassMixin, abc.ABC):
     """Base class for all clients."""
 
-    def __init__(self, url: str | httpx.URL) -> None:
+    url: InitVar[str | httpx.URL] = ""
+    _client: httpx.AsyncClient = field(init=False)
+
+    def __post_init__(self, url: str | httpx.URL) -> None:
+        """Post-initialization method to create the HTTP client."""
         self._client = httpx_create_async_client(base_url=url)
 
     @property
-    def url(self) -> httpx.URL:
+    def base_url(self) -> httpx.URL:
         """The base URL of the API."""
         return self._client.base_url
 
@@ -27,16 +33,13 @@ class BaseClient(InstrumentationMixin, abc.ABC):
     def client(self) -> httpx.AsyncClient:
         """The HTTP client."""
         if self._client.is_closed:
-            _logger.debug("Creating new httpx client")
-            self._client = httpx_create_async_client(base_url=self.url)
-            self.perform_instrumentation()
+            self.recreate_client()
         return self._client
 
-    async def restart_client(self) -> None:
-        """Restart the client."""
-        _logger.debug("Restarting client")
-        await self._client.aclose()
-        self._client = httpx_create_async_client(base_url=self.url)
+    def recreate_client(self, *, url: str | httpx.URL | None = None) -> None:
+        """Create a new httpx client."""
+        url = url or self.base_url
+        self._client = httpx_create_async_client(base_url=url)
         self.perform_instrumentation()
 
     @property
@@ -69,7 +72,7 @@ class BaseClient(InstrumentationMixin, abc.ABC):
         except httpx.HTTPError:
             if not skip_logger:
                 _logger.warning(
-                    "Healthcheck failed", class_name=self.__class__.__name__, url=self.url
+                    "Healthcheck failed", class_name=self.__class__.__name__, url=self.base_url
                 )
             return False
         return True
@@ -85,3 +88,10 @@ class BaseClient(InstrumentationMixin, abc.ABC):
                 return True
 
         return False
+
+    def reset(self) -> None:
+        """Reset the client url.
+
+        Basically we do this to prevent any accidental messasges being send to the wrong URL.
+        """
+        self.recreate_client(url="")

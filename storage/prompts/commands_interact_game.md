@@ -10,11 +10,11 @@
 
 - **Rotate Left**: -90° rotation
 - **Example**: `{"command": "interact_game", "action": "rotate_left"}`
-- **Usage**: Use this to rotate the bomb 90° counterclockwise to see a different side.
+- **Usage**: Use this to rotate the bomb 90° counterclockwise on its local yaw (vertical) axis.
 
 - **Rotate Right**: 90° rotation
 - **Example**: `{"command": "interact_game", "action": "rotate_right"}`
-- **Usage**: Use this to rotate the bomb 90° clockwise to see a different side.
+- **Usage**: Use this to rotate the bomb 90° clockwise on its local yaw (vertical) axis.
 
 - **Flip**: 180° rotation
 - **Example**: `{"command": "interact_game", "action": "flip"}`
@@ -22,11 +22,11 @@
 
 - **Roll Up**: 90° roll upward
 - **Example**: `{"command": "interact_game", "action": "roll_up"}`
-- **Usage**: Use this to roll the bomb upward to see the top side.
+- **Usage**: Use this to roll the bomb upward to see the bottom side. You should not rotate in this position.
 
 - **Roll Down**: 90° roll downward
 - **Example**: `{"command": "interact_game", "action": "roll_down"}`
-- **Usage**: Use this to roll the bomb downward to see the bottom side.
+- **Usage**: Use this to roll the bomb downward to see the top side. You should not rotate in this position.
 
 - **Zoom Out**: Return to full bomb view from a zoomed module
 - **Example**: `{"command": "interact_game", "action": "zoom_out"}`
@@ -52,6 +52,6 @@
 - **Hold**: Click and hold on location
 - **Examples**:
   - `{"command": "interact_game", "action": "hold", "location": "C"}`
-    - **Usage**: Use this to press and hold a button currently in your field of view marked with "C". Must be followed by a release action.
+    - **Usage**: Use this to press and hold a button currently in your field of view marked with "C". While holding, you may either do_nothing to wait or release to stop holding. No other action may occur until the release.
   - `{"command": "interact_game", "action": "hold", "location": "D"}`
-    - **Usage**: Use this to press and hold a switch currently in your view marked with "D". Must be followed by a release action.
+    - **Usage**: Use this to press and hold a switch currently in your view marked with "D". While holding, you may either do_nothing to wait or release to stop holding. No other action may occur until the release.

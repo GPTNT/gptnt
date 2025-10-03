@@ -1,48 +1,66 @@
-import asyncio
-from uuid import uuid4
+from functools import partial
 
+import anyio
 import logfire
-from faststream.app import FastStream
-from faststream.rabbit import RabbitBroker
-from faststream.rabbit.opentelemetry import RabbitTelemetryMiddleware
-from opentelemetry.sdk.trace.sampling import ParentBased
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from hypercorn import Config
+from hypercorn.asyncio import serve
+from redis import Redis
 from structlog import get_logger
 
-from gptnt.api.game_instance import GameInstance
-from gptnt.api.rabbit.exceptions import create_exc_middleware
-from gptnt.common.instrumentation import HeartbeatFilterSampler
 from gptnt.common.logger import configure_logging
+from gptnt.common.servers import get_available_port
 from gptnt.ktane.game_settings import KtaneSettings
+from gptnt.services.game.lifespan import game_lifespan
+from gptnt.services.game.middleware import add_state_headers_to_response
+from gptnt.services.game.routes import router
 
-_ = logfire.configure(
-    service_name="game",
-    scrubbing=False,
-    sampling=logfire.SamplingOptions(head=ParentBased(HeartbeatFilterSampler())),
-)
+_ = logfire.configure(service_name="game", scrubbing=False)
 
 
-configure_logging()
 logger = get_logger()
 
 
-async def run_game_instance() -> None:
-    """Run a game instance."""
-    with logfire.span("Start game instance"):
-        with logfire.span("Set KTANE settings"):
-            ktane_settings = KtaneSettings()
-            ktane_settings.create_settings_files()
-            ktane_settings.update_environment_variables()
+def run(*, port: int | None = None) -> FastAPI:
+    """Create and run the application for the game instance."""
+    url = f"http://127.0.0.1:{port}"
+    logger.info("Starting game instance", url=url, port=port)
 
-        broker = RabbitBroker(
-            logger=None, middlewares=(RabbitTelemetryMiddleware(), create_exc_middleware())
-        )
-        game_manager = GameInstance(broker=broker, uuid=uuid4())
-        app = FastStream(broker, lifespan=game_manager.lifespan, logger=None)
+    ktane_settings = KtaneSettings()
+    ktane_settings.update_environment_variables()
+    ktane_settings.create_settings_files()
 
-    # Run the FastStream app until manual exit
-    await app.run()
+    app = FastAPI(
+        debug=True, lifespan=partial(game_lifespan, url=url, redis=Redis(decode_responses=True))
+    )
+    app.include_router(router)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # _ = app.middleware("http")(logging_middleware)
+    # app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+    # app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    # Middleware is run from outer to inner, so we add them in reverse order of execution
+    _ = app.middleware("http")(add_state_headers_to_response)
+
+    _ = logfire.instrument_fastapi(app)
+
+    return app
 
 
 if __name__ == "__main__":
-    loop = asyncio.new_event_loop()
-    loop.run_until_complete(run_game_instance())
+    configure_logging()
+
+    available_port = get_available_port()
+
+    config = Config()
+    config.bind = [f"localhost:{available_port}"]
+    config.backlog = 1024
+
+    anyio.run(partial(serve, app=run(port=available_port), config=config), backend="asyncio")  # pyright: ignore[reportArgumentType]

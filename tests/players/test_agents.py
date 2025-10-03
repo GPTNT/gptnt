@@ -97,7 +97,7 @@ models.ALLOW_MODEL_REQUESTS = False
 #             player.build_agent_input.return_value = response.message
 
 #     assert player.player_usage.num_times_truncated == 100
-#     assert all(request_tokens > 0 for request_tokens in player.player_usage.request_tokens)
+#     assert all(request_tokens > 0 for request_tokens in player.player_usage.input_tokens)
 #     assert all(response_tokens > 0 for response_tokens in player.player_usage.response_tokens)
 
 
@@ -134,6 +134,6 @@ def binary_image_content(fixture_path: Path) -> BinaryContent:
 #                 f"message {idx}",
 #             ]
 #             _ = await player.send_request_to_agent()
-#             assert all(request_tokens > 0 for request_tokens in player.player_usage.request_tokens)
+#             assert all(request_tokens > 0 for request_tokens in player.player_usage.input_tokens)
 
 #     assert player.player_usage.num_times_truncated == 100

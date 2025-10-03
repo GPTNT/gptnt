@@ -113,7 +113,7 @@ class SimonSaysDefuserManager:
             logger.warning("Waiting for server to start")
             await asyncio.sleep(1)
 
-        await until(get_value=self.client.gamestate, target=GameState.main_menu)
+        await until(get_value=self.client.get_game_state, target=GameState.main_menu)
 
         mission_spec = KtaneMissionSpec(
             seed=seed, time_limit=90, components=[KtaneComponent.simon], optional_widgets=0
@@ -173,7 +173,7 @@ def check_serial_has_vowel(bomb_state: BombState) -> bool:
 
 async def update_som(*, ktane_client: KtaneClient, should_save_images: bool) -> None:
     """Update the som for the current bomb state."""
-    current_bomb_state = await ktane_client.get_state()
+    current_bomb_state = await ktane_client.get_bomb_state()
 
     # get observation frames
     frames, segm_mask, som_image = await ktane_client.get_observation_frames()
@@ -226,7 +226,7 @@ async def observe_sequence(*, ktane_client: KtaneClient, should_save_images: boo
 
 
 async def play_simon_says(*, ktane_client: KtaneClient, should_save_images) -> None:
-    current_bomb_state = await ktane_client.get_state()
+    current_bomb_state = await ktane_client.get_bomb_state()
     simon_module = current_bomb_state.modules[0]
     serial_has_vowel = check_serial_has_vowel(bomb_state=current_bomb_state)
 
@@ -254,7 +254,7 @@ async def play_simon_says(*, ktane_client: KtaneClient, should_save_images) -> N
         # watch the new sequence
         await observe_sequence(ktane_client=ktane_client, should_save_images=should_save_images)
 
-        current_bomb_state = await ktane_client.get_state()
+        current_bomb_state = await ktane_client.get_bomb_state()
         simon_module = current_bomb_state.modules[0]
         strikes = len(current_bomb_state.strikes) if current_bomb_state.strikes else 0
 
@@ -295,7 +295,7 @@ async def main() -> None:
     await client_manager.start_simon_says_mission(seed=123)
 
     # wait for the bomb state to be available
-    while await client_manager.client.get_state() is None:  # noqa: ASYNC110
+    while await client_manager.client.get_bomb_state() is None:  # noqa: ASYNC110
         await asyncio.sleep(1)
 
     # play simon says

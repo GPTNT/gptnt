@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Any, Self
 
 import polars as pl
@@ -18,9 +19,19 @@ from gptnt.players.actions import (
     SendMessageAction,
     SendMessageActionWithThoughts,
 )
-from gptnt.players.spec import PlayerRole
+from gptnt.players.specification import PlayerRole
 
 _logger = get_logger()
+
+
+class AIResponseErrorType(Enum):
+    """Reasons the AI player errored."""
+
+    invalid_som_location = "invalid_som_location"
+    invalid_format = "invalid_format"
+    server_error = "server_error"
+    guardrail_violation = "guardrail_violation"
+    unknown = "unknown"
 
 
 class TimestampMixin(BaseModel):
@@ -99,7 +110,6 @@ class BombStateMetric(BombState, TimestampMixin):
         return {
             "seed": pl.Int32,
             "max_strikes": pl.Int32,
-            "current_strikes": pl.Int32,
             "strikes": pl.String,
             "is_detonated": pl.Boolean,
             "is_solved": pl.Boolean,

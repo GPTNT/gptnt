@@ -10,9 +10,7 @@ PLAYER_CONFIG = CONFIG_DIR.joinpath("player.yaml")
 MODEL_DIR = CONFIG_DIR.joinpath("model")
 
 model = param_fixture(
-    "model",
-    [path.stem for path in MODEL_DIR.glob("[!_]*.yaml") if path.stem not in {"none", "vllm"}],
-    scope="session",
+    "model", [path.stem for path in MODEL_DIR.glob("[!_]*.yaml")], scope="session"
 )
 
 

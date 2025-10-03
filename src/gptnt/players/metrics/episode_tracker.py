@@ -2,19 +2,19 @@ import io
 import itertools
 from contextlib import suppress
 from dataclasses import dataclass, field
-from enum import Enum
 from functools import partial
 from pathlib import Path
 from typing import Any
 
 import anyio
 import dill
+import logfire
 import polars as pl
 import wandb
 import weave
+from anyio.to_thread import run_sync as run_sync_in_thread
 from PIL import Image
-from pydantic import BaseModel, TypeAdapter
-from pydantic.types import UUID4
+from pydantic import UUID4, BaseModel, TypeAdapter
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.usage import Usage
 from structlog import get_logger
@@ -22,8 +22,6 @@ from tqdm import tqdm
 from weave.trace.weave_client import WeaveClient
 from whenever import Instant
 
-from gptnt.api.experiment_manager.experiment_descriptor import ExperimentDescriptor
-from gptnt.common.async_ops import run_in_separate_thread
 from gptnt.common.paths import Paths
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import (
@@ -34,27 +32,19 @@ from gptnt.players.actions import (
     SendMessageAction,
     SendMessageActionWithThoughts,
 )
-from gptnt.players.messages import AgentMessageInput
+from gptnt.players.ai.message_history import AgentMessageInput
 from gptnt.players.metrics.structures import (
     ActionMetric,
+    AIResponseErrorType,
     BombStateMetric,
     DoNothingMetric,
     MessageMetric,
     ObservationMetric,
 )
-from gptnt.players.spec import PlayerMetadata, PlayerRole, PlayerSpec
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol, PlayerRole
+from gptnt.services.experiment_descriptor import ExperimentDescriptor
 
 _logger = get_logger()
-
-
-class AIResponseErrorType(Enum):
-    """Reasons the AI player errored."""
-
-    invalid_som_location = "invalid_som_location"
-    invalid_format = "invalid_format"
-    server_error = "server_error"
-    guardrail_violation = "guardrail_violation"
-    unknown = "unknown"
 
 
 @dataclass(kw_only=True)
@@ -71,7 +61,7 @@ class EpisodeTracker:  # noqa: WPS214
     """Weave client for tracing."""
     _weave_call: Any | None = field(default=None, init=False, repr=False)
 
-    player_metadata: PlayerMetadata
+    capabilities: PlayerCapabilities
     """Metadata about the player.
 
     This is constant for the player so it can be given up front.
@@ -79,7 +69,7 @@ class EpisodeTracker:  # noqa: WPS214
     player_uuid: UUID4 = field(init=False, repr=False)
 
     experiment_descriptor: ExperimentDescriptor | None = field(default=None, init=False)
-    player_spec: PlayerSpec | None = field(default=None, init=False)
+    protocol: PlayerProtocol | None = field(default=None, init=False)
 
     start_time: Instant = field(init=False, repr=False)
 
@@ -161,16 +151,18 @@ class EpisodeTracker:  # noqa: WPS214
         )
         return sum(itertools.takewhile(bool, reversed_errors))
 
-    async def on_experiment_start(
+    async def configure_for_experiment(
         self,
         *,
         experiment_descriptor: ExperimentDescriptor,
-        player_spec: PlayerSpec,
+        protocol: PlayerProtocol,
+        player_uuid: UUID4,
         additional_metadata: dict[str, Any],
     ) -> None:
         """Start tracking an experiment."""
         self.experiment_descriptor = experiment_descriptor
-        self.player_spec = player_spec
+        self.protocol = protocol
+        self.player_uuid = player_uuid
 
         func = partial(
             wandb.init,
@@ -178,12 +170,11 @@ class EpisodeTracker:  # noqa: WPS214
             project=self.wandb_project,
             config={
                 # We call it the `game_id` due to legacy reasons
-                "game_id": experiment_descriptor.experiment_id,
-                "room_id": experiment_descriptor.room_uuid,
+                "game_id": experiment_descriptor.session_id,
                 "game_uuid": experiment_descriptor.game_uuid,
                 "player_id": self.player_uuid,
                 "experiment_name": experiment_descriptor.experiment_spec.experiment_name,
-                **player_spec.model_dump(mode="json"),
+                **protocol.model_dump(mode="json"),
                 **experiment_descriptor.experiment_spec.model_dump(mode="json"),
                 **experiment_descriptor.experiment_spec.mission_spec.model_dump(
                     mode="json", by_alias=False
@@ -193,10 +184,11 @@ class EpisodeTracker:  # noqa: WPS214
             resume="never",
             **self.wandb_init_kwargs,
         )
-        await run_in_separate_thread(func)
+        _ = await run_sync_in_thread(func)
         self.start_time = Instant.now()
         _logger.info("WandB run started")
 
+    @logfire.instrument("Stop experiment tracker")
     async def on_experiment_stop(self, *, is_hard_crash: bool = False) -> None:
         """Send results to Wandb."""
         data_to_send = self._compute_data_to_send()
@@ -224,16 +216,17 @@ class EpisodeTracker:  # noqa: WPS214
 
         wandb.log(data_to_send, commit=False)
         self.experiment_descriptor = None
-        self.player_spec = None
+        self.protocol = None
 
         await self.finish_run(has_crashed=is_hard_crash)
         _logger.debug("WandB run finished")
 
+    @logfire.instrument("Finish WandB run")
     async def finish_run(self, *, has_crashed: bool = False) -> None:
         """Finish the run and clean up."""
         func = partial(wandb.finish, exit_code=1 if has_crashed else 0)
         try:
-            await run_in_separate_thread(func)
+            await run_sync_in_thread(func)
         except wandb.Error as err:
             if err.message == "You must call wandb.init() before wandb.log()":
                 _logger.warning("It seems like the run was never started, skipping finish??")
@@ -246,20 +239,19 @@ class EpisodeTracker:  # noqa: WPS214
         self, message_input: AgentMessageInput, message_history: list[ModelMessage]
     ) -> None:
         """Start a trace to Weave."""
-        assert self.player_spec is not None, "Player spec must be set before starting a trace."
+        assert self.protocol is not None, "Player spec must be set before starting a trace."
 
         inputs: dict[str, Any] = {"history": message_history}
         attributes: dict[str, Any] = {
             "player_id": self.player_uuid,
-            **self.player_spec.model_dump(mode="json"),
-            **self.player_metadata.model_dump(mode="json"),
+            **self.protocol.model_dump(mode="json"),
+            **self.capabilities.model_dump(mode="json"),
         }
 
         if self.experiment_descriptor:
             attributes = {
                 **attributes,
                 "game_id": self.experiment_descriptor.game_uuid,
-                "room_id": self.experiment_descriptor.room_uuid,
                 "experiment_name": self.experiment_descriptor.experiment_spec.experiment_name,
                 **self.experiment_descriptor.experiment_spec.model_dump(mode="json"),
             }
@@ -277,7 +269,7 @@ class EpisodeTracker:  # noqa: WPS214
             ]
 
         self._weave_call = self.weave_client.create_call(
-            f"{self.player_metadata.player_name} ({self.player_spec.role})",
+            f"{self.capabilities.player_name} ({self.protocol.role})",
             inputs=inputs,
             attributes=attributes,
         )
@@ -298,11 +290,11 @@ class EpisodeTracker:  # noqa: WPS214
             self._weave_call,
             output={
                 "usage": {
-                    "input_tokens": usage.request_tokens,
+                    "input_tokens": usage.input_tokens,
                     "output_tokens": usage.response_tokens,
                     "total_tokens": usage.total_tokens,
                 },
-                "model": self.player_metadata.player_name.lstrip("eu."),
+                "model": self.capabilities.player_name.lstrip("eu."),
                 "output": outputs,
             },
         )

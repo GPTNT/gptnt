@@ -1,19 +1,13 @@
 # @package player
 
 defaults:
-  - vllm
+  - internvl3-38b
   - _self_
 
-metadata:
+capabilities:
   player_name: internvl3-8b
-  supports_structured_output: false
 
-agent:
-  model:
-    model_name: OpenGVLab/InternVL3-8B
-    provider:
-      base_url: http://localhost:11434/v1
-  model_settings:
-    _target_: pydantic_ai.models.openai.OpenAIResponsesModelSettings
-    _convert_: all
-    max_tokens: 1000
+action_predictor:
+  agent:
+    model:
+      model_name: OpenGVLab/InternVL3-8B

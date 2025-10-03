@@ -8,6 +8,7 @@ from types import MappingProxyType
 from typing import ClassVar, Literal
 
 import cv2
+import logfire
 import numpy as np
 import structlog
 from numpy.typing import NDArray
@@ -382,11 +383,11 @@ class SetOfMarksHandler:
         self._add_mask_outline = add_mask_outline
 
         self._mark_type = mark_type
-        self._mark_to_coordinate: dict[SetOfMarksLocation, RelativeCoordinate] = {}
+        self.mark_to_coordinate: dict[SetOfMarksLocation, RelativeCoordinate] = {}
 
     def reset(self) -> None:
         """Reset the mark to coordinate mapping."""
-        self._mark_to_coordinate = {}
+        self.mark_to_coordinate = {}
 
     def extract_regions(
         self, colorful_image: RGBArray, zoomed_in_component: KtaneComponent | None
@@ -400,6 +401,7 @@ class SetOfMarksHandler:
         self._update_mark_to_coordinate_mapping(regions, zoomed_in_component=zoomed_in_component)
         return labeled_segmentation, regions
 
+    @logfire.instrument("Run Set of Marks Handler")
     def run(
         self,
         *,
@@ -443,19 +445,19 @@ class SetOfMarksHandler:
 
         return annotated_image
 
-    def mark_to_coordinate(self, *, mark_id: SetOfMarksLocation) -> RelativeCoordinate:
+    def convert_mark_to_coordinate(self, *, mark_id: SetOfMarksLocation) -> RelativeCoordinate:
         """Convert a mark ID to a relative coordinate."""
-        if mark_id not in self._mark_to_coordinate:
+        if mark_id not in self.mark_to_coordinate:
             _logger.warning(
-                "Mark ID not found in mapping", mark_id=mark_id, mapping=self._mark_to_coordinate
+                "Mark ID not found in mapping", mark_id=mark_id, mapping=self.mark_to_coordinate
             )
             raise InvalidMarkLocationError(mark_id)
-        return self._mark_to_coordinate[mark_id]
+        return self.mark_to_coordinate[mark_id]
 
     def coordinate_to_mark(self, *, coordinate: RelativeCoordinate) -> SetOfMarksLocation:
         """Convert a relative coordinate to a mark ID."""
         distances = {}
-        for mark_id, coord in self._mark_to_coordinate.items():
+        for mark_id, coord in self.mark_to_coordinate.items():
             distance = math.sqrt(
                 (coord.x_pos - coordinate.x_pos) ** 2 + (coord.y_pos - coordinate.y_pos) ** 2
             )
@@ -526,7 +528,7 @@ class SetOfMarksHandler:
             label_to_coord[self._format_label(region.label)] = RelativeCoordinate(
                 x_pos=norm_x, y_pos=norm_y
             )
-        self._mark_to_coordinate = label_to_coord
+        self.mark_to_coordinate = label_to_coord
 
     def _format_label(self, label_num: int) -> str | int:
         """Format a label number to a string.

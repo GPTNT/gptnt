@@ -3,6 +3,7 @@ import platform
 from datetime import UTC, datetime
 from pathlib import Path
 
+import logfire
 import structlog
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -49,11 +50,12 @@ class KtaneSettings(BaseSettings):
     linux: Path = Field(default_factory=get_default_linux_location)
 
     game_width: int = Field(
-        default=512, description="Width of the game window", alias="game_width"
+        default=640, description="Width of the game window", alias="game_width"
     )
     game_height: int = Field(
-        default=512, description="Height of the game window", alias="game_height"
+        default=480, description="Height of the game window", alias="game_height"
     )
+    game_speed: int = Field(default=1, description="Multipler for the game speed")
 
     def update_environment_variables(self) -> None:
         """Set the environment variables for the game settings."""
@@ -81,9 +83,10 @@ class KtaneSettings(BaseSettings):
         if file_path.exists():
             timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
             backup_location = file_path.with_suffix(f".{timestamp}.bak")
-            logger.warning(
-                f"'{file_path.name} file already exists, we need to replace it to run things automatically. We are going to backup your settings at '{backup_location}'"
-            )
+            with logfire.suppress_instrumentation():
+                logger.warning(
+                    f"'{file_path.name} file already exists, we need to replace it to run things automatically. We are going to backup your settings at '{backup_location}'"
+                )
             _ = backup_location.write_bytes(file_path.read_bytes())
 
     def create_file(self, *, file_path: Path, default_file_contents: str) -> None:

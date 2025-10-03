@@ -3,16 +3,17 @@
 defaults:
   - _self_
 
-metadata:
+capabilities:
   player_name: gpt4o
   supports_structured_output: true
 
-agent:
-  model:
-    _target_: pydantic_ai.models.openai.OpenAIModel
-    model_name: gpt-4o
-    provider:
-      _target_: pydantic_ai.providers.azure.AzureProvider
-      # api_key: ${env:AZURE_OPENAI_API_KEY}
-      # api_version: ${env:AZURE_OPENAI_API_VERSION}
-      # endpoint: ${env:AZURE_OPENAI_ENDPOINT}
+action_predictor:
+  agent:
+    model:
+      _target_: pydantic_ai.models.openai.OpenAIModel
+      model_name: gpt-4o
+      provider:
+        _target_: pydantic_ai.providers.azure.AzureProvider
+        # api_key: ${env:AZURE_OPENAI_API_KEY}
+        # api_version: ${env:AZURE_OPENAI_API_VERSION}
+        # endpoint: ${env:AZURE_OPENAI_ENDPOINT}

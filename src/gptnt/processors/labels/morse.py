@@ -13,7 +13,7 @@ def morse_code(
 ) -> Generator[DrawData]:
     """Annotate the morse code module with labels."""
     if len(regions) != MORSE_REGIONS:
-        log.warning("Morse should have {MORSE_REGIONS} regions, but got %d", len(regions))
+        log.warning(f"Morse should have {MORSE_REGIONS} regions, but got %d", len(regions))
 
     _ = box_dims  # temporary
 

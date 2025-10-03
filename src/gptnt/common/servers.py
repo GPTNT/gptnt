@@ -1,26 +1,20 @@
 import socket
 
 import httpx
-from aiohttp import ClientSession
-from httpx._client import AsyncClient
-from httpx_aiohttp import AiohttpTransport
 
 TimeoutTypes = float | httpx.Timeout | None
 
 DEFAULT_CONNECTION_LIMITS = httpx.Limits(
     max_connections=None, max_keepalive_connections=None, keepalive_expiry=None
 )
+# default timeout is 10 minutes
+DEFAULT_TIMEOUT = httpx.Timeout(timeout=10 * 60, connect=5.0)
 
 
-def httpx_create_async_client(
-    base_url: str | httpx.URL, timeout: TimeoutTypes = 60
-) -> AsyncClient:
+def httpx_create_async_client(base_url: str | httpx.URL) -> httpx.AsyncClient:
     """Make shared client instance with httpx_aiohttp."""
     return httpx.AsyncClient(
-        limits=DEFAULT_CONNECTION_LIMITS,
-        timeout=timeout,
-        base_url=base_url,
-        transport=AiohttpTransport(client=lambda: ClientSession()),  # noqa: WPS506
+        limits=DEFAULT_CONNECTION_LIMITS, timeout=DEFAULT_TIMEOUT, base_url=base_url
     )
 
 

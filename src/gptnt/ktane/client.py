@@ -1,15 +1,14 @@
-from types import TracebackType
-from typing import NamedTuple, Self, override
+from dataclasses import dataclass
+from typing import Annotated
 
 import httpx
 import logfire
 import structlog
-from httpx._exceptions import ConnectError
+from pydantic import AfterValidator, BaseModel, Field
 
 from gptnt.common.base_client import BaseClient
-from gptnt.common.servers import httpx_create_async_client
 from gptnt.ktane.actions import KtaneAction
-from gptnt.ktane.exceptions import InvalidGameError
+from gptnt.ktane.game_settings import KtaneSettings
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.game import GameState
@@ -17,173 +16,134 @@ from gptnt.ktane.state.game import GameState
 _logger = structlog.get_logger()
 
 
-class ObservationFrames(NamedTuple):
-    """Frames from the game."""
+def add_failure_reason_from_response(response: httpx.Response) -> None:
+    """Add a failure reason to the response if it exists."""
+    if response.is_error:
+        response.headers["X-Reason"] = response.text
 
-    frames: list[str]
-    segm_mask: str | None
+
+class RawObservationFrames(BaseModel):
+    """Frames from the game.
+
+    We keep everything as base64 strings and also note that since they come from the JSON, they
+    don't need to be url-safe and I don't believe that they are.
+    """
+
+    frames: Annotated[list[str], Field(default_factory=list)]
+    segmentation: Annotated[
+        str | None, AfterValidator(lambda image: image if bool(image) else None)
+    ] = None
 
 
+@dataclass(kw_only=True)
 class KtaneClient(BaseClient):
-    """Create a client to interact with the KTANE game."""
-
-    def __init__(self, *, url: str | httpx.URL) -> None:
-        super().__init__(url=url)
-        assert self.client.base_url is not None, "Base URL must be set"
-
-    @override
-    def perform_instrumentation(self) -> None:
-        _logger.debug("Instrumenting KtaneClient")
-        logfire.instrument_httpx(self.client, capture_all=True)
+    """Client that interacts with the KTANE game itself."""
 
     async def update_url(self, url: str | httpx.URL) -> None:
         """Create a new client with the given base URL."""
         await self.client.aclose()
-        self._client = httpx_create_async_client(base_url=url)
-        self.perform_instrumentation()
+        self.recreate_client(url=url)
 
-    async def __aenter__(self) -> Self:
-        """Open the client."""
-        _ = await self.client.__aenter__()
-        return self
+    @property
+    def default_game_speed(self) -> int:
+        """Get the game speed."""
+        return KtaneSettings().game_speed
 
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None = None,
-        exc_value: BaseException | None = None,
-        traceback: TracebackType | None = None,
-    ) -> None:
-        """Close the client."""
-        await self.client.__aexit__()
-
-    async def gamestate(self) -> GameState:
-        """Check if the server is running."""
+    async def get_game_state(self) -> GameState:
+        """Get the current state that the game is in."""
         response = await self.client.get("/health")
-        try:
-            _ = response.raise_for_status()
-        except httpx.HTTPError as err:
-            _logger.exception("Game client is not healthy", exc_info=err)
+        if response.is_error:
+            _logger.error("Game client is not healthy", request=response.request)
             return GameState.unknown
-
         return GameState(response.text)
 
-    async def reset(self) -> bool:
-        """Reset the game to the Setup room."""
+    async def go_to_main_menu(self) -> bool:
+        """Reset the game to the Setup room/main menu."""
         response = await self.client.get("/reset")
-        try:
-            _ = response.raise_for_status()
-        except httpx.HTTPError as err:
-            _logger.exception("Failed to reset game", exc_info=err)
-            return False
-        return True
+        return response.is_success
 
+    @logfire.instrument("Start mission")
     async def start_mission(self, specification: KtaneMissionSpec) -> bool:
         """Start a new mission in the environment."""
-        response = await self.client.get("/startMission", params=specification.to_query_params())
-
-        try:
-            _ = response.raise_for_status()
-        except httpx.HTTPError as err:
-            _logger.exception(f"Failed to start mission Reason: {response.text}", exc_info=err)
-            return False
-        return True
+        response = await self.client.get(
+            "/startMission",
+            params=specification.model_copy(
+                update={"time_scale": self.default_game_speed}
+            ).to_query_params(),
+        )
+        response = response.raise_for_status()
+        return response.is_success
 
     async def advance_time(self) -> bool:
-        """Do one, in game time step."""
-        response_time_step = await self.client.get("/timestep")
-        try:
-            _ = response_time_step.raise_for_status()
-        except httpx.HTTPError:
-            _logger.exception("Failed to advance time")
-            return False
-        return True
+        """Advance the time by the `time_step_size`, and then pause.
+
+        Defaulted to 3000ms.
+        """
+        response = await self.client.get("/timestep")
+        response = response.raise_for_status()
+        return response.is_success
+
+    async def set_game_speed(self, *, speed: float | None = None) -> bool:
+        """Set the game speed.
+
+        If set to None, we use the default (from the settings).
+        """
+        if speed is None:
+            speed = self.default_game_speed
+        response = await self.client.get("/settimescale", params={"value": speed})
+        response = response.raise_for_status()
+        return response.is_success
 
     async def stop_time(self) -> bool:
         """Pause the game."""
-        response = await self.client.get("/settimescale", params={"value": 0})
-        try:
-            _ = response.raise_for_status()
-        except httpx.HTTPError:
-            _logger.exception("Failed to stop time")
-            return False
-        return True
+        return await self.set_game_speed(speed=0)
 
     async def resume_time(self) -> bool:
         """Resume the game."""
-        response = await self.client.get("/settimescale", params={"value": 1})
-        try:
-            _ = response.raise_for_status()
-        except httpx.HTTPError:
-            _logger.exception("Failed to resume time")
-            return False
-        return True
+        return await self.set_game_speed()
 
-    async def send_action(self, action: KtaneAction) -> bool | None:
-        """Send an action to the server."""
-        try:
-            response = await self.client.get("/action", params=action.to_query_params())
-        except ConnectError:
-            _logger.info("Failed to connect.")
-            return None
+    async def send_action(self, action: KtaneAction) -> bool:
+        """Perform an action in the game."""
+        response = await self.client.get("/action", params=action.to_query_params())
+        response = response.raise_for_status()
+        return response.is_success
 
-        try:
-            _ = response.raise_for_status()
-        except httpx.HTTPError as err:
-            _logger.exception(f"Failed to send action Reason: {response.text}", exc_info=err)
-            return None
-
-        _logger.info("Response from action", response=response.text)
-
-        return True
-
-    async def get_state(self) -> BombState | None:
+    async def get_bomb_state(self) -> BombState:
         """Get the current state of the bomb."""
-        try:  # noqa: WPS229
-            response = await self.client.get("/state")
-            _ = response.raise_for_status()
-        except httpx.RequestError as exc:
-            _logger.exception(
-                f"Failed to request bomb state from {exc.request.url!r}.", exc_info=exc
-            )
-            return None
-        except httpx.HTTPStatusError as err:
-            if err.response.text == "Cannot get bomb state in Lights Off state":
-                _logger.warning("Cannot get bomb state in Lights Off state")
-                return None
-            _logger.exception(
-                f"Failed to receive bomb state. Reason: {err.response.text}", exc_info=err
-            )
-            return None
+        response = await self.client.get("/state")
+        response = response.raise_for_status()
 
-        _logger.debug("Bomb state", bomb_state=response.json())
-
+        _logger.debug("Received bomb state", bomb_state=response.json())
         state = BombState.model_validate(response.json())
         return state
 
-    async def get_observation_frames(self) -> ObservationFrames:
+    async def get_observation_frames(self) -> RawObservationFrames:
         """Gets frames and segmentation mask.
 
         Frames are upto 16 frames and a segmentation mask of the last, most recent frame.
         """
+        # Because this can take a while, it can mean that the game has ended in the middle,
+        # causing something like a connecttimeout when the game is dead (due to the post-game
+        # scenario already happened) or another reason, so we need to catch it and handle it. This
+        # is coming through as a connecttimeout
         response = await self.client.get("/buffer")
+        _ = response.raise_for_status()
 
-        try:
-            _ = response.raise_for_status()
-        except httpx.HTTPError as err:
-            _logger.exception(
-                f"Failed to get frames. Reason: {response.text}",
-                reason=response.text,
-                exc_info=err,
-            )
-            raise InvalidGameError("Failed to get frames") from err
+        # Get the json from the thing. We keep everything as base64 encoded strings
+        observation_frames = RawObservationFrames.model_validate(response.json())
+        return observation_frames
 
-        response_json = response.json()
+    async def detonate_bomb(self) -> bool:
+        """Detonate the bomb."""
+        response = await self.client.get("/detonate")
+        response = response.raise_for_status()
+        return response.is_success
 
-        frames_png_data = list(response_json.get("frames", []))
+    async def solve_bomb(self) -> bool:
+        """Solve the bomb.
 
-        # When the segmentation is empty, we return an empty byte string.
-        segm_png_data = (
-            response_json.get("segmentation") if response_json["segmentation"] else None
-        )
-
-        return ObservationFrames(frames=frames_png_data, segm_mask=segm_png_data)
+        Might take a while of the bomb contains Memory module.
+        """
+        response = await self.client.get("/solve")
+        response = response.raise_for_status()
+        return response.is_success

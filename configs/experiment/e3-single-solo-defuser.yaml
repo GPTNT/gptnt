@@ -1,5 +1,5 @@
 # @package _global_
 
 defaults:
-  - override /player_specs@defuser_player_spec: solo_defuser
+  - override /player_specs@defuser_protocol: solo_defuser
   - _self_

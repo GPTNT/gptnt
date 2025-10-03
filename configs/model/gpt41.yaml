@@ -4,9 +4,10 @@ defaults:
   - gpt4o
   - _self_
 
-metadata:
+capabilities:
   player_name: gpt41
 
-agent:
-  model:
-    model_name: gpt-4.1
+action_predictor:
+  agent:
+    model:
+      model_name: gpt-4.1

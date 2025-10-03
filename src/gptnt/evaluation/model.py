@@ -42,7 +42,7 @@ class EvalModel(WeaveModel):
     @classmethod
     def from_agent(cls, *, agent: Agent, instructions: str) -> Self:
         """Create an EvalModel from a PydanticAI Agent."""
-        agent._instructions = instructions  # noqa: SLF001
+        agent._instructions = instructions  # noqa: SLF001  # pyright: ignore[reportAttributeAccessIssue]
 
         model_name = None
         if isinstance(agent.model, str):

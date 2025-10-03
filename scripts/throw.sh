@@ -45,7 +45,7 @@ run_and_track "experiment_manager" env uv run python ./src/gptnt/entrypoints/run
 # Set up trap to clean up on exit
 trap 'echo "Script interrupted."; exit 1' INT TERM
 
-sleep 10
+sleep 5
 
 # Script continues here after successful response
 echo "Continuing with the rest of the script..."
@@ -54,8 +54,6 @@ echo "Continuing with the rest of the script..."
 for ((i = 0; i < NUM_ROOMS; i++)); do
   echo "THROWING: Starting room manager on DISPLAY=:$DISPLAY_NUM..."
   run_and_track "game_$i" env DISPLAY=:$DISPLAY_NUM uv run python ./src/gptnt/entrypoints/run_game_instance.py
-  sleep 5
-  run_and_track "room_$i" env uv run python ./src/gptnt/entrypoints/run_room_instance.py
   sleep 2
 done
 

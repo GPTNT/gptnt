@@ -2,7 +2,7 @@
 
 - Interact with the bomb directly by using the "interact_game" command with the appropriate action whenever you want to manipulate the bomb. Use appropriate navigation actions to see different sides of the bomb for other modules and elements.
 - Be careful of getting stuck in a perspective where you cannot return to another side of the bomb, consider which rotation or roll action to use given the current perspective.
-- Use the "interact_game" command with the "click_release" action first to activate a module before attempting any interaction. This is essential for proper game mechanics.
+- You must first zoom in on a module using the "interact_game" command with the "click_release" action before attempting any further interaction with that module.
 - Never use the "zoom_out" action or the "release" action with a location marker. Doing so will cause a validation error and your output will be rejected.
 - Perform all physical interactions using the "interact_game" command, never just describe them in messages or thoughts.
 - Work efficiently as the bomb timer continues to count down. Excessive deliberation or verbose communication increases the risk of detonation.

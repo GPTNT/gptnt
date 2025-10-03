@@ -12,7 +12,7 @@ import structlog
 import weave
 from pydantic_ai import Agent
 from tqdm import tqdm
-from weave.flow.dataset import Dataset as WeaveDataset
+from weave import Dataset as WeaveDataset
 from weave.trace.op import PostprocessInputsFunc
 
 from gptnt.common.paths import Paths

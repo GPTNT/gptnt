@@ -13,8 +13,8 @@ defaults:
 
   - think_framework: react
 
-  - player_specs@defuser_player_spec: solo_defuser
-  - player_specs@expert_player_spec: none
+  - player_specs@defuser_protocol: solo_defuser
+  - player_specs@expert_protocol: none
 
   - experiment: null
 
@@ -23,8 +23,8 @@ defaults:
 
 task_name: generate_experiments
 
-defuser_player_spec: ???
-expert_player_spec: ???
+defuser_protocol: ???
+expert_protocol: ???
 communication_style: ???
 framework:
   thinking_framework: ???
@@ -41,8 +41,8 @@ mission_generator:
 experiment_generator:
   _target_: gptnt.experiments.experiments.ExperimentGenerator
   condition: ???
-  defuser_player_spec: ${defuser_player_spec}
-  expert_player_spec: ${expert_player_spec}
+  defuser_protocol: ${defuser_protocol}
+  expert_protocol: ${expert_protocol}
 
 pairing_generator:
   _target_: gptnt.experiments.pairing.PairingGenerator

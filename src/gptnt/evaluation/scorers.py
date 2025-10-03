@@ -13,6 +13,10 @@ from gptnt.dataset.generate_instructions import KEYPAD_SYMBOL_DESCRIPTIONS, Task
 type PredictionOutput = dict[Literal["output"], str]
 
 trick_question_categories = ["hallucination_type=type_a", "hallucination_type=type_b"]
+"""Any trick categories that should be skipped during scoring.
+
+typea = need more information typeb = something doesnt add up
+"""
 
 
 @dataclass(kw_only=True)
@@ -70,7 +74,7 @@ class CompareToGroundTruth:  # noqa: WPS338
             cluster_similarities.items(), key=lambda pair: pair[1], reverse=True
         )
         most_similar_symbol, most_similar_score = sorted_clusters[0]
-        _, second_most_similar_score = sorted_clusters[1]
+        _, _second_most_similar_score = sorted_clusters[1]
 
         if most_similar_symbol != correct_symbol:
             return False
