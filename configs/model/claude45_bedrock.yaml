@@ -1,8 +1,11 @@
 # @package player
 
 defaults:
-  - claude37
   - _self_
+
+capabilities:
+  player_name: claude45
+  supports_structured_output: true
 
 action_predictor:
   agent:
