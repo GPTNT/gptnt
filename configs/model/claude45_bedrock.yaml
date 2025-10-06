@@ -1,0 +1,16 @@
+# @package player
+
+defaults:
+  - claude37
+  - _self_
+
+action_predictor:
+  agent:
+    model:
+      _target_: pydantic_ai.models.bedrock.BedrockConverseModel
+      model_name: eu.anthropic.claude-sonnet-4-5-20250929-v1:0
+      provider:
+        _target_: pydantic_ai.providers.bedrock.BedrockProvider
+        # api_key: ${env:AWS_DEFAULT_REGION}
+        # aws_access_key_id: ${env:AWS_ACCESS_KEY_ID}
+        # aws_secret_access_key: ${env:AWS_SECRET_ACCESS_KEY}
