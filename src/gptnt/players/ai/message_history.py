@@ -256,6 +256,8 @@ class MessageHistory:
         updated_messages: list[ModelMessage] = []
         num_observations_removed = 0
 
+        # TODO: This needs fixing to work for solo player to distinguish the manual from
+        #       observations
         for message in new_messages:
             if isinstance(message, ModelRequest) and not does_message_contain_manual(message):
                 num_removed, clean_message = remove_binary_content_from_user_message(message)
@@ -266,6 +268,7 @@ class MessageHistory:
 
         # Update the usage to reflect the number of observation tokens removed
         if num_observations_removed > 0 and self.usage.input_tokens > 0:
+            # TODO: Needs fixing because somehow it's resulting in negative tokens
             self.usage.input_tokens -= num_observations_removed * self.tokens_per_image
         return updated_messages
 
