@@ -31,11 +31,11 @@ def remove_binary_content_from_user_message(message: ModelMessage) -> tuple[int,
     if isinstance(message, ModelRequest):
         for part in message.parts:
             # Check if its a thing we need to remove binary content from
-            if isinstance(part, UserPromptPart) and isinstance(part.content, list):
+            if isinstance(part, UserPromptPart) and not isinstance(part.content, str):
                 new_part_content = [
                     piece for piece in part.content if not isinstance(piece, BinaryContent)
                 ]
-                num_removed = len(part.content) - len(new_part_content)
+                num_removed += len(part.content) - len(new_part_content)
                 part.content = new_part_content
     return num_removed, message
 
@@ -126,7 +126,7 @@ def does_message_contain_manual(message: ModelRequest) -> bool:  # noqa: WPS231
     It's a bit of a hack, but I can't think of a better way to do this right now.
     """
     for part in message.parts:
-        if isinstance(part, UserPromptPart) and isinstance(part.content, list):
+        if isinstance(part, UserPromptPart) and not isinstance(part.content, str):
             for content in part.content:
                 if isinstance(content, str) and MANUAL_PAGE_IDENTIFIER_STRING in content:
                     return True
