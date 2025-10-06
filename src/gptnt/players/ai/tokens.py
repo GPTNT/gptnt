@@ -1,4 +1,5 @@
 import math
+from functools import lru_cache
 
 import tiktoken
 from tiktoken.model import MODEL_PREFIX_TO_ENCODING
@@ -33,6 +34,7 @@ def estimate_tokens_for_image_per_model(model: str, *, width: int, height: int) 
     raise ValueError(f"Unknown model: {model}")
 
 
+@lru_cache
 def count_tokens_from_text(string: str) -> int:
     """Count the number of tokens in a string."""
     encoding = tiktoken.get_encoding(TIKTOKEN_ENCODING_NAME)
