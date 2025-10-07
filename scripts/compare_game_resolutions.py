@@ -1,11 +1,14 @@
+import io
 import os
 
 import anyio
 import structlog
+from PIL import Image
 
 from gptnt.common.async_ops import periodic
 from gptnt.common.paths import Paths
 from gptnt.common.servers import get_available_port
+from gptnt.ktane.actions import GameActionType, KtaneBaseAction
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.executable import get_executable_path
 from gptnt.ktane.game_settings import KtaneSettings
@@ -39,6 +42,7 @@ class ScreenshotTaker:
     def __init__(self, game_width: int, game_height: int) -> None:
         self.ktane_settings = KtaneSettings(game_width=game_width, game_height=game_height)
         self.game_width = game_width
+        self.game_height = game_height
         self.process_manager = GameProcessManager()
         self.ktane_client = KtaneClient(url="")
         self.observation_handler = ObservationHandler(set_of_marks_painter=SET_OF_MARKS_PAINTER)
@@ -81,7 +85,7 @@ class ScreenshotTaker:
         await self.ktane_client.go_to_main_menu()
         await self.wait_until(GameState.main_menu)
 
-    async def get_observation(self) -> None:
+    async def get_observation(self, *, after_action: bool) -> None:
         raw_observation = await self.ktane_client.get_observation_frames()
         bomb_state = await self.ktane_client.get_bomb_state()
         observation = self.observation_handler.handle_new_observation(
@@ -89,15 +93,32 @@ class ScreenshotTaker:
             segmentation=raw_observation.segmentation,
             bomb_state=bomb_state,
         )
-        self._save_image(observation.som_image)
+        self._save_image(som_image=observation.som_image, after_action=after_action)
 
-    def _save_image(self, som_image: str):
-        save_name = f"bomb_{self.component}_{self.game_width}.png"
+    def _save_image(self, *, som_image: bytes, after_action: bool):
+        save_name = (
+            f"{self.component}_{self.game_width}.png"
+            if not after_action
+            else f"{self.component}_{self.game_width}_with_action.png"
+        )
         save_dir = paths.output.joinpath("resolution_comparison_dataset")
         save_dir.mkdir(parents=True, exist_ok=True)
         screenshot_path = save_dir.joinpath(save_name)
-        _ = screenshot_path.write_bytes(som_image)
+
+        # image = Image.frombytes("RGB", (self.game_width, self.game_height), som_image)
+        image = Image.open(io.BytesIO(som_image))
+        if self.game_width != 512 or self.game_height != 512:
+            image = image.resize((512, 512), Image.Resampling.LANCZOS)
+        image.save(screenshot_path)
         logger.info(f"Saved screenshot to {screenshot_path}")
+
+    async def click_a(self) -> None:
+        select_module_action = KtaneBaseAction[str](
+            action=GameActionType.click_release, location="A"
+        )
+        self.observation_handler.convert_to_game_action(action=select_module_action)
+        await self.ktane_client.send_action(action=select_module_action)
+        await anyio.sleep(3)  # wait for the interaction to complete
 
     # Helper function for waiting for a game state
     async def wait_until(self, state: GameState) -> None:
@@ -111,7 +132,7 @@ class ScreenshotTaker:
                 logger.info("Cannot get state yet")
 
 
-async def run(components: list[KtaneComponent], resolutions: list[(int, int)]):
+async def run(components: list[KtaneComponent], resolutions: list[tuple[int, int]]) -> None:
     total_components = len(components)
     total_resolutions = len(resolutions)
 
@@ -129,13 +150,18 @@ async def run(components: list[KtaneComponent], resolutions: list[(int, int)]):
 
             for comp_idx, component in enumerate(components):
                 comp_progress = f"{comp_idx + 1}/{total_components}"
+                total_experiments = total_components * total_resolutions
+                current_experiment = res_idx * total_components + comp_idx + 1
+                total_progress = f"{current_experiment}/{total_experiments}"
 
                 logger.info(
-                    f"Currently running {component.name} component on resolution {width}x{height}. Component progress: {comp_progress}"
+                    f"Currently running {component.name} component on resolution {width}x{height}. Component progress: {comp_progress}. Total progress: {total_progress}"
                 )
 
                 await ss.start_mission(component=component)
-                await ss.get_observation()
+                await ss.get_observation(after_action=False)
+                await ss.click_a()
+                await ss.get_observation(after_action=True)
                 await ss.reset()
 
             logger.info(
