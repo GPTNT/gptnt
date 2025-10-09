@@ -1,3 +1,5 @@
+import copy
+from contextlib import suppress
 from dataclasses import dataclass, field
 
 import logfire
@@ -16,7 +18,6 @@ from pydantic_ai.messages import (
 )
 
 from gptnt.ktane.game_settings import KtaneSettings
-from gptnt.ktane.manual import MANUAL_PAGE_IDENTIFIER_STRING
 from gptnt.players.ai.tokens import count_tokens_from_text, estimate_tokens_for_image_per_model
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
@@ -25,19 +26,65 @@ logger = structlog.get_logger()
 type AgentMessageInput = str | list[str | BinaryContent]
 
 
-def remove_binary_content_from_user_message(message: ModelMessage) -> tuple[int, ModelMessage]:
-    """Remove binary content from the message."""
+def remove_observations_without_removing_manual(part: UserPromptPart) -> UserPromptPart:
+    """Remove observations from the first message without removing the manual.
+
+    When this is the case, the role is the defuser and this will be the first message of the game.
+    As a result, there will be no text input (we hope unless someone is running that experiment) so
+    we will just remove the very last binary content from the all the binary contents in the
+    message.
+    """
+    if isinstance(part.content, str):
+        return part
+
+    content = list(part.content)
+    content.reverse()
+    with suppress(ValueError, StopIteration):
+        last_observation_index = content.index(
+            next(piece for piece in content if isinstance(piece, BinaryContent))
+        )
+        _ = content.pop(last_observation_index)
+    content.reverse()
+    return UserPromptPart(content=content)
+
+
+def remove_all_binary_content_from_user_prompt(part: UserPromptPart) -> tuple[int, UserPromptPart]:
+    """Remove all binary content from the user prompt part."""
+    if isinstance(part.content, str):
+        return 0, part
+
+    new_content = [piece for piece in part.content if not isinstance(piece, BinaryContent)]
+    num_removed = len(part.content) - len(new_content)
+    part.content = new_content
+    return num_removed, part
+
+
+def remove_binary_content_from_model_request(
+    message: ModelRequest, *, message_contains_manual: bool
+) -> tuple[int, ModelRequest]:
+    """Remove all binary content from the model request.
+
+    If the message contains the manual, then we will not remove the manual but we will (try) to
+    remove any observations that might be in there.
+    """
     num_removed = 0
-    if isinstance(message, ModelRequest):
-        for part in message.parts:
-            # Check if its a thing we need to remove binary content from
-            if isinstance(part, UserPromptPart) and not isinstance(part.content, str):
-                new_part_content = [
-                    piece for piece in part.content if not isinstance(piece, BinaryContent)
-                ]
-                num_removed += len(part.content) - len(new_part_content)
-                part.content = new_part_content
-    return num_removed, message
+
+    # copy the message but dont copy the parts since we're going to modify them
+    clean_message = copy.deepcopy(message)
+    clean_message.parts = []
+
+    for part in message.parts:
+        cleaned_part = part
+        if isinstance(part, UserPromptPart):
+            if message_contains_manual:
+                cleaned_part = remove_observations_without_removing_manual(part)
+                num_removed += 1
+            else:
+                removed, cleaned_part = remove_all_binary_content_from_user_prompt(part)
+                num_removed += removed
+
+        clean_message.parts.append(cleaned_part)
+    return num_removed, clean_message
 
 
 def remove_thoughts_from_tool_call(tool_call_part: ToolCallPart) -> ToolCallPart:
@@ -118,19 +165,6 @@ def is_model_output(message: ModelMessage) -> bool:
 
     # Handle the case where requests are the processed tool calls
     return any(isinstance(part, ToolReturnPart) for part in message.parts)
-
-
-def does_message_contain_manual(message: ModelRequest) -> bool:  # noqa: WPS231
-    """Check if the message is the manual.
-
-    It's a bit of a hack, but I can't think of a better way to do this right now.
-    """
-    for part in message.parts:
-        if isinstance(part, UserPromptPart) and not isinstance(part.content, str):
-            for content in part.content:
-                if isinstance(content, str) and MANUAL_PAGE_IDENTIFIER_STRING in content:
-                    return True
-    return False
 
 
 def remove_any_empty_messages(messages: list[ModelMessage]) -> list[ModelMessage]:  # noqa: WPS231
@@ -259,8 +293,11 @@ class MessageHistory:
         # TODO: This needs fixing to work for solo player to distinguish the manual from
         #       observations
         for message in new_messages:
-            if isinstance(message, ModelRequest) and not does_message_contain_manual(message):
-                num_removed, clean_message = remove_binary_content_from_user_message(message)
+            if isinstance(message, ModelRequest):
+                contains_manual = self._does_message_contain_manual(message)
+                num_removed, clean_message = remove_binary_content_from_model_request(
+                    message, message_contains_manual=contains_manual
+                )
                 num_observations_removed += num_removed
                 updated_messages.append(clean_message)
             else:
@@ -271,6 +308,19 @@ class MessageHistory:
             # TODO: Needs fixing because somehow it's resulting in negative tokens
             self.usage.input_tokens -= num_observations_removed * self.tokens_per_image
         return updated_messages
+
+    def _does_message_contain_manual(self, message: ModelMessage) -> bool:
+        """Check if the message will have the manual in it.
+
+        Use the player protocol and other things to figure it out. Importantly, when the message
+        history is empty, we know that the first message will have the manual in it.
+        """
+        return (
+            self.protocol.include_manual
+            and self.protocol.role == "defuser"
+            and self.is_empty
+            and isinstance(message, ModelRequest)
+        )
 
     def _should_truncate_message_history(self, *, next_message: str | None = None) -> bool:
         """Check if the context length is over the max context length."""
