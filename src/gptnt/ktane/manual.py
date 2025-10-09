@@ -48,7 +48,7 @@ class KtaneManualPaths(BaseSettings):
     local: Path = root.joinpath("ktane-manual.pdf")
 
     images_orig_dir: Path = root.joinpath("images/raw")
-    images_512_dir: Path = root.joinpath("images/512_512")
+    images_small_dir: Path = root.joinpath("images/640_h")
     text_dir: Path = root.joinpath("text")
 
     @validate_call
@@ -62,12 +62,14 @@ class KtaneManualPaths(BaseSettings):
         return PromptCache.get_text(text_path)
 
     @validate_call
-    def load_image(self, page_num: PageNumType, *, kind: Literal["orig", "512"] = "512") -> bytes:
+    def load_image(
+        self, page_num: PageNumType, *, kind: Literal["orig", "small"] = "small"
+    ) -> bytes:
         """Load the image for a given page number, as bytes.
 
-        We can load two kinds of images: the original and the 512x512 version. Default to 512x512.
+        We can load two kinds of images: the original and the small version. Default to small.
         """
-        kind_switcher = {"orig": self.images_orig_dir, "512": self.images_512_dir}
+        kind_switcher = {"orig": self.images_orig_dir, "small": self.images_small_dir}
         image_path = kind_switcher[kind].joinpath(f"page_{page_num}.png")
 
         if not image_path.exists():

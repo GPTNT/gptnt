@@ -27,7 +27,7 @@ def load_manual_as_prompt(
         manual.append(text)
 
         # Load the image for the page afterward
-        image = manual_paths.load_image(page_num, kind="512")
+        image = manual_paths.load_image(page_num, kind="small")
         image = BinaryContent(image, media_type="image/png")
         manual.append(image)
 

@@ -45,7 +45,7 @@ def run(
 ) -> FastAPI:
     """Create and run the application for the player service."""
     PromptCache.initialise(
-        paths.prompts, ktane_manual_paths.text_dir, ktane_manual_paths.images_512_dir
+        paths.prompts, ktane_manual_paths.text_dir, ktane_manual_paths.images_small_dir
     )
 
     url = f"http://127.0.0.1:{port}"

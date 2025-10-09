@@ -55,4 +55,4 @@ def prompt_cache() -> None:
     """Fixture to set up the prompt cache before running tests."""
     paths = Paths()
     ktane_manual = KtaneManualPaths()
-    PromptCache.initialise(paths.prompts, ktane_manual.text_dir, ktane_manual.images_512_dir)
+    PromptCache.initialise(paths.prompts, ktane_manual.text_dir, ktane_manual.images_small_dir)

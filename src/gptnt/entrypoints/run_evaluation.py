@@ -93,7 +93,7 @@ def run_expert_vqa_evaluation(
 ) -> None:
     """Run the expert VQA evaluation."""
     PromptCache.initialise(
-        paths.prompts, ktane_manual_paths.text_dir, ktane_manual_paths.images_512_dir
+        paths.prompts, ktane_manual_paths.text_dir, ktane_manual_paths.images_small_dir
     )
     agent = load_agent(model)
     logger.info("Running expert VQA evaluation", agent=agent)
