@@ -42,6 +42,7 @@ dependencies = [
     "whenever>=0.7.3",
     "respx>=0.22.0",
     "fastapi>=0.117.1",
+    "json-repair>=0.52.0",
 ]
 
 [dependency-groups]

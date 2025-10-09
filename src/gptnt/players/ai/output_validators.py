@@ -3,6 +3,7 @@ from copy import deepcopy
 from typing import NamedTuple, Self
 
 import structlog
+from json_repair import repair_json
 from pydantic import ValidationError
 from pydantic.type_adapter import TypeAdapter
 from pydantic_ai import RunUsage
@@ -32,22 +33,15 @@ def structure_string_output(
     """
     if not isinstance(output, str):
         return output
-    output = output.strip().replace("```json", "").replace("```", "")
+    output = output.strip().replace("```json", "").replace("```", "").strip()
 
     with suppress(ValidationError):
         return TypeAdapter(output_type).validate_json(output)
 
     with suppress(ValidationError):
-        log.debug('Trying with the `"}` on the end', output=output)
-        return TypeAdapter(output_type).validate_json(output + '"}')  # noqa: WPS336
-
-    with suppress(ValidationError):
-        log.debug("Trying with the `'}` on the end", output=output)
-        return TypeAdapter(output_type).validate_json(output + "'}")  # noqa: WPS336
-
-    with suppress(ValidationError):
-        log.debug("Trying with the `}` on the end", output=output)
-        return TypeAdapter(output_type).validate_json(output + "}")  # noqa: WPS336
+        log.debug("Trying with `json-repair`", output=output)
+        output = repair_json(output)
+        return TypeAdapter(output_type).validate_json(output)  # noqa: WPS336
 
     raise InvalidOutputFormatError(output=output, expected_type=output_type)
 
