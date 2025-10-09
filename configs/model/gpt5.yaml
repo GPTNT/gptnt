@@ -4,14 +4,14 @@ defaults:
   - _self_
 
 capabilities:
-  player_name: gpt4o
+  player_name: gpt5
   supports_structured_output: true
 
 action_predictor:
   agent:
     model:
       _target_: pydantic_ai.models.openai.OpenAIModel
-      model_name: gpt-4o
+      model_name: gpt-5
       provider:
         _target_: pydantic_ai.providers.azure.AzureProvider
         # api_key: ${env:AZURE_OPENAI_API_KEY}

@@ -1,8 +1,8 @@
 # @package pairing_generator
 
 all_players:
-  - gpt4o
-  - claude37
+  - gpt-5
+  - claude45
   - gemini-25
   # - internvl3-38b
   # - qwen25vl-32b
