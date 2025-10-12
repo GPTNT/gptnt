@@ -4,7 +4,7 @@ from functools import lru_cache
 import tiktoken
 from tiktoken.model import MODEL_PREFIX_TO_ENCODING
 
-TIKTOKEN_ENCODING_NAME = MODEL_PREFIX_TO_ENCODING["gpt-4o-"]
+TIKTOKEN_ENCODING_NAME = MODEL_PREFIX_TO_ENCODING["gpt-5-"]
 
 
 def estimate_tokens_for_image_per_model(model: str, *, width: int, height: int) -> int:  # noqa: WPS212
@@ -13,11 +13,8 @@ def estimate_tokens_for_image_per_model(model: str, *, width: int, height: int) 
     if "claude" in model:
         return math.ceil(width * height / 750)
     if "gemini" in model:
-        # TODO: Recompute for the new image size
-        return 1290
-    # TODO: support o4-mini for the model name
-    # TODO: Check what o4-mini's tokens per image is
-    if "gpt4o" in model or "gpt-4o" in model:
+        return 1032
+    if "gpt4o" in model or "gpt-4o" in model or "gpt5" in model or "gpt-5" in model:
         return 85
     if "qwen" in model:
         # resized to 504x504 (multiples of 28)

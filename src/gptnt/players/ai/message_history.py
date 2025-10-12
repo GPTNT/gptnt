@@ -305,8 +305,15 @@ class MessageHistory:
 
         # Update the usage to reflect the number of observation tokens removed
         if num_observations_removed > 0 and self.usage.input_tokens > 0:
-            # TODO: Needs fixing because somehow it's resulting in negative tokens
-            self.usage.input_tokens -= num_observations_removed * self.tokens_per_image
+            tokens_to_remove = num_observations_removed * self.tokens_per_image
+            new_value = self.usage.input_tokens - tokens_to_remove
+            if new_value < 0:
+                logger.warning(
+                    f"Token correction would go negative: {self.usage.input_tokens=} "
+                    f"- {tokens_to_remove=} -> clamping to 0"
+                )
+                new_value = 0
+            self.usage.input_tokens = new_value
         return updated_messages
 
     def _does_message_contain_manual(self, message: ModelMessage) -> bool:
