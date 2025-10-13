@@ -72,7 +72,9 @@ def _filter_experiments(  # noqa: WPS210
 async def throw_ai_experiments(
     *,
     experiments_dir: Annotated[Path, typer.Option(help="Path to experiments")] = paths.experiments,
-    wandb_path: Annotated[str, typer.Option(help="Wandb entity/project path")] = "gptnt/for-real",
+    wandb_path: Annotated[
+        str, typer.Option(help="Wandb entity/project path")
+    ] = "gptnt/this-time-with-feeling",
     dry_run: Annotated[
         bool, typer.Option(help="If set, only logs the experiments that would be thrown")
     ] = False,
