@@ -106,6 +106,9 @@ class BaseServiceStateWatcher[ServiceStateT: Enum]:
                 raw_ready_state=raw_ready_state,
             )
             self.ready_state = ReadyState.not_ready
+            # Return so that we don't try to update the state since it is invalid and will throw
+            # and crash the EM
+            return
 
         # Update the states
         self._service_state = TypeAdapter(self.service_state_type).validate_python(
