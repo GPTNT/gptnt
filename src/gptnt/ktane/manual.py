@@ -74,8 +74,11 @@ class KtaneManualPaths(BaseSettings):
 
         if not text_path.exists():
             raise FileNotFoundError("Text file does not exist, and it should?")
-
-        return PromptCache.get_text(text_path)
+        try:
+            return PromptCache.get_text(text_path)
+        except KeyError:
+            logger.warning("PromptCache not initialised, loading text directly from disk")
+            return text_path.read_text()
 
     @validate_call
     def load_image(
@@ -91,4 +94,8 @@ class KtaneManualPaths(BaseSettings):
         if not image_path.exists():
             raise FileNotFoundError("Image file does not exist, and it should?")
 
-        return PromptCache.get_bytes(image_path)
+        try:
+            return PromptCache.get_bytes(image_path)
+        except KeyError:
+            logger.warning("PromptCache not initialized, loading image directly from disk")
+            return image_path.read_bytes()
