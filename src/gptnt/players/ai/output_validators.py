@@ -8,7 +8,6 @@ from pydantic import ValidationError
 from pydantic.type_adapter import TypeAdapter
 from pydantic_ai import RunUsage
 from pydantic_ai.messages import ModelMessage, TextPart, ToolReturnPart
-from pydantic_ai.usage import Usage
 
 from gptnt.players.actions import DoNothingAction, PlayerOutputType
 
@@ -78,7 +77,7 @@ class AgentOutput(NamedTuple):
     @classmethod
     def do_nothing(cls) -> Self:
         """Return an empty agent output."""
-        return cls(output=DoNothingAction(), usage=Usage(), messages=[])
+        return cls(output=DoNothingAction(), usage=RunUsage(), messages=[])
 
     @classmethod
     def with_message_cleanup(

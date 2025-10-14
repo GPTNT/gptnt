@@ -15,8 +15,8 @@ import weave
 from anyio.to_thread import run_sync as run_sync_in_thread
 from PIL import Image
 from pydantic import UUID4, BaseModel, TypeAdapter
+from pydantic_ai import RunUsage
 from pydantic_ai.messages import ModelMessage
-from pydantic_ai.usage import Usage
 from structlog import get_logger
 from tqdm import tqdm
 from weave.trace.weave_client import WeaveClient
@@ -275,7 +275,7 @@ class EpisodeTracker:  # noqa: WPS214
         )
 
     def finish_weave_trace(
-        self, outputs: PlayerOutputType | str | Any, usage: Usage | None
+        self, outputs: PlayerOutputType | str | Any, Runusage: RunUsage | None
     ) -> None:
         """Finish the trace to Weave."""
         if self._weave_call is None:
@@ -284,15 +284,15 @@ class EpisodeTracker:  # noqa: WPS214
         if isinstance(outputs, BaseModel):
             outputs = outputs.model_dump(mode="json")
 
-        usage = usage or Usage()
+        Runusage = Runusage or RunUsage()
 
         self.weave_client.finish_call(
             self._weave_call,
             output={
-                "usage": {
-                    "input_tokens": usage.input_tokens,
-                    "output_tokens": usage.response_tokens,
-                    "total_tokens": usage.total_tokens,
+                "Runusage": {
+                    "input_tokens": Runusage.input_tokens,
+                    "output_tokens": Runusage.response_tokens,
+                    "total_tokens": Runusage.total_tokens,
                 },
                 "model": self.capabilities.player_name.lstrip("eu."),
                 "output": outputs,
