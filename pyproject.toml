@@ -134,7 +134,6 @@ per-file-ignores = [
     "src/gptnt/processors/*:WPS203",
     "src/gptnt/dataset/*:WPS202,WPS204,WPS226",
     "src/gptnt/common/respx_router*:WPS232",
-    "src/gptnt/common/typing_ops.py:WPS232",
 ]
 select = ["WPS"]
 max-line-length = 99
