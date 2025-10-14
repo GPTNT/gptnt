@@ -1,9 +1,53 @@
 import logging
+from dataclasses import fields
 
 import logfire
 import structlog
+from pydantic_ai import BinaryContent
 
 from gptnt.common.run_once import run_once
+
+logger = structlog.get_logger()
+
+
+def binary_content_dataclasses_no_default_repr(
+    self: BinaryContent, *, bytes_max_length: int = 100
+) -> str:
+    """Exclude fields with values equal to the field default, and truncate the data field.
+
+    We are basically copying the code from pydantic_ai._utils.dataclasses_no_defaults_repr but
+    truncating the data field to avoid large outputs.
+    """
+    kv_pairs = {
+        field.name: getattr(self, field.name)
+        for field in fields(self)
+        if field.repr and getattr(self, field.name) != field.default
+    }
+
+    # Data will exist because it's required
+    data = kv_pairs["data"]
+    if len(data) > bytes_max_length:
+        kv_pairs["data"] = f"{data[:bytes_max_length]!r} +{len(data) - bytes_max_length} bytes"
+
+    kv_str = ", ".join(f"{key}={value!r}" for key, value in kv_pairs.items())  # noqa: WPS110
+    return f"{self.__class__.__qualname__}({kv_str})"
+
+
+@run_once
+def monkey_patch_binary_content_repr() -> None:
+    """Monkey-patch the __repr__ method of pydantic_ai.BinaryContent to avoid large outputs.
+
+    Rich's traceback handler displays local variables, including the full binary content of objects
+    like BinaryContent. When exceptions occur with large binary payloads in scope, the traceback
+    rendering can take >5 seconds, which blocks the task execution thread during render, therefore
+    preventing heartbeat signals from being sent, leading to the service watcher in the EM to mark
+    the service as dead.
+
+    This monkey-patch changes the __repr__ method of BinaryContent to display a truncated version
+    of the bytes instead of the full content.
+    """
+    BinaryContent.__repr__ = binary_content_dataclasses_no_default_repr
+    logger.debug("Monkey-patched BinaryContent.__repr__ to avoid large outputs in tracebacks")
 
 
 @run_once
@@ -55,7 +99,10 @@ def configure_logging(root_log_level: int = logging.INFO) -> None:
         processors=[
             # Remove _record & _from_structlog.
             structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-            structlog.dev.ConsoleRenderer(level_styles=log_level_colors),
+            structlog.dev.ConsoleRenderer(
+                level_styles=log_level_colors,
+                exception_formatter=structlog.dev.RichTracebackFormatter(),
+            ),
         ],
     )
 
@@ -72,16 +119,18 @@ def configure_logging(root_log_level: int = logging.INFO) -> None:
 
     logging.getLogger("gptnt").setLevel(logging.DEBUG)
 
+    monkey_patch_binary_content_repr()
+
     # def handle_exception(exc_type, exc_value, exc_traceback) -> None:
     #     """Log any uncaught exception instead of letting it be printed by Python.
 
-    #     (but leave KeyboardInterrupt untouched to allow users to Ctrl+C to stop)
-    #     See https://stackoverflow.com/a/16993115/3641865.
+    #     (but leave KeyboardInterrupt untouched to allow users to Ctrl+C to stop) See
+    #     https://stackoverflow.com/a/16993115/3641865.
     #     """
     #     if issubclass(exc_type, KeyboardInterrupt):
     #         sys.__excepthook__(exc_type, exc_value, exc_traceback)
     #         return
 
-    #     root_logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+    #     root_logger.exception("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
 
     # sys.excepthook = handle_exception
