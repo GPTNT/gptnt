@@ -66,7 +66,7 @@ class PlayerServiceState:
         """Reset the player service state for a new experiment."""
         self.state = PlayerState.cleanup
         self.message_manager.reset()
-        self.game_client.reset()
+        self.game_client.clear_client_url()
         self.observation_handler.reset()
         self.episode_tracker.reset()
         self.state = PlayerState.idle

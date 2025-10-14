@@ -89,9 +89,9 @@ class BaseClient(InstrumentationDataclassMixin, abc.ABC):
 
         return False
 
-    def reset(self) -> None:
+    def clear_client_url(self) -> None:
         """Reset the client url.
 
-        Basically we do this to prevent any accidental messasges being send to the wrong URL.
+        Basically we do this to prevent any accidental messages being send to the wrong URL.
         """
         self.recreate_client(url="")

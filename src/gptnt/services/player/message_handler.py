@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import override
 
 import logfire
 import structlog
@@ -45,9 +44,8 @@ class MessageManager(BaseClient):
         self._unpulled_messages.clear()
         return new_messages
 
-    @override
     def reset(self) -> None:
         """Reset the message handler."""
-        _ = super().reset()
+        _ = self.clear_client_url()
         self._unpulled_messages.clear()
         logger.debug("Message handler reset, cleared unpulled messages.")

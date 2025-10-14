@@ -735,7 +735,7 @@ async def get_bomb_details(client: KtaneClient, mission_spec: KtaneMissionSpec) 
     await asyncio.sleep(1)
 
     # Reset the game after processing
-    _ = await client.reset()
+    _ = await client.clear_client_url()
     await until(get_value=client.get_game_state, target=GameState.main_menu)
 
     return bomb_state
