@@ -2,10 +2,21 @@ import inspect
 import os
 from collections.abc import AsyncIterator, Callable, Coroutine
 from typing import Any, Self, override
+from warnings import deprecated
 
 import anyio
 
 
+@deprecated(
+    "Deprecated: Use the `periodic` async generator instead. "
+    "For example, replace:\n"
+    "    await until(get_value, target, sleep_duration=1)\n"
+    "with:\n"
+    "    async for _ in periodic(1):\n"
+    "        if await get_value() == target:\n"
+    "            break\n"
+    "where `sleep_duration` maps to the `interval` argument of `periodic`."
+)
 async def until[TargetT](
     get_value: Callable[[], TargetT] | Callable[[], Coroutine[TargetT, Any, Any]],  # noqa: WPS221
     target: TargetT,
@@ -16,6 +27,9 @@ async def until[TargetT](
 
     This now works with partial coroutinefunctions and functions returning awaitables which are not
     explicitly marked as coroutinefunctions.
+
+    This is deprecated in favor of using the `periodic` async generator which is more flexible and
+    easier to test.
     """
     while await output if inspect.isawaitable(output := get_value()) else output is not target:  # noqa: ASYNC110, WPS444
         await anyio.sleep(sleep_duration)
