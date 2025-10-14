@@ -23,13 +23,3 @@ def get_available_port() -> int:
     sock = socket.socket()
     sock.bind(("", 0))
     return sock.getsockname()[1]
-
-
-def is_port_available(port: int) -> bool:
-    """Check if a port is available."""
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.bind(("", port))
-            return True
-    except OSError:
-        return False
