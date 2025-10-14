@@ -37,7 +37,8 @@ async def periodic(interval: float) -> AsyncIterator[tuple[float, float | None]]
 class Event(anyio.Event):
     """Wrapped event class to help with testing.
 
-    Wait is troublesome to test with for some reason so we wrap it during tests to make it work.
+    `wait` is troublesome to test with for some reason, so have an alternative that we use when we
+    are testing, determined by the `TESTING` environment variable.
     """
 
     @override
@@ -65,7 +66,7 @@ class Event(anyio.Event):
 
 
 class AsyncValue[T]:  # noqa: WPS111
-    """Simple AsyncValue implementation for AnyIO."""
+    """Simple AsyncValue implementation for AnyIO, inspired by trio."""
 
     def __init__(self, initial_value: T) -> None:
         self._value = initial_value  # noqa: WPS110
@@ -98,10 +99,3 @@ class AsyncValue[T]:  # noqa: WPS111
         old_value = self._value
         await self._event.wait()
         return self._value, old_value
-
-
-class AsyncBool(AsyncValue[bool]):
-    """Boolean AsyncValue."""
-
-    def __init__(self, *, initial_value: bool = False) -> None:
-        super().__init__(initial_value)
