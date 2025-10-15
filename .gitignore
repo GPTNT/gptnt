@@ -782,6 +782,7 @@ storage/outputs
 storage/ktane/*
 !storage/ktane/mods
 !storage/ktane/mods/*
+!storage/ktane/logConfig.xml
 
 # The experiment jsons, but not the tests
 storage/experiments/*

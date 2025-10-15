@@ -25,6 +25,27 @@ services:
       - redis
     restart: unless-stopped
 
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./storage/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+      - ./storage/ktane/logs:/var/log/unity:ro
+    environment:
+      - LOGFIRE_TOKEN=${LOGFIRE_TOKEN}
+    ports:
+      - "8888:8888" # Prometheus metrics
+      - "4317:4317" # OTLP gRPC receiver (for future trace propagation)
+      - "4318:4318" # OTLP HTTP receiver (for future trace propagation)
+      - "13133:13133" # Health check
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
 volumes:
   redis_data:
 

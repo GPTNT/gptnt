@@ -1,0 +1,131 @@
+receivers:
+  filelog:
+    include:
+      - /var/log/unity/ktane.log # Path inside the container
+    start_at: end # Only tail new logs (change to 'beginning' to read all)
+    include_file_path: true
+    include_file_name: true
+    poll_interval: 500ms # Check for new logs every 500ms
+
+    # Handle multiline logs (when DEBUG/INFO lines have continuation)
+    multiline:
+      line_start_pattern: '^\s*(DEBUG|INFO|WARN|ERROR|FATAL)\s+'
+
+    operators:
+      # Parse the log4net format
+      - type: regex_parser
+        # Regex breakdown:
+        # ^\s*                       : Start of line, optional leading whitespace
+        # (?P<level>\w+)             : Log level (e.g., DEBUG, INFO, etc.)
+        # \s+                        : Whitespace separator
+        # (?P<timestamp>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})
+        #                           : Timestamp in 'YYYY-MM-DD HH:MM:SS,mmm' format
+        # \s+                        : Whitespace separator
+        # \[(?P<logger>[^\]]+)\]     : Logger name inside square brackets
+        # \s+                        : Whitespace separator
+        # (?P<message>(?s:.)*)       : The rest of the line as the log message (including newlines)
+        # $                          : End of line
+        regex: '^\s*(?P<level>\w+)\s+(?P<timestamp>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})\s+\[(?P<logger>[^\]]+)\]\s+(?P<message>(?s:.)*)$'
+        timestamp:
+          parse_from: attributes.timestamp
+          layout: "%Y-%m-%d %H:%M:%S,%L"
+          location: UTC
+        severity:
+          parse_from: attributes.level
+          mapping:
+            debug: DEBUG
+            info: INFO
+            warn: WARN
+            error: ERROR
+            fatal: FATAL
+
+        # If regex doesn't match, still accept the line
+        on_error: send
+
+      # Add structured attributes
+      - type: add
+        field: attributes.logger_name
+        value: EXPR(attributes.logger)
+
+      - type: add
+        field: attributes.service_name
+        value: "ktane"
+
+      # Move message to body
+      - type: move
+        from: attributes.message
+        to: body
+
+processors:
+  filter/logs:
+    logs:
+      log_record:
+        # Drop specific noisy loggers
+        - 'attributes["logger"] == "Localization"'
+        - 'attributes["logger"] == "RecordManager"'
+        - 'attributes["logger"] == "LeaderboardBulkSubmissionWorker"'
+        - 'attributes["logger"] == "KTInputManager"'
+        - 'attributes["logger"] == "OSXPlatformUtil"'
+        - 'attributes["logger"] == "ProgressionManager"'
+        - 'attributes["logger"] == "PlayerSettingsManager"'
+        - 'attributes["logger"] == "BombRules"'
+        - 'attributes["logger"] == "Rules"'
+        - 'attributes["logger"] == "SecondScreenInteractiveManual"'
+        - 'attributes["logger"] == "ServicesSteam"'
+        - 'attributes["logger"] == "UserManager"'
+        - 'attributes["logger"] == "DemoManager"'
+        - 'attributes["logger"] == "FileUtilityHelper"'
+        - 'attributes["logger"] == "TournamentManager"'
+        - 'attributes["logger"] == "StatsManager"'
+        - 'attributes["logger"] == "MaterialOverride"'
+        - 'attributes["logger"] == "PrefabOverride"'
+        - 'attributes["logger"] == "MorseCodeRuleSetGenerator"'
+        - 'attributes["logger"] == "SecondScreenManager"'
+        - 'attributes["logger"] == "ModManager"'
+        - 'attributes["logger"] == "MissionManager"'
+
+        # Drop messages matching patterns
+        - 'IsMatch(body, "^Adding mod term:.*")'
+        - 'IsMatch(body, "^Showing ToC.*")'
+        - 'IsMatch(body, "^Loading AudioClips*")'
+        - 'IsMatch(body, "^Loading KMMission*")'
+        - 'IsMatch(body, "^Replacing shaders*")'
+        - 'IsMatch(body, "^ModUnityVersion*")'
+        - 'IsMatch(body, "^Loading \"mods*")'
+        - 'IsMatch(body, "^Loading assemblies*")'
+        - 'IsMatch(body, "^Could not write mod manual*")'
+
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+  resource:
+    attributes:
+      - key: service.name
+        value: "ktane"
+        action: upsert
+
+  # Memory limiter to prevent OOM
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+exporters:
+  otlphttp:
+    endpoint: "https://logfire-eu.pydantic.dev"
+    headers:
+      authorization: "Bearer ${env:LOGFIRE_TOKEN}"
+
+  debug:
+    verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+service:
+  pipelines:
+    logs:
+      receivers: [filelog]
+      processors: [resource, filter/logs, memory_limiter, batch]
+      exporters: [otlphttp]
