@@ -81,9 +81,9 @@ def order_regions_reading_order(  # noqa: WPS231
                 label=region.label,
                 centroid_y=coords[0],
                 centroid_x=coords[1],
-                min_y=region.bbox[0],
-                max_y=region.bbox[2],
-                height=region.bbox[2] - region.bbox[0],
+                min_y=max(0, region.bbox[0]),
+                max_y=min(region.bbox[2], region.image.shape[0]),
+                height=max(0, region.bbox[2] - region.bbox[0]),
             )
         )
 
