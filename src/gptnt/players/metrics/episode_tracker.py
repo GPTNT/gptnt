@@ -300,10 +300,11 @@ class EpisodeTracker:  # noqa: WPS214
         )
         self._weave_call = None
 
+    @logfire.instrument("Track step {self.num_requests}")
     def step(self, **kwargs: bool | str | None | float) -> None:
         """Step the player with the given kwargs."""
         data_to_send = self._compute_data_to_send()
-        with suppress(wandb.Error):
+        with logfire.span("Log with wandb"), suppress(wandb.Error):
             wandb.log(
                 {"step": self.num_requests, **data_to_send, **kwargs},
                 step=self.num_requests,
