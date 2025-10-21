@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from typing import TypedDict
 
+import logfire
 import numpy as np
 from skimage.measure import regionprops
 from structlog import get_logger
@@ -109,6 +110,7 @@ def order_regions_reading_order(  # noqa: WPS231
     return [region["label"] for row in rows for region in row]  # noqa: WPS441
 
 
+@logfire.instrument("Relabel Regions")
 def relabel_regions_in_reading_order(
     labeled_image: RGBArray,
     regions: list[RegionProperties],

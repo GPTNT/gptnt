@@ -35,7 +35,6 @@ services:
     environment:
       - LOGFIRE_TOKEN=${LOGFIRE_TOKEN}
     ports:
-      - "8888:8888" # Prometheus metrics
       - "4317:4317" # OTLP gRPC receiver (for future trace propagation)
       - "4318:4318" # OTLP HTTP receiver (for future trace propagation)
       - "13133:13133" # Health check

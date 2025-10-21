@@ -16,16 +16,19 @@ receivers:
       - type: regex_parser
         # Regex breakdown:
         # ^\s*                       : Start of line, optional leading whitespace
-        # (?P<level>\w+)             : Log level (e.g., DEBUG, INFO, etc.)
+        # (?P<level>\w+)             : Log level (e.g., DEBUG, INFO, WARN, ERROR, FATAL)
         # \s+                        : Whitespace separator
         # (?P<timestamp>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})
-        #                           : Timestamp in 'YYYY-MM-DD HH:MM:SS,mmm' format
+        #                            : Timestamp in 'YYYY-MM-DD HH:MM:SS,mmm' format
         # \s+                        : Whitespace separator
         # \[(?P<logger>[^\]]+)\]     : Logger name inside square brackets
         # \s+                        : Whitespace separator
+        # trace_id=(?P<trace_id>\S*) : trace_id= followed by trace ID (or "none" if not set)
+        # \s+                        : Whitespace separator
+        # span_id=(?P<span_id>\S*)   : span_id= followed by span ID (or "none" if not set)
+        # \s+                        : Whitespace separator
         # (?P<message>(?s:.)*)       : The rest of the line as the log message (including newlines)
-        # $                          : End of line
-        regex: '^\s*(?P<level>\w+)\s+(?P<timestamp>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})\s+\[(?P<logger>[^\]]+)\]\s+(?P<message>(?s:.)*)$'
+        regex: '^\s*(?P<level>\w+)\s+(?P<timestamp>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})\s+\[(?P<logger>[^\]]+)\]\s+(?:trace_id=(?P<trace_id>\S+)\s+span_id=(?P<span_id>\S+)\s+)?(?P<message>(?s:.)*)$'
         timestamp:
           parse_from: attributes.timestamp
           layout: "%Y-%m-%d %H:%M:%S,%L"
@@ -42,6 +45,14 @@ receivers:
         # If regex doesn't match, still accept the line
         on_error: send
 
+      # Link log to traces
+      - type: trace_parser
+        if: 'attributes.trace_id != nil and attributes.trace_id != "" and attributes.trace_id != "none"'
+        trace_id:
+          parse_from: attributes.trace_id
+        span_id:
+          parse_from: attributes.span_id
+
       # Add structured attributes
       - type: add
         field: attributes.logger_name
@@ -55,6 +66,11 @@ receivers:
       - type: move
         from: attributes.message
         to: body
+
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
 
 processors:
   filter/logs:
@@ -87,14 +103,19 @@ processors:
         # Drop messages matching patterns
         - 'IsMatch(body, "^Adding mod term:.*")'
         - 'IsMatch(body, "^Showing ToC.*")'
-        - 'IsMatch(body, "^Loading AudioClips*")'
-        - 'IsMatch(body, "^Loading KMMission*")'
-        - 'IsMatch(body, "^Replacing shaders*")'
-        - 'IsMatch(body, "^ModUnityVersion*")'
-        - 'IsMatch(body, "^Loading \"mods*")'
-        - 'IsMatch(body, "^Loading assemblies*")'
-        - 'IsMatch(body, "^Could not write mod manual*")'
+        - 'IsMatch(body, "^Loading AudioClips.*")'
+        - 'IsMatch(body, "^Loading KMMission.*")'
+        - 'IsMatch(body, "^Replacing shaders.*")'
+        - 'IsMatch(body, "^ModUnityVersion.*")'
+        - 'IsMatch(body, "^Loading \"mods.*")'
+        - 'IsMatch(body, "^Loading assemblies.*")'
+        - 'IsMatch(body, "^Could not write mod manual.*")'
 
+  filter/traces:
+    traces:
+      span:
+        # Drop health checks
+        - 'attributes["http.route"] == "/health"'
   batch:
     timeout: 1s
     send_batch_size: 1024
@@ -129,3 +150,7 @@ service:
       receivers: [filelog]
       processors: [resource, filter/logs, memory_limiter, batch]
       exporters: [otlphttp]
+    # traces:
+    #   receivers: [otlp]
+    #   processors: [resource, filter/traces, memory_limiter, batch]
+    #   exporters: [otlphttp]
