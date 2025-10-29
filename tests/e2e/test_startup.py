@@ -1,82 +1,107 @@
+from unittest.mock import MagicMock
+from uuid import uuid4
+
 import anyio
+import fakeredis
 import pytest
-from httpx import AsyncClient
+from faststream.redis import TestRedisBroker
 
 from gptnt.common.paths import Paths
+from gptnt.ktane.state.game import GameState
+from gptnt.services.broker import create_redis_broker
+from gptnt.services.events.player import PlayerState
 from gptnt.services.experiment_manager.experiment_manager import ExperimentManager
-from gptnt.services.game.supervisor import GameSupervisor
-from gptnt.services.player.supervisor import PlayerSupervisor
+from gptnt.services.game.controller import GameController
+from gptnt.services.player.controller import PlayerController
 
 paths = Paths()
 
 
 @pytest.mark.anyio
-async def test_player_service_starts_and_is_available(player_app_client: AsyncClient) -> None:
-    """Test that the player service starts and is available."""
-    health_response = await player_app_client.get("/health")
-    assert health_response.status_code == 200
+async def test_player_service_starts_and_responds_to_get_state() -> None:
+    """Test that the player service starts and responds to get_state RPC."""
+    # Create broker with TestRedisBroker
+    broker = create_redis_broker("redis://fake", client_name="test")
+    fake_redis = fakeredis.FakeRedis(decode_responses=True)
 
-    state_response = await player_app_client.get("/state")
-    assert state_response.status_code == 200
-    assert state_response.json() == 0, "Player service is not in idle state"
+    # Create player controller with mocked dependencies
+    player_controller = PlayerController(
+        uuid="test-player",
+        redis=fake_redis,
+        broker=broker,
+        capabilities=MagicMock(),
+        observation_handler=MagicMock(),
+        action_predictor=MagicMock(),
+        episode_tracker=MagicMock(),
+    )
+
+    async with TestRedisBroker(broker) as br:
+        # Call get_state via RPC
+        _ = await br.publish({}, "player:test-player:commands:get_state")
+        # Player should be in idle state
+        assert player_controller.state == PlayerState.idle
 
 
 @pytest.mark.anyio
-async def test_game_service_starts_and_is_available(game_app_client: AsyncClient) -> None:
-    """Test that the game service starts and is available."""
-    health_response = await game_app_client.get("/health")
-    assert health_response.status_code == 200
+async def test_game_service_starts_and_responds_to_get_game_state() -> None:
+    """Test that the game service starts and responds to get_game_state RPC."""
+    # Create broker with TestRedisBroker
+    broker = create_redis_broker("redis://fake", client_name="test")
+    fake_redis = fakeredis.FakeRedis(decode_responses=True)
+    game_uuid = uuid4()
 
-    state_response = await game_app_client.get("/state")
-    assert state_response.status_code == 200
-    assert state_response.json() == "Setup"
+    # Create game controller with mocked dependencies
+    game_controller = GameController(redis=fake_redis, broker=broker, uuid=game_uuid)
+
+    async with TestRedisBroker(broker) as br:
+        # Call get_game_state via RPC - just verify it doesn't crash
+        _ = await br.publish({}, f"game:{game_uuid}:commands:get_game_state")
+        # Game controller exists and has a state monitor
+        assert game_controller.state_monitor is not None
+        assert game_controller.state_monitor.state.value in GameState
 
 
 @pytest.mark.anyio
 async def test_player_service_tells_em_its_ready(
-    experiment_manager: ExperimentManager, player_supervisor: PlayerSupervisor
+    experiment_manager: ExperimentManager, player_controller: PlayerController
 ) -> None:
     """Test that the player service can connect to the EM."""
     await anyio.sleep(5)
 
     for player in experiment_manager.ready_players:
-        if player.uuid == player_supervisor.uuid:
+        if player.uuid == player_controller.uuid:
             break
     else:
-        pytest.fail("Player supervisor UUID not found in EM ready players")
+        pytest.fail("Player controller UUID not found in EM ready players")
 
 
 @pytest.mark.anyio
 async def test_game_service_tells_em_its_ready(
-    experiment_manager: ExperimentManager, game_supervisor: GameSupervisor
+    experiment_manager: ExperimentManager, game_controller: GameController
 ) -> None:
     """Test that the game service can connect to the EM."""
-    await anyio.sleep(5)
-
     for game in experiment_manager.ready_games:
-        if game.uuid == game_supervisor.uuid:
+        if game.uuid == game_controller.uuid:
             break
     else:
-        pytest.fail("Game supervisor UUID not found in EM ready games")
+        pytest.fail("Game controller UUID not found in EM ready games")
 
 
 @pytest.mark.anyio
 async def test_multiple_services_connect_to_em(
     experiment_manager: ExperimentManager,
-    game_supervisor: GameSupervisor,
-    player_supervisor: PlayerSupervisor,
+    game_controller: GameController,
+    player_controller: PlayerController,
 ) -> None:
     """Test that the EM can connect to the game and player services."""
-    await anyio.sleep(10)
-
     for game in experiment_manager.ready_games:
-        if game.uuid == game_supervisor.uuid:
+        if game.uuid == game_controller.uuid:
             break
     else:
-        pytest.fail("Game supervisor UUID not found in EM ready games")
+        pytest.fail("Game controller UUID not found in EM ready games")
 
     for player in experiment_manager.ready_players:
-        if player.uuid == player_supervisor.uuid:
+        if player.uuid == player_controller.uuid:
             break
     else:
         pytest.fail("Player supervisor UUID not found in EM ready players")

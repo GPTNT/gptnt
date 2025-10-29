@@ -44,7 +44,6 @@ class GameSupervisor(HeartbeatBroadcaster):
             service_name=self.service_name,
             state=self.state_monitor.state.value,
             ready_state=self.ready_state,
-            url=self.url,
             ktane_url=str(self.ktane_client.base_url),
         )
 

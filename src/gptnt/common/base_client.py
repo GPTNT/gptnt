@@ -15,10 +15,10 @@ _logger = get_logger()
 TimeoutTypes = float | httpx.Timeout | None
 
 DEFAULT_CONNECTION_LIMITS = httpx.Limits(
-    max_connections=None, max_keepalive_connections=None, keepalive_expiry=None
+    max_connections=10, max_keepalive_connections=5, keepalive_expiry=30.0
 )
 # default timeout is 10 minutes
-DEFAULT_TIMEOUT = httpx.Timeout(timeout=10 * 60, connect=5.0)
+DEFAULT_TIMEOUT = httpx.Timeout(timeout=10 * 60, connect=5.0, pool=60.0)
 
 
 def httpx_create_async_client(base_url: str | httpx.URL) -> httpx.AsyncClient:

@@ -100,14 +100,14 @@ class DummyDefuserFunction:
     def __init__(self) -> None:
         self.actions_to_perform = iter(actions_to_perform)
 
-    def __call__(self, messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:  # noqa: WPS110, ARG002
+    def __call__(self, messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:  # noqa: WPS110
         """Run the dummy defuser function."""
         if len(messages) < 2:  # noqa: PLR2004
             # Assume that it's a new game and reset it
             self.actions_to_perform = iter(actions_to_perform)
 
-        # with suppress(ValueError):
-        #     return self._maybe_send_reflection_message(messages, info)
+        with suppress(ValueError):
+            return self._maybe_send_reflection_message(messages, info)
 
         try:
             action_to_perform = next(self.actions_to_perform)
@@ -126,28 +126,28 @@ class DummyDefuserFunction:
             ]
         )
 
-    # def _maybe_send_reflection_message(
-    #     self,
-    #     messages: list[ModelMessage],
-    #     info: AgentInfo,  # noqa: WPS110
-    # ) -> ModelResponse:
-    #     """Send a reflection message if needed."""
-    #     if reflection_message := check_for_reflection_message(messages):  # noqa: WPS332
-    #         # If we get a reflection message, we need to send it back
-    #         logger.info("Sending reflection message", message=reflection_message)
-    #         return ModelResponse(
-    #             parts=[
-    #                 ToolCallPart(
-    #                     "final_result",
-    #                     {
-    #                         "response": SendMessageAction(message=reflection_message).model_dump(
-    #                             exclude={"thoughts", "command"}, mode="json"
-    #                         )
-    #                     },
-    #                 )
-    #             ]
-    #         )
-    #     raise ValueError("no reflection message found")
+    def _maybe_send_reflection_message(
+        self,
+        messages: list[ModelMessage],
+        info: AgentInfo,  # noqa: WPS110 ARG002
+    ) -> ModelResponse:
+        """Send a reflection message if needed."""
+        if reflection_message := check_for_reflection_message(messages):  # noqa: WPS332
+            # If we get a reflection message, we need to send it back
+            logger.info("Sending reflection message", message=reflection_message)
+            return ModelResponse(
+                parts=[
+                    ToolCallPart(
+                        "final_result",
+                        {
+                            "response": SendMessageAction(message=reflection_message).model_dump(
+                                exclude={"thoughts", "command"}, mode="json"
+                            )
+                        },
+                    )
+                ]
+            )
+        raise ValueError("no reflection message found")
 
 
 class DummyDefuserModel(FunctionModel):

@@ -29,7 +29,6 @@ class HeartbeatBroadcaster(ABC):
     redis: Redis
     service_name: str
     uuid: UUID4
-    url: str
     ready_state: ReadyState = field(default=ReadyState.not_ready)
 
     @abstractmethod
@@ -52,6 +51,7 @@ class HeartbeatBroadcaster(ABC):
         """Lifespan for the Heartbeat Manager."""
         async with anyio.create_task_group() as tg:
             tg.start_soon(self.heartbeat_loop)
+            self.ready_state = ReadyState.ready
             try:  # noqa: WPS243
                 yield
             finally:

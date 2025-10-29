@@ -18,7 +18,7 @@ from gptnt.services.registry.metrics import LogfireGauge
 from gptnt.services.timeouts import ServiceTimeouts
 
 logger = get_logger()
-service_timeouts = ServiceTimeouts()
+timeouts = ServiceTimeouts()
 
 
 @dataclass(kw_only=True)
@@ -26,7 +26,6 @@ class ServiceRegistry:
     """Registry for all connected services."""
 
     redis_url: RedisDsn = field(default=RedisDsn("redis://localhost:6379"))
-
     redis: RedisClient = field(default_factory=RedisClient, init=False, repr=False)
 
     connected_services: dict[UUID4, ServiceManifest[Heartbeat]] = field(default_factory=dict)
@@ -54,8 +53,7 @@ class ServiceRegistry:
     async def process_heartbeat_loop(self) -> None:
         """Continually process heartbeats."""
         with anyio.CancelScope():
-            async for _ in periodic(1):
-                await anyio.sleep(1)
+            async for _ in periodic(timeouts.heartbeat_check_interval):
                 # Pull the heartbeats from Redis and update the service states
                 await self.update_heartbeats()
                 # Check for expired or not-ready services

@@ -1,4 +1,3 @@
-import anyio
 import pytest
 from httpx import AsyncClient
 from pytest_cases import fixture
@@ -6,8 +5,8 @@ from pytest_mock import MockerFixture
 
 from gptnt.experiments.experiments import ExperimentSpec
 from gptnt.services.experiment_manager.experiment_manager import ExperimentManager
-from gptnt.services.game.supervisor import GameSupervisor
-from gptnt.services.player.supervisor import PlayerSupervisor
+from gptnt.services.game.controller import GameController
+from gptnt.services.player.controller import PlayerController
 
 
 @fixture
@@ -38,28 +37,25 @@ async def test_specs_can_be_added_via_endpoint(
 @pytest.mark.anyio
 async def test_session_created_when_valid_match_exists(
     experiment_manager: ExperimentManager,
-    game_supervisor: GameSupervisor,
-    defuser_player_supervisor: PlayerSupervisor,
+    game_controller: GameController,
+    defuser_player_controller: PlayerController,
     experiment_spec: ExperimentSpec,
     mocker: MockerFixture,
 ) -> None:
     #  Mock `session.start_experiment` to not actually run the experiment
     _ = mocker.patch("gptnt.services.sessions.session.Session.start_experiment", autospec=True)
 
-    # Make sure the EM has the game and player
-    await anyio.sleep(10)
-
     for game in experiment_manager.ready_games:
-        if game.uuid == game_supervisor.uuid:
+        if game.uuid == game_controller.uuid:
             break
     else:
-        pytest.fail("Game supervisor UUID not found in EM ready games")
+        pytest.fail("Game controller UUID not found in EM ready games")
 
     for player in experiment_manager.ready_players:
-        if player.uuid == defuser_player_supervisor.uuid:
+        if player.uuid == defuser_player_controller.uuid:
             break
     else:
-        pytest.fail("Player supervisor UUID not found in EM ready players")
+        pytest.fail("Player controller UUID not found in EM ready players")
 
     experiment_manager.specs.add(experiment_spec)
     await experiment_manager._try_match_experiments()
@@ -69,6 +65,6 @@ async def test_session_created_when_valid_match_exists(
     assert not len(experiment_manager.ready_games)
     session = next(iter(experiment_manager._sessions))
 
-    assert session.defuser.uuid == defuser_player_supervisor.uuid
-    assert session.game.uuid == game_supervisor.uuid
+    assert session.defuser.uuid == defuser_player_controller.uuid
+    assert session.game.uuid == game_controller.uuid
     assert session.spec == experiment_spec

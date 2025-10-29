@@ -151,7 +151,9 @@ class ActionPredictor(InstrumentationDataclassMixin):
                 message_history=self.message_history.to_history(),
             )
         except UnexpectedModelBehavior:
-            logger.exception(
+            # We are raising an error here because reflection is not critical but we want to flag
+            # it significantly. The problem is that the full exception log is blocking.
+            logger.error(  # noqa: TRY400
                 "Unexpected model behavior during reflection. Logging a default '<error>'."
             )
             model_output = SendMessageAction(message="<error>")

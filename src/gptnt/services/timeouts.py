@@ -7,6 +7,9 @@ class ServiceTimeouts(BaseSettings):
     heartbeat_repeat_interval: float = 3
     """Interval for sending heartbeat messages."""
 
+    heartbeat_check_interval: float = 2
+    """Interval for checking heartbeat messages."""
+
     heartbeat_expiration: float = 10
     """Expiration time for heartbeat messages sent."""
 

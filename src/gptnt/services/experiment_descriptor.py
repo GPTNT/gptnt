@@ -17,7 +17,6 @@ class PlayerContent(NamedTuple):
     protocol: PlayerProtocol
     name: str
     uuid: UUID4
-    url: str
 
 
 class ExperimentDescriptor(BaseModel, frozen=True):
@@ -31,13 +30,8 @@ class ExperimentDescriptor(BaseModel, frozen=True):
     session_id: UUID4
 
     expert_uuid: UUID4 | None
-    expert_url: str | None
-
     defuser_uuid: UUID4
-    defuser_url: str
-
     game_uuid: UUID4
-    game_url: str
 
     @property
     def name(self) -> str:
@@ -77,7 +71,6 @@ class ExperimentDescriptor(BaseModel, frozen=True):
         """Get the expert content for this experiment."""
         if (
             self.expert_uuid is None
-            or self.expert_url is None
             or self.experiment_spec.expert_protocol is None
             or self.experiment_spec.expert_name is None
         ):
@@ -86,7 +79,6 @@ class ExperimentDescriptor(BaseModel, frozen=True):
             protocol=self.experiment_spec.expert_protocol,
             name=self.experiment_spec.expert_name,
             uuid=self.expert_uuid,
-            url=self.expert_url,
         )
 
     @property
@@ -96,13 +88,12 @@ class ExperimentDescriptor(BaseModel, frozen=True):
             protocol=self.experiment_spec.defuser_protocol,
             name=self.experiment_spec.defuser_name,
             uuid=self.defuser_uuid,
-            url=self.defuser_url,
         )
 
-    def get_url_for_other_role(self, *, current_role: PlayerRole) -> str | None:
-        """Get the URL for the other role in the experiment."""
+    def get_uuid_for_other_role(self, *, current_role: PlayerRole) -> UUID4 | None:
+        """Get the UUID for the other role in the experiment."""
         match current_role:
             case "defuser":
-                return self.expert_url
+                return self.expert_uuid
             case "expert":
-                return self.defuser_url
+                return self.defuser_uuid

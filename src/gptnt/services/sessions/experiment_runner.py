@@ -43,9 +43,9 @@ class ExperimentRunner(abc.ABC):
     experiment: ExperimentDescriptor
     game_client: GameClient = field(default_factory=GameClient)
     """Game client to interact with the game service."""
-    defuser_player_client: PlayerClient = field(default_factory=PlayerClient)
+    defuser_player_client: PlayerClient = field(init=False)
     """Player client to interact with the Defuser."""
-    expert_player_client: PlayerClient = field(default_factory=PlayerClient)
+    expert_player_client: PlayerClient = field(init=False)
     """Player client to interact with the Expert."""
 
     state: ExperimentState = field(default=ExperimentState.initialising, init=False)
@@ -80,10 +80,17 @@ class ExperimentRunner(abc.ABC):
                 service_uuid=self.experiment.expert.uuid,
                 redis=RedisClient(host=self.redis_url.host, port=self.redis_url.port or 6379),
             )
-        self.game_client.recreate_client(url=self.experiment.game_url)
-        self.defuser_player_client.recreate_client(url=self.experiment.defuser_url)
+        self.game_client.game_uuid = self.experiment.game_uuid
+
+        # Initialize Redis player clients with UUIDs
+        self.defuser_player_client = PlayerClient(
+            player_uuid=self.experiment.defuser.uuid, redis_url=self.redis_url
+        )
+
         if self.experiment.expert:
-            self.expert_player_client.recreate_client(url=self.experiment.expert.url)
+            self.expert_player_client = PlayerClient(
+                player_uuid=self.experiment.expert.uuid, redis_url=self.redis_url
+            )
 
     @property
     def is_hard_crash(self) -> bool:
@@ -106,7 +113,11 @@ class ExperimentRunner(abc.ABC):
     @logfire.instrument("Run experiment")
     async def run_experiment(self) -> None:
         """Run the experiment."""
-        async with self.active_state_monitors(), self.experiment_exception_handler():
+        async with (
+            self.active_state_monitors(),
+            self.game_client.lifespan(),
+            self.experiment_exception_handler(),
+        ):
             await self.setup_experiment()
 
             logger.debug("Starting experiment loop", experiment=self.experiment)
@@ -322,6 +333,13 @@ class ExperimentRunner(abc.ABC):
                         is_hard_crash=self.is_hard_crash,
                     )
                 )
+            # Note: this can superspeed jump to the cleanup before the player even has a chance to
+            # start the stopping so we are going to just stick a lil wait here because there
+            # isn't really a clear way to know when it'll actually start the processing under the
+            # hood. The thing is, this should not be an actual issue because the state gets updated
+            # before the task starts, but I'm guessing that this is a consequence of the fact that
+            # the service state watcher being a interval-based thing.
+            await anyio.sleep(timeouts.session_state_watcher_interval + 1)
 
     @logfire.instrument("Cleanup experiment")
     async def cleanup_experiment(self) -> None:
@@ -339,7 +357,9 @@ class ExperimentRunner(abc.ABC):
             logger.warning(
                 "Failed to stop the game, it might have already been stopped or crashed"
             )
+
         if not self.defuser_state_watcher.is_stopping.is_set():
+            logger.debug("Stopping defuser player")
             try:
                 _ = await self.defuser_player_client.stop_player(is_hard_crash=self.is_hard_crash)
             except httpx.HTTPError:
@@ -351,14 +371,13 @@ class ExperimentRunner(abc.ABC):
             and self.expert_state_watcher
             and not self.expert_state_watcher.is_stopping.is_set()
         ):
+            logger.debug("Stopping expert player")
             try:
                 _ = await self.expert_player_client.stop_player(is_hard_crash=self.is_hard_crash)
             except httpx.HTTPError:
                 logger.warning(
                     "Failed to stop the expert player, it might have already been stopped or crashed"
                 )
-
-        logger.debug("Stopped game")
 
         self.state = ExperimentState.done
         logger.debug("Experiment cleanup completed")
@@ -411,7 +430,7 @@ class SyncExperimentRunner(ExperimentRunner):
             if not self.is_experiment_over:
                 await self.game_client.advance_game_time()
 
-            if self.experiment.expert_url and not self.is_experiment_over:
+            if self.experiment.expert_uuid and not self.is_experiment_over:
                 _ = await self.expert_player_client.forward_pass()
 
     @asynccontextmanager

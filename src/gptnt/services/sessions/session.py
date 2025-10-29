@@ -72,11 +72,8 @@ class Session:
             experiment_spec=self.spec,
             session_id=self.experiment_uuid,
             expert_uuid=self.expert.uuid if self.expert else None,
-            expert_url=self.expert.heartbeat.url if self.expert else None,
             defuser_uuid=self.defuser.uuid,
-            defuser_url=self.defuser.heartbeat.url,
             game_uuid=self.game.uuid,
-            game_url=self.game.heartbeat.url,
         )
 
     @property
@@ -143,4 +140,6 @@ class Session:
             case "async":
                 logger.debug("Creating async experiment runner")
                 raise NotImplementedError
-                # return AsyncExperimentRunner(experiment=self.experiment_descriptor)
+                # return AsyncExperimentRunner(
+                #     experiment=self.experiment_descriptor, redis_url=self.redis_url
+                # )

@@ -43,6 +43,7 @@ dependencies = [
     "respx>=0.22.0",
     "fastapi>=0.117.1",
     "json-repair>=0.52.0",
+    "faststream[otel,redis]>=0.6.2",
 ]
 
 [dependency-groups]

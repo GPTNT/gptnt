@@ -101,7 +101,7 @@ def configure_logging(root_log_level: int = logging.INFO) -> None:
             structlog.stdlib.ProcessorFormatter.remove_processors_meta,
             structlog.dev.ConsoleRenderer(
                 level_styles=log_level_colors,
-                exception_formatter=structlog.dev.RichTracebackFormatter(),
+                exception_formatter=structlog.dev.RichTracebackFormatter(show_locals=False),
             ),
         ],
     )

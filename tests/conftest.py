@@ -17,6 +17,11 @@ os.environ["WANDB_MODE"] = "disabled"
 
 
 @pytest.fixture
+def anyio_backend() -> str:
+    return "asyncio"
+
+
+@pytest.fixture
 def host() -> str:
     """Get the host."""
     return "localhost"
