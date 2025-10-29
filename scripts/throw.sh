@@ -1,19 +1,19 @@
 #!/bin/bash
 
-# usage: ./throw.sh <number_of_rooms> <claude37_bedrock_players> <gemini_25_players> <gpt4o_players>
+# usage: ./throw.sh <number_of_rooms> <claude37_bedrock_players> <gemini_25_players> <gpt5_players>
 
 NUM_ROOMS=$1
 CLAUDE_PLAYERS=$2
 GEMINI_PLAYERS=$3
-GPT4O_PLAYERS=$4
+GPT5_PLAYERS=$4
 DISPLAY_NUM=3
 
 # Create logs directory if it doesn't exist
 LOGS_DIR="./logs/throw_$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$LOGS_DIR"
 
-if [[ -z $NUM_ROOMS || $NUM_ROOMS -lt 1 || -z $CLAUDE_PLAYERS || $CLAUDE_PLAYERS -lt 0 || -z $GEMINI_PLAYERS || $GEMINI_PLAYERS -lt 0 || -z $GPT4O_PLAYERS || $GPT4O_PLAYERS -lt 0 ]]; then
-  echo "Usage: $0 <number_of_rooms> <claude37_bedrock_players> <gemini_25_players> <gpt4o_players>"
+if [[ -z $NUM_ROOMS || $NUM_ROOMS -lt 1 || -z $CLAUDE_PLAYERS || $CLAUDE_PLAYERS -lt 0 || -z $GEMINI_PLAYERS || $GEMINI_PLAYERS -lt 0 || -z $GPT5_PLAYERS || $GPT5_PLAYERS -lt 0 ]]; then
+  echo "Usage: $0 <number_of_rooms> <claude37_bedrock_players> <gemini_25_players> <gpt5_players>"
   exit 1
 fi
 
@@ -103,10 +103,10 @@ for ((i = 0; i < GEMINI_PLAYERS; i++)); do
   sleep 1
 done
 
-# spawn gpt4o players
-for ((i = 0; i < GPT4O_PLAYERS; i++)); do
-  echo "THROWING: Starting gpt4o player $i..."
-  run_and_track "gpt4o_player_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=gpt4o
+# spawn gpt5 players
+for ((i = 0; i < GPT5_PLAYERS; i++)); do
+  echo "THROWING: Starting gpt5 player $i..."
+  run_and_track "gpt5_player_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=gpt5
   sleep 1
 done
 
