@@ -80,11 +80,12 @@ class AgentInputBuilder:
             num_frames_to_use=num_frames_to_use,
         )
 
-        frames_to_track = observation.frames[-num_frames_to_use:]
-
         self.tracker.add_bomb_state(bomb_state)
         await self.tracker.add_observation(
-            frames=frames_to_track,
+            # Separate to below where we don't include the final frame, here we want to track it so
+            # we can make sure the segmentation mask aligns properly too. Hence why this is
+            # indexed differently
+            frames=observation.frames[-num_frames_to_use:],
             segm_mask=observation.segm_mask,
             som_image=observation.som_image,
         )
