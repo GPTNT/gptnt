@@ -120,6 +120,7 @@ class PlayerController(PlayerSupervisor):
             protocol=self.protocol,
             message_history=self.message_history,
             observation_handler=self.observation_handler,
+            tracker=self.episode_tracker,
         )
 
         self.action_predictor.configure_for_experiment(

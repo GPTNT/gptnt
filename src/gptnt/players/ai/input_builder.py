@@ -7,6 +7,7 @@ from pydantic_ai import BinaryContent
 from gptnt.ktane.client import RawObservationFrames
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.ai.message_history import AgentMessageInput, MessageHistory
+from gptnt.players.metrics.episode_tracker import EpisodeTracker
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.players.prompts.manual import load_manual_as_prompt
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
@@ -26,6 +27,8 @@ class AgentInputBuilder:
 
     message_history: MessageHistory
     observation_handler: ObservationHandler
+
+    tracker: EpisodeTracker
 
     @logfire.instrument("Build agent input")
     async def build_agent_input(
@@ -75,6 +78,15 @@ class AgentInputBuilder:
             segmentation=raw_frames.segmentation,
             bomb_state=bomb_state,
             num_frames_to_use=num_frames_to_use,
+        )
+
+        frames_to_track = observation.frames[-num_frames_to_use:]
+
+        self.tracker.add_bomb_state(bomb_state)
+        await self.tracker.add_observation(
+            frames=frames_to_track,
+            segm_mask=observation.segm_mask,
+            som_image=observation.som_image,
         )
 
         observations = [
