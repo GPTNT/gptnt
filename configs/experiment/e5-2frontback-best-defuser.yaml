@@ -1,6 +1,0 @@
-# @package _global_
-
-defaults:
-  - e5-2front-self
-  - override /mission_condition: multiple_modules_2
-  - _self_

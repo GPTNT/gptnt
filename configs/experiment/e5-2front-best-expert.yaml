@@ -1,6 +1,0 @@
-# @package _global_
-
-defaults:
-  - e5-2front-best-defuser
-  - override /pairing: with_best_expert
-  - _self_

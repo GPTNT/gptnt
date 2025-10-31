@@ -1,6 +1,0 @@
-# @package _global_
-
-defaults:
-  - e1-single-pairwise
-  - override /think_framework: redact
-  - _self_
