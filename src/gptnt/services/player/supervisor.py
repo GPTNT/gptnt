@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import override
 from uuid import uuid4
 
+import structlog
 from pydantic import UUID4
 
 from gptnt.players.ai.action_predictor import ActionPredictor
@@ -35,10 +36,8 @@ class PlayerSupervisor(HeartbeatBroadcaster):
 
     capabilities: PlayerCapabilities
     service_name: str = field(init=False)
-    state: PlayerState = field(default=PlayerState.idle, init=False)
     observation_handler: ObservationHandler
     action_predictor: ActionPredictor
-
     action_dispatcher: ActionDispatcher = field(init=False, repr=False)
     game_client: GameClient = field(default_factory=GameClient)
 
@@ -52,6 +51,8 @@ class PlayerSupervisor(HeartbeatBroadcaster):
     message_history: MessageHistory = field(init=False, repr=False)
     input_builder: AgentInputBuilder = field(init=False, repr=False)
 
+    _state: PlayerState = field(default=PlayerState.idle, init=False)
+
     def __post_init__(self) -> None:
         """Setup the service."""
         self.service_name = self.capabilities.player_name
@@ -62,6 +63,17 @@ class PlayerSupervisor(HeartbeatBroadcaster):
             game_client=self.game_client,
             message_handler=self.message_handler,
         )
+
+    @property
+    def state(self) -> PlayerState:
+        """Get the current state of the player."""
+        return self._state
+
+    @state.setter
+    def state(self, state: PlayerState) -> None:
+        """Set the current state of the player."""
+        self._state = state
+        _ = structlog.contextvars.bind_contextvars(player_state=self._state.name)
 
     @override
     def heartbeat_event(self) -> PlayerHeartbeat:
