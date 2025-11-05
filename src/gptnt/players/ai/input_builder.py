@@ -55,11 +55,14 @@ class AgentInputBuilder:
 
         # 3. Add observations if we are the defuser
         if self.protocol.role == "defuser":
-            assert raw_frames is not None, "Raw frames must be provided for defuser protocol"
-            assert bomb_state is not None, "Bomb state must be provided for defuser protocol"
-            logger.debug("Preparing frames")
-            observations = await self._prepare_frames(raw_frames=raw_frames, bomb_state=bomb_state)
-            agent_input.extend(observations)
+            with logfire.span("Adding observations to defuser input"):
+                assert raw_frames is not None, "Raw frames must be provided for defuser protocol"
+                assert bomb_state is not None, "Bomb state must be provided for defuser protocol"
+                logger.debug("Preparing frames")
+                observations = await self._prepare_frames(
+                    raw_frames=raw_frames, bomb_state=bomb_state
+                )
+                agent_input.extend(observations)
 
         return agent_input
 

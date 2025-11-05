@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from io import BytesIO
 from typing import cast
 
+import logfire
 import numpy as np
 import structlog
 from PIL import Image
@@ -64,8 +65,9 @@ class ObservationHandler:
         if self.set_of_marks_painter:
             self.set_of_marks_painter.reset()
 
-        frames = self._decode_frames(frames, num_frames_to_use=num_frames_to_use)
-        segmentation = self._decode_segmentation(segmentation)
+        with logfire.span("Decoding frames and segmentation"):
+            frames = self._decode_frames(frames, num_frames_to_use=num_frames_to_use)
+            segmentation = self._decode_segmentation(segmentation)
 
         # If we are not resizing nor applying SoM, we can just use the last frame
         if self.image_resizer is None and self.set_of_marks_painter is None:
@@ -86,30 +88,32 @@ class ObservationHandler:
         # Apply set of marks only on the last image
         last_image = images[-1]
         if self.set_of_marks_painter and segmentation:
-            segm_image = load_observation_from_bytes(segmentation)
+            with logfire.span("Applying set of marks on last frame"):
+                segm_image = load_observation_from_bytes(segmentation)
 
-            if self.image_resizer:
-                # with logfire.span("Resize segmentation mask", image=segm_image):
-                segm_image = self.image_resizer.resize_image(segm_image)
+                if self.image_resizer:
+                    # with logfire.span("Resize segmentation mask", image=segm_image):
+                    segm_image = self.image_resizer.resize_image(segm_image)
 
-            last_image = self._apply_set_of_marks(
-                raw_image=last_image, segmentation_image=segm_image, bomb_state=bomb_state
-            )
-            logger.debug(
-                "Set of marks mapping applied",
-                mark_to_coord_mapping=self.set_of_marks_painter.mark_to_coordinate,
-                bomb_state=bomb_state,
-            )
+                last_image = self._apply_set_of_marks(
+                    raw_image=last_image, segmentation_image=segm_image, bomb_state=bomb_state
+                )
+                logger.debug(
+                    "Set of marks mapping applied",
+                    mark_to_coord_mapping=self.set_of_marks_painter.mark_to_coordinate,
+                    bomb_state=bomb_state,
+                )
 
         # Convert the resized / som images back to bytes
-        som_buffer = BytesIO()
-        last_image.save(som_buffer, format="PNG")
+        with logfire.span("Saving images back to bytes"):
+            som_buffer = BytesIO()
+            last_image.save(som_buffer, format="PNG")
 
-        frames = []
-        for image in images:
-            image_buffer = BytesIO()
-            image.save(image_buffer, format="PNG")
-            frames.append(image_buffer.getvalue())
+            frames = []
+            for image in images:
+                image_buffer = BytesIO()
+                image.save(image_buffer, format="PNG")
+                frames.append(image_buffer.getvalue())
 
         return Observation(
             frames=frames,
