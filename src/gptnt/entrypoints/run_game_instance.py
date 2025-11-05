@@ -31,7 +31,7 @@ def main(*, redis_dsn: str | RedisDsn = "redis://localhost:6379") -> FastStream:
     broker = create_redis_broker(redis_dsn, client_name="game")
     game_controller = GameController(redis=heartbeat_redis, uuid=service_uuid, broker=broker)
 
-    app = FastStream(broker, lifespan=game_controller.lifespan)
+    app = FastStream(broker, lifespan=game_controller.lifespan, after_shutdown=[logfire.shutdown])
     app.context.set_global("game_controller", game_controller)
     return app
 

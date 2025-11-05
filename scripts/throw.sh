@@ -34,8 +34,8 @@ cleanup() {
     fi
   done
   
-  # Give processes time to cleanup
-  sleep 2
+  # Give processes time to cleanup (+30s for logfire to flush spans)
+  sleep 35
   
   # Force kill any remaining
   for pid in "${PIDS[@]}"; do

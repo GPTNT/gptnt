@@ -282,7 +282,7 @@ class MessageHistory:
             self.num_times_truncated += 1
             self.messages = history
 
-    @logfire.instrument("Remove observations from messages")
+    @logfire.instrument("Remove observations from messages", extract_args=False)
     def _remove_observations_from_messages(
         self, new_messages: list[ModelMessage]
     ) -> list[ModelMessage]:

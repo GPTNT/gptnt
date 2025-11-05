@@ -71,7 +71,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
         self.message_history = message_history
         self.tracker = tracker
 
-    @logfire.instrument("Send request to agent")
+    @logfire.instrument("Send request to agent", extract_args=False)
     async def send_request_to_agent(self, *, message_input: AgentMessageInput) -> AgentOutput:  # noqa: WPS213
         """Send a message to the AI.
 

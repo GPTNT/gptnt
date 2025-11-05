@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 import anyio
+import logfire
 import structlog
 import wandb
 from anyio.abc import TaskGroup
@@ -70,7 +71,7 @@ class PlayerController(PlayerSupervisor):
         """Register all command subscribers with the broker."""
         for command_name, command_func in self.commands.items():
             channel_name = f"{self.command_channel}:{command_name}"
-            logger.info("Registering command", channel_name=channel_name, command=command_name)
+            logger.debug("Registering command", command=command_name, channel_name=channel_name)
             _ = self.broker.subscriber(channel_name)(command_func)
 
     @asynccontextmanager
@@ -219,6 +220,7 @@ class PlayerController(PlayerSupervisor):
 
         return {"status": "accepted", "reason": "Stopping player and ending experiment"}
 
+    @logfire.instrument("Stop player")
     async def _stop_player_async(self, stop_event: StopPlayerEvent) -> None:
         """Async cleanup task for stopping player."""
         if not hasattr(self, "protocol"):

@@ -58,7 +58,9 @@ def main(
     logger.info("Instantiating player controller")
     player_controller = PlayerController(**player_partial.keywords, broker=broker)
 
-    app = FastStream(broker, lifespan=player_controller.lifespan)
+    app = FastStream(
+        broker, lifespan=player_controller.lifespan, after_shutdown=[logfire.shutdown]
+    )
     app.context.set_global("player_controller", player_controller)
 
     logger.info("Starting FastStream application")

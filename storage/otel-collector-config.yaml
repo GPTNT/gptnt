@@ -1,5 +1,5 @@
 receivers:
-  filelog:
+  filelog/ktane:
     include:
       - /var/log/unity/ktane.log # Path inside the container
     start_at: end # Only tail new logs (change to 'beginning' to read all)
@@ -10,6 +10,9 @@ receivers:
     # Handle multiline logs (when DEBUG/INFO lines have continuation)
     multiline:
       line_start_pattern: '^\s*(DEBUG|INFO|WARN|ERROR|FATAL)\s+'
+
+    resource:
+      service.name: "ktane"
 
     operators:
       # Parse the log4net format
@@ -23,12 +26,12 @@ receivers:
         # \s+                        : Whitespace separator
         # \[(?P<logger>[^\]]+)\]     : Logger name inside square brackets
         # \s+                        : Whitespace separator
-        # trace_id=(?P<trace_id>\S*) : trace_id= followed by trace ID (or "none" if not set)
+        # trace_id=(?P<trace_id>\S*) : trace_id= followed by trace ID (or "" if not set)
         # \s+                        : Whitespace separator
-        # span_id=(?P<span_id>\S*)   : span_id= followed by span ID (or "none" if not set)
+        # span_id=(?P<span_id>\S*)   : span_id= followed by span ID (or "" if not set)
         # \s+                        : Whitespace separator
-        # (?P<message>(?s:.)*)       : The rest of the line as the log message (including newlines)
-        regex: '^\s*(?P<level>\w+)\s+(?P<timestamp>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})\s+\[(?P<logger>[^\]]+)\]\s+(?:trace_id=(?P<trace_id>\S+)\s+span_id=(?P<span_id>\S+)\s+)?(?P<message>(?s:.)*)$'
+        # (?P<message>(?s:.*))       : The rest of the line as the log message (including newlines)
+        regex: '^\s*(?P<level>\w+)\s+(?P<timestamp>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})\s+\[(?P<logger>[^\]]+)\]\s+(?:trace_id=(?P<trace_id>\S+)\s+span_id=(?P<span_id>\S+)\s+)?(?P<message>(?s:.*))$'
         timestamp:
           parse_from: attributes.timestamp
           layout: "%Y-%m-%d %H:%M:%S,%L"
@@ -47,7 +50,7 @@ receivers:
 
       # Link log to traces
       - type: trace_parser
-        if: 'attributes.trace_id != nil and attributes.trace_id != "" and attributes.trace_id != "none"'
+        if: 'attributes.trace_id != nil and attributes.trace_id != ""'
         trace_id:
           parse_from: attributes.trace_id
         span_id:
@@ -58,10 +61,6 @@ receivers:
         field: attributes.logger_name
         value: EXPR(attributes.logger)
 
-      - type: add
-        field: attributes.service_name
-        value: "ktane"
-
       # Move message to body
       - type: move
         from: attributes.message
@@ -69,8 +68,13 @@ receivers:
 
   otlp:
     protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+        max_recv_msg_size_mib: 32 # 32MiB
       http:
-        endpoint: 0.0.0.0:4318
+        endpoint: "0.0.0.0:4318"
+        # 32MiB to match above
+        max_request_body_size: 33554432
 
 processors:
   filter/logs:
@@ -99,6 +103,10 @@ processors:
         - 'attributes["logger"] == "SecondScreenManager"'
         - 'attributes["logger"] == "ModManager"'
         - 'attributes["logger"] == "MissionManager"'
+        - 'attributes["logger"] == "AbstractPlatformUtil"'
+
+        # Drop health check logs
+        - 'attributes["http.route"] == "/health"'
 
         # Drop messages matching patterns
         - 'IsMatch(body, "^Adding mod term:.*")'
@@ -111,33 +119,24 @@ processors:
         - 'IsMatch(body, "^Loading assemblies.*")'
         - 'IsMatch(body, "^Could not write mod manual.*")'
 
-  filter/traces:
-    traces:
-      span:
-        # Drop health checks
-        - 'attributes["http.route"] == "/health"'
+        # Filter GptntStates Twitch errors
+        - 'attributes["logger"] == "GptntStates" and IsMatch(body, "Twitch bomb is null")'
+
+        # Filter Unity ArgumentNullException
+        - 'IsMatch(body, "ArgumentNullException: Argument cannot be null")'
+
   batch:
-    timeout: 1s
-    send_batch_size: 1024
-    send_batch_max_size: 2048
-
-  resource:
-    attributes:
-      - key: service.name
-        value: "ktane"
-        action: upsert
-
-  # Memory limiter to prevent OOM
-  memory_limiter:
-    check_interval: 1s
-    limit_mib: 512
-    spike_limit_mib: 128
+    timeout: 10s
+    send_batch_size: 256
+    send_batch_max_size: 512
 
 exporters:
-  otlphttp:
+  otlphttp/logfire:
     endpoint: "https://logfire-eu.pydantic.dev"
     headers:
       authorization: "Bearer ${env:LOGFIRE_TOKEN}"
+
+    compression: gzip
 
   debug:
     verbosity: detailed
@@ -147,10 +146,14 @@ exporters:
 service:
   pipelines:
     logs:
-      receivers: [filelog]
-      processors: [resource, filter/logs, memory_limiter, batch]
-      exporters: [otlphttp]
-    # traces:
-    #   receivers: [otlp]
-    #   processors: [resource, filter/traces, memory_limiter, batch]
-    #   exporters: [otlphttp]
+      receivers: [filelog/ktane, otlp]
+      processors: [filter/logs, batch]
+      exporters: [otlphttp/logfire]
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/logfire]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/logfire]

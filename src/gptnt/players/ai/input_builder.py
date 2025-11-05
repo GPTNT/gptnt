@@ -30,7 +30,9 @@ class AgentInputBuilder:
 
     tracker: EpisodeTracker
 
-    @logfire.instrument("Build agent input")
+    @logfire.instrument(
+        "Build agent input", extract_args=["messages", "bomb_state", "is_message_history_empty"]
+    )
     async def build_agent_input(
         self,
         *,
@@ -66,7 +68,7 @@ class AgentInputBuilder:
 
         return agent_input
 
-    @logfire.instrument("Prepare frames")
+    @logfire.instrument("Prepare frames", extract_args=["bomb_state"])
     async def _prepare_frames(
         self, *, raw_frames: RawObservationFrames, bomb_state: BombState
     ) -> list[BinaryContent]:

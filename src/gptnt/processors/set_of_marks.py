@@ -401,7 +401,7 @@ class SetOfMarksHandler:
         self._update_mark_to_coordinate_mapping(regions, zoomed_in_component=zoomed_in_component)
         return labeled_segmentation, regions
 
-    @logfire.instrument("Run Set of Marks Handler")
+    @logfire.instrument("Run Set of Marks Handler", extract_args=["zoomed_in_component"])
     def run(
         self,
         *,

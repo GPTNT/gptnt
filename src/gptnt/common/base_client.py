@@ -74,7 +74,12 @@ class BaseClient(InstrumentationDataclassMixin, abc.ABC):
     @override
     def perform_instrumentation(self) -> None:
         _logger.debug(f"Instrumenting {self.__class__.__name__}")
-        logfire.instrument_httpx(self.client, capture_all=True)
+        logfire.instrument_httpx(
+            self.client,
+            capture_headers=True,
+            capture_request_body=True,
+            capture_response_body=False,
+        )
 
     async def healthcheck(self, *, skip_logger: bool = False) -> bool:
         """Checks the health of the client.

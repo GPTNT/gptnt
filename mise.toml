@@ -1,3 +1,7 @@
+[env]
+LOGFIRE_SEND_TO_LOGFIRE = "true"
+OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:4318/"
+
 [tasks.defuser]
 description = "Run the defuser"
 run = "uv run python src/gptnt/entrypoints/run_player.py model=test_defuser"
@@ -31,10 +35,6 @@ ps -ax | grep python | grep gptnt/entrypoints | awk '{print $1}' | xargs kill -9
 ps -ax | grep ktane | awk '{print $1}' | xargs kill -9
 """
 
-[tasks.room]
-description = "Run the room"
-run = "uv run python src/gptnt/entrypoints/run_room_instance.py"
-
 [tasks.tests]
 description = "Run all tests"
 run = "uv run pytest"
@@ -42,20 +42,6 @@ run = "uv run pytest"
 [tasks.throw-experiments]
 description = "Throw all the experiments at the EM"
 run = "uv run python src/gptnt/entrypoints/throw_experiments.py --delete-unneeded"
-
-[tasks.together]
-description = "Run things together"
-run = """
-#!/usr/bin/env bash
-mise run em &
-pid[0]=$!
-mise run game &
-pid[1]=$!
-mise run room &
-pid[2]=$!
-trap "kill -9 ${pid[0]} ${pid[1]} ${pid[2]}; exit 1" INT
-wait
-"""
 
 [tools]
 python = "3.13"

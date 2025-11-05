@@ -1,6 +1,7 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+import logfire
 import structlog
 from fastapi import FastAPI
 
@@ -15,4 +16,7 @@ async def lifespan(app: FastAPI, *, experiment_manager: ExperimentManager) -> As
     async with experiment_manager.lifespan():
         app.state.experiment_manager = experiment_manager
         yield
+    logger.info("Flushing logfire spans")
+    _ = logfire.shutdown()
+
     logger.info("Experiment manager application shutting down")
