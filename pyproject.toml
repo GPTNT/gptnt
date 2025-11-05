@@ -71,8 +71,16 @@ visualisation = [
     "streamlit>=1.44.1",
 ]
 
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
 [tool.uv.sources]
 redis-anyio = {git = "https://github.com/agronholm/redis-anyio"}
+torch = [
+    {index = "pytorch-cpu"},
+]
 
 [tool.basedpyright]
 verboseOutput = true
