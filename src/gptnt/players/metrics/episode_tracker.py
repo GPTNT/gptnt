@@ -1,7 +1,7 @@
 import io
 import itertools
 from contextlib import suppress
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from functools import partial
 from pathlib import Path
 from typing import Any
@@ -91,6 +91,8 @@ class EpisodeTracker:  # noqa: WPS214
     reflections: list[MessageMetric] = field(default_factory=list, init=False)
     observation_files: list[Path] = field(default_factory=list, init=False)
     """List of observations taken during the episode."""
+
+    usages: list[RunUsage] = field(default_factory=list, init=False)
 
     _max_sequential_errors: int = 5
 
@@ -381,6 +383,10 @@ class EpisodeTracker:  # noqa: WPS214
         )
         self.reflections.append(message_metric)
 
+    def add_usage(self, usage: RunUsage) -> None:
+        """Add a usage to the player's usage list."""
+        self.usages.append(usage)
+
     def should_stop_experiments(self) -> bool:
         """Determine if we should stop the experiment."""
         return any(
@@ -411,6 +417,7 @@ class EpisodeTracker:  # noqa: WPS214
             "total_prompt_truncations": self.num_prompt_truncations,
             "total_guardrail_violations": self.guardrail_violations,
             "total_server_errors": self.num_server_errors,
+            **self._compute_usages(),
         }
         if self.bomb_states:
             last_bomb_state = self.bomb_states[-1]
@@ -529,3 +536,10 @@ class EpisodeTracker:  # noqa: WPS214
             allow_mixed_types=True,
         )
         return reflections_table
+
+    def _compute_usages(self) -> dict[str, int]:
+        """Compute the usages."""
+        usage = RunUsage()
+        for next_usage in self.usages:  # noqa: WPS519
+            usage += next_usage
+        return {f"total_{key}": count for key, count in asdict(usage).items()}

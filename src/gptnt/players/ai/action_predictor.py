@@ -121,6 +121,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
         # It should not be a string, like if its a string I will be very surprised because we are
         # using the output validator
         assert not isinstance(model_output.output, str)
+        self.tracker.add_usage(model_output.usage())
 
         self.message_history.update(
             new_messages=model_output.new_messages(), usage=model_output.usage()
