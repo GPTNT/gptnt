@@ -13,7 +13,9 @@ def estimate_tokens_for_image_per_model(model: str, *, width: int, height: int) 
     if "claude" in model:
         return math.ceil(width * height / 750)
     if "gemini" in model:
-        return 1032
+        # Even though we use the tile calc, each tile is less than 768x768 so it only counts as 1
+        # tile, so its just 258 tokens per image.
+        return 258
     if "gpt4o" in model or "gpt-4o" in model or "gpt5" in model or "gpt-5" in model:
         return 85
     if "qwen" in model:
@@ -28,7 +30,7 @@ def estimate_tokens_for_image_per_model(model: str, *, width: int, height: int) 
         return 256
     if "test" in model or ("function:" in model):
         # Use a big number for the test models
-        return 1290
+        return 258
     raise ValueError(f"Unknown model: {model}")
 
 
