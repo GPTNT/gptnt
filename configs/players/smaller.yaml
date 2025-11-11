@@ -1,4 +1,4 @@
-# @package pairing_generator
+# @package _global_
 
 all_players:
   - internvl3-2b

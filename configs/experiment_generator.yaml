@@ -46,6 +46,6 @@ experiment_generator:
 
 pairing_generator:
   _target_: gptnt.experiments.pairing.PairingGenerator
-  pairing_type: "pairwise"
+  pairing_type: ???
   best_model: null
-  all_players: ???
+  all_players: ${all_players}
