@@ -7,3 +7,14 @@ defaults:
   - override /player_specs@expert_protocol: none
   - override /pairing: no_expert
   - _self_
+
+mission_generator:
+  config:
+    excluded_modules:
+      - Empty
+      - Timer
+      - NeedyVentGas
+      - NeedyCapacitor
+      - NeedyKnob
+      - Simon
+      - Morse
