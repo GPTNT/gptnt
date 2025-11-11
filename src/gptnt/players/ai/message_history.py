@@ -305,7 +305,12 @@ class MessageHistory:
 
         # Update the usage to reflect the number of observation tokens removed
         if num_observations_removed > 0 and self.usage.input_tokens > 0:
-            tokens_to_remove = num_observations_removed * self.tokens_per_image
+            # if we have the number of tokens in the prompt, just use that.
+            if self.usage.details.get("image_prompt_tokens"):
+                tokens_to_remove = self.usage.details["image_prompt_tokens"]
+            else:
+                tokens_to_remove = num_observations_removed * self.tokens_per_image
+
             new_value = self.usage.input_tokens - tokens_to_remove
             if new_value < 0:
                 logger.warning(
