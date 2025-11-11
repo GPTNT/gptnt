@@ -1,5 +1,9 @@
 # @package _global_
 
 defaults:
+  - override /mission_condition: single_module
+  - override /communication_style: sync
   - override /player_specs@defuser_protocol: solo_player
+  - override /player_specs@expert_protocol: none
+  - override /pairing: no_expert
   - _self_

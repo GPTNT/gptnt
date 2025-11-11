@@ -1,7 +1,8 @@
 # @package _global_
 
 defaults:
-  - _e
+  - override /mission_condition: single_module
+  - override /communication_style: sync
   - override /pairing: no_expert
   - override /players: test_defuser
   - override /think_framework: act
