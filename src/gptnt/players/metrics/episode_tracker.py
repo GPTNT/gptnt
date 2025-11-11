@@ -1,6 +1,7 @@
 import io
 import itertools
 from contextlib import suppress
+from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from functools import partial
 from pathlib import Path
@@ -384,8 +385,11 @@ class EpisodeTracker:  # noqa: WPS214
         self.reflections.append(message_metric)
 
     def add_usage(self, usage: RunUsage) -> None:
-        """Add a usage to the player's usage list."""
-        self.usages.append(usage)
+        """Add a usage to the player's usage list.
+
+        We need to copy it to avoid mutability issues.
+        """
+        self.usages.append(deepcopy(usage))
 
     def should_stop_experiments(self) -> bool:
         """Determine if we should stop the experiment."""
