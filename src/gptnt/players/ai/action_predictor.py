@@ -43,9 +43,17 @@ class ActionPredictor(InstrumentationDataclassMixin):
     message_history: MessageHistory = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
-        """Prepare agent."""
+        """Prepare agent.
+
+        These can only be done here because we init agents with Hydra.
+        """
         self.agent._deps_type = PlayerDeps  # noqa: SLF001
-        _ = self.agent.instructions(load_instructions_from_deps)
+
+        # TODO: I think we can provide intruction functions to the init now so this should be
+        #       reworked to use that instead, but that's just a refactoring thing so for now we
+        #       don't bother.
+        # Not sure why this is complaining because it used to be fine, but ok
+        _ = self.agent.instructions(load_instructions_from_deps)  # pyright: ignore[reportCallIssue, reportArgumentType]
 
         super().__post_init__()
 
