@@ -36,3 +36,6 @@ class ServiceTimeouts(BaseSettings):
 
     session_state_watcher_interval: float = 1
     """Interval for the session state watcher to check service states."""
+
+    game_request_timeout: float = 5
+    """Timeout for sending requests to the game service."""

@@ -88,7 +88,9 @@ class GameClient:
         """Stop the game."""
         logger.debug("Stopping the game")
         channel = self._get_channel("stop_game")
-        response = await self._broker.request({}, channel=channel)
+        response = await self._broker.request(
+            {}, channel=channel, timeout=timeouts.game_request_timeout
+        )
         _ = await response.decode()
 
     async def pause_game(self) -> None:
