@@ -5,13 +5,13 @@ defaults:
   - _self_
 
 capabilities:
-  player_name: internvl3-38b
+  player_name: qwen3vl-32b
   supports_structured_output: false
 
 action_predictor:
   agent:
     model:
-      model_name: OpenGVLab/InternVL3-38B-AWQ
+      model_name: Qwen/Qwen3-VL-32B-Instruct
       provider:
         base_url: http://localhost:11434/v1
     model_settings:
