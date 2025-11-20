@@ -68,7 +68,9 @@ lint = [
     "wemake-python-styleguide>=1.0.0",
 ]
 visualisation = [
-    "streamlit>=1.44.1",
+    "pymupdf>=1.26.6",
+    "streamlit==1.40.0",
+    "streamlit-drawable-canvas>=0.9.3",
 ]
 
 [[tool.uv.index]]
