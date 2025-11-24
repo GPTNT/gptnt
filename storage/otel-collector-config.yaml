@@ -2,6 +2,7 @@ receivers:
   filelog/ktane:
     include:
       - /var/log/unity/ktane.log # Path inside the container
+      - ./storage/ktane/logs/ktane.log # Path outside container
     start_at: end # Only tail new logs (change to 'beginning' to read all)
     include_file_path: true
     include_file_name: true
