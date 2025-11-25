@@ -13,7 +13,7 @@ action_predictor:
     model:
       model_name: OpenGVLab/InternVL3_5-38B-Instruct
       provider:
-        base_url: http://localhost:11434/v1
+        base_url: http://localhost:11435/v1
     model_settings:
       _target_: pydantic_ai.models.openai.OpenAIResponsesModelSettings
       _convert_: all
