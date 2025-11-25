@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     {name = "Amit Parekh", email = "7276308+amitkparekh@users.noreply.github.com"},
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.13, <3.14"
 dependencies = [
     "anyio>=4.9.0",
     "asgi-lifespan>=2.1.0",
