@@ -4,5 +4,5 @@ all_players:
   - gpt5
   - claude45
   - gemini-25
-  - internvl3-38b
-  - qwen25vl-32b
+  - internvl35-38b
+  - qwen3vl-32b
