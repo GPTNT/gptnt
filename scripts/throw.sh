@@ -1,19 +1,21 @@
 #!/bin/bash
 
-# usage: ./throw.sh <number_of_rooms> <claude37_bedrock_players> <gemini_25_players> <gpt5_players>
+# usage: ./throw.sh <number_of_rooms> <claude_players> <gemini_25_players> <gpt5_players>
 
 NUM_ROOMS=$1
 CLAUDE_PLAYERS=$2
 GEMINI_PLAYERS=$3
-GPT5_PLAYERS=$4
+GPT_PLAYERS=$4
+INTERNVL_PLAYERS=$5
+QWEN_PLAYERS=$6
 DISPLAY_NUM=3
 
 # Create logs directory if it doesn't exist
 LOGS_DIR="./logs/throw_$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$LOGS_DIR"
 
-if [[ -z $NUM_ROOMS || $NUM_ROOMS -lt 1 || -z $CLAUDE_PLAYERS || $CLAUDE_PLAYERS -lt 0 || -z $GEMINI_PLAYERS || $GEMINI_PLAYERS -lt 0 || -z $GPT5_PLAYERS || $GPT5_PLAYERS -lt 0 ]]; then
-  echo "Usage: $0 <number_of_rooms> <claude37_bedrock_players> <gemini_25_players> <gpt5_players>"
+if [[ -z $NUM_ROOMS || $NUM_ROOMS -lt 1 || -z $CLAUDE_PLAYERS || $CLAUDE_PLAYERS -lt 0 || -z $GEMINI_PLAYERS || $GEMINI_PLAYERS -lt 0 || -z $GPT_PLAYERS || $GPT_PLAYERS -lt 0 || -z $INTERNVL_PLAYERS || $INTERNVL_PLAYERS -lt 0 || -z $QWEN_PLAYERS || $QWEN_PLAYERS -lt 0 ]]; then
+  echo "Usage: $0 <number_of_rooms> <claude_players> <gemini_players> <gpt_players> <internvl_players> <qwen_players>"
   exit 1
 fi
 
@@ -35,6 +37,7 @@ cleanup() {
   done
   
   # Give processes time to cleanup (+30s for logfire to flush spans)
+  echo "THROWING: Waiting for processes to terminate gracefully (35 secs)..."
   sleep 35
   
   # Force kill any remaining
@@ -89,26 +92,41 @@ for ((i = 0; i < NUM_ROOMS; i++)); do
   sleep 2
 done
 
-# spawn claude37_bedrock players
+# spawn claude players
 for ((i = 0; i < CLAUDE_PLAYERS; i++)); do
-  echo "THROWING: Starting claude37_bedrock player $i..."
-  run_and_track "claude37_bedrock_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=claude37_bedrock
+  echo "THROWING: Starting claude player $i..."
+  run_and_track "claude_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=claude45_bedrock
   sleep 1
 done
 
-# spawn gemini-25 players
+# spawn gemini players
 for ((i = 0; i < GEMINI_PLAYERS; i++)); do
-  echo "THROWING: Starting gemini-25 player $i..."
-  run_and_track "gemini_25_player_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=gemini-25
+  echo "THROWING: Starting gemini player $i..."
+  run_and_track "gemini_player_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=gemini-25
   sleep 1
 done
 
-# spawn gpt5 players
-for ((i = 0; i < GPT5_PLAYERS; i++)); do
-  echo "THROWING: Starting gpt5 player $i..."
-  run_and_track "gpt5_player_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=gpt5
+# spawn gpt players
+for ((i = 0; i < GPT_PLAYERS; i++)); do
+  echo "THROWING: Starting gpt player $i..."
+  run_and_track "gpt_player_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=gpt5
   sleep 1
 done
+
+# spawn internvl players
+for ((i = 0; i < INTERNVL_PLAYERS; i++)); do
+	echo "THROWING: Starting internvl player $i..."
+	run_and_track "internvl_player_$i" env WANDB_RUN_GROUP=THROWING uv run python src/gptnt/entrypoints/run_player.py model=internvl35-38b
+	sleep 1
+done
+
+# spawn qwen players
+for ((i = 0; i < QWEN_PLAYERS; i++)); do
+	echo "THROWING: Starting qwen player $i..."
+	run_and_track "qwen_player_$i" env WANDB_RUN_GROUP=THROWING uv run python src/gptnt/entrypoints/run_player.py model=qwen3vl-32b
+	sleep 1
+done
+
 
 echo "THROWING: You can safely detach from tmux now."
 
