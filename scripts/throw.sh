@@ -29,21 +29,25 @@ NAMES=()
 cleanup() {
   echo "THROWING: Killing all background processes..."
   for pid in "${PIDS[@]}"; do
-    # Kill the entire process group (includes subprocesses like KTANE)
-    if ps -p "$pid" > /dev/null 2>&1; then
-      # Try to kill process group first
-      kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+    if ps -p "$pid" >/dev/null 2>&1; then
+      # Kill the process and all its descendants
+      pkill -TERM -P "$pid" 2>/dev/null # Kill children first
+      kill -TERM "$pid" 2>/dev/null     # Then parent
+
+      # Also process group
+      kill -TERM -"$pid" 2>/dev/null
     fi
   done
-  
-  # Give processes time to cleanup (+30s for logfire to flush spans)
+
   echo "THROWING: Waiting for processes to terminate gracefully (35 secs)..."
   sleep 35
-  
+
   # Force kill any remaining
   for pid in "${PIDS[@]}"; do
-    if ps -p "$pid" > /dev/null 2>&1; then
-      kill -KILL -"$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null
+    if ps -p "$pid" >/dev/null 2>&1; then
+      pkill -KILL -P "$pid" 2>/dev/null
+      kill -KILL "$pid" 2>/dev/null
+      kill -KILL -"$pid" 2>/dev/null
     fi
   done
 }
@@ -53,32 +57,29 @@ cleanup() {
 run_and_track() {
   local name="$1"
   shift
-  
+
   local log_file="$LOGS_DIR/${name}.log"
-  
+
   # Run with:
   # - setsid: Creates new session, detaches from controlling terminal
   # - PYTHONUNBUFFERED=1: Force unbuffered output
   # - Redirect stdout/stderr to log file
   # Note: Process runs in new process group, immune to terminal signals
-  setsid env PYTHONUNBUFFERED=1 "$@" > "$log_file" 2>&1 &
-  
+  setsid env PYTHONUNBUFFERED=1 "$@" >"$log_file" 2>&1 &
+
   local pid=$!
   PIDS+=("$pid")
   NAMES+=("$name")
-  
+
   echo "THROWING: Started $name (PID: $pid, Log: $log_file)"
 }
 
 # trap script termination to clean up
-trap cleanup EXIT
+trap cleanup EXIT INT TERM
 
 # run experiment manager (only one instance needed)
 echo "THROWING: Starting experiment manager..."
 run_and_track "experiment_manager" env WANDB_RUN_GROUP=THROWING uv run python -u ./src/gptnt/entrypoints/run_experiment_manager.py
-
-# Set up trap to clean up on exit
-trap 'echo "Script interrupted."; exit 1' INT TERM
 
 sleep 5
 
@@ -115,18 +116,17 @@ done
 
 # spawn internvl players
 for ((i = 0; i < INTERNVL_PLAYERS; i++)); do
-	echo "THROWING: Starting internvl player $i..."
-	run_and_track "internvl_player_$i" env WANDB_RUN_GROUP=THROWING uv run python src/gptnt/entrypoints/run_player.py model=internvl35-38b
-	sleep 1
+  echo "THROWING: Starting internvl player $i..."
+  run_and_track "internvl_player_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=internvl35-38b
+  sleep 1
 done
 
 # spawn qwen players
 for ((i = 0; i < QWEN_PLAYERS; i++)); do
-	echo "THROWING: Starting qwen player $i..."
-	run_and_track "qwen_player_$i" env WANDB_RUN_GROUP=THROWING uv run python src/gptnt/entrypoints/run_player.py model=qwen3vl-32b
-	sleep 1
+  echo "THROWING: Starting qwen player $i..."
+  run_and_track "qwen_player_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=qwen3vl-32b
+  sleep 1
 done
-
 
 echo "THROWING: You can safely detach from tmux now."
 
@@ -140,13 +140,13 @@ for i in "${!PIDS[@]}"; do
   # Wait for the process
   wait "$pid"
   status=$?
-  
+
   if [[ $status -ne 0 ]]; then
     echo "THROWING ERROR: Process '$name' (PID $pid) failed with exit code $status."
     echo "THROWING ERROR: Check logs at: $LOGS_DIR/${name}.log"
     exit 1
   fi
-  
+
   echo "THROWING: Process '$name' completed successfully."
 done
 
