@@ -17,6 +17,7 @@ class Paths(BaseSettings):
     experiments: Path = storage.joinpath("experiments")
     test_experiments: Path = storage.joinpath("test_experiments")
     vqa_and_grounding: Path = storage.joinpath("vqa_and_grounding")
+    expert_vqa: Path = storage.joinpath("expert_vqa")
     dummy_observation_dataset: Path = storage.joinpath("observation_dataset")
     vqa_and_grounding_hf_dataset: str = "GPTNT/gptnt"
     grounding_hf_dataset: str = "GPTNT/gptnt_grounding"
