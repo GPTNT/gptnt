@@ -11,7 +11,7 @@ capabilities:
 action_predictor:
   agent:
     model:
-      model_name: Qwen/Qwen3-VL-32B-Instruct
+      model_name: cpatonn/Qwen3-VL-32B-Instruct-AWQ-8bit
       provider:
         base_url: http://localhost:11434/v1
     model_settings:

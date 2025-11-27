@@ -11,7 +11,7 @@ capabilities:
 action_predictor:
   agent:
     model:
-      model_name: OpenGVLab/InternVL3_5-38B-Instruct
+      model_name: cpatonn/InternVL3_5-38B-AWQ-8bit
       provider:
         base_url: http://localhost:11435/v1
     model_settings:
