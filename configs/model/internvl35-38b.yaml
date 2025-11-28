@@ -6,12 +6,12 @@ defaults:
 
 capabilities:
   player_name: internvl35-38b
-  supports_structured_output: false
+  supports_structured_output: true
 
 action_predictor:
   agent:
     model:
-      model_name: cpatonn/InternVL3_5-38B-AWQ-8bit
+      model_name: OpenGVLab/InternVL3_5-38B-MPO
       provider:
         base_url: http://localhost:11435/v1
     model_settings:

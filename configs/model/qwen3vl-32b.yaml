@@ -6,12 +6,12 @@ defaults:
 
 capabilities:
   player_name: qwen3vl-32b
-  supports_structured_output: false
+  supports_structured_output: true
 
 action_predictor:
   agent:
     model:
-      model_name: cpatonn/Qwen3-VL-32B-Instruct-AWQ-8bit
+      model_name: Qwen/Qwen3-VL-32B-Instruct
       provider:
         base_url: http://localhost:11434/v1
     model_settings:
