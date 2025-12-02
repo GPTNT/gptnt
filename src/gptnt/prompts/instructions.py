@@ -4,8 +4,8 @@ import structlog
 from pydantic_ai.tools import RunContext
 
 from gptnt.common.paths import Paths
-from gptnt.common.prompt_cache import PromptCache
 from gptnt.players.specification import PlayerDeps, PlayerProtocol
+from gptnt.prompts.prompt_cache import PromptCache
 
 paths = Paths()
 

@@ -6,7 +6,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from structlog import get_logger
 
 from gptnt.common.paths import Paths
-from gptnt.common.prompt_cache import PromptCache
 
 logger = get_logger()
 
@@ -41,6 +40,9 @@ There are probably better ways to do this, but for now, this is a good enough he
 
 type PageNumType = Annotated[int, Field(gt=0, le=MANUAL_NUM_PAGES, description="Page number")]
 
+type ImageSizeKind = Literal["orig", "small"]
+"""Kind of image size for manual images."""
+
 
 class KtaneManualPaths(BaseSettings):
     """Paths for the KTANE manual.
@@ -68,34 +70,15 @@ class KtaneManualPaths(BaseSettings):
     text_dir: Path = root.joinpath("text")
 
     @validate_call
-    def load_text(self, page_num: PageNumType) -> str:
-        """Load the text for a given page number."""
-        text_path = self.text_dir.joinpath(f"page_{page_num}.txt")
-
-        if not text_path.exists():
-            raise FileNotFoundError("Text file does not exist, and it should?")
-        try:
-            return PromptCache.get_text(text_path)
-        except KeyError:
-            logger.warning("PromptCache not initialised, loading text directly from disk")
-            return text_path.read_text()
+    def get_text_path(self, page_num: PageNumType) -> Path:
+        """Get the text path for a given page number."""
+        return self.text_dir.joinpath(f"page_{page_num}.txt")
 
     @validate_call
-    def load_image(
-        self, page_num: PageNumType, *, kind: Literal["orig", "small"] = "small"
-    ) -> bytes:
-        """Load the image for a given page number, as bytes.
+    def get_image_path(self, page_num: PageNumType, *, kind: ImageSizeKind = "small") -> Path:
+        """Get the image path for a given page number.
 
-        We can load two kinds of images: the original and the small version. Default to small.
+        We can get two kinds of images: the original and the small version. Default to small.
         """
         kind_switcher = {"orig": self.images_orig_dir, "small": self.images_small_dir}
-        image_path = kind_switcher[kind].joinpath(f"page_{page_num}.png")
-
-        if not image_path.exists():
-            raise FileNotFoundError("Image file does not exist, and it should?")
-
-        try:
-            return PromptCache.get_bytes(image_path)
-        except KeyError:
-            logger.warning("PromptCache not initialized, loading image directly from disk")
-            return image_path.read_bytes()
+        return kind_switcher[kind].joinpath(f"page_{page_num}.png")

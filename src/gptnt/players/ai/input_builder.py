@@ -9,8 +9,8 @@ from gptnt.ktane.state.bomb import BombState
 from gptnt.players.ai.message_history import AgentMessageInput, MessageHistory
 from gptnt.players.metrics.episode_tracker import EpisodeTracker
 from gptnt.players.observation_handler import ObservationHandler
-from gptnt.players.prompts.manual import load_manual_as_prompt
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.prompts.manual import load_manual_as_prompt
 
 logger = structlog.get_logger()
 
@@ -47,7 +47,11 @@ class AgentInputBuilder:
         # 1. Do we want to include the manual? Only if first message and we want it.
         if self.protocol.include_manual and is_message_history_empty:
             logger.debug("Loading manual as prompt")
-            agent_input.extend(load_manual_as_prompt())
+            agent_input.extend(
+                load_manual_as_prompt(
+                    desired_image_dimensions=self.capabilities.desired_image_dimensions
+                )
+            )
 
         # 2. Pull messages. This should only happen if we are not playing alone, AND this is not
         #    the first message.

@@ -8,8 +8,8 @@ from faststream.redis import RedisBroker
 from pydantic import UUID4, RedisDsn
 
 from gptnt.ktane.state.bomb import BombState
-from gptnt.players.prompts.reflection import ReflectionMessage
 from gptnt.players.specification import PlayerProtocol
+from gptnt.prompts.reflection import ReflectionMessage
 from gptnt.services.broker import create_redis_broker
 from gptnt.services.events.player import PlayerMessage, StopPlayerEvent
 from gptnt.services.experiment_descriptor import ExperimentDescriptor

@@ -22,9 +22,9 @@ from gptnt.players.ai.output_validators import (
 )
 from gptnt.players.metrics.episode_tracker import EpisodeTracker
 from gptnt.players.metrics.structures import AIResponseErrorType
-from gptnt.players.prompts.instructions import load_instructions_from_deps
-from gptnt.players.prompts.reflection import ReflectionMessage, load_reflection_prompt
 from gptnt.players.specification import PlayerCapabilities, PlayerDeps, PlayerProtocol
+from gptnt.prompts.instructions import load_instructions_from_deps
+from gptnt.prompts.reflection import ReflectionMessage, load_reflection_prompt
 
 logger = structlog.get_logger()
 

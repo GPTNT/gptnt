@@ -3,19 +3,25 @@ from contextlib import suppress
 from hypothesis import given, strategies as st
 from pydantic import TypeAdapter, ValidationError
 
+from gptnt.common.image_ops import ImageDimensions
 from gptnt.ktane.manual import NEEDY_MODULE_PAGE_NUMS
-from gptnt.players.prompts.instructions import load_instructions
-from gptnt.players.prompts.manual import load_manual_as_prompt
 from gptnt.players.specification import PlayerProtocol
+from gptnt.prompts.instructions import load_instructions
+from gptnt.prompts.manual import load_manual_as_prompt
 
 
-def test_manual_loads_consistently_without_error() -> None:
+@given(
+    width=st.integers(min_value=100, max_value=640),
+    height=st.integers(min_value=100, max_value=640),
+)
+def test_manual_loads_consistently_without_error(width: int, height: int) -> None:
     """Test that the manual loads from the function without error."""
-    manual_prompt = load_manual_as_prompt()
+    desired_image_dimensions = ImageDimensions(width, height)
+    manual_prompt = load_manual_as_prompt(desired_image_dimensions=desired_image_dimensions)
     assert manual_prompt
-    manual_prompt = load_manual_as_prompt()
+    manual_prompt = load_manual_as_prompt(desired_image_dimensions=desired_image_dimensions)
     assert manual_prompt
-    manual_prompt = load_manual_as_prompt()
+    manual_prompt = load_manual_as_prompt(desired_image_dimensions=desired_image_dimensions)
     assert manual_prompt
 
 

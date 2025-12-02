@@ -5,6 +5,7 @@ from pydantic.fields import computed_field
 from pydantic.functional_validators import model_validator
 from pydantic_ai.usage import UsageLimits
 
+from gptnt.common.image_ops import ImageDimensions
 from gptnt.players.actions import (
     DoNothingAction,
     DoNothingActionWithThoughts,
@@ -43,6 +44,9 @@ class PlayerCapabilities(BaseModel, frozen=True):
     We default this to 16.
     """
     usage_limits: UsageLimits = Field(default_factory=UsageLimits)
+
+    desired_image_dimensions: ImageDimensions | None = None
+    """The desired input image dimensions for the player."""
 
 
 class PlayerProtocol(BaseModel, frozen=True):

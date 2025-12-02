@@ -5,11 +5,11 @@ import structlog
 import weave
 from PIL import Image
 
-from gptnt.ktane.manual import KtaneManualPaths
+from gptnt.prompts.manual import KtaneManualLoader
 
 logger = structlog.get_logger()
 
-ktane_manual_paths = KtaneManualPaths()
+ktane_manual_paths = KtaneManualLoader()
 
 
 @weave.op

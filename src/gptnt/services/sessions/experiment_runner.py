@@ -15,7 +15,7 @@ from redis_anyio import RedisClient
 
 from gptnt.common.async_ops import Event
 from gptnt.ktane.state.bomb import BombState
-from gptnt.players.prompts.reflection import convert_bomb_state_to_reflection
+from gptnt.prompts.reflection import convert_bomb_state_to_reflection
 from gptnt.services.experiment_descriptor import ExperimentDescriptor
 from gptnt.services.game.client import GameClient
 from gptnt.services.player.client import PlayerClient

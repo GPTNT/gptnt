@@ -55,9 +55,12 @@ class PromptCache:
             text_content = cls.cache[path]
         except KeyError:
             logger.warning(
-                "Prompt file not found in cache", path=path, available_files=list(cls.cache.keys())
+                "Prompt file not found in cache; appending",
+                path=path,
+                available_files=list(cls.cache.keys()),
             )
-            raise
+            cls.cache[path] = path.read_text()
+            return cls.get_text(path)
 
         if not isinstance(text_content, str):
             logger.error(
@@ -73,9 +76,12 @@ class PromptCache:
             binary_content = cls.cache[path]
         except KeyError:
             logger.warning(
-                "Prompt file not found in cache", path=path, available_files=list(cls.cache.keys())
+                "Prompt file not found in cache; appending",
+                path=path,
+                available_files=list(cls.cache.keys()),
             )
-            raise
+            cls.cache[path] = path.read_bytes()
+            return cls.get_bytes(path)
 
         if not isinstance(binary_content, bytes):
             logger.error(

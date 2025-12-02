@@ -12,10 +12,14 @@ from fastapi import HTTPException
 from faststream.redis import RedisBroker
 from pydantic import BaseModel
 
+from gptnt.common.paths import Paths
+from gptnt.ktane.manual import KtaneManualPaths
 from gptnt.players.ai.input_builder import AgentInputBuilder
 from gptnt.players.ai.message_history import MessageHistory
-from gptnt.players.prompts.reflection import ReflectionMessage
 from gptnt.players.specification import PlayerProtocol
+from gptnt.prompts.manual import load_manual_as_prompt
+from gptnt.prompts.prompt_cache import PromptCache
+from gptnt.prompts.reflection import ReflectionMessage
 from gptnt.services.events.player import PlayerMessage, PlayerState, StopPlayerEvent
 from gptnt.services.experiment_descriptor import ExperimentDescriptor
 from gptnt.services.player.supervisor import PlayerSupervisor
@@ -74,9 +78,21 @@ class PlayerController(PlayerSupervisor):
             logger.debug("Registering command", command=command_name, channel_name=channel_name)
             _ = self.broker.subscriber(channel_name)(command_func)
 
+    def prepare_prompt_cache(self) -> None:
+        """Prepare the prompt cache for the player."""
+        paths = Paths()
+        manual_paths = KtaneManualPaths()
+        PromptCache.initialise(paths.prompts, manual_paths.text_dir, manual_paths.images_small_dir)
+        # also load the manual too so that it's cached and ready
+        _ = load_manual_as_prompt(
+            desired_image_dimensions=self.capabilities.desired_image_dimensions
+        )
+
     @asynccontextmanager
     async def lifespan(self) -> AsyncGenerator[None]:
         """Lifespan with task group for background operations."""
+        self.prepare_prompt_cache()
+
         async with anyio.create_task_group() as tg:
             self._task_group = tg
             async with super().lifespan():

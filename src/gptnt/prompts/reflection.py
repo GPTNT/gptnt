@@ -3,8 +3,8 @@ from functools import lru_cache
 from typing import Literal
 
 from gptnt.common.paths import Paths
-from gptnt.common.prompt_cache import PromptCache
 from gptnt.ktane.state.bomb import BombState
+from gptnt.prompts.prompt_cache import PromptCache
 
 paths = Paths()
 

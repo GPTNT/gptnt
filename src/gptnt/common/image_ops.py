@@ -1,7 +1,15 @@
 import base64
 from io import BytesIO
+from typing import NamedTuple
 
 from PIL import Image
+
+
+class ImageDimensions(NamedTuple):
+    """Dimensions of an image (width, height)."""
+
+    width: int
+    height: int
 
 
 def load_observation_from_bytes(image: bytes | str) -> Image.Image:

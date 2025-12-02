@@ -7,7 +7,6 @@ from structlog import get_logger
 
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
-from gptnt.common.prompt_cache import PromptCache
 from gptnt.evaluation.run import (
     RunDefuserVQAMCQEvaluation,
     RunDefuserVQAOpenEndedEvaluation,
@@ -15,6 +14,7 @@ from gptnt.evaluation.run import (
     RunGroundingEvaluation,
 )
 from gptnt.ktane.manual import KtaneManualPaths
+from gptnt.prompts.prompt_cache import PromptCache
 
 configure_logging()
 logger = get_logger()

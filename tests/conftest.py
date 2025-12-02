@@ -7,9 +7,9 @@ import pytest
 from pytest_mock import MockerFixture
 
 from gptnt.common.paths import Paths
-from gptnt.common.prompt_cache import PromptCache
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.manual import KtaneManualPaths
+from gptnt.prompts.prompt_cache import PromptCache
 
 # disable Weave and WandB for testing
 os.environ["WEAVE_DISABLED"] = "true"

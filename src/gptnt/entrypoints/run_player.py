@@ -10,7 +10,6 @@ from structlog import get_logger
 
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
-from gptnt.common.prompt_cache import PromptCache
 from gptnt.ktane.manual import KtaneManualPaths
 from gptnt.services.broker import create_redis_broker
 from gptnt.services.player.controller import PlayerController
@@ -37,9 +36,6 @@ def main(
     hydra_overrides: list[str] | None = None,
 ) -> FastStream:
     """Create and run the application for the player service."""
-    PromptCache.initialise(
-        paths.prompts, ktane_manual_paths.text_dir, ktane_manual_paths.images_small_dir
-    )
     hydra_overrides = hydra_overrides or get_hydra_overrides()
 
     logger.info("Starting player instance", hydra_overrides=hydra_overrides)
