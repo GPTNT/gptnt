@@ -1,21 +1,19 @@
 import copy
+import json
 from contextlib import suppress
 from dataclasses import dataclass, field
 
 import logfire
-import pydantic_core
 import structlog
-from pydantic_ai import BinaryContent, RunUsage
-from pydantic_ai.messages import (
+from pydantic_ai import (
     BaseToolCallPart,
-    ModelMessage,
-    ModelRequest,
+    BinaryContent,
     ModelResponse,
+    RunUsage,
     TextPart,
-    ToolCallPart,
     ToolReturnPart,
-    UserPromptPart,
 )
+from pydantic_ai.messages import ModelMessage, ModelRequest, UserPromptPart
 
 from gptnt.ktane.game_settings import KtaneSettings
 from gptnt.players.ai.tokens import count_tokens_from_text, estimate_tokens_for_image_per_model
@@ -87,102 +85,56 @@ def remove_binary_content_from_model_request(
     return num_removed, clean_message
 
 
-def remove_thoughts_from_tool_call(tool_call_part: ToolCallPart) -> ToolCallPart:
-    """Remove thoughts from the tool call part."""
-    try:
-        tool_args = tool_call_part.args_as_dict()
-    except (AssertionError, ValueError):
-        logger.warning("tool args were not a valid json dict", args=tool_call_part.args)
-        return tool_call_part
+def coerce_tool_output_into_native_output(messages: list[ModelMessage]) -> list[ModelMessage]:  # noqa: WPS231
+    """Coerce tool output messages into the native output messages.
 
-    tool_call_part.args = tool_args
-    if "thoughts" in tool_call_part.args:
-        tool_call_part.args["thoughts"] = None
-    return tool_call_part
+    This is needed when we are using ToolOutput but we don't want to then give them back to the
+    model, so we clean up afterwards.
 
-
-TOOL_RETURN_TO_IGNORE = frozenset(("Final result processed.",))
-
-
-def remove_thought_from_tool_return(tool_return_part: ToolReturnPart) -> ToolReturnPart:
-    """Remove thoughts from the tool return part."""
-    try:
-        structured_output = pydantic_core.from_json(tool_return_part.content)
-    except ValueError:
-        # Often, its one of these values that we don't care about so we can skip the log
-        if tool_return_part.content not in TOOL_RETURN_TO_IGNORE:
-            logger.warning(
-                "tool return part was not a valid json dict", args=tool_return_part.content
-            )
-        return tool_return_part
-
-    # Remove the thoughts from the content
-    if "thoughts" in structured_output:
-        structured_output["thoughts"] = None
-        tool_return_part.content = pydantic_core.to_json(structured_output).decode()
-
-    return tool_return_part
-
-
-def remove_thoughts_from_text(text_part: TextPart) -> TextPart:
-    """Remove thoughts from the text part.
-
-    This happens when the model just doesn't support structured outputs.
+    Importantly, because we are using tools as a medium for structured outputs, we are making
+    certain assumptions. These assumptions CANNOT be made if you are using tools as tools, allowing
+    models to use the tool responses. That makes everything different and WILL break things, but
+    that's not a use case we are currently supporting.
     """
-    try:
-        structured_output = pydantic_core.from_json(text_part.content)
-    except ValueError:
-        # If we are using structured outputs, this is then blank so we can just skip the log
-        if text_part.content:
-            logger.warning("text part was not a valid json dict", args=text_part.content)
-        return text_part
+    fixed_messages: list[ModelMessage] = []
 
-    if "thoughts" in structured_output:
-        structured_output["thoughts"] = None
-        text_part.content = pydantic_core.to_json(structured_output).decode()
-
-    return text_part
-
-
-def remove_thoughts_from_model_message(message: ModelMessage) -> ModelMessage:
-    """Remove thoughts from the message."""
-    new_parts = []
-    for part in message.parts:
-        if isinstance(part, ToolCallPart):
-            new_parts.append(remove_thoughts_from_tool_call(part))
-        elif isinstance(part, ToolReturnPart):
-            new_parts.append(remove_thought_from_tool_return(part))
-        elif isinstance(part, TextPart):
-            new_parts.append(remove_thoughts_from_text(part))
-    return message
-
-
-def is_model_output(message: ModelMessage) -> bool:
-    """Check if the message is a model output."""
-    # if its an explicit response, then its the output
-    if isinstance(message, ModelResponse):
-        return True
-
-    # Handle the case where requests are the processed tool calls
-    return any(isinstance(part, ToolReturnPart) for part in message.parts)
-
-
-def remove_any_empty_messages(messages: list[ModelMessage]) -> list[ModelMessage]:  # noqa: WPS231
-    """Remove any empty messages from the list."""
-    cleaned_messages: list[ModelMessage] = []
     for message in messages:
-        valid_parts = []
-        for part in message.parts:
-            if isinstance(part, BaseToolCallPart):
-                if part.args:
-                    valid_parts.append(part)
-            elif part.content:
-                valid_parts.append(part)
+        if isinstance(message, ModelRequest):
+            # Remove any ToolReturnPart from the message
+            fixed_parts = [part for part in message.parts if not isinstance(part, ToolReturnPart)]
 
-        if valid_parts:
-            message.parts = valid_parts
-            cleaned_messages.append(message)
-    return cleaned_messages
+            # if it's empty, continue, otherwise we gotta keep the message
+            if not fixed_parts:
+                continue
+
+            fixed_message = copy.deepcopy(message)
+            fixed_message.parts = fixed_parts
+            fixed_messages.append(fixed_message)
+
+        if isinstance(message, ModelResponse):
+            new_parts = []
+            for part in message.parts:
+                if isinstance(part, BaseToolCallPart):
+                    fixed_func_call = {
+                        "result": {
+                            "kind": part.tool_name.replace("final_result_", ""),
+                            "data": part.args_as_dict(),
+                        }
+                    }
+                    new_parts.append(
+                        TextPart(
+                            content=json.dumps(fixed_func_call),
+                            provider_details=part.provider_details,
+                        )
+                    )
+                else:
+                    new_parts.append(part)
+
+            fixed_message = copy.deepcopy(message)
+            fixed_message.parts = new_parts
+            fixed_messages.append(fixed_message)
+
+    return fixed_messages
 
 
 @dataclass(kw_only=True)
@@ -243,19 +195,13 @@ class MessageHistory:
         # Update usage BEFORE modifying the messages
         self.usage = usage
 
+        # Make sure we fix any ToolOutput messages into NativeOutput messages
+        new_messages = coerce_tool_output_into_native_output(new_messages)
+
         if self.protocol.role == "defuser":
             new_messages = self._remove_observations_from_messages(new_messages)
 
-        if not self.protocol.allow_outputs_in_history:
-            new_messages = [message for message in new_messages if not is_model_output(message)]
-
-        if not self.protocol.allow_thoughts_in_history:
-            new_messages = [
-                remove_thoughts_from_model_message(message) for message in new_messages
-            ]
-
         # Remove any empty messages
-        new_messages = remove_any_empty_messages(new_messages)
         self.messages.append(new_messages)
 
     @logfire.instrument("Truncate message history")

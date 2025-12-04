@@ -1,5 +1,8 @@
+import json
+
 import structlog
-from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart
+from pydantic_ai import TextPart
+from pydantic_ai.messages import ModelMessage, ModelResponse
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from gptnt.ktane.actions import (
@@ -62,14 +65,15 @@ class DummyDefuserModel(FunctionModel):
             logger.debug("Ran out of actions to perform, returning click release action.")
             action_to_perform = SoMAction(action=GameActionType.click_release, location="A")
 
-        model_response = action_to_perform.model_dump(mode="json", exclude={"thoughts", "command"})
-        model_response["action"] = action_to_perform.action.name
-
-        return ModelResponse(
-            parts=[
-                ToolCallPart("final_result_InteractGameActionSingleAlphabetLetter", model_response)
-            ]
+        model_response = action_to_perform.model_dump(
+            mode="json", exclude_unset=True, exclude_defaults=True
         )
+        model_response["action"] = action_to_perform.action.name
+        return_as_dict = {
+            "result": {"kind": "InteractGameActionSingleAlphabetLetter", "data": model_response}
+        }
+
+        return ModelResponse(parts=[TextPart(content=json.dumps(return_as_dict))])
 
 
 class DummyExpertModel(FunctionModel):
@@ -81,14 +85,13 @@ class DummyExpertModel(FunctionModel):
     def send_message(self, messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:  # noqa: WPS110 ARG002
         """Send a dummy message."""
         message = SendMessageAction(message=f"Message {len(messages)}")
-        return ModelResponse(
-            parts=[
-                ToolCallPart(
-                    "final_result_SendMessageAction",
-                    message.model_dump(exclude={"thoughts", "command"}, mode="json"),
-                )
-            ]
-        )
+        result_as_dict = {
+            "result": {
+                "kind": "SendMessageAction",
+                "data": message.model_dump(exclude_unset=True, exclude_defaults=True, mode="json"),
+            }
+        }
+        return ModelResponse(parts=[TextPart(content=json.dumps(result_as_dict))])
 
 
 class MagicDefuserModel(FunctionModel):
@@ -104,6 +107,10 @@ class MagicDefuserModel(FunctionModel):
         )
 
         logger.info("Performing magic action", action=magic_action)
-        model_response = magic_action.model_dump(mode="json", exclude={"thoughts", "command"})
+        model_response = magic_action.model_dump(
+            mode="json", exclude_unset=True, exclude_defaults=True
+        )
         model_response["action"] = magic_action.action
-        return ModelResponse(parts=[ToolCallPart("final_result_MagicGameAction", model_response)])
+
+        return_as_dict = {"result": {"kind": "MagicGameAction", "data": model_response}}
+        return ModelResponse(parts=[TextPart(content=json.dumps(return_as_dict))])

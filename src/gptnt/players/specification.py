@@ -22,7 +22,7 @@ from gptnt.players.actions import (
 
 type PlayerType = Literal["ai", "human"]
 type PlayerRole = Literal["defuser", "expert"]
-type ThinkingFramework = Literal["act", "react", "redact", "dreact"]
+type ThinkingFramework = Literal["act", "react"]
 type CommunicationStyle = Literal["async", "sync"]
 
 
@@ -85,12 +85,6 @@ class PlayerProtocol(BaseModel, frozen=True):
 
     allow_thoughts_output: bool
     """Whether to allow the players to include thoughts."""
-
-    allow_thoughts_in_history: bool
-    """Whether the player's own thoughts should be included in histories for future turns."""
-
-    allow_outputs_in_history: bool
-    """Whether the player's own outputs should be included in histories for future turns."""
 
     receive_feedback_after_action: bool = False
     """Whether or not a player should receive feedback after each action."""
@@ -165,15 +159,6 @@ class PlayerProtocol(BaseModel, frozen=True):
         """
         if self.role == "expert" and self.is_playing_alone:
             raise ValueError("An expert cannot play alone.")
-        return self
-
-    @model_validator(mode="after")
-    def check_thoughts_in_history_without_thoughts(self) -> Self:
-        """It doesn't make sense to have thoughts in history if we don't allow thoughts."""
-        if self.allow_thoughts_in_history and not self.allow_thoughts_output:
-            raise ValueError(
-                "It doesn't make sense to have thoughts in history if we don't allow thoughts."
-            )
         return self
 
 

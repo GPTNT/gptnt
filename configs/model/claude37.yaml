@@ -6,7 +6,7 @@ defaults:
 capabilities:
   player_name: claude37
   use_structured_outputs: true
-  structured_output_mode: tool
+  structured_output_mode: native
 
 action_predictor:
   agent:

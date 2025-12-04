@@ -199,8 +199,6 @@ def experiment_spec(component: KtaneComponent, thinking_framework: str) -> Exper
             include_manual=True,
             thinking_framework=thinking_framework,
             allow_thoughts_output=False,
-            allow_thoughts_in_history=False,
-            allow_outputs_in_history=True,
         ),
         expert_name=None,
         expert_protocol=None,

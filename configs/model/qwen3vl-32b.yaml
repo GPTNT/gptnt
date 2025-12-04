@@ -6,7 +6,7 @@ defaults:
 capabilities:
   player_name: qwen3vl-32b
   use_structured_outputs: true
-  structured_output_mode: tool
+  structured_output_mode: native
   desired_image_dimensions:
     _target_: gptnt.common.image_ops.ImageDimensions
     width: 504

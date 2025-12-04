@@ -36,8 +36,6 @@ def test_experiment_generation_does_not_crash(
         communication_style="async",
         is_playing_alone=False,
         allow_thoughts_output=True,
-        allow_thoughts_in_history=True,
-        allow_outputs_in_history=True,
         include_manual=True,
         thinking_framework="react",
     )
@@ -48,8 +46,6 @@ def test_experiment_generation_does_not_crash(
             communication_style="async",
             is_playing_alone=False,
             allow_thoughts_output=True,
-            allow_thoughts_in_history=True,
-            allow_outputs_in_history=True,
             include_manual=False,
             thinking_framework="react",
         ),
