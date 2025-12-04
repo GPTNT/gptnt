@@ -22,7 +22,7 @@ player:
     _target_: gptnt.players.specification.PlayerCapabilities
     player_type: ai
     player_name: ???
-    supports_structured_output: ???
+    use_structured_outputs: ???
 
   episode_tracker:
     _target_: gptnt.players.metrics.episode_tracker.EpisodeTracker
@@ -37,6 +37,8 @@ player:
     capabilities: ${player.capabilities}
     agent:
       _target_: pydantic_ai.Agent
+
+      retries: 0
 
       model: ???
 

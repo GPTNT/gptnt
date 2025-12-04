@@ -1,12 +1,12 @@
 # @package player
 
 defaults:
-  - _vllm
   - _self_
 
 capabilities:
   player_name: qwen3vl-32b
-  supports_structured_output: true
+  use_structured_outputs: true
+  structured_output_mode: tool
   desired_image_dimensions:
     _target_: gptnt.common.image_ops.ImageDimensions
     width: 504
@@ -15,8 +15,10 @@ capabilities:
 action_predictor:
   agent:
     model:
+      _target_: pydantic_ai.models.openai.OpenAIResponsesModel
       model_name: Qwen/Qwen3-VL-32B-Instruct
       provider:
+        _target_: pydantic_ai.providers.openai.OpenAIProvider
         base_url: http://localhost:11434/v1
     model_settings:
       _target_: pydantic_ai.models.openai.OpenAIResponsesModelSettings

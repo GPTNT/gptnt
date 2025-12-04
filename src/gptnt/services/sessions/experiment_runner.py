@@ -45,7 +45,7 @@ class ExperimentRunner(abc.ABC):
     """Game client to interact with the game service."""
     defuser_player_client: PlayerClient = field(init=False)
     """Player client to interact with the Defuser."""
-    expert_player_client: PlayerClient = field(init=False)
+    expert_player_client: PlayerClient | None = field(default=None, init=False, repr=False)
     """Player client to interact with the Expert."""
 
     state: ExperimentState = field(default=ExperimentState.initialising, init=False)
@@ -298,7 +298,7 @@ class ExperimentRunner(abc.ABC):
                 tg.start_soon(
                     self.defuser_player_client.send_reflection_request, reflection_message
                 )
-                if self.expert_state_watcher:
+                if self.expert_player_client:
                     tg.start_soon(
                         self.expert_player_client.send_reflection_request, reflection_message
                     )
@@ -325,7 +325,7 @@ class ExperimentRunner(abc.ABC):
                     is_hard_crash=self.is_hard_crash,
                 )
             )
-            if self.expert_state_watcher:
+            if self.expert_player_client:
                 tg.start_soon(
                     partial(
                         self.expert_player_client.stop_player,
@@ -431,7 +431,7 @@ class SyncExperimentRunner(ExperimentRunner):
             if not self.is_experiment_over:
                 await self.game_client.advance_game_time()
 
-            if self.experiment.expert_uuid and not self.is_experiment_over:
+            if self.expert_player_client and not self.is_experiment_over:
                 _ = await self.expert_player_client.forward_pass()
 
     @asynccontextmanager
@@ -467,7 +467,8 @@ class SyncExperimentRunner(ExperimentRunner):
             _ = await self.defuser_player_client.send_feedback(feedback)
 
         if (
-            self.experiment.expert
+            self.expert_player_client
+            and self.experiment.expert
             and self.experiment.expert.protocol.receive_feedback_after_action
         ):
             _ = await self.expert_player_client.send_feedback(feedback)
@@ -491,7 +492,7 @@ class AsyncExperimentRunner(ExperimentRunner):
 
         async with anyio.create_task_group() as tg:
             tg.start_soon(self.run_player_loop, self.defuser_player_client, name="defuser")
-            if self.experiment.expert is not None:
+            if self.expert_player_client is not None:
                 tg.start_soon(self.run_player_loop, self.expert_player_client, name="expert")
 
         logger.debug(

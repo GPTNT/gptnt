@@ -1,7 +1,7 @@
 # @package player
 
 defaults:
-  - gemini-2
+  - gemini-25
   - _self_
 
 capabilities:

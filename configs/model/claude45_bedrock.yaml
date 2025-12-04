@@ -5,7 +5,8 @@ defaults:
 
 capabilities:
   player_name: claude45
-  supports_structured_output: true
+  use_structured_outputs: true
+  structured_output_mode: tool
 
 action_predictor:
   agent:

@@ -3,8 +3,11 @@ from enum import Enum
 from typing import Annotated, Any, Literal, Self
 
 import annotated_types
+import structlog
 from httpx import QueryParams
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+
+logger = structlog.get_logger()
 
 
 class GameActionType(Enum):
@@ -84,9 +87,10 @@ class KtaneBaseAction[KtaneActionType, LocationDataT](BaseModel):
 
         # Err if action does not require location but location is provided
         if self.action not in GameActionType.require_location() and self.location is not None:
-            raise ValueError(
-                f"Action {self.action} does not require a location but one was provided."
+            logger.warning(
+                f"Action {self.action} does not require a location but one was provided. Ignoring it."
             )
+            self.location = None
 
         return self
 

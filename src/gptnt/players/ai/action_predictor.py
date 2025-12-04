@@ -1,11 +1,11 @@
 from dataclasses import dataclass, field
-from typing import Union, override
+from typing import override
 
 import logfire
 import structlog
 from google.genai.errors import ServerError
 from pydantic import ValidationError
-from pydantic_ai import Agent, AgentRunError, UnexpectedModelBehavior
+from pydantic_ai import Agent, AgentRunError, NativeOutput, UnexpectedModelBehavior
 from pydantic_ai.models import Model
 
 from gptnt.common.instrumentation import InstrumentationDataclassMixin
@@ -152,9 +152,11 @@ class ActionPredictor(InstrumentationDataclassMixin):
                 # If the player supports structured output, then we give it the chance to use the
                 # structured output for send message directly, otherwise we just let it be a string
                 # and hope for the best with parsing it.
+                # Also, we use NativeOutput here because if it supports structured output, it
+                # should be able to do NativeOutput
                 output_type=(
-                    Union[SendMessageAction | SendMessageActionWithThoughts | str]  # noqa: UP007
-                    if self.capabilities.supports_structured_output
+                    NativeOutput([SendMessageAction, SendMessageActionWithThoughts, str])
+                    if self.capabilities.use_structured_outputs
                     else str
                 ),
                 message_history=self.message_history.to_history(),
@@ -163,7 +165,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
             # We are raising an error here because reflection is not critical but we want to flag
             # it significantly. The problem is that the full exception log is blocking.
             logger.error(  # noqa: TRY400
-                "Unexpected model behavior during reflection. Logging a default '<error>'."
+                "Unexpected model behavior during reflection. Returning with a default '<error>'."
             )
             model_output = SendMessageAction(message="<error>")
 

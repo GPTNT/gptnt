@@ -3,6 +3,8 @@ from typing import Literal, Self, Union, cast
 from pydantic import BaseModel, Field
 from pydantic.fields import computed_field
 from pydantic.functional_validators import model_validator
+from pydantic_ai import NativeOutput
+from pydantic_ai.output import OutputSpec
 from pydantic_ai.usage import UsageLimits
 
 from gptnt.common.image_ops import ImageDimensions
@@ -36,8 +38,11 @@ class PlayerCapabilities(BaseModel, frozen=True):
     player_type: PlayerType
     """The type of player (AI or human)."""
 
-    supports_structured_output: bool
+    use_structured_outputs: bool
     """Whether the player supports structured output."""
+
+    structured_output_mode: Literal["native", "tool"] = "native"
+    """Which structured output mode to use, as per pydantic-ai."""
 
     max_observation_window_length: int = 16
     """The maximum observation window length for the player.
@@ -179,17 +184,25 @@ class PlayerDeps(BaseModel, frozen=True):
     protocol: PlayerProtocol
 
     @property
-    def output_type(self) -> type[PlayerOutputType] | type[str]:
+    def output_type(self) -> OutputSpec[PlayerOutputType] | type[str]:
         """The output type for the player.
 
         This is used to determine what the agent can output.
+
+        Since PydanticAI defaults to the "tool" format if you just give it the type, we can do that
+        for the "tool" mode. However, importantly, doing it this way makes the schema output like
+        the model has a single tool to call with one of three possible ways of using it. An
+        alternative would be to provide a list[ToolOutput], but let's keep it simple for now.
         """
-        return self.structured_output_type if self.capabilities.supports_structured_output else str
+        if self.capabilities.use_structured_outputs:
+            match self.capabilities.structured_output_mode:
+                case "native":
+                    return NativeOutput(self.protocol.output_type)
+                case "tool":
+                    return self.protocol.output_type
+        return str
 
     @property
     def structured_output_type(self) -> type[PlayerOutputType]:
-        """The structured output type for the player.
-
-        This is used to determine what the agent can output.
-        """
+        """The output models for the player that are needed regardless of the output mode."""
         return self.protocol.output_type
