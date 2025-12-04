@@ -6,7 +6,7 @@ import pytest
 import respx
 from pytest_cases import fixture
 
-from gptnt.ktane.actions import GameActionType, KtaneAction
+from gptnt.ktane.actions import GameActionType, KtaneBaseAction, RelativeCoordinate
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.game import GameState
@@ -103,9 +103,9 @@ def test_ktane_coordinate_action_correctly_converts_to_query_params(
     action_type: GameActionType,
 ) -> None:
     """Test that the KtaneAction correctly converts to query parameters."""
-    location = {"x_pos": 0.5, "y_pos": 0.5}
+    location = RelativeCoordinate(x_pos=0.5, y_pos=0.5)
 
-    action = KtaneAction(
+    action = KtaneBaseAction(
         action=action_type,
         location=location if action_type in GameActionType.require_location() else None,
     )
@@ -114,8 +114,8 @@ def test_ktane_coordinate_action_correctly_converts_to_query_params(
 
     # Make sure the location is correct
     if action_type in GameActionType.require_location():
-        assert query_params.get("x_pos") == str(location["x_pos"])
-        assert query_params.get("y_pos") == str(location["y_pos"])
+        assert query_params.get("x_pos") == str(location.x_pos)
+        assert query_params.get("y_pos") == str(location.y_pos)
 
     if action_type not in GameActionType.require_location():
         assert query_params.get("x_pos") is None

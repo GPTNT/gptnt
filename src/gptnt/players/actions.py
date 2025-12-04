@@ -3,7 +3,12 @@ from typing import Annotated, Literal
 from annotated_types import MaxLen, Predicate
 from pydantic import BaseModel, BeforeValidator, NonNegativeInt, Tag
 
-from gptnt.ktane.actions import KtaneBaseAction, RelativeCoordinate
+from gptnt.ktane.actions import (
+    GameActionType,
+    GameActionTypeWithMagic,
+    KtaneBaseAction,
+    RelativeCoordinate,
+)
 
 NO_NEW_MESSAGES_SENTINEL = "<no_new_messages>"
 """Sentinel for no new messages."""
@@ -45,12 +50,20 @@ type SingleAlphabetLetter = Annotated[
 type SetOfMarksLocation = NonNegativeInt | SingleAlphabetLetter
 """Set of marks location to interact with; must be an int >= 0, or a single letter a-z."""
 
-type InteractGameLocation = RelativeCoordinate | SetOfMarksLocation
+type InteractableLocation = RelativeCoordinate | SetOfMarksLocation
 """Location-methods to interact with in the game."""
 
 
-class InteractGameAction[LocationDataT: InteractGameLocation](KtaneBaseAction[LocationDataT]):
+class InteractGameAction[LocationDataT: InteractableLocation](
+    KtaneBaseAction[GameActionType, LocationDataT]
+):
     """Interaction action for the player to take in the game."""
+
+    command: Literal["interact_game"] = "interact_game"
+
+
+class MagicGameAction(KtaneBaseAction[GameActionTypeWithMagic, InteractableLocation]):
+    """Magic action for the player to take in the game."""
 
     command: Literal["interact_game"] = "interact_game"
 
@@ -63,7 +76,7 @@ class SendMessageActionWithThoughts(SendMessageAction, ThoughtsMixin):
     """Create a 'send message' action with thoughts."""
 
 
-class InteractGameActionWithThoughts[LocationDataT: InteractGameLocation](
+class InteractGameActionWithThoughts[LocationDataT: InteractableLocation](
     InteractGameAction[LocationDataT], ThoughtsMixin
 ):
     """Interaction action for the player to take in the game with thoughts."""
@@ -112,12 +125,13 @@ PlayerOutputType = (
     | ExpertWithThoughtsOutputType
     | DefuserWithThoughtsOutputType
     | SoloDefuserWithThoughtsOutputType
+    | MagicGameAction
 )
 
 
-type InteractGameActionType = (
-    KtaneBaseAction[RelativeCoordinate]
-    | KtaneBaseAction[InteractGameLocation]
-    | InteractGameAction[InteractGameLocation]
-    | InteractGameActionWithThoughts[InteractGameLocation]
+type GameInteractionActionType = (
+    MagicGameAction
+    | InteractGameAction[InteractableLocation]
+    | InteractGameActionWithThoughts[InteractableLocation]
 )
+"""Action types representing only game interaction actions."""

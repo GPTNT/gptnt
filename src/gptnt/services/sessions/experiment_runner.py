@@ -251,7 +251,7 @@ class ExperimentRunner(abc.ABC):
             player_protocol=self.experiment.experiment_spec.defuser_protocol,
             experiment_descriptor=self.experiment,
         )
-        if self.expert_player_client and self.experiment.expert:
+        if self.experiment.expert and self.expert_player_client:
             logger.debug("Configure expert")
             _ = await self.expert_player_client.configure_player(
                 player_protocol=self.experiment.expert.protocol,
@@ -367,7 +367,8 @@ class ExperimentRunner(abc.ABC):
                     "Failed to stop the defuser player, it might have already been stopped or crashed"
                 )
         if (
-            self.expert_player_client
+            self.experiment.expert
+            and self.expert_player_client
             and self.expert_state_watcher
             and not self.expert_state_watcher.is_stopping.is_set()
         ):

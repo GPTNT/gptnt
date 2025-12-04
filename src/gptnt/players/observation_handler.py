@@ -11,9 +11,9 @@ from PIL import Image
 from pydantic import BaseModel
 
 from gptnt.common.image_ops import load_observation_from_bytes
-from gptnt.ktane.actions import KtaneAction, KtaneBaseAction, RelativeCoordinate
+from gptnt.ktane.actions import KtaneGameplayInput, RelativeCoordinate
 from gptnt.ktane.state.bomb import BombState
-from gptnt.players.actions import InteractGameLocation
+from gptnt.players.actions import GameInteractionActionType
 from gptnt.processors.image_resizer import ImageResizer
 from gptnt.processors.set_of_marks import SetOfMarksHandler
 
@@ -121,9 +121,7 @@ class ObservationHandler:
             som_image=som_buffer.getvalue(),
         )
 
-    def convert_to_game_action(
-        self, *, action: KtaneAction | KtaneBaseAction[InteractGameLocation]
-    ) -> KtaneAction:
+    def convert_to_game_action(self, *, action: GameInteractionActionType) -> KtaneGameplayInput:
         """Convert the action to the game action.
 
         This will convert the action to the game action, which is a list of bytes.
@@ -143,7 +141,7 @@ class ObservationHandler:
             )
             assert isinstance(action.location, RelativeCoordinate)
 
-        return cast("KtaneAction", action)
+        return cast("KtaneGameplayInput", action)
 
     def _apply_set_of_marks(
         self, *, raw_image: Image.Image, segmentation_image: Image.Image, bomb_state: BombState

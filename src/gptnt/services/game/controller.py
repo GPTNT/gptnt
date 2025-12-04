@@ -6,7 +6,7 @@ import structlog
 from fastapi import HTTPException
 from faststream.redis import RedisBroker
 
-from gptnt.ktane.actions import KtaneAction
+from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.client import RawObservationFrames
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
@@ -191,7 +191,7 @@ class GameController(GameSupervisor):
                 headers={"X-Reason": err.response.text},
             ) from err
 
-    async def send_action(self, action: KtaneAction) -> bool:
+    async def send_action(self, action: KtaneGameplayInput) -> bool:
         """Send an action to the game."""
         try:
             return await self.ktane_client.send_action(action)

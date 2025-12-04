@@ -1,0 +1,4 @@
+# @package _global_
+
+all_players:
+  - test-oracle

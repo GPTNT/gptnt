@@ -7,17 +7,18 @@ from pydantic import BaseModel, SerializationInfo, TypeAdapter, field_serializer
 from structlog import get_logger
 
 from gptnt.common.image_ops import load_observation_from_bytes
+from gptnt.ktane.actions import GameActionTypeWithMagic, KtaneBaseAction
 from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.modules import KtaneComponent, ModuleStates
 from gptnt.ktane.state.widget import WidgetStates
 from gptnt.players.actions import (
     DoNothingAction,
     DoNothingActionWithThoughts,
-    InteractGameActionType,
-    InteractGameActionWithThoughts,
-    InteractGameLocation,
+    GameInteractionActionType,
+    InteractableLocation,
     SendMessageAction,
     SendMessageActionWithThoughts,
+    ThoughtsMixin,
 )
 from gptnt.players.specification import PlayerRole
 
@@ -40,11 +41,13 @@ class TimestampMixin(BaseModel):
     timestamp: float
 
 
-class ActionMetric(InteractGameActionWithThoughts[InteractGameLocation], TimestampMixin):
+class ActionMetric(
+    KtaneBaseAction[GameActionTypeWithMagic, InteractableLocation], ThoughtsMixin, TimestampMixin
+):
     """Action metric class for observability logging."""
 
     @classmethod
-    def from_action(cls, *, ktane_action: InteractGameActionType, timestamp: float) -> Self:
+    def from_action(cls, *, ktane_action: GameInteractionActionType, timestamp: float) -> Self:
         """Create an ActionMetric from an InteractGameAction."""
         thoughts = getattr(ktane_action, "thoughts", None)
         return cls(

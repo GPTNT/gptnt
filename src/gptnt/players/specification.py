@@ -11,6 +11,7 @@ from gptnt.players.actions import (
     DoNothingActionWithThoughts,
     InteractGameAction,
     InteractGameActionWithThoughts,
+    MagicGameAction,
     PlayerOutputType,
     SendMessageAction,
     SendMessageActionWithThoughts,
@@ -89,6 +90,8 @@ class PlayerProtocol(BaseModel, frozen=True):
     receive_feedback_after_action: bool = False
     """Whether or not a player should receive feedback after each action."""
 
+    allow_magic_actions: bool = False
+
     @property
     def output_type(self) -> type[PlayerOutputType]:
         """The output type for the player.
@@ -118,6 +121,9 @@ class PlayerProtocol(BaseModel, frozen=True):
                 output.append(InteractGameActionWithThoughts[SingleAlphabetLetter])
             else:
                 output.append(InteractGameAction[SingleAlphabetLetter])
+
+        if self.allow_magic_actions:
+            output.append(MagicGameAction)
 
         clean_output: list[type[PlayerOutputType]] = []
         for output_type in output:

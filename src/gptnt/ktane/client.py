@@ -7,7 +7,7 @@ import structlog
 from pydantic import AfterValidator, BaseModel, Field
 
 from gptnt.common.base_client import BaseClient
-from gptnt.ktane.actions import KtaneAction
+from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.game_settings import KtaneSettings
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
@@ -102,7 +102,7 @@ class KtaneClient(BaseClient):
         """Resume the game."""
         return await self.set_game_speed()
 
-    async def send_action(self, action: KtaneAction) -> bool:
+    async def send_action(self, action: KtaneGameplayInput) -> bool:
         """Perform an action in the game."""
         response = await self.client.get("/action", params=action.to_query_params())
         response = response.raise_for_status()

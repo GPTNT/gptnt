@@ -10,7 +10,12 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
-from gptnt.ktane.actions import GameActionType
+from gptnt.ktane.actions import (
+    GameActionType,
+    GameActionTypeWithMagic,
+    KtaneBaseAction,
+    RelativeCoordinate,
+)
 from gptnt.players.actions import InteractGameAction, SendMessageAction, SetOfMarksLocation
 
 logger = structlog.get_logger()
@@ -162,3 +167,21 @@ class DummyExpertModel(FunctionModel):
 
     def __init__(self) -> None:
         super().__init__(dummy_message_generator)
+
+
+class MagicDefuserModel(FunctionModel):
+    """Dummy function model that performs 'magic' actions."""
+
+    def __init__(self) -> None:
+        super().__init__(self.magic_function)
+
+    def magic_function(self, messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:  # noqa: WPS110 ARG002
+        """Perform a magic action."""
+        magic_action = KtaneBaseAction[GameActionTypeWithMagic, RelativeCoordinate](
+            action="magic", location=None
+        )
+
+        logger.info("Performing magic action", action=magic_action)
+        model_response = magic_action.model_dump(mode="json", exclude={"thoughts", "command"})
+        model_response["action"] = magic_action.action
+        return ModelResponse(parts=[ToolCallPart("final_result_MagicGameAction", model_response)])

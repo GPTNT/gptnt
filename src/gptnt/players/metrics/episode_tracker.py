@@ -28,7 +28,7 @@ from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import (
     DoNothingAction,
     DoNothingActionWithThoughts,
-    InteractGameActionType,
+    GameInteractionActionType,
     PlayerOutputType,
     SendMessageAction,
     SendMessageActionWithThoughts,
@@ -327,7 +327,7 @@ class EpisodeTracker:  # noqa: WPS214
         self.num_prompt_truncations = 0
         self.num_requests = 0
 
-    def add_action(self, action: InteractGameActionType) -> None:
+    def add_action(self, action: GameInteractionActionType) -> None:
         """Add an action to the player's action list."""
         action_metric = ActionMetric.from_action(
             ktane_action=action, timestamp=self._compute_time_delta()

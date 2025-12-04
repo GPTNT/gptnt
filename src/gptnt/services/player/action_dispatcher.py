@@ -4,7 +4,7 @@ from typing import Any, override
 import logfire
 import structlog
 
-from gptnt.ktane.actions import KtaneBaseAction, RelativeCoordinate
+from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.players.action_dispatcher import BaseActionDispatcher
 from gptnt.players.specification import PlayerProtocol
 from gptnt.services.experiment_descriptor import ExperimentDescriptor
@@ -50,7 +50,7 @@ class ActionDispatcher(BaseActionDispatcher):
         logger.debug("Sent dialogue message", message=message, current_role=self.protocol.role)
 
     @override
-    async def send_game_action(self, action: KtaneBaseAction[RelativeCoordinate]) -> None:
+    async def send_game_action(self, action: KtaneGameplayInput) -> None:
         """Send a game action to the current game."""
         await self.game_client.send_action(action=action)
         logger.debug("Sent action to game", action=action, current_role=self.protocol.role)

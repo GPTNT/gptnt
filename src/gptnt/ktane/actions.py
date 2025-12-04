@@ -1,6 +1,6 @@
 from contextlib import suppress
 from enum import Enum
-from typing import Annotated, Any, Self
+from typing import Annotated, Any, Literal, Self
 
 import annotated_types
 from httpx import QueryParams
@@ -56,7 +56,7 @@ class RelativeCoordinate(BaseModel):
     """Relative y-coordinate from the top."""
 
 
-class KtaneBaseAction[LocationDataT](BaseModel):
+class KtaneBaseAction[KtaneActionType, LocationDataT](BaseModel):
     """Interaction action for the player to take in the game."""
 
     model_config = ConfigDict(
@@ -66,7 +66,7 @@ class KtaneBaseAction[LocationDataT](BaseModel):
         .strip()
     )
 
-    action: GameActionType
+    action: KtaneActionType
     location: LocationDataT | None = None
     """Location to interact with, if needed."""
 
@@ -110,4 +110,6 @@ class KtaneBaseAction[LocationDataT](BaseModel):
         )
 
 
-KtaneAction = KtaneBaseAction[RelativeCoordinate]
+type GameActionTypeWithMagic = GameActionType | Literal["magic"]
+type KtaneGameplayInput = KtaneBaseAction[GameActionTypeWithMagic, RelativeCoordinate]
+"""Everything the game actually accepts as input for gameplay actions."""

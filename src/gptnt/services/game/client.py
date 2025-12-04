@@ -10,7 +10,7 @@ from faststream.redis import RedisBroker
 from pydantic import UUID4, RedisDsn
 
 from gptnt.experiments.time_limits import SECONDS_PER_ACTION
-from gptnt.ktane.actions import KtaneAction
+from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.client import RawObservationFrames
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
@@ -121,7 +121,7 @@ class GameClient:
         await anyio.sleep(SECONDS_PER_ACTION)
 
     @logfire.instrument("Send action")
-    async def send_action(self, *, action: KtaneAction) -> None:
+    async def send_action(self, *, action: KtaneGameplayInput) -> None:
         """Send an action to the game."""
         channel = self._get_channel("send_action")
 
