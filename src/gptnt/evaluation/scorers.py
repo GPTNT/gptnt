@@ -8,7 +8,7 @@ from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import cos_sim as cosine_similarity
 from weave.trace.op import Op
 
-from gptnt.dataset.generate_instructions import KEYPAD_SYMBOL_DESCRIPTIONS, TaskType
+from gptnt.dataset.defuser_vqa.constants import KEYPAD_SYMBOL_DESCRIPTIONS, TaskType
 
 type PredictionOutput = dict[Literal["output"], str]
 

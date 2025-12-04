@@ -55,6 +55,13 @@ class BombState(BaseModel):
         return len(self.strikes) >= self.max_strikes
 
     @property
+    def current_strikes(self) -> int:
+        """Get the current number of strikes."""
+        if self.strikes is None:
+            return 0
+        return len(self.strikes)
+
+    @property
     def is_game_correctly_over(self) -> bool:
         """Check if the game is correctly over."""
         return self.is_detonated or self.is_solved or self.is_timed_out or self.is_strike_out

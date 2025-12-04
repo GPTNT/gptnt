@@ -277,6 +277,7 @@ max-complexity = 18
 "__init__.py" = ["D", "F401", "I002"]
 "**/tests/*" = ["D", "S101", "INP001", "PLR2004", "FBT001", "SLF001"]
 "scripts/*" = ["INP001", "D", "ANN", "PLR", "PD", "S"]
+"src/gptnt/dataset/defuser_vqa/*" = ["S311"] # Allow standard random for dataset generation
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

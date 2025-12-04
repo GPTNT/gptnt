@@ -27,9 +27,11 @@ def preprocess_grounding_instance(instance: dict[str, Any]) -> dict[str, Any]:
     return {
         "model_input": instance["model_input"],
         "ground_truth": instance["ground_truth"],
+        "options": instance["options"],
         "input_type": instance["input_type"],
+        "question_format": instance["question_format"],
+        "hallucination": instance["hallucination"],
         "som_image": som_image,
-        "hallucination_type": instance["hallucination"],
         "categories": instance["categories"],
         "index": instance["index"],
     }
@@ -90,6 +92,24 @@ def preprocess_defuser_vqa_mcq_instance(instance: dict[str, Any]) -> dict[str, A
         "hallucination_type": instance["hallucination"],
         "options": instance["options"],
         "ground_truth_str": instance["ground_truth"],
+        "categories": instance["categories"],
+        "index": instance["index"],
+    }
+
+
+@weave.op
+def preprocess_defuser_vqa_instance(instance: dict[str, Any]) -> dict[str, Any]:
+    """Convert the instance to rename the fields to match the model."""
+    input_images = instance["input_images"]
+
+    return {
+        "input_images": input_images,
+        "model_input": instance["model_input"],
+        "ground_truth": instance["ground_truth"],
+        "options": instance["options"],
+        "input_type": instance["input_type"],
+        "question_format": instance["question_format"],
+        "hallucination": instance["hallucination"],
         "categories": instance["categories"],
         "index": instance["index"],
     }

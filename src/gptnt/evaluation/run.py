@@ -16,8 +16,8 @@ from weave import Dataset as WeaveDataset
 from weave.trace.op import PostprocessInputsFunc
 
 from gptnt.common.paths import Paths
+from gptnt.dataset.defuser_vqa.constants import TaskFormat, TaskType
 from gptnt.dataset.expert_vqa import load_expert_vqa_dataset
-from gptnt.dataset.generate_instructions import TaskFormat, TaskType
 from gptnt.evaluation.model import EvalModel, ModelOutput
 from gptnt.evaluation.preprocess import (
     preprocess_defuser_vqa_mcq_instance,
