@@ -1,29 +1,8 @@
 AsyncPlay = {"communication_style": "parallel"}
 SyncPlay = {"communication_style": "sequential"}
 
-ActFramework = {
-    "allow_thoughts_output": False,
-    "allow_thoughts_in_history": False,
-    "allow_outputs_in_history": True,
-}
-
-ReActFramework = {
-    "allow_thoughts_output": True,
-    "allow_thoughts_in_history": True,
-    "allow_outputs_in_history": True,
-}
-
-ReDActFramework = {
-    "allow_thoughts_output": True,
-    "allow_thoughts_in_history": False,
-    "allow_outputs_in_history": False,
-}
-
-DReActFramework = {
-    "allow_thoughts_output": True,
-    "allow_thoughts_in_history": False,
-    "allow_outputs_in_history": True,
-}
+ActFramework = {"allow_thoughts_output": False}
+ReActFramework = {"allow_thoughts_output": True}
 
 
 # E7
