@@ -20,7 +20,7 @@ def messages() -> list[ModelMessage]:
         ModelRequest(
             parts=[
                 UserPromptPart(
-                    content="roll down ",
+                    content="roll down",
                     timestamp=datetime.datetime(
                         2025, 12, 4, 19, 33, 59, 979613, tzinfo=datetime.UTC
                     ),
@@ -70,7 +70,7 @@ def messages() -> list[ModelMessage]:
         ModelRequest(
             parts=[
                 UserPromptPart(
-                    content="roll up now ",
+                    content="roll up now",
                     timestamp=datetime.datetime(
                         2025, 12, 4, 19, 34, 16, 427518, tzinfo=datetime.UTC
                     ),
