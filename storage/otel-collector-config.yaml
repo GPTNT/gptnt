@@ -105,6 +105,9 @@ processors:
         - 'attributes["logger"] == "ModManager"'
         - 'attributes["logger"] == "MissionManager"'
         - 'attributes["logger"] == "AbstractPlatformUtil"'
+        - 'attributes["logger"] == "MainThreadQueue"'
+        - 'attributes["logger"] == "State"' # This is the State coming from the game not the mod
+        - 'attributes["logger"] == "PaceMaker"'
 
         # Drop health check logs
         - 'attributes["http.route"] == "/health"'
@@ -122,6 +125,9 @@ processors:
 
         # Filter GptntStates Twitch errors
         - 'attributes["logger"] == "GptntStates" and IsMatch(body, "Twitch bomb is null")'
+
+        # Remove any logs regarding EmptyComponent
+        - 'IsMatch(body, ".*EmptyComponent.*")'
 
         # Filter Unity ArgumentNullException
         - 'IsMatch(body, "ArgumentNullException: Argument cannot be null")'
