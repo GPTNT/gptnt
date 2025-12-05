@@ -31,7 +31,7 @@ class ServiceTimeouts(BaseSettings):
     run_forward_pass_timeout: float = 600
     """Timeout for running a forward pass for a player."""
 
-    maximum_experiment_duration: float = 6000
+    maximum_experiment_duration: float = 12000
     """Maximum duration for an experiment before it is forcibly stopped."""
 
     session_state_watcher_interval: float = 1
