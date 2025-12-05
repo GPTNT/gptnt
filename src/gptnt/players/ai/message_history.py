@@ -16,6 +16,7 @@ from pydantic_ai import (
 from pydantic_ai.messages import ModelMessage, ModelRequest, UserPromptPart
 
 from gptnt.ktane.game_settings import KtaneSettings
+from gptnt.players.actions import PlayerOutputType
 from gptnt.players.ai.tokens import count_tokens_from_text, estimate_tokens_for_image_per_model
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
@@ -204,6 +205,22 @@ class MessageHistory:
         # Remove any empty messages
         self.messages.append(new_messages)
 
+    def replace_last_response_with_action(self, *, action: PlayerOutputType) -> None:
+        """Replace the last response in the message history with a do-nothing action.
+
+        This is useful when some other validator/parser goes wrong after the model has done its
+        output and we need to just track that instead of performing an action, the model just did
+        nothing.
+        """
+        if self.is_empty:
+            return
+
+        # We know that this should be a ModelResponse
+        assert isinstance(self.messages[-1][-1], ModelResponse)
+
+        # And then we replace the last part with the action
+        self.messages[-1][-1].parts = [TextPart(action.text_part_dump())]
+
     @logfire.instrument("Truncate message history")
     def truncate_history_if_needed(self) -> None:
         """Truncate the message history to fit within the usage limits."""
@@ -282,7 +299,7 @@ class MessageHistory:
 
     def _should_truncate_message_history(self, *, next_message: str | None = None) -> bool:
         """Check if the context length is over the max context length."""
-        if self.capabilities.usage_limits.request_tokens_limit is None:
+        if self.capabilities.usage_limits.input_tokens_limit is None:
             # If there is no limit, we never truncate
             return False
 
@@ -295,5 +312,5 @@ class MessageHistory:
 
         # Check if we are over the context length
         return model_input > (
-            self.capabilities.usage_limits.request_tokens_limit * self.truncation_threshold
+            self.capabilities.usage_limits.input_tokens_limit * self.truncation_threshold
         )

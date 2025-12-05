@@ -1,15 +1,13 @@
 from contextlib import suppress
 from copy import deepcopy
-from typing import NamedTuple, Self
 
 import structlog
 from json_repair import repair_json
 from pydantic import ValidationError
 from pydantic.type_adapter import TypeAdapter
-from pydantic_ai import RunUsage
 from pydantic_ai.messages import ModelMessage, TextPart, ToolReturnPart
 
-from gptnt.players.actions import DoNothingAction, PlayerOutputType
+from gptnt.players.actions import PlayerOutputType
 
 log = structlog.get_logger()
 
@@ -65,29 +63,3 @@ def set_output_tool_for_message(
             return messages
 
     raise LookupError("Could not find the last message to set the output to")
-
-
-class AgentOutput(NamedTuple):
-    """Model output for the AI player."""
-
-    output: PlayerOutputType
-    usage: RunUsage
-    messages: list[ModelMessage]
-
-    @classmethod
-    def do_nothing(cls) -> Self:
-        """Return an empty agent output."""
-        return cls(output=DoNothingAction(), usage=RunUsage(), messages=[])
-
-    @classmethod
-    def with_message_cleanup(
-        cls, *, output: PlayerOutputType, usage: RunUsage, new_messages: list[ModelMessage]
-    ) -> Self:
-        """Return an agent output from the agent return."""
-        return cls(
-            output=output,
-            usage=usage,
-            messages=set_output_tool_for_message(
-                messages=new_messages, return_content_as_json=output.model_dump_json()
-            ),
-        )

@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import Any, Self
 
 import polars as pl
@@ -23,16 +22,6 @@ from gptnt.players.actions import (
 from gptnt.players.specification import PlayerRole
 
 _logger = get_logger()
-
-
-class AIResponseErrorType(Enum):
-    """Reasons the AI player errored."""
-
-    invalid_som_location = "invalid_som_location"
-    invalid_format = "invalid_format"
-    server_error = "server_error"
-    guardrail_violation = "guardrail_violation"
-    unknown = "unknown"
 
 
 class TimestampMixin(BaseModel):

@@ -1,6 +1,6 @@
 from contextlib import suppress
 from enum import Enum
-from typing import Annotated, Any, Literal, Self
+from typing import Annotated, Any, Generic, Literal, Self, TypeVar
 
 import annotated_types
 import structlog
@@ -59,7 +59,11 @@ class RelativeCoordinate(BaseModel):
     """Relative y-coordinate from the top."""
 
 
-class KtaneBaseAction[KtaneActionType, LocationDataT](BaseModel):
+KtaneActionT = TypeVar("KtaneActionT")
+LocationDataT_co = TypeVar("LocationDataT_co", covariant=True)
+
+
+class KtaneBaseAction(BaseModel, Generic[KtaneActionT, LocationDataT_co]):  # noqa: UP046
     """Interaction action for the player to take in the game."""
 
     model_config = ConfigDict(
@@ -69,8 +73,8 @@ class KtaneBaseAction[KtaneActionType, LocationDataT](BaseModel):
         .strip()
     )
 
-    action: KtaneActionType
-    location: LocationDataT | None = None
+    action: KtaneActionT
+    location: LocationDataT_co | None = None
     """Location to interact with, if needed."""
 
     @property
@@ -115,5 +119,6 @@ class KtaneBaseAction[KtaneActionType, LocationDataT](BaseModel):
 
 
 type GameActionTypeWithMagic = GameActionType | Literal["magic"]
-type KtaneGameplayInput = KtaneBaseAction[GameActionTypeWithMagic, RelativeCoordinate]
+
+KtaneGameplayInput = KtaneBaseAction[GameActionTypeWithMagic, RelativeCoordinate]
 """Everything the game actually accepts as input for gameplay actions."""

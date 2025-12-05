@@ -26,6 +26,7 @@ from whenever import Instant
 from gptnt.common.paths import Paths
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import (
+    AIResponseErrorType,
     DoNothingAction,
     DoNothingActionWithThoughts,
     GameInteractionActionType,
@@ -36,7 +37,6 @@ from gptnt.players.actions import (
 from gptnt.players.ai.message_history import AgentMessageInput
 from gptnt.players.metrics.structures import (
     ActionMetric,
-    AIResponseErrorType,
     BombStateMetric,
     DoNothingMetric,
     MessageMetric,
@@ -50,7 +50,11 @@ _logger = get_logger()
 
 @dataclass(kw_only=True)
 class EpisodeTracker:  # noqa: WPS214
-    """Tracks metrics for an episode."""
+    """Tracks metrics for an episode.
+
+    This whole class is very much a nightmare and needs to be reworked. The thing is, we are up
+    against the clock so I am sorry if this does not work for your exact use case.
+    """
 
     wandb_entity: str
     wandb_project: str
@@ -198,23 +202,17 @@ class EpisodeTracker:  # noqa: WPS214
         data_to_send["hard_crash"] = is_hard_crash
 
         # Send tables if they exist
-        actions_table = self._compute_actions_table()
-        messages_table = self._compute_messages_table()
-        do_nothing_table = self._compute_do_nothing_table()
-        bomb_states_table = self._compute_bomb_states_table()
-        observations_table = await self._compute_observations_table()
-        reflections_table = self._compute_reflections_table()
-        if reflections_table:
+        if reflections_table := self._compute_reflections_table():
             data_to_send["reflections"] = reflections_table
-        if actions_table:
+        if actions_table := self._compute_actions_table():
             data_to_send["actions"] = actions_table
-        if messages_table:
+        if messages_table := self._compute_messages_table():
             data_to_send["messages"] = messages_table
-        if do_nothing_table:
+        if do_nothing_table := self._compute_do_nothing_table():
             data_to_send["do_nothing_actions"] = do_nothing_table
-        if bomb_states_table:
+        if bomb_states_table := self._compute_bomb_states_table():
             data_to_send["bomb_states"] = bomb_states_table
-        if observations_table:
+        if observations_table := await self._compute_observations_table():
             data_to_send["observations"] = observations_table
 
         wandb.log(data_to_send, commit=False)

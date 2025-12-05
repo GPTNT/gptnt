@@ -6,8 +6,15 @@ from typing import Any
 import logfire
 import structlog
 
-from gptnt.ktane.actions import GameActionTypeWithMagic, KtaneBaseAction, RelativeCoordinate
+from gptnt.ktane.actions import (
+    GameActionTypeWithMagic,
+    KtaneBaseAction,
+    KtaneGameplayInput,
+    RelativeCoordinate,
+)
 from gptnt.players.actions import (
+    AgentCallResult,
+    AIResponseErrorType,
     DoNothingAction,
     GameInteractionActionType,
     InteractGameAction,
@@ -15,19 +22,22 @@ from gptnt.players.actions import (
     PlayerOutputType,
     SendMessageAction,
 )
-from gptnt.players.metrics.episode_tracker import EpisodeTracker
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.players.specification import PlayerProtocol
 from gptnt.processors.set_of_marks import InvalidMarkLocationError
 
 logger = structlog.get_logger()
 
+ActionHandlerType = Callable[
+    [AgentCallResult[PlayerOutputType | KtaneGameplayInput]],
+    Awaitable[AgentCallResult[PlayerOutputType | KtaneGameplayInput]],
+]
+
 
 @dataclass(kw_only=True)
 class BaseActionDispatcher(abc.ABC):
     """Dispatch actions from the agent to where they need to go."""
 
-    tracker: EpisodeTracker
     observation_handler: ObservationHandler
 
     protocol: PlayerProtocol = field(init=False, repr=False)
@@ -36,25 +46,30 @@ class BaseActionDispatcher(abc.ABC):
         """Configure the action dispatcher for the experiment."""
         self.protocol = protocol
 
-    async def direct_output_from_agent(self, agent_output: PlayerOutputType) -> None:
+    async def direct_output_from_agent(
+        self, agent_output: AgentCallResult[PlayerOutputType]
+    ) -> AgentCallResult[PlayerOutputType | KtaneGameplayInput]:
         """Process output from Agent and direct to correct function.
 
         Once it comes in, index the type in the agent_output_type_to_function and call the function
         that is mapped to that type. This will allow us to dynamically convert the result from the
         AI model to a function that can be called to carry the logic forwards.
         """
-        method = self.agent_output_type_to_function(type(agent_output))
+        method = self.agent_output_type_to_function(type(agent_output.output))
         return await method(agent_output)
 
     def agent_output_type_to_function(
         self, output_type: type[PlayerOutputType]
-    ) -> Callable[[PlayerOutputType], Awaitable[None]]:
+    ) -> ActionHandlerType:
         """Map the output type from the AI model to a method within the function.
 
         This will allow us to dynamically convert the output from the AI model to a function that
         can be called to carry the logic forwards.
         """
-        switcher: dict[type[PlayerOutputType], Callable[..., Awaitable[None]]] = {
+        switcher: dict[
+            type[PlayerOutputType],
+            Callable[..., Awaitable[AgentCallResult[PlayerOutputType | KtaneGameplayInput]]],
+        ] = {
             SendMessageAction: self._send_message,
             DoNothingAction: self._do_nothing_action,
             InteractGameAction: self._send_game_action,
@@ -84,27 +99,46 @@ class BaseActionDispatcher(abc.ABC):
         raise NotImplementedError
 
     @logfire.instrument("Do nothing action")
-    async def _do_nothing_action(self, action: DoNothingAction) -> None:
+    async def _do_nothing_action(
+        self, action: AgentCallResult[DoNothingAction]
+    ) -> AgentCallResult[DoNothingAction]:
         """Do nothing action."""
-        self.tracker.add_do_nothing(action, role=self.protocol.role)
+        return action
 
     @logfire.instrument("Send game action")
-    async def _send_game_action(self, action: GameInteractionActionType) -> None:
+    async def _send_game_action(
+        self, action: AgentCallResult[GameInteractionActionType]
+    ) -> AgentCallResult[PlayerOutputType | KtaneGameplayInput]:
         """Send a game action to the game."""
         try:
-            game_action = self.observation_handler.convert_to_game_action(action=action)
+            game_action = self.observation_handler.convert_to_game_action(action=action.output)
         except InvalidMarkLocationError:
             logger.warning(
                 "Invalid mark location in action, defaulting to DoNothing", action=action
             )
-            self.tracker.num_invalid_locations += 1
-            return await self._do_nothing_action(action=DoNothingAction())
+            return await self._do_nothing_action(
+                AgentCallResult[DoNothingAction](
+                    output=DoNothingAction(),
+                    usage=action.usage,
+                    new_messages=action.new_messages_with_other_action(DoNothingAction()),
+                    raw_output=action.output.model_dump_json(),
+                    ai_response_error=AIResponseErrorType.invalid_som_location,
+                )
+            )
 
-        self.tracker.add_action(action=action)
-        return await self.send_game_action(action=game_action)
+        _ = await self.send_game_action(action=game_action)
+        return AgentCallResult[PlayerOutputType | KtaneGameplayInput](
+            output=game_action,
+            usage=action.usage,
+            new_messages=action.new_messages,
+            raw_output=action.output.model_dump_json(),
+            ai_response_error=None,
+        )
 
     @logfire.instrument("Send message")
-    async def _send_message(self, action: SendMessageAction) -> None:
+    async def _send_message(
+        self, action: AgentCallResult[SendMessageAction]
+    ) -> AgentCallResult[PlayerOutputType]:
         """Send a message to the dialogue space."""
-        self.tracker.add_message(message=action, role=self.protocol.role)
-        return await self.send_dialogue_message(action.message)
+        _ = await self.send_dialogue_message(action.output.message)
+        return action

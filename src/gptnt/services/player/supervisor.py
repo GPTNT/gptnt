@@ -17,7 +17,7 @@ from gptnt.services.experiment_descriptor import ExperimentDescriptor
 from gptnt.services.game.client import GameClient
 from gptnt.services.heartbeat_broadcaster import HeartbeatBroadcaster
 from gptnt.services.player.action_dispatcher import ActionDispatcher
-from gptnt.services.player.message_handler import MessageHandler
+from gptnt.services.player.message_handler import IncomingMessageHandler
 
 
 @dataclass(kw_only=True)
@@ -43,7 +43,9 @@ class PlayerSupervisor(HeartbeatBroadcaster):
 
     # Components that need to be reset after each experiment
     episode_tracker: EpisodeTracker
-    message_handler: MessageHandler = field(default_factory=MessageHandler)
+    incoming_message_handler: IncomingMessageHandler = field(
+        default_factory=IncomingMessageHandler
+    )
 
     # This is set when the player is configured for an experiment
     experiment_descriptor: ExperimentDescriptor = field(init=False, repr=False)
@@ -58,10 +60,9 @@ class PlayerSupervisor(HeartbeatBroadcaster):
         self.service_name = self.capabilities.player_name
 
         self.action_dispatcher = ActionDispatcher(
-            tracker=self.episode_tracker,
             observation_handler=self.observation_handler,
             game_client=self.game_client,
-            message_handler=self.message_handler,
+            incoming_message_handler=self.incoming_message_handler,
         )
 
     @property
@@ -89,7 +90,7 @@ class PlayerSupervisor(HeartbeatBroadcaster):
     def reset(self) -> None:
         """Reset the player service state for a new experiment."""
         self.state = PlayerState.cleanup
-        self.message_handler.reset()
+        self.incoming_message_handler.reset()
         self.observation_handler.reset()
         self.episode_tracker.reset()
         self.state = PlayerState.idle

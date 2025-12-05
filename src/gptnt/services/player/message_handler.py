@@ -13,7 +13,7 @@ logger = structlog.get_logger()
 
 
 @dataclass(kw_only=True)
-class MessageHandler:
+class IncomingMessageHandler:
     """Handle sending and receiving messages between players using Redis pub/sub.
 
     Each player subscribes to their own channel and publishes to other players' channels. Channel

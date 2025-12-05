@@ -13,7 +13,17 @@ from faststream.redis import RedisBroker
 from pydantic import BaseModel
 
 from gptnt.common.paths import Paths
+from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.manual import KtaneManualPaths
+from gptnt.players.actions import (
+    AgentCallResult,
+    DoNothingAction,
+    InteractGameAction,
+    InteractGameActionWithThoughts,
+    MagicGameAction,
+    PlayerOutputType,
+    SendMessageAction,
+)
 from gptnt.players.ai.input_builder import AgentInputBuilder
 from gptnt.players.ai.message_history import MessageHistory
 from gptnt.players.specification import PlayerProtocol
@@ -75,7 +85,6 @@ class PlayerController(PlayerSupervisor):
         """Register all command subscribers with the broker."""
         for command_name, command_func in self.commands.items():
             channel_name = f"{self.command_channel}:{command_name}"
-            logger.debug("Registering command", command=command_name, channel_name=channel_name)
             _ = self.broker.subscriber(channel_name)(command_func)
 
     def prepare_prompt_cache(self) -> None:
@@ -104,7 +113,7 @@ class PlayerController(PlayerSupervisor):
 
     async def handle_feedback(self, feedback: PlayerMessage[str]) -> bool:
         """Handle feedback message."""
-        self.message_handler.handle_new_message(feedback.message)
+        self.incoming_message_handler.handle_new_message(feedback.message)
         logger.debug("Received feedback", message=feedback.message)
         return True
 
@@ -141,9 +150,7 @@ class PlayerController(PlayerSupervisor):
         )
 
         self.action_predictor.configure_for_experiment(
-            protocol=self.protocol,
-            message_history=self.message_history,
-            tracker=self.episode_tracker,
+            protocol=self.protocol, message_history=self.message_history
         )
         self.action_dispatcher.configure_for_experiment(
             protocol=self.protocol, experiment_descriptor=self.experiment_descriptor
@@ -153,7 +160,7 @@ class PlayerController(PlayerSupervisor):
             self.game_client.game_uuid = self.experiment_descriptor.game_uuid
             await self.game_client.start()
 
-        await self.message_handler.start_subscriber()
+        await self.incoming_message_handler.start_subscriber()
 
         self.state = PlayerState.waiting_for_turn
         logger.info("Configured player for experiment", protocol=self.protocol, state=self.state)
@@ -165,14 +172,14 @@ class PlayerController(PlayerSupervisor):
             raise HTTPException(status_code=503, detail="Player is not ready for a forward pass.")
 
         # Collect the state and the observations
-        self.state = PlayerState.pulling_messages
-        messages = self.message_handler.pull_messages()
-
         if self.protocol.role == "defuser":
             self.state = PlayerState.waiting_for_observation
             bomb_state, raw_frames = await self.game_client.get_observation()
         else:
             bomb_state, raw_frames = None, None
+
+        self.state = PlayerState.pulling_messages
+        messages = self.incoming_message_handler.pull_messages()
 
         # Prepare the input
         self.state = PlayerState.preparing_agent_input
@@ -185,21 +192,55 @@ class PlayerController(PlayerSupervisor):
 
         # Decide what action to do
         self.state = PlayerState.waiting_for_action
-        action_to_perform = await self.action_predictor.send_request_to_agent(
+        agent_call_result = await self.action_predictor.send_request_to_agent(
             message_input=agent_input
         )
 
         # Perform the action
         self.state = PlayerState.performing_action
-        await self.action_dispatcher.direct_output_from_agent(action_to_perform.output)
+        agent_call_result = await self.action_dispatcher.direct_output_from_agent(
+            agent_call_result
+        )
 
-        self.episode_tracker.num_requests += 1
-        self.episode_tracker.step()
+        await self.update_metrics(agent_call_result)
 
         # Return to a waiting for turn state
         self.state = PlayerState.waiting_for_turn
 
         return {"success": True, "state": self.state.name}
+
+    async def update_metrics(
+        self, agent_call_result: AgentCallResult[PlayerOutputType | KtaneGameplayInput]
+    ) -> None:
+        """Update the metrics for the player based on the agent call result."""
+        self.episode_tracker.num_requests += 1
+
+        # Add the AI response error metric if there was an error
+        if agent_call_result.ai_response_error is not None:
+            self.episode_tracker.error_event_per_request.append(
+                agent_call_result.ai_response_error
+            )
+
+        self.message_history.update(
+            new_messages=agent_call_result.new_messages, usage=agent_call_result.usage
+        )
+        self.episode_tracker.add_usage(agent_call_result.usage)
+
+        if isinstance(agent_call_result.output, DoNothingAction):
+            self.episode_tracker.add_do_nothing(
+                action=agent_call_result.output, role=self.protocol.role
+            )
+        if isinstance(agent_call_result.output, SendMessageAction):
+            self.episode_tracker.add_message(
+                message=agent_call_result.output, role=self.protocol.role
+            )
+        if isinstance(
+            agent_call_result.output,
+            (MagicGameAction, InteractGameAction, InteractGameActionWithThoughts),
+        ):
+            self.episode_tracker.add_action(action=agent_call_result.output)
+
+        self.episode_tracker.step()
 
     async def perform_reflection(self, message: PlayerMessage[ReflectionMessage]) -> bool:
         """Perform a reflection for the player."""
@@ -210,7 +251,19 @@ class PlayerController(PlayerSupervisor):
             )
 
         self.state = PlayerState.reflecting
-        await self.action_predictor.send_reflection_request(reflection_message=message.message)
+        agent_call_result = await self.action_predictor.send_reflection_request(
+            reflection_message=message.message
+        )
+
+        # Only track reflection things since we don't need everything
+        self.episode_tracker.add_reflection(
+            message=agent_call_result.output, role=self.protocol.role
+        )
+        if agent_call_result.ai_response_error is not None:
+            self.episode_tracker.error_event_per_request.append(
+                agent_call_result.ai_response_error
+            )
+
         self.state = PlayerState.waiting_for_turn
         return True
 
@@ -261,6 +314,6 @@ class PlayerController(PlayerSupervisor):
             else:
                 logger.exception("Error finishing WandB run", error=err)
 
-        await self.message_handler.stop_subscriber()
+        await self.incoming_message_handler.stop_subscriber()
         # Reset the state
         self.reset()

@@ -9,7 +9,7 @@ from gptnt.players.action_dispatcher import BaseActionDispatcher
 from gptnt.players.specification import PlayerProtocol
 from gptnt.services.experiment_descriptor import ExperimentDescriptor
 from gptnt.services.game.client import GameClient
-from gptnt.services.player.message_handler import MessageHandler
+from gptnt.services.player.message_handler import IncomingMessageHandler
 
 logger = structlog.get_logger()
 
@@ -25,7 +25,7 @@ class ActionDispatcher(BaseActionDispatcher):
     """
 
     game_client: GameClient
-    message_handler: MessageHandler
+    incoming_message_handler: IncomingMessageHandler
 
     @override
     def configure_for_experiment(
@@ -37,7 +37,7 @@ class ActionDispatcher(BaseActionDispatcher):
     ) -> None:
         """Configure for experiment and set up Redis channels."""
         super().configure_for_experiment(protocol=protocol)
-        self.message_handler.configure_for_experiment(
+        self.incoming_message_handler.configure_for_experiment(
             experiment_descriptor=experiment_descriptor, my_role=protocol.role
         )
         self.game_client.game_uuid = experiment_descriptor.game_uuid
@@ -46,7 +46,7 @@ class ActionDispatcher(BaseActionDispatcher):
     @logfire.instrument("Send dialogue message")
     async def send_dialogue_message(self, message: str) -> None:
         """Send the dialogue message to the other player(s)."""
-        await self.message_handler.send_message(message=message)
+        await self.incoming_message_handler.send_message(message=message)
         logger.debug("Sent dialogue message", message=message, current_role=self.protocol.role)
 
     @override
