@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from pydantic_settings import BaseSettings
+from whenever import Instant
 
 
 class Paths(BaseSettings):
@@ -14,6 +15,8 @@ class Paths(BaseSettings):
     output: Path = storage.joinpath("outputs")
 
     output_observations: Path = output.joinpath("observations")
+    experiment_recorder: Path = output.joinpath("experiment_recorder_outputs")
+
     experiments: Path = storage.joinpath("experiments")
     test_experiments: Path = storage.joinpath("test_experiments")
     vqa_and_grounding: Path = storage.joinpath("vqa_and_grounding")
@@ -30,3 +33,10 @@ class Paths(BaseSettings):
 
     prompts: Path = storage.joinpath("prompts")
     """Path to the where we store the prompts pieces."""
+
+    @property
+    def experiment_recorder_outputs(self) -> Path:
+        """Get path for experiment recorder outputs with a timestamp."""
+        path = self.experiment_recorder.joinpath(f"{Instant.now().format_common_iso()}/")
+        path.mkdir(parents=True, exist_ok=True)
+        return path

@@ -5,7 +5,7 @@ from typing import Annotated, Any, Generic, Literal, Self, TypeVar
 import annotated_types
 import structlog
 from httpx import QueryParams
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 logger = structlog.get_logger()
 
@@ -65,13 +65,6 @@ LocationDataT_co = TypeVar("LocationDataT_co", covariant=True)
 
 class KtaneBaseAction(BaseModel, Generic[KtaneActionT, LocationDataT_co]):  # noqa: UP046
     """Interaction action for the player to take in the game."""
-
-    model_config = ConfigDict(
-        # Replace any unsupported characters for the output type
-        model_title_generator=lambda model_type: model_type.__name__.replace("[", "")
-        .replace("]", "")
-        .strip()
-    )
 
     action: KtaneActionT
     location: LocationDataT_co | None = None

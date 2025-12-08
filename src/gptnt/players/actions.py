@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Annotated, Generic, Literal, TypeVar
 
 from annotated_types import MaxLen, Predicate
-from pydantic import BaseModel, BeforeValidator, NonNegativeInt, Tag, field_validator
+from pydantic import AfterValidator, BaseModel, NonNegativeInt, Tag, field_validator
 from pydantic_ai import (
     BaseToolCallPart,
     BaseToolReturnPart,
@@ -76,11 +76,7 @@ class SendMessageAction(ModelOutputDumpsMixin):
 
 
 type SingleAlphabetLetter = Annotated[
-    str,
-    BeforeValidator(lambda letter: letter.upper()),
-    MaxLen(1),
-    Predicate(str.isalpha),
-    Predicate(str.isupper),
+    str, MaxLen(1), Predicate(str.isalpha), AfterValidator(lambda letter: letter.upper())
 ]
 
 

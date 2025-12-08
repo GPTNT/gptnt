@@ -8,7 +8,7 @@ from pydantic import UUID4
 from gptnt.players.ai.action_predictor import ActionPredictor
 from gptnt.players.ai.input_builder import AgentInputBuilder
 from gptnt.players.ai.message_history import MessageHistory
-from gptnt.players.metrics.episode_tracker import EpisodeTracker
+from gptnt.players.metrics.recorder import ExperimentPlayerRecorder
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.services.events.heartbeat import PlayerHeartbeat
@@ -42,7 +42,7 @@ class PlayerSupervisor(HeartbeatBroadcaster):
     game_client: GameClient = field(default_factory=GameClient)
 
     # Components that need to be reset after each experiment
-    episode_tracker: EpisodeTracker
+    experiment_recorder: ExperimentPlayerRecorder
     incoming_message_handler: IncomingMessageHandler = field(
         default_factory=IncomingMessageHandler
     )
@@ -92,5 +92,5 @@ class PlayerSupervisor(HeartbeatBroadcaster):
         self.state = PlayerState.cleanup
         self.incoming_message_handler.reset()
         self.observation_handler.reset()
-        self.episode_tracker.reset()
+        self.experiment_recorder.reset()
         self.state = PlayerState.idle

@@ -6,8 +6,8 @@ from pydantic_ai import BinaryContent
 
 from gptnt.ktane.client import RawObservationFrames
 from gptnt.ktane.state.bomb import BombState
-from gptnt.players.ai.message_history import AgentMessageInput, MessageHistory
-from gptnt.players.metrics.episode_tracker import EpisodeTracker
+from gptnt.players.ai.message_history import AgentMessageInput
+from gptnt.players.metrics.recorder import ExperimentPlayerRecorder
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.prompts.manual import load_manual_as_prompt
@@ -25,10 +25,9 @@ class AgentInputBuilder:
     capabilities: PlayerCapabilities
     protocol: PlayerProtocol
 
-    message_history: MessageHistory
     observation_handler: ObservationHandler
 
-    tracker: EpisodeTracker
+    recorder: ExperimentPlayerRecorder
 
     @logfire.instrument(
         "Build agent input", extract_args=["messages", "bomb_state", "is_message_history_empty"]
@@ -89,11 +88,11 @@ class AgentInputBuilder:
             num_frames_to_use=num_frames_to_use,
         )
 
-        self.tracker.add_bomb_state(bomb_state)
-        await self.tracker.add_observation(
-            # Separate to below where we don't include the final frame, here we want to track it so
-            # we can make sure the segmentation mask aligns properly too. Hence why this is
-            # indexed differently
+        # Separate to below where we don't include the final frame, here we want to track it so
+        # we can make sure the segmentation mask aligns properly too. Hence why this is
+        # indexed differently
+        await self.recorder.store_step_context(
+            bomb_state=bomb_state,
             frames=observation.frames[-num_frames_to_use:],
             segm_mask=observation.segm_mask,
             som_image=observation.som_image,

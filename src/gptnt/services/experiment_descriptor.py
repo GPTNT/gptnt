@@ -97,3 +97,13 @@ class ExperimentDescriptor(BaseModel, frozen=True):
                 return self.expert_uuid
             case "expert":
                 return self.defuser_uuid
+
+    def get_player_content_by_role(self, role: PlayerRole) -> PlayerContent:
+        """Get the player content for the given role."""
+        match role:
+            case "defuser":
+                return self.defuser
+            case "expert":
+                if self.expert is None:
+                    raise ValueError("No expert configured for this experiment.")
+                return self.expert

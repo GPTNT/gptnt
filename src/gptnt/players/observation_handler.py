@@ -2,22 +2,41 @@ import base64
 import binascii
 from dataclasses import dataclass
 from io import BytesIO
-from typing import cast
+from typing import Annotated
 
 import logfire
 import numpy as np
 import structlog
 from PIL import Image
-from pydantic import BaseModel
+from pydantic import BaseModel, BeforeValidator, PlainSerializer
 
 from gptnt.common.image_ops import load_observation_from_bytes
-from gptnt.ktane.actions import KtaneGameplayInput, RelativeCoordinate
+from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import GameInteractionActionType
 from gptnt.processors.image_resizer import ImageResizer
 from gptnt.processors.set_of_marks import SetOfMarksHandler
 
 logger = structlog.get_logger()
+
+
+def _parse_base64_to_bytes(data: str | bytes) -> bytes:
+    """Decode base64 encoded string to bytes if string."""
+    if isinstance(data, bytes):
+        return data
+    return base64.b64decode(data)
+
+
+def _serialize_bytes_to_base64(data: bytes) -> str:
+    """Serialize bytes to base64 encoded string for JSON."""
+    return base64.b64encode(data).decode("utf-8")
+
+
+ImageBytes = Annotated[
+    bytes,
+    BeforeValidator(_parse_base64_to_bytes),
+    PlainSerializer(_serialize_bytes_to_base64, when_used="json-unless-none"),
+]
 
 
 class Observation(BaseModel):
@@ -27,9 +46,9 @@ class Observation(BaseModel):
     processed image.
     """
 
-    frames: list[bytes]
-    segm_mask: bytes
-    som_image: bytes
+    frames: list[ImageBytes]
+    segm_mask: ImageBytes | None
+    som_image: ImageBytes
 
 
 @dataclass(kw_only=True)
@@ -72,11 +91,7 @@ class ObservationHandler:
         # If we are not resizing nor applying SoM, we can just use the last frame
         if self.image_resizer is None and self.set_of_marks_painter is None:
             logger.debug("No image resizer or set of marks painter, using last frame only.")
-            return Observation(
-                frames=frames,
-                segm_mask=segmentation if segmentation else b"",
-                som_image=frames[-1],
-            )
+            return Observation(frames=frames, segm_mask=segmentation, som_image=frames[-1])
 
         # Make a list of images
         images = [load_observation_from_bytes(frame) for frame in frames]
@@ -115,33 +130,22 @@ class ObservationHandler:
                 image.save(image_buffer, format="PNG")
                 frames.append(image_buffer.getvalue())
 
-        return Observation(
-            frames=frames,
-            segm_mask=segmentation if segmentation else b"",
-            som_image=som_buffer.getvalue(),
-        )
+        return Observation(frames=frames, segm_mask=segmentation, som_image=som_buffer.getvalue())
 
     def convert_to_game_action(self, *, action: GameInteractionActionType) -> KtaneGameplayInput:
-        """Convert the action to the game action.
-
-        This will convert the action to the game action, which is a list of bytes.
-
-        IMPORTANT: This will update the location in the action object IN PLACE instead of creating
-        a new action object, therefore if you are using this, expect it to modify the action in
-        place.
-
-        I AM SORRY FOR THIS.
-        """
+        """Convert the action to the game action."""
+        action_location = action.location
         # Convert from SoM to relative coordinates if needed
         if self.set_of_marks_painter and isinstance(action.location, (int, str)):
             # Convert the SoM to relative coordinates
             logger.info(f"Mark to click is: {action.location}")
-            action.location = self.set_of_marks_painter.convert_mark_to_coordinate(
+            action_location = self.set_of_marks_painter.convert_mark_to_coordinate(
                 mark_id=action.location
             )
-            assert isinstance(action.location, RelativeCoordinate)
 
-        return cast("KtaneGameplayInput", action)
+        return KtaneGameplayInput.model_validate(
+            {**action.model_dump(), "location": action_location}
+        )
 
     def _apply_set_of_marks(
         self, *, raw_image: Image.Image, segmentation_image: Image.Image, bomb_state: BombState

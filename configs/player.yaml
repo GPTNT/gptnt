@@ -24,13 +24,11 @@ player:
     player_name: ???
     use_structured_outputs: ???
 
-  episode_tracker:
-    _target_: gptnt.players.metrics.episode_tracker.EpisodeTracker
+  experiment_recorder:
+    _target_: gptnt.players.metrics.wandb.WandbExperimentPlayerRecorder
     capabilities: ${player.capabilities}
     wandb_entity: ${oc.env:WANDB_ENTITY,gptnt}
     wandb_project: ${oc.env:WANDB_PROJECT,gptnt}
-    wandb_init_kwargs:
-      group: evaluation
 
   action_predictor:
     _target_: gptnt.players.ai.action_predictor.ActionPredictor

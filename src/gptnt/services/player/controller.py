@@ -6,7 +6,6 @@ from typing import Any, Literal
 import anyio
 import logfire
 import structlog
-import wandb
 from anyio.abc import TaskGroup
 from fastapi import HTTPException
 from faststream.redis import RedisBroker
@@ -15,15 +14,7 @@ from pydantic import BaseModel
 from gptnt.common.paths import Paths
 from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.manual import KtaneManualPaths
-from gptnt.players.actions import (
-    AgentCallResult,
-    DoNothingAction,
-    InteractGameAction,
-    InteractGameActionWithThoughts,
-    MagicGameAction,
-    PlayerOutputType,
-    SendMessageAction,
-)
+from gptnt.players.actions import AgentCallResult, PlayerOutputType
 from gptnt.players.ai.input_builder import AgentInputBuilder
 from gptnt.players.ai.message_history import MessageHistory
 from gptnt.players.specification import PlayerProtocol
@@ -131,11 +122,10 @@ class PlayerController(PlayerSupervisor):
 
         self.protocol = data.protocol
         self.experiment_descriptor = data.experiment_descriptor
-        await self.episode_tracker.configure_for_experiment(
+        await self.experiment_recorder.configure_for_experiment(
             experiment_descriptor=self.experiment_descriptor,
             protocol=self.protocol,
             player_uuid=self.uuid,
-            additional_metadata={},
         )
 
         self.message_history = MessageHistory(
@@ -144,9 +134,8 @@ class PlayerController(PlayerSupervisor):
         self.input_builder = AgentInputBuilder(
             capabilities=self.capabilities,
             protocol=self.protocol,
-            message_history=self.message_history,
             observation_handler=self.observation_handler,
-            tracker=self.episode_tracker,
+            recorder=self.experiment_recorder,
         )
 
         self.action_predictor.configure_for_experiment(
@@ -213,34 +202,15 @@ class PlayerController(PlayerSupervisor):
         self, agent_call_result: AgentCallResult[PlayerOutputType | KtaneGameplayInput]
     ) -> None:
         """Update the metrics for the player based on the agent call result."""
-        self.episode_tracker.num_requests += 1
-
-        # Add the AI response error metric if there was an error
-        if agent_call_result.ai_response_error is not None:
-            self.episode_tracker.error_event_per_request.append(
-                agent_call_result.ai_response_error
-            )
-
         self.message_history.update(
             new_messages=agent_call_result.new_messages, usage=agent_call_result.usage
         )
-        self.episode_tracker.add_usage(agent_call_result.usage)
 
-        if isinstance(agent_call_result.output, DoNothingAction):
-            self.episode_tracker.add_do_nothing(
-                action=agent_call_result.output, role=self.protocol.role
-            )
-        if isinstance(agent_call_result.output, SendMessageAction):
-            self.episode_tracker.add_message(
-                message=agent_call_result.output, role=self.protocol.role
-            )
-        if isinstance(
-            agent_call_result.output,
-            (MagicGameAction, InteractGameAction, InteractGameActionWithThoughts),
-        ):
-            self.episode_tracker.add_action(action=agent_call_result.output)
-
-        self.episode_tracker.step()
+        self.experiment_recorder.track_step(
+            agent_call_result=agent_call_result,
+            num_prompt_truncations=self.message_history.num_times_truncated,
+            is_reflection=False,
+        )
 
     async def perform_reflection(self, message: PlayerMessage[ReflectionMessage]) -> bool:
         """Perform a reflection for the player."""
@@ -255,14 +225,11 @@ class PlayerController(PlayerSupervisor):
             reflection_message=message.message
         )
 
-        # Only track reflection things since we don't need everything
-        self.episode_tracker.add_reflection(
-            message=agent_call_result.output, role=self.protocol.role
+        self.experiment_recorder.track_step(
+            agent_call_result=agent_call_result,
+            num_prompt_truncations=self.message_history.num_times_truncated,
+            is_reflection=True,
         )
-        if agent_call_result.ai_response_error is not None:
-            self.episode_tracker.error_event_per_request.append(
-                agent_call_result.ai_response_error
-            )
 
         self.state = PlayerState.waiting_for_turn
         return True
@@ -270,9 +237,9 @@ class PlayerController(PlayerSupervisor):
     async def stop_player(self, stop_event: StopPlayerEvent) -> dict[str, str]:
         """Stop the player and end the experiment.
 
-        We respond quickly with a 202 and let this run in the background because wandb can block
-        and take a while to finish. The EpisodeTracker will already run wandb in a background
-        thread but we don't want to block API calls while waiting for the experiment to finish.
+        We respond quickly with a 202 and let this run in the background because export/wandb can
+        block and take a while to finish. The tracker will already run in a background thread but
+        we don't want to block API calls while waiting for the experiment to finish.
 
         This is less important in context of an experiment since the heartbeats are done completely
         separately by a supervisor, but it is still a good practice to not block the API.
@@ -280,8 +247,12 @@ class PlayerController(PlayerSupervisor):
         if self.state >= PlayerState.stopping:
             return {"status": "accepted", "reason": "Player is already stopping or stopped."}
 
-        logger.info("Stopping player and ending experiment")
         self.state = PlayerState.stopping
+        logger.info("Stopping player and ending experiment")
+        # Force a heartbeat update to let the EM know we are stopping because if not, this can
+        # literally move incredibly quickly and hit the reset() before the EM notices, which causes
+        # errors.
+        await self.send_heartbeat()
 
         # Spawn background task for cleanup
         if self._task_group:
@@ -299,20 +270,10 @@ class PlayerController(PlayerSupervisor):
 
         # Add the final bomb state for the defuser
         if self.protocol.role == "defuser" and stop_event.bomb_state:
-            self.episode_tracker.add_bomb_state(stop_event.bomb_state)
-
-        # Update some states
-        self.episode_tracker.num_prompt_truncations = self.message_history.num_times_truncated
-
+            self.experiment_recorder.add_final_bomb_state(final_bomb_state=stop_event.bomb_state)
         # Stop the experiment tracking
         self.state = PlayerState.uploading
-        try:
-            await self.episode_tracker.on_experiment_stop(is_hard_crash=stop_event.hard_crash)
-        except wandb.Error as err:
-            if err.message == "You must call wandb.init() before wandb.log()":
-                logger.warning("It seems like the run was never started, skipping finish??")
-            else:
-                logger.exception("Error finishing WandB run", error=err)
+        await self.experiment_recorder.on_experiment_stop(is_hard_crash=stop_event.hard_crash)
 
         await self.incoming_message_handler.stop_subscriber()
         # Reset the state

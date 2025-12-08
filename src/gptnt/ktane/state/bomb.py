@@ -1,6 +1,19 @@
-from typing import Literal, Self
+import json
+from functools import partial
+from typing import Annotated, Any, Literal, Self, Union
 
-from pydantic import BaseModel, ConfigDict, alias_generators, model_validator
+import orjson
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    SerializationInfo,
+    SerializerFunctionWrapHandler,
+    TypeAdapter,
+    WrapSerializer,
+    alias_generators,
+    model_validator,
+)
 
 from gptnt.ktane.state.modules import (
     NEEDS_MULTIPLE_IMAGES,
@@ -11,6 +24,26 @@ from gptnt.ktane.state.modules import (
 from gptnt.ktane.state.widget import WidgetStates
 
 
+def _serialise_states_to_string(
+    input_value: Any,
+    handler: SerializerFunctionWrapHandler,  # noqa: WPS110
+    info: SerializationInfo,  # noqa: WPS110
+    *,
+    obj_type: type,
+) -> str:
+    """Either we serialize it to string or let the handler do its job."""
+    if info.context and info.context.get("serialize_as_string", False):
+        return json.dumps(TypeAdapter(obj_type).dump_python(input_value, mode="json"))
+    return handler(input_value)
+
+
+def _validate_state_from_string(data: str | Any) -> dict[str, Any]:
+    """Validate state from string or pass through."""
+    if isinstance(data, str):
+        return orjson.loads(data)
+    return data
+
+
 class BombState(BaseModel):
     """State of the bomb at the current timestep."""
 
@@ -18,14 +51,41 @@ class BombState(BaseModel):
 
     seed: int
     max_strikes: int = 3
-    strikes: list[KtaneComponent] | None
+    strikes: (
+        Annotated[
+            list[KtaneComponent],
+            BeforeValidator(_validate_state_from_string),
+            WrapSerializer(
+                partial(_serialise_states_to_string, obj_type=list[KtaneComponent]),
+                when_used="json-unless-none",
+                return_type=Union[list[str], str],  # noqa: UP007
+            ),
+        ]
+        | None
+    )
     is_detonated: bool
     is_solved: bool
     is_light_on: bool
     bomb_side: Literal["top", "bottom", "left", "right", "front", "back"]
     timer_module: TimerState
-    widgets: list[WidgetStates]
-    modules: list[ModuleStates]
+    widgets: Annotated[
+        list[WidgetStates],
+        BeforeValidator(_validate_state_from_string),
+        WrapSerializer(
+            partial(_serialise_states_to_string, obj_type=list[WidgetStates]),
+            when_used="json-unless-none",
+            return_type=Union[list[dict[str, Any]], str],  # noqa: UP007
+        ),
+    ]
+    modules: Annotated[
+        list[ModuleStates],
+        BeforeValidator(_validate_state_from_string),
+        WrapSerializer(
+            partial(_serialise_states_to_string, obj_type=list[ModuleStates]),
+            when_used="json-unless-none",
+            return_type=Union[list[dict[str, Any]], str],  # noqa: UP007
+        ),
+    ]
 
     @property
     def zoomed_in_component(self) -> KtaneComponent | None:
@@ -45,19 +105,19 @@ class BombState(BaseModel):
     @property
     def is_timed_out(self) -> bool:
         """Check if the bomb is timed out."""
-        return self.timer_module.seconds_remaining <= 0
+        return self.is_detonated and self.timer_module.seconds_remaining <= 0
 
     @property
     def is_strike_out(self) -> bool:
         """Check if the bomb is strike out."""
-        if self.strikes is None:
+        if not self.strikes:
             return False
-        return len(self.strikes) >= self.max_strikes
+        return self.is_detonated and len(self.strikes) >= self.max_strikes
 
     @property
     def current_strikes(self) -> int:
         """Get the current number of strikes."""
-        if self.strikes is None:
+        if not self.strikes:
             return 0
         return len(self.strikes)
 

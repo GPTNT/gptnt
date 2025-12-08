@@ -32,7 +32,7 @@ async def test_player_service_starts_and_responds_to_get_state() -> None:
         capabilities=MagicMock(),
         observation_handler=MagicMock(),
         action_predictor=MagicMock(),
-        episode_tracker=MagicMock(),
+        experiment_recorder=MagicMock(),
     )
 
     async with TestRedisBroker(broker) as br:
