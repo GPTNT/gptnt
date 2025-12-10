@@ -3,8 +3,8 @@ from typing import Literal, Self, Union, cast
 from pydantic import BaseModel, Field
 from pydantic.fields import computed_field
 from pydantic.functional_validators import model_validator
-from pydantic_ai import NativeOutput
-from pydantic_ai.output import OutputSpec
+from pydantic_ai import NativeOutput, PromptedOutput
+from pydantic_ai.output import OutputSpec, StructuredOutputMode
 from pydantic_ai.usage import UsageLimits
 
 from gptnt.common.image_ops import ImageDimensions
@@ -41,7 +41,7 @@ class PlayerCapabilities(BaseModel, frozen=True):
     use_structured_outputs: bool
     """Whether the player supports structured output."""
 
-    structured_output_mode: Literal["native", "tool"] = "native"
+    structured_output_mode: StructuredOutputMode = "native"
     """Which structured output mode to use, as per pydantic-ai."""
 
     max_observation_window_length: int = 16
@@ -185,6 +185,8 @@ class PlayerDeps(BaseModel, frozen=True):
                     return NativeOutput(self.protocol.output_type)
                 case "tool":
                     return self.protocol.output_type
+                case "prompted":
+                    return PromptedOutput(self.protocol.output_type)
         return str
 
     @property
