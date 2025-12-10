@@ -5,7 +5,7 @@ from typing import Annotated, Any, Generic, Literal, Self, TypeVar
 import annotated_types
 import structlog
 from httpx import QueryParams
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, BeforeValidator, field_validator, model_validator
 
 logger = structlog.get_logger()
 
@@ -67,7 +67,9 @@ class KtaneBaseAction(BaseModel, Generic[KtaneActionT, LocationDataT_co]):  # no
     """Interaction action for the player to take in the game."""
 
     action: KtaneActionT
-    location: LocationDataT_co | None = None
+    location: Annotated[
+        LocationDataT_co | None, BeforeValidator(lambda loc: loc if loc else None)
+    ] = None
     """Location to interact with, if needed."""
 
     @property
