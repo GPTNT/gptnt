@@ -224,6 +224,7 @@ class WireSequenceModuleState(InteractiveModuleState):
 
     panel: Annotated[int, Field(le=5, ge=1)]
     wires: Annotated[list[WireSequenceWire], Field(max_length=12, min_length=1)]
+    is_emerged: bool
 
     @field_validator("wires", mode="before")
     @classmethod
@@ -295,11 +296,13 @@ class MazeModuleState(InteractiveModuleState):
 class MemoryModuleState(InteractiveModuleState):
     """State of the Memory module."""
 
-    display_number: Annotated[int, Field(le=4, ge=1)]
-    button_numbers: Annotated[
-        list[Annotated[int, Field(le=4, ge=1)]], Field(max_length=4, min_length=4)
-    ]
+    display_number: Annotated[int, Field(le=4, ge=1)] | None
+    button_numbers: (
+        Annotated[list[Annotated[int, Field(le=4, ge=1)]], Field(max_length=4, min_length=4)]
+        | None
+    )
     stage: Annotated[int, Field(le=5, ge=0)]
+    is_emerged: bool
 
 
 class MorseCodeModuleState(InteractiveModuleState):
@@ -320,9 +323,10 @@ class PasswordModuleState(InteractiveModuleState):
 class WhosOnFirstModuleState(InteractiveModuleState):
     """State of the Who's on First module."""
 
-    display_word: str
-    button_words: list[str]
+    display_word: str | None
+    button_words: list[str] | None
     stage: Annotated[int, Field(le=4, ge=1)]
+    is_emerged: bool
 
 
 class DischargeModuleState(InteractiveModuleState):
