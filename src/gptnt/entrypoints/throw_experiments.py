@@ -72,9 +72,10 @@ def _filter_experiments(  # noqa: WPS210
 async def throw_ai_experiments(
     *,
     experiments_dir: Annotated[Path, typer.Option(help="Path to experiments")] = paths.experiments,
-    wandb_path: Annotated[
-        str, typer.Option(help="Wandb entity/project path")
-    ] = "gptnt/this-time-with-feeling",
+    wandb_entity: Annotated[
+        str, typer.Option(help="Wandb entity (user or team) name", envvar="WANDB_ENTITY")
+    ],
+    wandb_project: Annotated[str, typer.Option(help="Wandb project name", envvar="WANDB_PROJECT")],
     dry_run: Annotated[
         bool, typer.Option(help="If set, only logs the experiments that would be thrown")
     ] = False,
@@ -106,7 +107,9 @@ async def throw_ai_experiments(
         logger.warning("Skipping wandb check for existing runs.")
     else:
         # Filter the experiments by those already run on wandb
-        loaded_experiments = _filter_experiments(loaded_experiments, wandb_path=wandb_path)
+        loaded_experiments = _filter_experiments(
+            loaded_experiments, wandb_path=f"{wandb_entity}/{wandb_project}"
+        )
 
     if delete_unneeded:
         all_experiment_names = [experiment.experiment_name for experiment in loaded_experiments]
