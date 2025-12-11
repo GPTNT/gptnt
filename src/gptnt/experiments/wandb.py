@@ -40,12 +40,12 @@ def get_runs_from_wandb(
 
 
 def collate_runs_per_experiment_per_game(runs: list[Run] | Runs) -> CollatedRuns:
-    """Collate all the runs by experiments, and then by their game_id."""
+    """Collate all the runs by experiments, and then by their session_id."""
     runs_per_experiment_per_game: CollatedRuns = defaultdict(lambda: defaultdict(list))
     for run in track(runs, description="Collating runs...", total=len(runs)):
         experiment_name: str = run.config["experiment_name"]
-        game_id: UUID4 = run.config["game_id"]
-        runs_per_experiment_per_game[experiment_name][game_id].append(run)
+        session_id: UUID4 = run.config["session_id"]
+        runs_per_experiment_per_game[experiment_name][session_id].append(run)
     return runs_per_experiment_per_game
 
 
@@ -58,9 +58,9 @@ def get_valid_experiments_from_collated_runs(collated_runs: CollatedRuns) -> lis
         # figure out if there should be one per game or two
         expected_num_players = 1 if "expert=None" in experiment_name else 2
         valid_games = [
-            game_id
-            for game_id, runs in runs_per_game.items()
-            if all(game_run.summary.get("hard_crash", True) is False for game_run in runs)
+            session_id
+            for session_id, runs in runs_per_game.items()
+            if all(game_run.summary.get("is_hard_crash", True) is False for game_run in runs)
             and all(game_run.state == "finished" for game_run in runs)
             and len(runs) == expected_num_players
         ]
