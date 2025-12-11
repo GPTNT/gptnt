@@ -2,7 +2,6 @@ from pydantic_ai import Agent
 from pydantic_ai.models.test import TestModel
 from pytest_cases import param_fixture, parametrize_with_cases
 
-from gptnt.common.typing_ops import extract_base_types
 from gptnt.ktane.actions import GameActionType, RelativeCoordinate
 from gptnt.players.actions import (
     DoNothingAction,
@@ -17,14 +16,6 @@ from gptnt.players.actions import (
 game_command = param_fixture(
     "game_command", list(GameActionType), ids=[action.value for action in GameActionType]
 )
-
-
-def test_all_actions_have_command_attribute() -> None:
-    """Test that all actions have the command attribute."""
-    # Pull all the action types from the `PlayerOutputType` union in this file
-    commands = set(extract_base_types(PlayerOutputType))
-    for command in commands:
-        assert "command" in command.model_fields
 
 
 class PlayerActionCases:
@@ -83,9 +74,7 @@ def test_actions_are_parsed_correctly_from_json(action: PlayerOutputType) -> Non
 
     This is a regression test to ensure that the actions are parsed correctly.
     """
-    action_as_json = action.model_dump(
-        mode="json", exclude={"command"}, exclude_none=True, exclude_defaults=True
-    )
+    action_as_json = action.model_dump(mode="json", exclude_none=True, exclude_defaults=True)
 
     # Note: actions can be validated by their name or the value, so we check that too
     if isinstance(action, InteractGameAction):

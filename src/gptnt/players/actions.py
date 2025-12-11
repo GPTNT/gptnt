@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Annotated, Generic, Literal, TypeVar
 
 from annotated_types import MaxLen, Predicate
-from pydantic import AfterValidator, BaseModel, NonNegativeInt, Tag, field_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, NonNegativeInt, Tag, field_validator
 from pydantic_ai import (
     BaseToolCallPart,
     BaseToolReturnPart,
@@ -46,7 +46,7 @@ class ModelOutputDumpsMixin(BaseModel):
         return json.dumps(
             {
                 "result": {
-                    "kind": self.__class__.__name__,
+                    "kind": self.model_config.get("title", self.__class__.__name__),
                     "data": self.model_dump(
                         mode="json", exclude_defaults=True, exclude_unset=True
                     ),
@@ -65,13 +65,14 @@ class ThoughtsMixin(BaseModel):
 class DoNothingAction(ModelOutputDumpsMixin):
     """Create a 'do nothing' action."""
 
-    command: Literal["do_nothing"] = "do_nothing"
+    model_config = ConfigDict(title="do_nothing")
 
 
 class SendMessageAction(ModelOutputDumpsMixin):
     """Create a 'send message' action."""
 
-    command: Literal["send_message"] = "send_message"
+    model_config = ConfigDict(title="send_message")
+
     message: str
 
 
@@ -96,7 +97,7 @@ class InteractGameAction(
 ):
     """Interaction action for the player to take in the game."""
 
-    command: Literal["interact_game"] = "interact_game"
+    model_config = ConfigDict(title="interact_game")
 
 
 class MagicGameAction(
@@ -104,7 +105,7 @@ class MagicGameAction(
 ):
     """Magic action for the player to take in the game."""
 
-    command: Literal["interact_game"] = "interact_game"
+    model_config = ConfigDict(title="interact_game")
 
 
 class DoNothingActionWithThoughts(DoNothingAction, ThoughtsMixin):

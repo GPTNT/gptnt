@@ -72,17 +72,17 @@ def _load_commands(protocol: PlayerProtocol) -> str:
 
     # load do nothing command
     do_nothing = PromptCache.get_text(paths.prompts.joinpath("commands_do_nothing.md"))
-    commands = f"{commands}{do_nothing}"
+    commands = f"{commands}\n{do_nothing}"
 
     # load send message
     if protocol.allow_message_output:
         send_message = PromptCache.get_text(paths.prompts.joinpath("commands_send_message.md"))
-        commands = f"{commands}{send_message}"
+        commands = f"{commands}\n{send_message}"
 
     # if defuser, load interact game
     if protocol.role == "defuser":
         interact_game = PromptCache.get_text(paths.prompts.joinpath("commands_interact_game.md"))
-        commands = f"{commands}{interact_game}"
+        commands = f"{commands}\n{interact_game}"
 
     return commands
 
@@ -97,13 +97,13 @@ def _load_thoughts(protocol: PlayerProtocol) -> str:
 
     if protocol.role == "expert":
         # if expert, load thoughts for expert
-        thoughts = f"{thoughts}{PromptCache.get_text(paths.prompts.joinpath('thoughts_format_expert.md'))}"
+        thoughts = f"{thoughts}\n{PromptCache.get_text(paths.prompts.joinpath('thoughts_format_expert.md'))}"
 
     if protocol.role == "defuser":
         path = "thoughts_format_defuser{solo}.md".format(
             solo="_solo" if protocol.is_playing_alone else ""
         )
-        thoughts = f"{thoughts}{PromptCache.get_text(paths.prompts.joinpath(path))}"
+        thoughts = f"{thoughts}\n{PromptCache.get_text(paths.prompts.joinpath(path))}"
 
     return thoughts
 
@@ -117,7 +117,7 @@ def _load_requirements(protocol: PlayerProtocol) -> str:
     if protocol.role == "defuser":
         action = PromptCache.get_text(paths.prompts.joinpath("requirements_action.md"))
         observation = PromptCache.get_text(paths.prompts.joinpath("requirements_observation.md"))
-        requirements = f"{requirements}{action}{observation}"
+        requirements = f"{requirements}\n{action}\n{observation}"
 
     # Load communication
     if protocol.allow_message_output:
@@ -126,15 +126,15 @@ def _load_requirements(protocol: PlayerProtocol) -> str:
             thoughts="_thoughts" if protocol.allow_thoughts_output else "",
         )
         communication = PromptCache.get_text(paths.prompts.joinpath(communication_path))
-        requirements = f"{requirements}{communication}"
+        requirements = f"{requirements}\n{communication}"
 
     completion = PromptCache.get_text(
         paths.prompts.joinpath(f"requirements_completion_{protocol.role}.md")
     )
-    requirements = f"{requirements}{completion}"
+    requirements = f"{requirements}\n{completion}"
 
     formatting = PromptCache.get_text(paths.prompts.joinpath("requirements_formatting.md"))
-    requirements = f"{requirements}{formatting}"
+    requirements = f"{requirements}\n{formatting}"
     return requirements
 
 
@@ -148,7 +148,7 @@ def load_instructions(protocol: PlayerProtocol) -> str:
     thoughts = _load_thoughts(protocol)
     requirements = _load_requirements(protocol)
 
-    instructions = f"{scenario}{role}{mechanics}{commands}{thoughts}{requirements}"
+    instructions = f"{scenario}\n{role}\n{mechanics}\n{commands}\n{thoughts}\n{requirements}"
     instructions = instructions.strip()
     return instructions
 
