@@ -27,7 +27,7 @@ def get_runs_from_wandb(
         filters={
             "$and": [
                 {"state": "finished"},
-                {"summary_metrics.hard_crash": False},
+                {"summary_metrics.is_hard_crash": False},
                 {"summary_metrics.step": {"$gt": 1}},
                 {"tags": {"$nin": ["old"]}},
                 *additional_filters,
