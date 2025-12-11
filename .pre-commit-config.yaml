@@ -9,7 +9,7 @@ exclude: ^scripts/(throw|stress_test)\.sh$
 
 repos:
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.1.0
+    rev: v4.10.0
     hooks:
       - id: commitizen
         stages: [commit-msg]
@@ -20,7 +20,7 @@ repos:
   #     - id: editorconfig-checker
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: check-merge-conflict
       - id: check-vcs-permalinks
@@ -38,34 +38,32 @@ repos:
         types: [text]
       - id: mixed-line-ending
       - id: fix-byte-order-marker
-      - id: fix-encoding-pragma
-        args: [--remove]
       - id: debug-statements
         types: [python]
 
   - repo: https://github.com/sirosen/check-jsonschema
-    rev: 0.31.0
+    rev: 0.35.0
     hooks:
       - id: check-github-workflows
         types: [yaml]
 
   - repo: https://github.com/sirosen/texthooks
-    rev: 0.6.8
+    rev: 0.7.1
     hooks:
       - id: fix-smartquotes
 
   - repo: https://github.com/koalaman/shellcheck-precommit
-    rev: v0.10.0
+    rev: v0.11.0
     hooks:
       - id: shellcheck
 
   - repo: https://github.com/scop/pre-commit-shfmt
-    rev: v3.10.0-2
+    rev: v3.12.0-2
     hooks:
       - id: shfmt
 
   - repo: https://github.com/pappasam/toml-sort
-    rev: "v0.24.2"
+    rev: "v0.24.3"
     hooks:
       - id: toml-sort
         args: [--in-place]
