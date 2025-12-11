@@ -1,0 +1,17 @@
+exporters:
+  nop:
+
+service:
+  pipelines:
+    logs:
+      receivers: [filelog/ktane, otlp]
+      processors: [filter/logs, batch]
+      exporters: [nop]
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [nop]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [nop]

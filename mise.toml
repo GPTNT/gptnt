@@ -1,6 +1,7 @@
 [env]
 LOGFIRE_SEND_TO_LOGFIRE = "true"
 OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:4318/"
+COMPOSE_PROFILES = "prod"
 
 [tasks.defuser]
 description = "Run the defuser"
