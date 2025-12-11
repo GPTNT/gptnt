@@ -32,6 +32,9 @@ def remove_observations_without_removing_manual(part: UserPromptPart) -> UserPro
     As a result, there will be no text input (we hope unless someone is running that experiment) so
     we will just remove the very last binary content from the all the binary contents in the
     message.
+
+    This also works when there is a manual in the first message too, since we can just remove the
+    last binary content which will be the last observation added after the manual.
     """
     if isinstance(part.content, str):
         return part
@@ -253,8 +256,6 @@ class MessageHistory:
         updated_messages: list[ModelMessage] = []
         num_observations_removed = 0
 
-        # TODO: This needs fixing to work for solo player to distinguish the manual from
-        #       observations
         for message in new_messages:
             if isinstance(message, ModelRequest):
                 contains_manual = self._does_message_contain_manual(message)
@@ -290,12 +291,7 @@ class MessageHistory:
         Use the player protocol and other things to figure it out. Importantly, when the message
         history is empty, we know that the first message will have the manual in it.
         """
-        return (
-            self.protocol.include_manual
-            and self.protocol.role == "defuser"
-            and self.is_empty
-            and isinstance(message, ModelRequest)
-        )
+        return self.protocol.include_manual and self.is_empty and isinstance(message, ModelRequest)
 
     def _should_truncate_message_history(self, *, next_message: str | None = None) -> bool:
         """Check if the context length is over the max context length."""
