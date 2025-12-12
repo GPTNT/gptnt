@@ -38,5 +38,4 @@ class Paths(BaseSettings):
     def experiment_recorder_outputs(self) -> Path:
         """Get path for experiment recorder outputs with a timestamp."""
         path = self.experiment_recorder.joinpath(f"{Instant.now().format_common_iso()}/")
-        path.mkdir(parents=True, exist_ok=True)
         return path
