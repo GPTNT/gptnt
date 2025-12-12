@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import TypedDict
+from typing import TypedDict, cast
 
 import logfire
 import numpy as np
@@ -65,9 +65,14 @@ def get_centered_stepped_coordinate(region: RegionProperties) -> tuple[float, fl
 
 
 def order_regions_reading_order(  # noqa: WPS231
-    regions: Sequence[RegionProperties], zoomed_in_component: KtaneComponent | None
+    regions: Sequence[RegionProperties],
+    image_shape: tuple[int, int],
+    zoomed_in_component: KtaneComponent | None,
 ) -> list[int]:
-    """Orders region labels in reading order (left-to-right, top-to-bottom)."""
+    """Orders region labels in reading order (left-to-right, top-to-bottom).
+
+    For image shape, it is (height, width).
+    """
     if not regions:
         return []
 
@@ -77,18 +82,19 @@ def order_regions_reading_order(  # noqa: WPS231
             coords = get_centered_stepped_coordinate(region)
         else:
             coords = region.centroid
+
         region_data.append(
             RegionData(
                 label=region.label,
                 centroid_y=coords[0],
                 centroid_x=coords[1],
                 min_y=max(0, region.bbox[0]),
-                max_y=min(region.bbox[2], region.image.shape[0]),
+                max_y=min(region.bbox[2], image_shape[0]),
                 height=max(0, region.bbox[2] - region.bbox[0]),
             )
         )
 
-    rows = []
+    rows: list[list[RegionData]] = []
     for region in sorted(region_data, key=lambda row: row["centroid_y"]):
         added_to_row = False
 
@@ -139,7 +145,11 @@ def relabel_regions_in_reading_order(
         return labeled_image, []
 
     # Get the reading order of the current labels
-    ordered_labels = order_regions_reading_order(regions, zoomed_in_component=zoomed_in_component)
+    ordered_labels = order_regions_reading_order(
+        regions,
+        image_shape=cast("tuple[int, int]", labeled_image.shape),
+        zoomed_in_component=zoomed_in_component,
+    )
 
     # Create mapping from old labels to new sequential labels (starting from 1)
     label_mapping = {old_label: new_label for new_label, old_label in enumerate(ordered_labels, 1)}
