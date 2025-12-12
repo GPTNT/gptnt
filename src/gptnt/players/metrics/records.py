@@ -213,7 +213,7 @@ class ExperimentRecord(StepRecordsMetricsMixin):
         all_step_records = []
         for player_record in self.player_records:
             all_step_records.extend(player_record.step_records)
-        self.step_records = all_step_records
+        self.step_records = sorted(all_step_records, key=attrgetter("timestamp"))
         return self
 
 
