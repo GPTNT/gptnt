@@ -107,7 +107,6 @@ class MagicDefuserModel(FunctionModel):
         model_response = magic_action.model_dump(
             mode="json", exclude_unset=True, exclude_defaults=True
         )
-        model_response["action"] = magic_action.action
 
-        return_as_dict = {"result": {"kind": "interact_game", "data": model_response}}
+        return_as_dict = {"result": {"kind": "perform_magic", "data": model_response}}
         return ModelResponse(parts=[TextPart(content=json.dumps(return_as_dict))])
