@@ -374,8 +374,10 @@ class GasModuleState(InteractiveModuleState):
     timer: int
 
 
-def _get_discriminator_value(module_state: dict[str, Any]) -> str:
+def _get_discriminator_value(module_state: BaseModuleState | dict[str, Any]) -> str:
     """Get the discriminator value for a module state."""
+    if isinstance(module_state, BaseModel):
+        return module_state.name.value
     return module_state["name"]
 
 
