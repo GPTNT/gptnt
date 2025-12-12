@@ -69,9 +69,7 @@ class DummyDefuserModel(FunctionModel):
             mode="json", exclude_unset=True, exclude_defaults=True
         )
         model_response["action"] = action_to_perform.action.name
-        return_as_dict = {
-            "result": {"kind": "InteractGameActionSingleAlphabetLetter", "data": model_response}
-        }
+        return_as_dict = {"result": {"kind": "interact_game", "data": model_response}}
 
         return ModelResponse(parts=[TextPart(content=json.dumps(return_as_dict))])
 
@@ -87,7 +85,7 @@ class DummyExpertModel(FunctionModel):
         message = SendMessageAction(message=f"Message {len(messages)}")
         result_as_dict = {
             "result": {
-                "kind": "SendMessageAction",
+                "kind": "send_message",
                 "data": message.model_dump(exclude_unset=True, exclude_defaults=True, mode="json"),
             }
         }
@@ -106,11 +104,10 @@ class MagicDefuserModel(FunctionModel):
             action="magic", location=None
         )
 
-        logger.info("Performing magic action", action=magic_action)
         model_response = magic_action.model_dump(
             mode="json", exclude_unset=True, exclude_defaults=True
         )
         model_response["action"] = magic_action.action
 
-        return_as_dict = {"result": {"kind": "MagicGameAction", "data": model_response}}
+        return_as_dict = {"result": {"kind": "interact_game", "data": model_response}}
         return ModelResponse(parts=[TextPart(content=json.dumps(return_as_dict))])
