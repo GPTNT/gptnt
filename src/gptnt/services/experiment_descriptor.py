@@ -1,6 +1,7 @@
 from typing import NamedTuple
 
-from pydantic import UUID4, BaseModel
+from pydantic import UUID4, BaseModel, Field
+from whenever import Instant
 
 from gptnt.experiments.experiments import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
@@ -32,6 +33,8 @@ class ExperimentDescriptor(BaseModel, frozen=True):
     expert_uuid: UUID4 | None
     defuser_uuid: UUID4
     game_uuid: UUID4
+
+    start_time: Instant = Field(default_factory=Instant.now)
 
     @property
     def name(self) -> str:
