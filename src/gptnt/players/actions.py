@@ -13,7 +13,12 @@ from pydantic_ai import (
     TextPart,
 )
 
-from gptnt.ktane.actions import GameActionType, KtaneBaseAction, RelativeCoordinate
+from gptnt.ktane.actions import (
+    GameActionType,
+    GameActionTypeWithMagic,
+    KtaneBaseAction,
+    RelativeCoordinate,
+)
 
 NO_NEW_MESSAGES_SENTINEL = "<no_new_messages>"
 """Sentinel for no new messages."""
@@ -96,7 +101,7 @@ class InteractGameAction(
 
 
 class MagicGameAction(
-    KtaneBaseAction[Literal["magic"], InteractableLocation], ModelOutputDumpsMixin
+    KtaneBaseAction[GameActionTypeWithMagic, InteractableLocation], ModelOutputDumpsMixin
 ):
     """Magic action for the player to take in the game."""
 
