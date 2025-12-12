@@ -41,7 +41,7 @@ class ExperimentStepRecord(BaseModel):
     raw_output: str | None
 
     bomb_state: BombState | None
-    observation: Observation | Path | None
+    observation: Annotated[Observation | Path | None, Field(repr=False)]
     usage: RunUsage
     error_type: AIResponseErrorType | None = None
     is_reflection: bool = False
