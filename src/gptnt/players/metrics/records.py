@@ -192,9 +192,20 @@ class ExperimentRecord(StepRecordsMetricsMixin):
 
     player_records: list[ExperimentPlayerRecord]
 
-    experiment_descriptor: ExperimentDescriptor = Field(init=False)
-    step_records: SortedStepRecords = Field(init=False, default_factory=list)
-    is_hard_crash: bool = Field(init=False)
+    experiment_descriptor: ExperimentDescriptor
+    step_records: SortedStepRecords = Field(default_factory=list)
+    is_hard_crash: bool
+
+    @classmethod
+    def from_player_records(cls, *, player_records: list[ExperimentPlayerRecord]) -> Self:
+        """Create an ExperimentRecord from a list of ExperimentPlayerRecords."""
+        experiment_descriptor = player_records[0].experiment_descriptor
+        is_hard_crash = any(player_record.is_hard_crash for player_record in player_records)
+        return cls(
+            player_records=player_records,
+            experiment_descriptor=experiment_descriptor,
+            is_hard_crash=is_hard_crash,
+        )
 
     @model_validator(mode="after")
     def aggregate_step_records(self) -> Self:
@@ -202,21 +213,8 @@ class ExperimentRecord(StepRecordsMetricsMixin):
         all_step_records = []
         for player_record in self.player_records:
             all_step_records.extend(player_record.step_records)
-        return self.model_copy(update={"step_records": all_step_records})
-
-    @model_validator(mode="after")
-    def set_experiment_descriptor(self) -> Self:  # noqa: WPS615
-        """Set the experiment descriptor from one of the player records."""
-        if self.player_records:
-            experiment_descriptor = self.player_records[0].experiment_descriptor
-            return self.model_copy(update={"experiment_descriptor": experiment_descriptor})
-        raise ValueError("No player records to extract experiment descriptor from??")
-
-    @model_validator(mode="after")
-    def set_is_hard_crash(self) -> Self:  # noqa: WPS615
-        """Set is_hard_crash if any player had a hard crash."""
-        is_hard_crash = any(player_record.is_hard_crash for player_record in self.player_records)
-        return self.model_copy(update={"is_hard_crash": is_hard_crash})
+        self.step_records = all_step_records
+        return self
 
 
 def build_experiment_records_from_player_records(
@@ -229,7 +227,7 @@ def build_experiment_records_from_player_records(
         experiment_dict[exp_id].append(player_record)
 
     experiment_records = [
-        ExperimentRecord(player_records=exp_player_records)
+        ExperimentRecord.from_player_records(player_records=exp_player_records)
         for exp_player_records in experiment_dict.values()
     ]
 
