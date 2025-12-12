@@ -1,11 +1,12 @@
 import types
 from enum import Enum
-from typing import Annotated, NamedTuple, override
+from typing import Annotated, Any, NamedTuple, override
 
 from pydantic import (
     BaseModel,
     BeforeValidator,
     ConfigDict,
+    Discriminator,
     Field,
     NonNegativeFloat,
     alias_generators,
@@ -81,6 +82,12 @@ class BaseModuleState(BaseModel):
     on_front: bool
     index: Annotated[int, Field(ge=0, le=5)]
 
+    @field_validator("name", mode="before")
+    @classmethod
+    def coerce_name(cls, value: str) -> KtaneComponent:  # noqa: WPS110
+        """Coerce the name to a KtaneComponent."""
+        return KtaneComponent(value)
+
     @computed_field
     @property
     def module_location(self) -> int:
@@ -121,6 +128,8 @@ class TimerState(BaseModuleState):
 class ButtonModuleState(InteractiveModuleState):
     """State of the Button module."""
 
+    name: KtaneComponent = KtaneComponent.big_button
+
     button_color: constants.ButtonColor
     button_word: constants.ButtonWord
     is_held: bool
@@ -149,6 +158,7 @@ class KeyPadButtonState(BaseModel):
 class KeypadModuleState(InteractiveModuleState):
     """State of the Keypad module."""
 
+    name: KtaneComponent = KtaneComponent.keypad
     top_left: KeyPadButtonState
     top_right: KeyPadButtonState
     bottom_left: KeyPadButtonState
@@ -158,6 +168,7 @@ class KeypadModuleState(InteractiveModuleState):
 class SimonSaysModuleState(InteractiveModuleState):
     """State of the Simon Says module."""
 
+    name: KtaneComponent = KtaneComponent.simon
     beep_sequence: Annotated[list[constants.SimonSaysColor], Field(min_length=1, max_length=6)]
     solve_progress: Annotated[int, Field(le=5, ge=0)]
 
@@ -203,6 +214,7 @@ class WireSequenceWire(BaseWire[constants.WireSequenceColor]):
 class ComplicatedWiresModuleState(InteractiveModuleState):
     """State of the Complicated Wires module."""
 
+    name: KtaneComponent = KtaneComponent.venn
     wires: Annotated[list[ComplicatedWire], Field(max_length=6, min_length=1)]
 
     @field_validator("wires", mode="before")
@@ -222,9 +234,10 @@ class ComplicatedWiresModuleState(InteractiveModuleState):
 class WireSequenceModuleState(InteractiveModuleState):
     """State of the Wire Sequence module."""
 
+    name: KtaneComponent = KtaneComponent.wire_sequence
     panel: Annotated[int, Field(le=5, ge=1)]
     wires: Annotated[list[WireSequenceWire], Field(max_length=12, min_length=1)]
-    is_emerged: bool
+    is_emerged: bool = True
 
     @field_validator("wires", mode="before")
     @classmethod
@@ -250,6 +263,7 @@ class WireSequenceModuleState(InteractiveModuleState):
 class WireSetModuleState(InteractiveModuleState):
     """State of the Wire Set module."""
 
+    name: KtaneComponent = KtaneComponent.wires
     wires: Annotated[list[WireSetWire], Field(max_length=6, min_length=1)]
 
     @field_validator("wires", mode="before")
@@ -286,6 +300,7 @@ class MazeModuleState(InteractiveModuleState):
     (The `-1` is because the coordinates are 0-indexed.)
     """
 
+    name: KtaneComponent = KtaneComponent.maze
     num_rows: int
     num_columns: int
     triangle_position: MazeCoordinate
@@ -296,18 +311,20 @@ class MazeModuleState(InteractiveModuleState):
 class MemoryModuleState(InteractiveModuleState):
     """State of the Memory module."""
 
+    name: KtaneComponent = KtaneComponent.memory
     display_number: Annotated[int, Field(le=4, ge=1)] | None
     button_numbers: (
         Annotated[list[Annotated[int, Field(le=4, ge=1)]], Field(max_length=4, min_length=4)]
         | None
     )
     stage: Annotated[int, Field(le=5, ge=0)]
-    is_emerged: bool
+    is_emerged: bool = True
 
 
 class MorseCodeModuleState(InteractiveModuleState):
     """State of the Morse Code module."""
 
+    name: KtaneComponent = KtaneComponent.morse_code
     sequence: str
     current_frequency: float
     correct_frequency: float
@@ -316,6 +333,7 @@ class MorseCodeModuleState(InteractiveModuleState):
 class PasswordModuleState(InteractiveModuleState):
     """State of the Password module."""
 
+    name: KtaneComponent = KtaneComponent.password
     current_word: str
     goal_word: str
 
@@ -323,15 +341,17 @@ class PasswordModuleState(InteractiveModuleState):
 class WhosOnFirstModuleState(InteractiveModuleState):
     """State of the Who's on First module."""
 
+    name: KtaneComponent = KtaneComponent.whos_on_first
     display_word: str | None
     button_words: list[str] | None
     stage: Annotated[int, Field(le=4, ge=1)]
-    is_emerged: bool
+    is_emerged: bool = True
 
 
 class DischargeModuleState(InteractiveModuleState):
     """State of the Capacitor Discharge module."""
 
+    name: KtaneComponent = KtaneComponent.needy_capacitor
     is_being_needy: bool
     seconds_until_discharge: int
 
@@ -339,6 +359,7 @@ class DischargeModuleState(InteractiveModuleState):
 class KnobModuleState(InteractiveModuleState):
     """State of the Knob module."""
 
+    name: KtaneComponent = KtaneComponent.needy_knob
     is_being_needy: bool
     knob_position: constants.KnobPosition
     led_position: dict[Annotated[int, Field(le=11, ge=0)], bool]  # noqa: WPS432
@@ -347,30 +368,34 @@ class KnobModuleState(InteractiveModuleState):
 class GasModuleState(InteractiveModuleState):
     """State of the Venting Gas module."""
 
+    name: KtaneComponent = KtaneComponent.needy_vent_gas
     is_being_needy: bool
     message: constants.GasMessages
     timer: int
 
 
-type StandardModuleStates = (
-    Annotated[WireSetModuleState, Tag("WireSet")]
-    | Annotated[ButtonModuleState, Tag("Button")]
-    | Annotated[KeypadModuleState, Tag("Keypad")]
-    | Annotated[SimonSaysModuleState, Tag("Simon")]
-    | Annotated[ComplicatedWiresModuleState, Tag("ComplicatedWires")]
-    | Annotated[MazeModuleState, Tag("Maze")]
-    | Annotated[MemoryModuleState, Tag("Memory")]
-    | Annotated[MorseCodeModuleState, Tag("Morse")]
-    | Annotated[PasswordModuleState, Tag("Password")]
-    | Annotated[WhosOnFirstModuleState, Tag("WhosOnFirst")]
-    | Annotated[WireSequenceModuleState, Tag("WireSequence")]
-)
+def _get_discriminator_value(module_state: dict[str, Any]) -> str:
+    """Get the discriminator value for a module state."""
+    return module_state["name"]
 
-type NeedyModuleStates = (
-    Annotated[DischargeModuleState, Tag("NeedyCapacitor")]
-    | Annotated[KnobModuleState, Tag("NeedyKnob")]
-    | Annotated[GasModuleState, Tag("NeedyVentGas")]
-)
-type ModuleStates = (
-    Annotated[StandardModuleStates, Tag("Standard")] | Annotated[NeedyModuleStates, Tag("Needy")]
-)
+
+# Note: the Tags need to match the KtaneComponent values
+type ModuleStates = Annotated[
+    (
+        Annotated[WireSetModuleState, Tag("Wires")]
+        | Annotated[ButtonModuleState, Tag("BigButton")]
+        | Annotated[KeypadModuleState, Tag("Keypad")]
+        | Annotated[SimonSaysModuleState, Tag("Simon")]
+        | Annotated[ComplicatedWiresModuleState, Tag("Venn")]
+        | Annotated[MazeModuleState, Tag("Maze")]
+        | Annotated[MemoryModuleState, Tag("Memory")]
+        | Annotated[MorseCodeModuleState, Tag("Morse")]
+        | Annotated[PasswordModuleState, Tag("Password")]
+        | Annotated[WhosOnFirstModuleState, Tag("WhosOnFirst")]
+        | Annotated[WireSequenceModuleState, Tag("WireSequence")]
+        | Annotated[DischargeModuleState, Tag("NeedyCapacitor")]
+        | Annotated[KnobModuleState, Tag("NeedyKnob")]
+        | Annotated[GasModuleState, Tag("NeedyVentGas")]
+    ),
+    Discriminator(_get_discriminator_value),
+]
