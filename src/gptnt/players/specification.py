@@ -91,6 +91,8 @@ class PlayerProtocol(BaseModel, frozen=True):
 
     allow_magic_actions: bool = False
 
+    interaction_location_method: Literal["set-of-marks", "coordinates"] = "set-of-marks"
+
     @property
     def output_type(self) -> type[PlayerOutputType]:
         """The output type for the player.
