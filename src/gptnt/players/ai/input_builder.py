@@ -52,9 +52,9 @@ class AgentInputBuilder:
                 )
             )
 
-        # 2. Pull messages. This should only happen if we are not playing alone, AND this is not
-        #    the first message.
-        if not self.protocol.is_playing_alone and not is_message_history_empty:
+        # 2. Pull messages. This should only happen if we are not playing alone (and messages is
+        #    not None/empty)
+        if not self.protocol.is_playing_alone and messages:
             logger.debug("Adding messages", messages=messages)
             agent_input.append(messages)
 
