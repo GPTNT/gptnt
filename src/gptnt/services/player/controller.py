@@ -20,7 +20,6 @@ from gptnt.players.ai.message_history import MessageHistory
 from gptnt.players.specification import PlayerProtocol
 from gptnt.prompts.manual import load_manual_as_prompt
 from gptnt.prompts.prompt_cache import PromptCache
-from gptnt.prompts.reflection import ReflectionMessage
 from gptnt.services.events.player import PlayerMessage, PlayerState, StopPlayerEvent
 from gptnt.services.experiment_descriptor import ExperimentDescriptor
 from gptnt.services.player.supervisor import PlayerSupervisor
@@ -212,7 +211,7 @@ class PlayerController(PlayerSupervisor):
             is_reflection=False,
         )
 
-    async def perform_reflection(self, message: PlayerMessage[ReflectionMessage]) -> bool:
+    async def perform_reflection(self, message: PlayerMessage[str]) -> bool:
         """Perform a reflection for the player."""
         if self.state != PlayerState.waiting_for_turn:
             raise HTTPException(

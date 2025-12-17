@@ -9,7 +9,6 @@ from pydantic import UUID4, RedisDsn
 
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.specification import PlayerProtocol
-from gptnt.prompts.reflection import ReflectionMessage
 from gptnt.services.broker import create_redis_broker
 from gptnt.services.events.player import PlayerMessage, StopPlayerEvent
 from gptnt.services.experiment_descriptor import ExperimentDescriptor
@@ -79,7 +78,7 @@ class PlayerClient:
         """Reset the player to its initial state."""
         return await self._send_command("reset")
 
-    async def send_reflection_request(self, reflection_message: ReflectionMessage) -> bool:
+    async def send_reflection_request(self, reflection_message: str) -> bool:
         """Ask the player to perform a reflection."""
         payload = PlayerMessage(message=reflection_message).model_dump(mode="json")
         try:

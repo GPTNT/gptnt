@@ -34,7 +34,7 @@ from gptnt.players.ai.message_history import (
 from gptnt.players.ai.output_validators import InvalidOutputFormatError, structure_string_output
 from gptnt.players.specification import PlayerCapabilities, PlayerDeps, PlayerProtocol
 from gptnt.prompts.instructions import load_instructions_from_deps
-from gptnt.prompts.reflection import ReflectionMessage, load_reflection_prompt
+from gptnt.prompts.reflection import load_reflection_prompt
 
 logger = structlog.get_logger()
 
@@ -166,7 +166,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
         )
 
     async def send_reflection_request(
-        self, *, reflection_message: ReflectionMessage
+        self, *, reflection_message: str
     ) -> AgentCallResult[SendMessageAction]:
         """Send a reflection message to the agent.
 
