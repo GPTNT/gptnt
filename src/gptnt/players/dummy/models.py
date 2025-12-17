@@ -20,7 +20,8 @@ SoMAction = InteractGameAction[SetOfMarksLocation]
 
 actions_to_perform = [
     SoMAction(action=GameActionType.rotate_left),
-    SoMAction(action=GameActionType.rotate_right),
+    SoMAction(action=GameActionType.flip),
+    SoMAction(action=GameActionType.rotate_left),
     SoMAction(action=GameActionType.flip),
     SoMAction(action=GameActionType.roll_down),
     SoMAction(action=GameActionType.roll_up),
