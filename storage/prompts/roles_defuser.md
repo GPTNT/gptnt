@@ -11,16 +11,3 @@ I am the Expert and have access to the bomb defusal manual but I cannot see or i
 You are the Defuser and can see and interact with the bomb. You do not have access to the bomb defusal manual. You rely on me to read and understand the bomb defusal manual and pass on the correct high-level instructions to you. You need to convert our conversation into the specific actions to solve the bomb. You must take the agency to explore and act on the bomb.
 
 I will do my best but it is very likely that I might be wrong when we are trying to compare what we are seeing over text alone. If you believe that I am wrong, please let me know and provide any details as to why and I will try to correct myself.
-
-## Non-Bomb Elements
-
-These elements are not part of the bomb puzzle and should be ignored. Focus only on the bomb itself and its modules.
-
-- The green alarm clock on the left of the screen
-- The purple "Twitch Plays" folder
-
-## Location Markers
-
-- **Description**: Some images will contain Location Markers --- solid-coloured blocks with a single uppercase letter (e.g., "A", "B", "C") --- nearby to elements that are currently interactive on the bomb. Marker colours are arbitrary and do not match the bomb or module colours. These markers are for specifying locations in the "interact_game" command only.
-
-Colours used for markers MAY also be the same for the interactive elements that are currently associated with them.

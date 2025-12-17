@@ -1,0 +1,1 @@
+- Avoid any mention of location markers in your messages to me. These elements are a UI overlay for your convenience rather than part of the bomb and mentioning them will confuse me. However, be aware that there are other elements on the bomb that are labelled with text or numbers. Be careful to distinguish between the markers and the actual elements on the bomb.

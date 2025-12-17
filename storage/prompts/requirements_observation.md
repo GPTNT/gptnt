@@ -2,7 +2,6 @@
 
 - Rely only on direct observations, not external KTANE game information, as external sources contain outdated or incorrect data.
 - Base all decisions on confirmed observations only, never on assumptions.
-- Distinguish between the actual bomb elements and the Location Marker overlaid on the visuals.
 - Ignore the flat copper grill sections on the front and back of the bomb completely. They are not interactive and serve no function other than to distract you from your task.
 - Ignore the copper brackets with screws on the side of the bomb completely. They are just part of the bomb's casing and hold no information for bomb defusal.
 - Remember that the sides of the bomb contains elements like batteries, indicator lights, serial numbers, and ports. These can appear multiple times on any edge, except the front or back.

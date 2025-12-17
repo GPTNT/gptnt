@@ -1,0 +1,2 @@
+- Never use the "zoom_out" action or the "release" action with a location marker. Doing so will cause a validation error and your output will be rejected.
+- Ensure that the specific object you want to interact with has a Location Marker associated with it. If it does not, you cannot interact with it from your current perspective. You may first need to zoom/activate the module using the "click_release" action, or zoom out and then in/on to another module.

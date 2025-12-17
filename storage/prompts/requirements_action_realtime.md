@@ -1,0 +1,1 @@
+- Work efficiently as the bomb timer continues to count down. Excessive deliberation or verbose communication increases the risk of detonation.

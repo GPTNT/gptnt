@@ -1,4 +1,4 @@
-#### Formats
+#### Format
 
 - `{"result": {"kind": "do_nothing", "data": {"thoughts": "{THOUGHTS}"}}}`
 - `{"result": {"kind": "send_message", "data": {"message": "{MESSAGE}", "thoughts": "{THOUGHTS}"}}}`

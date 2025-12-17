@@ -1,0 +1,1 @@
+- Distinguish between the actual bomb elements and the Location Marker overlaid on the visuals.

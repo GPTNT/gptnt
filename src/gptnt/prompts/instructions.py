@@ -29,20 +29,17 @@ def _load_scenario(protocol: PlayerProtocol) -> str:
         return PromptCache.get_text(paths.prompts.joinpath("scenario_solo.md"))
 
     logger.debug("Loading scenario for multiplayer")
-    return PromptCache.get_text(paths.prompts.joinpath("scenario_multiplayer.md"))
+    return PromptCache.get_text(paths.prompts.joinpath("scenario.md"))
 
 
 @lru_cache
 def _load_role(protocol: PlayerProtocol) -> str:
     """Load the role for the given protocol."""
     if protocol.role == "expert" and not protocol.is_playing_alone:
-        return PromptCache.get_text(paths.prompts.joinpath("roles_multiplayer_expert.md"))
+        return PromptCache.get_text(paths.prompts.joinpath("roles_expert.md"))
     if protocol.role == "defuser":
-        path = (
-            "roles_solo_defuser.md"
-            if protocol.is_playing_alone
-            else "roles_multiplayer_defuser.md"
-        )
+        path = "roles_defuser_solo.md" if protocol.is_playing_alone else "roles_defuser.md"
+
         return PromptCache.get_text(paths.prompts.joinpath(path))
 
     raise NoPromptForProtocolError(protocol, prompt_category="role")
@@ -55,12 +52,27 @@ def _load_mechanics(protocol: PlayerProtocol) -> str:
         return PromptCache.get_text(paths.prompts.joinpath("mechanics_expert.md"))
 
     if protocol.role == "defuser":
-        path = (
-            "mechanics_defuser_realtime.md"
-            if protocol.communication_style == "async"
-            else "mechanics_defuser.md"
+        mechanics = PromptCache.get_text(
+            paths.prompts.joinpath(
+                "mechanics_defuser_realtime.md"
+                if protocol.communication_style == "async"
+                else "mechanics_defuser.md"
+            )
         )
-        return PromptCache.get_text(paths.prompts.joinpath(path))
+        non_bomb_elements = PromptCache.get_text(
+            paths.prompts.joinpath("mechanics_defuser_non-bomb-elements.md")
+        )
+
+        location = PromptCache.get_text(
+            paths.prompts.joinpath(f"mechanics_defuser_{protocol.interaction_location_method}.md")
+        )
+        if protocol.interaction_location_method == "coordinates":
+            # TODO: retrieve image width and height from the player config
+            location = location.replace("{IMAGE_WIDTH}", str(640)).replace(
+                "{IMAGE_HEIGHT}", str(480)
+            )
+
+        return f"{mechanics}\n{non_bomb_elements}\n{location}"
 
     raise NoPromptForProtocolError(protocol, prompt_category="mechanics")
 
@@ -82,6 +94,17 @@ def _load_commands(protocol: PlayerProtocol) -> str:
     # if defuser, load interact game
     if protocol.role == "defuser":
         interact_game = PromptCache.get_text(paths.prompts.joinpath("commands_interact_game.md"))
+        location = PromptCache.get_text(
+            paths.prompts.joinpath(
+                f"commands_interact_game_{protocol.interaction_location_method}.md"
+            )
+        )
+        if protocol.interaction_location_method == "coordinates":
+            # TODO: retrieve image width and height from the player config
+            location = location.replace("{IMAGE_WIDTH}", str(640)).replace(
+                "{IMAGE_HEIGHT}", str(480)
+            )
+        interact_game = f"{interact_game}\n{location}"
         commands = f"{commands}\n{interact_game}"
 
     return commands
@@ -104,8 +127,48 @@ def _load_thoughts(protocol: PlayerProtocol) -> str:
             solo="_solo" if protocol.is_playing_alone else ""
         )
         thoughts = f"{thoughts}\n{PromptCache.get_text(paths.prompts.joinpath(path))}"
+        thoughts_location = PromptCache.get_text(
+            paths.prompts.joinpath(
+                f"thoughts_format_defuser_{protocol.interaction_location_method}.md"
+            )
+        )
+        thoughts = f"{thoughts}\n{thoughts_location}"
 
     return thoughts
+
+
+@lru_cache
+def _load_action_requirements(protocol: PlayerProtocol) -> str:
+    """Load the action requirements for the given protocol."""
+    action = PromptCache.get_text(paths.prompts.joinpath("requirements_action.md"))
+    if protocol.communication_style == "async":
+        action_realtime = PromptCache.get_text(
+            paths.prompts.joinpath(
+                "requirements_action_realtime.md"
+                if protocol.communication_style == "async"
+                else "requirements_action.md"
+            )
+        )
+        action = f"{action}\n{action_realtime}"
+    if protocol.interaction_location_method == "set-of-marks":
+        action_location = PromptCache.get_text(
+            paths.prompts.joinpath("requirements_action_set-of-marks.md")
+        )
+        action = f"{action}\n{action_location}"
+    return action
+
+
+@lru_cache
+def _load_observation_requirements(protocol: PlayerProtocol) -> str:
+    """Load the observation requirements for the given protocol."""
+    observation = PromptCache.get_text(paths.prompts.joinpath("requirements_observation.md"))
+    # optionally load set-of-marks observation details
+    if protocol.interaction_location_method == "set-of-marks":
+        observation_location = PromptCache.get_text(
+            paths.prompts.joinpath("requirements_observation_set-of-marks.md")
+        )
+        observation = f"{observation}\n{observation_location}"
+    return observation
 
 
 @lru_cache
@@ -115,19 +178,33 @@ def _load_requirements(protocol: PlayerProtocol) -> str:
 
     # if defuser, load action + observation
     if protocol.role == "defuser":
-        action = PromptCache.get_text(paths.prompts.joinpath("requirements_action.md"))
-        observation = PromptCache.get_text(paths.prompts.joinpath("requirements_observation.md"))
+        action = _load_action_requirements(protocol)
+
+        observation = _load_observation_requirements(protocol)
+
         requirements = f"{requirements}\n{action}\n{observation}"
 
     # Load communication
     if protocol.allow_message_output:
-        communication_path = "requirements_communication{role}{thoughts}.md".format(
-            role=f"_{protocol.role}",
-            thoughts="_thoughts" if protocol.allow_thoughts_output else "",
+        communication = PromptCache.get_text(
+            paths.prompts.joinpath(f"requirements_communication_{protocol.role}.md")
         )
-        communication = PromptCache.get_text(paths.prompts.joinpath(communication_path))
+        # optionally load thoughts communication details
+        if protocol.allow_thoughts_output:
+            communication_thoughts = PromptCache.get_text(
+                paths.prompts.joinpath(f"requirements_communication_{protocol.role}_thoughts.md")
+            )
+            communication = f"{communication}\n{communication_thoughts}"
+        # optionally load set-of-marks communication details for defuser player
+        if protocol.role == "defuser" and protocol.interaction_location_method == "set-of-marks":
+            communication_location = PromptCache.get_text(
+                paths.prompts.joinpath("requirements_communication_defuser_set-of-marks.md")
+            )
+            communication = f"{communication}\n{communication_location}"
+
         requirements = f"{requirements}\n{communication}"
 
+    # Load completion
     completion = PromptCache.get_text(
         paths.prompts.joinpath(f"requirements_completion_{protocol.role}.md")
     )
