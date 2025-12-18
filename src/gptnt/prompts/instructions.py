@@ -116,33 +116,6 @@ def _load_commands(deps: PlayerDeps) -> str:
     return commands
 
 
-def _load_thoughts(deps: PlayerDeps) -> str:
-    """Load the thoughts for the given protocol."""
-    if not deps.protocol.allow_thoughts_output:
-        logger.debug("Thoughts are not allowed for this player", protocol=deps.protocol)
-        return ""
-
-    thoughts = PromptCache.get_text(paths.prompts.joinpath("thoughts.md"))
-
-    if deps.protocol.role == "expert":
-        # if expert, load thoughts for expert
-        thoughts = f"{thoughts}\n{PromptCache.get_text(paths.prompts.joinpath('thoughts_format_expert.md'))}"
-
-    if deps.protocol.role == "defuser":
-        path = "thoughts_format_defuser{solo}.md".format(
-            solo="_solo" if deps.protocol.is_playing_alone else ""
-        )
-        thoughts = f"{thoughts}\n{PromptCache.get_text(paths.prompts.joinpath(path))}"
-        thoughts_location = PromptCache.get_text(
-            paths.prompts.joinpath(
-                f"thoughts_format_defuser_{deps.capabilities.interaction_location_method}.md"
-            )
-        )
-        thoughts = f"{thoughts}\n{thoughts_location}"
-
-    return thoughts
-
-
 @lru_cache
 def _load_action_requirements(deps: PlayerDeps) -> str:
     """Load the action requirements for the given protocol."""
@@ -195,14 +168,6 @@ def _load_requirements(deps: PlayerDeps) -> str:
         communication = PromptCache.get_text(
             paths.prompts.joinpath(f"requirements_communication_{deps.protocol.role}.md")
         )
-        # optionally load thoughts communication details
-        if deps.protocol.allow_thoughts_output:
-            communication_thoughts = PromptCache.get_text(
-                paths.prompts.joinpath(
-                    f"requirements_communication_{deps.protocol.role}_thoughts.md"
-                )
-            )
-            communication = f"{communication}\n{communication_thoughts}"
         # optionally load set-of-marks communication details for defuser player
         if (
             deps.protocol.role == "defuser"
@@ -233,10 +198,9 @@ def load_instructions(deps: PlayerDeps) -> str:
     role = _load_role(deps)
     mechanics = _load_mechanics(deps)
     commands = _load_commands(deps)
-    thoughts = _load_thoughts(deps)
     requirements = _load_requirements(deps)
 
-    instructions = f"{scenario}\n{role}\n{mechanics}\n{commands}\n{thoughts}\n{requirements}"
+    instructions = f"{scenario}\n{role}\n{mechanics}\n{commands}\n{requirements}"
     instructions = instructions.strip()
     return instructions
 
