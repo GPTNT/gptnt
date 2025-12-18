@@ -35,7 +35,14 @@ UploadOption = Annotated[
 def load_agent(model: str) -> Agent:
     """Load the agent from the Hydra config with the given model."""
     with hydra.initialize_config_dir(version_base="1.3", config_dir=str(paths.configs)):
-        config = hydra.compose(config_name="player", overrides=[f"model={model}"])
+        config = hydra.compose(
+            config_name="player",
+            overrides=[
+                f"model={model}",
+                # Force temperature to be 0 for evaluation
+                "player.action_predictor.agent.model_settings.temperature=0.0",
+            ],
+        )
     # Instantiate the agent from the class
     agent: Agent = hydra.utils.instantiate(config.player.agent)
     assert isinstance(agent, Agent), "The instantiated agent is not an Agent."
