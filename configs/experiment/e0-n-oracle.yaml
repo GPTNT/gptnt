@@ -1,0 +1,26 @@
+# @package _global_
+
+defaults:
+  - override /mission_condition: multiple_modules_n
+  - override /communication_style: sync
+  - override /pairing: no_expert
+  - override /players: test_oracle
+  - override /think_framework: act
+  - override /player_specs@defuser_protocol: solo_oracle
+  - override /player_specs@expert_protocol: none
+
+  - _self_
+
+mission_generator:
+  config:
+    _target_: gptnt.experiments.missions.MissionGeneratorConfig
+    time_limit: 60
+    allow_back_placement: true
+
+    n_modules_min: 5
+    n_modules_max: 5
+    sample_from_modules: true
+    allow_repeat_module: false
+
+    min_optional_widgets: 1
+    max_optional_widgets: 5
