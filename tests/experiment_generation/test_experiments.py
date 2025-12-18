@@ -32,12 +32,7 @@ def test_experiment_generation_does_not_crash(
     pairing_type: PairingType, missions: Iterator[KtaneMissionSpec], pairings: Iterator[Pairing]
 ) -> None:
     expert_spec = PlayerProtocol(
-        role="expert",
-        communication_style="async",
-        is_playing_alone=False,
-        allow_thoughts_output=True,
-        include_manual=True,
-        thinking_framework="react",
+        role="expert", communication_style="async", is_playing_alone=False, include_manual=True
     )
     generator = ExperimentGenerator(
         condition="single_module",
@@ -45,9 +40,7 @@ def test_experiment_generation_does_not_crash(
             role="defuser",
             communication_style="async",
             is_playing_alone=False,
-            allow_thoughts_output=True,
             include_manual=False,
-            thinking_framework="react",
         ),
         expert_protocol=None if pairing_type == "no_expert" else expert_spec,
     )

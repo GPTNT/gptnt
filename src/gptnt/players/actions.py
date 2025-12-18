@@ -11,6 +11,7 @@ from pydantic_ai import (
     ModelResponse,
     RunUsage,
     TextPart,
+    ThinkingPart,
 )
 
 from gptnt.ktane.actions import GameActionType, KtaneBaseAction, RelativeCoordinate
@@ -47,21 +48,10 @@ class ModelOutputDumpsMixin(BaseModel):
         )
 
 
-class ThoughtsMixin(BaseModel):
-    """Mixin for actions that can have thoughts."""
-
-    thoughts: str | None = None
-    """Thoughts of the player about the action."""
-
-
 class DoNothingAction(ModelOutputDumpsMixin):
     """Create a 'do nothing' action."""
 
     model_config = ConfigDict(title="do_nothing")
-
-
-class DoNothingActionWithThoughts(DoNothingAction, ThoughtsMixin):
-    """Create a 'do nothing' action with thoughts."""
 
 
 class SendMessageAction(ModelOutputDumpsMixin):
@@ -70,10 +60,6 @@ class SendMessageAction(ModelOutputDumpsMixin):
     model_config = ConfigDict(title="send_message")
 
     message: str
-
-
-class SendMessageActionWithThoughts(SendMessageAction, ThoughtsMixin):
-    """Create a 'send message' action with thoughts."""
 
 
 class AbsoluteCoordinate(BaseModel):
@@ -118,19 +104,7 @@ class MagicGameAction(
     model_config = ConfigDict(title="perform_magic")
 
 
-class InteractGameActionWithThoughts(
-    InteractGameAction[LocationDataT_co],
-    ThoughtsMixin,
-    Generic[LocationDataT_co],  # noqa: UP046
-):
-    """Interaction action for the player to take in the game with thoughts."""
-
-
-type GameInteractionActionType = (
-    MagicGameAction
-    | InteractGameAction[InteractableLocation]
-    | InteractGameActionWithThoughts[InteractableLocation]
-)
+type GameInteractionActionType = MagicGameAction | InteractGameAction[InteractableLocation]
 """Action types representing only game interaction actions."""
 
 
@@ -138,9 +112,6 @@ type PlayerOutputType = (
     DoNothingAction
     | SendMessageAction
     | InteractGameAction[InteractableLocation]
-    | DoNothingActionWithThoughts
-    | SendMessageActionWithThoughts
-    | InteractGameActionWithThoughts[InteractableLocation]
     | MagicGameAction
 )
 """Any possible output from a player."""
@@ -187,13 +158,43 @@ class AgentCallResult(BaseModel, Generic[ModelOutputT_co]):  # noqa: UP046
                 raise ValueError("The final message in new_messages must a ModelResponse.")
         return messages
 
-    def new_messages_with_other_action(self, action: PlayerOutputType) -> list[ModelMessage]:
+    @property
+    def thoughts(self) -> str | None:
+        """Extract the thoughts from the final ModelResponse, if any."""
+        if not self.new_messages:
+            return None
+
+        response = self.new_messages[-1]
+        assert isinstance(response, ModelResponse)
+
+        thinking_parts = [
+            part
+            for part in response.parts
+            if isinstance(part, ThinkingPart) and part.has_content()
+        ]
+
+        if not thinking_parts:
+            return None
+
+        return "\n".join(part.content for part in thinking_parts)
+
+    def new_messages_with_other_action(
+        self, action: PlayerOutputType, *, keep_any_thinking: bool = True
+    ) -> list[ModelMessage]:
         """Replace the final ModelResponse with the given action."""
         if not self.new_messages:
             return self.new_messages
 
         response = self.new_messages[-1]
         assert isinstance(response, ModelResponse)
-        response.parts = [TextPart(action.text_part_dump())]
+
+        # Extract any thinking parts if needed
+        thinking_parts = (
+            [part for part in response.parts if isinstance(part, ThinkingPart)]
+            if keep_any_thinking
+            else []
+        )
+
+        response.parts = [*thinking_parts, TextPart(action.text_part_dump())]
 
         return [*self.new_messages[:-1], response]

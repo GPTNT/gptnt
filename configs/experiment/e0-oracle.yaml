@@ -5,7 +5,6 @@ defaults:
   - override /communication_style: sync
   - override /pairing: no_expert
   - override /players: test_oracle
-  - override /think_framework: act
   - override /player_specs@defuser_protocol: solo_oracle
   - override /player_specs@expert_protocol: none
 

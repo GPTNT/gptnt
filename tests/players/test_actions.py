@@ -5,12 +5,9 @@ from pytest_cases import param_fixture, parametrize_with_cases
 from gptnt.ktane.actions import GameActionType, RelativeCoordinate
 from gptnt.players.actions import (
     DoNothingAction,
-    DoNothingActionWithThoughts,
     InteractGameAction,
-    InteractGameActionWithThoughts,
     PlayerOutputType,
     SendMessageAction,
-    SendMessageActionWithThoughts,
 )
 
 game_command = param_fixture(
@@ -22,14 +19,8 @@ class PlayerActionCases:
     def case_do_nothing(self) -> DoNothingAction:
         return DoNothingAction()
 
-    def case_do_nothing_with_thoughts(self) -> DoNothingActionWithThoughts:
-        return DoNothingActionWithThoughts(thoughts="Test thoughts")
-
     def case_send_message(self) -> SendMessageAction:
         return SendMessageAction(message="Test message")
-
-    def case_send_message_with_thoughts(self) -> SendMessageActionWithThoughts:
-        return SendMessageActionWithThoughts(message="Test message", thoughts="Test thoughts")
 
     def case_interact_set_of_marks(self, game_command: GameActionType) -> InteractGameAction[int]:
         return InteractGameAction[int](
@@ -45,26 +36,6 @@ class PlayerActionCases:
             location=RelativeCoordinate(x_pos=0.5, y_pos=0.5)
             if game_command in GameActionType.require_location()
             else None,
-        )
-
-    def case_interact_set_of_marks_with_thoughts(
-        self, game_command: GameActionType
-    ) -> InteractGameActionWithThoughts[int]:
-        return InteractGameActionWithThoughts[int](
-            action=game_command,
-            location=2 if game_command in GameActionType.require_location() else None,
-            thoughts="Test thoughts",
-        )
-
-    def case_interact_relative_coordinate_with_thoughts(
-        self, game_command: GameActionType
-    ) -> InteractGameActionWithThoughts[RelativeCoordinate]:
-        return InteractGameActionWithThoughts[RelativeCoordinate](
-            action=game_command,
-            location=RelativeCoordinate(x_pos=0.5, y_pos=0.5)
-            if game_command in GameActionType.require_location()
-            else None,
-            thoughts="Test thoughts",
         )
 
 

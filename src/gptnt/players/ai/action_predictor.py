@@ -24,7 +24,6 @@ from gptnt.players.actions import (
     DoNothingAction,
     PlayerOutputType,
     SendMessageAction,
-    SendMessageActionWithThoughts,
 )
 from gptnt.players.ai.message_history import (
     AgentMessageInput,
@@ -186,7 +185,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
                     [reflection_message, reflection_prompt],
                     deps=self._agent_deps,
                     output_type=(
-                        NativeOutput([SendMessageAction, SendMessageActionWithThoughts, str])
+                        NativeOutput([SendMessageAction, str])
                         if self.capabilities.use_structured_outputs
                         and self.capabilities.structured_output_mode == "native"
                         else str
@@ -215,7 +214,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
                     ai_response_error=AIResponseErrorType.unknown,
                 )
 
-        if not isinstance(model_output.output, (SendMessageAction, SendMessageActionWithThoughts)):
+        if not isinstance(model_output.output, SendMessageAction):
             model_output.output = SendMessageAction(message=str(model_output.output))
 
         return AgentCallResult(

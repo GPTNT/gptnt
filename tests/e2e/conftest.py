@@ -180,8 +180,7 @@ async def defuser_player_controller(defuser_player_app: FastStream) -> PlayerCon
 
 @fixture
 @parametrize("component", [KtaneComponent.big_button])
-@parametrize("thinking_framework", ["act"])
-def experiment_spec(component: KtaneComponent, thinking_framework: str) -> ExperimentSpec:
+def experiment_spec(component: KtaneComponent) -> ExperimentSpec:
     return ExperimentSpec(
         mission_spec=KtaneMissionSpec(
             seed=234,
@@ -193,12 +192,7 @@ def experiment_spec(component: KtaneComponent, thinking_framework: str) -> Exper
         condition="single_module",
         defuser_name="test-defuser",
         defuser_protocol=PlayerProtocol(
-            role="defuser",
-            communication_style="sync",
-            is_playing_alone=True,
-            include_manual=True,
-            thinking_framework=thinking_framework,
-            allow_thoughts_output=False,
+            role="defuser", communication_style="sync", is_playing_alone=True, include_manual=True
         ),
         expert_name=None,
         expert_protocol=None,

@@ -11,8 +11,6 @@ defaults:
   - players: default
   - pairing: no_expert
 
-  - think_framework: react
-
   - player_specs@defuser_protocol: solo_defuser
   - player_specs@expert_protocol: none
 
@@ -26,11 +24,7 @@ task_name: generate_experiments
 defuser_protocol: ???
 expert_protocol: ???
 communication_style: ???
-framework:
-  thinking_framework: ???
-  allow_thoughts_output: ???
-  allow_thoughts_in_history: ???
-  allow_outputs_in_history: ???
+framework: ???
 
 mission_generator:
   _target_: gptnt.experiments.missions.MissionGenerator

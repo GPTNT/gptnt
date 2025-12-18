@@ -5,7 +5,6 @@ defaults:
   - override /communication_style: sync
   - override /pairing: with_best_defuser
   - override /players: test
-  - override /think_framework: act
   - override /player_specs@defuser_protocol: defuser
   - override /player_specs@expert_protocol: expert
   - _self_

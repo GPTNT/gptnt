@@ -12,19 +12,15 @@ from gptnt.ktane.game_settings import KtaneSettings
 from gptnt.players.actions import (
     AbsoluteCoordinate,
     DoNothingAction,
-    DoNothingActionWithThoughts,
     InteractGameAction,
-    InteractGameActionWithThoughts,
     MagicGameAction,
     PlayerOutputType,
     SendMessageAction,
-    SendMessageActionWithThoughts,
     SingleAlphabetLetter,
 )
 
 type PlayerType = Literal["ai", "human"]
 type PlayerRole = Literal["defuser", "expert"]
-type ThinkingFramework = Literal["act", "react"]
 type CommunicationStyle = Literal["async", "sync"]
 
 
@@ -105,16 +101,6 @@ class PlayerProtocol(BaseModel, frozen=True):
     include_manual: bool
     """Whether the manual should be included in the prompt."""
 
-    thinking_framework: ThinkingFramework
-    """The thinking framework the player will use.
-
-    While this not a necessary field to have, it is useful to allow for easily converting the
-    combination of the below options into a single string.
-    """
-
-    allow_thoughts_output: bool
-    """Whether to allow the players to include thoughts."""
-
     receive_feedback_after_action: bool = False
     """Whether or not a player should receive feedback after each action."""
 
@@ -187,25 +173,13 @@ class PlayerDeps(BaseModel, frozen=True):
         functions because for some reason, this was not working properly.
         """
         output: list[type[PlayerOutputType]] = []
-
-        if self.protocol.allow_thoughts_output:
-            output.append(DoNothingActionWithThoughts)
-        else:
-            output.append(DoNothingAction)
+        output.append(DoNothingAction)
 
         if not self.protocol.is_playing_alone:
-            if self.protocol.allow_thoughts_output:
-                output.append(SendMessageActionWithThoughts)
-            else:
-                output.append(SendMessageAction)
+            output.append(SendMessageAction)
 
         if self.protocol.role == "defuser":
-            if self.protocol.allow_thoughts_output:
-                output.append(
-                    InteractGameActionWithThoughts[self.capabilities.interact_location_type]
-                )
-            else:
-                output.append(InteractGameAction[self.capabilities.interact_location_type])
+            output.append(InteractGameAction[self.capabilities.interact_location_type])
 
         if self.protocol.allow_magic_actions:
             output.append(MagicGameAction)

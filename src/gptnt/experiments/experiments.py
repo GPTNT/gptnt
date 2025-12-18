@@ -107,14 +107,14 @@ class ExperimentSpec(BaseModel, frozen=True):
             prefix = f"{prefix}+solo"
         if self.defuser_protocol.include_manual:
             prefix = f"{prefix}+manual"
-        return f"defuser={self.defuser_name}{prefix}+{self.defuser_protocol.thinking_framework}"
+        return f"defuser={self.defuser_name}{prefix}"
 
     @property
     def _expert_name(self) -> str:
         """Get the name of the expert with their thinking framework."""
         if self.expert_name is None or self.expert_protocol is None:
             return "expert=None"
-        return f"expert={self.expert_name}+{self.expert_protocol.thinking_framework}"
+        return f"expert={self.expert_name}"
 
 
 class ExperimentGenerator(BaseModel):

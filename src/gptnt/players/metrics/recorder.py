@@ -121,6 +121,7 @@ class ExperimentPlayerRecorder:
             step=self.num_steps,
             output=agent_call_result.output,
             raw_output=agent_call_result.raw_output,
+            thoughts=agent_call_result.thoughts,
             bomb_state=self._current_bomb_state,
             observation=self._current_observation_path,
             usage=agent_call_result.usage,
