@@ -1,5 +1,5 @@
 [env]
-LOGFIRE_SEND_TO_LOGFIRE = "true"
+LOGFIRE_SEND_TO_LOGFIRE = "false"
 OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:4318/"
 COMPOSE_PROFILES = "prod"
 

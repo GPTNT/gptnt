@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Annotated, Generic, Literal, TypeVar
 
 from annotated_types import MaxLen, Predicate
-from pydantic import AfterValidator, BaseModel, ConfigDict, NonNegativeInt, Tag, field_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, NonNegativeInt, field_validator
 from pydantic_ai import (
     BaseToolCallPart,
     BaseToolReturnPart,
@@ -19,14 +19,11 @@ NO_NEW_MESSAGES_SENTINEL = "<no_new_messages>"
 """Sentinel for no new messages."""
 
 
-type ActionType = Literal["do_nothing", "send_message", "interact_game"]
-"""Type of action to take."""
-
-
 class AIResponseErrorType(Enum):
     """Reasons the AI player errored."""
 
     invalid_som_location = "invalid_som_location"
+    out_of_bounds_coordinate = "out_of_bounds_coordinate"
     invalid_format = "invalid_format"
     server_error = "server_error"
     guardrail_violation = "guardrail_violation"
@@ -63,6 +60,10 @@ class DoNothingAction(ModelOutputDumpsMixin):
     model_config = ConfigDict(title="do_nothing")
 
 
+class DoNothingActionWithThoughts(DoNothingAction, ThoughtsMixin):
+    """Create a 'do nothing' action with thoughts."""
+
+
 class SendMessageAction(ModelOutputDumpsMixin):
     """Create a 'send message' action."""
 
@@ -71,15 +72,29 @@ class SendMessageAction(ModelOutputDumpsMixin):
     message: str
 
 
+class SendMessageActionWithThoughts(SendMessageAction, ThoughtsMixin):
+    """Create a 'send message' action with thoughts."""
+
+
+class AbsoluteCoordinate(BaseModel):
+    """Absolute coordinate to interact with in the game."""
+
+    x: NonNegativeInt  # noqa: WPS111
+    """Absolute x-coordinate from the left."""
+
+    y: NonNegativeInt  # noqa: WPS111
+    """Absolute y-coordinate from the top."""
+
+
 type SingleAlphabetLetter = Annotated[
     str, MaxLen(1), Predicate(str.isalpha), AfterValidator(lambda letter: letter.upper())
 ]
 
 
 type SetOfMarksLocation = NonNegativeInt | SingleAlphabetLetter
-"""Set of marks location to interact with; must be an int >= 0, or a single letter a-z."""
+"""Set of marks location to interact with; must be an int >= 0, or a single letter A-Z."""
 
-type InteractableLocation = RelativeCoordinate | SetOfMarksLocation
+type InteractableLocation = RelativeCoordinate | SetOfMarksLocation | AbsoluteCoordinate
 """Location-methods to interact with in the game."""
 
 LocationDataT_co = TypeVar("LocationDataT_co", bound=InteractableLocation, covariant=True)
@@ -103,14 +118,6 @@ class MagicGameAction(
     model_config = ConfigDict(title="perform_magic")
 
 
-class DoNothingActionWithThoughts(DoNothingAction, ThoughtsMixin):
-    """Create a 'do nothing' action with thoughts."""
-
-
-class SendMessageActionWithThoughts(SendMessageAction, ThoughtsMixin):
-    """Create a 'send message' action with thoughts."""
-
-
 class InteractGameActionWithThoughts(
     InteractGameAction[LocationDataT_co],
     ThoughtsMixin,
@@ -126,50 +133,14 @@ type GameInteractionActionType = (
 )
 """Action types representing only game interaction actions."""
 
-ExpertOutputType = Annotated[
-    Annotated[DoNothingAction, Tag("do_nothing")]
-    | Annotated[SendMessageAction, Tag("send_message")],
-    Tag("expert"),
-]
-ExpertWithThoughtsOutputType = Annotated[
-    Annotated[DoNothingActionWithThoughts, Tag("do_nothing")]
-    | Annotated[SendMessageActionWithThoughts, Tag("send_message")],
-    Tag("expert"),
-]
 
-DefuserOutputType = Annotated[
-    Annotated[DoNothingAction, Tag("do_nothing")]
-    | Annotated[SendMessageAction, Tag("send_message")]
-    | Annotated[InteractGameAction[SingleAlphabetLetter], Tag("interact_game")],
-    Tag("defuser"),
-]
-
-DefuserWithThoughtsOutputType = Annotated[
-    Annotated[DoNothingActionWithThoughts, Tag("do_nothing")]
-    | Annotated[SendMessageActionWithThoughts, Tag("send_message")]
-    | Annotated[InteractGameActionWithThoughts[SingleAlphabetLetter], Tag("interact_game")],
-    Tag("defuser"),
-]
-
-SoloDefuserOutputType = Annotated[
-    Annotated[DoNothingAction, Tag("do_nothing")]
-    | Annotated[InteractGameAction[SingleAlphabetLetter], Tag("interact_game")],
-    Tag("defuser"),
-]
-SoloDefuserWithThoughtsOutputType = Annotated[
-    Annotated[DoNothingActionWithThoughts, Tag("do_nothing")]
-    | Annotated[InteractGameActionWithThoughts[SingleAlphabetLetter], Tag("interact_game")],
-    Tag("defuser"),
-]
-
-
-PlayerOutputType = (
-    ExpertOutputType
-    | DefuserOutputType
-    | SoloDefuserOutputType
-    | ExpertWithThoughtsOutputType
-    | DefuserWithThoughtsOutputType
-    | SoloDefuserWithThoughtsOutputType
+type PlayerOutputType = (
+    DoNothingAction
+    | SendMessageAction
+    | InteractGameAction[InteractableLocation]
+    | DoNothingActionWithThoughts
+    | SendMessageActionWithThoughts
+    | InteractGameActionWithThoughts[InteractableLocation]
     | MagicGameAction
 )
 """Any possible output from a player."""

@@ -9,6 +9,7 @@ from pydantic_ai.usage import UsageLimits
 
 from gptnt.common.image_ops import ImageDimensions
 from gptnt.players.actions import (
+    AbsoluteCoordinate,
     DoNothingAction,
     DoNothingActionWithThoughts,
     InteractGameAction,
@@ -49,10 +50,27 @@ class PlayerCapabilities(BaseModel, frozen=True):
 
     We default this to 16.
     """
+
     usage_limits: UsageLimits = Field(default_factory=UsageLimits)
 
     desired_image_dimensions: ImageDimensions | None = None
     """The desired input image dimensions for the player."""
+
+    interaction_location_method: Literal["set-of-marks", "coordinates"] = "set-of-marks"
+    """Whether interaction locations are predicted as set-of-marks or coordinates."""
+
+    @property
+    def interact_location_type(self) -> type[SingleAlphabetLetter] | type[AbsoluteCoordinate]:
+        """The type used for interaction locations.
+
+        This is based on the interaction location method so that we can dynamically create the
+        output type for the protocol without needing to have a whole different if-statement.
+        """
+        match self.interaction_location_method:
+            case "set-of-marks":
+                return SingleAlphabetLetter  # pyright: ignore[reportReturnType]
+            case "coordinates":
+                return AbsoluteCoordinate
 
 
 class PlayerProtocol(BaseModel, frozen=True):
@@ -90,50 +108,7 @@ class PlayerProtocol(BaseModel, frozen=True):
     """Whether or not a player should receive feedback after each action."""
 
     allow_magic_actions: bool = False
-
-    interaction_location_method: Literal["set-of-marks", "coordinates"] = "set-of-marks"
-
-    @property
-    def output_type(self) -> type[PlayerOutputType]:
-        """The output type for the player.
-
-        This is used to determine what the agent can output.
-
-        Note that at the end, we also patch the name so that it can be used by various tool
-        functions because for some reason, this was not working properly. That said, doing this and
-        using structured outputs is risky until PydanticAI is a bit more stable?
-        """
-        # Always allow do nothing
-        output: list[type[PlayerOutputType]] = []
-
-        if self.allow_thoughts_output:
-            output.append(DoNothingActionWithThoughts)
-        else:
-            output.append(DoNothingAction)
-
-        if not self.is_playing_alone:
-            if self.allow_thoughts_output:
-                output.append(SendMessageActionWithThoughts)
-            else:
-                output.append(SendMessageAction)
-
-        if self.role == "defuser":
-            if self.allow_thoughts_output:
-                output.append(InteractGameActionWithThoughts[SingleAlphabetLetter])
-            else:
-                output.append(InteractGameAction[SingleAlphabetLetter])
-
-        if self.allow_magic_actions:
-            output.append(MagicGameAction)
-
-        clean_output: list[type[PlayerOutputType]] = []
-        for output_type in output:
-            # Remove the brackets from the output type name
-            output_type.__name__ = output_type.__name__.replace("[", "").replace("]", "")
-            output_type.__qualname__ = output_type.__qualname__.replace("[", "").replace("]", "")
-            clean_output.append(output_type)
-
-        return cast("type[PlayerOutputType]", Union[tuple(clean_output)])  # noqa: UP007
+    """Whether the player is allowed to perform magic actions."""
 
     @property
     def is_solo_player(self) -> bool:
@@ -184,14 +159,51 @@ class PlayerDeps(BaseModel, frozen=True):
         if self.capabilities.use_structured_outputs:
             match self.capabilities.structured_output_mode:
                 case "native":
-                    return NativeOutput(self.protocol.output_type)
+                    return NativeOutput(self.structured_output_type)
                 case "tool":
-                    return self.protocol.output_type
+                    return self.structured_output_type
                 case "prompted":
-                    return PromptedOutput(self.protocol.output_type)
+                    return PromptedOutput(self.structured_output_type)
         return str
 
     @property
     def structured_output_type(self) -> type[PlayerOutputType]:
-        """The output models for the player that are needed regardless of the output mode."""
-        return self.protocol.output_type
+        """The output type for the player.
+
+        This is used to determine what the agent can output.
+
+        Note that at the end, we also patch the name so that it can be used by various tool
+        functions because for some reason, this was not working properly.
+        """
+        output: list[type[PlayerOutputType]] = []
+
+        if self.protocol.allow_thoughts_output:
+            output.append(DoNothingActionWithThoughts)
+        else:
+            output.append(DoNothingAction)
+
+        if not self.protocol.is_playing_alone:
+            if self.protocol.allow_thoughts_output:
+                output.append(SendMessageActionWithThoughts)
+            else:
+                output.append(SendMessageAction)
+
+        if self.protocol.role == "defuser":
+            if self.protocol.allow_thoughts_output:
+                output.append(
+                    InteractGameActionWithThoughts[self.capabilities.interact_location_type]
+                )
+            else:
+                output.append(InteractGameAction[self.capabilities.interact_location_type])
+
+        if self.protocol.allow_magic_actions:
+            output.append(MagicGameAction)
+
+        clean_output: list[type[PlayerOutputType]] = []
+        for output_type in output:
+            # Remove the brackets from the output type name
+            output_type.__name__ = output_type.__name__.replace("[", "").replace("]", "")
+            output_type.__qualname__ = output_type.__qualname__.replace("[", "").replace("]", "")
+            clean_output.append(output_type)
+
+        return cast("type[PlayerOutputType]", Union[tuple(clean_output)])  # noqa: UP007

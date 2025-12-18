@@ -13,7 +13,7 @@ from pydantic import BaseModel, BeforeValidator, PlainSerializer
 from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.state.bomb import BombState
-from gptnt.players.actions import GameInteractionActionType
+from gptnt.players.actions import AbsoluteCoordinate, GameInteractionActionType
 from gptnt.processors.image_resizer import ImageResizer
 from gptnt.processors.set_of_marks import SetOfMarksHandler
 
@@ -141,6 +141,12 @@ class ObservationHandler:
             logger.info(f"Mark to click is: {action.location}")
             action_location = self.set_of_marks_painter.convert_mark_to_coordinate(
                 mark_id=action.location
+            )
+
+        if self.image_resizer and isinstance(action_location, AbsoluteCoordinate):
+            logger.info(f"Converting absolute coordinate {action_location} to relative.")
+            action_location = self.image_resizer.convert_absolute_to_relative(
+                coordinate=action_location
             )
 
         return KtaneGameplayInput.model_validate(

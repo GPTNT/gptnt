@@ -65,6 +65,8 @@ class PlayerSupervisor(HeartbeatBroadcaster):
             incoming_message_handler=self.incoming_message_handler,
         )
 
+        self.validate_configuration()
+
     @property
     def state(self) -> PlayerState:
         """Get the current state of the player."""
@@ -94,3 +96,21 @@ class PlayerSupervisor(HeartbeatBroadcaster):
         self.observation_handler.reset()
         self.experiment_recorder.reset()
         self.state = PlayerState.idle
+
+    def validate_configuration(self) -> None:
+        """Validate the player configuration and setup."""
+        if (
+            self.capabilities.interaction_location_method == "coordinates"
+            and self.observation_handler.image_resizer is None
+        ):
+            raise ValueError(
+                "Players using coordinate-based interaction must have an image resizer configured."
+            )
+
+        if (
+            self.capabilities.interaction_location_method == "set-of-marks"
+            and self.observation_handler.set_of_marks_painter is None
+        ):
+            raise ValueError(
+                "Players using set-of-marks interaction must have a set-of-marks painter configured."
+            )

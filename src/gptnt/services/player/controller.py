@@ -121,6 +121,7 @@ class PlayerController(PlayerSupervisor):
 
         self.protocol = data.protocol
         self.experiment_descriptor = data.experiment_descriptor
+
         await self.experiment_recorder.configure_for_experiment(
             experiment_descriptor=self.experiment_descriptor,
             protocol=self.protocol,

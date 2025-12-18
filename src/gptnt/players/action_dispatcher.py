@@ -24,6 +24,7 @@ from gptnt.players.actions import (
 )
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.players.specification import PlayerProtocol
+from gptnt.processors.image_resizer import CoordinateOutOfBoundsError
 from gptnt.processors.set_of_marks import InvalidMarkLocationError
 
 logger = structlog.get_logger()
@@ -123,6 +124,19 @@ class BaseActionDispatcher(abc.ABC):
                     new_messages=action.new_messages_with_other_action(DoNothingAction()),
                     raw_output=action.output.model_dump_json(),
                     ai_response_error=AIResponseErrorType.invalid_som_location,
+                )
+            )
+        except CoordinateOutOfBoundsError:
+            logger.warning(
+                "Out of bounds coordinate in action, defaulting to DoNothing", action=action
+            )
+            return await self._do_nothing_action(
+                AgentCallResult[DoNothingAction](
+                    output=DoNothingAction(),
+                    usage=action.usage,
+                    new_messages=action.new_messages_with_other_action(DoNothingAction()),
+                    raw_output=action.output.model_dump_json(),
+                    ai_response_error=AIResponseErrorType.out_of_bounds_coordinate,
                 )
             )
 

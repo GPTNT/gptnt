@@ -23,6 +23,8 @@ player:
     player_type: ai
     player_name: ???
     use_structured_outputs: ???
+    structured_output_mode: ???
+    interaction_location_method: set-of-marks
 
   experiment_recorder:
     _target_: gptnt.players.metrics.wandb.WandbExperimentPlayerRecorder
@@ -48,7 +50,12 @@ player:
 
   observation_handler:
     _target_: gptnt.players.observation_handler.ObservationHandler
-    image_resizer: null
+
+    image_resizer:
+      _target_: gptnt.processors.image_resizer.ImageResizer
+      target_width: 640
+      target_height: 480
+
     set_of_marks_painter:
       _target_: gptnt.processors.set_of_marks.SetOfMarksHandler
       add_labels: true

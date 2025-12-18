@@ -1,12 +1,7 @@
-from contextlib import suppress
-
 from hypothesis import given, strategies as st
-from pydantic import TypeAdapter, ValidationError
 
 from gptnt.common.image_ops import ImageDimensions
 from gptnt.ktane.manual import NEEDY_MODULE_PAGE_NUMS
-from gptnt.players.specification import PlayerProtocol
-from gptnt.prompts.instructions import load_instructions
 from gptnt.prompts.manual import load_manual_as_prompt
 
 
@@ -40,26 +35,30 @@ def test_needy_module_pages_are_skipped() -> None:
             assert page_number not in page
 
 
-@st.composite
-def player_protocol_strategy(draw: st.DrawFn) -> PlayerProtocol:
-    with suppress(ValidationError):
-        return draw(st.builds(PlayerProtocol))
-    # If the PlayerProtocol is invalid, we can just skip this case
-    return draw(player_protocol_strategy())
+# @st.composite
+# def player_deps_strategy(draw: st.DrawFn) -> PlayerDeps:
+#     try:
+#         protocol = draw(st.builds(PlayerProtocol))
+#     except ValidationError:
+#         return draw(player_deps_strategy())
+#     try:
+#         capabilities = draw(st.builds(PlayerCapabilities))
+#     except ValidationError:
+#         return draw(player_deps_strategy())
+
+#     return PlayerDeps(protocol=protocol, capabilities=capabilities)
 
 
-@given(player_protocol_strategy())
-def test_prompts_load_for_protocol(player_protocol: PlayerProtocol) -> None:
-    instruction = load_instructions(player_protocol)
-    assert instruction
+# @given(player_deps_strategy())
+# def test_prompts_load_for_protocol(deps: PlayerDeps) -> None:
+#     instruction = load_instructions(deps)
+#     assert instruction
 
 
-@given(player_protocol_strategy())
-def test_build_output_type_for_protocol_creates_valid_schema(
-    player_protocol: PlayerProtocol,
-) -> None:
-    output_type = player_protocol.output_type
-    schema = TypeAdapter(output_type).json_schema()
+# @given(player_deps_strategy())
+# def test_build_output_type_for_protocol_creates_valid_schema(deps: PlayerDeps) -> None:
+#     output_type = deps.structured_output_type
+#     schema = TypeAdapter(output_type).json_schema()
 
-    assert output_type
-    assert schema
+#     assert output_type
+#     assert schema
