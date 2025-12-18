@@ -14,12 +14,12 @@ from gptnt.prompts.manual import load_manual_as_prompt
 )
 def test_manual_loads_consistently_without_error(width: int, height: int) -> None:
     """Test that the manual loads from the function without error."""
-    desired_image_dimensions = ImageDimensions(width, height)
-    manual_prompt = load_manual_as_prompt(desired_image_dimensions=desired_image_dimensions)
+    desired_image_dimensions = ImageDimensions(width=width, height=height)
+    manual_prompt = load_manual_as_prompt(image_dimensions=desired_image_dimensions)
     assert manual_prompt
-    manual_prompt = load_manual_as_prompt(desired_image_dimensions=desired_image_dimensions)
+    manual_prompt = load_manual_as_prompt(image_dimensions=desired_image_dimensions)
     assert manual_prompt
-    manual_prompt = load_manual_as_prompt(desired_image_dimensions=desired_image_dimensions)
+    manual_prompt = load_manual_as_prompt(image_dimensions=desired_image_dimensions)
     assert manual_prompt
 
 

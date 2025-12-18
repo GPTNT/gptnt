@@ -83,9 +83,7 @@ class PlayerController(PlayerSupervisor):
         manual_paths = KtaneManualPaths()
         PromptCache.initialise(paths.prompts, manual_paths.text_dir, manual_paths.images_small_dir)
         # also load the manual too so that it's cached and ready
-        _ = load_manual_as_prompt(
-            desired_image_dimensions=self.capabilities.desired_image_dimensions
-        )
+        _ = load_manual_as_prompt(image_dimensions=self.capabilities.image_dimensions)
 
     @asynccontextmanager
     async def lifespan(self) -> AsyncGenerator[None]:

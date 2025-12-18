@@ -8,6 +8,8 @@ import structlog
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from gptnt.common.image_ops import ImageDimensions
+
 logger = structlog.get_logger()
 
 DEFAULT_PLAYER_SETTINGS_XML = Path(__file__).parent.joinpath("playerSettings.xml").read_text()
@@ -56,6 +58,11 @@ class KtaneSettings(BaseSettings):
         default=480, description="Height of the game window", alias="game_height"
     )
     game_speed: int = Field(default=1, description="Multipler for the game speed")
+
+    @property
+    def image_dimensions(self) -> ImageDimensions:
+        """Get the image dimensions for the game."""
+        return ImageDimensions(width=self.game_width, height=self.game_height)
 
     def update_environment_variables(self) -> None:
         """Set the environment variables for the game settings."""

@@ -47,9 +47,7 @@ class AgentInputBuilder:
         if self.protocol.include_manual and is_message_history_empty:
             logger.debug("Loading manual as prompt")
             agent_input.extend(
-                load_manual_as_prompt(
-                    desired_image_dimensions=self.capabilities.desired_image_dimensions
-                )
+                load_manual_as_prompt(image_dimensions=self.capabilities.image_dimensions)
             )
 
         # 2. Pull messages. This should only happen if we are not playing alone (and messages is

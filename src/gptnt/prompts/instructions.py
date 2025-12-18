@@ -74,10 +74,9 @@ def _load_mechanics(deps: PlayerDeps) -> str:
             )
         )
         if deps.capabilities.interaction_location_method == "coordinates":
-            # TODO: retrieve image width and height from the player config
-            location = location.replace("{IMAGE_WIDTH}", str(640)).replace(
-                "{IMAGE_HEIGHT}", str(480)
-            )
+            location = location.replace(
+                "{IMAGE_WIDTH}", str(deps.capabilities.image_dimensions.width)
+            ).replace("{IMAGE_HEIGHT}", str(deps.capabilities.image_dimensions.height))
 
         return f"{mechanics}\n{non_bomb_elements}\n{location}"
 
@@ -107,10 +106,10 @@ def _load_commands(deps: PlayerDeps) -> str:
             )
         )
         if deps.capabilities.interaction_location_method == "coordinates":
-            # TODO: retrieve image width and height from the player config
-            location = location.replace("{IMAGE_WIDTH}", str(640)).replace(
-                "{IMAGE_HEIGHT}", str(480)
-            )
+            location = location.replace(
+                "{IMAGE_WIDTH}", str(deps.capabilities.image_dimensions.width)
+            ).replace("{IMAGE_HEIGHT}", str(deps.capabilities.image_dimensions.height))
+
         interact_game = f"{interact_game}\n{location}"
         commands = f"{commands}\n{interact_game}"
 

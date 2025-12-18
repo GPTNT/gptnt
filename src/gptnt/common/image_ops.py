@@ -1,15 +1,26 @@
 import base64
+from dataclasses import dataclass
 from io import BytesIO
-from typing import NamedTuple
 
 from PIL import Image
 
 
-class ImageDimensions(NamedTuple):
+@dataclass(frozen=True)
+class ImageDimensions:
     """Dimensions of an image (width, height)."""
 
     width: int
     height: int
+
+    @property
+    def long_side(self) -> int:
+        """The length of the longer side of the image."""
+        return max(self.width, self.height)
+
+    @property
+    def short_side(self) -> int:
+        """The length of the shorter side of the image."""
+        return min(self.width, self.height)
 
 
 def load_observation_from_bytes(image: bytes | str) -> Image.Image:

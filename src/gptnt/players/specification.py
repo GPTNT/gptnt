@@ -8,6 +8,7 @@ from pydantic_ai.output import OutputSpec, StructuredOutputMode
 from pydantic_ai.usage import UsageLimits
 
 from gptnt.common.image_ops import ImageDimensions
+from gptnt.ktane.game_settings import KtaneSettings
 from gptnt.players.actions import (
     AbsoluteCoordinate,
     DoNothingAction,
@@ -55,8 +56,11 @@ class PlayerCapabilities(BaseModel):
 
     usage_limits: UsageLimits = Field(default_factory=UsageLimits)
 
-    desired_image_dimensions: ImageDimensions | None = None
-    """The desired input image dimensions for the player."""
+    image_dimensions: ImageDimensions = Field(default=KtaneSettings().image_dimensions)
+    """Width and height for the player's input images.
+
+    Default to KTANE settings.
+    """
 
     interaction_location_method: Literal["set-of-marks", "coordinates"] = "set-of-marks"
     """Whether interaction locations are predicted as set-of-marks or coordinates."""

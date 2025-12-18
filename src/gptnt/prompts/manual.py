@@ -84,12 +84,13 @@ def load_manual_as_prompt(
     skip_needy_modules: bool = True,
     skip_explainer_pages: bool = True,
     skip_appendix_pages: bool = False,
-    desired_image_dimensions: ImageDimensions | None = None,
+    image_dimensions: ImageDimensions | None = None,
 ) -> list[str | BinaryContent]:
     """Load the content for the manual.
 
     Because certain models also need resized images, we also do that here and cache them in the
-    memory for nice and quick access.
+    memory for nice and quick access. When using `image_dimensions`, we resize images using the
+    long and short sides to preserve aspect ratio.
     """
     logger.debug(f"Loading {num_pages} pages of the manual")
 
@@ -101,10 +102,9 @@ def load_manual_as_prompt(
 
     manual_loader = KtaneManualLoader(
         image_resizer=ImageResizer(
-            target_width=desired_image_dimensions.width,
-            target_height=desired_image_dimensions.height,
+            target_width=image_dimensions.short_side, target_height=image_dimensions.long_side
         )
-        if desired_image_dimensions
+        if image_dimensions
         else None
     )
 
