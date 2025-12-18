@@ -37,8 +37,14 @@ def _load_role(protocol: PlayerProtocol) -> str:
     """Load the role for the given protocol."""
     if protocol.role == "expert" and not protocol.is_playing_alone:
         return PromptCache.get_text(paths.prompts.joinpath("roles_expert.md"))
-    if protocol.role == "defuser":
-        path = "roles_defuser_solo.md" if protocol.is_playing_alone else "roles_defuser.md"
+    if protocol.role == "defuser" and not protocol.is_playing_alone:
+        return PromptCache.get_text(paths.prompts.joinpath("roles_defuser.md"))
+    if protocol.role == "defuser" and protocol.is_playing_alone:
+        path = (
+            "roles_defuser_solo-player.md"
+            if protocol.include_manual
+            else "roles_defuser_solo-defuser.md"
+        )
 
         return PromptCache.get_text(paths.prompts.joinpath(path))
 
