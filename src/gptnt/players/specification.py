@@ -1,6 +1,6 @@
-from typing import Literal, Self, Union, cast
+from typing import Literal, Self, Union, cast, override
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic.fields import computed_field
 from pydantic.functional_validators import model_validator
 from pydantic_ai import NativeOutput, PromptedOutput
@@ -27,11 +27,13 @@ type ThinkingFramework = Literal["act", "react"]
 type CommunicationStyle = Literal["async", "sync"]
 
 
-class PlayerCapabilities(BaseModel, frozen=True):
+class PlayerCapabilities(BaseModel):
     """The capabilities of a player, that is set once on instantiation.
 
     This tells the EM what the player is and what they can do for the matchmaking.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     player_name: str
     """The name of the player."""
@@ -71,6 +73,11 @@ class PlayerCapabilities(BaseModel, frozen=True):
                 return SingleAlphabetLetter  # pyright: ignore[reportReturnType]
             case "coordinates":
                 return AbsoluteCoordinate
+
+    @override
+    def __hash__(self) -> int:
+        """Manually provide the hash function."""
+        return hash(self.model_dump_json())
 
 
 class PlayerProtocol(BaseModel, frozen=True):
