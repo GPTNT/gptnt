@@ -158,6 +158,8 @@ class PlayerController(PlayerSupervisor):
         if self.state != PlayerState.waiting_for_turn:
             raise HTTPException(status_code=503, detail="Player is not ready for a forward pass.")
 
+        logger.debug(f"Step {self.experiment_recorder.num_steps}")
+
         # Collect the state and the observations
         if self.protocol.role == "defuser":
             self.state = PlayerState.waiting_for_observation
