@@ -111,7 +111,6 @@ class WandbExperimentPlayerRecorder(ExperimentPlayerRecorder):
         logger.info("WandB run started")
 
     @override
-    @logfire.instrument("Track step {self.num_steps}", extract_args=False)
     def track_step(
         self,
         *,
