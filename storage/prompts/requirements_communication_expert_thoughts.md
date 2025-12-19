@@ -1,2 +1,0 @@
-- Place any thoughts in {THOUGHTS} only, never in {MESSAGE}, as the Defuser is not interested in reading your internal deliberations.
-- Keep any manual consultation in the {THOUGHTS} section. Only share the resulting instructions in the {MESSAGE}.

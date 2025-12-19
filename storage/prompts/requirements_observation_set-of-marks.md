@@ -1,1 +1,2 @@
-- Distinguish between the actual bomb elements and the Location Marker overlaid on the visuals.
+- Check whether any numbers or letters are part of the actual bomb elements or simply the Location Markers overlaid on the visuals.
+- Report _only_ numbers or letters are part of the actual bomb elements, and use the Location Markers overlaid on the visuals exclusively to specify where to click.

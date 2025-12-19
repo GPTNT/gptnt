@@ -51,6 +51,17 @@ def _load_role(deps: PlayerDeps) -> str:
 
 
 @lru_cache
+def _load_reasoning(deps: PlayerDeps) -> str:
+    """Load the reasoning section for the given protocol."""
+    if deps.protocol.role == "expert":
+        return PromptCache.get_text(paths.prompts.joinpath("reasoning_expert.md"))
+    if deps.protocol.role == "defuser":
+        return PromptCache.get_text(paths.prompts.joinpath("reasoning_defuser.md"))
+
+    raise NoPromptForProtocolError(deps.protocol, prompt_category="reasoning")
+
+
+@lru_cache
 def _load_mechanics(deps: PlayerDeps) -> str:
     """Load the mechanics for the given protocol."""
     if deps.protocol.role == "expert":
@@ -196,11 +207,12 @@ def load_instructions(deps: PlayerDeps) -> str:
     """Load the instructions for the given player."""
     scenario = _load_scenario(deps)
     role = _load_role(deps)
+    reasoning = _load_reasoning(deps)
     mechanics = _load_mechanics(deps)
     commands = _load_commands(deps)
     requirements = _load_requirements(deps)
 
-    instructions = f"{scenario}\n{role}\n{mechanics}\n{commands}\n{requirements}"
+    instructions = f"{scenario}\n{role}\n{reasoning}\n{mechanics}\n{commands}\n{requirements}"
     instructions = instructions.strip()
     return instructions
 

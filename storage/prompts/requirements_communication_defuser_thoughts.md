@@ -1,1 +1,0 @@
-- Place any thoughts, reflections, and plans in "thoughts" only, never in "message".
