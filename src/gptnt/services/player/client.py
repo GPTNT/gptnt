@@ -72,7 +72,6 @@ class PlayerClient:
         }
         return await self._send_command("configure_for_experiment", payload)
 
-    @logfire.instrument("Forward pass")
     async def forward_pass(self) -> dict[str, Any]:
         """Tell a player to perform a forward pass."""
         return await self._send_command("forward_pass")

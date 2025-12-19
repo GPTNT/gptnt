@@ -426,13 +426,19 @@ class SyncExperimentRunner(ExperimentRunner):
 
         async with self.guard_step():
             if not self.is_experiment_over:
-                _ = await self.defuser_player_client.forward_pass()
+                with logfire.span(f"Forward pass (defuser; {self.experiment.defuser.name})"):
+                    _ = await self.defuser_player_client.forward_pass()
 
             if not self.is_experiment_over:
                 await self.game_client.advance_game_time()
 
-            if self.expert_player_client and not self.is_experiment_over:
-                _ = await self.expert_player_client.forward_pass()
+            if (
+                self.expert_player_client
+                and self.experiment.expert
+                and not self.is_experiment_over
+            ):
+                with logfire.span(f"Forward pass (expert; {self.experiment.expert.name})"):
+                    _ = await self.expert_player_client.forward_pass()
 
     @asynccontextmanager
     async def send_feedback_after_step(self) -> AsyncGenerator[None]:
