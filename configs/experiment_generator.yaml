@@ -24,7 +24,6 @@ task_name: generate_experiments
 defuser_protocol: ???
 expert_protocol: ???
 communication_style: ???
-framework: ???
 
 mission_generator:
   _target_: gptnt.experiments.missions.MissionGenerator
