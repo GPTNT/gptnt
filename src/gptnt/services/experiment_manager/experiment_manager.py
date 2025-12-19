@@ -74,11 +74,11 @@ class ExperimentManager(ObservableServiceRegistry):
         expert: PlayerServiceManifest | None,
     ) -> None:
         """Start an experiment."""
-        logger.info("Starting experiment", experiment=spec)
-        session = Session(game=game, defuser=defuser, expert=expert, spec=spec)
-        self._sessions.add(session)
-        for uuid in session.service_uuids:
-            self.connected_services[uuid].state = ServiceState.in_experiment
+        with logfire.span("Create session"):
+            session = Session(game=game, defuser=defuser, expert=expert, spec=spec)
+            self._sessions.add(session)
+            for uuid in session.service_uuids:
+                self.connected_services[uuid].state = ServiceState.in_experiment
 
         await session.start_experiment()
 

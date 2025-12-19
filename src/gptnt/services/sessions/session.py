@@ -91,8 +91,6 @@ class Session:
 
     async def start_experiment(self) -> None:
         """Start the current experiment."""
-        logger.debug("Starting new experiment", experiment=self.experiment_descriptor)
-
         self._task_group = await anyio.create_task_group().__aenter__()
         self._task_group.start_soon(self.experiment_runner.run_experiment)
         # If it's not done already, by the time we exit the app, ensure the task group is

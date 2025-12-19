@@ -108,13 +108,19 @@ class ExperimentRunner(abc.ABC):
         return any(states)
 
     @logfire.instrument("Run experiment")
-    async def run_experiment(self) -> None:
+    async def run_experiment(self) -> None:  # noqa: WPS213
         """Run the experiment."""
-        async with (
-            self.active_state_monitors(),
-            self.game_client.lifespan(),
-            self.experiment_exception_handler(),
-        ):
+        async with self.prepare_experiment_runner():
+            logger.debug(
+                "Experiment lifecycle started",
+                experiment=self.experiment,
+                game_ready_state=self.game_state_watcher.ready_state,
+                defuser_ready_state=self.defuser_state_watcher.ready_state,
+                expert_ready_state=self.expert_state_watcher.ready_state
+                if self.expert_state_watcher
+                else None,
+            )
+
             await self.setup_experiment()
 
             logger.debug("Starting experiment loop", experiment=self.experiment)
@@ -154,16 +160,6 @@ class ExperimentRunner(abc.ABC):
         process should anything go wrong during the running of the experiment. If we don't, then it
         would make for a very very messy method with several try/except blocks.
         """
-        logger.debug(
-            "Experiment lifecycle started",
-            experiment=self.experiment,
-            game_ready_state=self.game_state_watcher.ready_state,
-            defuser_ready_state=self.defuser_state_watcher.ready_state,
-            expert_ready_state=self.expert_state_watcher.ready_state
-            if self.expert_state_watcher
-            else None,
-        )
-
         try:  # noqa: WPS229
             yield
         except* anyio.get_cancelled_exc_class():  # noqa: WPS455
@@ -183,18 +179,25 @@ class ExperimentRunner(abc.ABC):
             await anyio.sleep(1)
 
     @asynccontextmanager
-    async def active_state_monitors(self) -> AsyncGenerator[None]:
-        """Run the state monitors for the experiment.
+    async def prepare_experiment_runner(self) -> AsyncGenerator[None]:
+        """Prepare the experiment runner.
 
-        This is used to monitor the state of the game and players during the experiment. We use a
-        cancel scope to ensure that when the experiment is done, the cancel scope will propogate
-        down and ensure all the cancel scopes within are cancelled.
+        We do this so that we can also wrap the preparation steps in a span for easier tracing, but
+        also so that any future changes are easier to manage.
         """
         async with AsyncExitStack() as stack:
-            await stack.enter_async_context(self.game_state_watcher.run_monitor())
-            await stack.enter_async_context(self.defuser_state_watcher.run_monitor())
-            if self.expert_state_watcher:
-                await stack.enter_async_context(self.expert_state_watcher.run_monitor())
+            with logfire.span("Prepare experiment runner"):
+                # Monitor the state of the game and players during the experiment.
+                await stack.enter_async_context(self.game_state_watcher.run_monitor())
+                await stack.enter_async_context(self.defuser_state_watcher.run_monitor())
+                if self.expert_state_watcher:
+                    await stack.enter_async_context(self.expert_state_watcher.run_monitor())
+
+                # Start the lifespans of the clients
+                await stack.enter_async_context(self.game_client.lifespan())
+
+                # Lastly, wrap in the exception handler
+                await stack.enter_async_context(self.experiment_exception_handler())
             yield
 
     @asynccontextmanager
@@ -203,20 +206,23 @@ class ExperimentRunner(abc.ABC):
 
         Basically, we make sure everyone is ready to go before we start.
         """
-        with anyio.fail_after(timeouts.configure_services_timeout):
-            # Wait for everyone to be ready to go
-            await self.game_state_watcher.lights_are_off_event.wait()
-            await self.defuser_state_watcher.is_first_waiting_for_turn.wait()
-            if self.expert_state_watcher:
-                await self.expert_state_watcher.is_first_waiting_for_turn.wait()
+        with logfire.span("Waiting for all services to be ready"):
+            with anyio.fail_after(timeouts.configure_services_timeout):
+                # Wait for everyone to be ready to go
+                await self.game_state_watcher.lights_are_off_event.wait()
+                await self.defuser_state_watcher.is_first_waiting_for_turn.wait()
+                if self.expert_state_watcher:
+                    await self.expert_state_watcher.is_first_waiting_for_turn.wait()
 
         logger.debug("All players are ready, unpausing game")
-        await self.game_client.unpause_game()
+        with logfire.span("Unpausing game"):
+            await self.game_client.unpause_game()
 
         # Wait for lights on
-        self.game_state_watcher.update_interval = 0.2
-        await self.game_state_watcher.first_lights_on_event.wait()
-        self.game_state_watcher.reset_update_interval()
+        with logfire.span("Waiting for first lights on"):
+            self.game_state_watcher.update_interval = 0.2
+            await self.game_state_watcher.first_lights_on_event.wait()
+            self.game_state_watcher.reset_update_interval()
 
         yield
 
@@ -243,24 +249,21 @@ class ExperimentRunner(abc.ABC):
     @logfire.instrument("Setup experiment")
     async def setup_experiment(self) -> None:
         """Setup the services for the experiment."""
-        logger.debug("Configure defuser")
         _ = await self.defuser_player_client.configure_player(
             player_protocol=self.experiment.experiment_spec.defuser_protocol,
             experiment_descriptor=self.experiment,
         )
         if self.experiment.expert and self.expert_player_client:
-            logger.debug("Configure expert")
             _ = await self.expert_player_client.configure_player(
                 player_protocol=self.experiment.expert.protocol,
                 experiment_descriptor=self.experiment,
             )
-        logger.debug("Configure game")
         await self.game_client.configure_game(spec=self.experiment.mission_spec)
         # Pause on lights off
-        with anyio.fail_after(timeouts.configure_services_timeout):
-            await self.game_state_watcher.lights_are_off_event.wait()
-        logger.debug("Pausing game after lights are off")
-        await self.game_client.pause_game()
+        with logfire.span("Pausing game after lights are off"):
+            with anyio.fail_after(timeouts.configure_services_timeout):
+                await self.game_state_watcher.lights_are_off_event.wait()
+            await self.game_client.pause_game()
 
     @logfire.instrument("Send reflection request")
     async def send_reflection_request(self) -> None:

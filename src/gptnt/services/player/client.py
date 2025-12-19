@@ -61,7 +61,7 @@ class PlayerClient:
         """Send feedback to the player."""
         return await self._send_command("send_feedback", {"message": feedback})
 
-    @logfire.instrument("Configure player")
+    @logfire.instrument("Configure player ({player_protocol.role})")
     async def configure_player(
         self, *, player_protocol: PlayerProtocol, experiment_descriptor: ExperimentDescriptor
     ) -> bool:
