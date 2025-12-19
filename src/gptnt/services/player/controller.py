@@ -234,6 +234,7 @@ class PlayerController(PlayerSupervisor):
         self.state = PlayerState.waiting_for_turn
         return True
 
+    @logfire.instrument("Stop player")
     async def stop_player(self, stop_event: StopPlayerEvent) -> dict[str, str]:
         """Stop the player and end the experiment.
 
@@ -260,7 +261,6 @@ class PlayerController(PlayerSupervisor):
 
         return {"status": "accepted", "reason": "Stopping player and ending experiment"}
 
-    @logfire.instrument("Stop player")
     async def _stop_player_async(self, stop_event: StopPlayerEvent) -> None:
         """Async cleanup task for stopping player."""
         if not hasattr(self, "protocol"):
