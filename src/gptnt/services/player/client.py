@@ -13,8 +13,11 @@ from gptnt.services.broker import create_redis_broker
 from gptnt.services.events.player import PlayerMessage, StopPlayerEvent
 from gptnt.services.experiment_descriptor import ExperimentDescriptor
 from gptnt.services.player.controller import PlayerCommand
+from gptnt.services.timeouts import ServiceTimeouts
 
 logger = structlog.get_logger()
+
+timeouts = ServiceTimeouts()
 
 
 @dataclass(kw_only=True)
@@ -113,5 +116,7 @@ class PlayerClient:
             await self.start()
 
         channel = f"{self.command_channel}:{command}"
-        response = await self._broker.request(payload or {}, channel=channel, timeout=600)
+        response = await self._broker.request(
+            payload or {}, channel=channel, timeout=timeouts.redis_rpc_timeout
+        )
         return await response.decode()
