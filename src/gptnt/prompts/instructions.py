@@ -50,13 +50,26 @@ def _load_role(deps: PlayerDeps) -> str:
     raise NoPromptForProtocolError(deps.protocol, prompt_category="role")
 
 
+def _is_open_source_model(player_name: str) -> bool:
+    """Check if the player name indicates an open-source model."""
+    return "qwen" in player_name or "internvl" in player_name
+
+
 @lru_cache
 def _load_reasoning(deps: PlayerDeps) -> str:
     """Load the reasoning section for the given protocol."""
     if deps.protocol.role == "expert":
-        return PromptCache.get_text(paths.prompts.joinpath("reasoning_expert.md"))
+        thinking = PromptCache.get_text(paths.prompts.joinpath("reasoning_expert.md"))
+        if _is_open_source_model(deps.capabilities.player_name):
+            thinking_format = PromptCache.get_text(paths.prompts.joinpath("reasoning_oss.md"))
+            thinking = f"{thinking}\n{thinking_format}"
+        return thinking
     if deps.protocol.role == "defuser":
-        return PromptCache.get_text(paths.prompts.joinpath("reasoning_defuser.md"))
+        thinking = PromptCache.get_text(paths.prompts.joinpath("reasoning_defuser.md"))
+        if _is_open_source_model(deps.capabilities.player_name):
+            thinking_format = PromptCache.get_text(paths.prompts.joinpath("reasoning_oss.md"))
+            thinking = f"{thinking}\n{thinking_format}"
+        return thinking
 
     raise NoPromptForProtocolError(deps.protocol, prompt_category="reasoning")
 
@@ -162,6 +175,19 @@ def _load_observation_requirements(deps: PlayerDeps) -> str:
 
 
 @lru_cache
+def load_formatting_requirements(deps: PlayerDeps) -> str:
+    """Load the formatting requirements for the given protocol."""
+    formatting = PromptCache.get_text(paths.prompts.joinpath("requirements_formatting.md"))
+    # optionally load reasoning formatting details for open-source models
+    if _is_open_source_model(deps.capabilities.player_name):
+        formatting_thinking = PromptCache.get_text(
+            paths.prompts.joinpath("requirements_formatting_reasoning_oss.md")
+        )
+        formatting = f"{formatting}\n{formatting_thinking}"
+    return formatting
+
+
+@lru_cache
 def _load_requirements(deps: PlayerDeps) -> str:
     """Load the requirements for the given protocol."""
     requirements = PromptCache.get_text(paths.prompts.joinpath("requirements.md"))
@@ -197,7 +223,8 @@ def _load_requirements(deps: PlayerDeps) -> str:
     )
     requirements = f"{requirements}\n{completion}"
 
-    formatting = PromptCache.get_text(paths.prompts.joinpath("requirements_formatting.md"))
+    formatting = load_formatting_requirements(deps)
+
     requirements = f"{requirements}\n{formatting}"
     return requirements
 
@@ -209,7 +236,7 @@ def load_instructions(deps: PlayerDeps) -> str:
     role = _load_role(deps)
     reasoning = _load_reasoning(deps)
     mechanics = _load_mechanics(deps)
-    commands = _load_commands(deps)
+    commands: str = _load_commands(deps)
     requirements = _load_requirements(deps)
 
     instructions = f"{scenario}\n{role}\n{reasoning}\n{mechanics}\n{commands}\n{requirements}"
