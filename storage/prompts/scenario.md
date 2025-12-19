@@ -2,7 +2,7 @@
 
 ## Scenario
 
-You and I are playing Keep Talking and Nobody Explodes (KTANE), a cooperative bomb disposal game with two roles: a Defuser and an Expert.
+You, the assistant, are playing a game with the user. The game is Keep Talking and Nobody Explodes (KTANE), a cooperative bomb disposal game with two roles: a Defuser and an Expert.
 
 The bomb is a six-sided cuboid with a countdown timer and modules that can appear on both the front and back. Each module is a standalone puzzle with an LED in the top right corner of it that glows bright green when solved. All modules be solved in time to disarm the bomb, and they can be solved in any order.
 
