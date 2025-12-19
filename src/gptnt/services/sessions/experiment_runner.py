@@ -54,9 +54,6 @@ class ExperimentRunner(abc.ABC):
     defuser_state_watcher: PlayerStateWatcher = field(init=False, repr=False)
     expert_state_watcher: PlayerStateWatcher | None = field(default=None, init=False, repr=False)
 
-    num_turns: int = 0
-    """Number of turns taken in the experiment, used for logging and debugging."""
-
     redis_url: RedisDsn = field(default=RedisDsn("redis://localhost:6379"))
 
     # Events
@@ -409,7 +406,6 @@ class SyncExperimentRunner(ExperimentRunner):
                 self.client_crashed_event.set()
             else:
                 await anyio.sleep(0.5)
-                self.num_turns += 1
 
         logger.debug(
             "Experiment sync loop completed",
@@ -514,7 +510,6 @@ class AsyncExperimentRunner(ExperimentRunner):
                 _ = await player_client.forward_pass()
 
                 await anyio.sleep(0.5)
-                self.num_turns += 1
 
         logger.debug(
             "Player loop completed", experiment=self.experiment.experiment_spec.experiment_name
