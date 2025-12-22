@@ -1,5 +1,3 @@
-import sys
-
 import anyio
 import hydra
 import logfire
@@ -8,6 +6,7 @@ from pydantic import RedisDsn
 from redis import Redis
 from structlog import get_logger
 
+from gptnt.common.hydra import get_hydra_overrides
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
 from gptnt.ktane.manual import KtaneManualPaths
@@ -20,14 +19,6 @@ logger = get_logger()
 
 paths = Paths()
 ktane_manual_paths = KtaneManualPaths()
-
-
-def get_hydra_overrides() -> list[str]:
-    """Check and return any Hydra overrides passed as command line arguments."""
-    hydra_overrides = sys.argv[1:] if len(sys.argv) > 1 else []
-    if hydra_overrides:
-        logger.debug(f"Hydra overrides: {hydra_overrides}")
-    return hydra_overrides
 
 
 def main(

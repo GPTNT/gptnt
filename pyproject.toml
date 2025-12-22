@@ -231,6 +231,8 @@ ignore = [
     "ERA001",
     # Words in exceptions are fine.
     "TRY003",
+    # we are not doing cryptography here
+    "S311",
     # Things to ignore because ruff's formatter says so
     # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
     "D206",

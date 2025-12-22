@@ -13,6 +13,7 @@ from pydantic_ai import (
     NativeOutput,
     RunUsage,
     TextPart,
+    UnexpectedModelBehavior,
     capture_run_messages,
 )
 from pydantic_ai.models import Model
@@ -87,7 +88,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
         self.message_history = message_history
 
     @logfire.instrument("Send request to agent", extract_args=False)
-    async def send_request_to_agent(  # noqa: WPS212
+    async def send_request_to_agent(  # noqa: WPS212, PLR0911
         self, *, message_input: AgentMessageInput
     ) -> AgentCallResult[PlayerOutputType]:
         """Send a message to the AI.
@@ -121,6 +122,20 @@ class ActionPredictor(InstrumentationDataclassMixin):
                         ai_response_error=AIResponseErrorType.guardrail_violation
                     )
 
+                # If it's a formatting error due to retries exceeded, we want to handle that
+                # specifically too
+                if (
+                    isinstance(err, UnexpectedModelBehavior)
+                    and "Exceeded maximum retries" in err.message
+                ):
+                    logger.warning(
+                        "Exceeded maximum retries, meaning output is invalid", error=err
+                    )
+                    return self._pretend_model_wants_do_nothing(
+                        all_messages=run_messages,
+                        ai_response_error=AIResponseErrorType.invalid_format,
+                        raw_model_output=str(err.body),
+                    )
                 logger.exception(
                     "SOMETHING NEW HAS GONE WRONG, defaulting to `DoNothing`", error=err
                 )
@@ -158,7 +173,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
 
         return AgentCallResult(
             output=model_output.output,
-            raw_output=None,
+            raw_output=str(model_output.response.parts),
             usage=model_output.usage(),
             new_messages=new_messages,
             ai_response_error=None,

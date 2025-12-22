@@ -27,7 +27,7 @@ class AgentInputBuilder:
 
     observation_handler: ObservationHandler
 
-    recorder: ExperimentPlayerRecorder
+    recorder: ExperimentPlayerRecorder | None
 
     @logfire.instrument(
         "Build agent input", extract_args=["messages", "bomb_state", "is_message_history_empty"]
@@ -88,12 +88,13 @@ class AgentInputBuilder:
         # Separate to below where we don't include the final frame, here we want to track it so
         # we can make sure the segmentation mask aligns properly too. Hence why this is
         # indexed differently
-        await self.recorder.store_step_context(
-            bomb_state=bomb_state,
-            frames=observation.frames[-num_frames_to_use:],
-            segm_mask=observation.segm_mask,
-            som_image=observation.som_image,
-        )
+        if self.recorder is not None:
+            await self.recorder.store_step_context(
+                bomb_state=bomb_state,
+                frames=observation.frames[-num_frames_to_use:],
+                segm_mask=observation.segm_mask,
+                som_image=observation.som_image,
+            )
 
         observations = [
             *[

@@ -122,7 +122,7 @@ class BaseActionDispatcher(abc.ABC):
                     output=DoNothingAction(),
                     usage=action.usage,
                     new_messages=action.new_messages_with_other_action(DoNothingAction()),
-                    raw_output=action.output.model_dump_json(),
+                    raw_output=action.raw_output,
                     ai_response_error=AIResponseErrorType.invalid_som_location,
                 )
             )
@@ -135,7 +135,7 @@ class BaseActionDispatcher(abc.ABC):
                     output=DoNothingAction(),
                     usage=action.usage,
                     new_messages=action.new_messages_with_other_action(DoNothingAction()),
-                    raw_output=action.output.model_dump_json(),
+                    raw_output=action.raw_output,
                     ai_response_error=AIResponseErrorType.out_of_bounds_coordinate,
                 )
             )
@@ -145,7 +145,7 @@ class BaseActionDispatcher(abc.ABC):
             output=game_action,
             usage=action.usage,
             new_messages=action.new_messages,
-            raw_output=action.output.model_dump_json(),
+            raw_output=action.raw_output,
             ai_response_error=None,
         )
 
