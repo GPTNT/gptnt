@@ -1,1 +1,1 @@
-Enclose this entire thinking process within <think> and </think> tags. Provide your answer after the thinking section, separated from it with a newline.
+Enclose the entire thinking process within <think> and </think> tags, followed by a newline. Provide the thinking process first and as a separate section from giving your answer, e.g. '<think>{THOUGHTS}</think>/n{command: "send_message", "message": "{MESSAGE}"}', replacing {THOUGHTS} with your thoughts and {MESSAGE} with your answer.

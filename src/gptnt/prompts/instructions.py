@@ -58,20 +58,13 @@ def _is_open_source_model(player_name: str) -> bool:
 @lru_cache
 def _load_reasoning(deps: PlayerDeps) -> str:
     """Load the reasoning section for the given protocol."""
-    if deps.protocol.role == "expert":
-        thinking = PromptCache.get_text(paths.prompts.joinpath("reasoning_expert.md"))
-        if _is_open_source_model(deps.capabilities.player_name):
-            thinking_format = PromptCache.get_text(paths.prompts.joinpath("reasoning_oss.md"))
-            thinking = f"{thinking}\n{thinking_format}"
-        return thinking
-    if deps.protocol.role == "defuser":
-        thinking = PromptCache.get_text(paths.prompts.joinpath("reasoning_defuser.md"))
-        if _is_open_source_model(deps.capabilities.player_name):
-            thinking_format = PromptCache.get_text(paths.prompts.joinpath("reasoning_oss.md"))
-            thinking = f"{thinking}\n{thinking_format}"
-        return thinking
+    thinking = PromptCache.get_text(paths.prompts.joinpath("reasoning.md"))
 
-    raise NoPromptForProtocolError(deps.protocol, prompt_category="reasoning")
+    if _is_open_source_model(deps.capabilities.player_name):
+        thinking_format = PromptCache.get_text(paths.prompts.joinpath("reasoning_oss.md"))
+        thinking = f"{thinking}\n{thinking_format}"
+
+    return thinking
 
 
 @lru_cache

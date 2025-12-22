@@ -1,3 +1,3 @@
 ## Reasoning
 
-Think through this process mentally before making a decision:
+Think through every decision mentally. Do not include your reasoning in your communication with the user.

@@ -5,4 +5,5 @@ Now I want you to reflect on the game you just played, focusing on teamwork, com
 4. What strategies or approaches worked well for your team, and which did not?
 5. If you played again, what specific changes would you make to improve your teamwork and communication?
 6. What lessons did you learn from this experience that can help you both perform better in future collaborative games?
-Please provide your answer using a send_message action. You can also include any thoughts that you have. Make sure you use the following correct JSON format, replacing {MESSAGE} with your answer and {THOUGHTS} with your thoughts: {command: "send_message", "message": "{MESSAGE}", "thoughts": {THOUGHTS}}.
+
+Please provide your answer using a send_message action. You can also include any thoughts that you have. For your messages, make sure you use the following correct JSON format, replacing {MESSAGE} with your answer: {command: "send_message", "message": "{MESSAGE}"}.
