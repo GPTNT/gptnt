@@ -18,7 +18,7 @@ run = "uv run python src/gptnt/entrypoints/run_player.py model=test_expert"
 
 [tasks.format]
 description = "Format/lint all files in one go"
-run = "uv run pre-commit run -a"
+run = "uv run prek run -a"
 
 [tasks.game]
 description = "Run the game"

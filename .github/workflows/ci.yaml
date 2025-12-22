@@ -64,37 +64,37 @@ jobs:
           enable-cache: true
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Load cached pre-commit environment
+      - name: Load cached prek environment
         uses: actions/cache/restore@v4
-        id: pre-commit-cache
+        id: prek-cache
         with:
-          path: ~/.cache/pre-commit
-          key: ${{ runner.os }}-pre-commit-${{ hashFiles('**/.pre-commit-config.yaml') }}
+          path: ~/.cache/prek
+          key: ${{ runner.os }}-prek-${{ hashFiles('**/.pre-commit-config.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-pre-commit-
+            ${{ runner.os }}-prek-
 
       - name: Install deps
         run: uv sync --all-groups
 
-      - name: Run pre-commit hook
-        id: run-pre-commit-hooks
+      - name: Run prek hook
+        id: run-prek-hooks
         run: |
           git add .pre-commit-config.yaml
-          uv run pre-commit run --color=always --all-files
+          uv run prek run --color=always --all-files
 
       - name: Annotate any changes using reviewdog
         if: ${{ failure() }}
         id: reviewdog-suggester
         uses: reviewdog/action-suggester@v1
         with:
-          tool_name: pre-commit
+          tool_name: prek
 
-      - name: Save pre-commit cache
+      - name: Save prek cache
         if: ${{ always() }}
         uses: actions/cache/save@v4
         with:
-          path: ~/.cache/pre-commit
-          key: ${{ runner.os }}-pre-commit-${{ hashFiles('**/.pre-commit-config.yaml') }}
+          path: ~/.cache/prek
+          key: ${{ runner.os }}-prek-${{ hashFiles('**/.pre-commit-config.yaml') }}
 
   test:
     name: Run pytest
