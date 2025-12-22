@@ -22,6 +22,7 @@ from gptnt.players.actions import (
 type PlayerType = Literal["ai", "human"]
 type PlayerRole = Literal["defuser", "expert"]
 type CommunicationStyle = Literal["async", "sync"]
+type InteractionLocationMethod = Literal["set-of-marks", "coordinates"]
 
 
 class PlayerCapabilities(BaseModel):
@@ -58,7 +59,7 @@ class PlayerCapabilities(BaseModel):
     Default to KTANE settings.
     """
 
-    interaction_location_method: Literal["set-of-marks", "coordinates"] = "set-of-marks"
+    interaction_location_method: InteractionLocationMethod = "set-of-marks"
     """Whether interaction locations are predicted as set-of-marks or coordinates."""
 
     @property

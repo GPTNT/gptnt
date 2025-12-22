@@ -14,6 +14,7 @@ from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import AbsoluteCoordinate, GameInteractionActionType
+from gptnt.players.specification import InteractionLocationMethod
 from gptnt.processors.image_resizer import ImageResizer
 from gptnt.processors.set_of_marks import SetOfMarksHandler
 
@@ -59,6 +60,7 @@ class ObservationHandler:
     and going in the right format.
     """
 
+    interaction_location_method: InteractionLocationMethod
     image_resizer: ImageResizer | None = None
     set_of_marks_painter: SetOfMarksHandler | None = None
 
@@ -100,9 +102,13 @@ class ObservationHandler:
             # with logfire.span("Resize images", images=images):
             images = [self.image_resizer.resize_image(image) for image in images]
 
-        # Apply set of marks only on the last image
+        # Apply set of marks only on the last image IF we want set of marks
         last_image = images[-1]
-        if self.set_of_marks_painter and segmentation:
+        if (
+            self.set_of_marks_painter
+            and segmentation
+            and self.interaction_location_method == "set-of-marks"
+        ):
             with logfire.span("Applying set of marks on last frame"):
                 segm_image = load_observation_from_bytes(segmentation)
 

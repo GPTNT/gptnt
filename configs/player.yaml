@@ -50,6 +50,7 @@ player:
 
   observation_handler:
     _target_: gptnt.players.observation_handler.ObservationHandler
+    interaction_location_method: ${player.capabilities.interaction_location_method}
 
     image_resizer:
       _target_: gptnt.processors.image_resizer.ImageResizer
