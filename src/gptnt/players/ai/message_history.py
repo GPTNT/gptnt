@@ -227,7 +227,7 @@ class MessageHistory:
     @logfire.instrument("Truncate message history")
     def truncate_history_if_needed(self) -> None:
         """Truncate the message history to fit within the usage limits."""
-        if self.capabilities.usage_limits.request_tokens_limit is None:
+        if self.capabilities.usage_limits.input_tokens_limit is None:
             # If there is no limit, we never truncate
             return
 

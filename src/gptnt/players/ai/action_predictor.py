@@ -88,7 +88,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
         self.message_history = message_history
 
     @logfire.instrument("Send request to agent", extract_args=False)
-    async def send_request_to_agent(  # noqa: WPS212, PLR0911
+    async def send_request_to_agent(  # noqa: WPS212, WPS231, PLR0911
         self, *, message_input: AgentMessageInput
     ) -> AgentCallResult[PlayerOutputType]:
         """Send a message to the AI.
@@ -129,12 +129,12 @@ class ActionPredictor(InstrumentationDataclassMixin):
                     and "Exceeded maximum retries" in err.message
                 ):
                     logger.warning(
-                        "Exceeded maximum retries, meaning output is invalid", error=err
+                        "Exceeded maximum retries, meaning output is invalid", error=str(err)
                     )
                     return self._pretend_model_wants_do_nothing(
                         all_messages=run_messages,
                         ai_response_error=AIResponseErrorType.invalid_format,
-                        raw_model_output=str(err.body),
+                        raw_model_output=str(err.body) if err.body else None,
                     )
                 logger.exception(
                     "SOMETHING NEW HAS GONE WRONG, defaulting to `DoNothing`", error=err
@@ -234,7 +234,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
 
         return AgentCallResult(
             output=model_output.output,
-            raw_output=None,
+            raw_output=str(model_output.response.parts),
             usage=model_output.usage(),
             new_messages=model_output.new_messages(),
             ai_response_error=None,
@@ -247,18 +247,30 @@ class ActionPredictor(InstrumentationDataclassMixin):
         ai_response_error: AIResponseErrorType,
         raw_model_output: str | None = None,
     ) -> AgentCallResult[DoNothingAction]:
-        """Handle broken output from the agent."""
+        """Replace the response with a do nothing.
+
+        Initially, this was implemented by comparing history lengths but that ended up being
+        brittle and multiple responses got through. So as a result, we do things in a more robust
+        way.
+        """
+        # If the last message is already a model response, we need to pop all the consecutive
+        # responses from the end to make sure there are none left.
+        cutoff_index = len(all_messages)
+        while cutoff_index > 0 and isinstance(all_messages[cutoff_index - 1], ModelResponse):
+            cutoff_index -= 1
+
+        # Keep all messages up to (but not including) the trailing ModelResponse objects.
+        message_history_with_new_request = all_messages[:cutoff_index]
+
+        # Create the do nothing response
         model_output = DoNothingAction()
         model_response = ModelResponse(parts=[TextPart(model_output.text_part_dump())])
-
-        num_new_messages = len(all_messages) - len(self.message_history.to_history())
-        new_messages = all_messages[-num_new_messages:]
 
         return AgentCallResult(
             output=model_output,
             raw_output=raw_model_output,
             usage=RunUsage(),
-            new_messages=[*new_messages, model_response],
+            new_messages=[*message_history_with_new_request, model_response],
             ai_response_error=ai_response_error,
         )
 
