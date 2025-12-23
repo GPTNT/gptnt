@@ -1,4 +1,4 @@
-Now I want you to reflect on the game you just played, focusing on teamwork, communication, and learning from mistakes. In your response, address the following points:
+Now you must reflect on the game you just played, focusing on teamwork, communication, and learning from mistakes. In your response, address the following points:
 1. What was the final outcome of the game, and how did you and your teammate contribute to it?
 2. Describe any communication challenges or misunderstandings that occurred. How did they affect your performance?
 3. Identify any mistakes or missed opportunities made by either player. How did you recognise that these were mistakes? What signs or feedback made you aware of them? How could they have been avoided?
@@ -6,4 +6,4 @@ Now I want you to reflect on the game you just played, focusing on teamwork, com
 5. If you played again, what specific changes would you make to improve your teamwork and communication?
 6. What lessons did you learn from this experience that can help you both perform better in future collaborative games?
 
-Please provide your answer using a send_message action. You can also include any thoughts that you have. For your messages, make sure you use the following correct JSON format, replacing {MESSAGE} with your answer: {command: "send_message", "message": "{MESSAGE}"}.
+Provide your thinking process first, followed by a newline and your answer in the correct JSON format: '<think>{THOUGHTS}</think>/n{command: "send_message", "message": "{MESSAGE}"}'. Replace {THOUGHTS} with your thoughts and {MESSAGE} with your answer.

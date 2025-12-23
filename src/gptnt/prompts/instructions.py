@@ -62,7 +62,7 @@ def _load_reasoning(deps: PlayerDeps) -> str:
 
     if _is_open_source_model(deps.capabilities.player_name):
         thinking_format = PromptCache.get_text(paths.prompts.joinpath("reasoning_oss.md"))
-        thinking = f"{thinking}\n{thinking_format}"
+        return f"{thinking}\n{thinking_format}"
 
     return thinking
 
@@ -177,7 +177,10 @@ def load_formatting_requirements(deps: PlayerDeps) -> str:
             paths.prompts.joinpath("requirements_formatting_reasoning_oss.md")
         )
         formatting = f"{formatting}\n{formatting_thinking}"
-    return formatting
+    formatting_command = PromptCache.get_text(
+        paths.prompts.joinpath("requirements_formatting_commands.md")
+    )
+    return f"{formatting}\n{formatting_command}"
 
 
 @lru_cache
