@@ -56,13 +56,11 @@ def convert_hf_dataset_to_instances(
 def run_eval_step(
     *,
     instance: dict[str, Any],
-    preprocess_func: PostprocessInputsFunc,
     predict_method: Callable[..., ModelOutput],
     prediction_output_file: Path,
 ) -> ModelOutput | None:
     """Run a single evaluation step for an instance."""
-    preprocessed_instance = preprocess_func(instance)
-    prediction = predict_method(**preprocessed_instance)
+    prediction = predict_method(**instance)
     # Add index to prediction content
     prediction_with_index = {"index": instance["index"], **prediction}
     _ = prediction_output_file.write_text(json.dumps(prediction_with_index))
@@ -75,9 +73,6 @@ class RunEvaluation(abc.ABC):
 
     predict_method_name: ClassVar[str] = "model_predict"
     """The specific predict method name to use for the evaluation from EvalModel."""
-
-    preprocess_instance_func: PostprocessInputsFunc
-    """The function to preprocess the instance before prediction."""
 
     agent: Agent
     task_name: str
@@ -123,7 +118,6 @@ class RunEvaluation(abc.ABC):
                 continue
             _ = run_eval_step(
                 instance=instance,
-                preprocess_func=self.preprocess_instance_func,
                 predict_method=getattr(self.eval_model, self.predict_method_name),
                 prediction_output_file=prediction_output_file,
             )
@@ -149,6 +143,9 @@ class RunHFDatasetEvaluation(RunEvaluation):
     """Get the HF dataset repo identifier."""
 
     dataset_split: str | None = None
+
+    preprocess_instance_func: PostprocessInputsFunc
+    """The function to preprocess the instance before loading into the WeaveDataset."""
 
     @override
     def load_dataset(self) -> WeaveDataset:
