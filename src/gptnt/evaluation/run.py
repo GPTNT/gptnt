@@ -10,6 +10,7 @@ import datasets
 import polars as pl
 import structlog
 import weave
+from PIL import Image
 from pydantic_ai import Agent
 from tqdm import tqdm
 from weave import Dataset as WeaveDataset
@@ -19,6 +20,7 @@ from gptnt.dataset.defuser_vqa.constants import TaskType
 from gptnt.evaluation.model import EvalModel, ModelOutput
 from gptnt.evaluation.preprocess import PostprocessInputsFunc
 from gptnt.evaluation.scorers import load_all_scorers
+from gptnt.processors.image_resizer import ImageResizer
 
 logger = structlog.get_logger()
 paths = Paths()
@@ -52,6 +54,27 @@ def convert_hf_dataset_to_instances(
     return [element for df in all_polar_dfs for element in df.to_dicts()]
 
 
+def _resize_instance_items(
+    element: Any | dict[str, Any] | list[Any], *, image_resizer: ImageResizer
+) -> Any:
+    if isinstance(element, Image.Image):
+        return image_resizer.resize_image(element)
+
+    # 2. Recurse through Dictionaries
+    if isinstance(element, dict):
+        return {
+            k: _resize_instance_items(v, image_resizer=image_resizer)
+            for k, v in element.items()  # noqa: WPS111
+        }
+
+    # 3. Recurse through Lists
+    if isinstance(element, list):
+        return [_resize_instance_items(i, image_resizer=image_resizer) for i in element]  # noqa: WPS111
+
+    # 4. Return primitives/other objects unchanged
+    return element
+
+
 @weave.op
 def run_eval_step(
     *,
@@ -83,6 +106,8 @@ class RunEvaluation(abc.ABC):
     eval_model: EvalModel = field(init=False, repr=False)
     model_name: str = field(init=False, repr=False)
 
+    image_resizer: ImageResizer
+
     def __post_init__(self) -> None:
         """Initialize the evaluation model."""
         self.eval_model = EvalModel.from_agent(agent=self.agent)
@@ -99,7 +124,10 @@ class RunEvaluation(abc.ABC):
 
     @abc.abstractmethod
     def load_dataset(self) -> WeaveDataset:
-        """Load the dataset as a Weave dataset."""
+        """Load the dataset as a Weave dataset.
+
+        You should also resize all the images.
+        """
         raise NotImplementedError("Subclasses must implement load_dataset method.")
 
     def throw(self) -> None:
@@ -134,6 +162,15 @@ class RunEvaluation(abc.ABC):
         asyncio.run(evaluation.evaluate(self.eval_model))
         weave_client.finish()
 
+    def _resize_all_images(self, all_instances: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Inelegantly, resize every image across every instance."""
+        # TODO: Optimize this later if needed
+        fixed_instances = [
+            _resize_instance_items(instance, image_resizer=self.image_resizer)
+            for instance in tqdm(all_instances, desc="Resize images")
+        ]
+        return fixed_instances
+
 
 @dataclass(kw_only=True)
 class RunHFDatasetEvaluation(RunEvaluation):
@@ -161,5 +198,6 @@ class RunHFDatasetEvaluation(RunEvaluation):
                 desc="Preprocessing instances",
             )
         )
+        instances = self._resize_all_images(instances)
         weave_dataset = WeaveDataset(name=self.task_name, rows=weave.Table(instances))
         return weave_dataset

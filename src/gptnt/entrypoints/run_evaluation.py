@@ -1,8 +1,10 @@
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Annotated
 
 import hydra
 import typer
+from omegaconf import DictConfig
 from pydantic_ai import Agent
 from structlog import get_logger
 
@@ -22,6 +24,7 @@ from gptnt.evaluation.run import (
     OCR_INSTRUCTION,
     RunHFDatasetEvaluation,
 )
+from gptnt.processors.image_resizer import ImageResizer
 
 configure_logging()
 logger = get_logger()
@@ -40,13 +43,30 @@ UploadOption = Annotated[
 ]
 
 
-def load_agent(model: str) -> Callable[..., Agent]:
-    """Load the agent from the Hydra config with the given model."""
-    with hydra.initialize_config_dir(version_base="1.3", config_dir=str(paths.configs)):
-        config = hydra.compose(config_name="player", overrides=[f"model={model}"])
-    # Instantiate a partial func for creating the agent from the class
-    agent = hydra.utils.instantiate(config.player.action_predictor.agent, _partial_=True)
-    return agent
+@dataclass(kw_only=True)
+class ConfigLoader:
+    """Easily parse and load things from the config."""
+
+    model: str
+
+    @property
+    def config(self) -> DictConfig:
+        """Load the config."""
+        with hydra.initialize_config_dir(version_base="1.3", config_dir=str(paths.configs)):
+            config = hydra.compose(config_name="player", overrides=[f"model={self.model}"])
+        return config
+
+    @property
+    def image_resizer(self) -> ImageResizer:
+        """Instantiate the image resizer from the config."""
+        image_resizer = hydra.utils.instantiate(self.config.player.preprocessors.image_resizer)
+        return image_resizer
+
+    @property
+    def agent_fn(self) -> Callable[..., Agent]:
+        """Instantiate a partial func for creating the agent from the class."""
+        agent = hydra.utils.instantiate(self.config.player.action_predictor.agent, _partial_=True)
+        return agent
 
 
 @app.command("defuser-grounding")
@@ -58,7 +78,7 @@ def run_defuser_grounding_evaluation(
     should_upload: UploadOption = False,
 ) -> None:
     """Run the defuser grounding evaluation."""
-    agent_fn = load_agent(model)
+    config_loader = ConfigLoader(model=model)
     runner = RunHFDatasetEvaluation(
         hf_repo_id="GPTNT/defuser-grounding-dataset",
         dataset_split="test",
@@ -66,7 +86,8 @@ def run_defuser_grounding_evaluation(
         task_type="grounding",
         weave_project="gptnt/defuser-grounding",
         preprocess_instance_func=preprocess_grounding_instance,
-        agent=agent_fn(instructions=DEFAULT_INSTRUCTION),
+        agent=config_loader.agent_fn(instructions=DEFAULT_INSTRUCTION),
+        image_resizer=config_loader.image_resizer,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -89,7 +110,7 @@ def run_defuser_oe_vqa_evaluation(
     should_upload: UploadOption = False,
 ) -> None:
     """Run the defuser VQA."""
-    agent_fn = load_agent(model)
+    config_loader = ConfigLoader(model=model)
     runner = RunHFDatasetEvaluation(
         hf_repo_id="GPTNT/defuser-vqa-oe-dataset",
         dataset_split="test",
@@ -97,7 +118,8 @@ def run_defuser_oe_vqa_evaluation(
         task_type="vqa",
         weave_project="gptnt/defuser-vqa-open_ended",
         preprocess_instance_func=preprocess_defuser_vqa_open_ended_instance,
-        agent=agent_fn(instructions=DEFAULT_INSTRUCTION),
+        agent=config_loader.agent_fn(instructions=DEFAULT_INSTRUCTION),
+        image_resizer=config_loader.image_resizer,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -120,7 +142,7 @@ def run_defuser_mcq_vqa_evaluation(
     should_upload: UploadOption = False,
 ) -> None:
     """Run the defuser VQA evaluation on multiple choice questions."""
-    agent_fn = load_agent(model)
+    config_loader = ConfigLoader(model=model)
     runner = RunHFDatasetEvaluation(
         hf_repo_id="GPTNT/defuser-vqa-mc-dataset",
         dataset_split="test",
@@ -128,7 +150,8 @@ def run_defuser_mcq_vqa_evaluation(
         task_type="vqa",
         weave_project="gptnt/defuser-vqa-mcq",
         preprocess_instance_func=preprocess_defuser_vqa_mcq_instance,
-        agent=agent_fn(instructions=MCQ_INSTRUCTION),
+        agent=config_loader.agent_fn(instructions=MCQ_INSTRUCTION),
+        image_resizer=config_loader.image_resizer,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -151,14 +174,15 @@ def run_expert_vqa_evaluation(
     should_upload: UploadOption = False,
 ) -> None:
     """Run the expert VQA evaluation."""
-    agent_fn = load_agent(model)
+    config_loader = ConfigLoader(model=model)
     runner = RunHFDatasetEvaluation(
         hf_repo_id="GPTNT/expert-VQA",
         task_name="expert-vqa",
         task_type="expert_vqa",
         weave_project="gptnt/expert-vqa",
         preprocess_instance_func=preprocess_expert_vqa_instance,
-        agent=agent_fn(instructions=MCQ_INSTRUCTION),
+        agent=config_loader.agent_fn(instructions=MCQ_INSTRUCTION),
+        image_resizer=config_loader.image_resizer,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -181,14 +205,15 @@ def run_expert_ocr_evaluation(
     should_upload: UploadOption = False,
 ) -> None:
     """Run the expert OCR evaluation."""
-    agent_fn = load_agent(model)
+    config_loader = ConfigLoader(model=model)
     runner = RunHFDatasetEvaluation(
         hf_repo_id="GPTNT/expert-element-ocr",
         task_name="expert-ocr",
         task_type="expert_vqa",
         weave_project="gptnt/expert-ocr",
         preprocess_instance_func=preprocess_expert_ocr_instance,
-        agent=agent_fn(instructions=OCR_INSTRUCTION),
+        agent=config_loader.agent_fn(instructions=OCR_INSTRUCTION),
+        image_resizer=config_loader.image_resizer,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -211,14 +236,15 @@ def run_expert_grounding_evaluation(
     should_upload: UploadOption = False,
 ) -> None:
     """Run the expert grounding evaluation."""
-    agent_fn = load_agent(model)
+    config_loader = ConfigLoader(model=model)
     runner = RunHFDatasetEvaluation(
         hf_repo_id="GPTNT/expert-element-grounding",
         task_name="expert-element-grounding",
         task_type="expert_vqa",
         weave_project="gptnt/expert-element-grounding",
         preprocess_instance_func=preprocess_expert_grounding_instance,
-        agent=agent_fn(instructions=MCQ_INSTRUCTION),
+        agent=config_loader.agent_fn(instructions=MCQ_INSTRUCTION),
+        image_resizer=config_loader.image_resizer,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
