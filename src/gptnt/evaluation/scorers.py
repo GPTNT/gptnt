@@ -3,6 +3,8 @@ from typing import Any, Literal, override
 
 import numpy as np
 import weave
+from numpy.typing import NDArray
+from PIL import Image
 from pydantic import PrivateAttr
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import cos_sim as cosine_similarity
@@ -17,6 +19,65 @@ trick_question_categories = ["hallucination_type=type_a", "hallucination_type=ty
 
 typea = need more information typeb = something doesnt add up
 """
+
+
+class GroundingScorer:
+    """Scorer for grounding tasks."""
+
+    def set_of_marks_accuracy(self, ground_truth: str, prediction: str) -> bool:
+        """Calculate accuracy for SOM tasks."""
+        return str(ground_truth).strip().lower() == str(prediction).strip().lower()
+
+    def coordinate_accuracy(self, ground_truth: Image.Image, prediction: tuple[int, int]) -> bool:
+        """Calculate accuracy for coordinate prediction tasks.
+
+        The prediction is considered correct if it is within the threshold distance from the ground
+        truth.
+        """
+        gt_mask = np.array(ground_truth)
+        if not self._prediction_is_valid(prediction, gt_mask):
+            return False  # Out of bounds
+        predicted_region_id = gt_mask[prediction[1], prediction[0]]
+        return bool(predicted_region_id)
+
+    def coordinate_distance(self, ground_truth: Image.Image, prediction: tuple[int, int]) -> float:
+        """Calculate distance for coordinate prediction tasks.
+
+        The distance is calculated between the predicted coordinates and the closest pixel of the
+        ground truth region.
+        """
+        width, height = ground_truth.width, ground_truth.height
+        # Check if predicted coordinates are out of bounds
+        max_distance = np.sqrt(height**2 + width**2)
+        gt_mask = np.array(ground_truth)
+        if not self._prediction_is_valid(prediction, gt_mask):
+            return max_distance
+
+        # Find all pixels belonging to the ground truth region
+        ys, xs = gt_mask.nonzero()
+        dx = (xs - prediction[0]).astype(np.float64)
+        dy = (ys - prediction[1]).astype(np.float64)
+        distances = np.sqrt(dx**2 + dy**2)
+        return float(np.min(distances))
+
+    def _get_grounding_region_id(self, ground_truth: str | int) -> int:
+        """Get the region ID for grounding tasks."""
+        if isinstance(ground_truth, str):
+            if not ground_truth.isdigit():
+                raise ValueError(
+                    "Ground truth must be an integer or string representing an integer."
+                )
+            ground_truth = int(ground_truth)
+        return ground_truth
+
+    def _prediction_is_valid(
+        self, prediction: tuple[int, int], gt_mask: NDArray[np.uint8]
+    ) -> bool:
+        """Check if the prediction is valid."""
+        x_coord, y_coord = prediction
+        if x_coord < 0 or y_coord < 0:
+            return False  # Out of bounds
+        return y_coord < gt_mask.shape[0] and x_coord < gt_mask.shape[1]
 
 
 @dataclass(kw_only=True)

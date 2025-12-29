@@ -27,8 +27,38 @@ def load_image(image: str | dict[str, Any] | None) -> Image.Image | None:
     raise ValueError("Invalid image format")
 
 
+def convert_ground_truth_to_binary_mask(instance: dict[str, Any]) -> Image.Image | None:
+    """Convert ground truth to binary mask image."""
+    ground_truth = instance.get("ground_truth")
+    if ground_truth is None:
+        return None
+    if instance["hallucination"] is not None and instance["hallucination"] != "None":
+        return None
+
+    segmentation_mask = load_image(instance["segmentation_mask"])
+    if segmentation_mask is None:
+        return None
+    width, height = segmentation_mask.size
+    return Image.frombytes("L", (width, height), instance["ground_truth"].encode("latin-1"))
+
+
 @weave.op
-def preprocess_grounding_instance(instance: dict[str, Any]) -> dict[str, Any]:
+def preprocess_grounding_coordinates_instance(instance: dict[str, Any]) -> dict[str, Any]:
+    """Convert the instance to rename the fields to match the model."""
+    input_image = load_image(instance["frames"][-1])
+    return {
+        **instance,
+        "model_input": [input_image, instance["model_input"]],  # noqa: WPS226
+        "question": instance["model_input"],
+        "som_image": load_image(instance["som_image"]),
+        "segmentation_mask": load_image(instance["segmentation_mask"]),
+        "frames": [load_image(image) for image in instance["frames"]],
+        "ground_truth": convert_ground_truth_to_binary_mask(instance),
+    }
+
+
+@weave.op
+def preprocess_grounding_set_of_marks_instance(instance: dict[str, Any]) -> dict[str, Any]:
     """Convert the instance to rename the fields to match the model."""
     som_image = load_image(instance["som_image"])
     return {
@@ -44,7 +74,7 @@ def preprocess_grounding_instance(instance: dict[str, Any]) -> dict[str, Any]:
 @weave.op
 def preprocess_defuser_vqa_open_ended_instance(instance: dict[str, Any]) -> dict[str, Any]:
     """Convert the instance to rename the fields to match the model (defuser VQA open-ended)."""
-    input_images = [load_image(image) for image in instance["input_images"]]
+    input_images = [load_image(image) for image in instance["frames"]]
 
     return {
         **instance,

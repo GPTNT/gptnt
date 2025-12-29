@@ -39,7 +39,7 @@ class ExperimentStepRecord(BaseModel):
 
     output: PlayerOutputType | KtaneGameplayInput
     raw_output: str | None
-    thoughts: str | None
+    thoughts: str | None = None
 
     bomb_state: BombState | None
     observation: Annotated[Observation | Path | None, Field(repr=False)]

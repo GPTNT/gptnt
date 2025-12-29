@@ -134,6 +134,18 @@ def get_region_properties(labeled_image: NDArray[np.uint8]) -> list[RegionProper
     return props
 
 
+def extract_and_order_regions(
+    colorful_image: RGBArray, zoomed_in_component: KtaneComponent | None
+) -> tuple[RGBArray, list[RegionProperties]]:
+    """Extract regions from a colourful segmentation image."""
+    labeled_segmentation = convert_colorful_segm_to_labeled(colorful_image)
+    regions = get_region_properties(labeled_segmentation)
+    labeled_segmentation, regions = relabel_regions_in_reading_order(
+        labeled_segmentation, regions, zoomed_in_component=zoomed_in_component
+    )
+    return labeled_segmentation, regions
+
+
 def convert_to_grayscale(image: RGBArray) -> RGBArray:
     """Convert an image to grayscale while maintaining 3 channels."""
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -393,10 +405,8 @@ class SetOfMarksHandler:
         self, colorful_image: RGBArray, zoomed_in_component: KtaneComponent | None
     ) -> tuple[RGBArray, list[RegionProperties]]:
         """Extract regions from a colourful segmentation image."""
-        labeled_segmentation = convert_colorful_segm_to_labeled(colorful_image)
-        regions = get_region_properties(labeled_segmentation)
-        labeled_segmentation, regions = relabel_regions_in_reading_order(
-            labeled_segmentation, regions, zoomed_in_component=zoomed_in_component
+        labeled_segmentation, regions = extract_and_order_regions(
+            colorful_image, zoomed_in_component=zoomed_in_component
         )
         self._update_mark_to_coordinate_mapping(regions, zoomed_in_component=zoomed_in_component)
         return labeled_segmentation, regions

@@ -16,7 +16,8 @@ from gptnt.evaluation.preprocess import (
     preprocess_expert_grounding_instance,
     preprocess_expert_ocr_instance,
     preprocess_expert_vqa_instance,
-    preprocess_grounding_instance,
+    preprocess_grounding_coordinates_instance,
+    preprocess_grounding_set_of_marks_instance,
 )
 from gptnt.evaluation.run import (
     DEFAULT_INSTRUCTION,
@@ -69,7 +70,7 @@ class ConfigLoader:
         return agent
 
 
-@app.command("defuser-grounding")
+@app.command("defuser-grounding-coordinates")
 def run_defuser_grounding_evaluation(
     *,
     model: ModelOption,
@@ -81,11 +82,43 @@ def run_defuser_grounding_evaluation(
     config_loader = ConfigLoader(model=model)
     runner = RunHFDatasetEvaluation(
         hf_repo_id="GPTNT/defuser-grounding-dataset",
-        dataset_split="test",
+        dataset_split="test_coordinates",
         task_name="defuser-grounding",
         task_type="grounding",
         weave_project="gptnt/defuser-grounding",
-        preprocess_instance_func=preprocess_grounding_instance,
+        preprocess_instance_func=preprocess_grounding_coordinates_instance,
+        agent=config_loader.agent_fn(instructions=DEFAULT_INSTRUCTION),
+        image_resizer=config_loader.image_resizer,
+    )
+    if should_download:
+        logger.info("Downloading dataset before running evaluation")
+        _ = runner.load_dataset()
+
+    logger.info("Running evaluation", agent=runner.agent)
+    if should_throw:
+        runner.throw()
+    if should_upload:
+        runner.upload()
+    logger.info("Evaluation completed successfully", agent=runner.agent)
+
+
+@app.command("defuser-grounding-som")
+def run_defuser_set_of_marks_evaluation(
+    *,
+    model: ModelOption,
+    should_download: DownloadOption = False,
+    should_throw: ThrowOption = False,
+    should_upload: UploadOption = False,
+) -> None:
+    """Run the defuser grounding evaluation."""
+    config_loader = ConfigLoader(model=model)
+    runner = RunHFDatasetEvaluation(
+        hf_repo_id="GPTNT/defuser-grounding-dataset",
+        dataset_split="test_som",
+        task_name="defuser-grounding",
+        task_type="grounding",
+        weave_project="gptnt/defuser-grounding",
+        preprocess_instance_func=preprocess_grounding_set_of_marks_instance,
         agent=config_loader.agent_fn(instructions=DEFAULT_INSTRUCTION),
         image_resizer=config_loader.image_resizer,
     )
