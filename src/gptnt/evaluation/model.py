@@ -40,10 +40,8 @@ class EvalModel(WeaveModel):
     """Directory to save the evaluation outputs."""
 
     @classmethod
-    def from_agent(cls, *, agent: Agent, instructions: str) -> Self:
+    def from_agent(cls, *, agent: Agent) -> Self:
         """Create an EvalModel from a PydanticAI Agent."""
-        agent._instructions = instructions  # noqa: SLF001  # pyright: ignore[reportAttributeAccessIssue]
-
         model_name = None
         if isinstance(agent.model, str):
             model_name = agent.model
@@ -61,81 +59,24 @@ class EvalModel(WeaveModel):
         self._output_dir = output_dir
 
     @weave.op
-    def grounding_predict(
-        self,
-        model_input: str,
-        som_image: Image.Image,
-        **kwargs: Any,  # noqa: ARG002
-    ) -> ModelOutput:
+    def model_predict(self, model_input: list[str | Image.Image]) -> ModelOutput:
         """Run the model on the input."""
-        buffer = io.BytesIO()
-        som_image.save(buffer, format="PNG")
-        binary_image = BinaryContent(data=buffer.getvalue(), media_type="image/png")
-        model_output: AgentRunResult[str] = self._agent.run_sync([binary_image, model_input])
-
-        # TODO: Remove any possible symbols or characters that are not valid in the output
-        output_string = model_output.output.strip()
-        return ModelOutput(
-            usage={
-                "input_tokens": model_output.usage().request_tokens or 0,
-                "output_tokens": model_output.usage().response_tokens or 0,
-                "total_tokens": model_output.usage().total_tokens or 0,
-            },
-            model=self.name or "",
-            output=output_string,
-        )
-
-    @weave.op
-    def defuser_vqa_open_ended_predict(
-        self,
-        model_input: str,
-        input_images: list[Image.Image],
-        **kwargs: Any,  # noqa: ARG002
-    ) -> ModelOutput:
-        """Run the model on the input."""
-        loaded_images: list[BinaryContent] = []
-        for image in input_images:
-            buffer = io.BytesIO()
-            image.save(buffer, format="PNG")
-            binary_image = BinaryContent(data=buffer.getvalue(), media_type="image/png")
-            loaded_images.append(binary_image)
-
-        model_output: AgentRunResult[str] = self._agent.run_sync([*loaded_images, model_input])
-        output_string = model_output.output.strip()
-        return ModelOutput(
-            usage={
-                "input_tokens": model_output.usage().request_tokens or 0,
-                "output_tokens": model_output.usage().response_tokens or 0,
-                "total_tokens": model_output.usage().total_tokens or 0,
-            },
-            model=self.name or "",
-            output=output_string,
-        )
-
-    @weave.op
-    def expert_vqa_predict(
-        self,
-        model_input: str,
-        manual: list[str | Image.Image],
-        **kwargs: Any,  # noqa: ARG002
-    ) -> ModelOutput:
-        """Run the model on the input."""
-        loaded_manual: list[str | BinaryContent] = []
-        for page in manual:
-            if isinstance(page, Image.Image):
+        loaded_inputs: list[BinaryContent | str] = []
+        for chunk in model_input:
+            if isinstance(chunk, Image.Image):
                 buffer = io.BytesIO()
-                page.save(buffer, format="PNG")
+                chunk.save(buffer, format="PNG")
                 binary_image = BinaryContent(data=buffer.getvalue(), media_type="image/png")
-                loaded_manual.append(binary_image)
+                loaded_inputs.append(binary_image)
             else:
-                loaded_manual.append(page)
+                loaded_inputs.append(chunk)
 
-        model_output: AgentRunResult[str] = self._agent.run_sync([*loaded_manual, model_input])
+        model_output: AgentRunResult[str] = self._agent.run_sync(loaded_inputs)
         output_string = model_output.output.strip()
         return ModelOutput(
             usage={
-                "input_tokens": model_output.usage().request_tokens or 0,
-                "output_tokens": model_output.usage().response_tokens or 0,
+                "input_tokens": model_output.usage().input_tokens or 0,
+                "output_tokens": model_output.usage().output_tokens or 0,
                 "total_tokens": model_output.usage().total_tokens or 0,
             },
             model=self.name or "",
@@ -143,7 +84,7 @@ class EvalModel(WeaveModel):
         )
 
     @weave.op
-    def predict(self, index: int, **kwargs: Any) -> ModelOutput:  # noqa: ARG002
+    def predict(self, index: int, model_input: Any, **kwargs: Any) -> ModelOutput:  # noqa: ARG002
         """Fetch the model answer from the json."""
         prediction_path = self._output_dir.joinpath(f"prediction_{index}.json")
 

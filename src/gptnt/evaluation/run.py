@@ -13,39 +13,43 @@ import weave
 from pydantic_ai import Agent
 from tqdm import tqdm
 from weave import Dataset as WeaveDataset
-from weave.trace.op import PostprocessInputsFunc
 
 from gptnt.common.paths import Paths
-from gptnt.dataset.defuser_vqa.constants import TaskFormat, TaskType
-from gptnt.dataset.expert_vqa import load_expert_vqa_dataset
+from gptnt.dataset.defuser_vqa.constants import TaskType
 from gptnt.evaluation.model import EvalModel, ModelOutput
-from gptnt.evaluation.preprocess import (
-    preprocess_defuser_vqa_mcq_instance,
-    preprocess_defuser_vqa_open_ended_instance,
-    preprocess_expert_vqa_instance,
-    preprocess_grounding_instance,
-)
+from gptnt.evaluation.preprocess import PostprocessInputsFunc
 from gptnt.evaluation.scorers import load_all_scorers
 
 logger = structlog.get_logger()
 paths = Paths()
 
 
-DEFAULT_INSTRUCTION = "Answer the following question based on given context. Output only the one letter, word short phrase, or number required to answer the question, nothing else."
+DEFAULT_INSTRUCTION = "Answer the following question based on given context. Output only the one letter, word, short phrase, or number required to answer the question, nothing else."
 MCQ_INSTRUCTION = "Answer the following multiple choice question based on the given context. Output only the letter of the correct answer, nothing else."
+OCR_INSTRUCTION = "Follow the instruction given the context from the image. Output only the answer, nothing else."
 
 
-def convert_hf_dataset_to_weave_dataset(
-    hf_dataset: datasets.Dataset, task_name: TaskType, task_format: TaskFormat
-) -> WeaveDataset:
-    """Convert a Hugging Face dataset to a Weave dataset."""
-    polars_df = datasets.Dataset.to_polars(self=hf_dataset)
-    assert isinstance(polars_df, pl.DataFrame)
-    polars_df = polars_df.with_row_index("index").filter(
-        (pl.col("input_type") == task_name) & (pl.col("question_format") == task_format)
-    )
-    weave_dataset = WeaveDataset(name=task_name, rows=weave.Table(polars_df.to_dicts()))
-    return weave_dataset
+def convert_hf_dataset_to_instances(
+    hf_dataset: datasets.Dataset | datasets.DatasetDict,
+) -> list[dict[str, Any]]:
+    """Convert a Hugging Face dataset to just its instances."""
+    # Handle DatasetDict by merging all splits into one too
+    if isinstance(hf_dataset, datasets.DatasetDict):
+        all_datasets = list(hf_dataset.values())
+    else:
+        all_datasets = [hf_dataset]
+
+    previous_start_index = 0
+    all_polar_dfs: list[pl.DataFrame] = []
+    for ds in all_datasets:
+        polars_df = datasets.Dataset.to_polars(self=ds)
+        assert isinstance(polars_df, pl.DataFrame)
+
+        polars_df = polars_df.with_row_index("index", offset=previous_start_index)
+        previous_start_index += polars_df.height
+        all_polar_dfs.append(polars_df)
+
+    return [element for df in all_polar_dfs for element in df.to_dicts()]
 
 
 @weave.op
@@ -69,25 +73,24 @@ def run_eval_step(
 class RunEvaluation(abc.ABC):
     """Base class for running evaluations."""
 
-    predict_method_name: ClassVar[str]
+    predict_method_name: ClassVar[str] = "model_predict"
     """The specific predict method name to use for the evaluation from EvalModel."""
 
     preprocess_instance_func: PostprocessInputsFunc
     """The function to preprocess the instance before prediction."""
 
     agent: Agent
-    task_name: TaskType
-    weave_project: str
+    task_name: str
+    task_type: TaskType
 
-    task_format: TaskFormat = "open_ended"
-    instructions: str = DEFAULT_INSTRUCTION
+    weave_project: str
 
     eval_model: EvalModel = field(init=False, repr=False)
     model_name: str = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
         """Initialize the evaluation model."""
-        self.eval_model = EvalModel.from_agent(agent=self.agent, instructions=self.instructions)
+        self.eval_model = EvalModel.from_agent(agent=self.agent)
         assert isinstance(self.eval_model.name, str), "Model must have a name"
         self.model_name = self.eval_model.name
         self.eval_model.update_output_dir(self.output_dir)
@@ -132,9 +135,7 @@ class RunEvaluation(abc.ABC):
         weave_client = weave.init(self.weave_project)
         dataset = self.load_dataset()
         evaluation = weave.Evaluation(
-            dataset=dataset,
-            scorers=load_all_scorers(task_type=self.task_name),
-            preprocess_model_input=self.preprocess_instance_func,
+            dataset=dataset, scorers=load_all_scorers(task_type=self.task_type)
         )
         asyncio.run(evaluation.evaluate(self.eval_model))
         weave_client.finish()
@@ -144,69 +145,24 @@ class RunEvaluation(abc.ABC):
 class RunHFDatasetEvaluation(RunEvaluation):
     """Run the evaluation on a huggingface dataset."""
 
-    hf_dataset_name: str
+    hf_repo_id: str
+    """Get the HF dataset repo identifier."""
+
+    dataset_split: str | None = None
 
     @override
     def load_dataset(self) -> WeaveDataset:
         """Load the dataset as a Weave dataset."""
-        dataset = datasets.load_dataset(self.hf_dataset_name, split="test")
-        assert isinstance(dataset, datasets.Dataset), "Dataset must be of type datasets.Dataset"
-        weave_dataset = convert_hf_dataset_to_weave_dataset(
-            dataset, self.task_name, self.task_format
+        dataset = datasets.load_dataset(self.hf_repo_id, split=self.dataset_split)
+
+        assert isinstance(dataset, (datasets.Dataset, datasets.DatasetDict))
+        instances = convert_hf_dataset_to_instances(dataset)
+        instances = list(
+            tqdm(
+                map(self.preprocess_instance_func, instances),
+                total=len(instances),
+                desc="Preprocessing instances",
+            )
         )
-        return weave_dataset
-
-
-@dataclass(kw_only=True)
-class RunGroundingEvaluation(RunHFDatasetEvaluation):
-    """Run the grounding evaluation."""
-
-    hf_dataset_name: str = "GPTNT/defuser-vqa-and-grounding-dataset"
-    task_name: TaskType = "grounding"
-    weave_project: str = "gptnt/grounding"
-
-    preprocess_instance_func: PostprocessInputsFunc = preprocess_grounding_instance
-    predict_method_name = "grounding_predict"
-
-
-@dataclass(kw_only=True)
-class RunDefuserVQAOpenEndedEvaluation(RunGroundingEvaluation):
-    """Run the defuser VQA evaluation on open-ended questions."""
-
-    task_name: TaskType = "vqa"
-    weave_project: str = "gptnt/defuser-vqa-open_ended"
-
-    preprocess_instance_func: PostprocessInputsFunc = preprocess_defuser_vqa_open_ended_instance
-    predict_method_name = "defuser_vqa_open_ended_predict"
-
-
-@dataclass(kw_only=True)
-class RunDefuserVQAMCQEvaluation(RunGroundingEvaluation):
-    """Run the defuser VQA evaluation on multiple-choice questions."""
-
-    task_name: TaskType = "vqa"
-    task_format: TaskFormat = "multiple_choice"
-    instructions = MCQ_INSTRUCTION
-    weave_project: str = "gptnt/defuser-vqa-mcq"
-
-    preprocess_instance_func: PostprocessInputsFunc = preprocess_defuser_vqa_mcq_instance
-    predict_method_name = "defuser_vqa_open_ended_predict"
-
-
-@dataclass(kw_only=True)
-class RunExpertVQAEvaluation(RunEvaluation):
-    """Run the expert VQA evaluation."""
-
-    task_name: TaskType = "expert_vqa"
-
-    instructions = MCQ_INSTRUCTION
-    weave_project: str = "gptnt/expert-vqa"
-    preprocess_instance_func: PostprocessInputsFunc = preprocess_expert_vqa_instance
-    predict_method_name = "expert_vqa_predict"
-
-    @override
-    def load_dataset(self) -> WeaveDataset:
-        """Load the dataset as a Weave dataset."""
-        dataset = load_expert_vqa_dataset()
-        weave_dataset = WeaveDataset(name=self.task_name, rows=weave.Table(dataset))  # pyright: ignore[reportArgumentType]
+        weave_dataset = WeaveDataset(name=self.task_name, rows=weave.Table(instances))
         return weave_dataset

@@ -4,6 +4,7 @@ from dataclasses import fields
 import logfire
 import structlog
 from pydantic_ai import BinaryContent
+from structlog.typing import EventDict
 
 from gptnt.common.run_once import run_once
 
@@ -50,8 +51,23 @@ def monkey_patch_binary_content_repr() -> None:
     logger.debug("Monkey-patched BinaryContent.__repr__ to avoid large outputs in tracebacks")
 
 
+def remove_duplicate_message(
+    logger: logging.Logger,  # noqa: ARG001
+    method_name: str,  # noqa: ARG001
+    event_dict: EventDict,
+) -> EventDict:
+    """Remove 'message' key if it duplicates 'event'."""
+    if (
+        "message" in event_dict
+        and "event" in event_dict
+        and event_dict["message"] == event_dict["event"]
+    ):
+        event_dict.pop("message")
+    return event_dict
+
+
 @run_once
-def configure_logging(root_log_level: int = logging.INFO) -> None:
+def configure_logging(root_log_level: int = logging.INFO) -> None:  # noqa: WPS213
     """Configure structlog for structured logging.
 
     To ensure all the logs are piped together and look the same, everything is put through
@@ -72,6 +88,7 @@ def configure_logging(root_log_level: int = logging.INFO) -> None:
         # ),
         # Include any extras in the log dict
         structlog.stdlib.ExtraAdder(),
+        remove_duplicate_message,
         structlog.processors.StackInfoRenderer(),
     ]
 
@@ -106,10 +123,22 @@ def configure_logging(root_log_level: int = logging.INFO) -> None:
         ],
     )
 
+    root_logger = logging.getLogger()
+
+    # Remove all handlers from root logger
+    for existing_handler in root_logger.handlers[:]:
+        root_logger.removeHandler(existing_handler)
+
+    # Remove handlers from all existing loggers
+    for logger_name in logging.root.manager.loggerDict:
+        existing_logger = logging.getLogger(logger_name)
+        existing_logger.handlers.clear()
+        # Ensure they propagate to root
+        existing_logger.propagate = True
+
     handler = logging.StreamHandler()  # noqa: WPS110
     # Use OUR `ProcessorFormatter` to format all `logging` entries.
     handler.setFormatter(formatter)
-    root_logger = logging.getLogger()
     root_logger.addHandler(handler)
     root_logger.setLevel(root_log_level)
 

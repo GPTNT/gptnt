@@ -1,4 +1,6 @@
 import io
+import json
+from collections.abc import Callable
 from typing import Any
 
 import structlog
@@ -11,48 +13,44 @@ logger = structlog.get_logger()
 
 ktane_manual_paths = KtaneManualLoader()
 
+type PostprocessInputsFunc = Callable[[dict[str, Any]], dict[str, Any]]
+
+
+def load_image(image: str | dict[str, Any] | None) -> Image.Image | None:
+    """Load an image from a path or bytes dict."""
+    if isinstance(image, str):
+        return Image.open(image).copy()
+    if isinstance(image, dict) and "bytes" in image:
+        return Image.open(io.BytesIO(image["bytes"])).copy()
+    if image is None:
+        return None
+    raise ValueError("Invalid image format")
+
 
 @weave.op
 def preprocess_grounding_instance(instance: dict[str, Any]) -> dict[str, Any]:
     """Convert the instance to rename the fields to match the model."""
-    som_image = instance["som_image"]
-
-    # if a image path is passed instead of an image, load the image
-    if isinstance(som_image, str):
-        som_image = Image.open(som_image).copy()
-
-    if isinstance(som_image, dict) and "bytes" in som_image:
-        som_image = Image.open(io.BytesIO(som_image["bytes"])).copy()
-
+    som_image = load_image(instance["som_image"])
     return {
-        "model_input": instance["model_input"],
-        "ground_truth": instance["ground_truth"],
-        "options": instance["options"],
-        "input_type": instance["input_type"],
-        "question_format": instance["question_format"],
-        "hallucination": instance["hallucination"],
+        **instance,
+        "model_input": [som_image, instance["model_input"]],
+        "question": instance["model_input"],
         "som_image": som_image,
-        "categories": instance["categories"],
-        "index": instance["index"],
+        "segmentation_mask": load_image(instance["segmentation_mask"]),
+        "frames": [load_image(image) for image in instance["frames"]],
     }
 
 
 @weave.op
 def preprocess_defuser_vqa_open_ended_instance(instance: dict[str, Any]) -> dict[str, Any]:
     """Convert the instance to rename the fields to match the model (defuser VQA open-ended)."""
-    input_images = instance["input_images"]
-    if isinstance(input_images[0], str):
-        input_images = [Image.open(image_path).copy() for image_path in input_images]
-    elif isinstance(input_images[0], dict) and "bytes" in input_images[0]:
-        input_images = [Image.open(io.BytesIO(image["bytes"])).copy() for image in input_images]
+    input_images = [load_image(image) for image in instance["input_images"]]
+
     return {
-        "model_input": instance["model_input"],
-        "ground_truth": instance["ground_truth"],
-        "input_type": instance["input_type"],
-        "input_images": input_images,
-        "hallucination_type": instance["hallucination"],
-        "categories": instance["categories"],
-        "index": instance["index"],
+        **instance,
+        "model_input": [*input_images, instance["model_input"]],
+        "question": instance["model_input"],
+        "input_images": [load_image(image) for image in instance["input_images"]],
     }
 
 
@@ -76,65 +74,63 @@ def preprocess_defuser_vqa_mcq_instance(instance: dict[str, Any]) -> dict[str, A
             ground_truth=instance["ground_truth"],
             options=instance["options"],
         )
+        raise ValueError("Ground truth answer not found in options.")
+
     formatted_options = "\n".join(formatted_lines)
 
     model_input = f"{instance['model_input']}\n\n{formatted_options}"
-    input_images = instance["input_images"]
-    if isinstance(input_images[0], str):
-        input_images = [Image.open(image_path).copy() for image_path in input_images]
-    elif isinstance(input_images[0], dict) and "bytes" in input_images[0]:
-        input_images = [Image.open(io.BytesIO(image["bytes"])).copy() for image in input_images]
+    input_images = [load_image(image) for image in instance["input_images"]]
+
     return {
-        "model_input": model_input,
+        **instance,
+        "model_input": [*input_images, model_input],
         "ground_truth": ground_truth_letter,
-        "input_type": instance["input_type"],
-        "input_images": input_images,
-        "hallucination_type": instance["hallucination"],
-        "options": instance["options"],
         "ground_truth_str": instance["ground_truth"],
-        "categories": instance["categories"],
-        "index": instance["index"],
+        "question": instance["model_input"],
+        "input_images": input_images,
     }
 
 
 @weave.op
-def preprocess_defuser_vqa_instance(instance: dict[str, Any]) -> dict[str, Any]:
-    """Convert the instance to rename the fields to match the model."""
-    input_images = instance["input_images"]
+def preprocess_expert_ocr_instance(instance: dict[str, Any]) -> dict[str, Any]:
+    """Convert the instance to rename the fields to match the model (manual OCR)."""
+    manual_image = load_image(instance["image"])
 
-    return {
-        "input_images": input_images,
-        "model_input": instance["model_input"],
-        "ground_truth": instance["ground_truth"],
-        "options": instance["options"],
-        "input_type": instance["input_type"],
-        "question_format": instance["question_format"],
-        "hallucination": instance["hallucination"],
-        "categories": instance["categories"],
-        "index": instance["index"],
-    }
+    return {**instance, "model_input": [manual_image, instance["question"]]}
+
+
+@weave.op
+def preprocess_expert_grounding_instance(instance: dict[str, Any]) -> dict[str, Any]:
+    """Convert the instance to rename the fields to match the model."""
+    image = load_image(instance["image"])
+
+    return {**instance, "model_input": [image, instance["question"]], "image": image}
 
 
 @weave.op
 def preprocess_expert_vqa_instance(instance: dict[str, Any]) -> dict[str, Any]:
     """Convert the instance to rename the fields to match the model (expert VQA)."""
-    page_numbers = instance["page_number"]
     manual_content: list[str | Image.Image] = []
 
-    for page_number in page_numbers:
-        manual_page_text = ktane_manual_paths.load_text(page_number)
-        manual_page_image_bytes: bytes = ktane_manual_paths.load_image(page_number)
-        manual_page_image = Image.open(io.BytesIO(manual_page_image_bytes))
+    # Extract the pieces, and sort them by page number
+    manual_content_iterator = sorted(
+        zip(instance["page_number"], instance["images"], instance["manual_texts"], strict=True),
+        key=lambda group: group[0],
+    )
 
-        manual_content.append(manual_page_text)
-        manual_content.append(manual_page_image)
+    for _, image, text in manual_content_iterator:
+        loaded_image = load_image(image)
+        assert loaded_image is not None
+
+        manual_content.append(text)
+        manual_content.append(loaded_image)
 
     return {
-        "categories": instance["categories"],
-        "model_input": instance["model_input"],
-        "manual": manual_content,
-        "ground_truth": instance["ground_truth"],
+        **instance,
+        "model_input": [*manual_content, instance["model_input"]],
         "input_type": "expert_vqa",
-        "index": instance["index"],
-        **instance["metadata"],  # noqa: WPS110
+        "metadata": json.loads(instance["metadata"])
+        if isinstance(instance["metadata"], str)
+        else instance["metadata"],
+        "images": [load_image(img) for img in instance["images"]],
     }

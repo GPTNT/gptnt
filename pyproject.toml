@@ -169,6 +169,8 @@ max-module-members = 15
 max-local-variables = 10
 # WPS217: increase max number of awaitable
 max-awaits = 10
+# WPS204: Increase overused expression limit in a module
+max-module-expressions = 10
 
 [tool.logfire]
 pydantic_plugin_record = "failure"

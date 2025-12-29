@@ -112,9 +112,15 @@ class ModuleScorer(weave.Scorer):
     @weave.op
     @override
     def score(  # pyright: ignore[reportIncompatibleVariableOverride]
-        self, output: PredictionOutput, ground_truth: str | list[str], categories: list[str]
+        self,
+        output: PredictionOutput,
+        ground_truth: str | list[str],
+        categories: list[str] | None = None,
     ) -> dict[str, Any] | None:
         """Score the prediction based on the module."""
+        if not categories:
+            return None
+
         if self.skip_trick_questions and any(
             category in trick_question_categories for category in categories
         ):
@@ -130,7 +136,7 @@ class ModuleScorer(weave.Scorer):
         return {"total": is_correct, module_name: is_correct}
 
 
-class PrefixScorer(weave.Scorer):
+class CategoryPrefixScorer(weave.Scorer):
     """Scorer for a given category prefix."""
 
     prefix: str
@@ -141,9 +147,15 @@ class PrefixScorer(weave.Scorer):
     @weave.op
     @override
     def score(  # pyright: ignore[reportIncompatibleVariableOverride]
-        self, output: PredictionOutput, ground_truth: str | list[str], categories: list[str]
+        self,
+        output: PredictionOutput,
+        ground_truth: str | list[str],
+        categories: list[str] | None = None,
     ) -> dict[str, Any] | None:
-        """Score the prediction based on the prefix."""
+        """Score the prediction based on the category prefix."""
+        if not categories:
+            return None
+
         if self.skip_trick_questions and any(
             category in trick_question_categories for category in categories
         ):
@@ -172,11 +184,11 @@ def load_all_scorers(task_type: TaskType) -> list[Op[..., Any] | weave.Scorer]:
     compare_to_ground_truth_fn = CompareToGroundTruth(task_type=task_type)
     score_modules = ModuleScorer(name="module")
     score_modules._compute_ground_truth = compare_to_ground_truth_fn  # noqa: SLF001
-    score_detection = PrefixScorer(name="detect", prefix="detect")
+    score_detection = CategoryPrefixScorer(name="detect", prefix="detect")
     score_detection._compute_ground_truth = compare_to_ground_truth_fn  # noqa: SLF001
-    score_question_type = PrefixScorer(name="question_type", prefix="question_type")
+    score_question_type = CategoryPrefixScorer(name="question_type", prefix="question_type")
     score_question_type._compute_ground_truth = compare_to_ground_truth_fn  # noqa: SLF001
-    score_hallucination = PrefixScorer(
+    score_hallucination = CategoryPrefixScorer(
         name="hallucination_type", prefix="hallucination_type", skip_trick_questions=False
     )
     score_hallucination._compute_ground_truth = compare_to_ground_truth_fn  # noqa: SLF001
