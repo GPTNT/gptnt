@@ -84,7 +84,7 @@ class GroundingScorer:
 class CompareToGroundTruth:  # noqa: WPS338
     """Give a module, is the answer correct."""
 
-    task_type: TaskType
+    task_type: TaskType | None
     similarity_ratio_threshold: float = 1.5
     sentence_transformer: SentenceTransformer = field(init=False, repr=False)
     keypad_cache: dict[str, Any] = field(init=False, repr=False)
@@ -240,7 +240,7 @@ class CategoryPrefixScorer(weave.Scorer):
         return {category_name: {"total": is_correct, "module": {module_name: is_correct}}}
 
 
-def load_all_scorers(task_type: TaskType) -> list[Op[..., Any] | weave.Scorer]:
+def load_all_scorers(task_type: TaskType | None) -> list[Op[..., Any] | weave.Scorer]:
     """Load all scorers."""
     compare_to_ground_truth_fn = CompareToGroundTruth(task_type=task_type)
     score_modules = ModuleScorer(name="module")

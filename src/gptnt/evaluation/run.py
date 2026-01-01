@@ -14,12 +14,11 @@ from PIL import Image
 from pydantic_ai import Agent
 from tqdm import tqdm
 from weave import Dataset as WeaveDataset
+from weave.flow.casting import ScorerLike
 
 from gptnt.common.paths import Paths
-from gptnt.dataset.defuser_vqa.constants import TaskType
 from gptnt.evaluation.model import EvalModel, ModelOutput
 from gptnt.evaluation.preprocess import PostprocessInputsFunc
-from gptnt.evaluation.scorers import load_all_scorers
 from gptnt.processors.image_resizer import ImageResizer
 
 logger = structlog.get_logger()
@@ -99,9 +98,9 @@ class RunEvaluation(abc.ABC):
 
     agent: Agent
     task_name: str
-    task_type: TaskType
 
     weave_project: str
+    weave_scorers: list[ScorerLike]
 
     eval_model: EvalModel = field(init=False, repr=False)
     model_name: str = field(init=False, repr=False)
@@ -156,9 +155,7 @@ class RunEvaluation(abc.ABC):
         """Upload the evaluation results to Weave."""
         weave_client = weave.init(self.weave_project)
         dataset = self.load_dataset()
-        evaluation = weave.Evaluation(
-            dataset=dataset, scorers=load_all_scorers(task_type=self.task_type)
-        )
+        evaluation = weave.Evaluation(dataset=dataset, scorers=self.weave_scorers)
         asyncio.run(evaluation.evaluate(self.eval_model))
         weave_client.finish()
 
