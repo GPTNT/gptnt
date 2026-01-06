@@ -20,9 +20,11 @@ from gptnt.evaluation.preprocess import (
     preprocess_grounding_set_of_marks_instance,
 )
 from gptnt.evaluation.run import (
-    DEFAULT_INSTRUCTION,
+    GROUNDING_COORDINATES_PROMPT,
+    GROUNDING_SOM_PROMPT,
     MCQ_INSTRUCTION,
     OCR_INSTRUCTION,
+    OPEN_ENDED_INSTRUCTION,
     RunHFDatasetEvaluation,
 )
 from gptnt.evaluation.scorers import load_all_scorers
@@ -81,13 +83,16 @@ def run_defuser_grounding_evaluation(
 ) -> None:
     """Run the defuser grounding evaluation."""
     config_loader = ConfigLoader(model=model)
+    instruction = GROUNDING_COORDINATES_PROMPT.replace(
+        "{IMAGE_WIDTH}", str(config_loader.image_resizer.target_width)
+    ).replace("{IMAGE_HEIGHT}", str(config_loader.image_resizer.target_height))
     runner = RunHFDatasetEvaluation(
         hf_repo_id="GPTNT/defuser-grounding-dataset",
         dataset_split="test_coordinates",
         task_name="defuser-grounding",
         weave_project="gptnt/defuser-grounding",
         preprocess_instance_func=preprocess_grounding_coordinates_instance,
-        agent=config_loader.agent_fn(instructions=DEFAULT_INSTRUCTION),
+        agent=config_loader.agent_fn(instructions=instruction),
         image_resizer=config_loader.image_resizer,
         weave_scorers=load_all_scorers(task_type=None),
     )
@@ -119,7 +124,7 @@ def run_defuser_set_of_marks_evaluation(
         task_name="defuser-grounding",
         weave_project="gptnt/defuser-grounding",
         preprocess_instance_func=preprocess_grounding_set_of_marks_instance,
-        agent=config_loader.agent_fn(instructions=DEFAULT_INSTRUCTION),
+        agent=config_loader.agent_fn(instructions=GROUNDING_SOM_PROMPT),
         image_resizer=config_loader.image_resizer,
         weave_scorers=load_all_scorers(task_type="grounding"),
     )
@@ -151,7 +156,7 @@ def run_defuser_oe_vqa_evaluation(
         task_name="defuser-vqa-oe",
         weave_project="gptnt/defuser-vqa-open_ended",
         preprocess_instance_func=preprocess_defuser_vqa_open_ended_instance,
-        agent=config_loader.agent_fn(instructions=DEFAULT_INSTRUCTION),
+        agent=config_loader.agent_fn(instructions=OPEN_ENDED_INSTRUCTION),
         image_resizer=config_loader.image_resizer,
         weave_scorers=load_all_scorers(task_type="vqa"),
     )

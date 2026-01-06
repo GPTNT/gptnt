@@ -25,9 +25,13 @@ logger = structlog.get_logger()
 paths = Paths()
 
 
-DEFAULT_INSTRUCTION = "Answer the following question based on given context. Output only the one letter, word, short phrase, or number required to answer the question, nothing else."
+OPEN_ENDED_INSTRUCTION = "Answer the following question based on given context. Output only the one letter, word, short phrase, or number required to answer the question, nothing else."
 MCQ_INSTRUCTION = "Answer the following multiple choice question based on the given context. Output only the letter of the correct answer, nothing else."
 OCR_INSTRUCTION = "Follow the instruction given the context from the image. Output only the answer, nothing else."
+
+GROUNDING_SOM_PROMPT = "The image contains objects annotated with alphabetical markers positioned beside each object. When asked about an object's location, respond only with the corresponding letter. If multiple objects match, respond with 'More information needed'. If no such object exists, respond with 'None'."
+
+GROUNDING_COORDINATES_PROMPT = 'The resolution of the image is {IMAGE_WIDTH}x{IMAGE_HEIGHT}. Coordinates (x, y) are absolute pixel positions with (0,0) at the top-left and ({IMAGE_WIDTH},{IMAGE_HEIGHT}) at the bottom-right. When asked about an object\'s location, respond with coordinates of any point within the object. Format: {"x": <int>, "y": <int>}. If multiple objects match, respond with "More information needed". If no such object exists, respond with "None".'
 
 
 def convert_hf_dataset_to_instances(
