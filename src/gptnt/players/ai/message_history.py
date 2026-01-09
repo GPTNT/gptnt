@@ -224,29 +224,32 @@ class MessageHistory:
         # And then we replace the last part with the action
         self.messages[-1][-1].parts = [TextPart(action.text_part_dump())]
 
-    @logfire.instrument("Truncate message history")
     def truncate_history_if_needed(self) -> None:
         """Truncate the message history to fit within the usage limits."""
         if self.capabilities.usage_limits.input_tokens_limit is None:
             # If there is no limit, we never truncate
             return
 
-        while self._should_truncate_message_history():
-            history = self.messages
-            # Remove messages but not the manual
-            if self.protocol.include_manual and self.num_times_truncated == 0:
-                # For the first one, reset the content within the message with the manual
-                assert isinstance(history[0][0], ModelRequest)
-                assert isinstance(history[0][0].parts[0], UserPromptPart)
-                manual_prompt = history[0][0].parts[0]
-                assert isinstance(manual_prompt.content, list)
-                _ = manual_prompt.content.pop(-1)
-            else:
-                # Note: Raises IndexError if list is empty or index is out of range.
-                _ = history.pop(1)
+        if not self._should_truncate_message_history():
+            return
 
-            self.num_times_truncated += 1
-            self.messages = history
+        with logfire.span("Truncate message history"):
+            while self._should_truncate_message_history():
+                history = self.messages
+                # Remove messages but not the manual
+                if self.protocol.include_manual and self.num_times_truncated == 0:
+                    # For the first one, reset the content within the message with the manual
+                    assert isinstance(history[0][0], ModelRequest)
+                    assert isinstance(history[0][0].parts[0], UserPromptPart)
+                    manual_prompt = history[0][0].parts[0]
+                    assert isinstance(manual_prompt.content, list)
+                    _ = manual_prompt.content.pop(-1)
+                else:
+                    # Note: Raises IndexError if list is empty or index is out of range.
+                    _ = history.pop(1)
+
+                self.num_times_truncated += 1
+                self.messages = history
 
     @logfire.instrument("Remove observations from messages", extract_args=False)
     def _remove_observations_from_messages(
