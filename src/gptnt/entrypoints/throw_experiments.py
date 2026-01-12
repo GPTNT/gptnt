@@ -7,8 +7,8 @@ import typer
 from rich.console import Console
 from structlog import get_logger
 
+from gptnt.common.async_typer import AsyncTyper
 from gptnt.common.paths import Paths
-from gptnt.entrypoints._async_typer import AsyncTyper
 from gptnt.entrypoints.run_experiment_manager import EM_PORT
 from gptnt.experiments.experiments import ExperimentSpec
 from gptnt.experiments.wandb import (
