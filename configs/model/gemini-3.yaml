@@ -1,0 +1,36 @@
+# @package player
+
+defaults:
+  - _self_
+
+capabilities:
+  player_name: gemini-3
+  use_structured_outputs: true
+  structured_output_mode: prompted
+
+action_predictor:
+  agent:
+    model:
+      _target_: pydantic_ai.models.google.GoogleModel
+      model_name: gemini-3-flash-preview
+      provider:
+        _target_: pydantic_ai.providers.google.GoogleProvider
+
+    model_settings:
+      _target_: pydantic_ai.models.google.GoogleModelSettings
+      _convert_: all
+      google_thinking_config:
+        _target_: pydantic_ai.models.google.ThinkingConfigDict
+        thinking_level: low
+      google_video_resolution: "MEDIA_RESOLUTION_MEDIUM"
+      google_safety_settings:
+        - category: HARM_CATEGORY_HARASSMENT
+          threshold: BLOCK_NONE
+        - category: HARM_CATEGORY_DANGEROUS_CONTENT
+          threshold: BLOCK_NONE
+        - category: HARM_CATEGORY_HATE_SPEECH
+          threshold: BLOCK_NONE
+        - category: HARM_CATEGORY_SEXUALLY_EXPLICIT
+          threshold: BLOCK_NONE
+        - category: HARM_CATEGORY_CIVIC_INTEGRITY
+          threshold: BLOCK_NONE
