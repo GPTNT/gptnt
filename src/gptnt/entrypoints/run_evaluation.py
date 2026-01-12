@@ -10,6 +10,7 @@ from structlog import get_logger
 
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
+from gptnt.evaluation.postprocess import expert_ocr_postprocess
 from gptnt.evaluation.preprocess import (
     preprocess_defuser_vqa_mcq_instance,
     preprocess_defuser_vqa_open_ended_instance,
@@ -260,7 +261,9 @@ def run_expert_ocr_evaluation(
         preprocess_instance_func=preprocess_expert_ocr_instance,
         agent=config_loader.agent_fn(instructions=OCR_INSTRUCTION),
         image_resizer=config_loader.image_resizer,
-        weave_scorers=create_scorers(StringBasedComparer(task_type=None)),
+        weave_scorers=create_scorers(
+            StringBasedComparer(task_type=None, postprocess_output_func=expert_ocr_postprocess)
+        ),
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")

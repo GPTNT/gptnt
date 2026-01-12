@@ -12,6 +12,7 @@ from sentence_transformers.util import cos_sim as cosine_similarity
 from weave.trace.op import Op
 
 from gptnt.dataset.defuser_vqa.constants import KEYPAD_SYMBOL_DESCRIPTIONS, TaskType
+from gptnt.evaluation.postprocess import PostProcessModelOutputsFunc, default
 
 type PredictionOutput = dict[Literal["output"], str]
 
@@ -52,6 +53,8 @@ class BaseComparer[GroundTruthT, ReturnT](abc.ABC):
 
     task_type: TaskType | None
 
+    postprocess_output_func: PostProcessModelOutputsFunc = field(default=default, repr=False)
+
     @abc.abstractmethod
     def __call__(
         self, output: PredictionOutput, ground_truth: GroundTruthT, *, module: str
@@ -86,13 +89,13 @@ class StringBasedComparer(BaseComparer[str | list[str], bool]):  # noqa: WPS338
             )
             return is_correct
 
-        model_output = output["output"].lower().strip()
+        model_output = self.postprocess_output_func(output["output"])
         if module == "morse":
             model_output = model_output.replace("mhz", "").strip()
         cleaned_ground_truth = (
-            ground_truth.lower().strip()
+            self.postprocess_output_func(ground_truth)
             if isinstance(ground_truth, str)
-            else [answer.lower().strip() for answer in ground_truth]
+            else [self.postprocess_output_func(answer) for answer in ground_truth]
         )
         if isinstance(ground_truth, list):
             return model_output in cleaned_ground_truth
@@ -154,8 +157,8 @@ class CoordinateInRegionComparer(BaseComparer[NDArray[np.uint8], bool]):
     def __call__(
         self, output: PredictionOutput, ground_truth: NDArray[np.uint8], *, module: str
     ) -> bool:
-        raw_output = json_repair.repair_json(output["output"])
-        parsed_coords = Coords.model_validate_json(raw_output)
+        cleaned_output = json_repair.repair_json(self.postprocess_output_func(output["output"]))
+        parsed_coords = Coords.model_validate_json(cleaned_output)
 
         if not parsed_coords.is_in_bounds(ground_truth.shape[1], ground_truth.shape[0]):
             # Out of bounds
@@ -181,8 +184,8 @@ class CoordinateDistanceComparer(BaseComparer[NDArray[np.uint8], float]):
     def __call__(
         self, output: PredictionOutput, ground_truth: NDArray[np.uint8], *, module: str
     ) -> float:
-        raw_output = json_repair.repair_json(output["output"])
-        parsed_coords = Coords.model_validate_json(raw_output)
+        cleaned_output = json_repair.repair_json(self.postprocess_output_func(output["output"]))
+        parsed_coords = Coords.model_validate_json(cleaned_output)
 
         if not parsed_coords.is_in_bounds(ground_truth.shape[1], ground_truth.shape[0]):
             # Out of bounds
