@@ -38,7 +38,8 @@ It goes in this order:
 
 Currently, we have the following tasks:
 
-- `defuser-grounding`: Element grounding task on the game visuals with SoM
+- `defuser-grounding-coordinates`: Element grounding task on the game visuals with coordinates
+- `defuser-grounding-som`: Element grounding task on the game visuals with SoM
 - `defuser-vqa-mcq`: VQA task on the game visuals with MCQ format
 - `defuser-vqa-oe`: VQA task on the game visuals with (slightly/constrained) open-ended format
 - `expert-vqa`: VQA task on the manual

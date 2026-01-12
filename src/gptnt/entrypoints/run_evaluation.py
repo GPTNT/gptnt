@@ -27,7 +27,12 @@ from gptnt.evaluation.run import (
     OPEN_ENDED_INSTRUCTION,
     RunHFDatasetEvaluation,
 )
-from gptnt.evaluation.scorers import load_all_scorers
+from gptnt.evaluation.scorers import (
+    CoordinateDistanceComparer,
+    CoordinateInRegionComparer,
+    StringBasedComparer,
+    create_scorers,
+)
 from gptnt.processors.image_resizer import ImageResizer
 
 configure_logging()
@@ -94,7 +99,10 @@ def run_defuser_grounding_evaluation(
         preprocess_instance_func=preprocess_grounding_coordinates_instance,
         agent=config_loader.agent_fn(instructions=instruction),
         image_resizer=config_loader.image_resizer,
-        weave_scorers=load_all_scorers(task_type=None),
+        weave_scorers=[
+            *create_scorers(CoordinateInRegionComparer(task_type="grounding")),
+            *create_scorers(CoordinateDistanceComparer(task_type="grounding")),
+        ],
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -126,7 +134,7 @@ def run_defuser_set_of_marks_evaluation(
         preprocess_instance_func=preprocess_grounding_set_of_marks_instance,
         agent=config_loader.agent_fn(instructions=GROUNDING_SOM_PROMPT),
         image_resizer=config_loader.image_resizer,
-        weave_scorers=load_all_scorers(task_type="grounding"),
+        weave_scorers=create_scorers(StringBasedComparer(task_type="grounding")),
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -158,7 +166,7 @@ def run_defuser_oe_vqa_evaluation(
         preprocess_instance_func=preprocess_defuser_vqa_open_ended_instance,
         agent=config_loader.agent_fn(instructions=OPEN_ENDED_INSTRUCTION),
         image_resizer=config_loader.image_resizer,
-        weave_scorers=load_all_scorers(task_type="vqa"),
+        weave_scorers=create_scorers(StringBasedComparer(task_type="vqa")),
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -190,7 +198,7 @@ def run_defuser_mcq_vqa_evaluation(
         preprocess_instance_func=preprocess_defuser_vqa_mcq_instance,
         agent=config_loader.agent_fn(instructions=MCQ_INSTRUCTION),
         image_resizer=config_loader.image_resizer,
-        weave_scorers=load_all_scorers(task_type="vqa"),
+        weave_scorers=create_scorers(StringBasedComparer(task_type="vqa")),
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -221,7 +229,7 @@ def run_expert_vqa_evaluation(
         preprocess_instance_func=preprocess_expert_vqa_instance,
         agent=config_loader.agent_fn(instructions=MCQ_INSTRUCTION),
         image_resizer=config_loader.image_resizer,
-        weave_scorers=load_all_scorers(task_type=None),
+        weave_scorers=create_scorers(StringBasedComparer(task_type=None)),
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -252,7 +260,7 @@ def run_expert_ocr_evaluation(
         preprocess_instance_func=preprocess_expert_ocr_instance,
         agent=config_loader.agent_fn(instructions=OCR_INSTRUCTION),
         image_resizer=config_loader.image_resizer,
-        weave_scorers=load_all_scorers(task_type=None),
+        weave_scorers=create_scorers(StringBasedComparer(task_type=None)),
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -283,7 +291,7 @@ def run_expert_grounding_evaluation(
         agent=config_loader.agent_fn(instructions=MCQ_INSTRUCTION),
         image_resizer=config_loader.image_resizer,
         weave_project="gptnt/expert-element-grounding",
-        weave_scorers=load_all_scorers(task_type=None),
+        weave_scorers=create_scorers(StringBasedComparer(task_type=None)),
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")

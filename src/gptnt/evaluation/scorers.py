@@ -1,11 +1,12 @@
+import abc
 from dataclasses import dataclass, field
 from typing import Any, Literal, override
 
+import json_repair
 import numpy as np
 import weave
 from numpy.typing import NDArray
-from PIL import Image
-from pydantic import PrivateAttr
+from pydantic import BaseModel, PrivateAttr
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import cos_sim as cosine_similarity
 from weave.trace.op import Op
@@ -14,6 +15,13 @@ from gptnt.dataset.defuser_vqa.constants import KEYPAD_SYMBOL_DESCRIPTIONS, Task
 
 type PredictionOutput = dict[Literal["output"], str]
 
+type GroundTruthType = str | list[str] | NDArray[np.uint8]
+"""Type for ground truth values.
+
+Can be a string, list of strings, or a numpy array for binary masks.
+"""
+
+
 trick_question_categories = ["hallucination_type=type_a", "hallucination_type=type_b"]
 """Any trick categories that should be skipped during scoring.
 
@@ -21,70 +29,41 @@ typea = need more information typeb = something doesnt add up
 """
 
 
-class GroundingScorer:
-    """Scorer for grounding tasks."""
+class Coords(BaseModel):
+    """Coordinate dictionary.
 
-    def set_of_marks_accuracy(self, ground_truth: str, prediction: str) -> bool:
-        """Calculate accuracy for SOM tasks."""
-        return str(ground_truth).strip().lower() == str(prediction).strip().lower()
+    Just to keep things explicit.
+    """
 
-    def coordinate_accuracy(self, ground_truth: Image.Image, prediction: tuple[int, int]) -> bool:
-        """Calculate accuracy for coordinate prediction tasks.
+    x: int  # noqa: WPS111
+    y: int  # noqa: WPS111
 
-        The prediction is considered correct if it is within the threshold distance from the ground
-        truth.
-        """
-        gt_mask = np.array(ground_truth)
-        if not self._prediction_is_valid(prediction, gt_mask):
-            return False  # Out of bounds
-        predicted_region_id = gt_mask[prediction[1], prediction[0]]
-        return bool(predicted_region_id)
-
-    def coordinate_distance(self, ground_truth: Image.Image, prediction: tuple[int, int]) -> float:
-        """Calculate distance for coordinate prediction tasks.
-
-        The distance is calculated between the predicted coordinates and the closest pixel of the
-        ground truth region.
-        """
-        width, height = ground_truth.width, ground_truth.height
-        # Check if predicted coordinates are out of bounds
-        max_distance = np.sqrt(height**2 + width**2)
-        gt_mask = np.array(ground_truth)
-        if not self._prediction_is_valid(prediction, gt_mask):
-            return max_distance
-
-        # Find all pixels belonging to the ground truth region
-        ys, xs = gt_mask.nonzero()
-        dx = (xs - prediction[0]).astype(np.float64)
-        dy = (ys - prediction[1]).astype(np.float64)
-        distances = np.sqrt(dx**2 + dy**2)
-        return float(np.min(distances))
-
-    def _get_grounding_region_id(self, ground_truth: str | int) -> int:
-        """Get the region ID for grounding tasks."""
-        if isinstance(ground_truth, str):
-            if not ground_truth.isdigit():
-                raise ValueError(
-                    "Ground truth must be an integer or string representing an integer."
-                )
-            ground_truth = int(ground_truth)
-        return ground_truth
-
-    def _prediction_is_valid(
-        self, prediction: tuple[int, int], gt_mask: NDArray[np.uint8]
-    ) -> bool:
-        """Check if the prediction is valid."""
-        x_coord, y_coord = prediction
-        if x_coord < 0 or y_coord < 0:
-            return False  # Out of bounds
-        return y_coord < gt_mask.shape[0] and x_coord < gt_mask.shape[1]
+    def is_in_bounds(self, width: int, height: int) -> bool:
+        """Check if the coordinates are within the bounds."""
+        return 0 <= self.x <= width and 0 <= self.y <= height
 
 
 @dataclass(kw_only=True)
-class CompareToGroundTruth:  # noqa: WPS338
-    """Give a module, is the answer correct."""
+class BaseComparer[GroundTruthT, ReturnT](abc.ABC):
+    """Base Scorer class.
+
+    Just to get the protocols in place.
+    """
 
     task_type: TaskType | None
+
+    @abc.abstractmethod
+    def __call__(
+        self, output: PredictionOutput, ground_truth: GroundTruthT, *, module: str
+    ) -> ReturnT:
+        """Compare the output to the ground truth."""
+        raise NotImplementedError
+
+
+@dataclass(kw_only=True)
+class StringBasedComparer(BaseComparer[str | list[str], bool]):  # noqa: WPS338
+    """Perform string-based comparisons to ground truth."""
+
     similarity_ratio_threshold: float = 1.5
     sentence_transformer: SentenceTransformer = field(init=False, repr=False)
     keypad_cache: dict[str, Any] = field(init=False, repr=False)
@@ -94,10 +73,10 @@ class CompareToGroundTruth:  # noqa: WPS338
         self.sentence_transformer = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
         self.keypad_cache = self.precompute_keypad_embeddings()
 
+    @override
     def __call__(
         self, output: PredictionOutput, ground_truth: str | list[str], *, module: str
     ) -> bool:
-        """Compare the output to the ground truth."""
         if module == "keypad" and self.task_type == "vqa":
             ground_truth_symbol = (
                 ground_truth[0] if isinstance(ground_truth, list) else ground_truth
@@ -164,11 +143,79 @@ class CompareToGroundTruth:  # noqa: WPS338
         return embeddings_cache
 
 
+@dataclass(kw_only=True)
+class CoordinateInRegionComparer(BaseComparer[NDArray[np.uint8], bool]):
+    """Comparer for coordinate in region tasks.
+
+    Note: Array indexing is (y, x) for rows and columns.
+    """
+
+    @override
+    def __call__(
+        self, output: PredictionOutput, ground_truth: NDArray[np.uint8], *, module: str
+    ) -> bool:
+        raw_output = json_repair.repair_json(output["output"])
+        parsed_coords = Coords.model_validate_json(raw_output)
+
+        if not parsed_coords.is_in_bounds(ground_truth.shape[1], ground_truth.shape[0]):
+            # Out of bounds
+            return False
+
+        # We need to bound to avoid indexing errors incase the models do 0-based vs 1-based coords,
+        # which are negligible differences in practice
+        bounded_x = min(max(parsed_coords.x, 0), ground_truth.shape[1] - 1)
+        bounded_y = min(max(parsed_coords.y, 0), ground_truth.shape[0] - 1)
+
+        # Non-zero indicates correct region
+        return bool(ground_truth[bounded_y, bounded_x])
+
+
+@dataclass(kw_only=True)
+class CoordinateDistanceComparer(BaseComparer[NDArray[np.uint8], float]):
+    """Scorer to check distance from correct coordinate.
+
+    Note: Array indexing is (y, x) for rows and columns.
+    """
+
+    @override
+    def __call__(
+        self, output: PredictionOutput, ground_truth: NDArray[np.uint8], *, module: str
+    ) -> float:
+        raw_output = json_repair.repair_json(output["output"])
+        parsed_coords = Coords.model_validate_json(raw_output)
+
+        if not parsed_coords.is_in_bounds(ground_truth.shape[1], ground_truth.shape[0]):
+            # Out of bounds
+            return self._get_max_distance(ground_truth)
+
+        return self._get_closest_distance_to_region(ground_truth, parsed_coords)
+
+    def _get_max_distance(self, ground_truth: NDArray[np.uint8]) -> float:
+        """Get the maximum possible distance for the given ground truth mask."""
+        height, width = ground_truth.shape
+        return np.sqrt(height**2 + width**2)
+
+    def _get_closest_distance_to_region(
+        self, ground_truth: NDArray[np.uint8], coords: Coords
+    ) -> float:
+        """Get the closest distance from the predicted coordinates to the ground truth region."""
+        ys, xs = ground_truth.nonzero()
+
+        if len(ys) == 0 or len(xs) == 0:
+            # No valid region in ground truth, return max distance
+            return self._get_max_distance(ground_truth)
+
+        dx = xs - coords.x
+        dy = ys - coords.y
+        distances = np.sqrt(dx**2 + dy**2)
+        return float(np.min(distances))
+
+
 class ModuleScorer(weave.Scorer):
     """Module Scorer."""
 
     skip_trick_questions: bool = True
-    _compute_ground_truth: CompareToGroundTruth = PrivateAttr()
+    _comparer: BaseComparer[Any, Any] = PrivateAttr()
 
     @weave.op
     @override
@@ -193,8 +240,8 @@ class ModuleScorer(weave.Scorer):
             return None
 
         module_name = module_tag[0].split("=", 1)[1]
-        is_correct = self._compute_ground_truth(output, ground_truth, module=module_name)
-        return {"total": is_correct, module_name: is_correct}
+        score = self._comparer(output, ground_truth, module=module_name)
+        return {"total": score, module_name: score}
 
 
 class CategoryPrefixScorer(weave.Scorer):
@@ -203,7 +250,7 @@ class CategoryPrefixScorer(weave.Scorer):
     prefix: str
     skip_trick_questions: bool = True
 
-    _compute_ground_truth: CompareToGroundTruth = PrivateAttr()
+    _comparer: BaseComparer[Any, Any] = PrivateAttr()
 
     @weave.op
     @override
@@ -236,22 +283,21 @@ class CategoryPrefixScorer(weave.Scorer):
 
         module_name = module_tag[0].split("=", 1)[1]
         category_name = prefix_tag[0].split("=", 1)[1]
-        is_correct = self._compute_ground_truth(output, ground_truth, module=module_name)
-        return {category_name: {"total": is_correct, "module": {module_name: is_correct}}}
+        score = self._comparer(output, ground_truth, module=module_name)
+        return {category_name: {"total": score, "module": {module_name: score}}}
 
 
-def load_all_scorers(task_type: TaskType | None) -> list[Op[..., Any] | weave.Scorer]:
-    """Load all scorers."""
-    compare_to_ground_truth_fn = CompareToGroundTruth(task_type=task_type)
+def create_scorers(comparer: BaseComparer[Any, Any]) -> list[Op[..., Any] | weave.Scorer]:
+    """Create the scorers for the task."""
+    # compare_to_ground_truth_fn = CompareToGroundTruth(task_type=task_type)
     score_modules = ModuleScorer(name="module")
-    score_modules._compute_ground_truth = compare_to_ground_truth_fn  # noqa: SLF001
+    score_modules._comparer = comparer  # noqa: SLF001
     score_detection = CategoryPrefixScorer(name="detect", prefix="detect")
-    score_detection._compute_ground_truth = compare_to_ground_truth_fn  # noqa: SLF001
+    score_detection._comparer = comparer  # noqa: SLF001
     score_question_type = CategoryPrefixScorer(name="question_type", prefix="question_type")
-    score_question_type._compute_ground_truth = compare_to_ground_truth_fn  # noqa: SLF001
+    score_question_type._comparer = comparer  # noqa: SLF001
     score_hallucination = CategoryPrefixScorer(
         name="hallucination_type", prefix="hallucination_type", skip_trick_questions=False
     )
-    score_hallucination._compute_ground_truth = compare_to_ground_truth_fn  # noqa: SLF001
-
+    score_hallucination._comparer = comparer  # noqa: SLF001
     return [score_modules, score_detection, score_hallucination, score_question_type]

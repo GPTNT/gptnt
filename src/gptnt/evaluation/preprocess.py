@@ -3,8 +3,10 @@ import json
 from collections.abc import Callable
 from typing import Any
 
+import numpy as np
 import structlog
 import weave
+from numpy.typing import NDArray
 from PIL import Image
 
 from gptnt.prompts.manual import KtaneManualLoader
@@ -16,36 +18,38 @@ ktane_manual_paths = KtaneManualLoader()
 type PostprocessInputsFunc = Callable[[dict[str, Any]], dict[str, Any]]
 
 
-def load_image(image: str | dict[str, Any] | None) -> Image.Image | None:
+def load_image(image: str | dict[str, Any] | Any) -> Image.Image:
     """Load an image from a path or bytes dict."""
     if isinstance(image, str):
         return Image.open(image).copy()
     if isinstance(image, dict) and "bytes" in image:
         return Image.open(io.BytesIO(image["bytes"])).copy()
-    if image is None:
-        return None
+
     raise ValueError("Invalid image format")
 
 
-def convert_ground_truth_to_binary_mask(instance: dict[str, Any]) -> Image.Image | None:
+def convert_ground_truth_to_binary_mask(instance: dict[str, Any]) -> NDArray[np.uint8]:
     """Convert ground truth to binary mask image."""
-    ground_truth = instance.get("ground_truth")
-    if ground_truth is None:
-        return None
-    if instance["hallucination"] is not None and instance["hallucination"] != "None":
-        return None
-
     segmentation_mask = load_image(instance["segmentation_mask"])
-    if segmentation_mask is None:
-        return None
     width, height = segmentation_mask.size
-    return Image.frombytes("L", (width, height), instance["ground_truth"].encode("latin-1"))
+    binary_mask_image = Image.frombytes(
+        "L", (width, height), instance["ground_truth"].encode("latin-1")
+    )
+    binary_mask_numpy = np.array(binary_mask_image).astype(np.uint8)
+    return binary_mask_numpy
 
 
 @weave.op
 def preprocess_grounding_coordinates_instance(instance: dict[str, Any]) -> dict[str, Any]:
     """Convert the instance to rename the fields to match the model."""
     input_image = load_image(instance["frames"][-1])
+
+    # If it's a hallucination instance, the ground truth is a string and not an image.
+    if instance["hallucination"] is not None and instance["hallucination"] != "None":
+        ground_truth = instance["ground_truth"]
+    else:
+        ground_truth = convert_ground_truth_to_binary_mask(instance)
+
     return {
         **instance,
         "model_input": [input_image, instance["model_input"]],  # noqa: WPS226
@@ -53,7 +57,7 @@ def preprocess_grounding_coordinates_instance(instance: dict[str, Any]) -> dict[
         "som_image": load_image(instance["som_image"]),
         "segmentation_mask": load_image(instance["segmentation_mask"]),
         "frames": [load_image(image) for image in instance["frames"]],
-        "ground_truth": convert_ground_truth_to_binary_mask(instance),
+        "ground_truth": ground_truth,
     }
 
 
