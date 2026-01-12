@@ -6,7 +6,7 @@ defaults:
 capabilities:
   player_name: gemini-3
   use_structured_outputs: true
-  structured_output_mode: tool
+  structured_output_mode: prompted
 
 action_predictor:
   agent:
