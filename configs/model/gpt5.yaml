@@ -7,6 +7,9 @@ capabilities:
   player_name: gpt5
   use_structured_outputs: true
   structured_output_mode: prompted
+  usage_limits:
+    input_tokens_limit: 400000
+    output_tokens_limit: 128000
 
 action_predictor:
   agent:
