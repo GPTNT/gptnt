@@ -7,7 +7,7 @@ We provide a way to run static evaluations of different models using predefined 
 The main entrypoint for running all the static evaluations is:
 
 ```bash
-uv run python src/gptnt/entrypoints/run_evaluation.py <task> --model <model> [--throw] [--upload]
+uv run python src/gptnt/entrypoints/run_statics.py <task> --model <model> [--throw] [--upload]
 ```
 
 From there, you can find and follow the code for how everything is run. Your main argument are:
@@ -21,7 +21,7 @@ From there, you can find and follow the code for how everything is run. Your mai
 For example, to run the defuser grounding evaluation with GPT-5:
 
 ```bash
-uv run python src/gptnt/entrypoints/run_evaluation.py defuser-grounding --model gpt-5 --throw --upload
+uv run python src/gptnt/entrypoints/run_statics.py defuser-grounding --model gpt-5 --throw --upload
 ```
 
 ### High-level of how it works
