@@ -92,6 +92,14 @@ def run_defuser_grounding_evaluation(
     instruction = GROUNDING_COORDINATES_PROMPT.replace(
         "{IMAGE_WIDTH}", str(config_loader.image_resizer.target_width)
     ).replace("{IMAGE_HEIGHT}", str(config_loader.image_resizer.target_height))
+
+    # Create the weave scorers
+    exact_match_scorers = create_scorers(CoordinateInRegionComparer(task_type="grounding"))
+    distance_scorers = create_scorers(CoordinateDistanceComparer(task_type="grounding"))
+    # Update the names for the distance scorers to prevent name clashes in weave
+    for scorer in distance_scorers:
+        scorer.name = f"{scorer.name}_distance"
+
     runner = RunHFDatasetEvaluation(
         hf_repo_id="GPTNT/defuser-grounding-dataset",
         dataset_split="test_coordinates",
@@ -100,10 +108,7 @@ def run_defuser_grounding_evaluation(
         preprocess_instance_func=preprocess_grounding_coordinates_instance,
         agent=config_loader.agent_fn(instructions=instruction),
         image_resizer=config_loader.image_resizer,
-        weave_scorers=[
-            *create_scorers(CoordinateInRegionComparer(task_type="grounding")),
-            *create_scorers(CoordinateDistanceComparer(task_type="grounding")),
-        ],
+        weave_scorers=[*exact_match_scorers, *distance_scorers],
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
