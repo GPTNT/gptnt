@@ -21,6 +21,7 @@ class AsyncTyper(Typer):
     def maybe_run_async(  # noqa: WPS602
         decorator: Callable[[CommandFunctionType], CommandFunctionType], func: CommandFunctionType
     ) -> Any:
+        """Run the function asynchronously if it is async."""
         if inspect.iscoroutinefunction(func):
 
             @wraps(func)
