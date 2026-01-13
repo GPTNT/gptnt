@@ -56,9 +56,8 @@ player:
 
     image_resizer:
       _target_: gptnt.processors.image_resizer.ImageResizer
-      target_width: ${oc.env:KTANE_GAME_WIDTH,640}
-      target_height: ${oc.env:KTANE_GAME_HEIGHT,480}
-
+      target_width: ${oc.decode:${oc.env:KTANE_GAME_WIDTH,"640"}}
+      target_height: ${oc.decode:${oc.env:KTANE_GAME_HEIGHT,"480"}}
     set_of_marks_painter:
       _target_: gptnt.processors.set_of_marks.SetOfMarksHandler
       add_labels: true

@@ -69,7 +69,9 @@ class ConfigLoader:
     @property
     def image_resizer(self) -> ImageResizer:
         """Instantiate the image resizer from the config."""
-        image_resizer = hydra.utils.instantiate(self.config.player.preprocessors.image_resizer)
+        image_resizer = hydra.utils.instantiate(
+            self.config.player.observation_handler.image_resizer
+        )
         return image_resizer
 
     @property
