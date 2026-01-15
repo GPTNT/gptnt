@@ -19,6 +19,7 @@ from gptnt.ktane.game_settings import KtaneSettings
 from gptnt.players.actions import PlayerOutputType
 from gptnt.players.ai.tokens import count_tokens_from_text, estimate_tokens_for_image_per_model
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.prompts.manual import load_manual_as_prompt
 
 logger = structlog.get_logger()
 
@@ -145,7 +146,11 @@ def coerce_tool_output_into_native_output(messages: list[ModelMessage]) -> list[
 class MessageHistory:
     """Hold and manage the message history for the AI player.
 
-    This handles all the logic for building and modifying the history.
+    Note that we could have used the message history processors from PydanticAI but there is one
+    main reason why we didn't: it wasn't around when we implemented this. More importantly, we have
+    some specific rules for truncation and turns, which rely on being able to group messages byh
+    their turn (having `list[list[ModelMessage]]`), which you do not get with the history
+    processors.
     """
 
     capabilities: PlayerCapabilities
@@ -172,6 +177,15 @@ class MessageHistory:
             width=ktane_settings.game_width,
             height=ktane_settings.game_height,
         )
+
+    @property
+    def manual_length(self) -> int:
+        """Get the length of the manual in parts.
+
+        This is used to help with truncation decisions for the first message and should be quick
+        because the manual is already cached by the time we get here.
+        """
+        return len(load_manual_as_prompt(image_dimensions=self.capabilities.image_dimensions))
 
     @property
     def is_empty(self) -> bool:
@@ -235,21 +249,7 @@ class MessageHistory:
 
         with logfire.span("Truncate message history"):
             while self._should_truncate_message_history():
-                history = self.messages
-                # Remove messages but not the manual
-                if self.protocol.include_manual and self.num_times_truncated == 0:
-                    # For the first one, reset the content within the message with the manual
-                    assert isinstance(history[0][0], ModelRequest)
-                    assert isinstance(history[0][0].parts[0], UserPromptPart)
-                    manual_prompt = history[0][0].parts[0]
-                    assert isinstance(manual_prompt.content, list)
-                    _ = manual_prompt.content.pop(-1)
-                else:
-                    # Note: Raises IndexError if list is empty or index is out of range.
-                    _ = history.pop(1)
-
-                self.num_times_truncated += 1
-                self.messages = history
+                self._truncate_earliest_turn_from_history()
 
     @logfire.instrument("Remove observations from messages", extract_args=False)
     def _remove_observations_from_messages(
@@ -313,3 +313,24 @@ class MessageHistory:
         return model_input > (
             self.capabilities.usage_limits.input_tokens_limit * self.truncation_threshold
         )
+
+    def _truncate_earliest_turn_from_history(self) -> None:
+        """Truncate the earliest turn from the message history."""
+        history = self.messages
+
+        # Remove messages but not the manual
+        if self.protocol.include_manual and self.num_times_truncated == 0:
+            # For the first one, reset the content within the message with the manual
+            assert isinstance(history[0][0], ModelRequest)
+            assert isinstance(history[0][0].parts[0], UserPromptPart)
+            manual_prompt = history[0][0].parts[0]
+            assert isinstance(manual_prompt.content, list)
+            num_to_pop = len(manual_prompt.content) - self.manual_length
+            for _ in range(num_to_pop):
+                _ = manual_prompt.content.pop(-1)
+        else:
+            # Note: Raises IndexError if list is empty or index is out of range.
+            _ = history.pop(1)
+
+        self.num_times_truncated += 1
+        self.messages = history
