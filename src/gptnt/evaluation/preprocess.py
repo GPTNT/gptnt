@@ -20,6 +20,8 @@ type PostprocessInputsFunc = Callable[[dict[str, Any]], dict[str, Any]]
 
 def load_image(image: str | dict[str, Any] | Any) -> Image.Image:
     """Load an image from a path or bytes dict."""
+    if isinstance(image, Image.Image):
+        return image.copy()
     if isinstance(image, str):
         return Image.open(image).copy()
     if isinstance(image, dict) and "bytes" in image:
@@ -32,11 +34,8 @@ def convert_ground_truth_to_binary_mask(instance: dict[str, Any]) -> NDArray[np.
     """Convert ground truth to binary mask image."""
     segmentation_mask = load_image(instance["segmentation_mask"])
     width, height = segmentation_mask.size
-    binary_mask_image = Image.frombytes(
-        "L", (width, height), instance["ground_truth"].encode("latin-1")
-    )
-    binary_mask_numpy = np.array(binary_mask_image).astype(np.uint8)
-    return binary_mask_numpy
+    binary_mask_numpy = np.array(list(instance["ground_truth"]), dtype=np.uint8)
+    return binary_mask_numpy.reshape(height, width)
 
 
 @weave.op

@@ -52,6 +52,8 @@ type WireSetColor = Literal["red", "yellow", "blue", "black", "white"]
 
 type ButtonColor = Literal["red", "blue", "yellow", "black", "white"]
 
+type ModulePosition = Literal["front", "back"]
+
 type WidgetPosition = Literal["top", "bottom", "left", "right"]
 
 type BatteryType = Literal["D", "AA"]
