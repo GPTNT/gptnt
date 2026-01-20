@@ -18,6 +18,9 @@ player:
   redis:
     _target_: redis.Redis
 
+  nobf_generator:
+    _target_: gptnt.players.feedback.nobf.NaughtyOutputBehaviourFeedbackGenerator
+
   capabilities:
     _target_: gptnt.players.specification.PlayerCapabilities
     player_type: ai

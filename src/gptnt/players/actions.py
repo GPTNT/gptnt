@@ -26,6 +26,7 @@ class AIResponseErrorType(Enum):
     invalid_som_location = "invalid_som_location"
     out_of_bounds_coordinate = "out_of_bounds_coordinate"
     invalid_format = "invalid_format"
+    max_tokens_exceeded = "max_tokens_exceeded"
     server_error = "server_error"
     guardrail_violation = "guardrail_violation"
     unknown = "unknown"

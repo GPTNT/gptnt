@@ -122,20 +122,21 @@ class ActionPredictor(InstrumentationDataclassMixin):
                         ai_response_error=AIResponseErrorType.guardrail_violation
                     )
 
-                # If it's a formatting error due to retries exceeded, we want to handle that
-                # specifically too
+                # If it's a formatting error due to maxing out the output token limit,
+                # we want to handle that specifically too
                 if (
                     isinstance(err, UnexpectedModelBehavior)
                     and "Exceeded maximum retries" in err.message
+                    and run_messages[-1].finish_reason == "length"  # pyright: ignore[reportAttributeAccessIssue]
                 ):
                     logger.warning(
                         "Exceeded maximum retries, meaning output is invalid", error=str(err)
                     )
                     return self._pretend_model_wants_do_nothing(
                         all_messages=run_messages,
-                        ai_response_error=AIResponseErrorType.invalid_format,
-                        raw_model_output=str(err.body) if err.body else None,
+                        ai_response_error=AIResponseErrorType.max_tokens_exceeded,
                     )
+
                 logger.exception(
                     "SOMETHING NEW HAS GONE WRONG, defaulting to `DoNothing`", error=err
                 )

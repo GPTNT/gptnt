@@ -17,6 +17,7 @@ from gptnt.ktane.manual import KtaneManualPaths
 from gptnt.players.actions import AgentCallResult, PlayerOutputType
 from gptnt.players.ai.input_builder import AgentInputBuilder
 from gptnt.players.ai.message_history import MessageHistory
+from gptnt.players.feedback.nobf import NaughtyOutputBehaviourFeedbackGenerator
 from gptnt.players.specification import PlayerProtocol
 from gptnt.prompts.manual import load_manual_as_prompt
 from gptnt.prompts.prompt_cache import PromptCache
@@ -47,6 +48,7 @@ class PlayerController(PlayerSupervisor):
     """Controller for the player service with all Redis RPC command handlers."""
 
     broker: RedisBroker
+    nobf_generator: NaughtyOutputBehaviourFeedbackGenerator
 
     _task_group: TaskGroup | None = field(default=None, init=False, repr=False)
 
@@ -102,7 +104,7 @@ class PlayerController(PlayerSupervisor):
     async def handle_feedback(self, feedback: PlayerMessage[str]) -> bool:
         """Handle feedback message."""
         self.incoming_message_handler.handle_new_message(feedback.message)
-        logger.debug("Received feedback", message=feedback.message)
+        logger.debug("Received feedback", feedback=feedback.message)
         return True
 
     async def configure_for_experiment(self, data: _ConfigureExperimentPayload) -> bool:
@@ -191,12 +193,27 @@ class PlayerController(PlayerSupervisor):
             agent_call_result
         )
 
+        # TODO: Provide call result to feedback handlers
+        _ = await self.generate_feedbacks(agent_call_result)
+
         await self.update_metrics(agent_call_result)
 
         # Return to a waiting for turn state
         self.state = PlayerState.waiting_for_turn
 
         return {"success": True, "state": self.state.name}
+
+    async def generate_feedbacks(self, agent_call_result: AgentCallResult[Any]) -> None:
+        """Generate feedbacks based on the agent call result."""
+        nobf_output = self.nobf_generator.generate(agent_call_result=agent_call_result)
+
+        if nobf_output:
+            _ = await self.handle_feedback(nobf_output)
+
+        # # TODO: if we have tapf enabled, generate tapf
+        # tapf_output = self.tapf_generator.generate(all_bomb_states=self.experiment_recorder)
+        # if tapf_output:
+        #     _ = await self.handle_feedback(tapf_output)
 
     async def update_metrics(
         self, agent_call_result: AgentCallResult[PlayerOutputType | KtaneGameplayInput]
