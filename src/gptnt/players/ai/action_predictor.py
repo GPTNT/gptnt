@@ -3,17 +3,13 @@ from typing import override
 
 import logfire
 import structlog
-from google.genai.errors import ServerError
-from pydantic import ValidationError
 from pydantic_ai import (
     Agent,
     AgentRunError,
-    ModelMessage,
     ModelResponse,
     NativeOutput,
     RunUsage,
     TextPart,
-    UnexpectedModelBehavior,
     capture_run_messages,
 )
 from pydantic_ai.models import Model
@@ -22,15 +18,14 @@ from gptnt.common.instrumentation import InstrumentationDataclassMixin
 from gptnt.players.actions import (
     AgentCallResult,
     AIResponseErrorType,
-    DoNothingAction,
     PlayerOutputType,
     SendMessageAction,
 )
+from gptnt.players.ai.exception_recovery import ExceptionRecoveryChain
 from gptnt.players.ai.message_history import (
     AgentMessageInput,
     MessageHistory,
     coerce_tool_output_into_native_output,
-    ensure_messages_have_valid_final_response,
 )
 from gptnt.players.ai.output_validators import InvalidOutputFormatError, structure_string_output
 from gptnt.players.specification import PlayerCapabilities, PlayerDeps, PlayerProtocol
@@ -51,6 +46,10 @@ class ActionPredictor(InstrumentationDataclassMixin):
 
     protocol: PlayerProtocol = field(init=False, repr=False)
     message_history: MessageHistory = field(init=False, repr=False)
+
+    _exception_recovery: ExceptionRecoveryChain = field(
+        default_factory=ExceptionRecoveryChain, repr=False
+    )
 
     def __post_init__(self) -> None:
         """Prepare agent.
@@ -89,7 +88,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
         self.message_history = message_history
 
     @logfire.instrument("Send request to agent", extract_args=False)
-    async def send_request_to_agent(  # noqa: WPS212, WPS231, PLR0911
+    async def send_request_to_agent(  # noqa: WPS212, WPS231
         self, *, message_input: AgentMessageInput
     ) -> AgentCallResult[PlayerOutputType]:
         """Send a message to the AI.
@@ -105,53 +104,10 @@ class ActionPredictor(InstrumentationDataclassMixin):
                     output_type=self._agent_deps.output_type,
                     message_history=self.message_history.to_history(),
                 )
-            except ValidationError as format_error:
-                logger.warning(
-                    "Invalid output format from the agent.",
-                    error=format_error,
-                    message_input=message_input,
-                )
-                return self._handle_model_exception(
-                    all_messages=run_messages,
-                    ai_response_error=AIResponseErrorType.invalid_format,
-                    raw_model_output=format_error.json(include_url=False),
-                )
-            except AgentRunError as err:
-                if "filtered due to the prompt triggering Azure OpenAI's content" in err.message:
-                    logger.warning("Filtered due to content policy", error=err)
-                    return self._handle_prompt_refusal(
-                        ai_response_error=AIResponseErrorType.guardrail_violation
-                    )
-
-                # If it's a formatting error due to maxing out the output token limit,
-                # we want to handle that specifically too
-                if (
-                    isinstance(err, UnexpectedModelBehavior)
-                    and "Exceeded maximum retries" in err.message
-                    and run_messages[-1].finish_reason == "length"  # pyright: ignore[reportAttributeAccessIssue]
-                ):
-                    logger.warning(
-                        "Exceeded maximum retries, meaning output is invalid", error=str(err)
-                    )
-                    return self._handle_model_exception(
-                        all_messages=run_messages,
-                        ai_response_error=AIResponseErrorType.max_tokens_exceeded,
-                    )
-
-                logger.exception(
-                    "SOMETHING NEW HAS GONE WRONG, defaulting to `DoNothing`", error=err
-                )
-                return self._handle_model_exception(
-                    all_messages=run_messages, ai_response_error=AIResponseErrorType.unknown
-                )
-            except ServerError as server_err:
-                logger.warning(
-                    "Server error occurred while running the agent.",
-                    error=server_err,
-                    message_input=message_input,
-                )
-                return self._handle_model_exception(
-                    all_messages=run_messages, ai_response_error=AIResponseErrorType.server_error
+            except Exception as exc:  # noqa: BLE001
+                new_messages = run_messages[len(self.message_history.to_history()) :]
+                return self._exception_recovery.recover(
+                    exception=exc, new_messages=new_messages, raw_model_output=None
                 )
 
         try:
@@ -164,9 +120,9 @@ class ActionPredictor(InstrumentationDataclassMixin):
                 error=structure_error,
                 message_input=message_input,
             )
-            return self._handle_model_exception(
-                all_messages=model_output.all_messages(),
-                ai_response_error=AIResponseErrorType.invalid_format,
+            return self._exception_recovery.recover(
+                exception=structure_error,
+                new_messages=model_output.new_messages(),
                 raw_model_output=structure_error.output,
             )
 
@@ -240,52 +196,6 @@ class ActionPredictor(InstrumentationDataclassMixin):
             usage=model_output.usage(),
             new_messages=model_output.new_messages(),
             ai_response_error=None,
-        )
-
-    def _handle_model_exception(
-        self,
-        *,
-        all_messages: list[ModelMessage],
-        ai_response_error: AIResponseErrorType,
-        raw_model_output: str | None = None,
-    ) -> AgentCallResult[DoNothingAction]:
-        """Replace the response with a do nothing.
-
-        Initially, this was implemented by comparing history lengths but that ended up being
-        brittle and multiple responses got through. So as a result, we do things in a more robust
-        way.
-        """
-        # First, remove any messages that we know about so that we are only left with the new ones
-        new_messages = all_messages[len(self.message_history.to_history()) :]
-        # We can safely assume that there will always be, at least, the ModelRequest that was sent
-        assert new_messages, "There should be new messages to process."
-
-        new_messages = ensure_messages_have_valid_final_response(new_messages)
-
-        return AgentCallResult(
-            output=DoNothingAction(),
-            raw_output=raw_model_output,
-            usage=RunUsage(),
-            new_messages=new_messages,
-            ai_response_error=ai_response_error,
-        )
-
-    def _handle_prompt_refusal(
-        self, *, ai_response_error: AIResponseErrorType, raw_model_output: str | None = None
-    ) -> AgentCallResult[SendMessageAction]:
-        """Handle situations where the prompt is refused for some reason.
-
-        In these cases, we want to tell the other agent to rephrase the prompt, BUT we do not want
-        to count this as a new message in history to avoid it happening again.
-        """
-        model_output = SendMessageAction(message="Can you rephrase that please?")
-
-        return AgentCallResult(
-            output=model_output,
-            raw_output=raw_model_output,
-            usage=RunUsage(),
-            new_messages=[],
-            ai_response_error=ai_response_error,
         )
 
     @property

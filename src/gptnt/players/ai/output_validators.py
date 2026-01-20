@@ -14,7 +14,8 @@ class InvalidOutputFormatError(ValueError):
     """Exception raised when the output format is invalid."""
 
     def __init__(self, *, output: str, expected_type: type) -> None:
-        super().__init__("Output format is invalid")
+        message = f"Output format is invalid. Output does not parse to expected type {expected_type!r}, got output: {output!r}"
+        super().__init__(message)
         self.output = output
         self.expected_type = expected_type
 
@@ -35,7 +36,6 @@ def structure_string_output(
 
     with suppress(ValidationError):
         log.debug("Trying with `json-repair`", output=output)
-        output = repair_json(output)
-        return TypeAdapter(output_type).validate_json(output)  # noqa: WPS336
+        return TypeAdapter(output_type).validate_json(repair_json(output))  # noqa: WPS336
 
     raise InvalidOutputFormatError(output=output, expected_type=output_type)
