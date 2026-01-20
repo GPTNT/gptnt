@@ -59,7 +59,7 @@ class EvalModel(WeaveModel):
         self._output_dir = output_dir
 
     @weave.op
-    def model_predict(self, model_input: list[str | Image.Image]) -> ModelOutput:
+    def model_predict(self, model_input: list[str | Image.Image], **kwargs: Any) -> ModelOutput:  # noqa: ARG002
         """Run the model on the input."""
         loaded_inputs: list[BinaryContent | str] = []
         for chunk in model_input:
