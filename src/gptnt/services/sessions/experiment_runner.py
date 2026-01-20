@@ -201,7 +201,7 @@ class ExperimentRunner(abc.ABC):
             yield
 
     @asynccontextmanager
-    async def synchronized_experiment_start(self) -> AsyncGenerator[None]:
+    async def synchronized_experiment_start(self) -> AsyncGenerator[None]:  # noqa: WPS213
         """Synchronize the start of the experiment across all services.
 
         Basically, we make sure everyone is ready to go before we start.
@@ -223,6 +223,8 @@ class ExperimentRunner(abc.ABC):
             self.game_state_watcher.update_interval = 0.2
             await self.game_state_watcher.first_lights_on_event.wait()
             self.game_state_watcher.reset_update_interval()
+
+        await self.game_client.pause_game()
 
         yield
 
