@@ -30,6 +30,7 @@ from gptnt.players.ai.message_history import (
     AgentMessageInput,
     MessageHistory,
     coerce_tool_output_into_native_output,
+    ensure_messages_have_valid_final_response,
 )
 from gptnt.players.ai.output_validators import InvalidOutputFormatError, structure_string_output
 from gptnt.players.specification import PlayerCapabilities, PlayerDeps, PlayerProtocol
@@ -110,7 +111,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
                     error=format_error,
                     message_input=message_input,
                 )
-                return self._pretend_model_wants_do_nothing(
+                return self._handle_model_exception(
                     all_messages=run_messages,
                     ai_response_error=AIResponseErrorType.invalid_format,
                     raw_model_output=format_error.json(include_url=False),
@@ -132,7 +133,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
                     logger.warning(
                         "Exceeded maximum retries, meaning output is invalid", error=str(err)
                     )
-                    return self._pretend_model_wants_do_nothing(
+                    return self._handle_model_exception(
                         all_messages=run_messages,
                         ai_response_error=AIResponseErrorType.max_tokens_exceeded,
                     )
@@ -140,7 +141,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
                 logger.exception(
                     "SOMETHING NEW HAS GONE WRONG, defaulting to `DoNothing`", error=err
                 )
-                return self._pretend_model_wants_do_nothing(
+                return self._handle_model_exception(
                     all_messages=run_messages, ai_response_error=AIResponseErrorType.unknown
                 )
             except ServerError as server_err:
@@ -149,7 +150,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
                     error=server_err,
                     message_input=message_input,
                 )
-                return self._pretend_model_wants_do_nothing(
+                return self._handle_model_exception(
                     all_messages=run_messages, ai_response_error=AIResponseErrorType.server_error
                 )
 
@@ -163,7 +164,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
                 error=structure_error,
                 message_input=message_input,
             )
-            return self._pretend_model_wants_do_nothing(
+            return self._handle_model_exception(
                 all_messages=model_output.all_messages(),
                 ai_response_error=AIResponseErrorType.invalid_format,
                 raw_model_output=structure_error.output,
@@ -241,7 +242,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
             ai_response_error=None,
         )
 
-    def _pretend_model_wants_do_nothing(
+    def _handle_model_exception(
         self,
         *,
         all_messages: list[ModelMessage],
@@ -254,24 +255,18 @@ class ActionPredictor(InstrumentationDataclassMixin):
         brittle and multiple responses got through. So as a result, we do things in a more robust
         way.
         """
-        # If the last message is already a model response, we need to pop all the consecutive
-        # responses from the end to make sure there are none left.
-        cutoff_index = len(all_messages)
-        while cutoff_index > 0 and isinstance(all_messages[cutoff_index - 1], ModelResponse):
-            cutoff_index -= 1
+        # First, remove any messages that we know about so that we are only left with the new ones
+        new_messages = all_messages[len(self.message_history.to_history()) :]
+        # We can safely assume that there will always be, at least, the ModelRequest that was sent
+        assert new_messages, "There should be new messages to process."
 
-        # Keep all messages up to (but not including) the trailing ModelResponse objects.
-        message_history_with_new_request = all_messages[:cutoff_index]
-
-        # Create the do nothing response
-        model_output = DoNothingAction()
-        model_response = ModelResponse(parts=[TextPart(model_output.text_part_dump())])
+        new_messages = ensure_messages_have_valid_final_response(new_messages)
 
         return AgentCallResult(
-            output=model_output,
+            output=DoNothingAction(),
             raw_output=raw_model_output,
             usage=RunUsage(),
-            new_messages=[*message_history_with_new_request, model_response],
+            new_messages=new_messages,
             ai_response_error=ai_response_error,
         )
 

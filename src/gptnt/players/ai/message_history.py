@@ -16,7 +16,6 @@ from pydantic_ai import (
 from pydantic_ai.messages import ModelMessage, ModelRequest, UserPromptPart
 
 from gptnt.ktane.game_settings import KtaneSettings
-from gptnt.players.actions import PlayerOutputType
 from gptnt.players.ai.tokens import count_tokens_from_text, estimate_tokens_for_image_per_model
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.prompts.manual import load_manual_as_prompt
@@ -24,6 +23,18 @@ from gptnt.prompts.manual import load_manual_as_prompt
 logger = structlog.get_logger()
 
 type AgentMessageInput = str | list[str | BinaryContent]
+
+
+def ensure_messages_have_valid_final_response(messages: list[ModelMessage]) -> list[ModelMessage]:
+    """Ensure that the message list ends with a model response that has at least one TextPart."""
+    if not messages:
+        return messages
+
+    # If there is no response anywehre within the messages, we need to add one
+    if not any(isinstance(message, ModelResponse) for message in messages):
+        messages.append(ModelResponse([TextPart("")]))
+
+    return messages
 
 
 def remove_observations_without_removing_manual(part: UserPromptPart) -> UserPromptPart:
@@ -213,30 +224,13 @@ class MessageHistory:
         # Update usage BEFORE modifying the messages
         self.usage = usage
 
-        # Make sure we fix any ToolOutput messages into NativeOutput messages
         new_messages = coerce_tool_output_into_native_output(new_messages)
+        new_messages = ensure_messages_have_valid_final_response(new_messages)
 
         if self.protocol.role == "defuser":
             new_messages = self._remove_observations_from_messages(new_messages)
 
-        # Remove any empty messages
         self.messages.append(new_messages)
-
-    def replace_last_response_with_action(self, *, action: PlayerOutputType) -> None:
-        """Replace the last response in the message history with a do-nothing action.
-
-        This is useful when some other validator/parser goes wrong after the model has done its
-        output and we need to just track that instead of performing an action, the model just did
-        nothing.
-        """
-        if self.is_empty:
-            return
-
-        # We know that this should be a ModelResponse
-        assert isinstance(self.messages[-1][-1], ModelResponse)
-
-        # And then we replace the last part with the action
-        self.messages[-1][-1].parts = [TextPart(action.text_part_dump())]
 
     def truncate_history_if_needed(self) -> None:
         """Truncate the message history to fit within the usage limits."""
