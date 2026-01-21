@@ -96,6 +96,14 @@ class BombState(BaseModel):
         return None
 
     @property
+    def zoomed_in_module(self) -> ModuleStates | None:
+        """Get the currently zoomed in module state, if we are zoomed in."""
+        for module in self.modules:
+            if module.in_focus:
+                return module
+        return None
+
+    @property
     def view_needs_multiple_frames(self) -> bool:
         """Check if the current view needs multiple frames."""
         if self.zoomed_in_component is not None:
