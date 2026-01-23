@@ -92,13 +92,13 @@ def load_manual_as_prompt(
     memory for nice and quick access. When using `image_dimensions`, we resize images using the
     long and short sides to preserve aspect ratio.
     """
-    logger.debug(f"Loading {num_pages} pages of the manual")
-
     pages_to_skip: list[int] = [
         *(NEEDY_MODULE_PAGE_NUMS if skip_needy_modules else []),
         *(EXPLAINER_PAGES_TO_REMOVE if skip_explainer_pages else []),
         *(APPENDIX_PAGES if skip_appendix_pages else []),
     ]
+
+    logger.debug(f"Loading {num_pages - len(pages_to_skip)} pages of the manual")
 
     manual_loader = KtaneManualLoader(
         image_resizer=ImageResizer(
