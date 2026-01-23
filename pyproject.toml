@@ -138,6 +138,8 @@ extend-ignore = [
     "WPS529",
     # I disagree with the limits on slicing?
     "WPS478",
+    # Unfortunately, we can't control what other people name things
+    "WPS347",
 ]
 per-file-ignores = [
     "scripts/*:WPS",

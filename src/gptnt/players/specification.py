@@ -3,7 +3,7 @@ from typing import Literal, Self, Union, cast, override
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.fields import computed_field
 from pydantic.functional_validators import model_validator
-from pydantic_ai import NativeOutput, PromptedOutput
+from pydantic_ai import NativeOutput, PromptedOutput, ToolOutput
 from pydantic_ai.output import OutputSpec, StructuredOutputMode
 from pydantic_ai.usage import UsageLimits
 
@@ -145,21 +145,13 @@ class PlayerDeps(BaseModel, frozen=True):
 
     @property
     def output_type(self) -> OutputSpec[PlayerOutputType] | type[str]:
-        """The output type for the player.
-
-        This is used to determine what the agent can output.
-
-        Since PydanticAI defaults to the "tool" format if you just give it the type, we can do that
-        for the "tool" mode. However, importantly, doing it this way makes the schema output like
-        the model has a single tool to call with one of three possible ways of using it. An
-        alternative would be to provide a list[ToolOutput], but let's keep it simple for now.
-        """
+        """The output type for the player, determining the schema/structure if needed."""
         if self.capabilities.use_structured_outputs:
             match self.capabilities.structured_output_mode:
                 case "native":
                     return NativeOutput(self.structured_output_type)
                 case "tool":
-                    return self.structured_output_type
+                    return ToolOutput(self.structured_output_type)
                 case "prompted":
                     return PromptedOutput(self.structured_output_type)
         return str

@@ -4,11 +4,13 @@ from pathlib import Path
 
 import httpx
 import pytest
+from pytest_cases import fixture, param_fixture
 from pytest_mock import MockerFixture
 
 from gptnt.common.paths import Paths
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.manual import KtaneManualPaths
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.prompts.prompt_cache import PromptCache
 
 # disable Weave and WandB for testing
@@ -61,3 +63,54 @@ def prompt_cache() -> None:
     paths = Paths()
     ktane_manual = KtaneManualPaths()
     PromptCache.initialise(paths.prompts, ktane_manual.text_dir, ktane_manual.images_small_dir)
+
+
+# ============================================================================
+# Fixtures & Cases
+# ============================================================================
+
+interaction_location_method = param_fixture(
+    "interaction_location_method", ["set-of-marks", "coordinates"]
+)
+structured_output_mode = param_fixture("structured_output_mode", ["prompted"])
+
+
+@fixture
+def capabilities(
+    interaction_location_method: str, structured_output_mode: str
+) -> PlayerCapabilities:
+    """Fixture for PlayerCapabilities with varying interaction location methods."""
+    return PlayerCapabilities(
+        player_name="test_player",
+        player_type="ai",
+        use_structured_outputs=True,
+        structured_output_mode=structured_output_mode,
+        max_observation_window_length=16,
+        interaction_location_method=interaction_location_method,
+    )
+
+
+class ProtocolCases:
+    """Case class for different PlayerProtocol configurations."""
+
+    def case_collaborative(self) -> PlayerProtocol:
+        """Collaborative protocol (is_playing_alone=False, allows SendMessage)."""
+        return PlayerProtocol(
+            role="defuser",
+            communication_style="sync",
+            is_playing_alone=False,
+            include_manual=True,
+            receive_feedback_after_action=False,
+            allow_magic_actions=False,
+        )
+
+    def case_solo(self) -> PlayerProtocol:
+        """Solo protocol (is_playing_alone=True, no SendMessage)."""
+        return PlayerProtocol(
+            role="defuser",
+            communication_style="sync",
+            is_playing_alone=True,
+            include_manual=True,
+            receive_feedback_after_action=False,
+            allow_magic_actions=False,
+        )

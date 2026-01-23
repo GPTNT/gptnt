@@ -5,7 +5,8 @@ from google.genai.errors import ServerError
 from pydantic_ai import Agent, AgentRunError, ModelMessage, ModelResponse, TextPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.test import TestModel
-from pytest_cases import fixture, param_fixture, parametrize_with_cases
+from pytest_cases import parametrize_with_cases
+from tests.conftest import ProtocolCases
 
 from gptnt.ktane.actions import GameActionType
 from gptnt.players.actions import (
@@ -20,56 +21,6 @@ from gptnt.players.actions import (
 from gptnt.players.ai.action_predictor import ActionPredictor
 from gptnt.players.ai.message_history import MessageHistory
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
-
-# ============================================================================
-# Fixtures & Cases
-# ============================================================================
-
-interaction_location_method = param_fixture(
-    "interaction_location_method", ["set-of-marks", "coordinates"]
-)
-structured_output_mode = param_fixture("structured_output_mode", ["prompted"])
-
-
-@fixture
-def capabilities(
-    interaction_location_method: str, structured_output_mode: str
-) -> PlayerCapabilities:
-    """Fixture for PlayerCapabilities with varying interaction location methods."""
-    return PlayerCapabilities(
-        player_name="test_player",
-        player_type="ai",
-        use_structured_outputs=True,
-        structured_output_mode=structured_output_mode,
-        max_observation_window_length=16,
-        interaction_location_method=interaction_location_method,
-    )
-
-
-class ProtocolCases:
-    """Case class for different PlayerProtocol configurations."""
-
-    def case_collaborative(self) -> PlayerProtocol:
-        """Collaborative protocol (is_playing_alone=False, allows SendMessage)."""
-        return PlayerProtocol(
-            role="defuser",
-            communication_style="sync",
-            is_playing_alone=False,
-            include_manual=True,
-            receive_feedback_after_action=False,
-            allow_magic_actions=False,
-        )
-
-    def case_solo(self) -> PlayerProtocol:
-        """Solo protocol (is_playing_alone=True, no SendMessage)."""
-        return PlayerProtocol(
-            role="defuser",
-            communication_style="sync",
-            is_playing_alone=True,
-            include_manual=True,
-            receive_feedback_after_action=False,
-            allow_magic_actions=False,
-        )
 
 
 def create_action_predictor(
@@ -328,3 +279,64 @@ async def test_send_request_returns_do_nothing_when_structuring_fails(
     assert isinstance(call_result.output, DoNothingAction)
     assert call_result.ai_response_error == AIResponseErrorType.invalid_format
     assert call_result.raw_output == "not valid json at all"
+
+
+# ============================================================================
+# Tests for send_reflection_request
+# ============================================================================
+
+
+class ReflectionOutputCases:
+    """Case class for different reflection output scenarios."""
+
+    message = "I need to be better."
+
+    def case_full_schema(self) -> str:
+        return SendMessageAction(message=self.message).text_part_dump()
+
+    def case_only_action(self) -> str:
+        return SendMessageAction(message=self.message).model_dump_json()
+
+    def case_string_output(self) -> str:
+        return self.message
+
+
+@pytest.mark.anyio
+@parametrize_with_cases("expected_output", cases=ReflectionOutputCases)
+@parametrize_with_cases("protocol", cases=ProtocolCases)
+async def test_send_reflection_request_returns_valid_output_on_success(
+    expected_output: str, capabilities: PlayerCapabilities, protocol: PlayerProtocol
+) -> None:
+    """Test that send_reflection_request returns valid SendMessageAction on success."""
+    agent = Agent(TestModel(custom_output_text=expected_output), retries=0)
+    predictor = create_action_predictor(agent=agent, capabilities=capabilities, protocol=protocol)
+
+    # Send reflection request
+    call_result = await predictor.send_reflection_request(reflection_message="What did you learn?")
+
+    # Assertions
+    assert call_result.ai_response_error is None
+    assert isinstance(call_result.output, SendMessageAction)
+    assert call_result.output.message == "I need to be better."
+    assert len(call_result.new_messages) > 0
+
+
+@pytest.mark.anyio
+@parametrize_with_cases("protocol", cases=ProtocolCases)
+async def test_send_reflection_request_handles_agent_run_error_gracefully(
+    capabilities: PlayerCapabilities, protocol: PlayerProtocol
+) -> None:
+    """Test that AgentRunError during reflection returns default '<error>' message."""
+    agent = Agent(GenericAgentRunErrorModel(), retries=0)
+    predictor = create_action_predictor(agent=agent, capabilities=capabilities, protocol=protocol)
+
+    # Send reflection request
+    call_result = await predictor.send_reflection_request(reflection_message="What did you learn?")
+
+    # Assertions
+    assert isinstance(call_result.output, SendMessageAction)
+    assert call_result.output.message == "<error>"
+    assert call_result.ai_response_error == AIResponseErrorType.unknown
+    assert call_result.usage is not None  # Should have empty usage
+    # Should still have messages (the error message added)
+    assert len(call_result.new_messages) > 0

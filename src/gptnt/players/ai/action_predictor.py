@@ -6,8 +6,8 @@ import structlog
 from pydantic_ai import (
     Agent,
     AgentRunError,
+    ModelMessage,
     ModelResponse,
-    NativeOutput,
     RunUsage,
     TextPart,
     capture_run_messages,
@@ -105,9 +105,10 @@ class ActionPredictor(InstrumentationDataclassMixin):
                     message_history=self.message_history.to_history(),
                 )
             except Exception as exc:  # noqa: BLE001
-                new_messages = run_messages[len(self.message_history.to_history()) :]
                 return self._exception_recovery.recover(
-                    exception=exc, new_messages=new_messages, raw_model_output=None
+                    exception=exc,
+                    new_messages=self._extract_new_messages(run_messages),
+                    raw_model_output=None,
                 )
 
         try:
@@ -147,8 +148,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
         For handling structured outputs:
             If the player supports structured output, then we give it the chance to use the
             structured output for send message directly, otherwise we just let it be a string and
-            hope for the best with parsing it. Also, we use NativeOutput here because if it
-            supports structured output, it should be able to do NativeOutput.
+            hope for the best with parsing it.
         """
         reflection_prompt = load_reflection_prompt()
 
@@ -157,12 +157,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
                 model_output = await self.agent.run(
                     [reflection_message, reflection_prompt],
                     deps=self._agent_deps,
-                    output_type=(
-                        NativeOutput([SendMessageAction, str])
-                        if self.capabilities.use_structured_outputs
-                        and self.capabilities.structured_output_mode == "native"
-                        else str
-                    ),
+                    output_type=str,
                     message_history=self.message_history.to_history(),
                 )
             except AgentRunError:
@@ -172,8 +167,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
                 logger.error(  # noqa: TRY400
                     "Unexpected model behavior during reflection. Returning with a default '<error>'."
                 )
-                num_new_messages = len(run_messages) - len(self.message_history.to_history())
-                new_messages = run_messages[-num_new_messages:]
+                new_messages = self._extract_new_messages(run_messages)
 
                 model_output = SendMessageAction(message="<error>")
                 return AgentCallResult(
@@ -187,16 +181,25 @@ class ActionPredictor(InstrumentationDataclassMixin):
                     ai_response_error=AIResponseErrorType.unknown,
                 )
 
-        if not isinstance(model_output.output, SendMessageAction):
-            model_output.output = SendMessageAction(message=str(model_output.output))
+        try:
+            parsed_output = structure_string_output(
+                output=model_output.output, output_type=SendMessageAction
+            )
+        except InvalidOutputFormatError:
+            # If we fail to parse into SendMessageAction, we wrap the output into one
+            parsed_output = SendMessageAction(message=model_output.output)
 
         return AgentCallResult(
-            output=model_output.output,
+            output=parsed_output,
             raw_output=str(model_output.response.parts),
             usage=model_output.usage(),
             new_messages=model_output.new_messages(),
             ai_response_error=None,
         )
+
+    def _extract_new_messages(self, run_messages: list[ModelMessage]) -> list[ModelMessage]:
+        """Extract the new messages from all the run messages."""
+        return run_messages[len(self.message_history.to_history()) :]
 
     @property
     def _agent_deps(self) -> PlayerDeps:
