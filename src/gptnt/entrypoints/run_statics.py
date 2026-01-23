@@ -105,8 +105,8 @@ def run_defuser_grounding_evaluation(
     runner = RunHFDatasetEvaluation(
         hf_repo_id="GPTNT/defuser-grounding-dataset",
         dataset_split="test_coordinates",
-        task_name="defuser-grounding",
-        weave_project="gptnt/defuser-grounding",
+        task_name="defuser-grounding-coordinates",
+        weave_project="gptnt/defuser-grounding-coordinates",
         preprocess_instance_func=preprocess_grounding_coordinates_instance,
         agent=config_loader.agent_fn(instructions=instruction),
         image_resizer=config_loader.image_resizer,
@@ -137,8 +137,8 @@ def run_defuser_set_of_marks_evaluation(
     runner = RunHFDatasetEvaluation(
         hf_repo_id="GPTNT/defuser-grounding-dataset",
         dataset_split="test_som",
-        task_name="defuser-grounding",
-        weave_project="gptnt/defuser-grounding",
+        task_name="defuser-grounding-som",
+        weave_project="gptnt/defuser-grounding-som",
         preprocess_instance_func=preprocess_grounding_set_of_marks_instance,
         agent=config_loader.agent_fn(instructions=GROUNDING_SOM_PROMPT),
         image_resizer=config_loader.image_resizer,
