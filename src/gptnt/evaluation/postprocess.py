@@ -11,7 +11,7 @@ def noop(output: str) -> str:
 
 def default(output: str) -> str:
     """Default postprocessing function that strips whitespace."""
-    return output.lower().strip()
+    return output.lower().replace("```json", "").replace("```", "").strip()
 
 
 def expert_ocr_postprocess(output: str) -> str:

@@ -111,6 +111,9 @@ class RunEvaluation(abc.ABC):
 
     image_resizer: ImageResizer
 
+    max_instances: int | None = None
+    """Maximum number of instances to evaluate on."""
+
     def __post_init__(self) -> None:
         """Initialize the evaluation model."""
         self.eval_model = EvalModel.from_agent(agent=self.agent)
@@ -192,6 +195,8 @@ class RunHFDatasetEvaluation(RunEvaluation):
 
         assert isinstance(dataset, (datasets.Dataset, datasets.DatasetDict))
         instances = convert_hf_dataset_to_instances(dataset)
+        if self.max_instances is not None:
+            instances = instances[: self.max_instances]
         instances = list(
             tqdm(
                 map(self.preprocess_instance_func, instances),

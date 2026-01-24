@@ -51,6 +51,12 @@ ThrowOption = Annotated[bool, typer.Option("--throw", help="Should we throw the 
 UploadOption = Annotated[
     bool, typer.Option("--upload", help="Should we upload the evaluation results?")
 ]
+LimitInstancesOption = Annotated[
+    int | None,
+    typer.Option(
+        "--limit-instances", help="Limit the number of instances to evaluate on (for debugging)"
+    ),
+]
 
 
 @dataclass(kw_only=True)
@@ -88,6 +94,7 @@ def run_defuser_grounding_evaluation(
     should_download: DownloadOption = False,
     should_throw: ThrowOption = False,
     should_upload: UploadOption = False,
+    limit_instances: LimitInstancesOption = None,
 ) -> None:
     """Run the defuser grounding evaluation."""
     config_loader = ConfigLoader(model=model)
@@ -111,6 +118,7 @@ def run_defuser_grounding_evaluation(
         agent=config_loader.agent_fn(instructions=instruction),
         image_resizer=config_loader.image_resizer,
         weave_scorers=[*exact_match_scorers, *distance_scorers],
+        max_instances=limit_instances,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -131,6 +139,7 @@ def run_defuser_set_of_marks_evaluation(
     should_download: DownloadOption = False,
     should_throw: ThrowOption = False,
     should_upload: UploadOption = False,
+    limit_instances: LimitInstancesOption = None,
 ) -> None:
     """Run the defuser grounding evaluation."""
     config_loader = ConfigLoader(model=model)
@@ -143,6 +152,7 @@ def run_defuser_set_of_marks_evaluation(
         agent=config_loader.agent_fn(instructions=GROUNDING_SOM_PROMPT),
         image_resizer=config_loader.image_resizer,
         weave_scorers=create_scorers(StringBasedComparer(task_type="grounding")),
+        max_instances=limit_instances,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -163,6 +173,7 @@ def run_defuser_oe_vqa_evaluation(
     should_download: DownloadOption = False,
     should_throw: ThrowOption = False,
     should_upload: UploadOption = False,
+    limit_instances: LimitInstancesOption = None,
 ) -> None:
     """Run the defuser VQA."""
     config_loader = ConfigLoader(model=model)
@@ -175,6 +186,7 @@ def run_defuser_oe_vqa_evaluation(
         agent=config_loader.agent_fn(instructions=OPEN_ENDED_INSTRUCTION),
         image_resizer=config_loader.image_resizer,
         weave_scorers=create_scorers(StringBasedComparer(task_type="vqa")),
+        max_instances=limit_instances,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -195,6 +207,7 @@ def run_defuser_mcq_vqa_evaluation(
     should_download: DownloadOption = False,
     should_throw: ThrowOption = False,
     should_upload: UploadOption = False,
+    limit_instances: LimitInstancesOption = None,
 ) -> None:
     """Run the defuser VQA evaluation on multiple choice questions."""
     config_loader = ConfigLoader(model=model)
@@ -207,6 +220,7 @@ def run_defuser_mcq_vqa_evaluation(
         agent=config_loader.agent_fn(instructions=MCQ_INSTRUCTION),
         image_resizer=config_loader.image_resizer,
         weave_scorers=create_scorers(StringBasedComparer(task_type="vqa")),
+        max_instances=limit_instances,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -227,6 +241,7 @@ def run_expert_vqa_evaluation(
     should_download: DownloadOption = False,
     should_throw: ThrowOption = False,
     should_upload: UploadOption = False,
+    limit_instances: LimitInstancesOption = None,
 ) -> None:
     """Run the expert VQA evaluation."""
     config_loader = ConfigLoader(model=model)
@@ -238,6 +253,7 @@ def run_expert_vqa_evaluation(
         agent=config_loader.agent_fn(instructions=MCQ_INSTRUCTION),
         image_resizer=config_loader.image_resizer,
         weave_scorers=create_scorers(StringBasedComparer(task_type=None)),
+        max_instances=limit_instances,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -258,6 +274,7 @@ def run_expert_ocr_evaluation(
     should_download: DownloadOption = False,
     should_throw: ThrowOption = False,
     should_upload: UploadOption = False,
+    limit_instances: LimitInstancesOption = None,
 ) -> None:
     """Run the expert OCR evaluation."""
     config_loader = ConfigLoader(model=model)
@@ -271,6 +288,7 @@ def run_expert_ocr_evaluation(
         weave_scorers=create_scorers(
             StringBasedComparer(task_type=None, postprocess_output_func=expert_ocr_postprocess)
         ),
+        max_instances=limit_instances,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -291,6 +309,7 @@ def run_expert_grounding_evaluation(
     should_download: DownloadOption = False,
     should_throw: ThrowOption = False,
     should_upload: UploadOption = False,
+    limit_instances: LimitInstancesOption = None,
 ) -> None:
     """Run the expert grounding evaluation."""
     config_loader = ConfigLoader(model=model)
@@ -302,6 +321,7 @@ def run_expert_grounding_evaluation(
         image_resizer=config_loader.image_resizer,
         weave_project="gptnt/expert-element-grounding",
         weave_scorers=create_scorers(StringBasedComparer(task_type=None)),
+        max_instances=limit_instances,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
