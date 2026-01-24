@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, ClassVar, override
 
 import datasets
+import numpy as np
 import polars as pl
 import structlog
 import weave
@@ -62,6 +63,9 @@ def _resize_instance_items(
 ) -> Any:
     if isinstance(element, Image.Image):
         return image_resizer.resize_image(element)
+
+    if isinstance(element, np.ndarray):
+        return image_resizer.resize_array(element)
 
     # 2. Recurse through Dictionaries
     if isinstance(element, dict):
