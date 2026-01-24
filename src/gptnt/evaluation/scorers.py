@@ -147,7 +147,7 @@ class StringBasedComparer(BaseComparer[str | list[str], bool]):  # noqa: WPS338
 
 
 @dataclass(kw_only=True)
-class CoordinateInRegionComparer(BaseComparer[NDArray[np.uint8], bool]):
+class CoordinateInRegionComparer(BaseComparer[NDArray[np.uint8] | str, bool]):
     """Comparer for coordinate in region tasks.
 
     Note: Array indexing is (y, x) for rows and columns.
@@ -155,8 +155,22 @@ class CoordinateInRegionComparer(BaseComparer[NDArray[np.uint8], bool]):
 
     @override
     def __call__(
-        self, output: PredictionOutput, ground_truth: NDArray[np.uint8], *, module: str
+        self, output: PredictionOutput, ground_truth: NDArray[np.uint8] | str, *, module: str
     ) -> bool:
+        if isinstance(ground_truth, str):
+            return self.score_with_string_ground_truth(output, ground_truth)
+        return self.score_with_array_ground_truth(output, ground_truth)
+
+    def score_with_string_ground_truth(self, output: PredictionOutput, ground_truth: str) -> bool:
+        """Score when ground truth is a string (hallucination question)."""
+        cleaned_output = self.postprocess_output_func(output["output"])
+        cleaned_ground_truth = self.postprocess_output_func(ground_truth)
+        return cleaned_output == cleaned_ground_truth
+
+    def score_with_array_ground_truth(
+        self, output: PredictionOutput, ground_truth: NDArray[np.uint8]
+    ) -> bool:
+        """Score when ground truth is a binary mask array."""
         cleaned_output = json_repair.repair_json(self.postprocess_output_func(output["output"]))
         parsed_coords = Coords.model_validate_json(cleaned_output)
 
@@ -174,29 +188,44 @@ class CoordinateInRegionComparer(BaseComparer[NDArray[np.uint8], bool]):
 
 
 @dataclass(kw_only=True)
-class CoordinateDistanceComparer(BaseComparer[NDArray[np.uint8], float]):
+class CoordinateDistanceComparer(BaseComparer[NDArray[np.uint8] | str, float]):
     """Scorer to check distance from correct coordinate.
 
     Note: Array indexing is (y, x) for rows and columns.
+    The distance is normalized to be in [0.0, 1.0].
     """
+
+    _min_distance: float = PrivateAttr(default=0.0)  # noqa: WPS358
+    _max_distance: float = PrivateAttr(default=1.0)
 
     @override
     def __call__(
-        self, output: PredictionOutput, ground_truth: NDArray[np.uint8], *, module: str
+        self, output: PredictionOutput, ground_truth: NDArray[np.uint8] | str, *, module: str
     ) -> float:
+        if isinstance(ground_truth, str):
+            return self.score_with_string_ground_truth(output, ground_truth)
+        return self.score_with_array_ground_truth(output, ground_truth)
+
+    def score_with_string_ground_truth(self, output: PredictionOutput, ground_truth: str) -> float:
+        """Score when ground truth is a string (hallucination question)."""
+        cleaned_output = self.postprocess_output_func(output["output"])
+        cleaned_ground_truth = self.postprocess_output_func(ground_truth)
+        if cleaned_output == cleaned_ground_truth:
+            return self._min_distance
+        return self._max_distance
+
+    def score_with_array_ground_truth(
+        self, output: PredictionOutput, ground_truth: NDArray[np.uint8]
+    ) -> float:
+        """Score when ground truth is a binary mask array."""
         cleaned_output = json_repair.repair_json(self.postprocess_output_func(output["output"]))
         parsed_coords = Coords.model_validate_json(cleaned_output)
 
         if not parsed_coords.is_in_bounds(ground_truth.shape[1], ground_truth.shape[0]):
             # Out of bounds
-            return self._get_max_distance(ground_truth)
+            return self._max_distance
 
         return self._get_closest_distance_to_region(ground_truth, parsed_coords)
-
-    def _get_max_distance(self, ground_truth: NDArray[np.uint8]) -> float:
-        """Get the maximum possible distance for the given ground truth mask."""
-        height, width = ground_truth.shape
-        return np.sqrt(height**2 + width**2)
 
     def _get_closest_distance_to_region(
         self, ground_truth: NDArray[np.uint8], coords: Coords
@@ -206,12 +235,15 @@ class CoordinateDistanceComparer(BaseComparer[NDArray[np.uint8], float]):
 
         if len(ys) == 0 or len(xs) == 0:
             # No valid region in ground truth, return max distance
-            return self._get_max_distance(ground_truth)
+            return self._max_distance
 
         dx = xs - coords.x
         dy = ys - coords.y
         distances = np.sqrt(dx**2 + dy**2)
-        return float(np.min(distances))
+        distance = float(np.min(distances))
+        # Normalize distance
+        max_possible_distance = np.sqrt(ground_truth.shape[0] ** 2 + ground_truth.shape[1] ** 2)
+        return distance / max_possible_distance
 
 
 class ModuleScorer(weave.Scorer):

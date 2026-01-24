@@ -18,6 +18,10 @@ from weave import Dataset as WeaveDataset
 from weave.flow.casting import ScorerLike
 
 from gptnt.common.paths import Paths
+from gptnt.dataset.defuser_vqa.constants import (
+    GROUNDING_HALLUCINATION_TYPE_A_RESPONSE,
+    GROUNDING_HALLUCINATION_TYPE_B_RESPONSE,
+)
 from gptnt.evaluation.model import EvalModel, ModelOutput
 from gptnt.evaluation.preprocess import PostprocessInputsFunc
 from gptnt.processors.image_resizer import ImageResizer
@@ -30,9 +34,18 @@ OPEN_ENDED_INSTRUCTION = "Answer the following question based on given context. 
 MCQ_INSTRUCTION = "Answer the following multiple choice question based on the given context. Output only the letter of the correct answer, nothing else."
 OCR_INSTRUCTION = "Follow the instruction given the context from the image. Output only the answer, nothing else."
 
-GROUNDING_SOM_PROMPT = "The image contains objects annotated with alphabetical markers positioned beside each object. When asked about an object's location, respond only with the corresponding letter. If multiple objects match, respond with 'More information needed'. If no such object exists, respond with 'None'."
 
-GROUNDING_COORDINATES_PROMPT = 'The resolution of the image is {IMAGE_WIDTH}x{IMAGE_HEIGHT}. Coordinates (x, y) are absolute pixel positions with (0,0) at the top-left and ({IMAGE_WIDTH},{IMAGE_HEIGHT}) at the bottom-right. When asked about an object\'s location, respond with coordinates of any point within the object. Format: {"x": <int>, "y": <int>}. If multiple objects match, respond with "More information needed". If no such object exists, respond with "None".'
+GROUNDING_HALLUCINATION_PROMPT = f'If multiple objects match, respond with "{GROUNDING_HALLUCINATION_TYPE_A_RESPONSE}". If no such object exists, respond with "{GROUNDING_HALLUCINATION_TYPE_B_RESPONSE}".'
+
+GROUNDING_SOM_PROMPT = (
+    "The image contains objects annotated with alphabetical markers positioned beside each object. When asked about an object's location, respond only with the corresponding letter.  "
+    + GROUNDING_HALLUCINATION_PROMPT
+)
+
+GROUNDING_COORDINATES_PROMPT = (
+    'The resolution of the image is {IMAGE_WIDTH}x{IMAGE_HEIGHT}. Coordinates (x, y) are absolute pixel positions with (0,0) at the top-left and ({IMAGE_WIDTH},{IMAGE_HEIGHT}) at the bottom-right. When asked about an object\'s location, respond with coordinates of any point within the object. Format: {"x": <int>, "y": <int>}. '
+    + GROUNDING_HALLUCINATION_PROMPT
+)
 
 
 def convert_hf_dataset_to_instances(
