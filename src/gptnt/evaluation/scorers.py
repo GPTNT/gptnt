@@ -195,8 +195,8 @@ class CoordinateDistanceComparer(BaseComparer[NDArray[np.uint8] | str, float]):
     The distance is normalized to be in [0.0, 1.0].
     """
 
-    _min_distance: float = PrivateAttr(default=0.0)  # noqa: WPS358
-    _max_distance: float = PrivateAttr(default=1.0)
+    _min_distance: float = 0.0  # noqa: WPS358
+    _max_distance: float = 1.0
 
     @override
     def __call__(
