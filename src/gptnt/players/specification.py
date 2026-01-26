@@ -45,8 +45,8 @@ class PlayerCapabilities(BaseModel):
     structured_output_mode: StructuredOutputMode = "native"
     """Which structured output mode to use, as per pydantic-ai."""
 
-    max_observation_window_length: int = 16
-    """The maximum observation window length for the player.
+    max_observations_per_request: int = 16
+    """The maximum number of observations per request for the player.
 
     We default this to 16.
     """
@@ -61,6 +61,9 @@ class PlayerCapabilities(BaseModel):
 
     interaction_location_method: InteractionLocationMethod = "set-of-marks"
     """Whether interaction locations are predicted as set-of-marks or coordinates."""
+
+    preserve_last_frame_for_n_turns: int = 0
+    """Number of previous turns from which to keep the last frame in the observation window."""
 
     @property
     def interact_location_type(self) -> type[SingleAlphabetLetter] | type[AbsoluteCoordinate]:

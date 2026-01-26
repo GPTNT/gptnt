@@ -140,6 +140,8 @@ extend-ignore = [
     "WPS478",
     # Unfortunately, we can't control what other people name things
     "WPS347",
+    # Module complexity doesnt seem to work consistently, so we can just disable it
+    "WPS232",
 ]
 per-file-ignores = [
     "scripts/*:WPS",

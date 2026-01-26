@@ -22,11 +22,8 @@ from gptnt.players.actions import (
     SendMessageAction,
 )
 from gptnt.players.ai.exception_recovery import ExceptionRecoveryChain
-from gptnt.players.ai.message_history import (
-    AgentMessageInput,
-    MessageHistory,
-    coerce_tool_output_into_native_output,
-)
+from gptnt.players.ai.input_builder import AgentMessageInput
+from gptnt.players.ai.messages.message_history import MessageHistory
 from gptnt.players.ai.output_validators import InvalidOutputFormatError, structure_string_output
 from gptnt.players.specification import PlayerCapabilities, PlayerDeps, PlayerProtocol
 from gptnt.prompts.instructions import load_instructions_from_deps
@@ -95,7 +92,9 @@ class ActionPredictor(InstrumentationDataclassMixin):
 
         This will be the main way to send messages to the AI.
         """
+        self.message_history.remove_observations_from_previous_messages()
         self.message_history.truncate_history_if_needed()
+
         with capture_run_messages() as run_messages:
             try:
                 model_output = await self.agent.run(
@@ -127,14 +126,11 @@ class ActionPredictor(InstrumentationDataclassMixin):
                 raw_model_output=structure_error.output,
             )
 
-        # Convert tool outputs to NativeOutput if needed
-        new_messages = coerce_tool_output_into_native_output(model_output.new_messages())
-
         return AgentCallResult(
             output=model_output.output,
             raw_output=str(model_output.response.parts),
             usage=model_output.usage(),
-            new_messages=new_messages,
+            new_messages=model_output.new_messages(),
             ai_response_error=None,
         )
 

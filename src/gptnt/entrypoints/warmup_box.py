@@ -19,7 +19,7 @@ from gptnt.ktane.manual import KtaneManualPaths
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.ai.action_predictor import ActionPredictor
 from gptnt.players.ai.input_builder import AgentInputBuilder
-from gptnt.players.ai.message_history import MessageHistory
+from gptnt.players.ai.messages.message_history import MessageHistory
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.prompts.manual import load_manual_as_prompt

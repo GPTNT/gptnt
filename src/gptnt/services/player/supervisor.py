@@ -7,7 +7,7 @@ from pydantic import UUID4
 
 from gptnt.players.ai.action_predictor import ActionPredictor
 from gptnt.players.ai.input_builder import AgentInputBuilder
-from gptnt.players.ai.message_history import MessageHistory
+from gptnt.players.ai.messages.message_history import MessageHistory
 from gptnt.players.metrics.recorder import ExperimentPlayerRecorder
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol

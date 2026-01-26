@@ -11,7 +11,7 @@ from pydantic_ai import (
     UserPromptPart,
 )
 
-from gptnt.players.ai.message_history import coerce_tool_output_into_native_output
+from gptnt.players.ai.messages.message_transformer import coerce_tool_output_into_native_output
 
 
 @pytest.fixture

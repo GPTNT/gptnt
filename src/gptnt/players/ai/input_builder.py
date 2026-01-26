@@ -6,13 +6,14 @@ from pydantic_ai import BinaryContent
 
 from gptnt.ktane.client import RawObservationFrames
 from gptnt.ktane.state.bomb import BombState
-from gptnt.players.ai.message_history import AgentMessageInput
 from gptnt.players.metrics.recorder import ExperimentPlayerRecorder
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.prompts.manual import load_manual_as_prompt
 
 logger = structlog.get_logger()
+
+type AgentMessageInput = str | list[str | BinaryContent]
 
 
 @dataclass(kw_only=True)
@@ -74,7 +75,7 @@ class AgentInputBuilder:
     ) -> list[BinaryContent]:
         """Prepare frames from the game."""
         num_frames_to_use = (
-            self.capabilities.max_observation_window_length
+            self.capabilities.max_observations_per_request
             if bomb_state.view_needs_multiple_frames
             else 1
         )

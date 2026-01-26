@@ -16,7 +16,7 @@ from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.manual import KtaneManualPaths
 from gptnt.players.actions import AgentCallResult, PlayerOutputType
 from gptnt.players.ai.input_builder import AgentInputBuilder
-from gptnt.players.ai.message_history import MessageHistory
+from gptnt.players.ai.messages.message_history import MessageHistory
 from gptnt.players.feedback.nobf import NaughtyOutputBehaviourFeedbackGenerator
 from gptnt.players.specification import PlayerProtocol
 from gptnt.prompts.manual import load_manual_as_prompt

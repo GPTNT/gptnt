@@ -19,7 +19,7 @@ from gptnt.players.actions import (
     DoNothingAction,
     SendMessageAction,
 )
-from gptnt.players.ai.message_history import ensure_messages_have_valid_final_response
+from gptnt.players.ai.messages.message_transformer import ensure_messages_have_valid_final_response
 from gptnt.players.ai.output_validators import InvalidOutputFormatError
 
 logger = structlog.get_logger()

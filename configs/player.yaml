@@ -28,6 +28,7 @@ player:
     use_structured_outputs: ???
     structured_output_mode: ???
     interaction_location_method: set-of-marks
+    preserve_last_frame_for_n_turns: 1
     usage_limits:
       _target_: pydantic_ai.usage.UsageLimits
 
