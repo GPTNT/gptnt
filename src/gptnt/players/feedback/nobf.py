@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 
 from gptnt.players.actions import AgentCallResult, AIResponseErrorType, PlayerOutputType
-from gptnt.services.events.player import PlayerMessage
 
 
 @dataclass(kw_only=True)
 class NaughtyOutputBehaviourFeedbackGenerator:
     """Generate feedback based on naughty output behaviour."""
+
+    feedback_xml_tag: str = "execution-feedback"
 
     def __post_init__(self) -> None:
         """Setup the feedback handlers."""
@@ -20,9 +21,7 @@ class NaughtyOutputBehaviourFeedbackGenerator:
             AIResponseErrorType.unknown: self.handle_unknown_error,
         }
 
-    def generate(
-        self, *, agent_call_result: AgentCallResult[PlayerOutputType]
-    ) -> PlayerMessage[str] | None:
+    def generate(self, *, agent_call_result: AgentCallResult[PlayerOutputType]) -> str | None:
         """Generate feedback based on the agent call result."""
         error = agent_call_result.ai_response_error
         if error:
@@ -31,7 +30,7 @@ class NaughtyOutputBehaviourFeedbackGenerator:
             if error_handler:
                 feedback_message = error_handler()
 
-                return self.wrap_feedback_message(feedback_message)
+                return self._wrap_feedback_message(feedback_message)
 
         return None
 
@@ -59,8 +58,6 @@ class NaughtyOutputBehaviourFeedbackGenerator:
         """Handle unknown error feedback."""
         return "An unknown error occurred while processing your output, causing you to skip your previous turn."
 
-    def wrap_feedback_message(self, feedback_message: str) -> PlayerMessage[str]:
+    def _wrap_feedback_message(self, feedback_message: str) -> str:
         """Wrap the feedback message in exec-feedback tags."""
-        return PlayerMessage(
-            message=f"<execution-feedback>{feedback_message}</execution-feedback>"
-        )
+        return f"<{self.feedback_xml_tag}>{feedback_message}</{self.feedback_xml_tag}>"

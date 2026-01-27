@@ -208,7 +208,7 @@ class PlayerController(PlayerSupervisor):
         nobf_output = self.nobf_generator.generate(agent_call_result=agent_call_result)
 
         if nobf_output:
-            _ = await self.handle_feedback(nobf_output)
+            _ = await self.handle_feedback(PlayerMessage(message=nobf_output))
 
         # # TODO: if we have tapf enabled, generate tapf
         # tapf_output = self.tapf_generator.generate(all_bomb_states=self.experiment_recorder)
