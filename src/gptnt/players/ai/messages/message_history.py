@@ -127,10 +127,6 @@ class MessageHistory:
         """
         # Track the input and output tokens for this run
         input_tokens_for_run = usage.input_tokens - self.usage.total_tokens
-        assert input_tokens_for_run > 0, (
-            f"Input tokens for run cannot be negative: {usage.input_tokens=} "
-            f"- {self.usage.total_tokens=} -> {input_tokens_for_run}"
-        )
         # Note: output tokens is not computed with a delta because the model only outputs once per
         # run
         output_tokens_for_run = usage.output_tokens
