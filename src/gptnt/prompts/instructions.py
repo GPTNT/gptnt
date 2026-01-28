@@ -1,6 +1,9 @@
 from functools import lru_cache
+from textwrap import dedent
 
 import structlog
+from pydantic_ai import PromptedOutput
+from pydantic_ai._output import OutputSchema, PromptedOutputSchema
 from pydantic_ai.tools import RunContext
 
 from gptnt.common.paths import Paths
@@ -240,6 +243,33 @@ def load_instructions(deps: PlayerDeps) -> str:
     return instructions
 
 
+PROMPTED_OUTPUT_TEMPLATE = dedent(
+    """
+    Always respond with a JSON object that's compatible with this schema:
+
+    {schema}
+
+    Don't include any text or Markdown fencing before or after.
+    """
+)
+
+
+def create_output_schema_for_instructions[OutputT](structured_output_type: type[OutputT]) -> str:
+    """Manually create the schema for PromptedOutput based on the current deps."""
+    output_schema = OutputSchema[OutputT].build(PromptedOutput(structured_output_type))
+    assert output_schema.object_def is not None
+
+    instruction_suffix = PromptedOutputSchema.build_instructions(
+        PROMPTED_OUTPUT_TEMPLATE, output_schema.object_def
+    )
+    return instruction_suffix
+
+
 def load_instructions_from_deps(ctx: RunContext[PlayerDeps]) -> str:
     """Load instructions for the given player dynamically for the current agent."""
-    return load_instructions(ctx.deps)
+    instructions = load_instructions(ctx.deps)
+
+    if ctx.deps.should_manually_add_schema_in_instructions:
+        schema = create_output_schema_for_instructions(ctx.deps.structured_output_type)
+        instructions = f"{instructions}\n\n{schema}"
+    return instructions

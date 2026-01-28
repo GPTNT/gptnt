@@ -83,7 +83,6 @@ def capabilities(
     return PlayerCapabilities(
         player_name="test_player",
         player_type="ai",
-        use_structured_outputs=True,
         structured_output_mode=structured_output_mode,
         max_observations_per_request=16,
         interaction_location_method=interaction_location_method,

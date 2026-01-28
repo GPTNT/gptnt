@@ -31,7 +31,7 @@ def capabilities_with_limit() -> PlayerCapabilities:
         player_type="ai",
         max_observations_per_request=3,
         preserve_last_frame_for_n_turns=1,
-        use_structured_outputs=True,
+        structured_output_mode="prompted",
         usage_limits=UsageLimits(input_tokens_limit=10000),
     )
 
@@ -44,7 +44,7 @@ def capabilities_no_limit() -> PlayerCapabilities:
         player_type="ai",
         max_observations_per_request=3,
         preserve_last_frame_for_n_turns=1,
-        use_structured_outputs=True,
+        structured_output_mode="prompted",
         usage_limits=UsageLimits(input_tokens_limit=None),
     )
 

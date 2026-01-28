@@ -39,11 +39,11 @@ class PlayerCapabilities(BaseModel):
     player_type: PlayerType
     """The type of player (AI or human)."""
 
-    use_structured_outputs: bool
-    """Whether the player supports structured output."""
-
-    structured_output_mode: StructuredOutputMode = "native"
+    structured_output_mode: StructuredOutputMode | None = "prompted"
     """Which structured output mode to use, as per pydantic-ai."""
+
+    include_schema_in_instructions: bool = True
+    """Should we manually include the output schema in the instructions."""
 
     max_observations_per_request: int = 16
     """The maximum number of observations per request for the player.
@@ -64,6 +64,16 @@ class PlayerCapabilities(BaseModel):
 
     preserve_last_frame_for_n_turns: int = 0
     """Number of previous turns from which to keep the last frame in the observation window."""
+
+    @model_validator(mode="after")
+    def validate_no_duplicate_schema_inclusion(self) -> Self:
+        """Ensure the schema only appears at maximum once."""
+        if self.structured_output_mode == "prompted" and not self.include_schema_in_instructions:
+            raise ValueError(
+                "If structured outputs are used with 'prompted' mode, the schema is always "
+                "included in the instructions, so 'include_schema_in_instructions' cannot be False."
+            )
+        return self
 
     @property
     def interact_location_type(self) -> type[SingleAlphabetLetter] | type[AbsoluteCoordinate]:
@@ -149,7 +159,7 @@ class PlayerDeps(BaseModel, frozen=True):
     @property
     def output_type(self) -> OutputSpec[PlayerOutputType] | type[str]:
         """The output type for the player, determining the schema/structure if needed."""
-        if self.capabilities.use_structured_outputs:
+        if self.capabilities.structured_output_mode is not None:
             match self.capabilities.structured_output_mode:
                 case "native":
                     return NativeOutput(self.structured_output_type)
@@ -188,3 +198,15 @@ class PlayerDeps(BaseModel, frozen=True):
             clean_output.append(output_type)
 
         return cast("type[PlayerOutputType]", Union[tuple(clean_output)])  # noqa: UP007
+
+    @property
+    def should_manually_add_schema_in_instructions(self) -> bool:
+        """Whether we should manually include the output schema in the instructions.
+
+        If we are using prompted, then the schema is automatically included and therefore we should
+        not include it again. Otherwise, we depend on the capability flag.
+        """
+        return (
+            self.capabilities.structured_output_mode != "prompted"
+            and self.capabilities.include_schema_in_instructions
+        )

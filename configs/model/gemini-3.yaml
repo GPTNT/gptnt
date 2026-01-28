@@ -5,8 +5,8 @@ defaults:
 
 capabilities:
   player_name: gemini-3
-  use_structured_outputs: true
   structured_output_mode: prompted
+  include_schema_in_instructions: true
   usage_limits:
     input_tokens_limit: 1048576
     output_tokens_limit: 65536

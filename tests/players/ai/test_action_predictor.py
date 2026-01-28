@@ -299,7 +299,6 @@ async def test_send_request_returns_do_nothing_when_structuring_fails(
     capabilities_expecting_structure = PlayerCapabilities(
         player_name="test_player",
         player_type="ai",
-        use_structured_outputs=False,  # This means string output needs structuring
         structured_output_mode="prompted",
         max_observations_per_request=16,
     )

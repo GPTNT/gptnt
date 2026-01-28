@@ -154,7 +154,6 @@ def capabilities(preserve_last_frame_for_n_turns: int) -> PlayerCapabilities:
     return PlayerCapabilities(
         player_name="test_player",
         player_type="ai",
-        use_structured_outputs=True,
         structured_output_mode="prompted",
         interaction_location_method="coordinates",
         preserve_last_frame_for_n_turns=preserve_last_frame_for_n_turns,

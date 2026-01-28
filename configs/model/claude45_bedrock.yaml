@@ -5,8 +5,8 @@ defaults:
 
 capabilities:
   player_name: claude45
-  use_structured_outputs: true
   structured_output_mode: prompted
+  include_schema_in_instructions: true
   usage_limits:
     input_tokens_limit: 200000
     output_tokens_limit: 64000
