@@ -51,8 +51,8 @@ player:
       model_settings:
         _target_: pydantic_ai.settings.ModelSettings
         _convert_: all
-        temperature: 0.0
-        top_p: 1.0
+        temperature: 0.6
+        top_p: 0.95
 
   observation_handler:
     _target_: gptnt.players.observation_handler.ObservationHandler
