@@ -14,12 +14,8 @@ from tqdm import tqdm
 
 from gptnt.ktane.actions import KtaneBaseAction, KtaneGameplayInput
 from gptnt.ktane.state.bomb import BombState
-from gptnt.players.actions import (
-    AIResponseErrorType,
-    DoNothingAction,
-    PlayerOutputType,
-    SendMessageAction,
-)
+from gptnt.players.actions import DoNothingAction, PlayerOutputType, SendMessageAction
+from gptnt.players.exceptions import AIResponseErrorType
 from gptnt.players.observation_handler import Observation
 from gptnt.players.specification import PlayerRole
 from gptnt.services.experiment_descriptor import ExperimentDescriptor, PlayerContent
@@ -44,7 +40,7 @@ class ExperimentStepRecord(BaseModel):
     bomb_state: BombState | None
     observation: Annotated[Observation | Path | None, Field(repr=False)]
     usage: RunUsage
-    error_type: AIResponseErrorType | None = None
+    error_type: list[AIResponseErrorType] | None = None
     is_reflection: bool = False
 
     async def load_observation(self) -> Self:
@@ -113,7 +109,8 @@ class StepRecordsMetricsMixin(BaseModel):
         error_counts: dict[AIResponseErrorType, int] = {}
         for record in self.step_records:
             if record.error_type is not None:
-                error_counts[record.error_type] = error_counts.get(record.error_type, 0) + 1
+                for error in record.error_type:
+                    error_counts[error] = error_counts.get(error, 0) + 1
         return error_counts
 
     @computed_field

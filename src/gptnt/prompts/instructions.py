@@ -53,21 +53,19 @@ def _load_role(deps: PlayerDeps) -> str:
     raise NoPromptForProtocolError(deps.protocol, prompt_category="role")
 
 
-def _is_open_source_model(player_name: str) -> bool:
-    """Check if the player name indicates an open-source model."""
-    return "qwen" in player_name or "internvl" in player_name
-
-
 @lru_cache
 def _load_reasoning(deps: PlayerDeps) -> str:
     """Load the reasoning section for the given protocol."""
-    thinking = PromptCache.get_text(paths.prompts.joinpath("reasoning.md"))
+    reasoning = PromptCache.get_text(paths.prompts.joinpath("reasoning.md"))
+    tag_format = PromptCache.get_text(
+        paths.prompts.joinpath(
+            "reasoning_thinking-out-loud.md"
+            if deps.capabilities.thinking_method == "thinking-out-loud"
+            else "reasoning_inner-monologue.md"
+        )
+    )
 
-    if _is_open_source_model(deps.capabilities.player_name):
-        thinking_format = PromptCache.get_text(paths.prompts.joinpath("reasoning_oss.md"))
-        return f"{thinking}\n{thinking_format}"
-
-    return thinking
+    return f"{reasoning}\n{tag_format}"
 
 
 @lru_cache
@@ -173,17 +171,11 @@ def _load_observation_requirements(deps: PlayerDeps) -> str:
 @lru_cache
 def load_formatting_requirements(deps: PlayerDeps) -> str:
     """Load the formatting requirements for the given protocol."""
-    formatting = PromptCache.get_text(paths.prompts.joinpath("requirements_formatting.md"))
-    # optionally load reasoning formatting details for open-source models
-    if _is_open_source_model(deps.capabilities.player_name):
-        formatting_thinking = PromptCache.get_text(
-            paths.prompts.joinpath("requirements_formatting_reasoning_oss.md")
+    if deps.capabilities.structured_output_mode is not None:
+        return PromptCache.get_text(
+            paths.prompts.joinpath("requirements_formatting_structured-output.md")
         )
-        formatting = f"{formatting}\n{formatting_thinking}"
-    formatting_command = PromptCache.get_text(
-        paths.prompts.joinpath("requirements_formatting_commands.md")
-    )
-    return f"{formatting}\n{formatting_command}"
+    return PromptCache.get_text(paths.prompts.joinpath("requirements_formatting.md"))
 
 
 @lru_cache
@@ -249,7 +241,6 @@ PROMPTED_OUTPUT_TEMPLATE = dedent(
 
     {schema}
 
-    Don't include any text or Markdown fencing before or after.
     """
 )
 

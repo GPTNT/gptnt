@@ -14,7 +14,6 @@ from gptnt.ktane.actions import (
 )
 from gptnt.players.actions import (
     AgentCallResult,
-    AIResponseErrorType,
     DoNothingAction,
     GameInteractionActionType,
     InteractGameAction,
@@ -22,6 +21,7 @@ from gptnt.players.actions import (
     PlayerOutputType,
     SendMessageAction,
 )
+from gptnt.players.exceptions import AIResponseErrorType
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.players.specification import PlayerProtocol
 from gptnt.processors.image_resizer import CoordinateOutOfBoundsError
@@ -120,10 +120,11 @@ class BaseActionDispatcher(abc.ABC):
             return await self._do_nothing_action(
                 AgentCallResult[DoNothingAction](
                     output=DoNothingAction(),
+                    thoughts=None,
                     usage=action.usage,
-                    new_messages=action.new_messages_with_other_action(DoNothingAction()),
+                    new_messages=action.new_messages,
                     raw_output=action.raw_output,
-                    ai_response_error=AIResponseErrorType.invalid_som_location,
+                    ai_response_error=[AIResponseErrorType.invalid_som_location],
                 )
             )
         except CoordinateOutOfBoundsError:
@@ -133,26 +134,28 @@ class BaseActionDispatcher(abc.ABC):
             return await self._do_nothing_action(
                 AgentCallResult[DoNothingAction](
                     output=DoNothingAction(),
+                    thoughts=None,
                     usage=action.usage,
-                    new_messages=action.new_messages_with_other_action(DoNothingAction()),
+                    new_messages=action.new_messages,
                     raw_output=action.raw_output,
-                    ai_response_error=AIResponseErrorType.out_of_bounds_coordinate,
+                    ai_response_error=[AIResponseErrorType.out_of_bounds_coordinate],
                 )
             )
 
         _ = await self.send_game_action(action=game_action)
         return AgentCallResult[PlayerOutputType | KtaneGameplayInput](
             output=game_action,
+            thoughts=action.thoughts,
             usage=action.usage,
             new_messages=action.new_messages,
             raw_output=action.raw_output,
-            ai_response_error=None,
+            ai_response_error=[],
         )
 
     @logfire.instrument("Send message")
     async def _send_message(
         self, action: AgentCallResult[SendMessageAction]
-    ) -> AgentCallResult[PlayerOutputType]:
+    ) -> AgentCallResult[SendMessageAction]:
         """Send a message to the dialogue space."""
         _ = await self.send_dialogue_message(action.output.message)
         return action

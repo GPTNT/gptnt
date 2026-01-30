@@ -193,7 +193,7 @@ class PlayerController(PlayerSupervisor):
             agent_call_result
         )
 
-        # TODO: Provide call result to feedback handlers
+        # Provide call result to feedback handlers
         _ = await self.generate_feedbacks(agent_call_result)
 
         await self.update_metrics(agent_call_result)
@@ -205,12 +205,12 @@ class PlayerController(PlayerSupervisor):
 
     async def generate_feedbacks(self, agent_call_result: AgentCallResult[Any]) -> None:
         """Generate feedbacks based on the agent call result."""
-        nobf_output = self.nobf_generator.generate(agent_call_result=agent_call_result)
+        if self.capabilities.enable_nobf_generation:
+            nobf_output = self.nobf_generator.generate(agent_call_result=agent_call_result)
+            if nobf_output:
+                _ = await self.handle_feedback(PlayerMessage(message=nobf_output))
 
-        if nobf_output:
-            _ = await self.handle_feedback(PlayerMessage(message=nobf_output))
-
-        # # TODO: if we have tapf enabled, generate tapf
+        # TODO: if we have tapf enabled, generate tapf
         # tapf_output = self.tapf_generator.generate(all_bomb_states=self.experiment_recorder)
         # if tapf_output:
         #     _ = await self.handle_feedback(tapf_output)

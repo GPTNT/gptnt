@@ -117,14 +117,14 @@ done
 # spawn internvl players
 for ((i = 0; i < INTERNVL_PLAYERS; i++)); do
   echo "THROWING: Starting internvl player $i..."
-  run_and_track "internvl_player_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=internvl35-38b
+  run_and_track "internvl_player_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=internvl35
   sleep 1
 done
 
 # spawn qwen players
 for ((i = 0; i < QWEN_PLAYERS; i++)); do
   echo "THROWING: Starting qwen player $i..."
-  run_and_track "qwen_player_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=qwen3vl-32b
+  run_and_track "qwen_player_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=qwen3vl
   sleep 1
 done
 

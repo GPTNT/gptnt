@@ -1,30 +1,21 @@
 from dataclasses import dataclass, field
-from typing import override
+from typing import Any, override
 
 import logfire
 import structlog
-from pydantic_ai import (
-    Agent,
-    AgentRunError,
-    ModelMessage,
-    ModelResponse,
-    RunUsage,
-    TextPart,
-    capture_run_messages,
-)
+from pydantic_ai import Agent, ModelMessage, capture_run_messages
 from pydantic_ai.models import Model
 
 from gptnt.common.instrumentation import InstrumentationDataclassMixin
-from gptnt.players.actions import (
-    AgentCallResult,
-    AIResponseErrorType,
-    PlayerOutputType,
-    SendMessageAction,
+from gptnt.players.actions import AgentCallResult, PlayerOutputType, SendMessageAction
+from gptnt.players.ai.exception_recovery import (
+    ExceptionRecoveryChain,
+    create_reflection_recovery_chain,
 )
-from gptnt.players.ai.exception_recovery import ExceptionRecoveryChain
 from gptnt.players.ai.input_builder import AgentMessageInput
 from gptnt.players.ai.messages.message_history import MessageHistory
-from gptnt.players.ai.output_validators import InvalidOutputFormatError, structure_string_output
+from gptnt.players.exceptions import ExceededMaxTokensError
+from gptnt.players.reasoning_parser.reasoning_parser import ReasoningParser
 from gptnt.players.specification import PlayerCapabilities, PlayerDeps, PlayerProtocol
 from gptnt.prompts.instructions import load_instructions_from_deps
 from gptnt.prompts.reflection import load_reflection_prompt
@@ -41,11 +32,16 @@ class ActionPredictor(InstrumentationDataclassMixin):
 
     capabilities: PlayerCapabilities
 
+    reasoning_parser: ReasoningParser[Any, Any] = field(init=False, repr=False)
+
     protocol: PlayerProtocol = field(init=False, repr=False)
     message_history: MessageHistory = field(init=False, repr=False)
 
-    _exception_recovery: ExceptionRecoveryChain = field(
+    exception_recovery: ExceptionRecoveryChain = field(
         default_factory=ExceptionRecoveryChain, repr=False
+    )
+    reflection_exception_recovery: ExceptionRecoveryChain = field(
+        default_factory=create_reflection_recovery_chain, repr=False
     )
 
     def __post_init__(self) -> None:
@@ -53,8 +49,9 @@ class ActionPredictor(InstrumentationDataclassMixin):
 
         These can only be done here because we init agents with Hydra.
         """
-        self.agent._deps_type = PlayerDeps  # noqa: SLF001
+        self.reasoning_parser = self.capabilities.reasoning_parser
 
+        self.agent._deps_type = PlayerDeps  # noqa: SLF001
         # TODO: I think we can provide instruction functions to the init now so this should be
         #       reworked to use that instead, but that's just a refactoring thing so for now we
         #       don't bother.
@@ -97,42 +94,13 @@ class ActionPredictor(InstrumentationDataclassMixin):
 
         with capture_run_messages() as run_messages:
             try:
-                model_output = await self.agent.run(
-                    message_input,
-                    deps=self._agent_deps,
-                    output_type=self._agent_deps.output_type,
-                    message_history=self.message_history.to_history(),
-                )
+                return await self._send_request(message_input)
             except Exception as exc:  # noqa: BLE001
-                return self._exception_recovery.recover(
+                return self.exception_recovery.recover(
                     exception=exc,
                     new_messages=self._extract_new_messages(run_messages),
                     raw_model_output=None,
                 )
-
-        try:
-            model_output.output = structure_string_output(
-                output=model_output.output, output_type=self._agent_deps.structured_output_type
-            )
-        except InvalidOutputFormatError as structure_error:
-            logger.warning(
-                "Invalid output format from the agent after structuring.",
-                error=structure_error,
-                message_input=message_input,
-            )
-            return self._exception_recovery.recover(
-                exception=structure_error,
-                new_messages=model_output.new_messages(),
-                raw_model_output=structure_error.output,
-            )
-
-        return AgentCallResult(
-            output=model_output.output,
-            raw_output=str(model_output.response.parts),
-            usage=model_output.usage(),
-            new_messages=model_output.new_messages(),
-            ai_response_error=None,
-        )
 
     async def send_reflection_request(
         self, *, reflection_message: str
@@ -150,48 +118,45 @@ class ActionPredictor(InstrumentationDataclassMixin):
 
         with capture_run_messages() as run_messages:
             try:
-                model_output = await self.agent.run(
+                return await self._send_request(
                     [reflection_message, reflection_prompt],
-                    deps=self._agent_deps,
-                    output_type=str,
-                    message_history=self.message_history.to_history(),
+                    override_model_output_type=str,
+                    override_parser_output_type=SendMessageAction,
                 )
-            except AgentRunError:
-                # We are catching the error here because reflection is not critical but we want to
-                # flag it significantly. The problem is that outputting the full exception log is
-                # blocking so we use logger.error instead of logger.exception.
-                logger.error(  # noqa: TRY400
-                    "Unexpected model behavior during reflection. Returning with a default '<error>'."
-                )
-                new_messages = self._extract_new_messages(run_messages)
-
-                model_output = SendMessageAction(message="<error>")
-                return AgentCallResult(
-                    output=model_output,
-                    raw_output=None,
-                    usage=RunUsage(),
-                    new_messages=[
-                        *new_messages,
-                        ModelResponse(parts=[TextPart(model_output.text_part_dump())]),
-                    ],
-                    ai_response_error=AIResponseErrorType.unknown,
+            except Exception as exc:  # noqa: BLE001
+                return self.reflection_exception_recovery.recover(
+                    exception=exc,
+                    new_messages=self._extract_new_messages(run_messages),
+                    raw_model_output=None,
                 )
 
-        try:
-            parsed_output = structure_string_output(
-                output=model_output.output, output_type=SendMessageAction
-            )
-        except InvalidOutputFormatError:
-            # If we fail to parse into SendMessageAction, we wrap the output into one
-            parsed_output = SendMessageAction(message=model_output.output)
+    async def _send_request[ParserOutputT](
+        self,
+        message_input: AgentMessageInput,
+        *,
+        override_model_output_type: type[Any] | None = None,
+        override_parser_output_type: type[ParserOutputT] | None = None,
+    ) -> AgentCallResult[ParserOutputT]:
+        """Send a request to the agent and parse any outputs.
 
-        return AgentCallResult(
-            output=parsed_output,
-            raw_output=str(model_output.response.parts),
-            usage=model_output.usage(),
-            new_messages=model_output.new_messages(),
-            ai_response_error=None,
+        Handle any and all exceptions OUTSIDE OF THIS METHOD PLEASE.
+        """
+        model_output = await self.agent.run(
+            message_input,
+            deps=self._agent_deps,
+            output_type=override_model_output_type or self._agent_deps.output_type,
+            message_history=self.message_history.to_history(),
         )
+        if model_output.response.finish_reason == "length":
+            raise ExceededMaxTokensError
+
+        # importantly, while the model might not need to return a structured output type, we still
+        # need to parse out the final action correctly
+        parsed_output = self.reasoning_parser(
+            model_output,
+            output_type=override_parser_output_type or self._agent_deps.structured_output_type,
+        )
+        return parsed_output
 
     def _extract_new_messages(self, run_messages: list[ModelMessage]) -> list[ModelMessage]:
         """Extract the new messages from all the run messages."""

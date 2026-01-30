@@ -13,9 +13,12 @@ from pydantic_ai.models import Model
 from weave.flow.model import Model as WeaveModel
 
 from gptnt.common.paths import Paths
+from gptnt.players.reasoning_parser.reasoning_parser import ReasoningParser
 
 if TYPE_CHECKING:
     from pydantic_ai.agent import AgentRunResult
+
+    from gptnt.players.actions import AgentCallResult
 
 
 logger = structlog.get_logger()
@@ -28,6 +31,8 @@ class ModelOutput(TypedDict):
     usage: dict[Literal["input_tokens", "output_tokens", "total_tokens"], int]
     model: str
     output: str
+    thoughts: str | None
+    raw_output: str | None
 
 
 class EvalModel(WeaveModel):
@@ -39,9 +44,14 @@ class EvalModel(WeaveModel):
     _output_dir: Path = PrivateAttr()
     """Directory to save the evaluation outputs."""
 
+    _reasoning_parser: ReasoningParser[Any, Any] = PrivateAttr()
+
     @classmethod
     def from_agent(cls, *, agent: Agent) -> Self:
-        """Create an EvalModel from a PydanticAI Agent."""
+        """Create an EvalModel from a PydanticAI Agent and their capabilities.
+
+        Capabilities are there so that we can grab/check for model-specific settings.
+        """
         model_name = None
         if isinstance(agent.model, str):
             model_name = agent.model
@@ -58,6 +68,11 @@ class EvalModel(WeaveModel):
         """Update the output directory for the model."""
         self._output_dir = output_dir
 
+    def update_reasoning_parser(self, reasoning_parser: ReasoningParser[Any, Any]) -> None:
+        """Update the reasoning parser for the model."""
+        self._reasoning_parser = reasoning_parser
+        self._reasoning_parser.structure_output = False
+
     @weave.op
     def model_predict(self, model_input: list[str | Image.Image], **kwargs: Any) -> ModelOutput:  # noqa: ARG002
         """Run the model on the input."""
@@ -72,7 +87,7 @@ class EvalModel(WeaveModel):
                 loaded_inputs.append(chunk)
 
         model_output: AgentRunResult[str] = self._agent.run_sync(loaded_inputs)
-        output_string = model_output.output.strip()
+        parsed_output: AgentCallResult[str] = self._reasoning_parser(model_output, output_type=str)
         return ModelOutput(
             usage={
                 "input_tokens": model_output.usage().input_tokens or 0,
@@ -80,7 +95,9 @@ class EvalModel(WeaveModel):
                 "total_tokens": model_output.usage().total_tokens or 0,
             },
             model=self.name or "",
-            output=output_string,
+            output=parsed_output.output,
+            thoughts=parsed_output.thoughts,
+            raw_output=parsed_output.raw_output,
         )
 
     @weave.op

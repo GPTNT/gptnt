@@ -36,7 +36,6 @@ class TruncationPolicy:
             threshold=self.threshold, next_message=next_message
         )
 
-    @logfire.instrument("Truncate history if needed")
     def truncate_history(
         self,
         *,
@@ -52,30 +51,30 @@ class TruncationPolicy:
         Returns:
             Updated list of turn runs after truncation
         """
-        # If there is no limit, we never truncate
-        if self.token_accountant.usage_limits.input_tokens_limit is None:
+        if not self.should_truncate(turn_runs=turn_runs):
             return turn_runs
 
-        updated_turns = list(turn_runs)
+        with logfire.span("Truncate history"):
+            updated_turns = list(turn_runs)
 
-        while self.should_truncate(turn_runs=updated_turns):
-            # Remove the first one or break out the loop
-            try:
-                run_to_remove = updated_turns[0]
-            except IndexError:
-                break
+            while self.should_truncate(turn_runs=updated_turns):
+                # Remove the first one or break out the loop
+                try:
+                    run_to_remove = updated_turns[0]
+                except IndexError:
+                    break
 
-            # Remove from the beginning (oldest turn)
-            _ = updated_turns.pop(0)
+                # Remove from the beginning (oldest turn)
+                _ = updated_turns.pop(0)
 
-            # Execute callback if provided
-            if on_truncate_callback:
-                on_truncate_callback(run_to_remove)
+                # Execute callback if provided
+                if on_truncate_callback:
+                    on_truncate_callback(run_to_remove)
 
-            logger.info(
-                "Truncated earliest turn from history",
-                removed_run_idx=run_to_remove.idx,
-                remaining_turns=len(updated_turns),
-            )
+                logger.info(
+                    "Truncated earliest turn from history",
+                    removed_run_idx=run_to_remove.idx,
+                    remaining_turns=len(updated_turns),
+                )
 
         return updated_turns

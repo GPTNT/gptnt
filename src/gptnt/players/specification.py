@@ -1,4 +1,4 @@
-from typing import Literal, Self, Union, cast, override
+from typing import Any, Literal, Self, Union, cast, override
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.fields import computed_field
@@ -18,11 +18,21 @@ from gptnt.players.actions import (
     SendMessageAction,
     SingleAlphabetLetter,
 )
+from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
+from gptnt.players.reasoning_parser.react import ReactStyleReasoningParser
+from gptnt.players.reasoning_parser.reasoning_parser import ReasoningParser
 
 type PlayerType = Literal["ai", "human"]
 type PlayerRole = Literal["defuser", "expert"]
 type CommunicationStyle = Literal["async", "sync"]
 type InteractionLocationMethod = Literal["set-of-marks", "coordinates"]
+type ThinkingMethod = Literal["inner-monologue", "thinking-out-loud"]
+"""Thinking method used by players.
+
+- "inner-monologue": Model reasoning is kept separate from the user-visible message (parsed as
+                    `ThinkingPart` from the model output; the prompt format uses a dedicated `<think>` section).
+- "thinking-out-loud": Reasoning is part of the normal message flow (ReAct-style).
+"""
 
 
 class PlayerCapabilities(BaseModel):
@@ -38,6 +48,9 @@ class PlayerCapabilities(BaseModel):
 
     player_type: PlayerType
     """The type of player (AI or human)."""
+
+    thinking_method: ThinkingMethod = "inner-monologue"
+    """The thinking method of the player."""
 
     structured_output_mode: StructuredOutputMode | None = "prompted"
     """Which structured output mode to use, as per pydantic-ai."""
@@ -65,6 +78,9 @@ class PlayerCapabilities(BaseModel):
     preserve_last_frame_for_n_turns: int = 0
     """Number of previous turns from which to keep the last frame in the observation window."""
 
+    enable_nobf_generation: bool = True
+    """Whether to generate Naughty Output Behaviour Feedback for each action."""
+
     @model_validator(mode="after")
     def validate_no_duplicate_schema_inclusion(self) -> Self:
         """Ensure the schema only appears at maximum once."""
@@ -72,6 +88,15 @@ class PlayerCapabilities(BaseModel):
             raise ValueError(
                 "If structured outputs are used with 'prompted' mode, the schema is always "
                 "included in the instructions, so 'include_schema_in_instructions' cannot be False."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_thinking_mode_output_compatibility(self) -> Self:
+        """If the thinking mode is out-loud, ensure that structured outputs are not used."""
+        if self.thinking_method == "thinking-out-loud" and self.structured_output_mode is not None:
+            raise ValueError(
+                "If the thinking mode is 'thinking-out-loud', structured outputs cannot be used."
             )
         return self
 
@@ -87,6 +112,15 @@ class PlayerCapabilities(BaseModel):
                 return SingleAlphabetLetter  # pyright: ignore[reportReturnType]
             case "coordinates":
                 return AbsoluteCoordinate
+
+    @property
+    def reasoning_parser[OutputT](self) -> ReasoningParser[Any, OutputT]:
+        """Load the right reasoning parser for the player."""
+        match self.thinking_method:
+            case "inner-monologue":
+                return InnerMonologueReasoningParser()
+            case "thinking-out-loud":
+                return ReactStyleReasoningParser()
 
     @override
     def __hash__(self) -> int:

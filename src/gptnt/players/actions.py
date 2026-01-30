@@ -1,35 +1,15 @@
 import json
-from enum import Enum
 from typing import Annotated, Generic, Literal, TypeVar
 
 from annotated_types import MaxLen, Predicate
-from pydantic import AfterValidator, BaseModel, ConfigDict, NonNegativeInt, field_validator
-from pydantic_ai import (
-    BaseToolCallPart,
-    BaseToolReturnPart,
-    ModelMessage,
-    ModelResponse,
-    RunUsage,
-    TextPart,
-    ThinkingPart,
-)
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, NonNegativeInt, field_validator
+from pydantic_ai import BaseToolCallPart, BaseToolReturnPart, ModelMessage, ModelResponse, RunUsage
 
 from gptnt.ktane.actions import GameActionType, KtaneBaseAction, RelativeCoordinate
+from gptnt.players.exceptions import AIResponseErrorType
 
-NO_NEW_MESSAGES_SENTINEL = "<no_new_messages>"
+NO_NEW_MESSAGES_SENTINEL = "\n"
 """Sentinel for no new messages."""
-
-
-class AIResponseErrorType(Enum):
-    """Reasons the AI player errored."""
-
-    invalid_som_location = "invalid_som_location"
-    out_of_bounds_coordinate = "out_of_bounds_coordinate"
-    invalid_format = "invalid_format"
-    max_tokens_exceeded = "max_tokens_exceeded"
-    server_error = "server_error"
-    guardrail_violation = "guardrail_violation"
-    unknown = "unknown"
 
 
 class ModelOutputDumpsMixin(BaseModel):
@@ -125,10 +105,12 @@ class AgentCallResult(BaseModel, Generic[ModelOutputT_co]):  # noqa: UP046
     """Result of an agent call."""
 
     output: ModelOutputT_co
+    thoughts: str | None
+
     usage: RunUsage
     new_messages: list[ModelMessage]
 
-    ai_response_error: AIResponseErrorType | None
+    ai_response_error: list[AIResponseErrorType] = Field(default_factory=list)
     raw_output: str | None = None
 
     @field_validator("new_messages")
@@ -158,44 +140,3 @@ class AgentCallResult(BaseModel, Generic[ModelOutputT_co]):  # noqa: UP046
             if not isinstance(final_message, ModelResponse):
                 raise ValueError("The final message in new_messages must a ModelResponse.")
         return messages
-
-    @property
-    def thoughts(self) -> str | None:
-        """Extract the thoughts from the final ModelResponse, if any."""
-        if not self.new_messages:
-            return None
-
-        response = self.new_messages[-1]
-        assert isinstance(response, ModelResponse)
-
-        thinking_parts = [
-            part
-            for part in response.parts
-            if isinstance(part, ThinkingPart) and part.has_content()
-        ]
-
-        if not thinking_parts:
-            return None
-
-        return "\n".join(part.content for part in thinking_parts)
-
-    def new_messages_with_other_action(
-        self, action: PlayerOutputType, *, keep_any_thinking: bool = True
-    ) -> list[ModelMessage]:
-        """Replace the final ModelResponse with the given action."""
-        if not self.new_messages:
-            return self.new_messages
-
-        response = self.new_messages[-1]
-        assert isinstance(response, ModelResponse)
-
-        # Extract any thinking parts if needed
-        thinking_parts = (
-            [part for part in response.parts if isinstance(part, ThinkingPart)]
-            if keep_any_thinking
-            else []
-        )
-
-        response.parts = [*thinking_parts, TextPart(action.text_part_dump())]
-
-        return [*self.new_messages[:-1], response]

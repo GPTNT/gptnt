@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from typing import Any, override
 
 import structlog
-from google.genai.errors import ServerError
+from google.genai.errors import ServerError as GoogleServerError
 from pydantic_ai import (
     AgentRunError,
     ModelMessage,
@@ -13,19 +13,19 @@ from pydantic_ai import (
     UnexpectedModelBehavior,
 )
 
-from gptnt.players.actions import (
-    AgentCallResult,
-    AIResponseErrorType,
-    DoNothingAction,
-    SendMessageAction,
-)
+from gptnt.players.actions import AgentCallResult, DoNothingAction, SendMessageAction
 from gptnt.players.ai.messages.message_transformer import ensure_messages_have_valid_final_response
-from gptnt.players.ai.output_validators import InvalidOutputFormatError
+from gptnt.players.exceptions import (
+    AIResponseErrorType,
+    ExceededMaxTokensError,
+    InvalidOutputFormatError,
+    ReasoningParsingError,
+)
 
 logger = structlog.get_logger()
 
 
-class ExceptionRecoveryStrategy(ABC):
+class ExceptionRecoveryStrategy[ExceptionT: Exception](ABC):
     """Handle various AI run exceptions in a graceful manner."""
 
     @abstractmethod
@@ -37,7 +37,7 @@ class ExceptionRecoveryStrategy(ABC):
     def recover(
         self,
         *,
-        exception: Exception,
+        exception: ExceptionT,
         new_messages: list[ModelMessage],
         raw_model_output: str | None = None,
         **kwargs: Any,
@@ -46,14 +46,14 @@ class ExceptionRecoveryStrategy(ABC):
         raise NotImplementedError
 
 
-class DoNothingRecoveryStrategy(ExceptionRecoveryStrategy, ABC):
+class DoNothingRecoveryStrategy[ExceptionT: Exception](ExceptionRecoveryStrategy[ExceptionT], ABC):
     """Mixin to return a DoNothingAction as recovery."""
 
     def recover_do_nothing(
         self,
         *,
         exception: Exception,
-        ai_response_error: AIResponseErrorType,
+        ai_response_error: list[AIResponseErrorType],
         new_messages: list[ModelMessage],
         raw_model_output: str | None = None,
     ) -> AgentCallResult[DoNothingAction]:
@@ -69,6 +69,7 @@ class DoNothingRecoveryStrategy(ExceptionRecoveryStrategy, ABC):
 
         return AgentCallResult(
             output=DoNothingAction(),
+            thoughts=None,
             raw_output=raw_model_output,
             usage=RunUsage(),
             new_messages=new_messages,
@@ -76,7 +77,7 @@ class DoNothingRecoveryStrategy(ExceptionRecoveryStrategy, ABC):
         )
 
 
-class GuardrailViolationRecovery(ExceptionRecoveryStrategy):
+class GuardrailViolationRecovery(ExceptionRecoveryStrategy[AgentRunError]):
     """Handle situations where the model output is refused due to guardrail violations."""
 
     @override
@@ -90,7 +91,7 @@ class GuardrailViolationRecovery(ExceptionRecoveryStrategy):
     def recover(
         self,
         *,
-        exception: Exception,
+        exception: AgentRunError,
         new_messages: list[ModelMessage],
         raw_model_output: str | None = None,
         **kwargs: Any,
@@ -106,31 +107,32 @@ class GuardrailViolationRecovery(ExceptionRecoveryStrategy):
 
         return AgentCallResult(
             output=model_output,
+            thoughts=None,
             raw_output=raw_model_output,
             usage=RunUsage(),
             new_messages=[],
-            ai_response_error=AIResponseErrorType.guardrail_violation,
+            ai_response_error=[AIResponseErrorType.guardrail_violation],
         )
 
 
-class ExceededMaxTokensRecovery(DoNothingRecoveryStrategy):
+class ExceededMaxTokensRecovery(
+    DoNothingRecoveryStrategy[UnexpectedModelBehavior | ExceededMaxTokensError]
+):
     """Handle situations where the model output is refused due to exceeding max tokens."""
 
     @override
     def can_handle(self, *, exception: Exception, new_messages: list[ModelMessage]) -> bool:
         return bool(
-            isinstance(exception, UnexpectedModelBehavior)  # noqa: WPS222
-            and "Exceeded maximum retries" in exception.message
-            and new_messages
+            new_messages
             and isinstance(new_messages[-1], ModelResponse)
             and new_messages[-1].finish_reason == "length"
-        )
+        ) or isinstance(exception, ExceededMaxTokensError)
 
     @override
     def recover(
         self,
         *,
-        exception: Exception,
+        exception: UnexpectedModelBehavior | ExceededMaxTokensError,
         new_messages: list[ModelMessage],
         raw_model_output: str | None = None,
         **kwargs: Any,
@@ -138,13 +140,40 @@ class ExceededMaxTokensRecovery(DoNothingRecoveryStrategy):
         logger.warning("Exceeded maximum tokens", error=str(exception))
         return self.recover_do_nothing(
             exception=exception,
-            ai_response_error=AIResponseErrorType.max_tokens_exceeded,
+            ai_response_error=[AIResponseErrorType.max_tokens_exceeded],
             new_messages=new_messages,
             raw_model_output=raw_model_output,
         )
 
 
-class InvalidFormatRecovery(DoNothingRecoveryStrategy):
+class FailedReasoningParserRecovery(DoNothingRecoveryStrategy[ReasoningParsingError]):
+    """Handle situations where the reasoning parser fails."""
+
+    @override
+    def can_handle(self, *, exception: Exception, new_messages: list[ModelMessage]) -> bool:
+        return bool(isinstance(exception, ReasoningParsingError))
+
+    @override
+    def recover(
+        self,
+        *,
+        exception: ReasoningParsingError,
+        new_messages: list[ModelMessage],
+        raw_model_output: str | None = None,
+        **kwargs: Any,
+    ) -> AgentCallResult[DoNothingAction]:
+        logger.warning("Reasoning Parser failed", error=str(exception))
+        return self.recover_do_nothing(
+            exception=exception,
+            ai_response_error=exception.response_error,
+            new_messages=new_messages,
+            raw_model_output=raw_model_output,
+        )
+
+
+class InvalidFormatRecovery(
+    DoNothingRecoveryStrategy[UnexpectedModelBehavior | InvalidOutputFormatError]
+):
     """Handle situations where the model output is in an invalid format."""
 
     @override
@@ -162,15 +191,17 @@ class InvalidFormatRecovery(DoNothingRecoveryStrategy):
             and new_messages[-1].finish_reason == "length"
         )
 
-        return bool(is_exceed_max_retries and finish_reason_not_length) or isinstance(
-            exception, InvalidOutputFormatError
+        is_reasoning_parser_error = isinstance(exception, ReasoningParsingError)
+
+        return bool(is_exceed_max_retries and finish_reason_not_length) or (
+            isinstance(exception, InvalidOutputFormatError) and not is_reasoning_parser_error
         )
 
     @override
     def recover(
         self,
         *,
-        exception: Exception,
+        exception: UnexpectedModelBehavior | InvalidOutputFormatError,
         new_messages: list[ModelMessage],
         raw_model_output: str | None = None,
         **kwargs: Any,
@@ -183,13 +214,14 @@ class InvalidFormatRecovery(DoNothingRecoveryStrategy):
 
         return self.recover_do_nothing(
             exception=exception,
-            ai_response_error=AIResponseErrorType.invalid_format,
+            # TODO: Make this error better
+            ai_response_error=[AIResponseErrorType.unknown],
             new_messages=new_messages,
             raw_model_output=raw_model_output,
         )
 
 
-class SomethingNewWentWrongRecovery(DoNothingRecoveryStrategy):
+class SomethingNewWentWrongRecovery(DoNothingRecoveryStrategy[AgentRunError]):
     """Handle any other situations where something went wrong."""
 
     @override
@@ -200,7 +232,7 @@ class SomethingNewWentWrongRecovery(DoNothingRecoveryStrategy):
     def recover(
         self,
         *,
-        exception: Exception,
+        exception: AgentRunError,
         new_messages: list[ModelMessage],
         raw_model_output: str | None = None,
         **kwargs: Any,
@@ -210,24 +242,24 @@ class SomethingNewWentWrongRecovery(DoNothingRecoveryStrategy):
         )
         return self.recover_do_nothing(
             exception=exception,
-            ai_response_error=AIResponseErrorType.unknown,
+            ai_response_error=[AIResponseErrorType.unknown],
             new_messages=new_messages,
             raw_model_output=raw_model_output,
         )
 
 
-class GoogleServerErrorRecovery(DoNothingRecoveryStrategy):
+class GoogleServerErrorRecovery(DoNothingRecoveryStrategy[GoogleServerError]):
     """Handle situations where Google API returns a 500 server error."""
 
     @override
     def can_handle(self, *, exception: Exception, new_messages: list[ModelMessage]) -> bool:
-        return bool(isinstance(exception, ServerError))
+        return bool(isinstance(exception, GoogleServerError))
 
     @override
     def recover(
         self,
         *,
-        exception: Exception,
+        exception: GoogleServerError,
         new_messages: list[ModelMessage],
         raw_model_output: str | None = None,
         **kwargs: Any,
@@ -239,17 +271,93 @@ class GoogleServerErrorRecovery(DoNothingRecoveryStrategy):
         )
         return self.recover_do_nothing(
             exception=exception,
-            ai_response_error=AIResponseErrorType.server_error,
+            ai_response_error=[AIResponseErrorType.server_error],
             new_messages=new_messages,
             raw_model_output=raw_model_output,
+        )
+
+
+class ReflectionRunRecovery(ExceptionRecoveryStrategy[AgentRunError]):
+    """Handle situations where reflection fails.
+
+    A reflection failure is not critical, so we want to just catch it and log it so we move on.
+    """
+
+    @override
+    def can_handle(self, *, exception: Exception, new_messages: list[ModelMessage]) -> bool:
+        return bool(isinstance(exception, AgentRunError))
+
+    @override
+    def recover(
+        self,
+        *,
+        exception: AgentRunError,
+        new_messages: list[ModelMessage],
+        raw_model_output: str | None = None,
+        **kwargs: Any,
+    ) -> AgentCallResult[SendMessageAction]:
+        logger.error(
+            "Unexpected model behavior during reflection. Returning with a default '<error>'."
+        )
+        model_output = SendMessageAction(message="<error>")
+
+        return AgentCallResult(
+            output=model_output,
+            thoughts=None,
+            raw_output=raw_model_output,
+            usage=RunUsage(),
+            new_messages=[],
+            ai_response_error=[AIResponseErrorType.unknown],
+        )
+
+
+class ReflectionFormatRecovery(ExceptionRecoveryStrategy[InvalidOutputFormatError]):
+    """Handle reflection being in an invalid format.
+
+    If it's not following the structure, we want to just capture all of it.
+    """
+
+    @override
+    def can_handle(self, *, exception: Exception, new_messages: list[ModelMessage]) -> bool:
+        return bool(isinstance(exception, InvalidOutputFormatError))
+
+    @override
+    def recover(
+        self,
+        *,
+        exception: InvalidOutputFormatError,
+        new_messages: list[ModelMessage],
+        raw_model_output: str | None = None,
+        **kwargs: Any,
+    ) -> AgentCallResult[SendMessageAction]:
+        logger.warning(
+            "Reflection output in invalid format. Capturing full output.", error=str(exception)
+        )
+        model_output = SendMessageAction(message=str(exception.output))
+
+        return AgentCallResult(
+            output=model_output,
+            thoughts=None,
+            raw_output=raw_model_output,
+            usage=RunUsage(),
+            new_messages=[],
+            # TODO: Make this error better
+            ai_response_error=[AIResponseErrorType.unknown],
         )
 
 
 DEFAULT_RECOVERY_STRATEGIES = (
     GuardrailViolationRecovery(),
     ExceededMaxTokensRecovery(),
+    FailedReasoningParserRecovery(),
     InvalidFormatRecovery(),
     GoogleServerErrorRecovery(),
+    SomethingNewWentWrongRecovery(),
+)
+
+DEFAULT_REFLECTION_RECOVERY_STRATEGIES = (
+    ReflectionFormatRecovery(),
+    ReflectionRunRecovery(),
     SomethingNewWentWrongRecovery(),
 )
 
@@ -262,7 +370,9 @@ class ExceptionRecoveryChain:
     given exception.
     """
 
-    strategies: Sequence[ExceptionRecoveryStrategy] = field(default=DEFAULT_RECOVERY_STRATEGIES)
+    strategies: Sequence[ExceptionRecoveryStrategy[Any]] = field(
+        default=DEFAULT_RECOVERY_STRATEGIES
+    )
 
     def recover(
         self,
@@ -283,3 +393,8 @@ class ExceptionRecoveryChain:
                 )
 
         raise exception
+
+
+def create_reflection_recovery_chain() -> ExceptionRecoveryChain:
+    """Create the default reflection recovery chain."""
+    return ExceptionRecoveryChain(strategies=DEFAULT_REFLECTION_RECOVERY_STRATEGIES)

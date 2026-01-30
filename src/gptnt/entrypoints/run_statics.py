@@ -26,6 +26,7 @@ from gptnt.evaluation.run import (
     MCQ_INSTRUCTION,
     OCR_INSTRUCTION,
     OPEN_ENDED_INSTRUCTION,
+    REASONING_PROMPT,
     RunHFDatasetEvaluation,
 )
 from gptnt.evaluation.scorers import (
@@ -34,6 +35,7 @@ from gptnt.evaluation.scorers import (
     StringBasedComparer,
     create_scorers,
 )
+from gptnt.players.specification import PlayerCapabilities
 from gptnt.processors.image_resizer import ImageResizer
 
 configure_logging()
@@ -81,6 +83,12 @@ class ConfigLoader:
         return image_resizer
 
     @property
+    def capabilities(self) -> PlayerCapabilities:
+        """Grab the reasoning parser from the Capabilities."""
+        capabilities = hydra.utils.instantiate(self.config.player.capabilities)
+        return capabilities
+
+    @property
     def agent_fn(self) -> Callable[..., Agent]:
         """Instantiate a partial func for creating the agent from the class."""
         agent = hydra.utils.instantiate(self.config.player.action_predictor.agent, _partial_=True)
@@ -99,8 +107,8 @@ def run_defuser_grounding_evaluation(
     """Run the defuser grounding evaluation."""
     config_loader = ConfigLoader(model=model)
     instruction = GROUNDING_COORDINATES_PROMPT.replace(
-        "{IMAGE_WIDTH}", str(config_loader.image_resizer.target_width)
-    ).replace("{IMAGE_HEIGHT}", str(config_loader.image_resizer.target_height))
+        "{IMAGE_WIDTH}", str(config_loader.capabilities.image_dimensions.width)
+    ).replace("{IMAGE_HEIGHT}", str(config_loader.capabilities.image_dimensions.height))
 
     # Create the weave scorers
     exact_match_scorers = create_scorers(CoordinateInRegionComparer(task_type="grounding"))
@@ -115,8 +123,8 @@ def run_defuser_grounding_evaluation(
         task_name="defuser-grounding-coordinates",
         weave_project="gptnt/defuser-grounding-coordinates",
         preprocess_instance_func=preprocess_grounding_coordinates_instance,
-        agent=config_loader.agent_fn(instructions=instruction),
-        image_resizer=config_loader.image_resizer,
+        agent=config_loader.agent_fn(instructions=f"{REASONING_PROMPT} {instruction}"),
+        capabilities=config_loader.capabilities,
         weave_scorers=[*exact_match_scorers, *distance_scorers],
         max_instances=limit_instances,
     )
@@ -149,8 +157,8 @@ def run_defuser_set_of_marks_evaluation(
         task_name="defuser-grounding-som",
         weave_project="gptnt/defuser-grounding-som",
         preprocess_instance_func=preprocess_grounding_set_of_marks_instance,
-        agent=config_loader.agent_fn(instructions=GROUNDING_SOM_PROMPT),
-        image_resizer=config_loader.image_resizer,
+        agent=config_loader.agent_fn(instructions=f"{REASONING_PROMPT} {GROUNDING_SOM_PROMPT}"),
+        capabilities=config_loader.capabilities,
         weave_scorers=create_scorers(StringBasedComparer(task_type="grounding")),
         max_instances=limit_instances,
     )
@@ -183,8 +191,8 @@ def run_defuser_oe_vqa_evaluation(
         task_name="defuser-vqa-oe",
         weave_project="gptnt/defuser-vqa-open_ended",
         preprocess_instance_func=preprocess_defuser_vqa_open_ended_instance,
-        agent=config_loader.agent_fn(instructions=OPEN_ENDED_INSTRUCTION),
-        image_resizer=config_loader.image_resizer,
+        agent=config_loader.agent_fn(instructions=f"{REASONING_PROMPT} {OPEN_ENDED_INSTRUCTION}"),
+        capabilities=config_loader.capabilities,
         weave_scorers=create_scorers(StringBasedComparer(task_type="vqa")),
         max_instances=limit_instances,
     )
@@ -217,8 +225,8 @@ def run_defuser_mcq_vqa_evaluation(
         task_name="defuser-vqa-mcq",
         weave_project="gptnt/defuser-vqa-mcq",
         preprocess_instance_func=preprocess_defuser_vqa_mcq_instance,
-        agent=config_loader.agent_fn(instructions=MCQ_INSTRUCTION),
-        image_resizer=config_loader.image_resizer,
+        agent=config_loader.agent_fn(instructions=f"{REASONING_PROMPT} {MCQ_INSTRUCTION}"),
+        capabilities=config_loader.capabilities,
         weave_scorers=create_scorers(StringBasedComparer(task_type="vqa")),
         max_instances=limit_instances,
     )
@@ -250,8 +258,8 @@ def run_expert_vqa_evaluation(
         task_name="expert-vqa",
         weave_project="gptnt/expert-vqa",
         preprocess_instance_func=preprocess_expert_vqa_instance,
-        agent=config_loader.agent_fn(instructions=MCQ_INSTRUCTION),
-        image_resizer=config_loader.image_resizer,
+        agent=config_loader.agent_fn(instructions=f"{REASONING_PROMPT} {MCQ_INSTRUCTION}"),
+        capabilities=config_loader.capabilities,
         weave_scorers=create_scorers(StringBasedComparer(task_type=None)),
         max_instances=limit_instances,
     )
@@ -283,8 +291,8 @@ def run_expert_ocr_evaluation(
         task_name="expert-ocr",
         weave_project="gptnt/expert-ocr",
         preprocess_instance_func=preprocess_expert_ocr_instance,
-        agent=config_loader.agent_fn(instructions=OCR_INSTRUCTION),
-        image_resizer=config_loader.image_resizer,
+        agent=config_loader.agent_fn(instructions=f"{REASONING_PROMPT} {OCR_INSTRUCTION}"),
+        capabilities=config_loader.capabilities,
         weave_scorers=create_scorers(
             StringBasedComparer(task_type=None, postprocess_output_func=expert_ocr_postprocess)
         ),
@@ -317,8 +325,8 @@ def run_expert_grounding_evaluation(
         hf_repo_id="GPTNT/expert-element-grounding",
         task_name="expert-element-grounding",
         preprocess_instance_func=preprocess_expert_grounding_instance,
-        agent=config_loader.agent_fn(instructions=MCQ_INSTRUCTION),
-        image_resizer=config_loader.image_resizer,
+        agent=config_loader.agent_fn(instructions=f"{REASONING_PROMPT} {MCQ_INSTRUCTION}"),
+        capabilities=config_loader.capabilities,
         weave_project="gptnt/expert-element-grounding",
         weave_scorers=create_scorers(StringBasedComparer(task_type=None)),
         max_instances=limit_instances,

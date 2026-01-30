@@ -92,7 +92,7 @@ def capabilities(
 class ProtocolCases:
     """Case class for different PlayerProtocol configurations."""
 
-    def case_collaborative(self) -> PlayerProtocol:
+    def case_defuser(self) -> PlayerProtocol:
         """Collaborative protocol (is_playing_alone=False, allows SendMessage)."""
         return PlayerProtocol(
             role="defuser",
@@ -103,12 +103,23 @@ class ProtocolCases:
             allow_magic_actions=False,
         )
 
-    def case_solo(self) -> PlayerProtocol:
+    def case_solo_player(self) -> PlayerProtocol:
         """Solo protocol (is_playing_alone=True, no SendMessage)."""
         return PlayerProtocol(
             role="defuser",
             communication_style="sync",
             is_playing_alone=True,
+            include_manual=True,
+            receive_feedback_after_action=False,
+            allow_magic_actions=False,
+        )
+
+    def case_expert(self) -> PlayerProtocol:
+        """Expert protocol (role='expert')."""
+        return PlayerProtocol(
+            role="expert",
+            communication_style="sync",
+            is_playing_alone=False,
             include_manual=True,
             receive_feedback_after_action=False,
             allow_magic_actions=False,

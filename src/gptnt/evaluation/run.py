@@ -24,11 +24,13 @@ from gptnt.dataset.defuser_vqa.constants import (
 )
 from gptnt.evaluation.model import EvalModel, ModelOutput
 from gptnt.evaluation.preprocess import PostprocessInputsFunc
+from gptnt.players.specification import PlayerCapabilities
 from gptnt.processors.image_resizer import ImageResizer
 
 logger = structlog.get_logger()
 paths = Paths()
 
+REASONING_PROMPT = "Reason about your task before choosing an answer. Keep your thoughts concise, using as few words and sentences as possible. Avoid redundancy and do not get stuck in circular reasoning loops. Provide your reasoning (REASONING) first, followed by your chosen answer (ANSWER) using the format '<thought>{REASONING}</thought><action>{ANSWER}</action>', replacing{REASONING} with your reasoning and {ANSWER} with your chosen answer."
 
 OPEN_ENDED_INSTRUCTION = "Answer the following question based on given context. Output only the one letter, word, short phrase, or number required to answer the question, nothing else."
 MCQ_INSTRUCTION = "Answer the following multiple choice question based on the given context. Output only the letter of the correct answer, nothing else."
@@ -118,6 +120,8 @@ class RunEvaluation(abc.ABC):
     """The specific predict method name to use for the evaluation from EvalModel."""
 
     agent: Agent
+    capabilities: PlayerCapabilities
+
     task_name: str
 
     weave_project: str
@@ -126,7 +130,7 @@ class RunEvaluation(abc.ABC):
     eval_model: EvalModel = field(init=False, repr=False)
     model_name: str = field(init=False, repr=False)
 
-    image_resizer: ImageResizer
+    image_resizer: ImageResizer = field(init=False)
 
     max_instances: int | None = None
     """Maximum number of instances to evaluate on."""
@@ -137,6 +141,12 @@ class RunEvaluation(abc.ABC):
         assert isinstance(self.eval_model.name, str), "Model must have a name"
         self.model_name = self.eval_model.name
         self.eval_model.update_output_dir(self.output_dir)
+        self.eval_model.update_reasoning_parser(self.capabilities.reasoning_parser)
+
+        self.image_resizer = ImageResizer(
+            target_width=self.capabilities.image_dimensions.width,
+            target_height=self.capabilities.image_dimensions.height,
+        )
 
     @property
     def output_dir(self) -> Path:
@@ -167,11 +177,18 @@ class RunEvaluation(abc.ABC):
             if prediction_output_file.exists():
                 logger.info(f"Skipping instance {instance['index']}, output already exists.")
                 continue
-            _ = run_eval_step(
-                instance=instance,
-                predict_method=getattr(self.eval_model, self.predict_method_name),
-                prediction_output_file=prediction_output_file,
-            )
+            try:
+                _ = run_eval_step(
+                    instance=instance,
+                    predict_method=getattr(self.eval_model, self.predict_method_name),
+                    prediction_output_file=prediction_output_file,
+                )
+            except Exception as error:
+                logger.exception(
+                    "Error processing this instance",
+                    instance_index=instance["index"],
+                    error=str(error),
+                )
         logger.info(f"Evaluation completed. Results saved to {self.output_dir}")
         weave_client.finish()
 

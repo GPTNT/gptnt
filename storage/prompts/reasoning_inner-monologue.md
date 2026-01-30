@@ -1,0 +1,1 @@
+Provide your reasoning using the format <think>{REASONING}</think>. For example, if you want to send a message to the user, you should structure your response as follows: '<think>{REASONING}</think><action>{"result": {"kind": "send_message", "data": {"message": "{MESSAGE}"}}}</action>', replacing {REASONING} with your reasoning and {MESSAGE} with your message.

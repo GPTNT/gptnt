@@ -1,0 +1,83 @@
+from enum import Enum
+
+
+class AIResponseErrorType(Enum):
+    """Reasons the AI player errored."""
+
+    # Critical errors that prevent action execution
+    action_not_present = "action_not_present"
+    """No action was generated or found."""
+    action_parsing_failed = "action_parsing_failed"
+    """Action was attempted but couldn't be parsed (malformed/wrong format)."""
+    multiple_actions_present = "multiple_actions_present"
+    """Multiple actions when only one was expected."""
+
+    # Action content errors - the action was parsed but had invalid content
+    invalid_som_location = "invalid_som_location"
+    """Set-of-marks location is invalid (e.g., negative integer, out of range letter)."""
+    out_of_bounds_coordinate = "out_of_bounds_coordinate"
+    """Absolute coordinate is out of image boundary."""
+
+    # Reasoning quality errors - non-blocking but problematic
+    reasoning_absent = "reasoning_absent"
+    """There is no reasoning content (missing, empty, whitespace)."""
+    reasoning_split_across_blocks = "reasoning_split_across_blocks"
+    """Reasoning split across multiple separate tags or locations."""
+    reasoning_mixed_with_untagged_text = "reasoning_mixed_with_untagged_text"
+    """Reasoning mixed with non-reasoning text outside of reasoning tags."""
+
+    # Structural/ordering errors
+    action_placed_before_reasoning = "action_placed_before_reasoning"
+    """Action tag appears before reasoning is complete."""
+    content_after_action_complete = "content_after_action_complete"
+    """Content (text, tags, reasoning) appears after action tag is closed."""
+    malformed_tag_structure = "malformed_tag_structure"
+    """Tags are malformed (e.g., missing closing tag, overlapping/nested)."""
+
+    # Infra/external errors
+    max_tokens_exceeded = "max_tokens_exceeded"
+    """Model exceeded max token limit."""
+    server_error = "server_error"
+    """Server-side error from the AI provider."""
+    guardrail_violation = "guardrail_violation"
+    """Content policy or guardrail violation triggered."""
+
+    # Fallback
+    unknown = "unknown"
+
+
+class ExceededMaxTokensError(ValueError):
+    """Exception raised when the output exceeds max tokens."""
+
+
+class InvalidOutputError(ValueError):
+    """Exception raised when the output is invalid."""
+
+
+class InvalidOutputFormatError(InvalidOutputError):
+    """Exception raised when the format is invalid.
+
+    Basically, the action doesn't create a JSON.
+    """
+
+    def __init__(self, message: str | None = None, *, output: str, expected_type: type) -> None:
+        message = (
+            message
+            or f"Output format is invalid. Output does not parse to expected type {expected_type!r}, got output: {output!r}"
+        )
+        super().__init__(message)
+        self.output = output
+        self.expected_type = expected_type
+
+
+class ReasoningParsingError(InvalidOutputFormatError):
+    """Exception raised when there is an error parsing reasoning."""
+
+    def __init__(
+        self, *, output: str, expected_type: type, response_error: list[AIResponseErrorType]
+    ) -> None:
+        message = f"Error parsing reasoning. Expected type {expected_type!r}, got output: {output!r}, error: {response_error!r}"
+        super().__init__(message, output=output, expected_type=expected_type)
+        self.output = output
+        self.expected_type = expected_type
+        self.response_error = response_error

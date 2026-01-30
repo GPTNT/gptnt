@@ -1,1 +1,0 @@
-- Enclose your entire thinking process within <think> and </think> tags, followed by a newline and the JSON object for your chosen command.

@@ -6,4 +6,4 @@ Now you must reflect on the game you just played, focusing on teamwork, communic
 5. If you played again, what specific changes would you make to improve your teamwork and communication?
 6. What lessons did you learn from this experience that can help you both perform better in future collaborative games?
 
-Provide your thinking process first, followed by a newline and your answer in the correct JSON format: '<think>{THOUGHTS}</think>/n{"result": {"kind": "send_message", "data": {"message": "{MESSAGE}"}}}'. Replace {THOUGHTS} with your thoughts and {MESSAGE} with your answer.
+Provide your reasoning first, followed by a send_message command in the correct JSON format: '<thought>{REASONING}</thought><action>{"result": {"kind": "send_message", "data": {"message": "{MESSAGE}"}}}', replacing {REASONING} with your reasoning and {MESSAGE} with your final answer.

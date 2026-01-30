@@ -1,22 +1,17 @@
 from contextlib import suppress
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, override
 
 import structlog
 from json_repair import repair_json
 from pydantic import TypeAdapter, ValidationError
+from pydantic_ai import AgentRunResult
 from pydantic_core import from_json
 
-log = structlog.get_logger()
+from gptnt.players.actions import AgentCallResult
+from gptnt.players.exceptions import InvalidOutputFormatError
 
-
-class InvalidOutputFormatError(ValueError):
-    """Exception raised when the output format is invalid."""
-
-    def __init__(self, *, output: str, expected_type: type) -> None:
-        message = f"Output format is invalid. Output does not parse to expected type {expected_type!r}, got output: {output!r}"
-        super().__init__(message)
-        self.output = output
-        self.expected_type = expected_type
+logger = structlog.get_logger()
 
 
 def _extract_from_nested_output_dict(output: dict[str, Any] | Any) -> dict[str, Any]:
@@ -58,3 +53,34 @@ def structure_string_output[OutputT](
         return TypeAdapter(output_type).validate_python(output_as_json)
 
     raise InvalidOutputFormatError(output=output, expected_type=output_type)
+
+
+@dataclass(kw_only=True)
+class ReasoningParser[ModelOutputT, ParserOutputT]:
+    """Base class for parsing reasoning/thinking from AI outputs."""
+
+    structure_output: bool = True
+
+    def __call__(
+        self, output: AgentRunResult[ModelOutputT], *, output_type: type[ParserOutputT]
+    ) -> AgentCallResult[ParserOutputT]:
+        """Parse the reasoning from the agent output."""
+        raise NotImplementedError
+
+
+class NoOpReasoningParser[OutputT](ReasoningParser[OutputT, OutputT]):
+    """A no-op reasoning parser that returns the model output as-is."""
+
+    @override
+    def __call__(
+        self, output: AgentRunResult[OutputT], *, output_type: type[OutputT]
+    ) -> AgentCallResult[OutputT]:
+        """Return the model output as-is."""
+        return AgentCallResult(
+            output=output.output,
+            thoughts=output.response.thinking,
+            usage=output.usage(),
+            new_messages=output.new_messages(),
+            ai_response_error=[],
+            raw_output=output.response.text,
+        )

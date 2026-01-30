@@ -4,8 +4,8 @@ defaults:
   - _self_
 
 capabilities:
-  player_name: gemini-3
-  structured_output_mode: prompted
+  structured_output_mode: null
+  thinking_method: thinking-out-loud
   include_schema_in_instructions: true
   usage_limits:
     input_tokens_limit: 1048576

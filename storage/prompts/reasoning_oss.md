@@ -1,1 +1,0 @@
-Provide the thinking process first and as a separate section from giving your answer, and enclose the entire thinking process within <think> and </think> tags, followed by a newline, e.g. '<think>{THOUGHTS}</think>/n{"result": {"kind": "send_message", "data": {"message": "{MESSAGE}"}}}', replacing {THOUGHTS} with your thoughts and {MESSAGE} with your answer.
