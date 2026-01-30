@@ -17,11 +17,12 @@ From there, you can find and follow the code for how everything is run. Your mai
 - `--throw`: To actually run the evaluation itself. Without this flag, it will just do a dry run.
 - `--upload`: To upload the results to Weave. Without this flag, no metrics are computed.
 - `--download`: To download and process the dataset before throwing. By default, this is just False and done during the running, but this helps with checking for dataset issues.
+- `--limit-instances`: To limit the number of instances to run for debugging purposes.
 
 For example, to run the defuser grounding evaluation with GPT-5:
 
 ```bash
-uv run python src/gptnt/entrypoints/run_statics.py defuser-grounding --model gpt-5 --throw --upload
+uv run python src/gptnt/entrypoints/run_statics.py defuser-grounding --model gpt-5 --throw --upload --limit-instances 10
 ```
 
 ### High-level of how it works
