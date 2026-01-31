@@ -77,13 +77,13 @@ def preprocess_grounding_set_of_marks_instance(instance: dict[str, Any]) -> dict
 @weave.op
 def preprocess_defuser_vqa_open_ended_instance(instance: dict[str, Any]) -> dict[str, Any]:
     """Convert the instance to rename the fields to match the model (defuser VQA open-ended)."""
-    input_images = [load_image(image) for image in instance["frames"]]
+    input_images = [load_image(image) for image in instance["input_images"]]
 
     return {
         **instance,
         "model_input": [*input_images, instance["model_input"]],
         "question": instance["model_input"],
-        "input_images": [load_image(image) for image in instance["input_images"]],
+        "input_images": input_images,
     }
 
 
