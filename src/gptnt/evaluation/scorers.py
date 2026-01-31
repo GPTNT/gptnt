@@ -73,7 +73,9 @@ class StringBasedComparer(BaseComparer[str | list[str], bool]):  # noqa: WPS338
 
     def __post_init__(self) -> None:
         """Initialize the SentenceTransformer model and keypad cache."""
-        self.sentence_transformer = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
+        self.sentence_transformer = SentenceTransformer(
+            "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2", device="cpu"
+        )
         self.keypad_cache = self.precompute_keypad_embeddings()
 
     @override
@@ -141,9 +143,19 @@ class StringBasedComparer(BaseComparer[str | list[str], bool]):  # noqa: WPS338
             embeddings = [
                 self.sentence_transformer.encode([description], normalize_embeddings=True)[0]
                 for description in descriptions
+                if self._is_valid_description(description)
             ]
             embeddings_cache[symbol] = np.mean(embeddings, axis=0)
         return embeddings_cache
+
+    def _is_valid_description(self, description: str) -> bool:
+        """Filter out descriptions based on tokenization consistency."""
+        # Make sure encoding and decoding are consistent (no <unk> tokens)
+        token_ids = self.sentence_transformer.tokenizer.encode(
+            description, add_special_tokens=False
+        )
+        decoded_description = self.sentence_transformer.tokenizer.decode(token_ids)
+        return description == decoded_description
 
 
 @dataclass(kw_only=True)
