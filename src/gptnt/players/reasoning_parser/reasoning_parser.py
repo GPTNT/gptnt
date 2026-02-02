@@ -57,12 +57,13 @@ def structure_string_output[OutputT](
 
 @dataclass(kw_only=True)
 class ReasoningParser[ModelOutputT, ParserOutputT]:
-    """Base class for parsing reasoning/thinking from AI outputs."""
+    """Base class for parsing reasoning/thinking from AI outputs.
 
-    structure_output: bool = True
+    If you want to skip the structuring, you can set output_type to None.
+    """
 
     def __call__(
-        self, output: AgentRunResult[ModelOutputT], *, output_type: type[ParserOutputT]
+        self, output: AgentRunResult[ModelOutputT], *, output_type: type[ParserOutputT] | None
     ) -> AgentCallResult[ParserOutputT]:
         """Parse the reasoning from the agent output."""
         raise NotImplementedError
@@ -73,9 +74,12 @@ class NoOpReasoningParser[OutputT](ReasoningParser[OutputT, OutputT]):
 
     @override
     def __call__(
-        self, output: AgentRunResult[OutputT], *, output_type: type[OutputT]
+        self, output: AgentRunResult[OutputT], *, output_type: type[OutputT] | None = None
     ) -> AgentCallResult[OutputT]:
         """Return the model output as-is."""
+        if output_type is not None:
+            logger.warning("output_type is provided but will be ignored in NoOpReasoningParser")
+
         return AgentCallResult(
             output=output.output,
             thoughts=output.response.thinking,

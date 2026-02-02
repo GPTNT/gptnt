@@ -1,9 +1,9 @@
-import asyncio
 import inspect
 from collections.abc import Callable
 from functools import partial, wraps
 from typing import Any, override
 
+import anyio
 from typer import Typer
 from typer.models import CommandFunctionType
 
@@ -26,7 +26,7 @@ class AsyncTyper(Typer):
 
             @wraps(func)
             def runner(*args: Any, **kwargs: Any) -> Any:  # noqa: WPS430
-                return asyncio.run(func(*args, **kwargs))
+                return anyio.run(partial(func, *args, **kwargs))
 
             _ = decorator(runner)  # pyright: ignore[reportArgumentType]
         else:

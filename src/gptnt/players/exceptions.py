@@ -49,6 +49,11 @@ class AIResponseErrorType(Enum):
 class ExceededMaxTokensError(ValueError):
     """Exception raised when the output exceeds max tokens."""
 
+    def __init__(self, message: str | None = None, *, output: str | None) -> None:
+        message = message or "Output exceeds maximum token limit."
+        super().__init__(message)
+        self.output = output
+
 
 class InvalidOutputError(ValueError):
     """Exception raised when the output is invalid."""
@@ -60,7 +65,9 @@ class InvalidOutputFormatError(InvalidOutputError):
     Basically, the action doesn't create a JSON.
     """
 
-    def __init__(self, message: str | None = None, *, output: str, expected_type: type) -> None:
+    def __init__(
+        self, message: str | None = None, *, output: str, expected_type: type | None
+    ) -> None:
         message = (
             message
             or f"Output format is invalid. Output does not parse to expected type {expected_type!r}, got output: {output!r}"
@@ -74,7 +81,7 @@ class ReasoningParsingError(InvalidOutputFormatError):
     """Exception raised when there is an error parsing reasoning."""
 
     def __init__(
-        self, *, output: str, expected_type: type, response_error: list[AIResponseErrorType]
+        self, *, output: str, expected_type: type | None, response_error: list[AIResponseErrorType]
     ) -> None:
         message = f"Error parsing reasoning. Expected type {expected_type!r}, got output: {output!r}, error: {response_error!r}"
         super().__init__(message, output=output, expected_type=expected_type)

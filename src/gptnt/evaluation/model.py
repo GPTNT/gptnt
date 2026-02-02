@@ -1,7 +1,9 @@
 import io
 import json
+import sys
+from dataclasses import asdict
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, Self, TypedDict
+from typing import Any, Self, TypedDict
 
 import structlog
 import weave
@@ -10,29 +12,30 @@ from pydantic.fields import PrivateAttr
 from pydantic_ai import Agent
 from pydantic_ai.messages import BinaryContent
 from pydantic_ai.models import Model
+from structlog.tracebacks import ExceptionDictTransformer
 from weave.flow.model import Model as WeaveModel
 
 from gptnt.common.paths import Paths
+from gptnt.players.ai.action_predictor import execute_request
 from gptnt.players.reasoning_parser.reasoning_parser import ReasoningParser
-
-if TYPE_CHECKING:
-    from pydantic_ai.agent import AgentRunResult
-
-    from gptnt.players.actions import AgentCallResult
-
 
 logger = structlog.get_logger()
 paths = Paths()
 
 
+_exception_transformer = ExceptionDictTransformer(use_rich=False, show_locals=False)
+
+
 class ModelOutput(TypedDict):
     """Output of the model predict."""
 
-    usage: dict[Literal["input_tokens", "output_tokens", "total_tokens"], int]
+    usage: dict[str, int]
     model: str
     output: str
     thoughts: str | None
     raw_output: str | None
+    error: Any | None
+    """Log any error that occurred during prediction."""
 
 
 class EvalModel(WeaveModel):
@@ -71,10 +74,13 @@ class EvalModel(WeaveModel):
     def update_reasoning_parser(self, reasoning_parser: ReasoningParser[Any, Any]) -> None:
         """Update the reasoning parser for the model."""
         self._reasoning_parser = reasoning_parser
-        self._reasoning_parser.structure_output = False
 
     @weave.op
-    def model_predict(self, model_input: list[str | Image.Image], **kwargs: Any) -> ModelOutput:  # noqa: ARG002
+    async def model_predict(
+        self,
+        model_input: list[str | Image.Image],
+        **kwargs: Any,  # noqa: ARG002
+    ) -> ModelOutput:
         """Run the model on the input."""
         loaded_inputs: list[BinaryContent | str] = []
         for chunk in model_input:
@@ -86,18 +92,44 @@ class EvalModel(WeaveModel):
             else:
                 loaded_inputs.append(chunk)
 
-        model_output: AgentRunResult[str] = self._agent.run_sync(loaded_inputs)
-        parsed_output: AgentCallResult[str] = self._reasoning_parser(model_output, output_type=str)
+        try:
+            model_output = await execute_request(
+                loaded_inputs,
+                agent=self._agent,
+                reasoning_parser=self._reasoning_parser,
+                deps=None,
+                message_history=None,
+                model_output_type=str,
+                parser_output_type=None,
+            )
+        except Exception as exc:
+            logger.exception("Model prediction failed")
+
+            return ModelOutput(
+                usage={},
+                model=self.name or "",
+                output="",
+                thoughts=None,
+                raw_output=getattr(exc, "output", None),
+                error=_exception_transformer(sys.exc_info()),  # pyright: ignore[reportArgumentType]
+            )
+
+        # Flatten all the usage and remove zero counts
+        usage: dict[str, int] = {}
+        for token_type, token_count in asdict(model_output.usage).items():
+            if isinstance(token_count, dict):
+                usage.update(token_count)
+            else:
+                usage[token_type] = token_count
+        usage = {token: count for token, count in usage.items() if count > 0}
+
         return ModelOutput(
-            usage={
-                "input_tokens": model_output.usage().input_tokens or 0,
-                "output_tokens": model_output.usage().output_tokens or 0,
-                "total_tokens": model_output.usage().total_tokens or 0,
-            },
+            usage=usage,
             model=self.name or "",
-            output=parsed_output.output,
-            thoughts=parsed_output.thoughts,
-            raw_output=parsed_output.raw_output,
+            output=model_output.output,
+            thoughts=model_output.thoughts,
+            raw_output=model_output.raw_output,
+            error=str(model_output.ai_response_error) if model_output.ai_response_error else None,
         )
 
     @weave.op

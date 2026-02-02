@@ -1,7 +1,6 @@
 import abc
-import asyncio
 import json
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, ClassVar, override
@@ -98,14 +97,14 @@ def _resize_instance_items(
 
 
 @weave.op
-def run_eval_step(
+async def run_eval_step(
     *,
     instance: dict[str, Any],
-    predict_method: Callable[..., ModelOutput],
+    predict_method: Callable[..., Awaitable[ModelOutput]],
     prediction_output_file: Path,
 ) -> ModelOutput | None:
     """Run a single evaluation step for an instance."""
-    prediction = predict_method(**instance)
+    prediction = await predict_method(**instance)
     # Add index to prediction content
     prediction_with_index = {"index": instance["index"], **prediction}
     _ = prediction_output_file.write_text(json.dumps(prediction_with_index))
@@ -163,7 +162,7 @@ class RunEvaluation(abc.ABC):
         """
         raise NotImplementedError("Subclasses must implement load_dataset method.")
 
-    def throw(self) -> None:
+    async def throw(self) -> None:
         """Run the evaluation."""
         weave_client = weave.init(self.weave_project)
         assert getattr(self.eval_model, self.predict_method_name, None) is not None, (
@@ -177,27 +176,22 @@ class RunEvaluation(abc.ABC):
             if prediction_output_file.exists():
                 logger.info(f"Skipping instance {instance['index']}, output already exists.")
                 continue
-            try:
-                _ = run_eval_step(
-                    instance=instance,
-                    predict_method=getattr(self.eval_model, self.predict_method_name),
-                    prediction_output_file=prediction_output_file,
-                )
-            except Exception as error:
-                logger.exception(
-                    "Error processing this instance",
-                    instance_index=instance["index"],
-                    error=str(error),
-                )
+
+            _ = await run_eval_step(  # noqa: WPS476
+                instance=instance,
+                predict_method=getattr(self.eval_model, self.predict_method_name),
+                prediction_output_file=prediction_output_file,
+            )
+
         logger.info(f"Evaluation completed. Results saved to {self.output_dir}")
         weave_client.finish()
 
-    def upload(self) -> None:
+    async def upload(self) -> None:
         """Upload the evaluation results to Weave."""
         weave_client = weave.init(self.weave_project)
         dataset = self.load_dataset()
         evaluation = weave.Evaluation(dataset=dataset, scorers=self.weave_scorers)
-        asyncio.run(evaluation.evaluate(self.eval_model))
+        await evaluation.evaluate(self.eval_model)
         weave_client.finish()
 
     def _resize_all_images(self, all_instances: list[dict[str, Any]]) -> list[dict[str, Any]]:

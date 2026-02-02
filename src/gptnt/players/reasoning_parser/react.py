@@ -750,7 +750,7 @@ class ReactStyleReasoningParser[OutputT](ReasoningParser[str, OutputT]):
 
     @override
     def __call__(
-        self, output: AgentRunResult[str], *, output_type: type[OutputT]
+        self, output: AgentRunResult[str], *, output_type: type[OutputT] | None = None
     ) -> AgentCallResult[OutputT]:
         parsed = self.parse_react_output(output.output)
 
@@ -762,22 +762,24 @@ class ReactStyleReasoningParser[OutputT](ReasoningParser[str, OutputT]):
                 response_error=parsed.response_error_type,
             )
 
-        try:
-            structured_action = (
-                structure_string_output(output=parsed.action, output_type=output_type)
-                if self.structure_output
-                else cast("OutputT", parsed.action)
-            )
-        except InvalidOutputFormatError as err:
-            # If the action content can't be structured/parsed, raise an error with action_parsing_failed
-            raise ReasoningParsingError(
-                output=output.output,
-                expected_type=output_type,
-                response_error=[
-                    *parsed.response_error_type,
-                    AIResponseErrorType.action_parsing_failed,
-                ],
-            ) from err
+        # Support optional structuring if output_type is provided otherwise we just return as is
+        # (which is a string)
+        structured_action = cast("OutputT", parsed.action)
+        if output_type is not None:
+            try:
+                structured_action = structure_string_output(
+                    output=parsed.action, output_type=output_type
+                )
+            except InvalidOutputFormatError as err:
+                # If the action content can't be structured/parsed, raise an error with action_parsing_failed
+                raise ReasoningParsingError(
+                    output=output.output,
+                    expected_type=output_type,
+                    response_error=[
+                        *parsed.response_error_type,
+                        AIResponseErrorType.action_parsing_failed,
+                    ],
+                ) from err
 
         return AgentCallResult(
             output=structured_action,

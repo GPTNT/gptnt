@@ -23,6 +23,37 @@ from gptnt.prompts.reflection import load_reflection_prompt
 logger = structlog.get_logger()
 
 
+async def execute_request[DepsT, ModelOutputT, ParserOutputT](
+    message_input: AgentMessageInput,
+    *,
+    agent: Agent[DepsT, ModelOutputT],
+    reasoning_parser: ReasoningParser[ModelOutputT, ParserOutputT],
+    deps: DepsT,
+    message_history: list[ModelMessage] | None = None,
+    model_output_type: Any | None = None,
+    parser_output_type: type[ParserOutputT] | None = None,
+) -> AgentCallResult[ParserOutputT]:
+    """Send a request to the agent and parse any outputs.
+
+    Handle any and all exceptions OUTSIDE OF THIS FUNCTION PLEASE.
+    """
+    model_output = await agent.run(
+        message_input, deps=deps, output_type=model_output_type, message_history=message_history
+    )
+    if model_output.response.finish_reason == "length":
+        full_output = ""
+        if model_output.response.thinking:
+            full_output += model_output.response.thinking
+        if model_output.response.text:
+            full_output += model_output.response.text
+        raise ExceededMaxTokensError(output=full_output)
+
+    # importantly, while the model might not need to return a structured output type, we still
+    # need to parse out the final action correctly
+    parsed_output = reasoning_parser(model_output, output_type=parser_output_type)
+    return parsed_output
+
+
 @dataclass(kw_only=True)
 class ActionPredictor(InstrumentationDataclassMixin):
     """Predict actions to perform using AI agents/models to do so."""
@@ -94,7 +125,15 @@ class ActionPredictor(InstrumentationDataclassMixin):
 
         with capture_run_messages() as run_messages:
             try:
-                return await self._send_request(message_input)
+                return await execute_request(
+                    message_input,
+                    agent=self.agent,
+                    reasoning_parser=self.reasoning_parser,
+                    deps=self._agent_deps,
+                    message_history=self.message_history.to_history(),
+                    model_output_type=self._agent_deps.output_type,
+                    parser_output_type=self._agent_deps.structured_output_type,
+                )
             except Exception as exc:  # noqa: BLE001
                 return self.exception_recovery.recover(
                     exception=exc,
@@ -118,10 +157,14 @@ class ActionPredictor(InstrumentationDataclassMixin):
 
         with capture_run_messages() as run_messages:
             try:
-                return await self._send_request(
+                return await execute_request(
                     [reflection_message, reflection_prompt],
-                    override_model_output_type=str,
-                    override_parser_output_type=SendMessageAction,
+                    agent=self.agent,
+                    reasoning_parser=self.reasoning_parser,
+                    deps=self._agent_deps,
+                    message_history=self.message_history.to_history(),
+                    model_output_type=str,
+                    parser_output_type=SendMessageAction,
                 )
             except Exception as exc:  # noqa: BLE001
                 return self.reflection_exception_recovery.recover(
@@ -129,34 +172,6 @@ class ActionPredictor(InstrumentationDataclassMixin):
                     new_messages=self._extract_new_messages(run_messages),
                     raw_model_output=None,
                 )
-
-    async def _send_request[ParserOutputT](
-        self,
-        message_input: AgentMessageInput,
-        *,
-        override_model_output_type: type[Any] | None = None,
-        override_parser_output_type: type[ParserOutputT] | None = None,
-    ) -> AgentCallResult[ParserOutputT]:
-        """Send a request to the agent and parse any outputs.
-
-        Handle any and all exceptions OUTSIDE OF THIS METHOD PLEASE.
-        """
-        model_output = await self.agent.run(
-            message_input,
-            deps=self._agent_deps,
-            output_type=override_model_output_type or self._agent_deps.output_type,
-            message_history=self.message_history.to_history(),
-        )
-        if model_output.response.finish_reason == "length":
-            raise ExceededMaxTokensError
-
-        # importantly, while the model might not need to return a structured output type, we still
-        # need to parse out the final action correctly
-        parsed_output = self.reasoning_parser(
-            model_output,
-            output_type=override_parser_output_type or self._agent_deps.structured_output_type,
-        )
-        return parsed_output
 
     def _extract_new_messages(self, run_messages: list[ModelMessage]) -> list[ModelMessage]:
         """Extract the new messages from all the run messages."""

@@ -8,6 +8,7 @@ from omegaconf import DictConfig
 from pydantic_ai import Agent
 from structlog import get_logger
 
+from gptnt.common.async_typer import AsyncTyper
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
 from gptnt.evaluation.postprocess import expert_ocr_postprocess
@@ -43,7 +44,7 @@ logger = get_logger()
 paths = Paths()
 
 
-app = typer.Typer()
+app = AsyncTyper()
 
 ModelOption = Annotated[str, typer.Option(help="The model to use.")]
 DownloadOption = Annotated[
@@ -96,7 +97,7 @@ class ConfigLoader:
 
 
 @app.command("defuser-grounding-coordinates")
-def run_defuser_grounding_evaluation(
+async def run_defuser_grounding_evaluation(
     *,
     model: ModelOption,
     should_download: DownloadOption = False,
@@ -134,14 +135,14 @@ def run_defuser_grounding_evaluation(
 
     logger.info("Running evaluation", agent=runner.agent)
     if should_throw:
-        runner.throw()
+        await runner.throw()
     if should_upload:
-        runner.upload()
+        await runner.upload()
     logger.info("Evaluation completed successfully", agent=runner.agent)
 
 
 @app.command("defuser-grounding-som")
-def run_defuser_set_of_marks_evaluation(
+async def run_defuser_set_of_marks_evaluation(
     *,
     model: ModelOption,
     should_download: DownloadOption = False,
@@ -168,14 +169,14 @@ def run_defuser_set_of_marks_evaluation(
 
     logger.info("Running evaluation", agent=runner.agent)
     if should_throw:
-        runner.throw()
+        await runner.throw()
     if should_upload:
-        runner.upload()
+        await runner.upload()
     logger.info("Evaluation completed successfully", agent=runner.agent)
 
 
 @app.command("defuser-vqa-oe")
-def run_defuser_oe_vqa_evaluation(
+async def run_defuser_oe_vqa_evaluation(
     *,
     model: ModelOption,
     should_download: DownloadOption = False,
@@ -202,14 +203,14 @@ def run_defuser_oe_vqa_evaluation(
 
     logger.info("Running defuser VQA evaluation", agent=runner.agent)
     if should_throw:
-        runner.throw()
+        await runner.throw()
     if should_upload:
-        runner.upload()
+        await runner.upload()
     logger.info("Defuser OE VQA evaluation completed successfully", agent=runner.agent)
 
 
 @app.command("defuser-vqa-mcq")
-def run_defuser_mcq_vqa_evaluation(
+async def run_defuser_mcq_vqa_evaluation(
     *,
     model: ModelOption,
     should_download: DownloadOption = False,
@@ -236,14 +237,14 @@ def run_defuser_mcq_vqa_evaluation(
 
     logger.info("Running defuser MCQ VQA evaluation", agent=runner.agent)
     if should_throw:
-        runner.throw()
+        await runner.throw()
     if should_upload:
-        runner.upload()
+        await runner.upload()
     logger.info("Defuser MCQ VQA evaluation completed successfully", agent=runner.agent)
 
 
 @app.command("expert-vqa")
-def run_expert_vqa_evaluation(
+async def run_expert_vqa_evaluation(
     *,
     model: ModelOption,
     should_download: DownloadOption = False,
@@ -269,14 +270,14 @@ def run_expert_vqa_evaluation(
 
     logger.info("Running expert VQA evaluation", agent=runner.agent)
     if should_throw:
-        runner.throw()
+        await runner.throw()
     if should_upload:
-        runner.upload()
+        await runner.upload()
     logger.info("Expert VQA evaluation completed successfully", agent=runner.agent)
 
 
 @app.command("expert-ocr")
-def run_expert_ocr_evaluation(
+async def run_expert_ocr_evaluation(
     *,
     model: ModelOption,
     should_download: DownloadOption = False,
@@ -304,14 +305,14 @@ def run_expert_ocr_evaluation(
 
     logger.info("Running expert OCR evaluation", agent=runner.agent)
     if should_throw:
-        runner.throw()
+        await runner.throw()
     if should_upload:
-        runner.upload()
+        await runner.upload()
     logger.info("Expert OCR evaluation completed successfully", agent=runner.agent)
 
 
 @app.command("expert-element-grounding")
-def run_expert_grounding_evaluation(
+async def run_expert_grounding_evaluation(
     *,
     model: ModelOption,
     should_download: DownloadOption = False,
@@ -337,9 +338,9 @@ def run_expert_grounding_evaluation(
 
     logger.info("Running expert grounding evaluation", agent=runner.agent)
     if should_throw:
-        runner.throw()
+        await runner.throw()
     if should_upload:
-        runner.upload()
+        await runner.upload()
     logger.info("Expert grounding evaluation completed successfully", agent=runner.agent)
 
 

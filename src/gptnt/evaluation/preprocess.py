@@ -38,7 +38,6 @@ def convert_ground_truth_to_binary_mask(instance: dict[str, Any]) -> NDArray[np.
     return binary_mask_numpy.reshape(height, width)
 
 
-@weave.op
 def preprocess_grounding_coordinates_instance(instance: dict[str, Any]) -> dict[str, Any]:
     """Convert the instance to rename the fields to match the model."""
     input_image = load_image(instance["frames"][-1])
@@ -60,7 +59,6 @@ def preprocess_grounding_coordinates_instance(instance: dict[str, Any]) -> dict[
     }
 
 
-@weave.op
 def preprocess_grounding_set_of_marks_instance(instance: dict[str, Any]) -> dict[str, Any]:
     """Convert the instance to rename the fields to match the model."""
     som_image = load_image(instance["som_image"])
@@ -74,7 +72,6 @@ def preprocess_grounding_set_of_marks_instance(instance: dict[str, Any]) -> dict
     }
 
 
-@weave.op
 def preprocess_defuser_vqa_open_ended_instance(instance: dict[str, Any]) -> dict[str, Any]:
     """Convert the instance to rename the fields to match the model (defuser VQA open-ended)."""
     input_images = [load_image(image) for image in instance["input_images"]]
@@ -87,7 +84,6 @@ def preprocess_defuser_vqa_open_ended_instance(instance: dict[str, Any]) -> dict
     }
 
 
-@weave.op
 def preprocess_defuser_vqa_mcq_instance(instance: dict[str, Any]) -> dict[str, Any]:
     """Convert the instance to rename the fields to match the model (defuser VQA MCQ)."""
     # Format as A, B, C, ... and find ground truth letter
@@ -124,7 +120,6 @@ def preprocess_defuser_vqa_mcq_instance(instance: dict[str, Any]) -> dict[str, A
     }
 
 
-@weave.op
 def preprocess_expert_ocr_instance(instance: dict[str, Any]) -> dict[str, Any]:
     """Convert the instance to rename the fields to match the model (manual OCR)."""
     manual_image = load_image(instance["image"])
@@ -140,7 +135,6 @@ def preprocess_expert_grounding_instance(instance: dict[str, Any]) -> dict[str, 
     return {**instance, "model_input": [image, instance["question"]], "image": image}
 
 
-@weave.op
 def preprocess_expert_vqa_instance(instance: dict[str, Any]) -> dict[str, Any]:
     """Convert the instance to rename the fields to match the model (expert VQA)."""
     manual_content: list[str | Image.Image] = []

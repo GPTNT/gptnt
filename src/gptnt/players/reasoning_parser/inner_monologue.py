@@ -41,10 +41,10 @@ class InnerMonologueReasoningParser[OutputT](ReasoningParser[OutputT, OutputT]):
 
     @override
     def __call__(
-        self, output: AgentRunResult[OutputT], *, output_type: type[OutputT]
+        self, output: AgentRunResult[OutputT], *, output_type: type[OutputT] | None
     ) -> AgentCallResult[OutputT]:
         thoughts = extract_thoughts_from_model_response(output)
-        if isinstance(output.output, str) and self.structure_output:
+        if isinstance(output.output, str) and output_type is not None:
             output.output = structure_string_output(output=output.output, output_type=output_type)
 
         # TODO: I don't think that it's possible for this to ever be a string unless the OutputT is
