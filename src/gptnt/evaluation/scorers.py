@@ -121,7 +121,8 @@ class StringBasedComparer(BaseComparer[str | list[str], bool]):  # noqa: WPS338
         """Checks if the input aligns with the correct symbol based on similarity metrics."""
         output_embedding = self.sentence_transformer.encode(
             [input_string], normalize_embeddings=True
-        ).squeeze()
+        )
+        output_embedding = np.ravel(output_embedding)
 
         # Get a list of all the alternatives to compare against
         symbols_to_compare_with = list(
