@@ -62,6 +62,23 @@ LimitInstancesOption = Annotated[
 ]
 
 
+def format_instruction_with_reasoning(
+    instruction: str, *, allow_thinking: bool, thinking_method: str
+) -> str:
+    """Prepends the appropriate reasoning prompt to the instruction."""
+    if allow_thinking:
+        reasoning_prompt = REASONING_PROMPT
+
+        if thinking_method == "inner-monologue":
+            reasoning_prompt = REASONING_PROMPT.replace("thought", "think").replace(
+                "reasoning", "thinking_process"
+            )
+
+        return f"{reasoning_prompt} {instruction}"
+
+    return instruction
+
+
 @dataclass(kw_only=True)
 class ConfigLoader:
     """Easily parse and load things from the config."""
@@ -104,12 +121,19 @@ async def run_defuser_grounding_evaluation(
     should_throw: ThrowOption = False,
     should_upload: UploadOption = False,
     limit_instances: LimitInstancesOption = None,
+    allow_thinking: bool = True,
 ) -> None:
     """Run the defuser grounding evaluation."""
     config_loader = ConfigLoader(model=model)
     instruction = GROUNDING_COORDINATES_PROMPT.replace(
         "{IMAGE_WIDTH}", str(config_loader.capabilities.image_dimensions.width)
     ).replace("{IMAGE_HEIGHT}", str(config_loader.capabilities.image_dimensions.height))
+
+    instruction = format_instruction_with_reasoning(
+        instruction,
+        allow_thinking=allow_thinking,
+        thinking_method=config_loader.capabilities.thinking_method,
+    )
 
     # Create the weave scorers
     exact_match_scorers = create_scorers(CoordinateInRegionComparer(task_type="grounding"))
@@ -124,7 +148,7 @@ async def run_defuser_grounding_evaluation(
         task_name="defuser-grounding-coordinates",
         weave_project="gptnt/defuser-grounding-coordinates",
         preprocess_instance_func=preprocess_grounding_coordinates_instance,
-        agent=config_loader.agent_fn(instructions=f"{REASONING_PROMPT} {instruction}"),
+        agent=config_loader.agent_fn(instructions=instruction),
         capabilities=config_loader.capabilities,
         weave_scorers=[*exact_match_scorers, *distance_scorers],
         max_instances=limit_instances,
@@ -149,16 +173,23 @@ async def run_defuser_set_of_marks_evaluation(
     should_throw: ThrowOption = False,
     should_upload: UploadOption = False,
     limit_instances: LimitInstancesOption = None,
+    allow_thinking: bool = True,
 ) -> None:
     """Run the defuser grounding evaluation."""
     config_loader = ConfigLoader(model=model)
+    instruction = format_instruction_with_reasoning(
+        GROUNDING_SOM_PROMPT,
+        allow_thinking=allow_thinking,
+        thinking_method=config_loader.capabilities.thinking_method,
+    )
+
     runner = RunHFDatasetEvaluation(
         hf_repo_id="GPTNT/defuser-grounding-dataset",
         dataset_split="test_som",
         task_name="defuser-grounding-som",
         weave_project="gptnt/defuser-grounding-som",
         preprocess_instance_func=preprocess_grounding_set_of_marks_instance,
-        agent=config_loader.agent_fn(instructions=f"{REASONING_PROMPT} {GROUNDING_SOM_PROMPT}"),
+        agent=config_loader.agent_fn(instructions=instruction),
         capabilities=config_loader.capabilities,
         weave_scorers=create_scorers(StringBasedComparer(task_type="grounding")),
         max_instances=limit_instances,
@@ -183,16 +214,23 @@ async def run_defuser_oe_vqa_evaluation(
     should_throw: ThrowOption = False,
     should_upload: UploadOption = False,
     limit_instances: LimitInstancesOption = None,
+    allow_thinking: bool = True,
 ) -> None:
     """Run the defuser VQA."""
     config_loader = ConfigLoader(model=model)
+    instruction = format_instruction_with_reasoning(
+        OPEN_ENDED_INSTRUCTION,
+        allow_thinking=allow_thinking,
+        thinking_method=config_loader.capabilities.thinking_method,
+    )
+
     runner = RunHFDatasetEvaluation(
         hf_repo_id="GPTNT/defuser-vqa-oe-dataset",
         dataset_split="test",
         task_name="defuser-vqa-oe",
         weave_project="gptnt/defuser-vqa-open_ended",
         preprocess_instance_func=preprocess_defuser_vqa_open_ended_instance,
-        agent=config_loader.agent_fn(instructions=f"{REASONING_PROMPT} {OPEN_ENDED_INSTRUCTION}"),
+        agent=config_loader.agent_fn(instructions=instruction),
         capabilities=config_loader.capabilities,
         weave_scorers=create_scorers(StringBasedComparer(task_type="vqa")),
         max_instances=limit_instances,
@@ -217,16 +255,23 @@ async def run_defuser_mcq_vqa_evaluation(
     should_throw: ThrowOption = False,
     should_upload: UploadOption = False,
     limit_instances: LimitInstancesOption = None,
+    allow_thinking: bool = True,
 ) -> None:
     """Run the defuser VQA evaluation on multiple choice questions."""
     config_loader = ConfigLoader(model=model)
+    instruction = format_instruction_with_reasoning(
+        MCQ_INSTRUCTION,
+        allow_thinking=allow_thinking,
+        thinking_method=config_loader.capabilities.thinking_method,
+    )
+
     runner = RunHFDatasetEvaluation(
         hf_repo_id="GPTNT/defuser-vqa-mc-dataset",
         dataset_split="test",
         task_name="defuser-vqa-mcq",
         weave_project="gptnt/defuser-vqa-mcq",
         preprocess_instance_func=preprocess_defuser_vqa_mcq_instance,
-        agent=config_loader.agent_fn(instructions=f"{REASONING_PROMPT} {MCQ_INSTRUCTION}"),
+        agent=config_loader.agent_fn(instructions=instruction),
         capabilities=config_loader.capabilities,
         weave_scorers=create_scorers(StringBasedComparer(task_type="vqa")),
         max_instances=limit_instances,
@@ -251,15 +296,22 @@ async def run_expert_vqa_evaluation(
     should_throw: ThrowOption = False,
     should_upload: UploadOption = False,
     limit_instances: LimitInstancesOption = None,
+    allow_thinking: bool = True,
 ) -> None:
     """Run the expert VQA evaluation."""
     config_loader = ConfigLoader(model=model)
+    instruction = format_instruction_with_reasoning(
+        MCQ_INSTRUCTION,
+        allow_thinking=allow_thinking,
+        thinking_method=config_loader.capabilities.thinking_method,
+    )
+
     runner = RunHFDatasetEvaluation(
         hf_repo_id="GPTNT/expert-VQA",
         task_name="expert-vqa",
         weave_project="gptnt/expert-vqa",
         preprocess_instance_func=preprocess_expert_vqa_instance,
-        agent=config_loader.agent_fn(instructions=f"{REASONING_PROMPT} {MCQ_INSTRUCTION}"),
+        agent=config_loader.agent_fn(instructions=instruction),
         capabilities=config_loader.capabilities,
         weave_scorers=create_scorers(StringBasedComparer(task_type=None)),
         max_instances=limit_instances,
@@ -284,15 +336,22 @@ async def run_expert_ocr_evaluation(
     should_throw: ThrowOption = False,
     should_upload: UploadOption = False,
     limit_instances: LimitInstancesOption = None,
+    allow_thinking: bool = True,
 ) -> None:
     """Run the expert OCR evaluation."""
     config_loader = ConfigLoader(model=model)
+    instruction = format_instruction_with_reasoning(
+        OCR_INSTRUCTION,
+        allow_thinking=allow_thinking,
+        thinking_method=config_loader.capabilities.thinking_method,
+    )
+
     runner = RunHFDatasetEvaluation(
         hf_repo_id="GPTNT/expert-element-ocr",
         task_name="expert-ocr",
         weave_project="gptnt/expert-ocr",
         preprocess_instance_func=preprocess_expert_ocr_instance,
-        agent=config_loader.agent_fn(instructions=f"{REASONING_PROMPT} {OCR_INSTRUCTION}"),
+        agent=config_loader.agent_fn(instructions=instruction),
         capabilities=config_loader.capabilities,
         weave_scorers=create_scorers(
             StringBasedComparer(task_type=None, postprocess_output_func=expert_ocr_postprocess)
@@ -319,14 +378,21 @@ async def run_expert_grounding_evaluation(
     should_throw: ThrowOption = False,
     should_upload: UploadOption = False,
     limit_instances: LimitInstancesOption = None,
+    allow_thinking: bool = True,
 ) -> None:
     """Run the expert grounding evaluation."""
     config_loader = ConfigLoader(model=model)
+    instruction = format_instruction_with_reasoning(
+        MCQ_INSTRUCTION,
+        allow_thinking=allow_thinking,
+        thinking_method=config_loader.capabilities.thinking_method,
+    )
+
     runner = RunHFDatasetEvaluation(
         hf_repo_id="GPTNT/expert-element-grounding",
         task_name="expert-element-grounding",
         preprocess_instance_func=preprocess_expert_grounding_instance,
-        agent=config_loader.agent_fn(instructions=f"{REASONING_PROMPT} {MCQ_INSTRUCTION}"),
+        agent=config_loader.agent_fn(instructions=instruction),
         capabilities=config_loader.capabilities,
         weave_project="gptnt/expert-element-grounding",
         weave_scorers=create_scorers(StringBasedComparer(task_type=None)),
