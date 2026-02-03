@@ -110,7 +110,7 @@ done
 # spawn gpt players
 for ((i = 0; i < GPT_PLAYERS; i++)); do
   echo "THROWING: Starting gpt player $i..."
-  run_and_track "gpt_player_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=gpt5
+  run_and_track "gpt_player_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=gpt51-chat
   sleep 1
 done
 
