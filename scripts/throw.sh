@@ -103,7 +103,7 @@ done
 # spawn gemini players
 for ((i = 0; i < GEMINI_PLAYERS; i++)); do
   echo "THROWING: Starting gemini player $i..."
-  run_and_track "gemini_player_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=gemini-25
+  run_and_track "gemini_player_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=gemini-3
   sleep 1
 done
 
