@@ -9,7 +9,6 @@ from gptnt.ktane.state.bomb import BombState
 from gptnt.players.metrics.recorder import ExperimentPlayerRecorder
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
-from gptnt.prompts.manual import load_manual_as_prompt
 
 logger = structlog.get_logger()
 
@@ -30,26 +29,16 @@ class AgentInputBuilder:
 
     recorder: ExperimentPlayerRecorder | None
 
-    @logfire.instrument(
-        "Build agent input", extract_args=["messages", "bomb_state", "is_message_history_empty"]
-    )
+    @logfire.instrument("Build agent input", extract_args=["messages", "bomb_state"])
     async def build_agent_input(
         self,
         *,
         messages: str | None,
         raw_frames: RawObservationFrames | None,
         bomb_state: BombState | None,
-        is_message_history_empty: bool,
     ) -> AgentMessageInput:
         """Build the input for the agent."""
         agent_input = []
-
-        # 1. Do we want to include the manual? Only if first message and we want it.
-        if self.protocol.include_manual and is_message_history_empty:
-            logger.debug("Loading manual as prompt")
-            agent_input.extend(
-                load_manual_as_prompt(image_dimensions=self.capabilities.image_dimensions)
-            )
 
         # 2. Pull messages. This should only happen if we are not playing alone (and messages is
         #    not None/empty)

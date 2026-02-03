@@ -55,10 +55,7 @@ class BoxWarmer:
         message = self.generate_message(protocol)
         raw_frames, bomb_state = self.generate_observations()
         model_input = await input_builder.build_agent_input(
-            messages=message,
-            raw_frames=raw_frames,
-            bomb_state=bomb_state,
-            is_message_history_empty=True,
+            messages=message, raw_frames=raw_frames, bomb_state=bomb_state
         )
         response = await self.action_predictor.send_request_to_agent(message_input=model_input)
         logger.info(

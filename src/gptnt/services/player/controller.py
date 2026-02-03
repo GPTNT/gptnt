@@ -175,10 +175,7 @@ class PlayerController(PlayerSupervisor):
         # Prepare the input
         self.state = PlayerState.preparing_agent_input
         agent_input = await self.input_builder.build_agent_input(
-            messages=messages,
-            raw_frames=raw_frames,
-            bomb_state=bomb_state,
-            is_message_history_empty=self.message_history.is_empty,
+            messages=messages, raw_frames=raw_frames, bomb_state=bomb_state
         )
 
         # Decide what action to do
