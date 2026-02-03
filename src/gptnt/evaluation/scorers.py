@@ -7,7 +7,7 @@ import numpy as np
 import weave
 from more_itertools import collapse
 from numpy.typing import NDArray
-from pydantic import BaseModel, PrivateAttr
+from pydantic import BaseModel, PrivateAttr, ValidationError
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import cos_sim as cosine_similarity
 from weave.trace.op import Op
@@ -187,7 +187,11 @@ class CoordinateInRegionComparer(BaseComparer[NDArray[np.uint8] | str, bool]):
     ) -> bool:
         """Score when ground truth is a binary mask array."""
         cleaned_output = json_repair.repair_json(self.postprocess_output_func(output["output"]))
-        parsed_coords = Coords.model_validate_json(cleaned_output)
+
+        try:
+            parsed_coords = Coords.model_validate_json(cleaned_output)
+        except ValidationError:
+            return False
 
         if not parsed_coords.is_in_bounds(ground_truth.shape[1], ground_truth.shape[0]):
             # Out of bounds
@@ -234,7 +238,11 @@ class CoordinateDistanceComparer(BaseComparer[NDArray[np.uint8] | str, float]):
     ) -> float:
         """Score when ground truth is a binary mask array."""
         cleaned_output = json_repair.repair_json(self.postprocess_output_func(output["output"]))
-        parsed_coords = Coords.model_validate_json(cleaned_output)
+
+        try:
+            parsed_coords = Coords.model_validate_json(cleaned_output)
+        except ValidationError:
+            return self._max_distance
 
         if not parsed_coords.is_in_bounds(ground_truth.shape[1], ground_truth.shape[0]):
             # Out of bounds
