@@ -5,6 +5,7 @@ from typing import Any, Literal, override
 import json_repair
 import numpy as np
 import weave
+from more_itertools import collapse
 from numpy.typing import NDArray
 from pydantic import BaseModel, PrivateAttr
 from sentence_transformers import SentenceTransformer
@@ -28,6 +29,19 @@ trick_question_categories = ["hallucination_type=type_a", "hallucination_type=ty
 
 typea = need more information typeb = something doesnt add up
 """
+
+
+def check_for_bad_symbols(
+    symbols: list[str], *, sentence_transformer: SentenceTransformer
+) -> list[str]:
+    """Check for any symbols that do not tokenize/decode properly."""
+    bad_symbols = []
+    for symbol in symbols:
+        tokens = sentence_transformer.tokenizer.encode(symbol, add_special_tokens=False)
+        decoded = sentence_transformer.tokenizer.decode(tokens)
+        if decoded.strip() != symbol.strip():
+            bad_symbols.append(symbol)
+    return bad_symbols
 
 
 class Coords(BaseModel):
@@ -105,57 +119,46 @@ class StringBasedComparer(BaseComparer[str | list[str], bool]):  # noqa: WPS338
 
     def check_keypad_result(self, input_string: str, correct_symbol: str) -> bool:
         """Checks if the input aligns with the correct symbol based on similarity metrics."""
-        input_embedding = self.sentence_transformer.encode(
+        output_embedding = self.sentence_transformer.encode(
             [input_string], normalize_embeddings=True
-        )[0]
+        ).squeeze()
 
-        cluster_similarities = {}
-        for symbol, mean_embedding in self.keypad_cache.items():
-            cluster_similarities[symbol] = cosine_similarity(
-                mean_embedding, input_embedding
-            ).item()
-
-        sorted_clusters = sorted(
-            cluster_similarities.items(), key=lambda pair: pair[1], reverse=True
+        # Get a list of all the alternatives to compare against
+        symbols_to_compare_with = list(
+            {correct_symbol, *KEYPAD_SYMBOL_DESCRIPTIONS[correct_symbol]}
         )
-        most_similar_symbol, most_similar_score = sorted_clusters[0]
-        _, _second_most_similar_score = sorted_clusters[1]
+        embeddings_to_compare = [
+            self.keypad_cache[symbol]
+            for symbol in symbols_to_compare_with
+            if symbol in self.keypad_cache
+        ]
 
-        if most_similar_symbol != correct_symbol:
-            return False
-
-        # Remove the correct symbol from the sorted clusters to calculate similarity ratio
-        _ = cluster_similarities.pop(correct_symbol)
-        return self.check_keypad_metrics(most_similar_score, cluster_similarities)
-
-    def check_keypad_metrics(
-        self, most_similar_score: float, non_correct_clusters: dict[str, float]
-    ) -> bool:
-        """Calculate contrast ratio and separation score."""
-        similarity_ratio = most_similar_score / np.mean(list(non_correct_clusters.values())).item()
-
-        return similarity_ratio > self.similarity_ratio_threshold
+        for embedding in embeddings_to_compare:
+            similarity = cosine_similarity(output_embedding, embedding).item()
+            if similarity >= self.similarity_ratio_threshold:
+                return True
+        return False
 
     def precompute_keypad_embeddings(self) -> dict[str, np.ndarray[Any, Any]]:
         """Precompute and cache embeddings for KEYPAD_SYMBOL_DESCRIPTIONS."""
-        embeddings_cache = {}
-        for symbol, descriptions in KEYPAD_SYMBOL_DESCRIPTIONS.items():
-            embeddings = [
-                self.sentence_transformer.encode([description], normalize_embeddings=True)[0]
-                for description in descriptions
-                if self._is_valid_description(description)
-            ]
-            embeddings_cache[symbol] = np.mean(embeddings, axis=0)
-        return embeddings_cache
-
-    def _is_valid_description(self, description: str) -> bool:
-        """Filter out descriptions based on tokenization consistency."""
-        # Make sure encoding and decoding are consistent (no <unk> tokens)
-        token_ids = self.sentence_transformer.tokenizer.encode(
-            description, add_special_tokens=False
+        all_symbols: list[str] = list(collapse(KEYPAD_SYMBOL_DESCRIPTIONS.items()))
+        bad_symbols = check_for_bad_symbols(
+            all_symbols, sentence_transformer=self.sentence_transformer
         )
-        decoded_description = self.sentence_transformer.tokenizer.decode(token_ids)
-        return description == decoded_description
+        all_non_bad_symbols = [symbol for symbol in all_symbols if symbol not in bad_symbols]
+
+        all_embeddings = self.sentence_transformer.encode(
+            all_non_bad_symbols, normalize_embeddings=True
+        )
+        symbol_to_embedding = dict(
+            zip(
+                all_non_bad_symbols,
+                map(np.squeeze, np.split(all_embeddings, len(all_non_bad_symbols))),
+                strict=True,
+            )
+        )
+
+        return symbol_to_embedding
 
 
 @dataclass(kw_only=True)
