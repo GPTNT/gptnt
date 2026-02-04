@@ -46,33 +46,48 @@ class AIResponseErrorType(Enum):
     unknown = "unknown"
 
 
-class ExceededMaxTokensError(ValueError):
+class InvalidResponseError(ValueError):
+    """Exception raised when the AI response is invalid for some reason."""
+
+    def __init__(
+        self,
+        message: str | None = None,
+        *,
+        response_error: list[AIResponseErrorType] | None = None,
+    ) -> None:
+        message = message or "The AI response is invalid."
+        super().__init__(message)
+        self.response_error = response_error
+
+
+class ExceededMaxTokensError(InvalidResponseError):
     """Exception raised when the output exceeds max tokens."""
 
     def __init__(self, message: str | None = None, *, output: str | None) -> None:
         message = message or "Output exceeds maximum token limit."
-        super().__init__(message)
+        super().__init__(message, response_error=[AIResponseErrorType.max_tokens_exceeded])
         self.output = output
 
 
-class InvalidOutputError(ValueError):
-    """Exception raised when the output is invalid."""
-
-
-class InvalidOutputFormatError(InvalidOutputError):
+class InvalidOutputFormatError(InvalidResponseError):
     """Exception raised when the format is invalid.
 
     Basically, the action doesn't create a JSON.
     """
 
     def __init__(
-        self, message: str | None = None, *, output: str, expected_type: type | None
+        self,
+        message: str | None = None,
+        *,
+        output: str,
+        expected_type: type | None,
+        response_error: list[AIResponseErrorType] | None = None,
     ) -> None:
         message = (
             message
             or f"Output format is invalid. Output does not parse to expected type {expected_type!r}, got output: {output!r}"
         )
-        super().__init__(message)
+        super().__init__(message, response_error=response_error)
         self.output = output
         self.expected_type = expected_type
 
