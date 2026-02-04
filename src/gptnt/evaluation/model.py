@@ -34,8 +34,11 @@ class ModelOutput(TypedDict):
     output: str
     thoughts: str | None
     raw_output: str | None
-    error: Any | None
-    """Log any error that occurred during prediction."""
+    error: str | None
+    """Log any response errors that occurred during prediction."""
+
+    exception: Any | None
+    """Log any exception that occurred during prediction."""
 
 
 class EvalModel(WeaveModel):
@@ -76,7 +79,7 @@ class EvalModel(WeaveModel):
         self._reasoning_parser = reasoning_parser
 
     @weave.op
-    async def model_predict(
+    async def model_predict(  # noqa: WPS210
         self,
         model_input: list[str | Image.Image],
         *args: Any,  # noqa: ARG002
@@ -105,14 +108,15 @@ class EvalModel(WeaveModel):
             )
         except Exception as exc:
             logger.exception("Model prediction failed")
-
+            response_errors = getattr(exc, "response_error", None)
             return ModelOutput(
                 usage={},
                 model=self.name or "",
                 output="",
                 thoughts=None,
                 raw_output=getattr(exc, "output", None),
-                error=_exception_transformer(sys.exc_info()),  # pyright: ignore[reportArgumentType]
+                error=str(response_errors) if response_errors else None,
+                exception=_exception_transformer(sys.exc_info()),  # pyright: ignore[reportArgumentType]
             )
 
         # Flatten all the usage and remove zero counts
@@ -131,6 +135,7 @@ class EvalModel(WeaveModel):
             thoughts=model_output.thoughts,
             raw_output=model_output.raw_output,
             error=str(model_output.ai_response_error) if model_output.ai_response_error else None,
+            exception=None,
         )
 
     @weave.op
