@@ -47,7 +47,6 @@ class ObservationWindowManager:
         # Return cleaned runs + runs still in window (unchanged)
         return cleaned_runs + turn_runs[-self.window_length :]
 
-    @logfire.instrument("Clean observations from run", extract_args=False)
     def clean_observations_from_run(self, run: SingleRun, *, keep_last: bool = False) -> SingleRun:
         """Remove observations from a single run.
 
@@ -73,7 +72,6 @@ class ObservationWindowManager:
 
         return new_run
 
-    @logfire.instrument("Remove observations from messages", extract_args=False)
     def remove_observations_from_messages(
         self, messages: list[ModelMessage], *, keep_last_observation: bool = True
     ) -> tuple[list[ModelMessage], int]:
