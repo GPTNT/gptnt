@@ -25,7 +25,7 @@ action_predictor:
       _convert_: all
       google_thinking_config:
         _target_: pydantic_ai.models.google.ThinkingConfigDict
-        thinking_level: low
+        thinking_level: minimal
       google_video_resolution: "MEDIA_RESOLUTION_MEDIUM"
       google_safety_settings:
         - category: HARM_CATEGORY_HARASSMENT
