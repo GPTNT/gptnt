@@ -1,0 +1,27 @@
+# @package player
+
+defaults:
+  - _self_
+
+capabilities:
+  player_name: gpt5
+  structured_output_mode: null
+  thinking_method: thinking-out-loud
+  include_schema_in_instructions: true
+  usage_limits:
+    input_tokens_limit: 128000
+    output_tokens_limit: 16384
+
+action_predictor:
+  agent:
+    model:
+      _target_: pydantic_ai.models.openai.OpenAIModel
+      model_name: gpt-5.2-chat
+      provider:
+        _target_: pydantic_ai.providers.openai.OpenAIProvider
+    model_settings:
+      _target_: pydantic_ai.models.openai.OpenAIModelSettings
+      _convert_: all
+      max_tokens: 1000
+      openai_reasoning_effort: none
+      openai_reasoning_summary: null
