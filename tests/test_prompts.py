@@ -3,7 +3,8 @@ from pydantic import TypeAdapter, ValidationError
 
 from gptnt.common.image_ops import ImageDimensions
 from gptnt.ktane.manual import NEEDY_MODULE_PAGE_NUMS
-from gptnt.players.specification import PlayerCapabilities, PlayerDeps, PlayerProtocol
+from gptnt.players.deps import PlayerDeps
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.prompts.instructions import load_instructions
 from gptnt.prompts.manual import load_manual_as_prompt
 
@@ -54,7 +55,7 @@ def player_deps_strategy(draw: st.DrawFn) -> PlayerDeps:
 
 @given(player_deps_strategy())
 def test_prompts_load_for_protocol(deps: PlayerDeps) -> None:
-    instruction = load_instructions(deps)
+    instruction = load_instructions(deps.protocol, deps.capabilities)
     assert instruction
 
 

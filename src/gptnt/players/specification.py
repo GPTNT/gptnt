@@ -1,23 +1,14 @@
-from typing import Any, Literal, Self, Union, cast, override
+from typing import Any, Literal, Self, override
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.fields import computed_field
 from pydantic.functional_validators import model_validator
-from pydantic_ai import NativeOutput, PromptedOutput, ToolOutput
-from pydantic_ai.output import OutputSpec, StructuredOutputMode
+from pydantic_ai.output import StructuredOutputMode
 from pydantic_ai.usage import UsageLimits
 
 from gptnt.common.image_ops import ImageDimensions
 from gptnt.ktane.game_settings import KtaneSettings
-from gptnt.players.actions import (
-    AbsoluteCoordinate,
-    DoNothingAction,
-    InteractGameAction,
-    MagicGameAction,
-    PlayerOutputType,
-    SendMessageAction,
-    SingleAlphabetLetter,
-)
+from gptnt.players.actions import AbsoluteCoordinate, SingleAlphabetLetter
 from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
 from gptnt.players.reasoning_parser.react import ReactStyleReasoningParser
 from gptnt.players.reasoning_parser.reasoning_parser import ReasoningParser
@@ -182,65 +173,3 @@ class PlayerProtocol(BaseModel, frozen=True):
         if self.role == "expert" and self.is_playing_alone:
             raise ValueError("An expert cannot play alone.")
         return self
-
-
-class PlayerDeps(BaseModel, frozen=True):
-    """Dependencies for the AI player (as in PydanticAI)."""
-
-    capabilities: PlayerCapabilities
-    protocol: PlayerProtocol
-
-    @property
-    def output_type(self) -> OutputSpec[PlayerOutputType] | type[str]:
-        """The output type for the player, determining the schema/structure if needed."""
-        if self.capabilities.structured_output_mode is not None:
-            match self.capabilities.structured_output_mode:
-                case "native":
-                    return NativeOutput(self.structured_output_type)
-                case "tool":
-                    return ToolOutput(self.structured_output_type)
-                case "prompted":
-                    return PromptedOutput(self.structured_output_type)
-        return str
-
-    @property
-    def structured_output_type(self) -> type[PlayerOutputType]:
-        """The output type for the player.
-
-        This is used to determine what the agent can output.
-
-        Note that at the end, we also patch the name so that it can be used by various tool
-        functions because for some reason, this was not working properly.
-        """
-        output: list[type[PlayerOutputType]] = []
-        output.append(DoNothingAction)
-
-        if not self.protocol.is_playing_alone:
-            output.append(SendMessageAction)
-
-        if self.protocol.role == "defuser":
-            output.append(InteractGameAction[self.capabilities.interact_location_type])
-
-        if self.protocol.allow_magic_actions:
-            output.append(MagicGameAction)
-
-        clean_output: list[type[PlayerOutputType]] = []
-        for output_type in output:
-            # Remove the brackets from the output type name
-            output_type.__name__ = output_type.__name__.replace("[", "").replace("]", "")
-            output_type.__qualname__ = output_type.__qualname__.replace("[", "").replace("]", "")
-            clean_output.append(output_type)
-
-        return cast("type[PlayerOutputType]", Union[tuple(clean_output)])  # noqa: UP007
-
-    @property
-    def should_manually_add_schema_in_instructions(self) -> bool:
-        """Whether we should manually include the output schema in the instructions.
-
-        If we are using prompted, then the schema is automatically included and therefore we should
-        not include it again. Otherwise, we depend on the capability flag.
-        """
-        return (
-            self.capabilities.structured_output_mode != "prompted"
-            and self.capabilities.include_schema_in_instructions
-        )

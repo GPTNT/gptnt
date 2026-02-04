@@ -14,6 +14,7 @@ from gptnt.players.actions import (
     PlayerOutputType,
     SendMessageAction,
 )
+from gptnt.players.deps import PlayerDeps
 from gptnt.players.exceptions import AIResponseErrorType, ReasoningParsingError
 from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
 from gptnt.players.reasoning_parser.react import (
@@ -21,7 +22,7 @@ from gptnt.players.reasoning_parser.react import (
     REACT_REASONING_TAG,
     ReactStyleReasoningParser,
 )
-from gptnt.players.specification import PlayerCapabilities, PlayerDeps, PlayerProtocol
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 thinking_output = param_fixture(
     "thinking_output", [None, "This is my inner monologue."], ids=["no_thinking", "with_thinking"]

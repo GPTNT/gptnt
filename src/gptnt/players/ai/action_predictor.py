@@ -14,10 +14,10 @@ from gptnt.players.ai.exception_recovery import (
 )
 from gptnt.players.ai.input_builder import AgentMessageInput
 from gptnt.players.ai.messages.message_history import MessageHistory
+from gptnt.players.deps import PlayerDeps, load_instructions_from_deps
 from gptnt.players.exceptions import ExceededMaxTokensError
 from gptnt.players.reasoning_parser.reasoning_parser import ReasoningParser
-from gptnt.players.specification import PlayerCapabilities, PlayerDeps, PlayerProtocol
-from gptnt.prompts.instructions import load_instructions_from_deps
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.prompts.reflection import load_reflection_prompt
 
 logger = structlog.get_logger()
@@ -153,7 +153,7 @@ class ActionPredictor(InstrumentationDataclassMixin):
             structured output for send message directly, otherwise we just let it be a string and
             hope for the best with parsing it.
         """
-        reflection_prompt = load_reflection_prompt(self._agent_deps)
+        reflection_prompt = load_reflection_prompt(self._agent_deps.capabilities)
 
         with capture_run_messages() as run_messages:
             try:
