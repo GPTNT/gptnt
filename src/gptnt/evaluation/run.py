@@ -29,7 +29,7 @@ from gptnt.processors.image_resizer import ImageResizer
 logger = structlog.get_logger()
 paths = Paths()
 
-REASONING_PROMPT = "Reason about your task before choosing an answer. Keep your thoughts concise, using as few words and sentences as possible. Avoid redundancy and do not get stuck in circular reasoning loops. Provide your reasoning (REASONING) first, followed by your chosen answer (ANSWER) using the format '<thought>{REASONING}</thought><action>{ANSWER}</action>', replacing{REASONING} with your reasoning and {ANSWER} with your chosen answer."
+REASONING_PROMPT = "Reason about your task before choosing an answer. Keep your thoughts concise, using as few words and sentences as possible. Avoid redundancy and do not get stuck in circular reasoning loops. Provide your reasoning (REASONING) first, followed by your chosen answer (ANSWER) using the format '<thought>{REASONING}</thought><action>{ANSWER}</action>', replacing {REASONING} with your reasoning and {ANSWER} with your chosen answer."
 
 OPEN_ENDED_INSTRUCTION = "Answer the following question based on given context. Output only the one letter, word, short phrase, or number required to answer the question, nothing else."
 MCQ_INSTRUCTION = "Answer the following multiple choice question based on the given context. Output only the letter of the correct answer, nothing else."
