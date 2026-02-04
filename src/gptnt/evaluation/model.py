@@ -79,6 +79,7 @@ class EvalModel(WeaveModel):
     async def model_predict(
         self,
         model_input: list[str | Image.Image],
+        *args: Any,  # noqa: ARG002
         **kwargs: Any,  # noqa: ARG002
     ) -> ModelOutput:
         """Run the model on the input."""
@@ -133,7 +134,7 @@ class EvalModel(WeaveModel):
         )
 
     @weave.op
-    def predict(self, index: int, model_input: Any, **kwargs: Any) -> ModelOutput:  # noqa: ARG002
+    def predict(self, index: int, model_input: Any, *args: Any, **kwargs: Any) -> ModelOutput:  # noqa: ARG002
         """Fetch the model answer from the json."""
         prediction_path = self._output_dir.joinpath(f"prediction_{index}.json")
 
