@@ -100,9 +100,13 @@ class StringBasedComparer(BaseComparer[str | list[str], bool]):  # noqa: WPS338
             ground_truth_symbol = (
                 ground_truth[0] if isinstance(ground_truth, list) else ground_truth
             )
-            is_correct = self.check_keypad_result(
+            is_correct = self.check_keypad_with_exact_match(
                 input_string=output["output"], correct_symbol=ground_truth_symbol
             )
+            if not is_correct:
+                is_correct = self.check_keypad_with_embeddings(
+                    input_string=output["output"], correct_symbol=ground_truth_symbol
+                )
             return is_correct
 
         model_output = self.postprocess_output_func(output["output"])
@@ -117,7 +121,14 @@ class StringBasedComparer(BaseComparer[str | list[str], bool]):  # noqa: WPS338
             return model_output in cleaned_ground_truth
         return model_output == cleaned_ground_truth
 
-    def check_keypad_result(self, input_string: str, correct_symbol: str) -> bool:
+    def check_keypad_with_exact_match(self, input_string: str, correct_symbol: str) -> bool:
+        """Checks if the input matches the correct symbol or its descriptions exactly."""
+        cleaned_input = self.postprocess_output_func(input_string).strip().lower()
+        alternatives = {correct_symbol, *KEYPAD_SYMBOL_DESCRIPTIONS[correct_symbol]}
+        alternatives = {symbol.strip().lower() for symbol in alternatives}
+        return cleaned_input in alternatives
+
+    def check_keypad_with_embeddings(self, input_string: str, correct_symbol: str) -> bool:
         """Checks if the input aligns with the correct symbol based on similarity metrics."""
         output_embedding = self.sentence_transformer.encode(
             [input_string], normalize_embeddings=True
