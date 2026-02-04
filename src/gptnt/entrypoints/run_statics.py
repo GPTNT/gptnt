@@ -31,7 +31,8 @@ from gptnt.evaluation.run import (
     RunHFDatasetEvaluation,
 )
 from gptnt.evaluation.scorers import (
-    CoordinateDistanceComparer,
+    CoordinateAbsoluteDistanceComparer,
+    CoordinateEuclideanDistanceComparer,
     CoordinateInRegionComparer,
     StringBasedComparer,
     create_scorers,
@@ -137,10 +138,17 @@ async def run_defuser_grounding_evaluation(
 
     # Create the weave scorers
     exact_match_scorers = create_scorers(CoordinateInRegionComparer(task_type="grounding"))
-    distance_scorers = create_scorers(CoordinateDistanceComparer(task_type="grounding"))
+    euclidean_distance_scorers = create_scorers(
+        CoordinateEuclideanDistanceComparer(task_type="grounding")
+    )
+    absolute_distance_scorers = create_scorers(
+        CoordinateAbsoluteDistanceComparer(task_type="grounding")
+    )
     # Update the names for the distance scorers to prevent name clashes in weave
-    for scorer in distance_scorers:
-        scorer.name = f"{scorer.name}_distance"
+    for scorer in euclidean_distance_scorers:
+        scorer.name = f"{scorer.name}_normalized_euclidean_distance"
+    for scorer in absolute_distance_scorers:
+        scorer.name = f"{scorer.name}_absolute_distance"
 
     runner = RunHFDatasetEvaluation(
         hf_repo_id="GPTNT/defuser-grounding-dataset",
@@ -150,7 +158,11 @@ async def run_defuser_grounding_evaluation(
         preprocess_instance_func=preprocess_grounding_coordinates_instance,
         agent=config_loader.agent_fn(instructions=instruction),
         capabilities=config_loader.capabilities,
-        weave_scorers=[*exact_match_scorers, *distance_scorers],
+        weave_scorers=[
+            *exact_match_scorers,
+            *euclidean_distance_scorers,
+            *absolute_distance_scorers,
+        ],
         max_instances=limit_instances,
     )
     if should_download:

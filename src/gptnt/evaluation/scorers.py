@@ -219,20 +219,20 @@ class CoordinateInRegionComparer(BaseComparer[NDArray[np.uint8] | str, bool]):
 
 
 @dataclass(kw_only=True)
-class CoordinateDistanceComparer(BaseComparer[NDArray[np.uint8] | str, float]):
+class CoordinateDistanceComparer(BaseComparer[NDArray[np.uint8] | str, float], abc.ABC):
     """Scorer to check distance from correct coordinate.
 
     Note: Array indexing is (y, x) for rows and columns.
-    The distance is normalized to be in [0.0, 1.0].
     """
 
+    _normalize_distance: bool
     _min_distance: float = 0.0  # noqa: WPS358
-    _max_distance: float = 1.0
 
     @override
     def __call__(
         self, output: PredictionOutput, ground_truth: NDArray[np.uint8] | str, *, module: str
     ) -> float:
+        self._max_distance = self.compute_max_possible_distance(ground_truth)
         if isinstance(ground_truth, str):
             return self.score_with_string_ground_truth(output, ground_truth)
         return self.score_with_array_ground_truth(output, ground_truth)
@@ -262,6 +262,17 @@ class CoordinateDistanceComparer(BaseComparer[NDArray[np.uint8] | str, float]):
 
         return self._get_closest_distance_to_region(ground_truth, parsed_coords)
 
+    def compute_max_possible_distance(self, ground_truth: NDArray[np.uint8] | str) -> float:
+        """Set the maximum possible distance based on ground truth shape."""
+        if isinstance(ground_truth, str):
+            return 1.0
+        if not np.any(ground_truth):
+            # No valid region in ground truth, return max distance
+            raise ValueError("Ground truth region is empty")
+        if self._normalize_distance:
+            return 1.0
+        return self._max_array_distance(ground_truth)
+
     def _get_closest_distance_to_region(
         self, ground_truth: NDArray[np.uint8], coords: Coords
     ) -> float:
@@ -272,13 +283,77 @@ class CoordinateDistanceComparer(BaseComparer[NDArray[np.uint8] | str, float]):
             # No valid region in ground truth, return max distance
             return self._max_distance
 
+        distances = self._compute_distances(ground_truth, coords)
+        distance = float(np.min(distances))
+        if self._normalize_distance:
+            # Normalize distance
+            return distance / self._max_array_distance(ground_truth)
+        return distance
+
+    @abc.abstractmethod
+    def _max_array_distance(self, ground_truth: NDArray[np.uint8]) -> float:
+        """Set the maximum possible distance based on ground truth shape."""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _compute_distances(
+        self, ground_truth: NDArray[np.uint8], coords: Coords
+    ) -> NDArray[np.float64]:
+        """Get the distances from the predicted to the ground truth coordinates."""
+        raise NotImplementedError
+
+
+@dataclass(kw_only=True)
+class CoordinateEuclideanDistanceComparer(CoordinateDistanceComparer):
+    """Scorer to check euclidean distance from correct coordinate.
+
+    The distance is normalized to be in [0.0, 1.0].
+    """
+
+    _normalize_distance: bool = True
+
+    @override
+    def _max_array_distance(self, ground_truth: NDArray[np.uint8]) -> float:
+        """Calculate the maximum possible distance for normalization."""
+        distance = np.sqrt(ground_truth.shape[0] ** 2 + ground_truth.shape[1] ** 2)
+        return float(distance)
+
+    @override
+    def _compute_distances(
+        self, ground_truth: NDArray[np.uint8], coords: Coords
+    ) -> NDArray[np.float64]:
+        """Get the distances from the predicted to the ground truth coordinates."""
+        ys, xs = ground_truth.nonzero()
         dx = xs - coords.x
         dy = ys - coords.y
         distances = np.sqrt(dx**2 + dy**2)
-        distance = float(np.min(distances))
-        # Normalize distance
-        max_possible_distance = np.sqrt(ground_truth.shape[0] ** 2 + ground_truth.shape[1] ** 2)
-        return distance / max_possible_distance
+        return distances
+
+
+@dataclass(kw_only=True)
+class CoordinateAbsoluteDistanceComparer(CoordinateDistanceComparer):
+    """Scorer to check absolute distance from correct coordinate.
+
+    The distance is NOT normalized.
+    """
+
+    _normalize_distance: bool = False
+
+    @override
+    def _max_array_distance(self, ground_truth: NDArray[np.uint8]) -> float:
+        """Calculate the maximum possible distance for normalization."""
+        return float(ground_truth.shape[0] + ground_truth.shape[1])
+
+    @override
+    def _compute_distances(
+        self, ground_truth: NDArray[np.uint8], coords: Coords
+    ) -> NDArray[np.float64]:
+        """Get the distances from the predicted to the ground truth coordinates."""
+        ys, xs = ground_truth.nonzero()
+        dx = xs - coords.x
+        dy = ys - coords.y
+        distances = np.abs(dx) + np.abs(dy)
+        return distances
 
 
 class ModuleScorer(weave.Scorer):
