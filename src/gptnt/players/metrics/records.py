@@ -9,7 +9,7 @@ import anyio
 import dill
 import structlog
 from pydantic import UUID4, AfterValidator, BaseModel, Field, computed_field, model_validator
-from pydantic_ai import RunUsage
+from pydantic_ai import ModelMessage, RunUsage
 from tqdm import tqdm
 
 from gptnt.ktane.actions import KtaneBaseAction, KtaneGameplayInput
@@ -37,9 +37,13 @@ class ExperimentStepRecord(BaseModel):
     raw_output: str | None
     thoughts: str | None = None
 
+    input_messages: list[ModelMessage] = Field(default_factory=list)
+    new_messages: list[ModelMessage] = Field(default_factory=list)
+
     bomb_state: BombState | None
     observation: Annotated[Observation | Path | None, Field(repr=False)]
     usage: RunUsage
+    num_prompt_truncations: int
     error_type: list[AIResponseErrorType] | None = None
     is_reflection: bool = False
 

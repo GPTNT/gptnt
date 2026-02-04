@@ -7,6 +7,7 @@ import logfire
 import orjson
 import structlog
 from pydantic import UUID4
+from pydantic_ai import ModelMessage
 from whenever import Instant
 
 from gptnt.common.paths import Paths
@@ -99,7 +100,8 @@ class ExperimentPlayerRecorder:
         self,
         *,
         agent_call_result: AgentCallResult[PlayerOutputType | KtaneGameplayInput],
-        num_prompt_truncations: int,  # noqa: ARG002
+        num_prompt_truncations: int,
+        input_messages: list[ModelMessage],
         is_reflection: bool = False,
     ) -> None:
         """Record a complete step by combining all buffered context.
@@ -127,6 +129,9 @@ class ExperimentPlayerRecorder:
             usage=agent_call_result.usage,
             error_type=agent_call_result.ai_response_error,
             is_reflection=is_reflection,
+            num_prompt_truncations=num_prompt_truncations,
+            input_messages=input_messages,
+            new_messages=agent_call_result.new_messages,
         )
 
         self.last_output = agent_call_result

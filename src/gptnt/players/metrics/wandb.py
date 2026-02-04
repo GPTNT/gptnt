@@ -9,6 +9,7 @@ import structlog
 import wandb
 from anyio.to_thread import run_sync as run_sync_in_thread
 from pydantic import UUID4
+from pydantic_ai import ModelMessage
 
 from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.ktane.actions import KtaneGameplayInput
@@ -40,10 +41,16 @@ def serialise_observation_for_wandb(obs: Observation) -> dict[str, Any]:  # noqa
 
 
 def convert_records_to_wandb_table(step_records: list[ExperimentStepRecord]) -> wandb.Table:
-    """Convert a list of ExperimentStepRecord to a WandB Table."""
+    """Convert a list of ExperimentStepRecord to a WandB Table.
+
+    Importantly, the records sent to wandb are not the same as those stored on disk because we will
+    likely run out of storage on wandb. We do not include the input/new messages in full.
+    """
     table_data = [
         record.model_dump(
-            mode="json", exclude={"observation"}, context={"serialize_as_string": True}
+            mode="json",
+            exclude={"observation", "input_messages", "new_messages"},
+            context={"serialize_as_string": True},
         )
         for record in step_records
     ]
@@ -116,12 +123,14 @@ class WandbExperimentPlayerRecorder(ExperimentPlayerRecorder):
         *,
         agent_call_result: AgentCallResult[PlayerOutputType | KtaneGameplayInput],
         num_prompt_truncations: int,
+        input_messages: list[ModelMessage],
         is_reflection: bool = False,
         **kwargs: bool | str | None | float,
     ) -> None:
         super().track_step(
             agent_call_result=agent_call_result,
             num_prompt_truncations=num_prompt_truncations,
+            input_messages=input_messages,
             is_reflection=is_reflection,
         )
         # Log step to WandB

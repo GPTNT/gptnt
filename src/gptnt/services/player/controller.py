@@ -216,14 +216,14 @@ class PlayerController(PlayerSupervisor):
         self, agent_call_result: AgentCallResult[PlayerOutputType | KtaneGameplayInput]
     ) -> None:
         """Update the metrics for the player based on the agent call result."""
-        self.message_history.update(
-            new_messages=agent_call_result.new_messages, usage=agent_call_result.usage
-        )
-
         self.experiment_recorder.track_step(
             agent_call_result=agent_call_result,
             num_prompt_truncations=self.message_history.num_times_truncated,
             is_reflection=False,
+            input_messages=self.message_history.to_history(),
+        )
+        self.message_history.update(
+            new_messages=agent_call_result.new_messages, usage=agent_call_result.usage
         )
 
     async def perform_reflection(self, message: PlayerMessage[str]) -> bool:
@@ -243,6 +243,7 @@ class PlayerController(PlayerSupervisor):
             agent_call_result=agent_call_result,
             num_prompt_truncations=self.message_history.num_times_truncated,
             is_reflection=True,
+            input_messages=self.message_history.to_history(),
         )
 
         self.state = PlayerState.waiting_for_turn
