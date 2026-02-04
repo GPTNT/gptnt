@@ -520,6 +520,9 @@ class ReactParseResult:
     tag_events: list[TagBlock] = field(default_factory=list)
     content_blocks: list[ContentBlock] = field(default_factory=list)
 
+    pre_existing_errors: list[AIResponseErrorType] = field(default_factory=list)
+    """Pre-existing errors to include in validation results."""
+
     # Lazy-initialized components
     _parsed: ParsedReActOutput | None = field(default=None, init=False, repr=False)
     _extractor: ReActContentExtractor | None = field(default=None, init=False, repr=False)
@@ -568,7 +571,7 @@ class ReactParseResult:
     @property
     def response_error_type(self) -> list[AIResponseErrorType]:
         """Detect parsing and structural errors in the output."""
-        return self.validator.errors
+        return self.validator.errors + self.pre_existing_errors
 
 
 class ReactTagOutputParser(HTMLParser):
@@ -738,6 +741,21 @@ class ReactTagOutputParser(HTMLParser):
             self._event_counter += 1
 
 
+def _check_for_missing_right_arrow(output: str) -> str:
+    """Check if any tag is missing the > at the end of the opening tag and fix it.
+
+    This is tricky because we need to check for <thought but we don't want to accidentally break
+    <thought> tags.
+    """
+    repaired_output = (
+        output.replace(f"<{REACT_REASONING_TAG} ", f"<{REACT_REASONING_TAG}>")
+        .replace(f"<{REACT_ACT_TAG} ", f"<{REACT_ACT_TAG}>")
+        .replace(f"<{REACT_REASONING_TAG}>>", f"<{REACT_REASONING_TAG}>")
+        .replace(f"<{REACT_ACT_TAG}>>", f"<{REACT_ACT_TAG}>")
+    )
+    return repaired_output
+
+
 @dataclass(kw_only=True)
 class ReactStyleReasoningParser[OutputT](ReasoningParser[str, OutputT]):
     """Parser for React-style reasoning.
@@ -793,8 +811,13 @@ class ReactStyleReasoningParser[OutputT](ReasoningParser[str, OutputT]):
     def parse_react_output(self, model_output: str) -> ReactParseResult:
         """Parse ReAct-style output using HTMLParser."""
         parser = ReactTagOutputParser(reasoning_tag=self.reasoning_tag, act_tag=self.act_tag)
+
+        # Check for pre-existing malformed tags (missing >) and fix them
+        cleaned_output = _check_for_missing_right_arrow(model_output)
+        if cleaned_output != model_output:
+            parser.output.pre_existing_errors.append(AIResponseErrorType.malformed_tag_structure)
+
         with parser:
-            model_output = f"<root>{model_output}</root>"
-            parser.feed(model_output)
+            parser.feed(f"<root>{cleaned_output}</root>")
 
         return parser.output

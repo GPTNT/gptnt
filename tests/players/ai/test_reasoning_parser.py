@@ -288,6 +288,17 @@ class BadReactOutputCases:
             error_type={AIResponseErrorType.action_not_present},
         )
 
+    def case_incomplete_open_tag(self) -> ParsedOutputCase:
+        """Incomplete opening tag for reasoning - parser fails to find reasoning."""
+        output = f"<{REACT_REASONING_TAG} {self.thoughts}</{REACT_REASONING_TAG}><{REACT_ACT_TAG}>{self.action.text_part_dump()}</{REACT_ACT_TAG}>"
+        return ParsedOutputCase(
+            action=self.action,
+            thoughts=self.thoughts,
+            exception=None,
+            model_output_text=output,
+            error_type={AIResponseErrorType.malformed_tag_structure},
+        )
+
     def case_whitespace_only_reasoning(self) -> ParsedOutputCase:
         """Reasoning tag with only whitespace - effectively no reasoning."""
         output = f"<{REACT_REASONING_TAG}>   \n\t  </{REACT_REASONING_TAG}>\n<{REACT_ACT_TAG}>{self.action.text_part_dump()}</{REACT_ACT_TAG}>"
