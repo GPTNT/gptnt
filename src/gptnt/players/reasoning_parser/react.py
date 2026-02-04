@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from html.parser import HTMLParser
@@ -756,6 +757,24 @@ def _check_for_missing_right_arrow(output: str) -> str:
     return repaired_output
 
 
+def _check_for_placeholders(output: str) -> str:
+    """Removes placeholders like {REASONING} and {/REASONING}."""
+    pattern = r"\{/?(?:REASONING|COMMAND)\}"
+
+    return re.sub(pattern, "", output)
+
+
+def _check_for_extraneous_braces(output: str) -> str:
+    """Check if the reasoning content is wrapped in curly braces and remove them.
+
+    Example: <thought>{The rule is...}</thought> -> <thought>The rule is...</thought>
+    """
+    repaired_output = output.replace(
+        f"<{REACT_REASONING_TAG}>{'{'}", f"<{REACT_REASONING_TAG}>"
+    ).replace(f"{'}'}</{REACT_REASONING_TAG}>", f"</{REACT_REASONING_TAG}>")
+    return repaired_output
+
+
 @dataclass(kw_only=True)
 class ReactStyleReasoningParser[OutputT](ReasoningParser[str, OutputT]):
     """Parser for React-style reasoning.
@@ -814,6 +833,8 @@ class ReactStyleReasoningParser[OutputT](ReasoningParser[str, OutputT]):
 
         # Check for pre-existing malformed tags (missing >) and fix them
         cleaned_output = _check_for_missing_right_arrow(model_output)
+        cleaned_output = _check_for_placeholders(cleaned_output)
+        cleaned_output = _check_for_extraneous_braces(cleaned_output)
         if cleaned_output != model_output:
             parser.output.pre_existing_errors.append(AIResponseErrorType.malformed_tag_structure)
 

@@ -556,6 +556,66 @@ class BadReactOutputCases:
             error_type={AIResponseErrorType.malformed_tag_structure},
         )
 
+    def case_hallucinated_reasoning_placeholder(self) -> ParsedOutputCase:
+        """Internal placeholder was reproduced rather than replaced."""
+        output = f"<{REACT_REASONING_TAG}>{{REASONING}}{self.thoughts}</{REACT_REASONING_TAG}><{REACT_ACT_TAG}>{self.action.text_part_dump()}</{REACT_ACT_TAG}>"
+
+        return ParsedOutputCase(
+            action=self.action,
+            thoughts=self.thoughts,
+            exception=None,
+            model_output_text=output,
+            error_type={AIResponseErrorType.malformed_tag_structure},
+        )
+
+    def case_hallucinated_action_placeholder(self) -> ParsedOutputCase:
+        """Internal placeholder brackets used around action."""
+        output = f"<{REACT_REASONING_TAG}>{self.thoughts}</{REACT_REASONING_TAG}><{REACT_ACT_TAG}>{{COMMAND}}{self.action.text_part_dump()}</{REACT_ACT_TAG}>"
+
+        return ParsedOutputCase(
+            action=self.action,
+            thoughts=self.thoughts,
+            exception=None,
+            model_output_text=output,
+            error_type={AIResponseErrorType.malformed_tag_structure},
+        )
+
+    def case_hallucinated_reasoning_placeholder_as_tags(self) -> ParsedOutputCase:
+        """Internal placeholder used as opening and closing tags."""
+        output = f"<{REACT_REASONING_TAG}>{{REASONING}}{self.thoughts}{{/REASONING}}</{REACT_REASONING_TAG}><{REACT_ACT_TAG}>{self.action.text_part_dump()}</{REACT_ACT_TAG}>"
+
+        return ParsedOutputCase(
+            action=self.action,
+            thoughts=self.thoughts,
+            exception=None,
+            model_output_text=output,
+            error_type={AIResponseErrorType.malformed_tag_structure},
+        )
+
+    def case_hallucinated_action_placeholder_as_tags(self) -> ParsedOutputCase:
+        """Internal placeholder used as opening and closing tags around action."""
+        output = f"<{REACT_REASONING_TAG}>{self.thoughts}</{REACT_REASONING_TAG}><{REACT_ACT_TAG}>{{COMMAND}}{self.action.text_part_dump()}{{/COMMAND}}</{REACT_ACT_TAG}>"
+
+        return ParsedOutputCase(
+            action=self.action,
+            thoughts=self.thoughts,
+            exception=None,
+            model_output_text=output,
+            error_type={AIResponseErrorType.malformed_tag_structure},
+        )
+
+    def case_hallucinated_placeholder_brackets_reasoning(self) -> ParsedOutputCase:
+        """Internal placeholder brackets used around reasoning."""
+        output = f"<{REACT_REASONING_TAG}>{'{'}{self.thoughts}{'}'}</{REACT_REASONING_TAG}><{REACT_ACT_TAG}>{self.action.text_part_dump()}</{REACT_ACT_TAG}>"
+
+        return ParsedOutputCase(
+            action=self.action,
+            thoughts=self.thoughts,
+            exception=None,
+            model_output_text=output,
+            error_type={AIResponseErrorType.malformed_tag_structure},
+        )
+
 
 @parametrize_with_cases("capabilities", cases=CapabilitiesCases, glob="*react*")
 @parametrize_with_cases("expected_output", cases=BadReactOutputCases)
