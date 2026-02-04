@@ -154,6 +154,18 @@ class RunEvaluation(abc.ABC):
         output_dir.mkdir(parents=True, exist_ok=True)
         return output_dir
 
+    @property
+    def instructions(self) -> str:
+        """Get the instructions for the evaluation.
+
+        Because we don't want to care, we only support literal instructions here.
+        """
+        literal_instructions, functional_instructions = self.agent._get_instructions()  # noqa: SLF001
+        if functional_instructions:
+            raise ValueError("Functional instructions are not supported in RunEvaluation.")
+        assert literal_instructions is not None, "Instructions must be provided."
+        return literal_instructions
+
     @abc.abstractmethod
     def load_dataset(self) -> WeaveDataset:
         """Load the dataset as a Weave dataset.
@@ -232,6 +244,7 @@ class RunHFDatasetEvaluation(RunEvaluation):
                 desc="Preprocessing instances",
             )
         )
+        instances = [{**instance, "instructions": self.instructions} for instance in instances]
         instances = self._resize_all_images(instances)
         weave_dataset = WeaveDataset(name=self.task_name, rows=weave.Table(instances))
         return weave_dataset
