@@ -140,6 +140,8 @@ echo "THROWING: You can safely detach from tmux now."
 
 # Wait and monitor all processes
 echo "THROWING: Monitoring ${#PIDS[@]} processes. Logs in: $LOGS_DIR"
+echo "THROWING: Experiment outputs saved to: $EXPERIMENT_OUTPUT_DIR"
+
 
 for i in "${!PIDS[@]}"; do
   pid="${PIDS[$i]}"
