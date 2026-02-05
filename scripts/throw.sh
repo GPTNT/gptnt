@@ -160,3 +160,4 @@ done
 
 echo "THROWING: All processes ended successfully."
 echo "THROWING: Logs saved to: $LOGS_DIR"
+echo "THROWING: Experiment outputs saved to: $EXPERIMENT_OUTPUT_DIR"
