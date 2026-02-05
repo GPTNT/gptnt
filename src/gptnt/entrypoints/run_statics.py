@@ -141,10 +141,18 @@ async def run_defuser_grounding_evaluation(
     coordinate_validator_scorers = create_scorers(CoordinateValidator(task_type="grounding"))
     exact_match_scorers = create_scorers(CoordinateInRegionComparer(task_type="grounding"))
     euclidean_distance_scorers = create_scorers(
-        CoordinateEuclideanDistanceComparer(task_type="grounding")
+        CoordinateEuclideanDistanceComparer(
+            task_type="grounding",
+            image_height=config_loader.capabilities.image_dimensions.height,
+            image_width=config_loader.capabilities.image_dimensions.width,
+        )
     )
     absolute_distance_scorers = create_scorers(
-        CoordinateAbsoluteDistanceComparer(task_type="grounding")
+        CoordinateAbsoluteDistanceComparer(
+            task_type="grounding",
+            image_height=config_loader.capabilities.image_dimensions.height,
+            image_width=config_loader.capabilities.image_dimensions.width,
+        )
     )
     # Update the names for the distance scorers to prevent name clashes in weave
     for scorer in coordinate_validator_scorers:

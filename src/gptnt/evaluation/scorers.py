@@ -12,7 +12,12 @@ from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import cos_sim as cosine_similarity
 from weave.trace.op import Op
 
-from gptnt.dataset.defuser_vqa.constants import KEYPAD_SYMBOL_DESCRIPTIONS, TaskType
+from gptnt.dataset.defuser_vqa.constants import (
+    GROUNDING_HALLUCINATION_TYPE_A_RESPONSE,
+    GROUNDING_HALLUCINATION_TYPE_B_RESPONSE,
+    KEYPAD_SYMBOL_DESCRIPTIONS,
+    TaskType,
+)
 from gptnt.evaluation.postprocess import PostProcessModelOutputsFunc, default
 
 type PredictionOutput = dict[Literal["output"], str]
@@ -31,7 +36,7 @@ typea = need more information typeb = something doesnt add up
 """
 
 
-type CoordinateValidatorResult = Literal["valid", "out_of_bounds", "invalid_format"]
+type CoordinateValidatorResult = Literal["valid_format", "invalid_format", "out_of_bounds"]
 
 
 def check_for_bad_symbols(
@@ -182,10 +187,27 @@ class CoordinateValidator(BaseComparer[NDArray[np.uint8], CoordinateValidatorRes
 
     @override
     def __call__(
-        self, output: PredictionOutput, ground_truth: NDArray[np.uint8], *, module: str
+        self, output: PredictionOutput, ground_truth: NDArray[np.uint8] | str, *, module: str
     ) -> CoordinateValidatorResult:
-        cleaned_output = json_repair.repair_json(self.postprocess_output_func(output["output"]))
+        cleaned_output = self.postprocess_output_func(output["output"])
+        if isinstance(ground_truth, str):
+            return self.validate_string_ground_truth(cleaned_output)
+        return self.validate_array_ground_truth(cleaned_output, ground_truth)
 
+    def validate_string_ground_truth(self, cleaned_output: str) -> CoordinateValidatorResult:
+        """Validate the output against string ground truth."""
+        if cleaned_output in {
+            GROUNDING_HALLUCINATION_TYPE_A_RESPONSE,
+            GROUNDING_HALLUCINATION_TYPE_B_RESPONSE,
+        }:
+            return "valid_format"
+        return "invalid_format"
+
+    def validate_array_ground_truth(
+        self, cleaned_output: str, ground_truth: NDArray[np.uint8]
+    ) -> CoordinateValidatorResult:
+        """Validate the output against array ground truth."""
+        cleaned_output = json_repair.repair_json(cleaned_output)
         try:
             parsed_coords = Coords.model_validate_json(cleaned_output)
         except ValidationError:
@@ -194,7 +216,7 @@ class CoordinateValidator(BaseComparer[NDArray[np.uint8], CoordinateValidatorRes
         if not parsed_coords.is_in_bounds(ground_truth.shape[1], ground_truth.shape[0]):
             return "out_of_bounds"
 
-        return "valid"
+        return "valid_format"
 
 
 @dataclass(kw_only=True)
@@ -249,6 +271,8 @@ class CoordinateDistanceComparer(BaseComparer[NDArray[np.uint8] | str, float], a
     Note: Array indexing is (y, x) for rows and columns.
     """
 
+    image_height: int
+    image_width: int
     _normalize_distance: bool
     _min_distance: float = 0.0  # noqa: WPS358
 
@@ -256,10 +280,16 @@ class CoordinateDistanceComparer(BaseComparer[NDArray[np.uint8] | str, float], a
     def __call__(
         self, output: PredictionOutput, ground_truth: NDArray[np.uint8] | str, *, module: str
     ) -> float:
-        self._max_distance = self.compute_max_possible_distance(ground_truth)
         if isinstance(ground_truth, str):
             return self.score_with_string_ground_truth(output, ground_truth)
         return self.score_with_array_ground_truth(output, ground_truth)
+
+    def __post_init__(self) -> None:
+        """Compute the max distance based on image dimensions."""
+        self._normalization_factor = self._compute_max_image_distance(
+            self.image_height, self.image_width
+        )
+        self._max_distance = 1.0 if self._normalize_distance else self._normalization_factor
 
     def score_with_string_ground_truth(self, output: PredictionOutput, ground_truth: str) -> float:
         """Score when ground truth is a string (hallucination question)."""
@@ -286,17 +316,6 @@ class CoordinateDistanceComparer(BaseComparer[NDArray[np.uint8] | str, float], a
 
         return self._get_closest_distance_to_region(ground_truth, parsed_coords)
 
-    def compute_max_possible_distance(self, ground_truth: NDArray[np.uint8] | str) -> float:
-        """Set the maximum possible distance based on ground truth shape."""
-        if isinstance(ground_truth, str):
-            return 1.0
-        if not np.any(ground_truth):
-            # No valid region in ground truth, return max distance
-            raise ValueError("Ground truth region is empty")
-        if self._normalize_distance:
-            return 1.0
-        return self._max_array_distance(ground_truth)
-
     def _get_closest_distance_to_region(
         self, ground_truth: NDArray[np.uint8], coords: Coords
     ) -> float:
@@ -311,12 +330,12 @@ class CoordinateDistanceComparer(BaseComparer[NDArray[np.uint8] | str, float], a
         distance = float(np.min(distances))
         if self._normalize_distance:
             # Normalize distance
-            return distance / self._max_array_distance(ground_truth)
+            return distance / self._normalization_factor
         return distance
 
     @abc.abstractmethod
-    def _max_array_distance(self, ground_truth: NDArray[np.uint8]) -> float:
-        """Set the maximum possible distance based on ground truth shape."""
+    def _compute_max_image_distance(self, image_height: int, image_width: int) -> float:
+        """Calculate the maximum possible distance based on image dimensions."""
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -337,9 +356,9 @@ class CoordinateEuclideanDistanceComparer(CoordinateDistanceComparer):
     _normalize_distance: bool = True
 
     @override
-    def _max_array_distance(self, ground_truth: NDArray[np.uint8]) -> float:
+    def _compute_max_image_distance(self, image_height: int, image_width: int) -> float:
         """Calculate the maximum possible distance for normalization."""
-        distance = np.sqrt(ground_truth.shape[0] ** 2 + ground_truth.shape[1] ** 2)
+        distance = np.sqrt(image_height**2 + image_width**2)
         return float(distance)
 
     @override
@@ -364,9 +383,9 @@ class CoordinateAbsoluteDistanceComparer(CoordinateDistanceComparer):
     _normalize_distance: bool = False
 
     @override
-    def _max_array_distance(self, ground_truth: NDArray[np.uint8]) -> float:
+    def _compute_max_image_distance(self, image_height: int, image_width: int) -> float:
         """Calculate the maximum possible distance for normalization."""
-        return float(ground_truth.shape[0] + ground_truth.shape[1])
+        return float(image_height + image_width)
 
     @override
     def _compute_distances(
