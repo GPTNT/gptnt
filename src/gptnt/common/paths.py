@@ -21,11 +21,6 @@ class Paths(BaseSettings):
     test_experiments: Path = storage.joinpath("test_experiments")
     vqa_and_grounding: Path = storage.joinpath("statics-data")
     expert_vqa: Path = storage.joinpath("expert_vqa")
-    vqa_and_grounding_hf_dataset: str = "GPTNT/gptnt"
-    grounding_hf_dataset: str = "GPTNT/gptnt_grounding"
-
-    logs: Path = storage.joinpath("logs")
-    gradio_chats: Path = output.joinpath("gradio_chats")
 
     ktane: Path = storage.joinpath("ktane")
     """Path to the where we store the game."""
