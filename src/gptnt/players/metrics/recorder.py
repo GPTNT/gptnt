@@ -186,6 +186,8 @@ class ExperimentPlayerRecorder:
                 f"experiment-{player_record.experiment_descriptor.name}-{player_record.player_content.uuid}.json"
             )
         )
+        # Make sure the folder exists and file is created before
+        self.output_dir.mkdir(parents=True, exist_ok=True)
         await output_path.touch(exist_ok=True)
 
         output_data = orjson.dumps(player_record.model_dump(mode="json"))
