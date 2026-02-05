@@ -199,8 +199,8 @@ class CoordinateValidator(BaseComparer[NDArray[np.uint8], CoordinateValidatorRes
     def validate_string_ground_truth(self, cleaned_output: str) -> CoordinateValidatorResult:
         """Validate the output against string ground truth."""
         if cleaned_output in {
-            GROUNDING_HALLUCINATION_TYPE_A_RESPONSE,
-            GROUNDING_HALLUCINATION_TYPE_B_RESPONSE,
+            GROUNDING_HALLUCINATION_TYPE_A_RESPONSE.lower(),
+            GROUNDING_HALLUCINATION_TYPE_B_RESPONSE.lower(),
         }:
             return "valid_format"
         return "invalid_format"
