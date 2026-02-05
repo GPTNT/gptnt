@@ -181,13 +181,15 @@ class ExperimentPlayerRecorder:
         player_record = await player_record.rebuild_with_observations()
         assert len(player_record.step_records) > 0, "No step records to save???"
 
-        output_path = self.output_dir.joinpath(
-            f"experiment-{player_record.experiment_descriptor.name}-{player_record.player_content.uuid}.json"
+        output_path = anyio.Path(
+            self.output_dir.joinpath(
+                f"experiment-{player_record.experiment_descriptor.name}-{player_record.player_content.uuid}.json"
+            )
         )
+        await output_path.touch(exist_ok=True)
 
-        async with await anyio.open_file(output_path, "wb") as output_file:
-            output_data = orjson.dumps(player_record.model_dump(mode="json"))
-            _ = await output_file.write(output_data)
+        output_data = orjson.dumps(player_record.model_dump(mode="json"))
+        _ = await output_path.write_bytes(output_data)
 
     def add_final_bomb_state(self, *, final_bomb_state: BombState) -> None:
         """Add the final bomb state to the last step record."""
