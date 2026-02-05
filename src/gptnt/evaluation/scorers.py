@@ -61,7 +61,6 @@ class Coords(BaseModel):
     x: int  # noqa: WPS111
     y: int  # noqa: WPS111
 
-    @weave.op
     def is_in_bounds(self, width: int, height: int) -> bool:
         """Check if the coordinates are within the bounds."""
         return 0 <= self.x <= width and 0 <= self.y <= height
@@ -132,7 +131,6 @@ class StringBasedComparer(BaseComparer[str | list[str], bool]):  # noqa: WPS338
             return model_output in cleaned_ground_truth
         return model_output == cleaned_ground_truth
 
-    @weave.op
     def check_keypad_with_exact_match(self, input_string: str, correct_symbol: str) -> bool:
         """Checks if the input matches the correct symbol or its descriptions exactly."""
         cleaned_input = self.postprocess_output_func(input_string).strip().lower()
@@ -198,7 +196,6 @@ class CoordinateValidator(BaseComparer[NDArray[np.uint8], CoordinateValidatorRes
             return self.validate_string_ground_truth(cleaned_output)
         return self.validate_array_ground_truth(cleaned_output, ground_truth)
 
-    @weave.op
     def validate_string_ground_truth(self, cleaned_output: str) -> CoordinateValidatorResult:
         """Validate the output against string ground truth."""
         if cleaned_output in {
@@ -208,7 +205,6 @@ class CoordinateValidator(BaseComparer[NDArray[np.uint8], CoordinateValidatorRes
             return "valid_format"
         return "invalid_format"
 
-    @weave.op
     def validate_array_ground_truth(
         self, cleaned_output: str, ground_truth: NDArray[np.uint8]
     ) -> CoordinateValidatorResult:
