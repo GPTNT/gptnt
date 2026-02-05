@@ -26,7 +26,7 @@ class ImageResizer:
 
     target_width: int
     target_height: int
-    resampling_method: Resampling | int = Resampling.BICUBIC
+    resampling_method: Resampling | int = Resampling.LANCZOS
 
     def resize_image(self, image: Image) -> Image:
         """Resize image to target specifications."""
