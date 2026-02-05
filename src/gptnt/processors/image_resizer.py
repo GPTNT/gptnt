@@ -26,7 +26,7 @@ class ImageResizer:
 
     target_width: int
     target_height: int
-    resampling_method: Resampling | int = Resampling.NEAREST
+    resampling_method: Resampling | int = Resampling.HAMMING
 
     def resize_image(self, image: Image) -> Image:
         """Resize image to target specifications."""
