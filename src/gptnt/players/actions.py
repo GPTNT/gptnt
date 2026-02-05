@@ -8,7 +8,7 @@ from pydantic_ai import BaseToolCallPart, BaseToolReturnPart, ModelMessage, Mode
 from gptnt.ktane.actions import GameActionType, KtaneBaseAction, RelativeCoordinate
 from gptnt.players.exceptions import AIResponseErrorType
 
-NO_NEW_MESSAGES_SENTINEL = "\n"
+NO_NEW_MESSAGES_SENTINEL = "<no_new_messages>"
 """Sentinel for no new messages."""
 
 
