@@ -430,6 +430,11 @@ class SyncExperimentRunner(ExperimentRunner):
                 with logfire.span(f"Forward pass (defuser; {self.experiment.defuser.name})"):
                     _ = await self.defuser_player_client.forward_pass()
 
+            # Force update the game state before we advance just in case the game is now over,
+            # because otherwise it causes the experiment to crash because the it can't advance the
+            # game time
+            _ = await self.game_state_watcher.update_service_state()
+
             if not self.is_experiment_over:
                 await self.game_client.advance_game_time()
 
