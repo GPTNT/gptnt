@@ -8,8 +8,16 @@ from typing import Annotated, Self
 import anyio
 import dill
 import structlog
-from pydantic import UUID4, AfterValidator, BaseModel, Field, computed_field, model_validator
-from pydantic_ai import ModelMessage, RunUsage
+from pydantic import (
+    UUID4,
+    AfterValidator,
+    BaseModel,
+    Field,
+    PlainSerializer,
+    computed_field,
+    model_validator,
+)
+from pydantic_ai import ModelMessage, ModelMessagesTypeAdapter, RunUsage
 from tqdm import tqdm
 
 from gptnt.ktane.actions import KtaneBaseAction, KtaneGameplayInput
@@ -21,6 +29,13 @@ from gptnt.players.specification import PlayerRole
 from gptnt.services.experiment_descriptor import ExperimentDescriptor, PlayerContent
 
 logger = structlog.get_logger()
+
+ModelMessagesList = Annotated[
+    list[ModelMessage],
+    Field(default_factory=list),
+    PlainSerializer(ModelMessagesTypeAdapter.dump_json, when_used="json"),
+    PlainSerializer(ModelMessagesTypeAdapter.dump_python),
+]
 
 
 class ExperimentStepRecord(BaseModel):
@@ -37,8 +52,8 @@ class ExperimentStepRecord(BaseModel):
     raw_output: str | None
     thoughts: str | None = None
 
-    input_messages: list[ModelMessage] = Field(default_factory=list)
-    new_messages: list[ModelMessage] = Field(default_factory=list)
+    input_messages: ModelMessagesList = Field(default_factory=list)
+    new_messages: ModelMessagesList = Field(default_factory=list)
 
     bomb_state: BombState | None
     observation: Annotated[Observation | Path | None, Field(repr=False)]
