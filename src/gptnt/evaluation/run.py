@@ -36,15 +36,16 @@ MCQ_INSTRUCTION = "Answer the following multiple choice question based on the gi
 OCR_INSTRUCTION = "Follow the instruction given the context from the image. Output only the answer, nothing else."
 
 
-GROUNDING_HALLUCINATION_PROMPT = f'If multiple objects match, respond with "{GROUNDING_HALLUCINATION_TYPE_A_RESPONSE}". If no such object exists, respond with "{GROUNDING_HALLUCINATION_TYPE_B_RESPONSE}".'
+GROUNDING_HALLUCINATION_PROMPT = f'2. If multiple valid targets exist: "{GROUNDING_HALLUCINATION_TYPE_A_RESPONSE}".\n\n3. If no valid target exists: "{GROUNDING_HALLUCINATION_TYPE_B_RESPONSE}".'
+
 
 GROUNDING_SOM_PROMPT = (
-    "The image contains objects annotated with alphabetical markers positioned beside each object. When asked about an object's location, respond only with the corresponding letter.  "
+    "The screenshot contains objects annotated with alphabetical markers positioned beside each clickable UI element. To click on the element specified by the user, respond only with the corresponding letter.\n\nAnswer Format: Respond with exactly one of the following:\n\n1. If the target is found: Return only the letter marking the element.\n\n"
     + GROUNDING_HALLUCINATION_PROMPT
 )
 
 GROUNDING_COORDINATES_PROMPT = (
-    'The resolution of the image is {IMAGE_WIDTH}x{IMAGE_HEIGHT}. Coordinates (x, y) are absolute pixel positions with (0,0) at the top-left and ({IMAGE_WIDTH},{IMAGE_HEIGHT}) at the bottom-right. When asked about an object\'s location, respond with coordinates of any point within the object. Format: {"x": <int>, "y": <int>}. '
+    'The resolution of the screen is {IMAGE_WIDTH}x{IMAGE_HEIGHT} pixels.\nCoordinates are measured from the top-left corner: x (pixels from left edge), y (pixels from top edge).\nTo click on the UI element specified by the user, identify a (x, y) pixel coordinate that falls within the element.\n\nAnswer Format: Respond with exactly one of the following:\n\n1. If the target is found: Return a JSON with the coordinate: {"x": <int>, "y": <int>}.\n\n'
     + GROUNDING_HALLUCINATION_PROMPT
 )
 

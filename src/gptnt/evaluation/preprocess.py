@@ -38,6 +38,11 @@ def convert_ground_truth_to_binary_mask(instance: dict[str, Any]) -> NDArray[np.
     return binary_mask_numpy.reshape(height, width)
 
 
+def preprocess_grounding_user_text(object_description: str) -> str:
+    """Preprocess the object description for grounding tasks."""
+    return f"Click on the {object_description}."
+
+
 def preprocess_grounding_coordinates_instance(instance: dict[str, Any]) -> dict[str, Any]:
     """Convert the instance to rename the fields to match the model."""
     input_image = load_image(instance["frames"][-1])
@@ -48,10 +53,11 @@ def preprocess_grounding_coordinates_instance(instance: dict[str, Any]) -> dict[
     else:
         ground_truth = convert_ground_truth_to_binary_mask(instance)
 
+    input_text = preprocess_grounding_user_text(instance["model_input"])
     return {
         **instance,
-        "model_input": [input_image, instance["model_input"]],  # noqa: WPS226
-        "question": instance["model_input"],
+        "model_input": [input_image, input_text],  # noqa: WPS226
+        "question": input_text,
         "som_image": load_image(instance["som_image"]),
         "segmentation_mask": load_image(instance["segmentation_mask"]),
         "frames": [load_image(image) for image in instance["frames"]],
@@ -62,10 +68,11 @@ def preprocess_grounding_coordinates_instance(instance: dict[str, Any]) -> dict[
 def preprocess_grounding_set_of_marks_instance(instance: dict[str, Any]) -> dict[str, Any]:
     """Convert the instance to rename the fields to match the model."""
     som_image = load_image(instance["som_image"])
+    input_text = preprocess_grounding_user_text(instance["model_input"])
     return {
         **instance,
-        "model_input": [som_image, instance["model_input"]],
-        "question": instance["model_input"],
+        "model_input": [som_image, input_text],
+        "question": input_text,
         "som_image": som_image,
         "segmentation_mask": load_image(instance["segmentation_mask"]),
         "frames": [load_image(image) for image in instance["frames"]],
