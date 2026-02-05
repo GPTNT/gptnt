@@ -8,7 +8,7 @@ from structlog import get_logger
 
 from gptnt.common.hydra import get_hydra_overrides
 from gptnt.common.logger import configure_logging
-from gptnt.common.paths import Paths
+from gptnt.common.paths import Paths, remove_empty_experiment_recorder_outputs
 from gptnt.ktane.manual import KtaneManualPaths
 from gptnt.services.broker import create_redis_broker
 from gptnt.services.player.controller import PlayerController
@@ -56,5 +56,6 @@ def main(
 
 if __name__ == "__main__":
     configure_logging()
+    remove_empty_experiment_recorder_outputs(paths.experiment_recorder)
     application = main()
     anyio.run(application.run, backend="asyncio")

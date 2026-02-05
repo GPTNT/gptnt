@@ -4,6 +4,13 @@ from pydantic_settings import BaseSettings
 from whenever import Instant
 
 
+def remove_empty_experiment_recorder_outputs(root_path: Path) -> None:
+    """Remove empty experiment recorder output directories."""
+    for path in root_path.glob("*"):
+        if path.exists() and path.is_dir() and not any(path.iterdir()):
+            path.rmdir()
+
+
 class Paths(BaseSettings):
     """Paths and locations for things."""
 
