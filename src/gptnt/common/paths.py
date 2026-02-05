@@ -12,13 +12,6 @@ def remove_empty_experiment_recorder_outputs(root_path: Path) -> None:
             path.rmdir()
 
 
-def _experiment_recorder_outputs(root_dir: Path) -> Path:
-    """Get path for experiment recorder outputs with a timestamp."""
-    timestamp = Instant.now().format_iso().replace("/", "-").replace(":", "-")
-    path = root_dir.joinpath(f"{timestamp}/")
-    return path
-
-
 class Paths(BaseSettings):
     """Paths and locations for things."""
 
