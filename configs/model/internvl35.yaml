@@ -8,6 +8,7 @@ capabilities:
   structured_output_mode: null
   thinking_method: thinking-out-loud
   include_schema_in_instructions: true
+  coordinate_mode: normalised
   image_dimensions:
     _target_: gptnt.common.image_ops.ImageDimensions
     width: 448
