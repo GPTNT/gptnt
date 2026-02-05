@@ -10,9 +10,17 @@ INTERNVL_PLAYERS=$5
 QWEN_PLAYERS=$6
 DISPLAY_NUM=3
 
-# Create logs directory if it doesn't exist
-LOGS_DIR="./logs/throw_$(date +%Y%m%d_%H%M%S)"
+# Create timestamp for consistent naming
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+# Create logs directory
+LOGS_DIR="./logs/throw_${TIMESTAMP}"
 mkdir -p "$LOGS_DIR"
+
+# Create experiment output directory
+EXPERIMENT_OUTPUT_DIR="./storage/outputs/experiment_recorder_outputs/${TIMESTAMP}"
+mkdir -p "$EXPERIMENT_OUTPUT_DIR"
+
 
 if [[ -z $NUM_ROOMS || $NUM_ROOMS -lt 1 || -z $CLAUDE_PLAYERS || $CLAUDE_PLAYERS -lt 0 || -z $GEMINI_PLAYERS || $GEMINI_PLAYERS -lt 0 || -z $GPT_PLAYERS || $GPT_PLAYERS -lt 0 || -z $INTERNVL_PLAYERS || $INTERNVL_PLAYERS -lt 0 || -z $QWEN_PLAYERS || $QWEN_PLAYERS -lt 0 ]]; then
   echo "Usage: $0 <number_of_rooms> <claude_players> <gemini_players> <gpt_players> <internvl_players> <qwen_players>"
@@ -96,35 +104,35 @@ done
 # spawn claude players
 for ((i = 0; i < CLAUDE_PLAYERS; i++)); do
   echo "THROWING: Starting claude player $i..."
-  run_and_track "claude_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=claude45_bedrock
+  run_and_track "claude_$i" env WANDB_RUN_GROUP=THROWING EXPERIMENT_RECORDER_OUTPUTS="$EXPERIMENT_OUTPUT_DIR" uv run python -u src/gptnt/entrypoints/run_player.py model=claude45_bedrock
   sleep 1
 done
 
 # spawn gemini players
 for ((i = 0; i < GEMINI_PLAYERS; i++)); do
   echo "THROWING: Starting gemini player $i..."
-  run_and_track "gemini_player_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=gemini-3
+  run_and_track "gemini_player_$i" env WANDB_RUN_GROUP=THROWING EXPERIMENT_RECORDER_OUTPUTS="$EXPERIMENT_OUTPUT_DIR" uv run python -u src/gptnt/entrypoints/run_player.py model=gemini-3
   sleep 1
 done
 
 # spawn gpt players
 for ((i = 0; i < GPT_PLAYERS; i++)); do
   echo "THROWING: Starting gpt player $i..."
-  run_and_track "gpt_player_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=gpt51-chat
+  run_and_track "gpt_player_$i" env WANDB_RUN_GROUP=THROWING EXPERIMENT_RECORDER_OUTPUTS="$EXPERIMENT_OUTPUT_DIR" uv run python -u src/gptnt/entrypoints/run_player.py model=gpt51-chat
   sleep 1
 done
 
 # spawn internvl players
 for ((i = 0; i < INTERNVL_PLAYERS; i++)); do
   echo "THROWING: Starting internvl player $i..."
-  run_and_track "internvl_player_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=internvl35
+  run_and_track "internvl_player_$i" env WANDB_RUN_GROUP=THROWING EXPERIMENT_RECORDER_OUTPUTS="$EXPERIMENT_OUTPUT_DIR" uv run python -u src/gptnt/entrypoints/run_player.py model=internvl35
   sleep 1
 done
 
 # spawn qwen players
 for ((i = 0; i < QWEN_PLAYERS; i++)); do
   echo "THROWING: Starting qwen player $i..."
-  run_and_track "qwen_player_$i" env WANDB_RUN_GROUP=THROWING uv run python -u src/gptnt/entrypoints/run_player.py model=qwen3vl
+  run_and_track "qwen_player_$i" env WANDB_RUN_GROUP=THROWING EXPERIMENT_RECORDER_OUTPUTS="$EXPERIMENT_OUTPUT_DIR" uv run python -u src/gptnt/entrypoints/run_player.py model=qwen3vl
   sleep 1
 done
 

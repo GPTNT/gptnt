@@ -37,7 +37,7 @@ class ExperimentPlayerRecorder:
     step_records: list[ExperimentStepRecord] = field(default_factory=list, init=False)
     num_steps: int = field(default=0, init=False)
 
-    output_dir: Path = field(init=False, repr=False, default=Paths().experiment_recorder_outputs)
+    output_dir: Path = field(init=False, repr=False, default=Paths().experiment_outputs)
     observations_dir: Path = field(init=False, repr=False, default=Paths().output_observations)
 
     # Buffer for the current step's context (stored before agent responds)
