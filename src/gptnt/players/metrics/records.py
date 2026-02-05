@@ -15,6 +15,7 @@ from pydantic import (
     Field,
     PlainSerializer,
     computed_field,
+    field_validator,
     model_validator,
 )
 from pydantic_ai import ModelMessage, ModelMessagesTypeAdapter, RunUsage
@@ -30,11 +31,11 @@ from gptnt.services.experiment_descriptor import ExperimentDescriptor, PlayerCon
 
 logger = structlog.get_logger()
 
+
 ModelMessagesList = Annotated[
     list[ModelMessage],
     Field(default_factory=list),
     PlainSerializer(ModelMessagesTypeAdapter.dump_json, when_used="json"),
-    PlainSerializer(ModelMessagesTypeAdapter.dump_python),
 ]
 
 
@@ -73,6 +74,14 @@ class ExperimentStepRecord(BaseModel):
                 observation = dill.loads(observation_data)  # noqa: S301
                 return self.model_copy(update={"observation": observation})
         return self
+
+    @field_validator("input_messages", "new_messages", mode="before")
+    @classmethod
+    def parse_jsoned_messages(cls, messages: str | list[ModelMessage]) -> list[ModelMessage]:  # noqa: WPS110
+        """Custom validator to parse JSON strings back into ModelMessage lists."""
+        if not isinstance(messages, str):
+            return messages
+        return ModelMessagesTypeAdapter.validate_json(messages)
 
 
 SortedStepRecords = Annotated[

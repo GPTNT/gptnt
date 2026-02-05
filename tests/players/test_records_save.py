@@ -4,7 +4,7 @@ from uuid import uuid4
 import anyio
 import orjson
 import pytest
-from pydantic_ai import ModelMessage, ModelRequest, ModelResponse, TextPart
+from pydantic_ai import BinaryContent, ModelMessage, ModelRequest, ModelResponse, TextPart
 from pydantic_ai.messages import SystemPromptPart, UserPromptPart
 from pydantic_ai.result import RunUsage
 from pytest_cases import fixture
@@ -41,13 +41,19 @@ def observation(tiny_image_bytes: bytes) -> Observation:
 
 
 @fixture
-def simple_model_messages() -> list[ModelMessage]:
+def simple_model_messages(tiny_image_bytes: bytes) -> list[ModelMessage]:
     """Create simple model messages for testing."""
     return [
         ModelRequest(
             parts=[
                 SystemPromptPart(content="You are a helpful assistant."),
-                UserPromptPart(content="What is 2+2?", timestamp=Instant.now().py_datetime()),
+                UserPromptPart(
+                    content=[
+                        TextPart(content="What is 2+2?"),
+                        BinaryContent(data=tiny_image_bytes, media_type="image/png"),
+                    ],
+                    timestamp=Instant.now().py_datetime(),
+                ),
             ]
         ),
         ModelResponse(
