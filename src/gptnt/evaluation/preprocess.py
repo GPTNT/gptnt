@@ -88,6 +88,7 @@ def preprocess_defuser_vqa_open_ended_instance(instance: dict[str, Any]) -> dict
         "model_input": [*input_images, instance["model_input"]],
         "question": instance["model_input"],
         "input_images": input_images,
+        "preview": input_images[-1],
     }
 
 
@@ -124,6 +125,7 @@ def preprocess_defuser_vqa_mcq_instance(instance: dict[str, Any]) -> dict[str, A
         "ground_truth_str": instance["ground_truth"],
         "question": instance["model_input"],
         "input_images": input_images,
+        "preview": input_images[-1],
     }
 
 
@@ -131,7 +133,7 @@ def preprocess_expert_ocr_instance(instance: dict[str, Any]) -> dict[str, Any]:
     """Convert the instance to rename the fields to match the model (manual OCR)."""
     manual_image = load_image(instance["image"])
 
-    return {**instance, "model_input": [manual_image, instance["question"]]}
+    return {**instance, "model_input": [manual_image, instance["question"]], "image": manual_image}
 
 
 @weave.op
@@ -167,4 +169,5 @@ def preprocess_expert_vqa_instance(instance: dict[str, Any]) -> dict[str, Any]:
         if isinstance(instance["metadata"], str)
         else instance["metadata"],
         "images": [load_image(img) for img in instance["images"]],
+        "preview": load_image(instance["images"][-1]),
     }
