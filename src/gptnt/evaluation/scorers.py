@@ -209,9 +209,8 @@ class CoordinateValidator(BaseComparer[NDArray[np.uint8], CoordinateValidatorRes
         self, cleaned_output: str, ground_truth: NDArray[np.uint8]
     ) -> CoordinateValidatorResult:
         """Validate the output against array ground truth."""
-        cleaned_output = json_repair.repair_json(cleaned_output)
         try:
-            parsed_coords = Coords.model_validate_json(cleaned_output)
+            parsed_coords = Coords.model_validate_json(json_repair.repair_json(cleaned_output))
         except ValidationError:
             return "invalid_format"
 
