@@ -8,6 +8,7 @@ capabilities:
   structured_output_mode: native
   include_schema_in_instructions: true
   interaction_location_method: set-of-marks
+  thinking_method: inner-monologue
 
 action_predictor:
   agent:
