@@ -42,6 +42,6 @@ def convert_normalised_to_absolute(
     except ValueError:
         return model_output
 
-    absolute_x = int(normalised_coord.x * image_width / normalised_upper_bound)
-    absolute_y = int(normalised_coord.y * image_height / normalised_upper_bound)
+    absolute_x = int(normalised_coord["x"] * image_width / normalised_upper_bound)
+    absolute_y = int(normalised_coord["y"] * image_height / normalised_upper_bound)
     return json.dumps({"x": absolute_x, "y": absolute_y})
