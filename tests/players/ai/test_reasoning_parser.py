@@ -11,6 +11,7 @@ from tests.players.ai.conftest import SuccessfulOutputCases
 from gptnt.players.actions import (
     AbsoluteCoordinate,
     InteractGameAction,
+    NormalisedCoordinate,
     PlayerOutputType,
     SendMessageAction,
 )
@@ -98,8 +99,15 @@ def test_inner_monologue_reasoning_parser(
     invalid_test_combinations = [
         (
             capabilities.interaction_location_method == "coordinates"
+            and capabilities.coordinate_mode == "absolute"
             and isinstance(expected_output, InteractGameAction)
             and not isinstance(expected_output.location, AbsoluteCoordinate)
+        ),
+        (
+            capabilities.interaction_location_method == "coordinates"
+            and capabilities.coordinate_mode == "normalised"
+            and isinstance(expected_output, InteractGameAction)
+            and not isinstance(expected_output.location, NormalisedCoordinate)
         ),
         (
             capabilities.interaction_location_method == "set-of-marks"
@@ -149,8 +157,15 @@ def test_react_reasoning_parser_with_success(
     invalid_test_combinations = [
         (
             capabilities.interaction_location_method == "coordinates"
+            and capabilities.coordinate_mode == "absolute"
             and isinstance(expected_output, InteractGameAction)
             and not isinstance(expected_output.location, AbsoluteCoordinate)
+        ),
+        (
+            capabilities.interaction_location_method == "coordinates"
+            and capabilities.coordinate_mode == "normalised"
+            and isinstance(expected_output, InteractGameAction)
+            and not isinstance(expected_output.location, NormalisedCoordinate)
         ),
         (
             capabilities.interaction_location_method == "set-of-marks"

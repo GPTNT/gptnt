@@ -18,7 +18,7 @@ from gptnt.dataset.defuser_vqa.constants import (
     KEYPAD_SYMBOL_DESCRIPTIONS,
     TaskType,
 )
-from gptnt.evaluation.postprocess import PostProcessModelOutputsFunc, default
+from gptnt.evaluation.postprocess import PostProcessModelOutputsFunc, default_postprocess
 
 type PredictionOutput = dict[Literal["output"], str]
 
@@ -75,7 +75,9 @@ class BaseComparer[GroundTruthT, ReturnT](abc.ABC):
 
     task_type: TaskType | None
 
-    postprocess_output_func: PostProcessModelOutputsFunc = field(default=default, repr=False)
+    postprocess_output_func: PostProcessModelOutputsFunc = field(
+        default=default_postprocess, repr=False
+    )
 
     @abc.abstractmethod
     def __call__(

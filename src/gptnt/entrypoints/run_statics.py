@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from dataclasses import dataclass
+from functools import partial
 from typing import Annotated
 
 import hydra
@@ -11,7 +12,11 @@ from structlog import get_logger
 from gptnt.common.async_typer import AsyncTyper
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
-from gptnt.evaluation.postprocess import expert_ocr_postprocess
+from gptnt.evaluation.postprocess import (
+    convert_normalised_to_absolute,
+    default_postprocess,
+    expert_ocr_postprocess,
+)
 from gptnt.evaluation.preprocess import (
     preprocess_defuser_vqa_mcq_instance,
     preprocess_defuser_vqa_open_ended_instance,
@@ -137,14 +142,30 @@ async def run_defuser_grounding_evaluation(
         thinking_method=config_loader.capabilities.thinking_method,
     )
 
+    if config_loader.capabilities.coordinate_mode == "normalised":
+        post_process_func = partial(
+            convert_normalised_to_absolute,
+            image_width=config_loader.capabilities.image_dimensions.width,
+            image_height=config_loader.capabilities.image_dimensions.height,
+        )
+    else:
+        post_process_func = default_postprocess
+
     # Create the weave scorers
-    coordinate_validator_scorers = create_scorers(CoordinateValidator(task_type="grounding"))
-    exact_match_scorers = create_scorers(CoordinateInRegionComparer(task_type="grounding"))
+    coordinate_validator_scorers = create_scorers(
+        CoordinateValidator(task_type="grounding", postprocess_output_func=post_process_func)
+    )
+    exact_match_scorers = create_scorers(
+        CoordinateInRegionComparer(
+            task_type="grounding", postprocess_output_func=post_process_func
+        )
+    )
     euclidean_distance_scorers = create_scorers(
         CoordinateEuclideanDistanceComparer(
             task_type="grounding",
             image_height=config_loader.capabilities.image_dimensions.height,
             image_width=config_loader.capabilities.image_dimensions.width,
+            postprocess_output_func=post_process_func,
         )
     )
     absolute_distance_scorers = create_scorers(
@@ -152,6 +173,7 @@ async def run_defuser_grounding_evaluation(
             task_type="grounding",
             image_height=config_loader.capabilities.image_dimensions.height,
             image_width=config_loader.capabilities.image_dimensions.width,
+            postprocess_output_func=post_process_func,
         )
     )
     # Update the names for the distance scorers to prevent name clashes in weave

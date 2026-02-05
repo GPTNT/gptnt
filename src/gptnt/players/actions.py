@@ -1,5 +1,5 @@
 import json
-from typing import Annotated, Generic, Literal, TypeVar
+from typing import Annotated, ClassVar, Generic, Literal, TypeVar
 
 from annotated_types import MaxLen, Predicate
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, NonNegativeInt, field_validator
@@ -53,6 +53,19 @@ class AbsoluteCoordinate(BaseModel):
     """Absolute y-coordinate from the top."""
 
 
+class NormalisedCoordinate(BaseModel):
+    """Normalised coordinate to interact with in the game, between 0 and 1000."""
+
+    lower_bound: ClassVar[int] = 0
+    upper_bound: ClassVar[int] = 1000
+
+    x: NonNegativeInt  # noqa: WPS111
+    """Normalised x-coordinate from the left."""
+
+    y: NonNegativeInt  # noqa: WPS111
+    """Normalised y-coordinate from the top."""
+
+
 type SingleAlphabetLetter = Annotated[
     str, MaxLen(1), Predicate(str.isalpha), AfterValidator(lambda letter: letter.upper())
 ]
@@ -61,7 +74,9 @@ type SingleAlphabetLetter = Annotated[
 type SetOfMarksLocation = NonNegativeInt | SingleAlphabetLetter
 """Set of marks location to interact with; must be an int >= 0, or a single letter A-Z."""
 
-type InteractableLocation = RelativeCoordinate | SetOfMarksLocation | AbsoluteCoordinate
+type InteractableLocation = (
+    RelativeCoordinate | SetOfMarksLocation | AbsoluteCoordinate | NormalisedCoordinate
+)
 """Location-methods to interact with in the game."""
 
 LocationDataT_co = TypeVar("LocationDataT_co", bound=InteractableLocation, covariant=True)

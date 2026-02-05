@@ -3,6 +3,7 @@ from gptnt.players.actions import (
     AbsoluteCoordinate,
     DoNothingAction,
     InteractGameAction,
+    NormalisedCoordinate,
     SendMessageAction,
     SingleAlphabetLetter,
 )
@@ -33,4 +34,10 @@ class SuccessfulOutputCases:
         """InteractGameAction with absolute coordinate."""
         return InteractGameAction[AbsoluteCoordinate](
             action=GameActionType.click_release, location=AbsoluteCoordinate(x=100, y=200)
+        )
+
+    def case_interact_game_normalised_coordinate(self) -> InteractGameAction[NormalisedCoordinate]:
+        """InteractGameAction with normalised coordinate."""
+        return InteractGameAction[NormalisedCoordinate](
+            action=GameActionType.click_release, location=NormalisedCoordinate(x=500, y=750)
         )

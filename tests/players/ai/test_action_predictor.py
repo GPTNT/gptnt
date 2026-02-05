@@ -21,6 +21,7 @@ from gptnt.players.actions import (
     AbsoluteCoordinate,
     DoNothingAction,
     InteractGameAction,
+    NormalisedCoordinate,
     PlayerOutputType,
     SendMessageAction,
 )
@@ -132,12 +133,32 @@ async def test_send_request_returns_valid_output_when_model_responds_correctly(
 
     # Check if location type matches capabilities for interact_game
     if isinstance(expected_action, InteractGameAction):
-        has_coordinate_location = isinstance(expected_action.location, AbsoluteCoordinate)
-        expects_coordinates = capabilities.interaction_location_method == "coordinates"
-        if has_coordinate_location != expects_coordinates:
+        expects_coords = isinstance(
+            expected_action.location, (AbsoluteCoordinate, NormalisedCoordinate)
+        )
+        expects_som = isinstance(expected_action.location, str)
+        if expects_coords and capabilities.interaction_location_method != "coordinates":
+            pytest.skip("Expected coordinate location but capabilities do not support coordinates")
+
+        if expects_som and capabilities.interaction_location_method != "set-of-marks":
             pytest.skip(
-                f"Location type mismatch: action has {'coordinate' if has_coordinate_location else 'set-of-marks'} "
-                f"but capabilities expect {capabilities.interaction_location_method}"
+                "Expected set-of-marks location but capabilities do not support set-of-marks"
+            )
+
+        if (
+            isinstance(expected_action.location, AbsoluteCoordinate)
+            and capabilities.coordinate_mode != "absolute"
+        ):
+            pytest.skip(
+                "Expected absolute coordinate location but capabilities do not support absolute-coordinates"
+            )
+
+        if (
+            isinstance(expected_action.location, NormalisedCoordinate)
+            and capabilities.coordinate_mode != "normalised"
+        ):
+            pytest.skip(
+                "Expected normalised coordinate location but capabilities do not support normalised-coordinates"
             )
 
     # Create agent with TestModel and retries=0 (no output_type needed)
