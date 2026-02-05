@@ -38,6 +38,6 @@ class Paths(BaseSettings):
     @property
     def experiment_recorder_outputs(self) -> Path:
         """Get path for experiment recorder outputs with a timestamp."""
-        timestamp = Instant.now().format_common_iso().replace("/", "-").replace(":", "-")
+        timestamp = Instant.now().format_iso().replace("/", "-").replace(":", "-")
         path = self.experiment_recorder.joinpath(f"{timestamp}/")
         return path
