@@ -1,7 +1,7 @@
-import base64
 from dataclasses import dataclass
 from io import BytesIO
 
+import pybase64
 from PIL import Image
 
 
@@ -31,6 +31,6 @@ def load_observation_from_bytes(image: bytes | str) -> Image.Image:
     """
     # Decode the base64 string
     if isinstance(image, str):
-        image = base64.b64decode(image)
+        image = pybase64.b64decode(image)
     # Load the image
     return Image.open(BytesIO(image), formats=["PNG"]).convert("RGB")

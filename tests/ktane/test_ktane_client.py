@@ -1,7 +1,7 @@
-import base64
 from pathlib import Path
 
 import httpx
+import pybase64
 import pytest
 import respx
 from pytest_cases import fixture
@@ -31,7 +31,7 @@ def mission_spec() -> KtaneMissionSpec:
 def screenshot(fixture_path: Path) -> str:
     """Fixture to provide a screenshot."""
     image_bytes = fixture_path.joinpath("screenshot.png").read_bytes()
-    base64_image = base64.b64encode(image_bytes).decode("utf-8")
+    base64_image = pybase64.b64encode(image_bytes).decode("utf-8")
     return base64_image
 
 

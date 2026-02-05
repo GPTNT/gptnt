@@ -1,4 +1,3 @@
-import base64
 import binascii
 from dataclasses import dataclass
 from io import BytesIO
@@ -6,6 +5,7 @@ from typing import Annotated
 
 import logfire
 import numpy as np
+import pybase64
 import structlog
 from PIL import Image
 from pydantic import BaseModel, BeforeValidator, PlainSerializer
@@ -25,12 +25,12 @@ def _parse_base64_to_bytes(data: str | bytes) -> bytes:
     """Decode base64 encoded string to bytes if string."""
     if isinstance(data, bytes):
         return data
-    return base64.b64decode(data)
+    return pybase64.b64decode(data)
 
 
 def _serialize_bytes_to_base64(data: bytes) -> str:
     """Serialize bytes to base64 encoded string for JSON."""
-    return base64.b64encode(data).decode("utf-8")
+    return pybase64.b64encode(data).decode("utf-8")
 
 
 ImageBytes = Annotated[
@@ -184,9 +184,9 @@ class ObservationHandler:
             return segmentation
 
         try:
-            return base64.b64decode(segmentation)
+            return pybase64.b64decode(segmentation)
         except binascii.Error:
-            logger.warning(
+            logger.exception(
                 "Failed to decode segmentation mask, it might not be base64 encoded? Setting the segmentation to None",
                 segmentation=segmentation,
             )
@@ -197,6 +197,6 @@ class ObservationHandler:
     ) -> list[bytes]:
         """Decode frames from base64 if needed."""
         return [
-            base64.b64decode(frame) if isinstance(frame, str) else frame
+            pybase64.b64decode(frame) if isinstance(frame, str) else frame
             for frame in frames[-num_frames_to_use:]
         ]
