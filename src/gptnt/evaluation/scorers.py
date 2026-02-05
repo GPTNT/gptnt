@@ -31,6 +31,9 @@ typea = need more information typeb = something doesnt add up
 """
 
 
+type CoordinateValidatorResult = Literal["valid", "out_of_bounds", "invalid_format"]
+
+
 def check_for_bad_symbols(
     symbols: list[str], *, sentence_transformer: SentenceTransformer
 ) -> list[str]:
@@ -171,6 +174,27 @@ class StringBasedComparer(BaseComparer[str | list[str], bool]):  # noqa: WPS338
         )
 
         return symbol_to_embedding
+
+
+@dataclass(kw_only=True)
+class CoordinateValidator(BaseComparer[NDArray[np.uint8], CoordinateValidatorResult]):
+    """Validate predicted coordinates."""
+
+    @override
+    def __call__(
+        self, output: PredictionOutput, ground_truth: NDArray[np.uint8], *, module: str
+    ) -> CoordinateValidatorResult:
+        cleaned_output = json_repair.repair_json(self.postprocess_output_func(output["output"]))
+
+        try:
+            parsed_coords = Coords.model_validate_json(cleaned_output)
+        except ValidationError:
+            return "invalid_format"
+
+        if not parsed_coords.is_in_bounds(ground_truth.shape[1], ground_truth.shape[0]):
+            return "out_of_bounds"
+
+        return "valid"
 
 
 @dataclass(kw_only=True)

@@ -34,6 +34,7 @@ from gptnt.evaluation.scorers import (
     CoordinateAbsoluteDistanceComparer,
     CoordinateEuclideanDistanceComparer,
     CoordinateInRegionComparer,
+    CoordinateValidator,
     StringBasedComparer,
     create_scorers,
 )
@@ -137,6 +138,7 @@ async def run_defuser_grounding_evaluation(
     )
 
     # Create the weave scorers
+    coordinate_validator_scorers = create_scorers(CoordinateValidator(task_type="grounding"))
     exact_match_scorers = create_scorers(CoordinateInRegionComparer(task_type="grounding"))
     euclidean_distance_scorers = create_scorers(
         CoordinateEuclideanDistanceComparer(task_type="grounding")
@@ -145,6 +147,8 @@ async def run_defuser_grounding_evaluation(
         CoordinateAbsoluteDistanceComparer(task_type="grounding")
     )
     # Update the names for the distance scorers to prevent name clashes in weave
+    for scorer in coordinate_validator_scorers:
+        scorer.name = f"{scorer.name}_coordinate_validator"
     for scorer in euclidean_distance_scorers:
         scorer.name = f"{scorer.name}_normalized_euclidean_distance"
     for scorer in absolute_distance_scorers:
@@ -159,6 +163,7 @@ async def run_defuser_grounding_evaluation(
         agent=config_loader.agent_fn(instructions=instruction),
         capabilities=config_loader.capabilities,
         weave_scorers=[
+            *coordinate_validator_scorers,
             *exact_match_scorers,
             *euclidean_distance_scorers,
             *absolute_distance_scorers,
