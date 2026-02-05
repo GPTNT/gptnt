@@ -3,6 +3,7 @@ import re
 from collections.abc import Callable
 
 import json_repair
+import weave
 from pydantic_core import from_json
 
 type PostProcessModelOutputsFunc = Callable[[str], str]
@@ -18,6 +19,7 @@ def default_postprocess(output: str) -> str:
     return output.lower().replace("```json", "").replace("```", "").strip()
 
 
+@weave.op
 def expert_ocr_postprocess(output: str) -> str:
     """Postprocessing function for expert OCR outputs."""
     output = default_postprocess(output)
@@ -32,6 +34,7 @@ def expert_ocr_postprocess(output: str) -> str:
     return re.sub(adjacent_asterisks, "", output)
 
 
+@weave.op
 def convert_normalised_to_absolute(
     model_output: str, *, image_width: int, image_height: int, normalised_upper_bound: int = 1000
 ) -> str:
