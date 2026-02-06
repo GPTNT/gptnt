@@ -38,7 +38,7 @@ class ImageResizer:
     def resize_array(self, array: NDArray[Any]) -> NDArray[Any]:
         """Resize a numpy array representing an image to target specifications."""
         return cv2.resize(
-            array, (self.target_height, self.target_width), interpolation=self.resampling_method
+            array, (self.target_width, self.target_height), interpolation=self.resampling_method
         )
 
     def convert_absolute_to_relative(
