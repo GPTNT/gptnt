@@ -53,7 +53,7 @@ def preprocess_grounding_coordinates_instance(instance: dict[str, Any]) -> dict[
         binary_mask = None
     else:
         ground_truth = convert_ground_truth_to_binary_mask(instance)
-        binary_mask = load_image(instance["ground_truth"])
+        binary_mask = Image.fromarray(ground_truth * 255)
 
     input_text = preprocess_grounding_user_text(instance["model_input"])
     return {
