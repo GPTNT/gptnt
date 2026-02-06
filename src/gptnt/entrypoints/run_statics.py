@@ -43,7 +43,7 @@ from gptnt.evaluation.scorers import (
     StringBasedComparer,
     create_scorers,
 )
-from gptnt.players.specification import PlayerCapabilities
+from gptnt.players.specification import PlayerCapabilities, PlayerRole
 from gptnt.processors.image_resizer import ImageResizer
 
 configure_logging()
@@ -91,6 +91,7 @@ class ConfigLoader:
     """Easily parse and load things from the config."""
 
     model: str
+    role: PlayerRole
 
     @property
     def config(self) -> DictConfig:
@@ -102,8 +103,18 @@ class ConfigLoader:
     @property
     def image_resizer(self) -> ImageResizer:
         """Instantiate the image resizer from the config."""
+        capabilities = self.capabilities
+        match self.role:
+            case "defuser":
+                target_width = capabilities.image_dimensions.long_side
+                target_height = capabilities.image_dimensions.short_side
+            case "expert":
+                target_width = capabilities.image_dimensions.short_side
+                target_height = capabilities.image_dimensions.long_side
         image_resizer = hydra.utils.instantiate(
-            self.config.player.observation_handler.image_resizer
+            self.config.player.observation_handler.image_resizer,
+            target_width=target_width,
+            target_height=target_height,
         )
         return image_resizer
 
@@ -131,7 +142,7 @@ async def run_defuser_grounding_evaluation(
     allow_thinking: bool = True,
 ) -> None:
     """Run the defuser grounding evaluation."""
-    config_loader = ConfigLoader(model=model)
+    config_loader = ConfigLoader(model=model, role="defuser")
     instruction = GROUNDING_COORDINATES_PROMPT.replace(
         "{IMAGE_WIDTH}", str(config_loader.capabilities.image_dimensions.width)
     ).replace("{IMAGE_HEIGHT}", str(config_loader.capabilities.image_dimensions.height))
@@ -223,7 +234,7 @@ async def run_defuser_set_of_marks_evaluation(
     allow_thinking: bool = True,
 ) -> None:
     """Run the defuser grounding evaluation."""
-    config_loader = ConfigLoader(model=model)
+    config_loader = ConfigLoader(model=model, role="defuser")
     instruction = format_instruction_with_reasoning(
         GROUNDING_SOM_PROMPT,
         allow_thinking=allow_thinking,
@@ -264,7 +275,7 @@ async def run_defuser_oe_vqa_evaluation(
     allow_thinking: bool = True,
 ) -> None:
     """Run the defuser VQA."""
-    config_loader = ConfigLoader(model=model)
+    config_loader = ConfigLoader(model=model, role="defuser")
     instruction = format_instruction_with_reasoning(
         OPEN_ENDED_INSTRUCTION,
         allow_thinking=allow_thinking,
@@ -305,7 +316,7 @@ async def run_defuser_mcq_vqa_evaluation(
     allow_thinking: bool = True,
 ) -> None:
     """Run the defuser VQA evaluation on multiple choice questions."""
-    config_loader = ConfigLoader(model=model)
+    config_loader = ConfigLoader(model=model, role="defuser")
     instruction = format_instruction_with_reasoning(
         MCQ_INSTRUCTION,
         allow_thinking=allow_thinking,
@@ -346,7 +357,7 @@ async def run_expert_vqa_evaluation(
     allow_thinking: bool = True,
 ) -> None:
     """Run the expert VQA evaluation."""
-    config_loader = ConfigLoader(model=model)
+    config_loader = ConfigLoader(model=model, role="expert")
     instruction = format_instruction_with_reasoning(
         MCQ_INSTRUCTION,
         allow_thinking=allow_thinking,
@@ -386,7 +397,7 @@ async def run_expert_ocr_evaluation(
     allow_thinking: bool = True,
 ) -> None:
     """Run the expert OCR evaluation."""
-    config_loader = ConfigLoader(model=model)
+    config_loader = ConfigLoader(model=model, role="expert")
     instruction = format_instruction_with_reasoning(
         OCR_INSTRUCTION,
         allow_thinking=allow_thinking,
@@ -428,7 +439,7 @@ async def run_expert_grounding_evaluation(
     allow_thinking: bool = True,
 ) -> None:
     """Run the expert grounding evaluation."""
-    config_loader = ConfigLoader(model=model)
+    config_loader = ConfigLoader(model=model, role="expert")
     instruction = format_instruction_with_reasoning(
         MCQ_INSTRUCTION,
         allow_thinking=allow_thinking,
