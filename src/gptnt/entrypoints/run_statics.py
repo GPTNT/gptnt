@@ -210,6 +210,7 @@ async def run_defuser_grounding_evaluation(
             *absolute_distance_scorers,
         ],
         max_instances=limit_instances,
+        image_resizer=config_loader.image_resizer,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -251,6 +252,7 @@ async def run_defuser_set_of_marks_evaluation(
         capabilities=config_loader.capabilities,
         weave_scorers=create_scorers(StringBasedComparer(task_type="grounding")),
         max_instances=limit_instances,
+        image_resizer=config_loader.image_resizer,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -292,6 +294,7 @@ async def run_defuser_oe_vqa_evaluation(
         capabilities=config_loader.capabilities,
         weave_scorers=create_scorers(StringBasedComparer(task_type="vqa")),
         max_instances=limit_instances,
+        image_resizer=config_loader.image_resizer,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -333,6 +336,7 @@ async def run_defuser_mcq_vqa_evaluation(
         capabilities=config_loader.capabilities,
         weave_scorers=create_scorers(StringBasedComparer(task_type="vqa")),
         max_instances=limit_instances,
+        image_resizer=config_loader.image_resizer,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -373,6 +377,7 @@ async def run_expert_vqa_evaluation(
         capabilities=config_loader.capabilities,
         weave_scorers=create_scorers(StringBasedComparer(task_type=None)),
         max_instances=limit_instances,
+        image_resizer=config_loader.image_resizer,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -415,6 +420,7 @@ async def run_expert_ocr_evaluation(
             StringBasedComparer(task_type=None, postprocess_output_func=expert_ocr_postprocess)
         ),
         max_instances=limit_instances,
+        image_resizer=config_loader.image_resizer,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")
@@ -455,6 +461,7 @@ async def run_expert_grounding_evaluation(
         weave_project="gptnt/expert-element-grounding",
         weave_scorers=create_scorers(StringBasedComparer(task_type=None)),
         max_instances=limit_instances,
+        image_resizer=config_loader.image_resizer,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")

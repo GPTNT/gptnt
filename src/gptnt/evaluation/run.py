@@ -127,10 +127,10 @@ class RunEvaluation(abc.ABC):
     weave_project: str
     weave_scorers: list[ScorerLike]
 
+    image_resizer: ImageResizer
+
     eval_model: EvalModel = field(init=False, repr=False)
     model_name: str = field(init=False, repr=False)
-
-    image_resizer: ImageResizer = field(init=False)
 
     max_instances: int | None = None
     """Maximum number of instances to evaluate on."""
@@ -142,11 +142,6 @@ class RunEvaluation(abc.ABC):
         self.model_name = self.eval_model.name
         self.eval_model.update_output_dir(self.output_dir)
         self.eval_model.update_reasoning_parser(self.capabilities.reasoning_parser)
-
-        self.image_resizer = ImageResizer(
-            target_width=self.capabilities.image_dimensions.width,
-            target_height=self.capabilities.image_dimensions.height,
-        )
 
     @property
     def output_dir(self) -> Path:
