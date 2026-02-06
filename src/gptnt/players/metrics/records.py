@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from operator import attrgetter
 from pathlib import Path
-from typing import Annotated, Self
+from typing import Annotated, Self, override
 
 import anyio
 import dill
@@ -21,6 +21,7 @@ from pydantic import (
 from pydantic_ai import ModelMessage, ModelMessagesTypeAdapter, RunUsage
 from tqdm import tqdm
 
+from gptnt.common.logger import monkey_patch_binary_content_repr
 from gptnt.ktane.actions import KtaneBaseAction, KtaneGameplayInput
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import DoNothingAction, PlayerOutputType, SendMessageAction
@@ -62,6 +63,12 @@ class ExperimentStepRecord(BaseModel):
     num_prompt_truncations: int
     error_type: list[AIResponseErrorType] | None = None
     is_reflection: bool = False
+
+    @override
+    def __repr__(self) -> str:
+        # Monkey-patch BinaryContent's __repr__ to avoid large binary data outputs
+        monkey_patch_binary_content_repr()
+        return super().__repr__()
 
     async def load_observation(self) -> Self:
         """Load observation from disk if it's stored as a Path.

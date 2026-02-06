@@ -34,7 +34,6 @@ def binary_content_dataclasses_no_default_repr(
     return f"{self.__class__.__qualname__}({kv_str})"
 
 
-@run_once
 def monkey_patch_binary_content_repr() -> None:
     """Monkey-patch the __repr__ method of pydantic_ai.BinaryContent to avoid large outputs.
 
@@ -48,7 +47,7 @@ def monkey_patch_binary_content_repr() -> None:
     of the bytes instead of the full content.
     """
     BinaryContent.__repr__ = binary_content_dataclasses_no_default_repr
-    logger.debug("Monkey-patched BinaryContent.__repr__ to avoid large outputs in tracebacks")
+    # logger.debug("Monkey-patched BinaryContent.__repr__ to avoid large outputs in tracebacks")
 
 
 def remove_duplicate_message(
