@@ -50,8 +50,10 @@ def preprocess_grounding_coordinates_instance(instance: dict[str, Any]) -> dict[
     # If it's a hallucination instance, the ground truth is a string and not an image.
     if instance["hallucination"] is not None and instance["hallucination"] != "None":
         ground_truth = instance["ground_truth"]
+        binary_mask = None
     else:
         ground_truth = convert_ground_truth_to_binary_mask(instance)
+        binary_mask = load_image(instance["ground_truth"])
 
     input_text = preprocess_grounding_user_text(instance["model_input"])
     return {
@@ -62,6 +64,7 @@ def preprocess_grounding_coordinates_instance(instance: dict[str, Any]) -> dict[
         "segmentation_mask": load_image(instance["segmentation_mask"]),
         "frames": [load_image(image) for image in instance["frames"]],
         "ground_truth": ground_truth,
+        "binary_mask": binary_mask,
     }
 
 
