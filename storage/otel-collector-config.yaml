@@ -132,6 +132,14 @@ processors:
         # Filter Unity ArgumentNullException
         - 'IsMatch(body, "ArgumentNullException: Argument cannot be null")'
 
+  attributes/experiment_recorder_messages:
+    actions:
+      # self/experiment_recorder/step_records/<number>/new_messages
+      # self/experiment_recorder/step_records/<number>/input_messages
+      # Want to delete any attribute that follows this patterns since it contains the entire state of the experiment which is very large.
+      - type: delete
+        pattern: '^self/experiment_recorder/step_records/\d+/(new|input)_messages$'
+
   batch:
     timeout: 10s
     send_batch_size: 256
@@ -154,11 +162,11 @@ service:
   pipelines:
     logs:
       receivers: [filelog/ktane, otlp]
-      processors: [filter/logs, batch]
+      processors: [filter/logs, batch, attributes/experiment_recorder_messages]
       exporters: [otlphttp/logfire]
     traces:
       receivers: [otlp]
-      processors: [batch]
+      processors: [batch, attributes/experiment_recorder_messages]
       exporters: [otlphttp/logfire]
     metrics:
       receivers: [otlp]
