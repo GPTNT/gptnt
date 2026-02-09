@@ -178,8 +178,14 @@ class ExperimentPlayerRecorder:
 
     async def save_player_record_to_disk(self, *, player_record: ExperimentPlayerRecord) -> None:
         """Save the given player record to disk."""
+        if not player_record.step_records:
+            logger.warning(
+                "No step records to save for player record, skipping disk write.",
+                player_uuid=str(player_record.player_content.uuid),
+            )
+            return
+
         player_record = await player_record.rebuild_with_observations()
-        assert len(player_record.step_records) > 0, "No step records to save???"
 
         output_path = anyio.Path(
             self.output_dir.joinpath(
