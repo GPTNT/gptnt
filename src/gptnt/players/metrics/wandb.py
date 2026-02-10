@@ -143,7 +143,7 @@ class WandbExperimentPlayerRecorder(ExperimentPlayerRecorder):
             )
 
     @override
-    @logfire.instrument("Stop experiment tracker")
+    @logfire.instrument("Stop experiment tracker", extract_args=["is_hard_crash"])
     async def on_experiment_stop(self, *, is_hard_crash: bool = False) -> None:
         player_record = self.build_player_record(is_hard_crash=is_hard_crash)
         player_record = await player_record.rebuild_with_observations()
@@ -156,7 +156,7 @@ class WandbExperimentPlayerRecorder(ExperimentPlayerRecorder):
         await self.finish_run(has_crashed=is_hard_crash)
         self.reset()
 
-    @logfire.instrument("Finish WandB run")
+    @logfire.instrument("Finish WandB run", extract_args=["has_crashed"])
     async def finish_run(self, *, has_crashed: bool = False) -> None:
         """Finish the run and clean up."""
         func = partial(wandb.finish, exit_code=1 if has_crashed else 0)
