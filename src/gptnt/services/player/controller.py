@@ -249,7 +249,7 @@ class PlayerController(PlayerSupervisor):
         self.state = PlayerState.waiting_for_turn
         return True
 
-    @logfire.instrument("Stop player")
+    @logfire.instrument("Stop player", extract_args=["stop_event"])
     async def stop_player(self, stop_event: StopPlayerEvent) -> dict[str, str]:
         """Stop the player and end the experiment.
 
