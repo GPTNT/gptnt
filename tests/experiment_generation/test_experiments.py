@@ -8,6 +8,7 @@ from gptnt.experiments.missions import MissionGenerator, MissionGeneratorConfig
 from gptnt.experiments.pairing import Pairing, PairingGenerator, PairingType
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.specification import PlayerProtocol
+
 from tests.experiment_generation.test_missions import MissionGeneratorConfigCases
 
 pairing_type = param_fixture("pairing_type", list(get_args(PairingType)))

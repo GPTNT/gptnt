@@ -14,8 +14,6 @@ from pydantic_ai import (
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.test import TestModel
 from pytest_cases import parametrize_with_cases
-from tests.conftest import ProtocolCases
-from tests.players.ai.conftest import SuccessfulOutputCases
 
 from gptnt.players.actions import (
     AbsoluteCoordinate,
@@ -29,6 +27,9 @@ from gptnt.players.ai.action_predictor import ActionPredictor
 from gptnt.players.ai.messages.message_history import MessageHistory
 from gptnt.players.exceptions import AIResponseErrorType
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
+
+from tests.conftest import ProtocolCases
+from tests.players.ai.conftest import SuccessfulOutputCases
 
 
 def create_action_predictor(

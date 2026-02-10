@@ -6,7 +6,6 @@ from pydantic_ai import Agent, ModelMessage, ModelResponse, TextPart, ThinkingPa
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.test import TestModel
 from pytest_cases import fixture, param_fixture, parametrize_with_cases
-from tests.players.ai.conftest import SuccessfulOutputCases
 
 from gptnt.players.actions import (
     AbsoluteCoordinate,
@@ -24,6 +23,8 @@ from gptnt.players.reasoning_parser.react import (
     ReactStyleReasoningParser,
 )
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
+
+from tests.players.ai.conftest import SuccessfulOutputCases
 
 thinking_output = param_fixture(
     "thinking_output", [None, "This is my inner monologue."], ids=["no_thinking", "with_thinking"]
