@@ -165,6 +165,10 @@ def relabel_regions_in_reading_order(
         if old_label <= max_label:  # Ensure we don't go out of bounds
             lookup_arr[old_label] = new_label
 
+    # Need to filter out regions/numbers which no longer exist
+    bad_region_mask = ~np.isin(labeled_image, [*list(label_mapping.keys()), 0])
+    labeled_image[bad_region_mask] = 0
+
     # Apply the mapping to the labeled image using vectorized indexing
     # This is much faster than iterating through the image pixel by pixel
     new_labeled_image = lookup_arr[labeled_image]
