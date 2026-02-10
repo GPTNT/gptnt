@@ -28,17 +28,26 @@ class ImageResizer:
     target_height: int
     resampling_method: Resampling | int = Resampling.LANCZOS
 
-    def resize_image(self, image: Image) -> Image:
+    def resize_image(
+        self, image: Image, *, resampling_method_override: Resampling | int | None = None
+    ) -> Image:
         """Resize image to target specifications."""
         if image.width == self.target_width and image.height == self.target_height:
             return image
 
-        return image.resize((self.target_width, self.target_height), self.resampling_method)
+        return image.resize(
+            (self.target_width, self.target_height),
+            resampling_method_override or self.resampling_method,
+        )
 
-    def resize_array(self, array: NDArray[Any]) -> NDArray[Any]:
+    def resize_array(
+        self, array: NDArray[Any], *, resampling_method_override: Resampling | int | None = None
+    ) -> NDArray[Any]:
         """Resize a numpy array representing an image to target specifications."""
         return cv2.resize(
-            array, (self.target_width, self.target_height), interpolation=self.resampling_method
+            array,
+            (self.target_width, self.target_height),
+            interpolation=resampling_method_override or self.resampling_method,
         )
 
     def convert_absolute_to_relative(
