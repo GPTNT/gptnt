@@ -57,6 +57,7 @@ tests = [
     "pytest-xdist>=3.6.1",
     "fakeredis>=2.30.1",
     "asgi-lifespan>=2.1.0",
+    "pytest-factoryboy>=2.8.1",
 ]
 lint = [
     "basedpyright>=1.29.2",
@@ -277,13 +278,14 @@ runtime-evaluated-base-classes = [
 combine-as-imports = true
 known-first-party = ["gptnt"]
 split-on-trailing-comma = false
+forced-separate = ["tests"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 18
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["D", "F401", "I002"]
-"**/tests/*" = ["D", "S101", "INP001", "PLR2004", "FBT001", "SLF001"]
+"**/tests/*" = ["D", "S101", "INP001", "PLR2004", "FBT001", "SLF001", "ANN001"]
 "scripts/*" = ["INP001", "D", "ANN", "PLR", "PD", "S"]
 "src/gptnt/dataset/defuser_vqa/*" = ["S311"] # Allow standard random for dataset generation
 
