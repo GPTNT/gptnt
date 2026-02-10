@@ -101,10 +101,6 @@ class ObservationHandler:
 
         # Make a list of images
         images = [load_observation_from_bytes(frame) for frame in frames]
-        # Resize the images if needed
-        if self.image_resizer:
-            # with logfire.span("Resize images", images=images):
-            images = [self.image_resizer.resize_image(image) for image in images]
 
         # Apply set of marks only on the last image IF we want set of marks
         last_image = images[-1]
@@ -116,10 +112,6 @@ class ObservationHandler:
             with logfire.span("Applying set of marks on last frame"):
                 segm_image = load_observation_from_bytes(segmentation)
 
-                if self.image_resizer:
-                    # with logfire.span("Resize segmentation mask", image=segm_image):
-                    segm_image = self.image_resizer.resize_image(segm_image)
-
                 last_image = self._apply_set_of_marks(
                     raw_image=last_image, segmentation_image=segm_image, bomb_state=bomb_state
                 )
@@ -128,6 +120,11 @@ class ObservationHandler:
                     mark_to_coord_mapping=self.set_of_marks_painter.mark_to_coordinate,
                     bomb_state=bomb_state,
                 )
+
+        # Resize the images if needed
+        if self.image_resizer:
+            images = [self.image_resizer.resize_image(image) for image in images]
+            last_image = self.image_resizer.resize_image(last_image)
 
         # Convert the resized / som images back to bytes
         with logfire.span("Saving images back to bytes"):
