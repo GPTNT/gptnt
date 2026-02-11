@@ -2,6 +2,7 @@ from functools import partial
 
 import anyio
 import logfire
+from coredis import Redis
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from hypercorn import Config
@@ -10,6 +11,7 @@ from pydantic import RedisDsn
 from structlog import get_logger
 
 from gptnt.common.logger import configure_logging
+from gptnt.services.broker import create_redis_broker
 from gptnt.services.experiment_manager.experiment_manager import ExperimentManager
 from gptnt.services.experiment_manager.lifespan import lifespan
 from gptnt.services.experiment_manager.routes import router
@@ -23,7 +25,12 @@ EM_PORT = 8085
 def run(redis_dsn: RedisDsn | None = None) -> FastAPI:
     """Run an experiment manager."""
     redis_dsn = redis_dsn or RedisDsn("redis://localhost:6379")
-    experiment_manager = ExperimentManager(redis_url=redis_dsn)
+    redis = Redis.from_url(str(redis_dsn), decode_responses=True)
+    redis_broker = create_redis_broker(
+        redis_dsn, client_name="experiment_manager", logger=get_logger("faststream")
+    )
+
+    experiment_manager = ExperimentManager(redis=redis, redis_broker=redis_broker)
 
     app = FastAPI(debug=True, lifespan=partial(lifespan, experiment_manager=experiment_manager))
     app.include_router(router)

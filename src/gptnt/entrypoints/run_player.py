@@ -1,9 +1,9 @@
 import anyio
 import hydra
 import logfire
+from coredis import Redis
 from faststream import FastStream
 from pydantic import RedisDsn
-from redis import Redis
 from structlog import get_logger
 
 from gptnt.common.hydra import get_hydra_overrides
@@ -11,7 +11,9 @@ from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths, remove_empty_experiment_recorder_outputs
 from gptnt.ktane.manual import KtaneManualPaths
 from gptnt.services.broker import create_redis_broker
+from gptnt.services.game.client import GameClient
 from gptnt.services.player.controller import PlayerController
+from gptnt.services.player.message_handler import IncomingMessageHandler
 
 _ = logfire.configure(service_name="player", scrubbing=False)
 
@@ -40,13 +42,19 @@ def main(
     heartbeat_redis = Redis.from_url(str(redis_dsn), decode_responses=True)
     player_partial.keywords["redis"] = heartbeat_redis
 
-    broker = create_redis_broker(redis_dsn, client_name="player")
+    broker = create_redis_broker(redis_dsn, client_name="player", logger=get_logger("faststream"))
+
+    player_partial.keywords["game_client"] = GameClient(broker=broker)
+    player_partial.keywords["incoming_message_handler"] = IncomingMessageHandler(broker=broker)
 
     logger.info("Instantiating player controller")
     player_controller = PlayerController(**player_partial.keywords, broker=broker)
 
     app = FastStream(
-        broker, lifespan=player_controller.lifespan, after_shutdown=[logfire.shutdown]
+        broker,
+        lifespan=player_controller.lifespan,
+        after_shutdown=[logfire.shutdown],
+        logger=get_logger("faststream"),
     )
     app.context.set_global("player_controller", player_controller)
 

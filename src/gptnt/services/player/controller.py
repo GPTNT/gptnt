@@ -92,7 +92,7 @@ class PlayerController(PlayerSupervisor):
         """Lifespan with task group for background operations."""
         self.prepare_prompt_cache()
 
-        async with anyio.create_task_group() as tg:
+        async with self.broker, anyio.create_task_group() as tg:
             self._task_group = tg
             async with super().lifespan():
                 yield
@@ -147,7 +147,6 @@ class PlayerController(PlayerSupervisor):
 
         if self.protocol.role == "defuser":
             self.game_client.game_uuid = self.experiment_descriptor.game_uuid
-            await self.game_client.start()
 
         await self.incoming_message_handler.start_subscriber()
 

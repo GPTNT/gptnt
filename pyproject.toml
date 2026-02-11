@@ -26,8 +26,6 @@ dependencies = [
     "pyarrow>=19.0.1",
     "pydantic>=2.10.6",
     "pydantic-ai>=1",
-    "redis>=6.2.0",
-    "redis-anyio",
     "rich>=13.9.4",
     "scikit-image>=0.25.2",
     "sentence-transformers>=4.1.0",
@@ -44,6 +42,7 @@ dependencies = [
     "faststream[otel,redis]>=0.6.2",
     "orjson>=3.11.5",
     "pybase64>=1.4.3",
+    "coredis>=6.0.0",
 ]
 
 [dependency-groups]
@@ -80,7 +79,6 @@ url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
 [tool.uv.sources]
-redis-anyio = {git = "https://github.com/agronholm/redis-anyio"}
 torch = [
     {index = "pytorch-cpu"},
 ]

@@ -6,7 +6,9 @@ from uuid import uuid4
 import anyio
 import structlog
 from anyio.abc import TaskGroup
-from pydantic import UUID4, RedisDsn
+from coredis import Redis
+from faststream.redis import RedisBroker
+from pydantic import UUID4
 
 from gptnt.experiments.experiments import ExperimentSpec
 from gptnt.services.experiment_descriptor import ExperimentDescriptor
@@ -35,7 +37,8 @@ class Session:
 
     spec: ExperimentSpec
 
-    redis_url: RedisDsn = field(default=RedisDsn("redis://localhost:6379"))
+    redis: Redis[str]
+    redis_broker: RedisBroker
 
     experiment_uuid: UUID4 = field(default_factory=uuid4, init=False)
 
@@ -133,7 +136,9 @@ class Session:
             case "sync":
                 logger.debug("Creating sync experiment runner")
                 return SyncExperimentRunner(
-                    experiment=self.experiment_descriptor, redis_url=self.redis_url
+                    experiment=self.experiment_descriptor,
+                    redis=self.redis,
+                    redis_broker=self.redis_broker,
                 )
             case "async":
                 logger.debug("Creating async experiment runner")

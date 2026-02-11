@@ -2,12 +2,12 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import cast, override
+from typing import override
 
 import anyio
 import structlog
+from coredis import Redis
 from pydantic import UUID4, TypeAdapter
-from redis_anyio import RedisClient
 
 from gptnt.common.async_ops import Event, periodic
 from gptnt.ktane.state.game import GameState
@@ -31,7 +31,7 @@ class BaseServiceStateWatcher[ServiceStateT: Enum]:
 
     service_name: str
     service_uuid: UUID4
-    redis: RedisClient = field(default_factory=RedisClient)
+    redis: Redis[str]
 
     service_state_type: type[ServiceStateT]
     initial_state: ServiceStateT
@@ -73,8 +73,12 @@ class BaseServiceStateWatcher[ServiceStateT: Enum]:
 
     @asynccontextmanager
     async def run_monitor(self) -> AsyncGenerator[None]:
-        """Run the service state watcher as a context manager."""
-        async with self.redis, anyio.create_task_group() as tg:
+        """Run the service state watcher as a context manager.
+
+        Note: The Redis client lifecycle is managed by the parent component
+        (HeartbeatBroadcaster or ExperimentManager), not here.
+        """
+        async with anyio.create_task_group() as tg:
             tg.start_soon(self.update_service_state_loop)
             logger.debug("Service state watcher started", service_uuid=self.service_uuid)
             try:
@@ -92,18 +96,18 @@ class BaseServiceStateWatcher[ServiceStateT: Enum]:
 
     async def update_service_state(self) -> None:
         """Get the current state of the game service from Redis."""
-        outputs = await self.redis.hmget(self.redis_key, "state", "ready_state")
-        outputs = cast("list[str | None]", outputs)
-        # logger.debug("Results from Redis", redis_key=self.redis_key, outputs=outputs)
+        outputs = await self.redis.hmget(self.redis_key, ["state", "ready_state"])
         raw_service_state = outputs[0]
         raw_ready_state = outputs[1]
 
         if raw_service_state is None or raw_ready_state is None:
             logger.exception(
                 "Service state or ready state is None, cannot update",
+                service_name=self.service_name,
                 service_uuid=self.service_uuid,
                 raw_service_state=raw_service_state,
                 raw_ready_state=raw_ready_state,
+                outputs=outputs,
             )
             self.ready_state = ReadyState.not_ready
             # Return so that we don't try to update the state since it is invalid and will throw

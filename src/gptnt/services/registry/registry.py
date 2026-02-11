@@ -5,8 +5,8 @@ from typing import cast, override
 
 import anyio
 from anyio.abc import TaskGroup
-from pydantic import UUID4, RedisDsn, TypeAdapter
-from redis_anyio import RedisClient
+from coredis import Redis
+from pydantic import UUID4, TypeAdapter
 from structlog import get_logger
 
 from gptnt.common.async_ops import periodic
@@ -25,17 +25,11 @@ timeouts = ServiceTimeouts()
 class ServiceRegistry:
     """Registry for all connected services."""
 
-    redis_url: RedisDsn = field(default=RedisDsn("redis://localhost:6379"))
-    redis: RedisClient = field(default_factory=RedisClient, init=False, repr=False)
+    redis: Redis[str]
 
     connected_services: dict[UUID4, ServiceManifest[Heartbeat]] = field(default_factory=dict)
 
     _watchdog_task_group: TaskGroup | None = field(default=None, init=False)
-
-    def __post_init__(self) -> None:
-        """Initialise the service registry."""
-        if not self.redis:
-            self.redis = RedisClient(host=self.redis_url.host, port=self.redis_url.port or 6379)
 
     @asynccontextmanager
     async def lifespan(self) -> AsyncGenerator[None]:
@@ -100,11 +94,12 @@ class ServiceRegistry:
         ]
 
         # Use a pipeline to fetch all heartbeats in one go
-        pipeline = self.redis.pipeline()
-        commands = [pipeline.queue_command("HGETALL", key) for key in heartbeat_keys]
-        await pipeline.execute()
+        async with self.redis.pipeline() as pipeline:
+            _ = [pipeline.hgetall(key) for key in heartbeat_keys]
+        raw_heartbeats = pipeline.results  # noqa: WPS441
 
-        raw_heartbeats = [command.result() for command in commands]  # noqa: WPS476
+        if not raw_heartbeats:
+            return {}
 
         heartbeats = TypeAdapter(list[Heartbeat]).validate_python(raw_heartbeats)
         # convert them to a uuid-heartbeat mapping

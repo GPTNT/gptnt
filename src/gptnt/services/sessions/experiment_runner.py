@@ -10,8 +10,8 @@ import anyio
 import httpx
 import logfire
 import structlog
-from pydantic import RedisDsn
-from redis_anyio import RedisClient
+from coredis import Redis
+from faststream.redis import RedisBroker
 
 from gptnt.common.async_ops import Event
 from gptnt.ktane.state.bomb import BombState
@@ -41,7 +41,7 @@ class ExperimentRunner(abc.ABC):
     """Handle the lifecycle of the experiment."""
 
     experiment: ExperimentDescriptor
-    game_client: GameClient = field(default_factory=GameClient)
+    game_client: GameClient = field(init=False)
     """Game client to interact with the game service."""
     defuser_player_client: PlayerClient = field(init=False)
     """Player client to interact with the Defuser."""
@@ -54,7 +54,8 @@ class ExperimentRunner(abc.ABC):
     defuser_state_watcher: PlayerStateWatcher = field(init=False, repr=False)
     expert_state_watcher: PlayerStateWatcher | None = field(default=None, init=False, repr=False)
 
-    redis_url: RedisDsn = field(default=RedisDsn("redis://localhost:6379"))
+    redis: Redis[str]
+    redis_broker: RedisBroker
 
     # Events
     client_crashed_event: Event = field(default_factory=Event)
@@ -62,31 +63,32 @@ class ExperimentRunner(abc.ABC):
     def __post_init__(self) -> None:
         """Initialize the experiment runner."""
         self.game_state_watcher = GameStateWatcher(
-            service_name="game",
-            service_uuid=self.experiment.game_uuid,
-            redis=RedisClient(host=self.redis_url.host, port=self.redis_url.port or 6379),
+            service_name="game", service_uuid=self.experiment.game_uuid, redis=self.redis
         )
         self.defuser_state_watcher = PlayerStateWatcher(
             service_name=self.experiment.defuser.name,
             service_uuid=self.experiment.defuser.uuid,
-            redis=RedisClient(host=self.redis_url.host, port=self.redis_url.port or 6379),
+            redis=self.redis,
         )
         if self.experiment.expert:
             self.expert_state_watcher = PlayerStateWatcher(
                 service_name=self.experiment.expert.name,
                 service_uuid=self.experiment.expert.uuid,
-                redis=RedisClient(host=self.redis_url.host, port=self.redis_url.port or 6379),
+                redis=self.redis,
             )
+
+        # Create GameClient with shared broker
+        self.game_client = GameClient(broker=self.redis_broker)
         self.game_client.game_uuid = self.experiment.game_uuid
 
         # Initialize Redis player clients with UUIDs
         self.defuser_player_client = PlayerClient(
-            player_uuid=self.experiment.defuser.uuid, redis_url=self.redis_url
+            player_uuid=self.experiment.defuser.uuid, redis_broker=self.redis_broker
         )
 
         if self.experiment.expert:
             self.expert_player_client = PlayerClient(
-                player_uuid=self.experiment.expert.uuid, redis_url=self.redis_url
+                player_uuid=self.experiment.expert.uuid, redis_broker=self.redis_broker
             )
 
     @property
@@ -192,9 +194,6 @@ class ExperimentRunner(abc.ABC):
                 await stack.enter_async_context(self.defuser_state_watcher.run_monitor())
                 if self.expert_state_watcher:
                     await stack.enter_async_context(self.expert_state_watcher.run_monitor())
-
-                # Start the lifespans of the clients
-                await stack.enter_async_context(self.game_client.lifespan())
 
                 # Lastly, wrap in the exception handler
                 await stack.enter_async_context(self.experiment_exception_handler())

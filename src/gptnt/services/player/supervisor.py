@@ -39,13 +39,11 @@ class PlayerSupervisor(HeartbeatBroadcaster):
     observation_handler: ObservationHandler
     action_predictor: ActionPredictor
     action_dispatcher: ActionDispatcher = field(init=False, repr=False)
-    game_client: GameClient = field(default_factory=GameClient)
+    game_client: GameClient
 
     # Components that need to be reset after each experiment
     experiment_recorder: ExperimentPlayerRecorder
-    incoming_message_handler: IncomingMessageHandler = field(
-        default_factory=IncomingMessageHandler
-    )
+    incoming_message_handler: IncomingMessageHandler
 
     # This is set when the player is configured for an experiment
     experiment_descriptor: ExperimentDescriptor = field(init=False, repr=False)

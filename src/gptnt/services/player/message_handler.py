@@ -2,11 +2,11 @@ from dataclasses import dataclass, field
 
 import structlog
 from faststream.redis import RedisBroker
-from pydantic import UUID4, RedisDsn
+from faststream.redis.subscriber.usecases import ChannelSubscriber
+from pydantic import UUID4
 
 from gptnt.players.actions import NO_NEW_MESSAGES_SENTINEL
 from gptnt.players.specification import PlayerRole
-from gptnt.services.broker import create_redis_broker
 from gptnt.services.experiment_descriptor import ExperimentDescriptor
 
 logger = structlog.get_logger()
@@ -20,8 +20,7 @@ class IncomingMessageHandler:
     names are based on session_id and player role to ensure proper routing.
     """
 
-    redis_url: RedisDsn = field(default=RedisDsn("redis://localhost:6379/0"))
-    _broker: RedisBroker = field(init=False, repr=False)
+    broker: RedisBroker
 
     # Set during configuration
     session_id: UUID4 | None = field(default=None, init=False)
@@ -29,12 +28,8 @@ class IncomingMessageHandler:
     other_role: PlayerRole | None = field(default=None, init=False)
 
     # Internal state
+    _subscriber: ChannelSubscriber | None = field(default=None, init=False, repr=False)
     _unpulled_messages: list[str] = field(default_factory=list, init=False)
-    _is_running: bool = field(default=False, init=False)
-
-    def __post_init__(self) -> None:
-        """Initialize FastStream Redis broker."""
-        self._broker = create_redis_broker(self.redis_url)
 
     def configure_for_experiment(
         self, *, experiment_descriptor: ExperimentDescriptor, my_role: PlayerRole
@@ -63,29 +58,34 @@ class IncomingMessageHandler:
 
         This should be called when the experiment is configured and will run continuously until
         stop_subscriber() is called.
+
+        Note: The broker is already started and managed by FastStream. We just register
+        the subscriber here.
         """
         if self._is_running:
             logger.warning("Subscriber already running, skipping start")
             return
 
         channel = self._get_my_channel()
-        _ = self._broker.subscriber(channel)(self.handle_new_message)
+        self._subscriber = self.broker.subscriber(channel)
+        _ = self._subscriber(self.handle_new_message)
+        await self._subscriber.start()
 
-        # Start the broker in the background
-        await self._broker.start()
-        self._is_running = True
-        logger.info("Started Redis message subscriber", channel=channel)
+        logger.info("Registered Redis message subscriber", channel=channel)
 
     async def stop_subscriber(self) -> None:
         """Stop the Redis subscriber.
 
         This should be called when the experiment ends or the player is reset.
+
+        Note: We don't close the broker since it's shared and managed by FastStream.
+        We just unregister by marking as not running.
         """
-        if not self._is_running:
+        if not self._is_running or self._subscriber is None:
             return
 
-        await self._broker.close()
-        self._is_running = False
+        await self._subscriber.stop()
+        self._subscriber = None
         logger.info("Stopped Redis message subscriber")
 
     async def send_message(self, message: str) -> None:
@@ -96,7 +96,7 @@ class IncomingMessageHandler:
         channel = self._get_other_channel()
 
         # Note: if this fails, we will allow the exception since that's a big problem
-        _ = await self._broker.publish(message, channel)
+        _ = await self.broker.publish(message, channel)
 
         logger.debug(
             "Published message", message=message, to_channel=channel, to_role=self.other_role
@@ -137,11 +137,6 @@ class IncomingMessageHandler:
         self.other_role = None
         logger.debug("Message handler reset")
 
-    async def close(self) -> None:
-        """Close Redis broker connection."""
-        await self.stop_subscriber()
-        logger.debug("Closed Redis broker")
-
     def _get_my_channel(self) -> str:
         """Get the channel name this player subscribes to."""
         if not self.session_id or not self.my_role:
@@ -153,3 +148,10 @@ class IncomingMessageHandler:
         if not self.session_id or not self.other_role:
             raise ValueError("Message handler not configured for experiment")
         return f"session:{self.session_id}:player:{self.other_role}:messages"
+
+    @property
+    def _is_running(self) -> bool:
+        """Check if the subscriber is currently running."""
+        if self._subscriber is not None:
+            return self._subscriber.running
+        return False

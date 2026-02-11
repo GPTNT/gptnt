@@ -2,10 +2,11 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, cast
 
 import anyio
+from coredis import Redis
 from pydantic import UUID4
-from redis import Redis
 from structlog import get_logger
 from whenever import TimeDelta
 
@@ -13,6 +14,9 @@ from gptnt.common.async_ops import periodic
 from gptnt.services.events.heartbeat import Heartbeat, ReadyState
 from gptnt.services.registry.manifest import ServiceManifest
 from gptnt.services.timeouts import ServiceTimeouts
+
+if TYPE_CHECKING:
+    from coredis.typing import StringT, ValueT
 
 service_timeouts = ServiceTimeouts()
 logger = get_logger()
@@ -26,7 +30,7 @@ class HeartbeatBroadcaster(ABC):
     be tracked by the registry.
     """
 
-    redis: Redis
+    redis: Redis[str]
     service_name: str
     uuid: UUID4
     ready_state: ReadyState = field(default=ReadyState.not_ready)
@@ -49,7 +53,7 @@ class HeartbeatBroadcaster(ABC):
     @asynccontextmanager
     async def lifespan(self) -> AsyncGenerator[None]:
         """Lifespan for the Heartbeat Manager."""
-        async with anyio.create_task_group() as tg:
+        async with self.redis, anyio.create_task_group() as tg:
             tg.start_soon(self.heartbeat_loop)
             self.ready_state = ReadyState.ready
             try:  # noqa: WPS243
@@ -73,10 +77,11 @@ class HeartbeatBroadcaster(ABC):
 
     async def send_heartbeat(self) -> None:
         """Send a heartbeat to the Redis."""
-        _ = self.redis.hset(
-            self.heartbeat_key, mapping=self.heartbeat_event().model_dump(mode="json")
+        _ = await self.redis.hset(
+            self.heartbeat_key,
+            cast("dict[StringT, ValueT]", self.heartbeat_event().model_dump(mode="json")),
         )
-        _ = self.redis.expire(
+        _ = await self.redis.expire(
             self.heartbeat_key,
             TimeDelta(seconds=service_timeouts.heartbeat_expiration).py_timedelta(),
         )

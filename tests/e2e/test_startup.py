@@ -8,7 +8,6 @@ from faststream.redis import TestRedisBroker
 
 from gptnt.common.paths import Paths
 from gptnt.ktane.state.game import GameState
-from gptnt.players.feedback.nobf import NaughtyOutputBehaviourFeedbackGenerator
 from gptnt.services.broker import create_redis_broker
 from gptnt.services.events.player import PlayerState
 from gptnt.services.experiment_manager.experiment_manager import ExperimentManager
@@ -23,7 +22,6 @@ async def test_player_service_starts_and_responds_to_get_state() -> None:
     """Test that the player service starts and responds to get_state RPC."""
     # Create broker with TestRedisBroker
     broker = create_redis_broker("redis://fake", client_name="test")
-    nobf_generator = NaughtyOutputBehaviourFeedbackGenerator()
     fake_redis = fakeredis.FakeRedis(decode_responses=True)
 
     # Create player controller with mocked dependencies
@@ -31,11 +29,13 @@ async def test_player_service_starts_and_responds_to_get_state() -> None:
         uuid="test-player",
         redis=fake_redis,
         broker=broker,
-        nobf_generator=nobf_generator,
+        nobf_generator=MagicMock(),
         capabilities=MagicMock(),
         observation_handler=MagicMock(),
         action_predictor=MagicMock(),
         experiment_recorder=MagicMock(),
+        game_client=MagicMock(),
+        incoming_message_handler=MagicMock(),
     )
 
     async with TestRedisBroker(broker) as br:

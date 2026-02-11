@@ -462,6 +462,27 @@ wheels = [
 ]
 
 [[package]]
+name = "coredis"
+version = "6.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "beartype" },
+    { name = "deprecated" },
+    { name = "exceptiongroup" },
+    { name = "packaging" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d3/eb/9a9a9f60e38f8649b93e8ff92bd794bf6ed3760a5ba3d64238b63397ac44/coredis-6.0.0.tar.gz", hash = "sha256:ac64a348767124695377b3bc9cfdc70d98809b5a64eea04be2a29a996ccec627", size = 2724472, upload-time = "2026-02-09T06:31:18.567Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4d/b5/c9bb863a31b0cfdaf3e49c96fa86c7a362773dbaf6f488793dcda6364dd9/coredis-6.0.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:2598dd066298569c688e9d33c506f14b4f850d29fbe42c549e37447c81a94f60", size = 365076, upload-time = "2026-02-09T06:30:57.199Z" },
+    { url = "https://files.pythonhosted.org/packages/8e/90/61855fcb82b66653a5493a45beae1e5d7e2e6a0b7fccb90dd8baae7afade/coredis-6.0.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:a1447a6faa6d2084bed7ff5c4c4f5b97a5be83e148b5ec743a822c40cdd5b7a6", size = 359772, upload-time = "2026-02-09T06:30:59.213Z" },
+    { url = "https://files.pythonhosted.org/packages/c0/28/c3aba4de87b2708705117b84d0439afbdd897e253db171bd21ad13c3fc22/coredis-6.0.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:a99756211289949c71f18105f4f6282f0283f0a17c77a488f62099d4963f9455", size = 372920, upload-time = "2026-02-09T06:31:01.053Z" },
+    { url = "https://files.pythonhosted.org/packages/f7/b7/32030c52f8f69af38bb8de2f895e37efe7cba050204eaa9957f9d84bbd80/coredis-6.0.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:15e82ecb2195be75fb17d84dba344662b3a16a403ffa7e8ca1efd1803176f877", size = 376299, upload-time = "2026-02-09T06:31:02.37Z" },
+    { url = "https://files.pythonhosted.org/packages/5a/bc/cd1524f9d218ab4647e1fefce9af05abf2781061d5ac5d32d65b2e2824bc/coredis-6.0.0-py3-none-any.whl", hash = "sha256:60794b91f691a57bb39a250a3f577a0ffef992ce656bc8ae7b6d276f592ded39", size = 235366, upload-time = "2026-02-09T06:31:16.634Z" },
+]
+
+[[package]]
 name = "coverage"
 version = "7.10.7"
 source = { registry = "https://pypi.org/simple" }
@@ -608,6 +629,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/19/76/36c9aab3d5c19a94091f7c6c6e784efca50d87b124bf026c36e94719f33c/deepdiff-8.6.1.tar.gz", hash = "sha256:ec56d7a769ca80891b5200ec7bd41eec300ced91ebcc7797b41eb2b3f3ff643a", size = 634054, upload-time = "2025-09-03T19:40:41.461Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f7/e6/efe534ef0952b531b630780e19cabd416e2032697019d5295defc6ef9bd9/deepdiff-8.6.1-py3-none-any.whl", hash = "sha256:ee8708a7f7d37fb273a541fa24ad010ed484192cd0c4ffc0fa0ed5e2d4b9e78b", size = 91378, upload-time = "2025-09-03T19:40:39.679Z" },
+]
+
+[[package]]
+name = "deprecated"
+version = "1.3.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "wrapt" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/49/85/12f0a49a7c4ffb70572b6c2ef13c90c88fd190debda93b23f026b25f9634/deprecated-1.3.1.tar.gz", hash = "sha256:b1b50e0ff0c1fddaa5708a2c6b0a6588bb09b892825ab2b214ac9ea9d92a5223", size = 2932523, upload-time = "2025-10-30T08:19:02.757Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/84/d0/205d54408c08b13550c733c4b85429e7ead111c7f0014309637425520a9a/deprecated-1.3.1-py2.py3-none-any.whl", hash = "sha256:597bfef186b6f60181535a29fbe44865ce137a5079f295b479886c82729d5f3f", size = 11298, upload-time = "2025-10-30T08:19:00.758Z" },
 ]
 
 [[package]]
@@ -842,16 +875,16 @@ wheels = [
 
 [[package]]
 name = "faststream"
-version = "0.6.2"
+version = "0.6.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
     { name = "fast-depends", extra = ["pydantic"] },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/02/df/dfc9de7df06518fca91cdfd1878f040cac95deb844dee82b0880d734c1a0/faststream-0.6.2.tar.gz", hash = "sha256:70a229572f08d4c94fcf0902cef59c9e2b8b4286a0c755989bab2bafa67ea515", size = 297180, upload-time = "2025-10-20T21:02:07.477Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a6/cc/26deefd97a3d51205554d4fe69ffc2a9144515cda20cb7185be27e11166e/faststream-0.6.6.tar.gz", hash = "sha256:de87502e22db0372131165221728c6993b29d42ba29aaaa0a27d1249803f2ddd", size = 302712, upload-time = "2026-02-03T18:08:35.747Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7b/d1/38c3b8aff47329deeba9e0975112dca1c3c0a535d18124e8939d98de9ad9/faststream-0.6.2-py3-none-any.whl", hash = "sha256:0bb1458474f9e05456acc944d9a320d81a894ebf32f1289bc6c54b3052558071", size = 501385, upload-time = "2025-10-20T21:02:06.125Z" },
+    { url = "https://files.pythonhosted.org/packages/ff/17/169728098799d4f5c4978f9b83d2dc41541eee02ec8547149a085acf11dd/faststream-0.6.6-py3-none-any.whl", hash = "sha256:4aca70628b526d8e27771f1f8edf9cd0a80a62f335a2721ddbbc863e6098f269", size = 507654, upload-time = "2026-02-03T18:08:34.347Z" },
 ]
 
 [package.optional-dependencies]
@@ -1062,6 +1095,7 @@ dependencies = [
     { name = "anyio" },
     { name = "asgi-lifespan" },
     { name = "color-contrast" },
+    { name = "coredis" },
     { name = "datasets" },
     { name = "deepdiff" },
     { name = "dill" },
@@ -1082,8 +1116,6 @@ dependencies = [
     { name = "pybase64" },
     { name = "pydantic" },
     { name = "pydantic-ai" },
-    { name = "redis" },
-    { name = "redis-anyio" },
     { name = "respx" },
     { name = "rich" },
     { name = "scikit-image" },
@@ -1130,6 +1162,7 @@ requires-dist = [
     { name = "anyio", specifier = ">=4.9.0" },
     { name = "asgi-lifespan", specifier = ">=2.1.0" },
     { name = "color-contrast", specifier = ">=0.1.1" },
+    { name = "coredis", specifier = ">=6.0.0" },
     { name = "datasets", specifier = ">=3.6.0" },
     { name = "deepdiff", specifier = ">=8.4.2" },
     { name = "dill", specifier = ">=0.3.8" },
@@ -1150,8 +1183,6 @@ requires-dist = [
     { name = "pybase64", specifier = ">=1.4.3" },
     { name = "pydantic", specifier = ">=2.10.6" },
     { name = "pydantic-ai", specifier = ">=1" },
-    { name = "redis", specifier = ">=6.2.0" },
-    { name = "redis-anyio", git = "https://github.com/agronholm/redis-anyio" },
     { name = "respx", specifier = ">=0.22.0" },
     { name = "rich", specifier = ">=13.9.4" },
     { name = "scikit-image", specifier = ">=0.25.2" },
@@ -3276,15 +3307,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/0d/d6/e8b92798a5bd67d659d51a18170e91c16ac3b59738d91894651ee255ed49/redis-6.4.0.tar.gz", hash = "sha256:b01bc7282b8444e28ec36b261df5375183bb47a07eb9c603f284e89cbc5ef010", size = 4647399, upload-time = "2025-08-07T08:10:11.441Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e8/02/89e2ed7e85db6c93dfa9e8f691c5087df4e3551ab39081a4d7c6d1f90e05/redis-6.4.0-py3-none-any.whl", hash = "sha256:f0544fa9604264e9464cdf4814e7d4830f74b165d52f2a330a760a88dd248b7f", size = 279847, upload-time = "2025-08-07T08:10:09.84Z" },
-]
-
-[[package]]
-name = "redis-anyio"
-version = "0.0.post75"
-source = { git = "https://github.com/agronholm/redis-anyio#48f559d24aa8a34a279ee9aeaa60e4be37fd8a34" }
-dependencies = [
-    { name = "anyio" },
-    { name = "tenacity" },
 ]
 
 [[package]]

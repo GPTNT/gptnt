@@ -16,7 +16,7 @@ player:
   _partial_: true
 
   redis:
-    _target_: redis.Redis
+    _recursive_: false
 
   nobf_generator:
     _target_: gptnt.players.feedback.nobf.NaughtyOutputBehaviourFeedbackGenerator

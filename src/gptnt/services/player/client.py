@@ -1,15 +1,14 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 import httpx
 import logfire
 import structlog
 from faststream.redis import RedisBroker
-from pydantic import UUID4, RedisDsn
+from pydantic import UUID4
 
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.specification import PlayerProtocol
-from gptnt.services.broker import create_redis_broker
 from gptnt.services.events.player import PlayerMessage, StopPlayerEvent
 from gptnt.services.experiment_descriptor import ExperimentDescriptor
 from gptnt.services.player.controller import PlayerCommand
@@ -25,32 +24,12 @@ class PlayerClient:
     """Client to interact with player service via Redis RPC."""
 
     player_uuid: UUID4
-    redis_url: RedisDsn = field(default=RedisDsn("redis://localhost:6379/0"))
-    _broker: RedisBroker = field(init=False, repr=False)
-    _is_started: bool = field(default=False, init=False)
-
-    def __post_init__(self) -> None:
-        """Initialize FastStream Redis broker for RPC."""
-        self._broker = create_redis_broker(self.redis_url)
+    redis_broker: RedisBroker
 
     @property
     def command_channel(self) -> str:
         """Get the command channel for this player."""
         return f"player:{self.player_uuid}:commands"
-
-    async def start(self) -> None:
-        """Start the Redis broker."""
-        if not self._is_started:
-            await self._broker.start()
-            self._is_started = True
-            logger.debug("Started Redis player client", player_uuid=self.player_uuid)
-
-    async def close(self) -> None:
-        """Close the Redis broker."""
-        if self._is_started:
-            await self._broker.close()
-            self._is_started = False
-            logger.debug("Closed Redis player client")
 
     async def get_state(self) -> str:
         """Get player state."""
@@ -110,12 +89,12 @@ class PlayerClient:
     async def _send_command(
         self, command: PlayerCommand, payload: dict[str, Any] | None = None
     ) -> Any:
-        """Send a command via Redis RPC and wait for response."""
-        if not self._is_started:
-            await self.start()
+        """Send a command via Redis RPC and wait for response.
 
+        Note: The broker is already started and managed by FastStream.
+        """
         channel = f"{self.command_channel}:{command}"
-        response = await self._broker.request(
+        response = await self.redis_broker.request(
             payload or {}, channel=channel, timeout=timeouts.redis_rpc_timeout
         )
         return await response.decode()

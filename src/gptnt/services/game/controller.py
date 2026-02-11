@@ -1,5 +1,7 @@
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, override
 
 import httpx
 import structlog
@@ -63,11 +65,18 @@ class GameController(GameSupervisor):
         """Get the command channel for this game."""
         return f"game:{self.uuid}:commands"
 
+    @override
+    @asynccontextmanager
+    async def lifespan(self) -> AsyncGenerator[None]:
+        """Lifespan for the Game Instance."""
+        async with self.broker, super().lifespan():
+            yield
+
     def register_subscribers(self) -> None:
         """Register all the command subscribers with the broker."""
         for command_name, command_func in self.commands.items():
             channel_name = f"{self.command_channel}:{command_name}"
-            logger.info("Registering command", channel_name=channel_name, command=command_name)
+            logger.debug("Registering command", channel_name=channel_name, command=command_name)
             _ = self.broker.subscriber(channel_name)(command_func)
 
     async def get_game_state(self) -> GameState:

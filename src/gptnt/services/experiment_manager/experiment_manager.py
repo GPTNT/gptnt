@@ -6,6 +6,7 @@ from typing import override
 import anyio
 import logfire
 import structlog
+from faststream.redis import RedisBroker
 from pydantic import UUID4
 
 from gptnt.common.async_ops import periodic
@@ -29,8 +30,9 @@ logger = structlog.get_logger()
 class ExperimentManager(ObservableServiceRegistry):
     """Manages experiments and matchmaking."""
 
-    specs: set[ExperimentSpec] = field(default_factory=set, init=False)
+    redis_broker: RedisBroker
 
+    specs: set[ExperimentSpec] = field(default_factory=set, init=False)
     _sessions: set[Session] = field(default_factory=set, init=False, repr=False)
 
     async def force_stop_experiment(self, session: Session) -> None:
@@ -52,8 +54,7 @@ class ExperimentManager(ObservableServiceRegistry):
     @asynccontextmanager
     async def lifespan(self) -> AsyncGenerator[None]:
         """Lifespan for the experiment manager."""
-        logger.info("Starting EM")
-        async with super().lifespan(), anyio.create_task_group() as tg:
+        async with self.redis_broker, super().lifespan(), anyio.create_task_group() as tg:
             tg.start_soon(self._matchmaking_loop)
             tg.start_soon(self.metrics_loop)
 
@@ -75,7 +76,14 @@ class ExperimentManager(ObservableServiceRegistry):
     ) -> None:
         """Start an experiment."""
         with logfire.span("Create session"):
-            session = Session(game=game, defuser=defuser, expert=expert, spec=spec)
+            session = Session(
+                game=game,
+                defuser=defuser,
+                expert=expert,
+                spec=spec,
+                redis=self.redis,
+                redis_broker=self.redis_broker,
+            )
             self._sessions.add(session)
             for uuid in session.service_uuids:
                 self.connected_services[uuid].state = ServiceState.in_experiment
