@@ -8,14 +8,14 @@ from pytest_cases import fixture
 
 from gptnt.ktane.actions import GameActionType, KtaneBaseAction, RelativeCoordinate
 from gptnt.ktane.client import KtaneClient
-from gptnt.ktane.mission_spec import KtaneMissionSpec
+from gptnt.ktane.mission_spec import KtaneMissionConfig, KtaneMissionSpec
 from gptnt.ktane.state.game import GameState
 from gptnt.ktane.state.modules import KtaneComponent
 
 
 @fixture
-def mission_spec() -> KtaneMissionSpec:
-    mission_spec = KtaneMissionSpec(
+def mission_config() -> KtaneMissionConfig:
+    mission_config = KtaneMissionConfig(
         seed=123,  # noqa: WPS432
         time_limit=300,  # noqa: WPS432
         num_strikes_allowed=3,
@@ -23,8 +23,9 @@ def mission_spec() -> KtaneMissionSpec:
         force_modules_to_front=True,
         optional_widgets=5,
         components=[KtaneComponent.wires, KtaneComponent.big_button],
+        session_id=None,
     )
-    return mission_spec
+    return mission_config
 
 
 @fixture(scope="session")
@@ -60,12 +61,12 @@ async def test_healthcheck_returns_false_and_no_exception(ktane_client: KtaneCli
 @respx.mock
 @pytest.mark.anyio
 async def test_start_mission_returns_true_on_success(
-    ktane_client: KtaneClient, mission_spec: KtaneMissionSpec
+    ktane_client: KtaneClient, mission_config: KtaneMissionSpec
 ) -> None:
     route = respx.get(f"{ktane_client.client.base_url}/startMission").mock(
         return_value=httpx.Response(httpx.codes.OK, text="Mission started")
     )
-    start_mission_response = await ktane_client.start_mission(mission_spec)
+    start_mission_response = await ktane_client.start_mission(mission_config)
     assert route.called is True
     assert start_mission_response is True
 
@@ -73,13 +74,13 @@ async def test_start_mission_returns_true_on_success(
 @respx.mock
 @pytest.mark.anyio
 async def test_start_mission_returns_false_on_failing(
-    ktane_client: KtaneClient, mission_spec: KtaneMissionSpec
+    ktane_client: KtaneClient, mission_config: KtaneMissionSpec
 ) -> None:
     route = respx.get(f"{ktane_client.client.base_url}/startMission").mock(
         return_value=httpx.Response(httpx.codes.BAD_REQUEST, text="Mission failed")
     )
     with pytest.raises(httpx.HTTPStatusError):
-        _ = await ktane_client.start_mission(mission_spec)
+        _ = await ktane_client.start_mission(mission_config)
     assert route.called is True
 
 

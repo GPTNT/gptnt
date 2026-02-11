@@ -18,7 +18,7 @@ from gptnt.ktane.actions import GameActionType, KtaneBaseAction
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.executable import get_executable_path
 from gptnt.ktane.game_settings import KtaneSettings
-from gptnt.ktane.mission_spec import KtaneMissionSpec
+from gptnt.ktane.mission_spec import KtaneMissionConfig
 from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.game import GameState
 from gptnt.ktane.state.modules import KtaneComponent
@@ -115,7 +115,7 @@ class SimonSaysDefuserManager:
 
         await until(get_value=self.client.get_game_state, target=GameState.main_menu)
 
-        mission_spec = KtaneMissionSpec(
+        mission_spec = KtaneMissionConfig(
             seed=seed, time_limit=90, components=[KtaneComponent.simon], optional_widgets=0
         )
         _ = await self.client.start_mission(mission_spec)

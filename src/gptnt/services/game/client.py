@@ -12,7 +12,7 @@ from pydantic import UUID4, RedisDsn
 from gptnt.experiments.time_limits import SECONDS_PER_ACTION
 from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.client import RawObservationFrames
-from gptnt.ktane.mission_spec import KtaneMissionSpec
+from gptnt.ktane.mission_spec import KtaneMissionConfig, KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.game import GameState
 from gptnt.services.broker import create_redis_broker
@@ -69,12 +69,15 @@ class GameClient:
             logger.debug("Closed Redis game client broker")
 
     @logfire.instrument("Configure game")
-    async def configure_game(self, *, spec: KtaneMissionSpec) -> None:
+    async def configure_game(self, *, spec: KtaneMissionSpec, session_id: UUID4) -> None:
         """Configure the game with the given spec."""
         channel = self._get_channel("configure_game")
-        response = await self._broker.request(spec.model_dump(mode="json"), channel=channel)
+        configure_message = KtaneMissionConfig(**spec.model_dump(), session_id=session_id)
+        response = await self._broker.request(
+            message=configure_message.model_dump(mode="json"), channel=channel
+        )
         _ = await response.decode()
-        logger.debug("Configured game", spec=spec)
+        logger.debug("Configured game", spec=spec, session_id=session_id)
 
     async def get_game_state(self) -> GameState:
         """Get the current game state."""

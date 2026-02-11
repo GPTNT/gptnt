@@ -9,7 +9,7 @@ from pydantic import AfterValidator, BaseModel, Field
 from gptnt.common.base_client import BaseClient
 from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.game_settings import KtaneSettings
-from gptnt.ktane.mission_spec import KtaneMissionSpec
+from gptnt.ktane.mission_spec import KtaneMissionConfig
 from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.game import GameState
 
@@ -63,11 +63,11 @@ class KtaneClient(BaseClient):
         return response.is_success
 
     @logfire.instrument("Start mission")
-    async def start_mission(self, specification: KtaneMissionSpec) -> bool:
+    async def start_mission(self, config: KtaneMissionConfig) -> bool:
         """Start a new mission in the environment."""
         response = await self.client.get(
             "/startMission",
-            params=specification.model_copy(
+            params=config.model_copy(
                 update={"time_scale": self.default_game_speed}
             ).to_query_params(),
         )

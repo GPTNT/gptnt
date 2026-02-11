@@ -260,7 +260,9 @@ class ExperimentRunner(abc.ABC):
                 player_protocol=self.experiment.expert.protocol,
                 experiment_descriptor=self.experiment,
             )
-        await self.game_client.configure_game(spec=self.experiment.mission_spec)
+        await self.game_client.configure_game(
+            spec=self.experiment.mission_spec, session_id=self.experiment.session_id
+        )
         # Pause on lights off
         with logfire.span("Pausing game after lights are off"):
             with anyio.fail_after(timeouts.configure_services_timeout):

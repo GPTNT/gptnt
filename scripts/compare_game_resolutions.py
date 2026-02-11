@@ -12,7 +12,7 @@ from gptnt.ktane.actions import GameActionType, KtaneBaseAction
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.executable import get_executable_path
 from gptnt.ktane.game_settings import KtaneSettings
-from gptnt.ktane.mission_spec import KtaneMissionSpec
+from gptnt.ktane.mission_spec import KtaneMissionConfig
 from gptnt.ktane.state.game import GameState
 from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.players.observation_handler import ObservationHandler
@@ -69,7 +69,7 @@ class ScreenshotTaker:
     async def start_mission(self, component: KtaneComponent) -> None:
         self.component = component
         await self.ktane_client.start_mission(
-            KtaneMissionSpec(
+            KtaneMissionConfig(
                 seed=1,
                 time_limit=500,
                 num_strikes_allowed=3,

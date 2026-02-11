@@ -1,7 +1,7 @@
 from typing import cast, override
 
 from httpx import QueryParams
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator
 
 from gptnt.ktane.state.modules import NEEDS_MULTIPLE_IMAGES, KtaneComponent
 
@@ -114,3 +114,13 @@ class KtaneMissionSpec(BaseModel):
                 self.time_step_size,
             )
         )
+
+
+class KtaneMissionConfig(KtaneMissionSpec):
+    """Configuration for the game, which is just the mission spec plus the session ID."""
+
+    session_id: UUID4 | None = Field(
+        validation_alias="sessionId",
+        serialization_alias="sessionId",
+        description="UUID of the experiment session",
+    )

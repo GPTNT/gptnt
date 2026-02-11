@@ -8,7 +8,7 @@ from faststream.redis import RedisBroker
 
 from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.client import RawObservationFrames
-from gptnt.ktane.mission_spec import KtaneMissionSpec
+from gptnt.ktane.mission_spec import KtaneMissionConfig
 from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.game import GameState
 from gptnt.services.events.heartbeat import ReadyState
@@ -74,7 +74,7 @@ class GameController(GameSupervisor):
         """Get the current game state."""
         return self.state_monitor.state.value
 
-    async def configure_game(self, spec: KtaneMissionSpec) -> bool:
+    async def configure_game(self, config: KtaneMissionConfig) -> bool:
         """Configure a new experiment."""
         if self.state_monitor.state.value != GameState.main_menu:
             raise HTTPException(
@@ -86,11 +86,11 @@ class GameController(GameSupervisor):
             )
 
         try:
-            _ = await self.ktane_client.start_mission(spec)
+            _ = await self.ktane_client.start_mission(config)
         except httpx.HTTPStatusError as err:
             logger.exception(
                 "Failed to start mission",
-                spec=spec,
+                config=config,
                 reason=err.response.text,
                 request=err.response.request,
                 state_history=self.state_monitor.history,
