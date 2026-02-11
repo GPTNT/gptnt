@@ -1093,7 +1093,6 @@ version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },
-    { name = "asgi-lifespan" },
     { name = "color-contrast" },
     { name = "coredis" },
     { name = "datasets" },
@@ -1160,7 +1159,6 @@ visualisation = [
 [package.metadata]
 requires-dist = [
     { name = "anyio", specifier = ">=4.9.0" },
-    { name = "asgi-lifespan", specifier = ">=2.1.0" },
     { name = "color-contrast", specifier = ">=0.1.1" },
     { name = "coredis", specifier = ">=6.0.0" },
     { name = "datasets", specifier = ">=3.6.0" },
