@@ -9,8 +9,8 @@
 # from gptnt.experiments.experiments import ExperimentSpec
 # from gptnt.services.events.heartbeat import ReadyState
 # from gptnt.services.events.player import PlayerMessage, PlayerState
-# from gptnt.services.game.supervisor import GameSupervisor
-# from gptnt.services.player.supervisor import PlayerSupervisor
+# from gptnt.services.game.context import GameServiceContext
+# from gptnt.services.player.context import PlayerContext
 # from gptnt.services.sessions.experiment_runner import ExperimentState, SyncExperimentRunner
 # from gptnt.services.sessions.session import Session
 
@@ -21,22 +21,22 @@
 # async def session(
 #     redis_server_dsn: RedisDsn,
 #     game_app_client: httpx.AsyncClient,
-#     game_supervisor: GameSupervisor,
+#     game_context: GameServiceContext,
 #     defuser_player_app_client: httpx.AsyncClient,
-#     defuser_player_supervisor: PlayerSupervisor,
+#     defuser_player_context: PlayerContext,
 #     experiment_spec: ExperimentSpec,
 #     mocker: MockerFixture,
 # ) -> Session:
 #     await anyio.sleep(10)  # Ensure the game and player are ready
 #     session = Session(
-#         game=game_supervisor.manifest,
-#         defuser=defuser_player_supervisor.manifest,
+#         game=game_context.manifest,
+#         defuser=defuser_player_context.manifest,
 #         spec=experiment_spec,
 #         redis_url=redis_server_dsn,
 #     )
 #     session.experiment_runner.defuser_player_client._client = defuser_player_app_client
 #     session.experiment_runner.game_client._client = game_app_client
-#     defuser_player_supervisor.game_client._client = game_app_client
+#     defuser_player_context.game_client._client = game_app_client
 
 #     session.experiment_runner.defuser_player_client.recreate_client = mocker.Mock(
 #         return_value=defuser_player_app_client
@@ -44,7 +44,7 @@
 #     session.experiment_runner.game_client.recreate_client = mocker.Mock(
 #         return_value=game_app_client
 #     )
-#     defuser_player_supervisor.game_client.recreate_client = mocker.Mock(
+#     defuser_player_context.game_client.recreate_client = mocker.Mock(
 #         return_value=game_app_client
 #     )
 
@@ -137,13 +137,13 @@
 
 
 # async def test_sync_start_when_a_service_dies(
-#     experiment_runner: SyncExperimentRunner, game_supervisor: GameSupervisor
+#     experiment_runner: SyncExperimentRunner, game_context: GameServiceContext
 # ) -> None:
 #     async with experiment_runner.experiment_exception_handler():
 #         experiment_runner.state = ExperimentState.running
 
 #         # Simulate the game client closing
-#         await game_supervisor.process_manager.terminate()
+#         await game_context.process_manager.terminate()
 #         # Ensure that all the services are ready and synchronized before starting
 #         async with (
 #             experiment_runner.synchronized_experiment_start(),
@@ -189,7 +189,7 @@
 
 
 # async def test_game_over_screen_detected_by_watcher(
-#     experiment_runner: SyncExperimentRunner, game_supervisor: GameSupervisor
+#     experiment_runner: SyncExperimentRunner, game_context: GameServiceContext
 # ) -> None:
 #     async with experiment_runner.active_state_monitors():
 #         # Start the game/mission
@@ -201,7 +201,7 @@
 #         # wait a bit for the lights to turn on
 #         await anyio.sleep(10)
 
-#         _ = await game_supervisor.ktane_client.detonate_bomb()
+#         _ = await game_context.ktane_client.detonate_bomb()
 #         await anyio.sleep(5)
 
 #         # Force update the state watchers
@@ -214,7 +214,7 @@
 
 
 # async def test_game_crash_is_detected_by_experiment_runner(
-#     experiment_runner: SyncExperimentRunner, game_supervisor: GameSupervisor
+#     experiment_runner: SyncExperimentRunner, game_context: GameServiceContext
 # ) -> None:
 #     """Make sure a hard crash is detected by the game state watcher.
 
@@ -227,12 +227,12 @@
 #         await anyio.sleep(10)
 
 #         # Kill the game process
-#         await game_supervisor.process_manager.terminate()
+#         await game_context.process_manager.terminate()
 #         await anyio.sleep(2)
 
 #         # Force update the state watchers
-#         await game_supervisor.send_heartbeat()
-#         assert game_supervisor.heartbeat_event().ready_state == ReadyState.not_ready
+#         await game_context.send_heartbeat()
+#         assert game_context.heartbeat_event().ready_state == ReadyState.not_ready
 #         await experiment_runner.game_state_watcher.update_service_state()
 #         await anyio.sleep(1)
 
@@ -243,11 +243,11 @@
 
 
 # async def test_random_game_crash_is_detected(
-#     experiment_runner: SyncExperimentRunner, game_supervisor: GameSupervisor
+#     experiment_runner: SyncExperimentRunner, game_context: GameServiceContext
 # ) -> None:
 #     async def _crash_game_after_delay(delay: int) -> None:  # noqa: WPS430
 #         await anyio.sleep(delay)
-#         await game_supervisor.process_manager.terminate()
+#         await game_context.process_manager.terminate()
 
 #     # with anyio.fail_after(90):
 #     async with anyio.create_task_group() as tg:
@@ -292,7 +292,7 @@
 
 
 # async def test_reflection_happens_successfully_after_good_game_over(
-#     experiment_runner: SyncExperimentRunner, game_supervisor: GameSupervisor
+#     experiment_runner: SyncExperimentRunner, game_context: GameServiceContext
 # ) -> None:
 #     async with experiment_runner.active_state_monitors():
 #         # Start the game/mission
@@ -304,7 +304,7 @@
 #         # wait a bit for the lights to turn on
 #         await anyio.sleep(10)
 
-#         _ = await game_supervisor.ktane_client.detonate_bomb()
+#         _ = await game_context.ktane_client.detonate_bomb()
 #         await anyio.sleep(5)
 
 #         # Force update the state watchers
@@ -317,7 +317,7 @@
 
 
 # async def test_bomb_state_request_fail_during_reflection_doesnt_crash_experiment(
-#     experiment_runner: SyncExperimentRunner, game_supervisor: GameSupervisor, mocker: MockerFixture
+#     experiment_runner: SyncExperimentRunner, game_context: GameServiceContext, mocker: MockerFixture
 # ) -> None:
 #     # check this with a request fail and a response fail
 #     async with experiment_runner.active_state_monitors():
@@ -330,7 +330,7 @@
 #         # wait a bit for the lights to turn on
 #         await anyio.sleep(10)
 
-#         _ = await game_supervisor.ktane_client.detonate_bomb()
+#         _ = await game_context.ktane_client.detonate_bomb()
 #         await anyio.sleep(5)
 
 #         # Force update the state watchers
@@ -353,7 +353,7 @@
 
 # async def test_timeout_during_player_reflection_doesnt_crash_experiment(
 #     experiment_runner: SyncExperimentRunner,
-#     game_supervisor: GameSupervisor,
+#     game_context: GameServiceContext,
 #     mocker: MockerFixture,
 #     respx_mock: respx.MockRouter,
 # ) -> None:
@@ -366,7 +366,7 @@
 
 #     async def _detonate_bomb_after_delay() -> None:  # noqa: WPS430
 #         await anyio.sleep(10)
-#         _ = await game_supervisor.ktane_client.detonate_bomb()
+#         _ = await game_context.ktane_client.detonate_bomb()
 
 #     async def _detonation_wrapper() -> None:  # noqa: WPS430
 #         async with anyio.create_task_group() as tg:
@@ -389,7 +389,7 @@
 # @parametrize("endpoint", ["buffer", "timestep", "action", "state"])
 # async def test_client_crashed_event_set_after_game_crash_mid_call(
 #     experiment_runner: SyncExperimentRunner,
-#     game_supervisor: GameSupervisor,
+#     game_context: GameServiceContext,
 #     endpoint: str,
 #     respx_mock: respx.MockRouter,
 #     mocker: MockerFixture,
@@ -402,8 +402,8 @@
 #     that everyone can recover gracefully.
 #     """
 #     # Mock the buffer endpoint to crash the game when its called
-#     _ = respx_mock.get(f"{game_supervisor.ktane_client.base_url}/{endpoint}").mock(
-#         side_effect=lambda _: game_supervisor.process_manager.terminate()
+#     _ = respx_mock.get(f"{game_context.ktane_client.base_url}/{endpoint}").mock(
+#         side_effect=lambda _: game_context.process_manager.terminate()
 #     )
 
 #     game_end_spy = mocker.spy(experiment_runner.game_client, "stop_game")

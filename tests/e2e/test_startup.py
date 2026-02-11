@@ -11,8 +11,8 @@ from gptnt.ktane.state.game import GameState
 from gptnt.services.broker import create_redis_broker
 from gptnt.services.events.player import PlayerState
 from gptnt.services.experiment_manager.experiment_manager import ExperimentManager
-from gptnt.services.game.controller import GameController
-from gptnt.services.player.controller import PlayerController
+from gptnt.services.game.service import GameService
+from gptnt.services.player.service import PlayerService
 
 paths = Paths()
 
@@ -25,7 +25,7 @@ async def test_player_service_starts_and_responds_to_get_state() -> None:
     fake_redis = fakeredis.FakeRedis(decode_responses=True)
 
     # Create player controller with mocked dependencies
-    player_controller = PlayerController(
+    player_service = PlayerService(
         uuid="test-player",
         redis=fake_redis,
         broker=broker,
@@ -42,7 +42,7 @@ async def test_player_service_starts_and_responds_to_get_state() -> None:
         # Call get_state via RPC
         _ = await br.publish({}, "player:test-player:commands:get_state")
         # Player should be in idle state
-        assert player_controller.state == PlayerState.idle
+        assert player_service.state == PlayerState.idle
 
 
 @pytest.mark.anyio
@@ -53,26 +53,26 @@ async def test_game_service_starts_and_responds_to_get_game_state() -> None:
     fake_redis = fakeredis.FakeRedis(decode_responses=True)
     game_uuid = uuid4()
 
-    # Create game controller with mocked dependencies
-    game_controller = GameController(redis=fake_redis, broker=broker, uuid=game_uuid)
+    # Create game service with mocked dependencies
+    game_service = GameService(redis=fake_redis, broker=broker, uuid=game_uuid)
 
     async with TestRedisBroker(broker) as br:
         # Call get_game_state via RPC - just verify it doesn't crash
         _ = await br.publish({}, f"game:{game_uuid}:commands:get_game_state")
-        # Game controller exists and has a state monitor
-        assert game_controller.state_monitor is not None
-        assert game_controller.state_monitor.state.value in GameState
+        # Game service exists and has a state monitor
+        assert game_service.state_monitor is not None
+        assert game_service.state_monitor.state.value in GameState
 
 
 @pytest.mark.anyio
 async def test_player_service_tells_em_its_ready(
-    experiment_manager: ExperimentManager, player_controller: PlayerController
+    experiment_manager: ExperimentManager, player_service: PlayerService
 ) -> None:
     """Test that the player service can connect to the EM."""
     await anyio.sleep(5)
 
     for player in experiment_manager.ready_players:
-        if player.uuid == player_controller.uuid:
+        if player.uuid == player_service.uuid:
             break
     else:
         pytest.fail("Player controller UUID not found in EM ready players")
@@ -80,31 +80,29 @@ async def test_player_service_tells_em_its_ready(
 
 @pytest.mark.anyio
 async def test_game_service_tells_em_its_ready(
-    experiment_manager: ExperimentManager, game_controller: GameController
+    experiment_manager: ExperimentManager, game_service: GameService
 ) -> None:
     """Test that the game service can connect to the EM."""
     for game in experiment_manager.ready_games:
-        if game.uuid == game_controller.uuid:
+        if game.uuid == game_service.uuid:
             break
     else:
-        pytest.fail("Game controller UUID not found in EM ready games")
+        pytest.fail("Game service UUID not found in EM ready games")
 
 
 @pytest.mark.anyio
 async def test_multiple_services_connect_to_em(
-    experiment_manager: ExperimentManager,
-    game_controller: GameController,
-    player_controller: PlayerController,
+    experiment_manager: ExperimentManager, game_service: GameService, player_service: PlayerService
 ) -> None:
     """Test that the EM can connect to the game and player services."""
     for game in experiment_manager.ready_games:
-        if game.uuid == game_controller.uuid:
+        if game.uuid == game_service.uuid:
             break
     else:
-        pytest.fail("Game controller UUID not found in EM ready games")
+        pytest.fail("Game service UUID not found in EM ready games")
 
     for player in experiment_manager.ready_players:
-        if player.uuid == player_controller.uuid:
+        if player.uuid == player_service.uuid:
             break
     else:
-        pytest.fail("Player supervisor UUID not found in EM ready players")
+        pytest.fail("Player service UUID not found in EM ready players")

@@ -8,6 +8,7 @@ from pydantic import UUID4
 from gptnt.players.ai.action_predictor import ActionPredictor
 from gptnt.players.ai.input_builder import AgentInputBuilder
 from gptnt.players.ai.messages.message_history import MessageHistory
+from gptnt.players.feedback.nobf import NaughtyOutputBehaviourFeedbackGenerator
 from gptnt.players.metrics.recorder import ExperimentPlayerRecorder
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
@@ -21,11 +22,12 @@ from gptnt.services.player.message_handler import IncomingMessageHandler
 
 
 @dataclass(kw_only=True)
-class PlayerSupervisor(HeartbeatBroadcaster):
-    """Supervisor for the player.
+class PlayerServiceContext(HeartbeatBroadcaster):
+    """Context for the player service instance.
 
-    Just brings together the various components with the heartbeat to form the main player service.
-    No logic is done here, that's delegated to the various routes done elsewhere.
+    This composes the various player components and manages the shared state to help the actual
+    service. No logic is done here, that's delegated to the various components and the API routes
+    that use them.
 
     I'm hoping that in this way, we can keep things clearer but also nice and explicit about what
     is happening and who is doing what by deferring ALL of that logic to the various components and
@@ -44,6 +46,7 @@ class PlayerSupervisor(HeartbeatBroadcaster):
     # Components that need to be reset after each experiment
     experiment_recorder: ExperimentPlayerRecorder
     incoming_message_handler: IncomingMessageHandler
+    nobf_generator: NaughtyOutputBehaviourFeedbackGenerator
 
     # This is set when the player is configured for an experiment
     experiment_descriptor: ExperimentDescriptor = field(init=False, repr=False)

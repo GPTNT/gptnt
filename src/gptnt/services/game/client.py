@@ -13,7 +13,7 @@ from gptnt.ktane.client import RawObservationFrames
 from gptnt.ktane.mission_spec import KtaneMissionConfig, KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.game import GameState
-from gptnt.services.game.controller import GameCommand
+from gptnt.services.game.service import GameCommand
 from gptnt.services.timeouts import ServiceTimeouts
 
 logger = structlog.get_logger()

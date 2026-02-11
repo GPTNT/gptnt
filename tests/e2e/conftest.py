@@ -22,8 +22,8 @@ from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.players.specification import PlayerProtocol
 from gptnt.services.experiment_manager.experiment_manager import ExperimentManager
-from gptnt.services.game.controller import GameController
-from gptnt.services.player.controller import PlayerController
+from gptnt.services.game.service import GameService
+from gptnt.services.player.service import PlayerService
 
 paths = Paths()
 
@@ -71,10 +71,10 @@ async def player_app(redis_server_dsn: RedisDsn, player_role: str) -> AsyncGener
 
 
 @fixture
-async def player_controller(player_app: FastStream) -> PlayerController:
-    """Fixture to get the PlayerSupervisor from the Player app."""
+async def player_service(player_app: FastStream) -> PlayerService:
+    """Fixture to get the PlayerService from the Player app."""
     await anyio.sleep(5)
-    return player_app.context.get("player_controller")
+    return player_app.context.get("player_service")
 
 
 # @fixture
@@ -126,12 +126,12 @@ async def game_app(redis_server_dsn: RedisDsn) -> AsyncGenerator[FastStream]:
 
 
 @fixture
-async def game_controller(game_app: FastStream) -> GameController:
-    """Fixture to create a GameController instance."""
+async def game_service(game_app: FastStream) -> GameService:
+    """Fixture to create a GameService instance."""
     # Make sure the EM has the game and player
     await anyio.sleep(15)
 
-    return game_app.context.get("game_controller")
+    return game_app.context.get("game_service")
 
 
 # @fixture
@@ -158,10 +158,10 @@ async def defuser_player_app(redis_server_dsn: RedisDsn) -> AsyncGenerator[FastS
 
 
 @fixture
-async def defuser_player_controller(defuser_player_app: FastStream) -> PlayerController:
-    """Fixture to get the PlayerController from the Player app."""
+async def defuser_player_service(defuser_player_app: FastStream) -> PlayerService:
+    """Fixture to get the PlayerService from the Player app."""
     await anyio.sleep(5)
-    return defuser_player_app.context.get("player_controller")
+    return defuser_player_app.context.get("player_service")
 
 
 # @fixture

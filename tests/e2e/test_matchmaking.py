@@ -5,8 +5,8 @@ from pytest_mock import MockerFixture
 
 from gptnt.experiments.experiments import ExperimentSpec
 from gptnt.services.experiment_manager.experiment_manager import ExperimentManager
-from gptnt.services.game.controller import GameController
-from gptnt.services.player.controller import PlayerController
+from gptnt.services.game.service import GameService
+from gptnt.services.player.service import PlayerService
 
 
 @fixture
@@ -37,8 +37,8 @@ async def test_specs_can_be_added_via_endpoint(
 @pytest.mark.anyio
 async def test_session_created_when_valid_match_exists(
     experiment_manager: ExperimentManager,
-    game_controller: GameController,
-    defuser_player_controller: PlayerController,
+    game_service: GameService,
+    defuser_player_service: PlayerService,
     experiment_spec: ExperimentSpec,
     mocker: MockerFixture,
 ) -> None:
@@ -46,16 +46,16 @@ async def test_session_created_when_valid_match_exists(
     _ = mocker.patch("gptnt.services.sessions.session.Session.start_experiment", autospec=True)
 
     for game in experiment_manager.ready_games:
-        if game.uuid == game_controller.uuid:
+        if game.uuid == game_service.uuid:
             break
     else:
-        pytest.fail("Game controller UUID not found in EM ready games")
+        pytest.fail("Game service UUID not found in EM ready games")
 
     for player in experiment_manager.ready_players:
-        if player.uuid == defuser_player_controller.uuid:
+        if player.uuid == defuser_player_service.uuid:
             break
     else:
-        pytest.fail("Player controller UUID not found in EM ready players")
+        pytest.fail("Player service UUID not found in EM ready players")
 
     experiment_manager.specs.add(experiment_spec)
     await experiment_manager._try_match_experiments()
@@ -65,6 +65,6 @@ async def test_session_created_when_valid_match_exists(
     assert not len(experiment_manager.ready_games)
     session = next(iter(experiment_manager._sessions))
 
-    assert session.defuser.uuid == defuser_player_controller.uuid
-    assert session.game.uuid == game_controller.uuid
+    assert session.defuser.uuid == defuser_player_service.uuid
+    assert session.game.uuid == game_service.uuid
     assert session.spec == experiment_spec

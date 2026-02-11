@@ -12,8 +12,8 @@ from gptnt.common.paths import Paths, remove_empty_experiment_recorder_outputs
 from gptnt.ktane.manual import KtaneManualPaths
 from gptnt.services.broker import create_redis_broker
 from gptnt.services.game.client import GameClient
-from gptnt.services.player.controller import PlayerController
 from gptnt.services.player.message_handler import IncomingMessageHandler
+from gptnt.services.player.service import PlayerService
 
 _ = logfire.configure(service_name="player", scrubbing=False)
 
@@ -47,16 +47,16 @@ def main(
     player_partial.keywords["game_client"] = GameClient(broker=broker)
     player_partial.keywords["incoming_message_handler"] = IncomingMessageHandler(broker=broker)
 
-    logger.info("Instantiating player controller")
-    player_controller = PlayerController(**player_partial.keywords, broker=broker)
+    logger.info("Instantiating player service")
+    player_service = PlayerService(**player_partial.keywords, broker=broker)
 
     app = FastStream(
         broker,
-        lifespan=player_controller.lifespan,
+        lifespan=player_service.lifespan,
         after_shutdown=[logfire.shutdown],
         logger=get_logger("faststream"),
     )
-    app.context.set_global("player_controller", player_controller)
+    app.context.set_global("player_service", player_service)
 
     logger.info("Starting FastStream application")
     return app

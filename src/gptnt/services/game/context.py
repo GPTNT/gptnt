@@ -24,7 +24,7 @@ class GameProcessDiedError(Exception):
 
 
 @dataclass(kw_only=True)
-class GameSupervisor(HeartbeatBroadcaster):
+class GameServiceContext(HeartbeatBroadcaster):
     """Run a single instance of a game."""
 
     service_name: str = "game"

@@ -17,13 +17,12 @@ from gptnt.ktane.manual import KtaneManualPaths
 from gptnt.players.actions import AgentCallResult, PlayerOutputType
 from gptnt.players.ai.input_builder import AgentInputBuilder
 from gptnt.players.ai.messages.message_history import MessageHistory
-from gptnt.players.feedback.nobf import NaughtyOutputBehaviourFeedbackGenerator
 from gptnt.players.specification import PlayerProtocol
 from gptnt.prompts.manual import load_manual_as_prompt
 from gptnt.prompts.prompt_cache import PromptCache
 from gptnt.services.events.player import PlayerMessage, PlayerState, StopPlayerEvent
 from gptnt.services.experiment_descriptor import ExperimentDescriptor
-from gptnt.services.player.supervisor import PlayerSupervisor
+from gptnt.services.player.context import PlayerServiceContext
 
 logger = structlog.get_logger()
 
@@ -44,11 +43,14 @@ class _ConfigureExperimentPayload(BaseModel):
 
 
 @dataclass(kw_only=True)
-class PlayerController(PlayerSupervisor):
-    """Controller for the player service with all Redis RPC command handlers."""
+class PlayerService(PlayerServiceContext):
+    """Service for a player instance.
+
+    Registers Redis RPC handlers and coordinates the player lifecycle while delegating the
+    underlying work to the core player components.
+    """
 
     broker: RedisBroker
-    nobf_generator: NaughtyOutputBehaviourFeedbackGenerator
 
     _task_group: TaskGroup | None = field(default=None, init=False, repr=False)
 

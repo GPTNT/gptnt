@@ -14,7 +14,7 @@ from gptnt.ktane.mission_spec import KtaneMissionConfig
 from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.game import GameState
 from gptnt.services.events.heartbeat import ReadyState
-from gptnt.services.game.supervisor import GameSupervisor
+from gptnt.services.game.context import GameServiceContext
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -37,7 +37,7 @@ GameCommand = Literal[
 
 
 @dataclass(kw_only=True)
-class GameController(GameSupervisor):
+class GameService(GameServiceContext):
     """Handle game commands from Redis RPC requests."""
 
     broker: RedisBroker
@@ -119,7 +119,7 @@ class GameController(GameSupervisor):
 
         If we are not ready, it means the game has already been rebooted and should not be rebooted
         again otherwise it will just hang forever. Therefore only terminate the process if we are
-        in the ready state. If we are not ready, the GameSupervisor will take care of it.
+        in the ready state. If we are not ready, the GameServiceContext will take care of it.
         """
         logger.debug("Stopping game via controller")
         if self.ready_state == ReadyState.ready:

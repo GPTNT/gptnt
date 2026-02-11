@@ -10,7 +10,7 @@ from structlog import get_logger
 from gptnt.common.logger import configure_logging
 from gptnt.ktane.game_settings import KtaneSettings
 from gptnt.services.broker import create_redis_broker
-from gptnt.services.game.controller import GameController
+from gptnt.services.game.service import GameService
 
 _ = logfire.configure(service_name="game", scrubbing=False)
 
@@ -29,15 +29,15 @@ def main(*, redis_dsn: str | RedisDsn = "redis://localhost:6379") -> FastStream:
 
     heartbeat_redis = Redis.from_url(str(redis_dsn), decode_responses=True)
     broker = create_redis_broker(redis_dsn, client_name="game", logger=get_logger("faststream"))
-    game_controller = GameController(redis=heartbeat_redis, uuid=service_uuid, broker=broker)
+    game_service = GameService(redis=heartbeat_redis, uuid=service_uuid, broker=broker)
 
     app = FastStream(
         broker,
-        lifespan=game_controller.lifespan,
+        lifespan=game_service.lifespan,
         after_shutdown=[logfire.shutdown],
         logger=get_logger("faststream"),
     )
-    app.context.set_global("game_controller", game_controller)
+    app.context.set_global("game_service", game_service)
     return app
 
 

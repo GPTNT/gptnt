@@ -11,7 +11,7 @@ from gptnt.ktane.state.bomb import BombState
 from gptnt.players.specification import PlayerProtocol
 from gptnt.services.events.player import PlayerMessage, StopPlayerEvent
 from gptnt.services.experiment_descriptor import ExperimentDescriptor
-from gptnt.services.player.controller import PlayerCommand
+from gptnt.services.player.service import PlayerCommand
 from gptnt.services.timeouts import ServiceTimeouts
 
 logger = structlog.get_logger()
