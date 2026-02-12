@@ -16,7 +16,7 @@ action_predictor:
   agent:
     model:
       _target_: pydantic_ai.models.openai.OpenAIModel
-      model_name: gpt-5.1-chat
+      model_name: gpt-5.2
       provider:
         _target_: pydantic_ai.providers.azure.AzureProvider
         # api_key: ${env:AZURE_OPENAI_API_KEY}
