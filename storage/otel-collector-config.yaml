@@ -78,6 +78,15 @@ receivers:
         max_request_body_size: 33554432
 
 processors:
+  filter/traces:
+    error_mode: ignore
+    traces:
+      span:
+        - name == "Processed"
+        - name == "Received"
+        - attributes["messaging.operation"] == "process"
+        - attributes["messaging.operation"] == "publish"
+
   filter/logs:
     logs:
       log_record:
@@ -158,7 +167,7 @@ service:
       exporters: [otlphttp/logfire]
     traces:
       receivers: [otlp]
-      processors: [batch]
+      processors: [filter/traces, batch]
       exporters: [otlphttp/logfire]
     metrics:
       receivers: [otlp]
