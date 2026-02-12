@@ -12,7 +12,7 @@ defaults:
 task_name: evaluation
 
 player:
-  _target_: gptnt.services.player.supervisor.PlayerSupervisor
+  _target_: gptnt.services.player.service.PlayerService
   _partial_: true
 
   redis:
