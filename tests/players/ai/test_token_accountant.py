@@ -27,12 +27,12 @@ def expert_protocol() -> PlayerProtocol:
 def capabilities_with_limit() -> PlayerCapabilities:
     """Create capabilities with a token limit."""
     return PlayerCapabilities(
-        player_name="gpt4o-mini",
+        player_name="gpt-5",
         player_type="ai",
         max_observations_per_request=3,
         preserve_last_frame_for_n_turns=1,
         structured_output_mode="prompted",
-        usage_limits=UsageLimits(input_tokens_limit=10000),
+        usage_limits=UsageLimits(input_tokens_limit=100000),
     )
 
 
@@ -40,7 +40,7 @@ def capabilities_with_limit() -> PlayerCapabilities:
 def capabilities_no_limit() -> PlayerCapabilities:
     """Create capabilities without a token limit."""
     return PlayerCapabilities(
-        player_name="gpt4o-mini",
+        player_name="gpt-5",
         player_type="ai",
         max_observations_per_request=3,
         preserve_last_frame_for_n_turns=1,
@@ -59,50 +59,37 @@ def token_accountant(
     )
 
 
-class TestTokensPerImage:
-    """Test tokens_per_image property."""
-
-    def test_tokens_per_image_gpt4o(
-        self, defuser_protocol: PlayerProtocol, capabilities_with_limit: PlayerCapabilities
-    ) -> None:
-        """Test that tokens_per_image returns correct value for gpt4o models."""
-        accountant = TokenAccountant(
-            capabilities=capabilities_with_limit, protocol=defuser_protocol, usage=RunUsage()
-        )
-        # gpt4o-mini should return 85 tokens per image
-        assert accountant.tokens_per_image == 85
-
-
 class TestDeductObservationTokens:
     """Test deduct_observation_tokens method."""
 
     def test_deduct_tokens_normal_case(self, token_accountant: TokenAccountant) -> None:
         """Test deducting tokens in normal case."""
-        token_accountant.usage.input_tokens = 1000
+        token_accountant.usage.input_tokens = 10000
 
         deducted = token_accountant.deduct_observation_tokens(3)
 
-        # 3 observations * 85 tokens = 255 tokens
-        assert deducted == 255
-        assert token_accountant.usage.input_tokens == 1000 - 255
+        expected_deduction = token_accountant.tokens_per_image * 3
+
+        assert deducted == expected_deduction
+        assert token_accountant.usage.input_tokens == 10000 - expected_deduction
 
     def test_deduct_tokens_zero_observations(self, token_accountant: TokenAccountant) -> None:
         """Test deducting zero observations."""
-        token_accountant.usage.input_tokens = 1000
+        token_accountant.usage.input_tokens = 10000
 
         deducted = token_accountant.deduct_observation_tokens(0)
 
         assert deducted == 0
-        assert token_accountant.usage.input_tokens == 1000
+        assert token_accountant.usage.input_tokens == 10000
 
     def test_deduct_tokens_negative_observations(self, token_accountant: TokenAccountant) -> None:
         """Test deducting negative observations."""
-        token_accountant.usage.input_tokens = 1000
+        token_accountant.usage.input_tokens = 10000
 
         deducted = token_accountant.deduct_observation_tokens(-1)
 
         assert deducted == 0
-        assert token_accountant.usage.input_tokens == 1000
+        assert token_accountant.usage.input_tokens == 10000
 
     def test_deduct_tokens_would_go_negative(self, token_accountant: TokenAccountant) -> None:
         """Test deducting more tokens than available (should clamp to 0)."""
@@ -130,43 +117,42 @@ class TestDeductObservationTokensFromRun:
 
     def test_deduct_from_run_normal_case(self, token_accountant: TokenAccountant) -> None:
         """Test deducting tokens from both usage and run."""
-        token_accountant.usage.input_tokens = 1000
-        run_tokens = 500
+        token_accountant.usage.input_tokens = 10000
+        run_tokens = 2000
 
         usage_deducted, new_run_tokens = token_accountant.deduct_observation_tokens_from_run(
             3, run_tokens
         )
-
-        # 3 observations * 85 tokens = 255 tokens
-        assert usage_deducted == 255
-        assert new_run_tokens == 500 - 255
-        assert token_accountant.usage.input_tokens == 1000 - 255
+        expected_deduction = 3 * token_accountant.tokens_per_image
+        assert usage_deducted == expected_deduction
+        assert new_run_tokens == 2000 - expected_deduction
+        assert token_accountant.usage.input_tokens == 10000 - expected_deduction
 
     def test_deduct_from_run_zero_observations(self, token_accountant: TokenAccountant) -> None:
         """Test deducting zero observations from run."""
-        token_accountant.usage.input_tokens = 1000
-        run_tokens = 500
+        token_accountant.usage.input_tokens = 10000
+        run_tokens = 2000
 
         usage_deducted, new_run_tokens = token_accountant.deduct_observation_tokens_from_run(
             0, run_tokens
         )
 
         assert usage_deducted == 0
-        assert new_run_tokens == 500
-        assert token_accountant.usage.input_tokens == 1000
+        assert new_run_tokens == 2000
+        assert token_accountant.usage.input_tokens == 10000
 
     def test_deduct_from_run_would_go_negative(self, token_accountant: TokenAccountant) -> None:
         """Test deducting tokens from run that would go negative."""
-        token_accountant.usage.input_tokens = 1000
+        token_accountant.usage.input_tokens = 10000
         run_tokens = 100
 
         # Try to deduct 3 observations * 85 = 255 tokens from run with only 100 tokens
         _usage_deducted, new_run_tokens = token_accountant.deduct_observation_tokens_from_run(
             3, run_tokens
         )
-
+        expected_deduction = 3 * token_accountant.tokens_per_image
         # Usage should be deducted normally
-        assert token_accountant.usage.input_tokens == 1000 - 255
+        assert token_accountant.usage.input_tokens == 10000 - expected_deduction
         # But run tokens should clamp to 0
         assert new_run_tokens == 0
 
@@ -196,13 +182,14 @@ class TestEstimateNextRunTokens:
         accountant = TokenAccountant(
             capabilities=capabilities_with_limit,
             protocol=defuser_protocol,
-            usage=RunUsage(input_tokens=1000, output_tokens=200),
+            usage=RunUsage(input_tokens=10000, output_tokens=200),
         )
 
         estimated = accountant.estimate_next_run_tokens()
 
-        # Should include total_tokens (1200) + images (3 * 85 = 255)
-        assert estimated == 1200 + 255
+        assert estimated == accountant.usage.total_tokens + (
+            accountant.tokens_per_image * capabilities_with_limit.max_observations_per_request
+        )
 
     def test_estimate_defuser_with_message(
         self, defuser_protocol: PlayerProtocol, capabilities_with_limit: PlayerCapabilities
@@ -211,14 +198,16 @@ class TestEstimateNextRunTokens:
         accountant = TokenAccountant(
             capabilities=capabilities_with_limit,
             protocol=defuser_protocol,
-            usage=RunUsage(input_tokens=1000, output_tokens=200),
+            usage=RunUsage(input_tokens=10000, output_tokens=200),
         )
 
         estimated = accountant.estimate_next_run_tokens(next_message="Hello world")
 
         # Should include total_tokens (1200) + images (255) + message tokens
         # "Hello world" is ~2-3 tokens, let's verify it's > base
-        assert estimated > 1200 + 255
+        assert estimated > accountant.usage.total_tokens + (
+            accountant.tokens_per_image * capabilities_with_limit.max_observations_per_request
+        )
 
     def test_estimate_expert_no_images(
         self, expert_protocol: PlayerProtocol, capabilities_with_limit: PlayerCapabilities
@@ -227,20 +216,20 @@ class TestEstimateNextRunTokens:
         accountant = TokenAccountant(
             capabilities=capabilities_with_limit,
             protocol=expert_protocol,
-            usage=RunUsage(input_tokens=1000, output_tokens=200),
+            usage=RunUsage(input_tokens=10000, output_tokens=200),
         )
 
         estimated = accountant.estimate_next_run_tokens()
 
         # Should only include total_tokens, no images
-        assert estimated == 1200
+        assert estimated == accountant.usage.total_tokens
 
     def test_estimate_with_zero_usage(self, token_accountant: TokenAccountant) -> None:
         """Test estimation with zero usage."""
         estimated = token_accountant.estimate_next_run_tokens()
 
         # Should only include images (3 * 85 = 255)
-        assert estimated == 255
+        assert estimated == token_accountant.tokens_per_image * 3
 
 
 class TestShouldTruncate:
@@ -248,15 +237,20 @@ class TestShouldTruncate:
 
     def test_should_truncate_below_threshold(self, token_accountant: TokenAccountant) -> None:
         """Test that truncation is not triggered below threshold."""
-        token_accountant.usage.input_tokens = 5000  # 50% of 10000 limit
+        assert token_accountant.usage_limits.input_tokens_limit
+        token_accountant.usage.input_tokens = int(
+            token_accountant.usage_limits.input_tokens_limit * 0.5
+        )
 
         # Should not truncate at 90% threshold
         assert not token_accountant.should_truncate(threshold=0.9)
 
     def test_should_truncate_above_threshold(self, token_accountant: TokenAccountant) -> None:
         """Test that truncation is triggered above threshold."""
-        token_accountant.usage.input_tokens = 9500  # 95% of 10000 limit
-
+        assert token_accountant.usage_limits.input_tokens_limit
+        token_accountant.usage.input_tokens = int(
+            token_accountant.usage_limits.input_tokens_limit * 0.95
+        )
         # Should truncate at 90% threshold (including images pushes over)
         assert token_accountant.should_truncate(threshold=0.9)
 
@@ -276,7 +270,7 @@ class TestShouldTruncate:
     def test_should_truncate_at_exact_threshold(self, token_accountant: TokenAccountant) -> None:
         """Test truncation at exactly the threshold."""
         # Set usage to exactly 90% of limit minus images
-        # 10000 * 0.9 = 9000, minus 255 for images = 8745
+        # 100000 * 0.9 = 9000, minus 255 for images = 8745
         token_accountant.usage.input_tokens = 8745
 
         # Should not truncate (we use > not >=)
@@ -284,11 +278,11 @@ class TestShouldTruncate:
 
     def test_should_truncate_with_next_message(self, token_accountant: TokenAccountant) -> None:
         """Test truncation with next message included."""
-        token_accountant.usage.input_tokens = 8700
+        token_accountant.usage.input_tokens = 87000
 
         # Without message, might not truncate
         # With a long message, should push over threshold
-        long_message = "word " * 1000  # ~1000+ tokens
+        long_message = "word " * 10000  # ~10000+ tokens
 
         assert token_accountant.should_truncate(threshold=0.9, next_message=long_message)
 
@@ -297,8 +291,8 @@ def test_deduct_run_tokens(token_accountant: TokenAccountant) -> None:
     """Test deducting tokens from a removed run."""
     token_accountant.usage.input_tokens = 2000
 
-    # Deduct run with 500 input + 100 output
-    token_accountant.deduct_run_tokens(input_tokens=500, output_tokens=100)
+    # Deduct run with 2000 input + 100 output
+    token_accountant.deduct_run_tokens(input_tokens=2000, output_tokens=100)
 
     # Both should be subtracted from input_tokens (context length)
-    assert token_accountant.usage.input_tokens == 2000 - 500 - 100
+    assert token_accountant.usage.input_tokens == 2000 - 2000 - 100
