@@ -30,6 +30,7 @@ class IncomingMessageHandler:
     # Internal state
     _subscriber: ChannelSubscriber | None = field(default=None, init=False, repr=False)
     _unpulled_messages: list[str] = field(default_factory=list, init=False)
+    _unpulled_feedback: list[str] = field(default_factory=list, init=False)
 
     def configure_for_experiment(
         self, *, experiment_descriptor: ExperimentDescriptor, my_role: PlayerRole
@@ -106,32 +107,55 @@ class IncomingMessageHandler:
         """Pull all pending messages from the queue.
 
         Returns:
-            A single string with all messages joined by newlines, or a sentinel value if no messages.
+            A single string with all pending feedback and normal messages joined by
+            newlines. If there are no new (non-feedback) messages to return,
+            ``NO_NEW_MESSAGES_SENTINEL`` is appended to the result so callers can
+            distinguish the "no new messages" case.
         """
+        messages = []
+
+        messages.extend(self._unpulled_feedback)
+        messages.extend(self._unpulled_messages)
+
+        # If there were no messages, we add the sentinel
         if not self._unpulled_messages:
             logger.debug("No new messages to pull")
-            return NO_NEW_MESSAGES_SENTINEL
+            messages.append(NO_NEW_MESSAGES_SENTINEL)
 
-        # Join all messages and clear the queue
-        messages = "\n".join(self._unpulled_messages)
-        logger.debug("Pulled messages from queue", message_count=len(self._unpulled_messages))
         self._unpulled_messages.clear()
+        self._unpulled_feedback.clear()
 
-        return messages
+        return "\n".join(messages)
 
     def handle_new_message(self, message: str) -> None:
         """Handle incoming messages."""
         self._unpulled_messages.append(message)
         logger.debug(
-            "Received message ",
+            "Received message",
             message=message,
             channel=self._get_my_channel(),
             queue_size=len(self._unpulled_messages),
         )
 
+    def handle_feedback_message(self, message: str) -> None:
+        """Handle feedback messages.
+
+        These are handled differently from the regular messages because without that, we are not
+        then also getting the NO_NEW_MESSAGES_SENTINEL which leads to big issues with the AI
+        repeating itself.
+        """
+        self._unpulled_feedback.append(message)
+        logger.debug(
+            "Received feedback",
+            message=message,
+            channel=self._get_my_channel(),
+            feedback_queue_size=len(self._unpulled_feedback),
+        )
+
     def reset(self) -> None:
         """Reset the message handler state."""
         self._unpulled_messages.clear()
+        self._unpulled_feedback.clear()
         self.session_id = None
         self.my_role = None
         self.other_role = None

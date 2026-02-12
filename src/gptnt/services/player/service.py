@@ -105,7 +105,7 @@ class PlayerService(PlayerServiceContext):
 
     async def handle_feedback(self, feedback: PlayerMessage[str]) -> bool:
         """Handle feedback message."""
-        self.incoming_message_handler.handle_new_message(feedback.message)
+        self.incoming_message_handler.handle_feedback_message(feedback.message)
         logger.debug("Received feedback", feedback=feedback.message)
         return True
 
