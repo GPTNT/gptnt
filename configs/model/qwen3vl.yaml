@@ -9,6 +9,9 @@ capabilities:
   thinking_method: thinking-out-loud
   include_schema_in_instructions: true
   coordinate_mode: normalised
+  usage_limits:
+    input_tokens_limit: 261143
+    output_tokens_limit: 1001
   image_dimensions:
     _target_: gptnt.common.image_ops.ImageDimensions
     width: 504
