@@ -240,7 +240,7 @@ async def test_send_request_returns_do_nothing_when_max_tokens_exceeded(
     call_result = await predictor.send_request_to_agent(message_input="Test message")
 
     # Assertions
-    assert call_result.ai_response_error == [AIResponseErrorType.max_tokens_exceeded]
+    assert call_result.ai_response_error == [AIResponseErrorType.max_output_tokens_exceeded]
     assert isinstance(call_result.output, DoNothingAction)
     assert call_result.raw_output != ""
     assert call_result.raw_output is not None

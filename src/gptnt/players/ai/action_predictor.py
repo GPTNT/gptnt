@@ -15,7 +15,7 @@ from gptnt.players.ai.exception_recovery import (
 from gptnt.players.ai.input_builder import AgentMessageInput
 from gptnt.players.ai.messages.message_history import MessageHistory
 from gptnt.players.deps import PlayerDeps, load_instructions_from_deps
-from gptnt.players.exceptions import ExceededMaxTokensError
+from gptnt.players.exceptions import ExceededMaxOutputTokensError
 from gptnt.players.reasoning_parser.reasoning_parser import ReasoningParser
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.prompts.reflection import load_reflection_prompt
@@ -46,7 +46,7 @@ async def execute_request[DepsT, ModelOutputT, ParserOutputT](
             full_output += model_output.response.thinking
         if model_output.response.text:
             full_output += model_output.response.text
-        raise ExceededMaxTokensError(output=full_output)
+        raise ExceededMaxOutputTokensError(output=full_output)
 
     # importantly, while the model might not need to return a structured output type, we still
     # need to parse out the final action correctly

@@ -33,7 +33,7 @@ class NaughtyOutputBehaviourFeedbackGenerator:
             AIResponseErrorType.content_after_action_complete: self._handle_content_after_action_complete,
             AIResponseErrorType.malformed_tag_structure: self._handle_malformed_tag_structure,
             # Infra/external errors (note: guardrail violations are not handled here)
-            AIResponseErrorType.max_tokens_exceeded: self._handle_max_tokens_exceeded,
+            AIResponseErrorType.max_output_tokens_exceeded: self._handle_max_tokens_exceeded,
             AIResponseErrorType.server_error: self._handle_server_error,
             # Fallback
             AIResponseErrorType.unknown: self._handle_unknown_error,

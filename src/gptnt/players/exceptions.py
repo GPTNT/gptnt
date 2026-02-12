@@ -35,8 +35,8 @@ class AIResponseErrorType(Enum):
     """Tags are malformed (e.g., missing closing tag, overlapping/nested)."""
 
     # Infra/external errors
-    max_tokens_exceeded = "max_tokens_exceeded"
-    """Model exceeded max token limit."""
+    max_output_tokens_exceeded = "max_output_tokens_exceeded"
+    """Model exceeded max output tokens."""
     server_error = "server_error"
     """Server-side error from the AI provider."""
     guardrail_violation = "guardrail_violation"
@@ -60,12 +60,12 @@ class InvalidResponseError(ValueError):
         self.response_error = response_error
 
 
-class ExceededMaxTokensError(InvalidResponseError):
-    """Exception raised when the output exceeds max tokens."""
+class ExceededMaxOutputTokensError(InvalidResponseError):
+    """Exception raised when the output exceeds max output tokens."""
 
     def __init__(self, message: str | None = None, *, output: str | None) -> None:
-        message = message or "Output exceeds maximum token limit."
-        super().__init__(message, response_error=[AIResponseErrorType.max_tokens_exceeded])
+        message = message or "Output exceeds maximum output token limit."
+        super().__init__(message, response_error=[AIResponseErrorType.max_output_tokens_exceeded])
         self.output = output
 
 

@@ -17,7 +17,7 @@ from gptnt.players.actions import AgentCallResult, DoNothingAction, SendMessageA
 from gptnt.players.ai.messages.message_transformer import ensure_messages_have_valid_final_response
 from gptnt.players.exceptions import (
     AIResponseErrorType,
-    ExceededMaxTokensError,
+    ExceededMaxOutputTokensError,
     InvalidOutputFormatError,
     ReasoningParsingError,
 )
@@ -115,10 +115,10 @@ class GuardrailViolationRecovery(ExceptionRecoveryStrategy[AgentRunError]):
         )
 
 
-class ExceededMaxTokensRecovery(
-    DoNothingRecoveryStrategy[UnexpectedModelBehavior | ExceededMaxTokensError]
+class ExceededMaxOutputTokensRecovery(
+    DoNothingRecoveryStrategy[UnexpectedModelBehavior | ExceededMaxOutputTokensError]
 ):
-    """Handle situations where the model output is refused due to exceeding max tokens."""
+    """Handle situations where the model output is refused due to exceeding max output tokens."""
 
     @override
     def can_handle(self, *, exception: Exception, new_messages: list[ModelMessage]) -> bool:
@@ -126,21 +126,21 @@ class ExceededMaxTokensRecovery(
             new_messages
             and isinstance(new_messages[-1], ModelResponse)
             and new_messages[-1].finish_reason == "length"
-        ) or isinstance(exception, ExceededMaxTokensError)
+        ) or isinstance(exception, ExceededMaxOutputTokensError)
 
     @override
     def recover(
         self,
         *,
-        exception: UnexpectedModelBehavior | ExceededMaxTokensError,
+        exception: UnexpectedModelBehavior | ExceededMaxOutputTokensError,
         new_messages: list[ModelMessage],
         raw_model_output: str | None = None,
         **kwargs: Any,
     ) -> AgentCallResult[DoNothingAction]:
-        logger.warning("Exceeded maximum tokens", error=str(exception))
+        logger.warning("Exceeded maximum output tokens", error=str(exception))
         return self.recover_do_nothing(
             exception=exception,
-            ai_response_error=[AIResponseErrorType.max_tokens_exceeded],
+            ai_response_error=[AIResponseErrorType.max_output_tokens_exceeded],
             new_messages=new_messages,
             raw_model_output=raw_model_output,
         )
@@ -348,7 +348,7 @@ class ReflectionFormatRecovery(ExceptionRecoveryStrategy[InvalidOutputFormatErro
 
 DEFAULT_RECOVERY_STRATEGIES = (
     GuardrailViolationRecovery(),
-    ExceededMaxTokensRecovery(),
+    ExceededMaxOutputTokensRecovery(),
     FailedReasoningParserRecovery(),
     InvalidFormatRecovery(),
     GoogleServerErrorRecovery(),
