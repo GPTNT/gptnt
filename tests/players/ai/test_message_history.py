@@ -57,7 +57,7 @@ def mock_image_bytes() -> bytes:
 @fixture
 def tokens_per_image() -> int:
     """Number of tokens per image observation."""
-    return estimate_tokens_for_image_per_model("test", width=640, height=480)
+    return estimate_tokens_for_image_per_model("test", long_side=640, short_side=480)
 
 
 @fixture

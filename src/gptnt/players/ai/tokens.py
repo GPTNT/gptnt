@@ -1,4 +1,3 @@
-import math
 from functools import lru_cache
 
 import tiktoken
@@ -7,29 +6,33 @@ from tiktoken.model import MODEL_PREFIX_TO_ENCODING
 TIKTOKEN_ENCODING_NAME = MODEL_PREFIX_TO_ENCODING["gpt-5-"]
 
 
-def estimate_tokens_for_image_per_model(model: str, *, width: int, height: int) -> int:  # noqa: WPS212
-    """Get the computation function for the model."""
+def estimate_tokens_for_image_per_model(model: str, *, long_side: int, short_side: int) -> int:  # noqa: WPS212, WPS218
+    """Get the computation function for the model.
+
+    This needs to be improved to support more models and be more accurate.
+    """
     model = model.lower()
-    if "claude" in model:
-        return math.ceil(width * height / 750)
-    if "gemini" in model:
-        # Even though we use the tile calc, each tile is less than 768x768 so it only counts as 1
-        # tile, so its just 258 tokens per image.
-        return 258
-    if "gpt4o" in model or "gpt-4o" in model or "gpt5" in model or "gpt-5" in model:
-        return 85
-    if "qwen" in model:
-        # resized to 504x504 (multiples of 28)
-        # patch size is 14x14 - 2x2 token merging
-        # (504 / 14)^2 / 2^2 = 324
-        return 324
-    if "internvl3" in model:
-        # resized to 448x448 (multiples of 448)
-        # patch size is 14x14 - pixel unshuffle == 2x2 token reduction
-        # (448 / 14)^2 / 2^2 = 256
-        return 256
+    if "claude45" in model:
+        assert long_side == 640  # noqa: PLR2004
+        assert short_side == 480  # noqa: PLR2004
+        return 424
+    if "gemini-3" in model:
+        assert long_side == 640  # noqa: PLR2004
+        assert short_side == 480  # noqa: PLR2004
+        return 541
+    if "gpt5" in model or "gpt-5" in model:
+        assert long_side == 640  # noqa: PLR2004
+        assert short_side == 480  # noqa: PLR2004
+        return 383
+    if "qwen3vl" in model:
+        assert long_side == 504  # noqa: PLR2004
+        assert short_side == 504  # noqa: PLR2004
+        return 266
+    if "internvl35" in model:
+        assert long_side == 448  # noqa: PLR2004
+        assert short_side == 448  # noqa: PLR2004
+        return 267
     if "test" in model or ("function:" in model):
-        # Use a big number for the test models
         return 258
     raise ValueError(f"Unknown model: {model}")
 

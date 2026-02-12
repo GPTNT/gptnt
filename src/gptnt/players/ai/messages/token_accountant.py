@@ -31,8 +31,8 @@ class TokenAccountant:
         ktane_settings = KtaneSettings()
         return estimate_tokens_for_image_per_model(
             model=self.capabilities.player_name,
-            width=ktane_settings.game_width,
-            height=ktane_settings.game_height,
+            long_side=ktane_settings.game_width,
+            short_side=ktane_settings.game_height,
         )
 
     @property
