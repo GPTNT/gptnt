@@ -3,7 +3,6 @@ from dataclasses import dataclass, field
 import structlog
 from pydantic_ai import RunUsage, UsageLimits
 
-from gptnt.ktane.game_settings import KtaneSettings
 from gptnt.players.ai.tokens import count_tokens_from_text, estimate_tokens_for_image_per_model
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
@@ -28,11 +27,10 @@ class TokenAccountant:
     @property
     def tokens_per_image(self) -> int:
         """Estimate the number of tokens per image for the current model."""
-        ktane_settings = KtaneSettings()
         return estimate_tokens_for_image_per_model(
             model=self.capabilities.player_name,
-            long_side=ktane_settings.game_width,
-            short_side=ktane_settings.game_height,
+            long_side=self.capabilities.image_dimensions.long_side,
+            short_side=self.capabilities.image_dimensions.short_side,
         )
 
     @property
