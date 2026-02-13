@@ -1,4 +1,4 @@
-from pydantic import UUID4, BaseModel, Field
+from pydantic import UUID4, BaseModel
 
 
 class BaseEvent(BaseModel, frozen=True):
@@ -9,17 +9,3 @@ class BaseEvent(BaseModel, frozen=True):
 
     service_name: str
     """Service name."""
-
-
-class Response[DataType](BaseModel, frozen=True):
-    """Base class for responses sent from services to the EM across RabbitMQ."""
-
-    data: DataType
-
-    success: bool = True
-    """Whether the request was successful."""
-
-    headers: dict[str, str] = Field(default_factory=dict)
-    """Optional headers for the response."""
-
-    detail: str | None = None

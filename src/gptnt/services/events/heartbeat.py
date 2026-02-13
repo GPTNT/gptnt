@@ -1,4 +1,6 @@
 import json
+import os
+import socket
 from enum import Enum
 from typing import Annotated, Literal, override
 
@@ -27,6 +29,22 @@ class BaseHeartbeat(BaseEvent, frozen=True):
     event: Literal["heartbeat"] = "heartbeat"
     timestamp: Instant = Field(default_factory=Instant.now)
     ready_state: ReadyState
+
+    # Diagnostic fields for richer error context
+    heartbeat_seq: int = 0
+    """Monotonically increasing sequence number.
+
+    Allows watchers to detect gaps.
+    """
+
+    uptime_seconds: float = Field(default=0)
+    """How long this service has been alive (seconds since broadcaster started)."""
+
+    pid: int = Field(default_factory=os.getpid)
+    """Process ID of the service, for correlating with logs and container diagnostics."""
+
+    hostname: str = Field(default_factory=socket.gethostname)
+    """Hostname of the machine running the service."""
 
     @property
     def is_idle(self) -> bool:

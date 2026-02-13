@@ -1,7 +1,7 @@
-from collections.abc import AsyncGenerator, Awaitable, Callable
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Literal, override
 
 import anyio
 import logfire
@@ -23,6 +23,7 @@ from gptnt.prompts.prompt_cache import PromptCache
 from gptnt.services.events.player import PlayerMessage, PlayerState, StopPlayerEvent
 from gptnt.services.experiment_descriptor import ExperimentDescriptor
 from gptnt.services.player.context import PlayerServiceContext
+from gptnt.services.rpc import BaseRPCService
 
 logger = structlog.get_logger()
 
@@ -43,11 +44,11 @@ class _ConfigureExperimentPayload(BaseModel):
 
 
 @dataclass(kw_only=True)
-class PlayerService(PlayerServiceContext):
+class PlayerService(PlayerServiceContext, BaseRPCService[PlayerCommand]):
     """Service for a player instance.
 
     Registers Redis RPC handlers and coordinates the player lifecycle while delegating the
-    underlying work to the core player components.
+    underlying work to the core player components managed by PlayerServiceContext.
     """
 
     broker: RedisBroker
@@ -56,9 +57,7 @@ class PlayerService(PlayerServiceContext):
 
     def __post_init__(self) -> None:
         """Initialize the command handler and register subscribers."""
-        super().__post_init__()
-
-        self.commands: dict[PlayerCommand, Callable[..., Any | Awaitable[Any]]] = {
+        self.commands = {
             "configure_for_experiment": self.configure_for_experiment,
             "forward_pass": self.forward_pass,
             "stop": self.stop_player,
@@ -71,15 +70,10 @@ class PlayerService(PlayerServiceContext):
         self.register_subscribers()
 
     @property
+    @override
     def command_channel(self) -> str:
         """Get the command channel for this player."""
         return f"player:{self.uuid}:commands"
-
-    def register_subscribers(self) -> None:
-        """Register all command subscribers with the broker."""
-        for command_name, command_func in self.commands.items():
-            channel_name = f"{self.command_channel}:{command_name}"
-            _ = self.broker.subscriber(channel_name)(command_func)
 
     def prepare_prompt_cache(self) -> None:
         """Prepare the prompt cache for the player."""
@@ -96,7 +90,7 @@ class PlayerService(PlayerServiceContext):
 
         async with self.broker, anyio.create_task_group() as tg:
             self._task_group = tg
-            async with super().lifespan():
+            async with self.lifespan():
                 yield
 
     async def get_player_state(self) -> PlayerState:
@@ -251,6 +245,14 @@ class PlayerService(PlayerServiceContext):
 
         self.state = PlayerState.waiting_for_turn
         return True
+
+    def reset(self) -> None:
+        """Reset the player service state for a new experiment."""
+        self.state = PlayerState.cleanup
+        self.incoming_message_handler.reset()
+        self.observation_handler.reset()
+        self.experiment_recorder.reset()
+        self.state = PlayerState.idle
 
     @logfire.instrument("Stop player", extract_args=["stop_event"])
     async def stop_player(self, stop_event: StopPlayerEvent) -> dict[str, str]:

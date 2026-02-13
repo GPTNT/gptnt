@@ -29,7 +29,8 @@ def main(*, redis_dsn: str | RedisDsn = "redis://localhost:6379") -> FastStream:
 
     heartbeat_redis = Redis.from_url(str(redis_dsn), decode_responses=True)
     broker = create_redis_broker(redis_dsn, client_name="game", logger=get_logger("faststream"))
-    game_service = GameService(redis=heartbeat_redis, uuid=service_uuid, broker=broker)
+
+    game_service = GameService(broker=broker, redis=heartbeat_redis, uuid=service_uuid)
 
     app = FastStream(
         broker,

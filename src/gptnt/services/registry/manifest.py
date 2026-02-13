@@ -66,6 +66,16 @@ class ServiceManifest[HeartbeatT: GameHeartbeat | PlayerHeartbeat]:
             <= Instant.now()
         )
 
+    @property
+    def heartbeat_key(self) -> str:
+        """Get the Redis key for the heartbeat."""
+        return f"heartbeat:{self.heartbeat.service_name}:{self.heartbeat.uuid}"
+
+    @property
+    def tombstone_key(self) -> str:
+        """Get the Redis key for the shutdown tombstone."""
+        return f"tombstone:{self.heartbeat.service_name}:{self.heartbeat.uuid}"
+
 
 type PlayerServiceManifest = ServiceManifest[PlayerHeartbeat]
 type GameServiceManifest = ServiceManifest[GameHeartbeat]

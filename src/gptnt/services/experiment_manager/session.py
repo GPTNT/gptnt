@@ -1,4 +1,3 @@
-import atexit
 from dataclasses import dataclass, field
 from typing import override
 from uuid import uuid4
@@ -12,16 +11,15 @@ from pydantic import UUID4
 
 from gptnt.experiments.experiments import ExperimentSpec
 from gptnt.services.experiment_descriptor import ExperimentDescriptor
+from gptnt.services.experiment_manager.experiment_runner import (
+    ExperimentRunner,
+    ExperimentState,
+    SyncExperimentRunner,
+)
 from gptnt.services.registry.manifest import (
     GameServiceManifest,
     PlayerServiceManifest,
     ServiceState,
-)
-from gptnt.services.sessions.experiment_runner import (
-    # AsyncExperimentRunner,
-    ExperimentRunner,
-    ExperimentState,
-    SyncExperimentRunner,
 )
 
 logger = structlog.get_logger()
@@ -43,6 +41,9 @@ class Session:
     experiment_uuid: UUID4 = field(default_factory=uuid4, init=False)
 
     experiment_runner: ExperimentRunner = field(init=False)
+    _cancel_scope: anyio.CancelScope = field(
+        default_factory=anyio.CancelScope, init=False, repr=False
+    )
     _task_group: TaskGroup | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -69,6 +70,11 @@ class Session:
         return self.experiment_runner.is_hard_crash
 
     @property
+    def is_stopping(self) -> bool:
+        """Check if the experiment is in the process of stopping."""
+        return self.state > ExperimentState.running
+
+    @property
     def experiment_descriptor(self) -> ExperimentDescriptor:
         """Get the experiment descriptor for this room instance."""
         return ExperimentDescriptor(
@@ -92,18 +98,24 @@ class Session:
         """Check if the task group for running it has exceptions."""
         return self._task_group is not None and getattr(self._task_group, "_exceptions", False)
 
-    async def start_experiment(self) -> None:
-        """Start the current experiment."""
-        self._task_group = await anyio.create_task_group().__aenter__()
-        self._task_group.start_soon(self.experiment_runner.run_experiment)
-        # If it's not done already, by the time we exit the app, ensure the task group is
-        # cancelled and cleaned up
-        _ = atexit.register(self._task_group.cancel_scope.cancel)
+    async def run(self) -> None:
+        """Run the experiment. Blocks until done or cancelled.
 
-    async def stop_experiment(self) -> None:
+        Must be spawned in its own task (e.g. via ``tg.start_soon``) so the cancel scope lives in
+        that task, **not** in the caller's. ``force_stop_experiment`` can then safely cancel the
+        scope without affecting sibling tasks.
+        """
+        with self._cancel_scope:
+            async with anyio.create_task_group() as tg:
+                self._task_group = tg
+                tg.start_soon(self.experiment_runner.run_experiment)
+
+    async def force_stop_experiment(self) -> None:
         """Stop the current experiment."""
-        if self._task_group is None:
-            logger.error("Run experiment task group is not initialised")
+        if self.is_stopping:
+            logger.debug(
+                "Experiment is already being stopped, not doing anything", experiment=self.name
+            )
             return
 
         self.defuser.state = ServiceState.cleanup
@@ -114,13 +126,17 @@ class Session:
 
         logger.info("Setting `client_crashed_event`", experiment=self.name)
         self.experiment_runner.client_crashed_event.set()
-        # Wait a bit to ensure things have a chance to stop gracefully
+
+        # Force-cancel the session's scope to interrupt any blocked awaits (e.g. an RPC to a dead
+        # service).  Because run() is in its own task, this only affects the session — not the EM
+        # or matchmaking loop.
+        logger.info("Cancelling experiment scope", experiment=self.name)
+        self._cancel_scope.cancel()
+
         logger.info("Session stopped", experiment=self.name)
 
     async def cleanup(self) -> None:
         """Clean up the session so it can be deleted."""
-        if self._task_group is not None:
-            _ = atexit.unregister(self._task_group.cancel_scope.cancel)
         self._task_group = None
 
         self.defuser.state = ServiceState.idle
@@ -134,14 +150,12 @@ class Session:
         """Create an experiment runner based on the communication style."""
         match self.spec.communication_style:
             case "sync":
-                logger.debug("Creating sync experiment runner")
                 return SyncExperimentRunner(
                     experiment=self.experiment_descriptor,
                     redis=self.redis,
                     redis_broker=self.redis_broker,
                 )
             case "async":
-                logger.debug("Creating async experiment runner")
                 raise NotImplementedError
                 # return AsyncExperimentRunner(
                 #     experiment=self.experiment_descriptor, redis_url=self.redis_url

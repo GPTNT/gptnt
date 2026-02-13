@@ -6,13 +6,17 @@ from typing import override
 import anyio
 import logfire
 import structlog
+from anyio.abc import TaskGroup
 from faststream.redis import RedisBroker
 from pydantic import UUID4
 
 from gptnt.common.async_ops import periodic
 from gptnt.experiments.experiments import ExperimentSpec
 from gptnt.services.events.heartbeat import Heartbeat
+from gptnt.services.events.tombstone import ServiceExpiredContext
+from gptnt.services.experiment_manager.experiment_runner import ExperimentState
 from gptnt.services.experiment_manager.matchmaking import get_playable_pairings
+from gptnt.services.experiment_manager.session import Session
 from gptnt.services.registry.manifest import (
     GameServiceManifest,
     PlayerServiceManifest,
@@ -20,8 +24,6 @@ from gptnt.services.registry.manifest import (
     ServiceState,
 )
 from gptnt.services.registry.registry import ObservableServiceRegistry
-from gptnt.services.sessions.experiment_runner import ExperimentState
-from gptnt.services.sessions.session import Session
 
 logger = structlog.get_logger()
 
@@ -34,34 +36,22 @@ class ExperimentManager(ObservableServiceRegistry):
 
     specs: set[ExperimentSpec] = field(default_factory=set, init=False)
     _sessions: set[Session] = field(default_factory=set, init=False, repr=False)
-
-    async def force_stop_experiment(self, session: Session) -> None:
-        """Force stop any experiment containing the given service."""
-        if session.state > ExperimentState.running:
-            logger.debug(
-                "Experiment is already being stopped, don't need to force stop it.",
-                experiment=session.name,
-            )
-            return
-
-        if session.state < ExperimentState.cleanup:
-            logger.info(
-                "Force stop experiment, telling the session to stop.", experiment=session.name
-            )
-            await session.stop_experiment()
+    _lifespan_task_group: TaskGroup | None = field(default=None, init=False, repr=False)
 
     @override
     @asynccontextmanager
     async def lifespan(self) -> AsyncGenerator[None]:
         """Lifespan for the experiment manager."""
         async with self.redis_broker, super().lifespan(), anyio.create_task_group() as tg:
+            self._lifespan_task_group = tg
             tg.start_soon(self._matchmaking_loop)
             tg.start_soon(self.metrics_loop)
 
             logger.info("EM is running")
-            try:
+            try:  # noqa: WPS243
                 yield
             finally:
+                self._lifespan_task_group = None
                 logger.info("EM is shutting down")
                 tg.cancel_scope.cancel()
 
@@ -75,6 +65,10 @@ class ExperimentManager(ObservableServiceRegistry):
         expert: PlayerServiceManifest | None,
     ) -> None:
         """Start an experiment."""
+        if self._lifespan_task_group is None:
+            logger.error("Cannot start experiment: EM lifespan task group is not running")
+            return
+
         with logfire.span("Create session"):
             session = Session(
                 game=game,
@@ -88,7 +82,7 @@ class ExperimentManager(ObservableServiceRegistry):
             for uuid in session.service_uuids:
                 self.connected_services[uuid].state = ServiceState.in_experiment
 
-        await session.start_experiment()
+        self._lifespan_task_group.start_soon(session.run)
 
     async def cleanup_finished_sessions(self) -> None:
         """Check for finished sessions and clean them up."""
@@ -113,7 +107,10 @@ class ExperimentManager(ObservableServiceRegistry):
 
     @override
     async def _handle_expired_service(
-        self, service_uuid: UUID4, service: ServiceManifest[Heartbeat]
+        self,
+        service_uuid: UUID4,
+        service: ServiceManifest[Heartbeat],
+        context: ServiceExpiredContext,
     ) -> None:
         """Handle service expiring by stopping any running experiments."""
         previous_state = service.state
@@ -121,12 +118,22 @@ class ExperimentManager(ObservableServiceRegistry):
         # Set it to not ready
         service.state = ServiceState.not_ready
         logger.debug(
-            "Service has expired", service_uuid=service_uuid, service_type=service.service_type
+            "Service has expired",
+            service_uuid=service_uuid,
+            service_type=service.service_type,
+            failure_category=context.failure_category.value,
+            tombstone=context.tombstone.model_dump() if context.tombstone else None,
+            heartbeat_key_exists=context.heartbeat_key_exists,
+            heartbeat_key_ttl=context.heartbeat_key_ttl,
+            last_heartbeat_seq=context.last_heartbeat_seq,
+            last_uptime_seconds=context.last_uptime_seconds,
+            last_pid=context.last_pid,
+            last_hostname=context.last_hostname,
         )
 
         if previous_state == ServiceState.in_experiment:
             if session := self._find_session_by_service_uuid(service_uuid):
-                await self.force_stop_experiment(session)
+                await session.force_stop_experiment()
             else:
                 logger.warning(
                     "No running session found for disconnected service", service=service

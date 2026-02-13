@@ -1,26 +1,35 @@
+from __future__ import annotations
+
 import abc
-from collections.abc import AsyncGenerator
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
 from enum import IntEnum
 from functools import partial
-from typing import override
+from typing import TYPE_CHECKING, override
 
 import anyio
 import httpx
 import logfire
 import structlog
-from coredis import Redis
-from faststream.redis import RedisBroker
 
 from gptnt.common.async_ops import Event
-from gptnt.ktane.state.bomb import BombState
 from gptnt.prompts.reflection import convert_bomb_state_to_reflection
-from gptnt.services.experiment_descriptor import ExperimentDescriptor
+from gptnt.services.experiment_manager.service_state_watcher import (
+    GameStateWatcher,
+    PlayerStateWatcher,
+)
 from gptnt.services.game.client import GameClient
 from gptnt.services.player.client import PlayerClient
-from gptnt.services.sessions.service_state_watcher import GameStateWatcher, PlayerStateWatcher
 from gptnt.services.timeouts import ServiceTimeouts
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
+    from coredis import Redis
+    from faststream.redis import RedisBroker
+
+    from gptnt.ktane.state.bomb import BombState
+    from gptnt.services.experiment_descriptor import ExperimentDescriptor
 
 logger = structlog.get_logger()
 timeouts = ServiceTimeouts()
@@ -83,12 +92,12 @@ class ExperimentRunner(abc.ABC):
 
         # Initialize Redis player clients with UUIDs
         self.defuser_player_client = PlayerClient(
-            player_uuid=self.experiment.defuser.uuid, redis_broker=self.redis_broker
+            player_uuid=self.experiment.defuser.uuid, broker=self.redis_broker
         )
 
         if self.experiment.expert:
             self.expert_player_client = PlayerClient(
-                player_uuid=self.experiment.expert.uuid, redis_broker=self.redis_broker
+                player_uuid=self.experiment.expert.uuid, broker=self.redis_broker
             )
 
     @property
@@ -111,8 +120,23 @@ class ExperimentRunner(abc.ABC):
 
     @logfire.instrument("Run experiment")
     async def run_experiment(self) -> None:  # noqa: WPS213
-        """Run the experiment."""
-        async with self.prepare_experiment_runner():
+        """Run the experiment.
+
+        This method orchestrates the experiment lifecycle through phases:
+
+        1. Setup: Start monitors and configure services
+        2. Sync: Ensure all services are ready
+        3. Run: Execute the experiment loop
+        4. Teardown: Send reflections and stop players
+        5. Cleanup: Always cleanup resources regardless of outcome
+
+        To simplify the control flow, we use context managers to handle setup, teardown, and exception handling. This way, we can ensure that even if something goes wrong during the experiment, we still perform necessary cleanup and state updates without crashing the entire service.
+        """
+        async with (
+            self.setup_monitors(),
+            self.cleanup_on_end(),
+            self.experiment_exception_handler(),
+        ):
             logger.debug(
                 "Experiment lifecycle started",
                 experiment=self.experiment,
@@ -123,22 +147,19 @@ class ExperimentRunner(abc.ABC):
                 else None,
             )
 
-            await self.setup_experiment()
-
-            logger.debug("Starting experiment loop", experiment=self.experiment)
+            await self.configure_services()
             self.state = ExperimentState.running
+            await self.synchronize_services()
 
-            # Ensure that all the services are ready and synchronized before starting
-            async with self.synchronized_experiment_start():
-                logger.debug("Running experiment loop")
-                async with anyio.create_task_group() as tg:
-                    tg.start_soon(self.run_experiment_loop)
+            logger.debug("Running experiment loop")
+            async with anyio.create_task_group() as experiment_tg:
+                experiment_tg.start_soon(self.run_experiment_loop)
 
             self.state = ExperimentState.post_game
 
             # Do not send reflections/end the game if we have had a hard crash.
-            # Note: while we shouldn't be needing this if-statement, it's better to be safe when
-            #       dealing with this I think.
+            # Note: while we shouldn't be needing this if-statement, it's better to be safe
+            # when dealing with this I think.
             if not self.is_hard_crash:
                 logger.debug(
                     "Running post-game steps",
@@ -155,52 +176,40 @@ class ExperimentRunner(abc.ABC):
                 await self.stop_all_players()
 
     @asynccontextmanager
-    async def experiment_exception_handler(self) -> AsyncGenerator[None]:  # noqa: WPS213
-        """Run the experiment as a context manager.
-
-        This is separated from the `run_experiment` method to allow for a clear setup and cleanup
-        process should anything go wrong during the running of the experiment. If we don't, then it
-        would make for a very very messy method with several try/except blocks.
-        """
-        try:  # noqa: WPS229
-            yield
-        except* anyio.get_cancelled_exc_class():  # noqa: WPS455
-            logger.debug("Experiment cancelled", experiment=self.experiment)
-            self.client_crashed_event.set()
-            # Note that we are explicitly not re-raising the cancelled exception here because
-            # we are going to cleanup the experiment within the finally and not crash the
-            # entire thing....
-        except* (TimeoutError, httpx.HTTPStatusError):
-            logger.exception(
-                "A client has timed out or crashed, stopping the experiment",
-                experiment=self.experiment,
-            )
-            self.client_crashed_event.set()
-        finally:
-            await self.cleanup_experiment()
-            await anyio.sleep(1)
-
-    @asynccontextmanager
-    async def prepare_experiment_runner(self) -> AsyncGenerator[None]:
-        """Prepare the experiment runner.
-
-        We do this so that we can also wrap the preparation steps in a span for easier tracing, but
-        also so that any future changes are easier to manage.
-        """
+    async def setup_monitors(self) -> AsyncGenerator[None]:
+        """Start monitors and configure services for the experiment."""
         async with AsyncExitStack() as stack:
-            with logfire.span("Prepare experiment runner"):
+            with logfire.span("Setup monitors"):
                 # Monitor the state of the game and players during the experiment.
                 await stack.enter_async_context(self.game_state_watcher.run_monitor())
                 await stack.enter_async_context(self.defuser_state_watcher.run_monitor())
                 if self.expert_state_watcher:
                     await stack.enter_async_context(self.expert_state_watcher.run_monitor())
-
-                # Lastly, wrap in the exception handler
-                await stack.enter_async_context(self.experiment_exception_handler())
             yield
 
-    @asynccontextmanager
-    async def synchronized_experiment_start(self) -> AsyncGenerator[None]:  # noqa: WPS213
+    @logfire.instrument("Configure services")
+    async def configure_services(self) -> None:
+        """Setup the services for the experiment."""
+        _ = await self.defuser_player_client.configure_player(
+            player_protocol=self.experiment.experiment_spec.defuser_protocol,
+            experiment_descriptor=self.experiment,
+        )
+        if self.experiment.expert and self.expert_player_client:
+            _ = await self.expert_player_client.configure_player(
+                player_protocol=self.experiment.expert.protocol,
+                experiment_descriptor=self.experiment,
+            )
+        await self.game_client.configure_game(
+            spec=self.experiment.mission_spec, session_id=self.experiment.session_id
+        )
+        # Pause on lights off
+        with logfire.span("Pausing game after lights are off"):
+            with anyio.fail_after(timeouts.configure_services_timeout):
+                await self.game_state_watcher.lights_are_off_event.wait()
+            await self.game_client.pause_game()
+
+    @logfire.instrument("Synchronize start")
+    async def synchronize_services(self) -> None:
         """Synchronize the start of the experiment across all services.
 
         Basically, we make sure everyone is ready to go before we start.
@@ -225,7 +234,40 @@ class ExperimentRunner(abc.ABC):
 
         await self.game_client.pause_game()
 
-        yield
+    @asynccontextmanager
+    async def experiment_exception_handler(self) -> AsyncGenerator[None]:  # noqa: WPS213
+        """Run the experiment as a context manager.
+
+        This is separated from the `run_experiment` method to allow for a clear setup and cleanup
+        process should anything go wrong during the running of the experiment. If we don't, then it
+        would make for a very very messy method with several try/except blocks.
+        """
+        try:  # noqa: WPS229
+            yield
+        except* anyio.get_cancelled_exc_class():  # noqa: WPS455
+            logger.debug("Experiment cancelled", experiment=self.experiment)
+            self.client_crashed_event.set()
+            # Note that we are explicitly not re-raising the cancelled exception here because
+            # we are going to cleanup the experiment within the finally and not crash the
+            # entire thing....
+        except* (TimeoutError, httpx.HTTPStatusError):
+            logger.exception(
+                "A client has timed out or crashed, stopping the experiment",
+                experiment=self.experiment,
+            )
+            self.client_crashed_event.set()
+
+    @asynccontextmanager
+    async def cleanup_on_end(self) -> AsyncGenerator[None]:
+        """Ensure that we always cleanup at the end of the experiment, even if we crash."""
+        try:
+            yield
+        finally:
+            # Shield cleanup from the cancelled scope so we can still send
+            # graceful stop commands to services that are alive.
+            with anyio.CancelScope(shield=True):
+                await self.cleanup_experiment()
+                await anyio.sleep(1)
 
     @abc.abstractmethod
     async def run_experiment_loop(self) -> None:
@@ -246,27 +288,6 @@ class ExperimentRunner(abc.ABC):
                 "An error occurred during the experiment loop, stopping the experiment"
             )
             self.client_crashed_event.set()
-
-    @logfire.instrument("Setup experiment")
-    async def setup_experiment(self) -> None:
-        """Setup the services for the experiment."""
-        _ = await self.defuser_player_client.configure_player(
-            player_protocol=self.experiment.experiment_spec.defuser_protocol,
-            experiment_descriptor=self.experiment,
-        )
-        if self.experiment.expert and self.expert_player_client:
-            _ = await self.expert_player_client.configure_player(
-                player_protocol=self.experiment.expert.protocol,
-                experiment_descriptor=self.experiment,
-            )
-        await self.game_client.configure_game(
-            spec=self.experiment.mission_spec, session_id=self.experiment.session_id
-        )
-        # Pause on lights off
-        with logfire.span("Pausing game after lights are off"):
-            with anyio.fail_after(timeouts.configure_services_timeout):
-                await self.game_state_watcher.lights_are_off_event.wait()
-            await self.game_client.pause_game()
 
     @logfire.instrument("Send reflection request")
     async def send_reflection_request(self) -> None:
@@ -356,35 +377,44 @@ class ExperimentRunner(abc.ABC):
 
         try:
             await self.game_client.stop_game()
-        except httpx.HTTPError:
+        except (httpx.HTTPError, TimeoutError):
             logger.warning(
                 "Failed to stop the game, it might have already been stopped or crashed"
             )
 
-        if not self.defuser_state_watcher.is_stopping.is_set():
-            logger.debug("Stopping defuser player")
-            try:
-                _ = await self.defuser_player_client.stop_player(is_hard_crash=self.is_hard_crash)
-            except httpx.HTTPError:
-                logger.warning(
-                    "Failed to stop the defuser player, it might have already been stopped or crashed"
-                )
-        if (
-            self.experiment.expert
-            and self.expert_player_client
-            and self.expert_state_watcher
-            and not self.expert_state_watcher.is_stopping.is_set()
-        ):
-            logger.debug("Stopping expert player")
-            try:
-                _ = await self.expert_player_client.stop_player(is_hard_crash=self.is_hard_crash)
-            except httpx.HTTPError:
-                logger.warning(
-                    "Failed to stop the expert player, it might have already been stopped or crashed"
-                )
+        await self._try_stop_player(
+            client=self.defuser_player_client, watcher=self.defuser_state_watcher, role="defuser"
+        )
+        if self.experiment.expert and self.expert_player_client and self.expert_state_watcher:
+            await self._try_stop_player(
+                client=self.expert_player_client, watcher=self.expert_state_watcher, role="expert"
+            )
 
         self.state = ExperimentState.done
         logger.debug("Experiment cleanup completed")
+
+    async def _try_stop_player(
+        self, *, client: PlayerClient, watcher: PlayerStateWatcher, role: str
+    ) -> None:
+        """Stop a player, using a short timeout if the service is already dead.
+
+        If the service has hard-crashed we know the RPC will never be answered, so we cap the wait
+        at 5 seconds rather than the full ``redis_rpc_timeout``. Alive services get their normal
+        timeout so that in-flight work (e.g. saving results) can finish.
+        """
+        if watcher.is_stopping.is_set():
+            return
+
+        try:
+            if watcher.is_hard_crash:
+                with anyio.fail_after(5):
+                    _ = await client.stop_player(is_hard_crash=self.is_hard_crash)
+            else:
+                _ = await client.stop_player(is_hard_crash=self.is_hard_crash)
+        except (httpx.HTTPError, TimeoutError, anyio.get_cancelled_exc_class()):  # noqa: WPS455
+            logger.warning(
+                "Failed to stop player, it may have already stopped or crashed", role=role
+            )
 
 
 @dataclass(kw_only=True)

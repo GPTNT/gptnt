@@ -47,8 +47,7 @@ def main(
     player_partial.keywords["game_client"] = GameClient(broker=broker)
     player_partial.keywords["incoming_message_handler"] = IncomingMessageHandler(broker=broker)
 
-    logger.info("Instantiating player service")
-    player_service = PlayerService(**player_partial.keywords, broker=broker)
+    player_service = PlayerService(broker=broker, **player_partial.keywords)
 
     app = FastStream(
         broker,

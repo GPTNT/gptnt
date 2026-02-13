@@ -13,6 +13,9 @@ class ServiceTimeouts(BaseSettings):
     heartbeat_expiration: float = 10
     """Expiration time for heartbeat messages sent."""
 
+    tombstone_expiration: float = 120
+    """Expiration time for tombstone keys written on shutdown."""
+
     game_state_interval: float = 2
     """Interval for requesting the game state."""
 

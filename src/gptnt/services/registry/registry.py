@@ -13,6 +13,7 @@ from gptnt.common.async_ops import periodic
 from gptnt.ktane.state.game import GameState
 from gptnt.services.events.heartbeat import GameHeartbeat, Heartbeat, PlayerHeartbeat
 from gptnt.services.events.player import PlayerState
+from gptnt.services.events.tombstone import ServiceExpiredContext
 from gptnt.services.registry.manifest import ServiceManifest, ServiceState
 from gptnt.services.registry.metrics import LogfireGauge
 from gptnt.services.timeouts import ServiceTimeouts
@@ -30,6 +31,32 @@ class ServiceRegistry:
     connected_services: dict[UUID4, ServiceManifest[Heartbeat]] = field(default_factory=dict)
 
     _watchdog_task_group: TaskGroup | None = field(default=None, init=False)
+
+    @property
+    def ready_players(self) -> list[ServiceManifest[PlayerHeartbeat]]:
+        """List of all connected and ready players."""
+        player_manifests = [
+            service
+            for service in self.connected_services.values()
+            if service.is_ready
+            and service.state == ServiceState.idle
+            and isinstance(service.heartbeat, PlayerHeartbeat)
+            and service.heartbeat.state == PlayerState.idle
+        ]
+        return cast("list[ServiceManifest[PlayerHeartbeat]]", player_manifests)
+
+    @property
+    def ready_games(self) -> list[ServiceManifest[GameHeartbeat]]:
+        """List of all connected and ready game instances."""
+        game_manifests = [
+            service
+            for service in self.connected_services.values()
+            if service.is_ready
+            and service.state == ServiceState.idle
+            and isinstance(service.heartbeat, GameHeartbeat)
+            and service.heartbeat.state == GameState.main_menu
+        ]
+        return cast("list[ServiceManifest[GameHeartbeat]]", game_manifests)
 
     @asynccontextmanager
     async def lifespan(self) -> AsyncGenerator[None]:
@@ -72,20 +99,43 @@ class ServiceRegistry:
             for uuid, service in self.connected_services.items()
             if service.is_expired
         ]
+        if not expired_services:
+            return
+
         async with anyio.create_task_group() as tg:
             for uuid, service in expired_services:
-                tg.start_soon(self._handle_expired_service, uuid, service)
+                tg.start_soon(self._expire_service, uuid, service)
                 del self.connected_services[uuid]  # noqa: WPS420
 
-    async def _handle_expired_service(
+    async def _expire_service(
         self, service_uuid: UUID4, service: ServiceManifest[Heartbeat]
     ) -> None:
+        """Build diagnostic context for an expired service and handle it."""
+        context = ServiceExpiredContext.model_validate(
+            {
+                "service_uuid": service_uuid,
+                "service_type": service.service_type,
+                "tombstone": await self.redis.hgetall(service.tombstone_key),
+                "heartbeat_key_exists": bool(await self.redis.exists([service.heartbeat_key])),
+                "heartbeat_key_ttl": await self.redis.ttl(service.heartbeat_key),
+                "remaining_heartbeat_fields": await self.redis.hgetall(service.heartbeat_key),
+                # Extract from the last known heartbeat in the manifest
+                "last_heartbeat_seq": service.heartbeat.heartbeat_seq,
+                "last_uptime_seconds": service.heartbeat.uptime_seconds,
+                "last_pid": service.heartbeat.pid,
+                "last_hostname": service.heartbeat.hostname,
+            }
+        )
+        await self._handle_expired_service(service_uuid, service, context)
+
+    async def _handle_expired_service(
+        self,
+        service_uuid: UUID4,
+        service: ServiceManifest[Heartbeat],
+        context: ServiceExpiredContext,
+    ) -> None:
         """Handle a service that has expired."""
-        if service.state == ServiceState.in_experiment:
-            logger.warning(
-                "Service expired", service_uuid=service_uuid, service_type=service.service_type
-            )
-            raise NotImplementedError
+        raise NotImplementedError
 
     async def _pull_heartbeats(self) -> dict[UUID4, Heartbeat]:
         """Pull all the heartbeats from Redis."""
@@ -108,34 +158,9 @@ class ServiceRegistry:
         return heartbeat_map
 
 
+@dataclass(kw_only=True)
 class ObservableServiceRegistry(ServiceRegistry, LogfireGauge):
     """Service registry that has metrics and observability."""
-
-    @property
-    def ready_players(self) -> list[ServiceManifest[PlayerHeartbeat]]:
-        """List of all connected and ready players."""
-        player_manifests = [
-            service
-            for service in self.connected_services.values()
-            if service.is_ready
-            and service.state == ServiceState.idle
-            and isinstance(service.heartbeat, PlayerHeartbeat)
-            and service.heartbeat.state == PlayerState.idle
-        ]
-        return cast("list[ServiceManifest[PlayerHeartbeat]]", player_manifests)
-
-    @property
-    def ready_games(self) -> list[ServiceManifest[GameHeartbeat]]:
-        """List of all connected and ready game instances."""
-        game_manifests = [
-            service
-            for service in self.connected_services.values()
-            if service.is_ready
-            and service.state == ServiceState.idle
-            and isinstance(service.heartbeat, GameHeartbeat)
-            and service.heartbeat.state == GameState.main_menu
-        ]
-        return cast("list[ServiceManifest[GameHeartbeat]]", game_manifests)
 
     @override
     def _update_all_metrics(self) -> None:  # noqa: WPS213

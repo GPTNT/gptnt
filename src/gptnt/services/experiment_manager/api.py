@@ -1,14 +1,33 @@
-from typing import Annotated
+from __future__ import annotations
 
+from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING, Annotated
+
+import logfire
 import structlog
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, FastAPI, Request
 from pydantic import BaseModel
 
 from gptnt.experiments.experiments import ExperimentSpec
 from gptnt.services.experiment_manager.experiment_manager import ExperimentManager
 
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
 logger = structlog.get_logger()
 router = APIRouter()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI, *, experiment_manager: ExperimentManager) -> AsyncIterator[None]:
+    """Lifespan for the experiment manager application."""
+    async with experiment_manager.lifespan():
+        app.state.experiment_manager = experiment_manager
+        yield
+    logger.info("Flushing logfire spans")
+    _ = logfire.shutdown()
+
+    logger.info("Experiment manager application shutting down")
 
 
 def _get_experiment_manager(request: Request) -> ExperimentManager:

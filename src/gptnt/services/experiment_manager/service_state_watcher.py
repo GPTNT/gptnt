@@ -1,7 +1,9 @@
+from collections import deque
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from enum import Enum
+from time import monotonic
 from typing import override
 
 import anyio
@@ -17,6 +19,22 @@ from gptnt.services.timeouts import ServiceTimeouts
 
 logger = structlog.get_logger()
 service_timeouts = ServiceTimeouts()
+
+# Maximum number of state transitions to keep in the ring buffer
+_STATE_HISTORY_MAXLEN = 20
+
+
+@dataclass
+class StateTransition[ServiceStateT: Enum]:
+    """Record of a single state transition for diagnostic purposes."""
+
+    timestamp: float
+    """Monotonic timestamp of the transition."""
+
+    service_state: ServiceStateT
+    ready_state: ReadyState
+    heartbeat_seq: int | None = None
+    """Sequence number from the heartbeat, if available."""
 
 
 @dataclass(kw_only=True)
@@ -43,9 +61,32 @@ class BaseServiceStateWatcher[ServiceStateT: Enum]:
         default=service_timeouts.session_state_watcher_interval, repr=False, init=False
     )
 
+    # --- Diagnostic tracking fields ---
+    _has_ever_connected: bool = field(default=False, init=False, repr=False)
+    """Whether we have ever successfully read a heartbeat from this service."""
+
+    _last_successful_state: ServiceStateT | None = field(default=None, init=False, repr=False)
+    """Last known-good service state before a failure."""
+
+    _last_successful_ready_state: ReadyState | None = field(default=None, init=False, repr=False)
+    """Last known-good ready state before a failure."""
+
+    _last_successful_update_time: float | None = field(default=None, init=False, repr=False)
+    """Monotonic timestamp of the last successful heartbeat read."""
+
+    _last_heartbeat_seq: int | None = field(default=None, init=False, repr=False)
+    """Last seen heartbeat sequence number, for detecting gaps."""
+
+    _consecutive_failures: int = field(default=0, init=False, repr=False)
+    """Number of consecutive failed heartbeat reads."""
+
+    _state_history: deque[StateTransition[ServiceStateT]] = field(init=False, repr=False)
+    """Ring buffer of recent state transitions for post-mortem diagnostics."""
+
     def __post_init__(self) -> None:
         """Initialize the service state watcher."""
         self._service_state = self.initial_state
+        self._state_history = deque(maxlen=_STATE_HISTORY_MAXLEN)
 
     @property
     def state(self) -> ServiceStateT:
@@ -89,30 +130,42 @@ class BaseServiceStateWatcher[ServiceStateT: Enum]:
 
     async def update_service_state_loop(self) -> None:
         """Update the service state in a loop."""
-        logger.debug("Starting service state update loop", service_uuid=self.service_uuid)
         async for _ in periodic(self.update_interval):
             await self.update_service_state()
-        logger.debug("Service state update loop stopped", service_uuid=self.service_uuid)
 
     async def update_service_state(self) -> None:
         """Get the current state of the game service from Redis."""
-        outputs = await self.redis.hmget(self.redis_key, ["state", "ready_state"])
+        outputs = await self.redis.hmget(self.redis_key, ["state", "ready_state", "heartbeat_seq"])
         raw_service_state = outputs[0]
         raw_ready_state = outputs[1]
+        raw_heartbeat_seq = outputs[2]
 
         if raw_service_state is None or raw_ready_state is None:
-            logger.exception(
-                "Service state or ready state is None, cannot update",
-                service_name=self.service_name,
-                service_uuid=self.service_uuid,
+            await self._handle_heartbeat_failure(
                 raw_service_state=raw_service_state,
                 raw_ready_state=raw_ready_state,
                 outputs=outputs,
             )
-            self.ready_state = ReadyState.not_ready
-            # Return so that we don't try to update the state since it is invalid and will throw
-            # and crash the EM
             return
+
+        # Reset failure tracking on success
+        self._consecutive_failures = 0
+
+        # Parse heartbeat_seq if present (for gap detection)
+        current_seq: int | None = None
+        if raw_heartbeat_seq is not None:
+            current_seq = int(raw_heartbeat_seq)
+            if self._last_heartbeat_seq is not None and current_seq > self._last_heartbeat_seq + 1:
+                missed = current_seq - self._last_heartbeat_seq - 1
+                logger.warning(
+                    "Heartbeat sequence gap detected",
+                    service_name=self.service_name,
+                    service_uuid=self.service_uuid,
+                    expected_seq=self._last_heartbeat_seq + 1,
+                    actual_seq=current_seq,
+                    missed_heartbeats=missed,
+                )
+            self._last_heartbeat_seq = current_seq
 
         # Update the states
         self._service_state = TypeAdapter(self.service_state_type).validate_python(
@@ -120,11 +173,79 @@ class BaseServiceStateWatcher[ServiceStateT: Enum]:
         )
         self.ready_state = ReadyState(raw_ready_state)
 
+        # Track successful state for diagnostics
+        self._has_ever_connected = True
+        self._last_successful_state = self._service_state
+        self._last_successful_ready_state = self.ready_state
+        self._last_successful_update_time = monotonic()
+
+        # Record in state history
+        self._state_history.append(
+            StateTransition(
+                timestamp=monotonic(),
+                service_state=self._service_state,
+                ready_state=self.ready_state,
+                heartbeat_seq=current_seq,
+            )
+        )
+
         # Do any additional updating
         await self.update_events_from_states()
 
     async def update_events_from_states(self) -> None:
         """Update any events that are tied to the service state."""
+
+    async def _handle_heartbeat_failure(  # noqa: WPS231
+        self,
+        *,
+        raw_service_state: str | None,
+        raw_ready_state: str | None,
+        outputs: tuple[str | None, ...],
+    ) -> None:
+        """Handle a failed heartbeat read with local-only diagnostic information.
+
+        Logs all locally-tracked state (last good state, consecutive failures, state history)
+        without making additional Redis calls. Deeper diagnostics (tombstone lookup, key probing)
+        are handled by the registry when it detects the service expiry.
+        """
+        self._consecutive_failures += 1
+
+        # Compute time since last successful read
+        seconds_since_last_success: float | None = None
+        if self._last_successful_update_time is not None:
+            seconds_since_last_success = round(monotonic() - self._last_successful_update_time, 2)
+
+        # Format state history for logging
+        history_summary = TypeAdapter(list[StateTransition[ServiceStateT]]).dump_python(
+            list(self._state_history)
+        )
+
+        logger.error(
+            "Heartbeat read failed — service state unavailable",
+            service_name=self.service_name,
+            service_uuid=self.service_uuid,
+            has_ever_connected=self._has_ever_connected,
+            consecutive_failures=self._consecutive_failures,
+            # Raw values from Redis
+            raw_service_state=raw_service_state,
+            raw_ready_state=raw_ready_state,
+            outputs=outputs,
+            # Last known good state
+            last_successful_state=(
+                str(self._last_successful_state) if self._last_successful_state else None
+            ),
+            last_successful_ready_state=(
+                self._last_successful_ready_state.value
+                if self._last_successful_ready_state
+                else None
+            ),
+            seconds_since_last_success=seconds_since_last_success,
+            last_heartbeat_seq=self._last_heartbeat_seq,
+            # State history
+            recent_state_history=history_summary,
+        )
+
+        self.ready_state = ReadyState.not_ready
 
 
 @dataclass(kw_only=True)
@@ -183,16 +304,20 @@ class GameStateWatcher(BaseServiceStateWatcher[GameState]):
         """Check if the game is over."""
         return self.good_game_over_event.is_set() or self.is_hard_crash
 
+    @override
     @asynccontextmanager
     async def run_monitor(self) -> AsyncGenerator[None]:
-        """Run the game state watcher as a context manager."""
+        """Lifespan for the game state watcher that runs the monitoring loop in the background.
+
+        We have to override the run_monitor because watching monitoring the game states is a
+        blocking thing, since we sit and await for the states to happen.
+        """
         async with super().run_monitor(), anyio.create_task_group() as tg:
             tg.start_soon(self.monitor_game_states_loop)
             try:
                 yield
             finally:
                 tg.cancel_scope.cancel()
-                logger.debug("Game state watcher cancelled", game_uuid=self.service_uuid)
 
     async def monitor_game_states_loop(self) -> None:
         """Monitor for the game state changes in a loop.

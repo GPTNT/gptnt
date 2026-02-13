@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, override
 
 import httpx
 import logfire
@@ -11,7 +11,7 @@ from gptnt.ktane.state.bomb import BombState
 from gptnt.players.specification import PlayerProtocol
 from gptnt.services.events.player import PlayerMessage, StopPlayerEvent
 from gptnt.services.experiment_descriptor import ExperimentDescriptor
-from gptnt.services.player.service import PlayerCommand
+from gptnt.services.rpc import BaseRPCClient
 from gptnt.services.timeouts import ServiceTimeouts
 
 logger = structlog.get_logger()
@@ -20,13 +20,14 @@ timeouts = ServiceTimeouts()
 
 
 @dataclass(kw_only=True)
-class PlayerClient:
+class PlayerClient(BaseRPCClient):
     """Client to interact with player service via Redis RPC."""
 
     player_uuid: UUID4
-    redis_broker: RedisBroker
+    broker: RedisBroker
 
     @property
+    @override
     def command_channel(self) -> str:
         """Get the command channel for this player."""
         return f"player:{self.player_uuid}:commands"
@@ -55,10 +56,6 @@ class PlayerClient:
         """Tell a player to perform a forward pass."""
         return await self._send_command("forward_pass")
 
-    async def reset_player(self) -> bool:
-        """Reset the player to its initial state."""
-        return await self._send_command("reset")
-
     async def send_reflection_request(self, reflection_message: str) -> bool:
         """Ask the player to perform a reflection."""
         payload = PlayerMessage(message=reflection_message).model_dump(mode="json")
@@ -85,16 +82,3 @@ class PlayerClient:
             mode="json"
         )
         return await self._send_command("stop", payload)
-
-    async def _send_command(
-        self, command: PlayerCommand, payload: dict[str, Any] | None = None
-    ) -> Any:
-        """Send a command via Redis RPC and wait for response.
-
-        Note: The broker is already started and managed by FastStream.
-        """
-        channel = f"{self.command_channel}:{command}"
-        response = await self.redis_broker.request(
-            payload or {}, channel=channel, timeout=timeouts.redis_rpc_timeout
-        )
-        return await response.decode()

@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from time import monotonic
 from typing import override
 from uuid import uuid4
 
@@ -88,15 +89,9 @@ class PlayerServiceContext(HeartbeatBroadcaster):
             state=self.state,
             ready_state=self.ready_state,
             capabilities=self.capabilities,
+            heartbeat_seq=self._heartbeat_seq,
+            uptime_seconds=round(monotonic() - self._start_time, 2),
         )
-
-    def reset(self) -> None:
-        """Reset the player service state for a new experiment."""
-        self.state = PlayerState.cleanup
-        self.incoming_message_handler.reset()
-        self.observation_handler.reset()
-        self.experiment_recorder.reset()
-        self.state = PlayerState.idle
 
     def validate_configuration(self) -> None:
         """Validate the player configuration and setup."""

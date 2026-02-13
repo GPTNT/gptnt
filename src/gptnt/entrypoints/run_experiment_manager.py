@@ -12,9 +12,8 @@ from structlog import get_logger
 
 from gptnt.common.logger import configure_logging
 from gptnt.services.broker import create_redis_broker
+from gptnt.services.experiment_manager.api import lifespan, router
 from gptnt.services.experiment_manager.experiment_manager import ExperimentManager
-from gptnt.services.experiment_manager.lifespan import lifespan
-from gptnt.services.experiment_manager.routes import router
 
 _ = logfire.configure(service_name="experiment_manager", scrubbing=False)
 logger = get_logger()

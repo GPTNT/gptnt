@@ -2,6 +2,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass, field
 from functools import partial
+from time import monotonic
 from typing import override
 
 import anyio
@@ -46,6 +47,8 @@ class GameServiceContext(HeartbeatBroadcaster):
             state=self.state_monitor.state.value,
             ready_state=self.ready_state,
             ktane_url=str(self.ktane_client.base_url),
+            heartbeat_seq=self._heartbeat_seq,
+            uptime_seconds=round(monotonic() - self._start_time, 2),
         )
 
     @override

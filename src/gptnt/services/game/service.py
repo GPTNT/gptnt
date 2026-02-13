@@ -1,7 +1,7 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal, override
+from typing import Literal, override
 
 import httpx
 import structlog
@@ -15,9 +15,7 @@ from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.game import GameState
 from gptnt.services.events.heartbeat import ReadyState
 from gptnt.services.game.context import GameServiceContext
-
-if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
+from gptnt.services.rpc import BaseRPCService
 
 logger = structlog.get_logger()
 
@@ -37,15 +35,18 @@ GameCommand = Literal[
 
 
 @dataclass(kw_only=True)
-class GameService(GameServiceContext):
-    """Handle game commands from Redis RPC requests."""
+class GameService(GameServiceContext, BaseRPCService[GameCommand]):
+    """Handle game commands from Redis RPC requests.
+
+    Registers Redis RPC handlers and coordinates the game lifecycle while delegating the underlying
+    work to the core game components managed by GameServiceContext.
+    """
 
     broker: RedisBroker
 
     def __post_init__(self) -> None:
         """Initialize the command handler."""
-        super().__post_init__()
-        self.commands: dict[GameCommand, Callable[..., Awaitable[Any]]] = {
+        self.commands = {
             "advance_game_time": self.advance_time,
             "configure_game": self.configure_game,
             "get_bomb_state": self.get_bomb_state,
@@ -61,6 +62,7 @@ class GameService(GameServiceContext):
         self.register_subscribers()
 
     @property
+    @override
     def command_channel(self) -> str:
         """Get the command channel for this game."""
         return f"game:{self.uuid}:commands"
@@ -69,15 +71,8 @@ class GameService(GameServiceContext):
     @asynccontextmanager
     async def lifespan(self) -> AsyncGenerator[None]:
         """Lifespan for the Game Instance."""
-        async with self.broker, super().lifespan():
+        async with self.broker, self.lifespan():
             yield
-
-    def register_subscribers(self) -> None:
-        """Register all the command subscribers with the broker."""
-        for command_name, command_func in self.commands.items():
-            channel_name = f"{self.command_channel}:{command_name}"
-            logger.debug("Registering command", channel_name=channel_name, command=command_name)
-            _ = self.broker.subscriber(channel_name)(command_func)
 
     async def get_game_state(self) -> GameState:
         """Get the current game state."""
@@ -125,6 +120,7 @@ class GameService(GameServiceContext):
         if self.ready_state == ReadyState.ready:
             self.expected_death.set()
             await self.process_manager.terminate()
+
         return True
 
     async def pause_game(self) -> bool:
