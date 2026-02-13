@@ -13,24 +13,24 @@ def estimate_tokens_for_image_per_model(model: str, *, long_side: int, short_sid
     """
     model = model.lower()
     if "claude45" in model:
-        assert long_side == 640  # noqa: PLR2004
-        assert short_side == 480  # noqa: PLR2004
+        assert long_side == 640
+        assert short_side == 480
         return 424
     if "gemini-3" in model:
-        assert long_side == 640  # noqa: PLR2004
-        assert short_side == 480  # noqa: PLR2004
+        assert long_side == 640
+        assert short_side == 480
         return 541
     if "gpt5" in model or "gpt-5" in model:
-        assert long_side == 640  # noqa: PLR2004
-        assert short_side == 480  # noqa: PLR2004
+        assert long_side == 640
+        assert short_side == 480
         return 383
     if "qwen3vl" in model:
-        assert long_side == 504  # noqa: PLR2004
-        assert short_side == 504  # noqa: PLR2004
+        assert long_side == 504
+        assert short_side == 504
         return 266
     if "internvl35" in model:
-        assert long_side == 448  # noqa: PLR2004
-        assert short_side == 448  # noqa: PLR2004
+        assert long_side == 448
+        assert short_side == 448
         return 267
     if "test" in model or ("function:" in model):
         return 258

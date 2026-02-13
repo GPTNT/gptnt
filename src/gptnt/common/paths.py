@@ -21,6 +21,7 @@ class Paths(BaseSettings):
     storage: Path = root.joinpath("storage")
     artifacts: Path = root.joinpath("artifacts")
     output: Path = storage.joinpath("outputs")
+    logs: Path = storage.joinpath("logs")
 
     output_observations: Path = output.joinpath("observations")
     experiment_recorder: Path = output.joinpath("experiment_recorder_outputs")
