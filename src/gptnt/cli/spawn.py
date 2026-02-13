@@ -8,7 +8,7 @@ import anyio
 import typer
 from rich.console import Console
 
-from gptnt.cli.orchestrator import ProcessOrchestrator, monitor_status
+from gptnt.cli.orchestrator import ProcessOrchestrator, monitor_interactive, monitor_status
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -112,7 +112,20 @@ async def handle_signals(orch: ProcessOrchestrator) -> AsyncGenerator[None]:
         _ = signal.signal(signal.SIGTERM, original_sigterm)
 
 
-async def run_throw(
+async def _do_spawn_and_monitor(
+    orch: ProcessOrchestrator,
+    num_rooms: int,
+    players: list[PlayerSpec],
+    display_num: int,
+    output_dir: Path,
+) -> None:
+    """Spawn all processes and then monitor them."""
+    await _spawn_experiment_manager(orch)
+    await _spawn_rooms(orch, num_rooms, display_num)
+    await _spawn_players(orch, players, output_dir)
+
+
+async def run_throw(  # noqa: WPS213
     orch: ProcessOrchestrator,
     num_rooms: int,
     players: list[PlayerSpec],
@@ -120,11 +133,15 @@ async def run_throw(
     output_dir: Path,
 ) -> None:
     """Core orchestration: spawn processes and monitor until completion or failure."""
-    await _spawn_experiment_manager(orch)
-    await _spawn_rooms(orch, num_rooms, display_num)
-    await _spawn_players(orch, players, output_dir)
-
-    await monitor_status(orch)
+    if orch.interactive:
+        async with anyio.create_task_group() as tg:
+            orch.stream_tasks = tg
+            await _do_spawn_and_monitor(orch, num_rooms, players, display_num, output_dir)
+            await monitor_interactive(orch)
+            tg.cancel_scope.cancel()
+    else:
+        await _do_spawn_and_monitor(orch, num_rooms, players, display_num, output_dir)
+        await monitor_status(orch)
 
     # Success
     console.print()

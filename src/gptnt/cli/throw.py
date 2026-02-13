@@ -48,12 +48,22 @@ OutputDirOption = Annotated[
     Path, typer.Option(help="Location for experiment outputs", rich_help_panel="Outputs")
 ]
 
+InteractiveOption = Annotated[
+    bool,
+    typer.Option(
+        "--interactive",
+        "-i",
+        help="Stream process logs to the terminal with coloured prefixes (like docker compose)",
+    ),
+]
+
 
 async def throw(  # noqa: WPS213
     *,
     rooms: Annotated[int, typer.Argument(help="Number of game rooms to start", min=1)],
     players: PlayerOption,
     display_num: DisplayNumOption = 3,
+    interactive: InteractiveOption = False,
     wandb_entity: Annotated[
         str | None,
         typer.Option(
@@ -111,7 +121,9 @@ async def throw(  # noqa: WPS213
     if wandb_project:
         env_base["WANDB_PROJECT"] = wandb_project
 
-    orch = ProcessOrchestrator(logs_dir=logs_dir, output_dir=output_dir, env_base=env_base)
+    orch = ProcessOrchestrator(
+        logs_dir=logs_dir, output_dir=output_dir, env_base=env_base, interactive=interactive
+    )
 
     async with handle_signals(orch):
         await run_throw(orch, rooms, players, display_num, output_dir)

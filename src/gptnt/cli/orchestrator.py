@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import contextlib
 import os
+import subprocess
 from dataclasses import dataclass, field
 from enum import Enum, auto
+from itertools import cycle
 from typing import TYPE_CHECKING
 
 import anyio
@@ -17,9 +19,25 @@ if TYPE_CHECKING:
     from io import TextIOWrapper
     from pathlib import Path
 
-    from anyio.abc import Process
+    from anyio.abc import Process, TaskGroup
 
 console = Console()
+
+# Rotating colors for interactive log prefixes
+_PREFIX_COLORS = cycle(
+    [
+        "cyan",
+        "green",
+        "magenta",
+        "yellow",
+        "blue",
+        "red",
+        "bright_cyan",
+        "bright_green",
+        "bright_magenta",
+        "bright_yellow",
+    ]
+)
 
 
 class ProcessStatus(Enum):
@@ -39,6 +57,7 @@ class TrackedProcess:
     process: Process
     log_path: Path
     log_file: TextIOWrapper
+    prefix_color: str = "cyan"
     status: ProcessStatus = ProcessStatus.RUNNING
     exit_code: int | None = None
 
@@ -50,30 +69,45 @@ class ProcessOrchestrator:
     logs_dir: Path
     output_dir: Path
     env_base: dict[str, str]
+    interactive: bool = False
     processes: list[TrackedProcess] = field(default_factory=list)
     shutdown_event: anyio.Event = field(default_factory=anyio.Event)
+
+    stream_tasks: TaskGroup | None = field(default=None, repr=False)
 
     async def spawn(
         self, name: str, cmd: list[str], extra_env: dict[str, str] | None = None
     ) -> TrackedProcess:
-        """Spawn a subprocess, redirecting stdout+stderr to a log file."""
+        """Spawn a subprocess, redirecting stdout+stderr to a log file.
+
+        In interactive mode, output is piped and tee'd to both the log file and
+        the console with a coloured name prefix (like ``docker compose``).
+        """
         env = {**self.env_base, **(extra_env or {})}
         log_path = self.logs_dir / f"{name}.log"
-
         log_file_handler = log_path.open("w")
+        color = next(_PREFIX_COLORS)
 
         process = await anyio.open_process(
             cmd,
             env={**os.environ, **env},
-            stdout=log_file_handler.fileno(),
-            stderr=log_file_handler.fileno(),
+            stdout=subprocess.PIPE if self.interactive else log_file_handler.fileno(),
+            stderr=subprocess.STDOUT if self.interactive else log_file_handler.fileno(),
         )
 
         tracked = TrackedProcess(
-            name=name, process=process, log_path=log_path, log_file=log_file_handler
+            name=name,
+            process=process,
+            log_path=log_path,
+            log_file=log_file_handler,
+            prefix_color=color,
         )
         self.processes.append(tracked)
         console.print(f"  [green]Started[/green] {name} (PID: {process.pid}, Log: {log_path})")
+
+        if self.interactive and self.stream_tasks is not None:
+            self.stream_tasks.start_soon(_stream_output, tracked)
+
         return tracked
 
     def poll_all(self) -> None:
@@ -185,3 +219,54 @@ async def monitor_status(orch: ProcessOrchestrator) -> None:  # noqa: WPS213, WP
                 raise typer.Exit(code=1)
 
             await anyio.sleep(1)
+
+
+async def _stream_output(tp: TrackedProcess, *, max_name_len: int = 20) -> None:
+    """Read lines from a piped process and tee to console + log file.
+
+    Each line is prefixed with the process name in its assigned colour,
+    similar to ``docker compose`` output.
+    """
+    assert tp.process.stdout is not None
+    padded = tp.name[:max_name_len].ljust(max_name_len)
+    prefix = f"[{tp.prefix_color}]{padded}[/{tp.prefix_color}] | "
+
+    async for raw_line in tp.process.stdout:
+        line = raw_line.decode("utf-8", errors="replace").rstrip("\n")
+        console.print(f"{prefix}{line}", highlight=False)
+        _ = tp.log_file.write(f"{line}\n")
+        tp.log_file.flush()
+
+
+async def monitor_interactive(orch: ProcessOrchestrator) -> None:  # noqa: WPS213, WPS231
+    """Monitor processes in interactive mode — stream output and watch for failures.
+
+    The streaming tasks are started by ``spawn()`` into the task group. This
+    function just polls process status until everything completes or something
+    fails.
+    """
+    console.print()
+    console.rule("[bold]Monitoring processes (interactive)[/bold]")
+    console.print("You can safely detach from tmux now.\n")
+
+    while True:
+        orch.poll_all()
+
+        failed = orch.any_failed()
+        if failed:
+            console.print(
+                f"\n[bold red]ERROR:[/bold red] Process '{failed.name}' (PID {failed.process.pid}) "
+                f"failed with exit code {failed.exit_code}."
+            )
+            console.print(f"  Check logs at: {failed.log_path}")
+            await orch.terminate_all()
+            raise typer.Exit(code=1)
+
+        if orch.all_done():
+            break
+
+        if orch.shutdown_event.is_set():
+            await orch.terminate_all()
+            raise typer.Exit(code=1)
+
+        await anyio.sleep(1)
