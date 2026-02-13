@@ -152,6 +152,9 @@ class PlayerService(PlayerServiceContext):
         await self.incoming_message_handler.start_subscriber()
 
         self.state = PlayerState.waiting_for_turn
+        _ = structlog.contextvars.bind_contextvars(
+            session_id=self.experiment_descriptor.session_id, player_role=self.protocol.role
+        )
         logger.info("Configured player for experiment", protocol=self.protocol, state=self.state)
         return True
 
@@ -293,3 +296,5 @@ class PlayerService(PlayerServiceContext):
         await self.incoming_message_handler.stop_subscriber()
         # Reset the state
         self.reset()
+
+        _ = structlog.contextvars.unbind_contextvars("session_id", "player_role")
