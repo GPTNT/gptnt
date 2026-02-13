@@ -7,7 +7,7 @@ from typing import override
 import anyio
 import structlog
 
-from gptnt.common.async_ops import periodic
+from gptnt.common.async_ops import Event, periodic
 from gptnt.ktane.client import KtaneClient
 from gptnt.services.events.heartbeat import GameHeartbeat
 from gptnt.services.game.process_manager import GameProcessManager
@@ -31,6 +31,7 @@ class GameServiceContext(HeartbeatBroadcaster):
     process_manager: GameProcessManager = field(default_factory=GameProcessManager, init=False)
     state_monitor: GameStateMonitor = field(init=False)
     ktane_client: KtaneClient = field(default_factory=partial(KtaneClient, url=""), init=False)
+    expected_death: Event = field(default_factory=Event, init=False)
 
     def __post_init__(self) -> None:
         """Setup components and subscriptions."""
@@ -66,10 +67,11 @@ class GameServiceContext(HeartbeatBroadcaster):
                 await self._run_game_session()
             except* GameProcessDiedError:
                 logger.debug("Game process died, restarting")
-                if not self.state_monitor.is_expected_death:
+                if not (self.state_monitor.is_expected_death or self.expected_death.is_set()):
                     logger.exception("Game died unexpectedly", history=self.state_monitor.history)
                     self.ready_state = self.ready_state.not_ready
                 self.state_monitor.reset()
+                self.expected_death = Event()
 
     async def _run_game_session(self) -> None:  # noqa: WPS213
         """Run a single game session."""

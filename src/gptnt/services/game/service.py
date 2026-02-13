@@ -123,6 +123,7 @@ class GameService(GameServiceContext):
         """
         logger.debug("Stopping game via controller")
         if self.ready_state == ReadyState.ready:
+            self.expected_death.set()
             await self.process_manager.terminate()
         return True
 
