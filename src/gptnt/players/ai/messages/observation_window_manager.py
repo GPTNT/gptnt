@@ -65,10 +65,9 @@ class ObservationWindowManager:
 
         # Update token count if observations were removed
         if num_removed > 0:
-            _, new_run_input_tokens = self.token_accountant.deduct_observation_tokens_from_run(
-                num_removed, new_run.input_tokens
+            new_run.input_tokens = self.token_accountant.deduct_observations(
+                num_removed, run_input_tokens=new_run.input_tokens
             )
-            new_run.input_tokens = new_run_input_tokens
 
         return new_run
 

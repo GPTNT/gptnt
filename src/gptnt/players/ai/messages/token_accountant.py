@@ -11,13 +11,17 @@ logger = structlog.get_logger()
 
 @dataclass(kw_only=True)
 class TokenAccountant:
-    """Manages token accounting and estimation for message history.
+    """Single source of truth for token accounting.
 
-    This class centralizes all token-related calculations, including:
-        - Tracking cumulative usage via RunUsage
-        - Estimating tokens for observations (images)
-        - Correcting token counts when observations are removed
-        - Determining if truncation is needed based on usage limits
+    Every mutation of `self.usage` goes through one of the four public mutators below. Nothing
+    outside this class should touch `self.usage` directly.
+
+    Mutators (in the order they're typically called during a step):
+        1. `add_initial_tokens` - seed with manual-prompt tokens (once)
+        2. `record_model_response` - replace cumulative usage after an LLM call
+        3. `deduct_observations` - remove observation tokens from usage and return the adjusted
+            per-run input-token count
+        4. `deduct_run` - remove a whole run's worth of tokens (truncation)
     """
 
     capabilities: PlayerCapabilities
@@ -26,7 +30,7 @@ class TokenAccountant:
 
     @property
     def tokens_per_image(self) -> int:
-        """Estimate the number of tokens per image for the current model."""
+        """Estimated tokens for one image on the current model."""
         return estimate_tokens_for_image_per_model(
             model=self.capabilities.player_name,
             long_side=self.capabilities.image_dimensions.long_side,
@@ -35,114 +39,107 @@ class TokenAccountant:
 
     @property
     def usage_limits(self) -> UsageLimits:
-        """Get the usage limits from capabilities."""
+        """Usage limits configured for the player."""
         return self.capabilities.usage_limits
 
-    def deduct_observation_tokens(self, num_observations: int) -> int:
-        """Deduct tokens for removed observations from usage.
+    def add_initial_tokens(self, tokens: int) -> None:
+        """Seed usage with tokens that exist before any model call (e.g. manual).
 
-        Args:
-            num_observations: Number of observations being removed
+        Must be called *before* the first `record_model_response`.
+        """
+        self.usage.input_tokens += tokens
+
+    def record_model_response(self, usage: RunUsage) -> tuple[int, int]:
+        """Record a model response and compute per-run token deltas.
+
+        The delta is computed against the current cumulative total so that earlier deductions
+        (which keep the baseline aligned with what the model actually sees) are naturally accounted
+        for.
 
         Returns:
-            The number of tokens actually deducted (may be clamped to prevent negatives)
+            `(input_tokens_for_run, output_tokens_for_run)`
         """
-        if num_observations <= 0 or self.usage.input_tokens <= 0:
-            return 0
+        input_tokens_for_run = max(usage.input_tokens - self.usage.total_tokens, 0)
+        output_tokens_for_run = usage.output_tokens
+        self.usage = usage
+        return input_tokens_for_run, output_tokens_for_run
 
-        tokens_to_remove = min(num_observations * self.tokens_per_image, self.usage.input_tokens)
-        new_usage_input_tokens = self.usage.input_tokens - tokens_to_remove
+    def deduct_observations(self, num_observations: int, *, run_input_tokens: int) -> int:
+        """Deduct observation (image) tokens from cumulative usage and a run.
 
-        if new_usage_input_tokens < 0:
-            logger.warning(
-                f"Token correction would go negative: {self.usage.input_tokens=} "
-                f"- {tokens_to_remove=} -> clamping to 0"
-            )
-            new_usage_input_tokens = 0
-
-        self.usage.input_tokens = new_usage_input_tokens
-        return tokens_to_remove
-
-    def deduct_observation_tokens_from_run(
-        self, num_observations: int, run_input_tokens: int
-    ) -> tuple[int, int]:
-        """Deduct observation tokens from both usage and a specific run's token count.
+        All clamping is handled internally so callers don't need to worry about negative values.
 
         Args:
-            num_observations: Number of observations being removed
-            run_input_tokens: The input token count for the specific run
+            num_observations: Number of observations being removed.
+            run_input_tokens: The per-run input token count to adjust.
 
         Returns:
-            Tuple of (tokens_deducted_from_usage, new_run_input_tokens)
+            The adjusted `run_input_tokens` after deduction.
         """
-        tokens_deducted_from_usage = self.deduct_observation_tokens(num_observations)
-
         if num_observations <= 0:
-            return 0, run_input_tokens
+            return run_input_tokens
 
-        tokens_to_remove = num_observations * self.tokens_per_image
-        new_run_input_tokens = run_input_tokens - tokens_to_remove
+        token_cost = num_observations * self.tokens_per_image
 
-        if new_run_input_tokens < 0:
-            logger.warning(
-                f"Token correction for run would go negative: {run_input_tokens=} "
-                f"- {tokens_to_remove=} -> clamping to 0"
-            )
-            new_run_input_tokens = 0
+        # deduct from cumulative usage
+        _ = self._clamped_deduct(token_cost, label="observation")
 
-        return tokens_deducted_from_usage, new_run_input_tokens
+        # deduct from the run's own count
+        run_deduction = min(token_cost, run_input_tokens)
+        return max(run_input_tokens - run_deduction, 0)
+
+    def deduct_run(self, *, input_tokens: int, output_tokens: int) -> None:
+        """Deduct a whole run's tokens from cumulative usage (truncation).
+
+        Both input and output count toward context length, so both are subtracted
+        from `usage.input_tokens`.  Result is clamped to zero.
+        """
+        total = input_tokens + output_tokens
+        if total <= 0:
+            return
+        _ = self._clamped_deduct(total, label="run")
 
     def estimate_next_run_tokens(self, *, next_message: str | None = None) -> int:
-        """Calculate the estimated input tokens for the next run.
+        """Estimate input tokens the model will see on the next call.
 
-        This includes:
-        - Current cumulative usage (total_tokens)
-        - Tokens for images if defuser role (max_observations_per_request)
-        - Tokens for the next message if provided
-
-        Args:
-            next_message: Optional message to include in estimation
-
-        Returns:
-            Estimated total input tokens for next run
+        Includes current cumulative total, expected images (defuser only), and an optional
+        forthcoming text message.
         """
         model_input = self.usage.total_tokens or 0
 
-        # If we are a defuser, then we need to add in the tokens for the images we would send,
-        # which we estimate using the maximum number of observations per request
         if self.protocol.role == "defuser":
             model_input += self.tokens_per_image * self.capabilities.max_observations_per_request
 
-        # Also add in the tokens for the next message if we have one
         if next_message:
             model_input += count_tokens_from_text(next_message)
 
         return model_input
 
     def should_truncate(self, *, threshold: float, next_message: str | None = None) -> bool:
-        """Check if message history should be truncated based on usage limits.
-
-        Args:
-            threshold: Fraction of limit at which to trigger truncation (e.g., 0.9 for 90%)
-            next_message: Optional message to include in estimation
-
-        Returns:
-            True if estimated usage exceeds threshold * limit
-        """
+        """Check whether estimated usage exceeds `threshold * limit`."""
         if self.capabilities.usage_limits.input_tokens_limit is None:
-            # If there is no limit, we never truncate
             return False
 
         estimated_input = self.estimate_next_run_tokens(next_message=next_message)
-
-        # Check if we are over the context length
         return estimated_input > (self.capabilities.usage_limits.input_tokens_limit * threshold)
 
-    def deduct_run_tokens(self, *, input_tokens: int, output_tokens: int) -> None:
-        """Deduct tokens from a removed run during truncation.
+    def _clamped_deduct(self, amount: int, *, label: str) -> int:
+        """Subtract amount from `usage.input_tokens`, clamping to zero.
 
-        We need to subtract both from the input tokens because they both count toward the context
-        length.
+        Returns the number of tokens actually deducted.
         """
-        self.usage.input_tokens -= input_tokens
-        self.usage.input_tokens -= output_tokens
+        if amount <= 0 or self.usage.input_tokens <= 0:
+            return 0
+
+        actually_deducted = min(amount, self.usage.input_tokens)
+        new_value = self.usage.input_tokens - actually_deducted
+
+        if new_value < 0:  # unneeded because min() above should prevent this, but i've seen things
+            logger.warning(
+                f"{label.capitalize()} token deduction would go negative: "
+                f"{self.usage.input_tokens=} - {amount=} -> clamping to 0"
+            )
+            new_value = 0
+
+        self.usage.input_tokens = new_value
+        return actually_deducted

@@ -125,14 +125,11 @@ class MessageHistory:
         included in `new_messages`. I checked this manually. So this means we shouldn't need to do
         all the 1000s of checks for it.
         """
-        # Track the input and output tokens for this run
-        input_tokens_for_run = usage.input_tokens - self.usage.total_tokens
-        # Note: output tokens is not computed with a delta because the model only outputs once per
-        # run
-        output_tokens_for_run = usage.output_tokens
-
-        # Update usage BEFORE modifying the messages
-        self.token_accountant.usage = usage
+        # Record model response and compute per-run deltas.
+        # This is the sole place where cumulative usage is replaced.
+        input_tokens_for_run, output_tokens_for_run = self.token_accountant.record_model_response(
+            usage
+        )
 
         if self.force_convert_tool_output_to_native:
             new_messages = coerce_tool_output_into_native_output(new_messages)
@@ -149,8 +146,8 @@ class MessageHistory:
 
             # Update the usage to reflect the number of observation tokens removed
             if num_obs_removed > 0:
-                _, input_tokens_for_run = self.token_accountant.deduct_observation_tokens_from_run(
-                    num_obs_removed, input_tokens_for_run
+                input_tokens_for_run = self.token_accountant.deduct_observations(
+                    num_obs_removed, run_input_tokens=input_tokens_for_run
                 )
 
         self.turn_runs.append(
@@ -192,7 +189,7 @@ class MessageHistory:
     def _on_run_truncated(self, run: SingleRun) -> None:
         """Callback when a run is truncated - updates usage and counters."""
         # Update the usage - subtract both input and output tokens
-        self.token_accountant.deduct_run_tokens(
+        self.token_accountant.deduct_run(
             input_tokens=run.input_tokens, output_tokens=run.output_tokens
         )
         self.num_times_truncated += 1
@@ -218,4 +215,4 @@ class MessageHistory:
             input_tokens=text_token_estimate + image_token_estimate,
             output_tokens=0,
         )
-        self.usage.input_tokens += text_token_estimate + image_token_estimate
+        self.token_accountant.add_initial_tokens(text_token_estimate + image_token_estimate)
