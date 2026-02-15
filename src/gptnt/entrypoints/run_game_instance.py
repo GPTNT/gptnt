@@ -12,8 +12,6 @@ from gptnt.ktane.game_settings import KtaneSettings
 from gptnt.services.broker import create_redis_broker
 from gptnt.services.game.service import GameService
 
-_ = logfire.configure(service_name="game", scrubbing=False)
-
 logger = get_logger()
 
 
@@ -43,6 +41,8 @@ def main(*, redis_dsn: str | RedisDsn = "redis://localhost:6379") -> FastStream:
 
 
 if __name__ == "__main__":
+    _ = logfire.configure(service_name="game", scrubbing=False)
+
     configure_logging()
     application = main()
     anyio.run(application.run, backend="asyncio")

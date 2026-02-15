@@ -13,7 +13,6 @@ if TYPE_CHECKING:
     from gptnt.experiments.missions import MissionGenerator
     from gptnt.experiments.pairing import PairingGenerator
 
-configure_logging()
 logger = get_logger()
 
 paths = Paths()
@@ -42,4 +41,6 @@ def generate_experiments(cfg: DictConfig) -> None:  # noqa: WPS210
 
 
 if __name__ == "__main__":
+    configure_logging()
+
     generate_experiments()

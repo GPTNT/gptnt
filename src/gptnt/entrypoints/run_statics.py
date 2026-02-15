@@ -46,7 +46,6 @@ from gptnt.evaluation.scorers import (
 from gptnt.players.specification import PlayerCapabilities, PlayerRole
 from gptnt.processors.image_resizer import ImageResizer
 
-configure_logging()
 logger = get_logger()
 paths = Paths()
 
@@ -476,4 +475,6 @@ async def run_expert_grounding_evaluation(
 
 
 if __name__ == "__main__":
+    configure_logging()
+
     app()

@@ -15,7 +15,6 @@ from gptnt.services.broker import create_redis_broker
 from gptnt.services.experiment_manager.api import lifespan, router
 from gptnt.services.experiment_manager.experiment_manager import ExperimentManager
 
-_ = logfire.configure(service_name="experiment_manager", scrubbing=False)
 logger = get_logger()
 
 EM_PORT = 8085
@@ -46,6 +45,8 @@ def run(redis_dsn: RedisDsn | None = None) -> FastAPI:
 
 
 if __name__ == "__main__":
+    _ = logfire.configure(service_name="experiment_manager", scrubbing=False)
+
     configure_logging()
     config = Config()
     config.bind = [f"localhost:{EM_PORT}"]

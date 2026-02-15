@@ -15,8 +15,6 @@ from gptnt.services.game.client import GameClient
 from gptnt.services.player.message_handler import IncomingMessageHandler
 from gptnt.services.player.service import PlayerService
 
-_ = logfire.configure(service_name="player", scrubbing=False)
-
 logger = get_logger()
 
 paths = Paths()
@@ -62,6 +60,8 @@ def main(
 
 
 if __name__ == "__main__":
+    _ = logfire.configure(service_name="player", scrubbing=False)
+
     configure_logging()
     remove_empty_experiment_recorder_outputs(paths.experiment_recorder)
     application = main()
