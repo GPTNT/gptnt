@@ -1,25 +1,13 @@
 from typing import Any
 
 import pytest
-from google.genai.errors import ServerError
-from pydantic_ai import (
-    Agent,
-    AgentRunError,
-    BinaryContent,
-    ModelMessage,
-    ModelResponse,
-    TextPart,
-    UserPromptPart,
-)
-from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai import Agent, BinaryContent, UserPromptPart
 from pydantic_ai.models.test import TestModel
 from pytest_cases import parametrize_with_cases
 
 from gptnt.players.actions import (
-    AbsoluteCoordinate,
     DoNothingAction,
     InteractGameAction,
-    NormalisedCoordinate,
     PlayerOutputType,
     SendMessageAction,
 )
@@ -28,8 +16,16 @@ from gptnt.players.ai.messages.message_history import MessageHistory
 from gptnt.players.exceptions import AIResponseErrorType
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
-from tests.conftest import ProtocolCases
-from tests.players.ai.conftest import SuccessfulOutputCases
+from tests._cases.capabilities import CapabilitiesCases
+from tests._cases.outputs import PredictedActionCases, ReflectionOutputCases
+from tests._cases.protocol import ProtocolCases
+from tests.players._models import (
+    ContentFilteringErrorModel,
+    GenericAgentRunErrorModel,
+    InvalidStringOutputModel,
+    MaxTokensExceededModel,
+    ServerErrorModel,
+)
 
 
 def create_action_predictor(
@@ -42,125 +38,37 @@ def create_action_predictor(
     return predictor
 
 
-# ============================================================================
-# Custom FunctionModel Implementations for Exception Testing
-# ============================================================================
+@parametrize_with_cases("action", cases=PredictedActionCases)
+def test_actions_are_parsed_correctly_from_json(action: PlayerOutputType) -> None:
+    """Test that the actions are parsed correctly.
 
+    This is a regression test to ensure that the actions are parsed correctly.
+    """
+    action_as_json = action.model_dump(mode="json", exclude_none=True, exclude_defaults=True)
 
-class ContentFilteringErrorModel(FunctionModel):
-    """Model that raises AgentRunError for content filtering."""
+    # Note: actions can be validated by their name or the value, so we check that too
+    if isinstance(action, InteractGameAction):
+        action_as_json["action"] = action.action.name
 
-    def __init__(self) -> None:
-        super().__init__(self._raise_content_filtering_error)
+    test_model = Agent(TestModel(custom_output_args=action_as_json), output_type=action.__class__)
+    output = test_model.run_sync("message")
 
-    def _raise_content_filtering_error(
-        self, _messages: list[ModelMessage], _info: AgentInfo
-    ) -> ModelResponse:
-        """Raise AgentRunError with content filtering message."""
-        raise AgentRunError(
-            "Request was filtered due to the prompt triggering Azure OpenAI's content filtering system."
-        )
-
-
-class MaxTokensExceededModel(FunctionModel):
-    """Model that raises UnexpectedModelBehavior for max tokens exceeded."""
-
-    def __init__(self) -> None:
-        super().__init__(self._raise_max_tokens_error)
-
-    def _raise_max_tokens_error(
-        self, _messages: list[ModelMessage], _info: AgentInfo
-    ) -> ModelResponse:
-        """Raise UnexpectedModelBehavior with max retries message."""
-        # Create a response with finish_reason="length"
-        response = ModelResponse(parts=[TextPart("partial output...")], finish_reason="length")
-        return response
-
-
-class GenericAgentRunErrorModel(FunctionModel):
-    """Model that raises generic AgentRunError."""
-
-    def __init__(self) -> None:
-        super().__init__(self._raise_generic_error)
-
-    def _raise_generic_error(
-        self, _messages: list[ModelMessage], _info: AgentInfo
-    ) -> ModelResponse:
-        """Raise generic AgentRunError."""
-        raise AgentRunError("Something unexpected happened")
-
-
-class ServerErrorModel(FunctionModel):
-    """Model that raises ServerError."""
-
-    def __init__(self) -> None:
-        super().__init__(self._raise_server_error)
-
-    def _raise_server_error(
-        self, _messages: list[ModelMessage], _info: AgentInfo
-    ) -> ModelResponse:
-        """Raise ServerError to simulate server-side errors."""
-        raise ServerError(
-            code=500, response_json={"error": {"message": "Internal server error occurred"}}
-        )
-
-
-class InvalidStringOutputModel(FunctionModel):
-    """Model that returns invalid string output that can't be structured."""
-
-    def __init__(self) -> None:
-        super().__init__(self._return_invalid_string)
-
-    def _return_invalid_string(
-        self, _messages: list[ModelMessage], _info: AgentInfo
-    ) -> ModelResponse:
-        """Return invalid string output."""
-        return ModelResponse(parts=[TextPart("not valid json at all")])
+    assert output.output == action
 
 
 @pytest.mark.anyio
-@parametrize_with_cases("expected_action", cases=SuccessfulOutputCases)
+@parametrize_with_cases("expected_action", cases=PredictedActionCases)
 @parametrize_with_cases("protocol", cases=ProtocolCases)
 async def test_send_request_returns_valid_output_when_model_responds_correctly(
     expected_action: PlayerOutputType, capabilities: PlayerCapabilities, protocol: PlayerProtocol
 ) -> None:
     """Test that send_request_to_agent returns valid output for successful responses."""
-
-    # Check if this action type is valid for this protocol
-    if isinstance(expected_action, SendMessageAction) and protocol.is_playing_alone:
-        pytest.skip("SendMessage not valid when playing alone")
-    if isinstance(expected_action, InteractGameAction) and protocol.role == "expert":
-        pytest.skip("InteractGame not valid for expert role")
-
-    # Check if location type matches capabilities for interact_game
-    if isinstance(expected_action, InteractGameAction):
-        expects_coords = isinstance(
-            expected_action.location, (AbsoluteCoordinate, NormalisedCoordinate)
-        )
-        expects_som = isinstance(expected_action.location, str)
-        if expects_coords and capabilities.interaction_location_method != "coordinates":
-            pytest.skip("Expected coordinate location but capabilities do not support coordinates")
-
-        if expects_som and capabilities.interaction_location_method != "set-of-marks":
-            pytest.skip(
-                "Expected set-of-marks location but capabilities do not support set-of-marks"
-            )
-
-        if (
-            isinstance(expected_action.location, AbsoluteCoordinate)
-            and capabilities.coordinate_mode != "absolute"
-        ):
-            pytest.skip(
-                "Expected absolute coordinate location but capabilities do not support absolute-coordinates"
-            )
-
-        if (
-            isinstance(expected_action.location, NormalisedCoordinate)
-            and capabilities.coordinate_mode != "normalised"
-        ):
-            pytest.skip(
-                "Expected normalised coordinate location but capabilities do not support normalised-coordinates"
-            )
+    CapabilitiesCases.check_expected_output_with_capabilities(
+        expected_output=expected_action, capabilities=capabilities
+    )
+    ProtocolCases.check_expected_output_with_protocol(
+        expected_output=expected_action, protocol=protocol
+    )
 
     # Create agent with TestModel and retries=0 (no output_type needed)
     agent = Agent(TestModel(custom_output_text=expected_action.text_part_dump()), retries=0)
@@ -315,21 +223,6 @@ async def test_send_request_returns_do_nothing_when_structuring_fails(
 # ============================================================================
 
 
-class ReflectionOutputCases:
-    """Case class for different reflection output scenarios."""
-
-    message = "I need to be better."
-
-    def case_full_schema(self) -> str:
-        return SendMessageAction(message=self.message).text_part_dump()
-
-    def case_only_action(self) -> str:
-        return SendMessageAction(message=self.message).model_dump_json()
-
-    def case_string_output(self) -> str:
-        return self.message
-
-
 @pytest.mark.anyio
 @parametrize_with_cases("expected_output", cases=ReflectionOutputCases)
 @parametrize_with_cases("protocol", cases=ProtocolCases)
@@ -345,7 +238,7 @@ async def test_send_reflection_request_returns_valid_output_on_success(
 
     # Assertions
     assert isinstance(call_result.output, SendMessageAction)
-    assert call_result.output.message == "I need to be better."
+    assert call_result.output.message == ReflectionOutputCases.message
     # assert len(call_result.new_messages) > 0
 
 

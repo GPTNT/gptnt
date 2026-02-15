@@ -1,29 +1,13 @@
-"""Tests for TokenAccountant."""
-
-import pytest
 from pydantic_ai import RunUsage, UsageLimits
+from pytest_cases import fixture, parametrize, parametrize_with_cases
 
 from gptnt.players.ai.messages.token_accountant import TokenAccountant
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
-
-@pytest.fixture
-def defuser_protocol() -> PlayerProtocol:
-    """Create a defuser protocol."""
-    return PlayerProtocol(
-        role="defuser", include_manual=False, is_playing_alone=True, communication_style="async"
-    )
+from tests._cases.protocol import ProtocolCases
 
 
-@pytest.fixture
-def expert_protocol() -> PlayerProtocol:
-    """Create an expert protocol."""
-    return PlayerProtocol(
-        role="expert", include_manual=False, is_playing_alone=False, communication_style="sync"
-    )
-
-
-@pytest.fixture
+@fixture
 def capabilities_with_limit() -> PlayerCapabilities:
     """Create capabilities with a token limit."""
     return PlayerCapabilities(
@@ -36,7 +20,7 @@ def capabilities_with_limit() -> PlayerCapabilities:
     )
 
 
-@pytest.fixture
+@fixture
 def capabilities_no_limit() -> PlayerCapabilities:
     """Create capabilities without a token limit."""
     return PlayerCapabilities(
@@ -49,7 +33,8 @@ def capabilities_no_limit() -> PlayerCapabilities:
     )
 
 
-@pytest.fixture
+@fixture
+@parametrize_with_cases("defuser_protocol", cases=ProtocolCases, glob="*defuser*")
 def token_accountant(
     defuser_protocol: PlayerProtocol, capabilities_with_limit: PlayerCapabilities
 ) -> TokenAccountant:
@@ -197,7 +182,7 @@ class TestDeductObservations:
         assert new_run == 0
 
 
-@pytest.mark.parametrize(
+@parametrize(
     ("starting_input_tokens", "input_tokens", "output_tokens", "expected"),
     [
         (5000, 1000, 200, 3800),  # Normal case
@@ -206,6 +191,14 @@ class TestDeductObservations:
         (5000, 3000, 2000, 0),  # Deducting more than available (clamp to 0)
         (500, 300, 100, 100),  # Deducting tokens when close to zero
         (500, 300, 200, 0),  # Deducting tokens that would go negative
+    ],
+    ids=[
+        "normal",
+        "no_deduction",
+        "deduct_most",
+        "deduct_more_than_available",
+        "deduct_close_to_zero",
+        "deduct_to_negative",
     ],
 )
 def test_deduct_run(

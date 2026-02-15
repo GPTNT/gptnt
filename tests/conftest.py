@@ -1,17 +1,28 @@
 import os
-import socket
 from pathlib import Path
 
 import httpx
 import pytest
-from pytest_cases import fixture, param_fixture
+from pytest_factoryboy import register
 from pytest_mock import MockerFixture
 
 from gptnt.common.paths import Paths
+from gptnt.common.servers import get_available_port
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.manual import KtaneManualPaths
-from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.prompts.prompt_cache import PromptCache
+
+from tests._factories.players import PlayerProtocolFactory
+
+# Import all the fixtures from every file in the tests/_cases dir.
+pytest_plugins = [
+    fixture_file.as_posix().replace("/", ".").replace(".py", "")
+    for fixture_file in Path().rglob("tests/_cases/[!__]*.py")
+]
+
+# Register factories with pytest-factoryboy
+_ = register(PlayerProtocolFactory)
+
 
 # disable Weave and WandB for testing
 os.environ["WEAVE_DISABLED"] = "true"
@@ -32,10 +43,7 @@ def host() -> str:
 @pytest.fixture
 def port() -> int:
     """Return a random available port."""
-    sock = socket.socket()
-    sock.bind(("", 0))
-    port = sock.getsockname()[1]
-    return port
+    return get_available_port()
 
 
 @pytest.fixture(scope="session")
@@ -65,62 +73,8 @@ def prompt_cache() -> None:
     PromptCache.initialise(paths.prompts, ktane_manual.text_dir, ktane_manual.images_small_dir)
 
 
-# ============================================================================
-# Fixtures & Cases
-# ============================================================================
-
-interaction_location_method = param_fixture(
-    "interaction_location_method", ["set-of-marks", "coordinates"]
-)
-structured_output_mode = param_fixture("structured_output_mode", ["prompted"])
-
-
-@fixture
-def capabilities(
-    interaction_location_method: str, structured_output_mode: str
-) -> PlayerCapabilities:
-    """Fixture for PlayerCapabilities with varying interaction location methods."""
-    return PlayerCapabilities(
-        player_name="test_player",
-        player_type="ai",
-        structured_output_mode=structured_output_mode,
-        max_observations_per_request=16,
-        interaction_location_method=interaction_location_method,
-    )
-
-
-class ProtocolCases:
-    """Case class for different PlayerProtocol configurations."""
-
-    def case_defuser(self) -> PlayerProtocol:
-        """Collaborative protocol (is_playing_alone=False, allows SendMessage)."""
-        return PlayerProtocol(
-            role="defuser",
-            communication_style="sync",
-            is_playing_alone=False,
-            include_manual=True,
-            receive_feedback_after_action=False,
-            allow_magic_actions=False,
-        )
-
-    def case_solo_player(self) -> PlayerProtocol:
-        """Solo protocol (is_playing_alone=True, no SendMessage)."""
-        return PlayerProtocol(
-            role="defuser",
-            communication_style="sync",
-            is_playing_alone=True,
-            include_manual=True,
-            receive_feedback_after_action=False,
-            allow_magic_actions=False,
-        )
-
-    def case_expert(self) -> PlayerProtocol:
-        """Expert protocol (role='expert')."""
-        return PlayerProtocol(
-            role="expert",
-            communication_style="sync",
-            is_playing_alone=False,
-            include_manual=True,
-            receive_feedback_after_action=False,
-            allow_magic_actions=False,
-        )
+@pytest.fixture(scope="session", autouse=True)
+def disable_wandb_and_weave() -> None:
+    """Fixture to disable Weave and WandB for testing."""
+    os.environ["WEAVE_DISABLED"] = "true"
+    os.environ["WANDB_MODE"] = "disabled"

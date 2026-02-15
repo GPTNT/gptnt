@@ -2,18 +2,11 @@ from contextlib import ExitStack
 from typing import NamedTuple
 
 import pytest
-from pydantic_ai import Agent, ModelMessage, ModelResponse, TextPart, ThinkingPart
-from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai import Agent
 from pydantic_ai.models.test import TestModel
-from pytest_cases import fixture, param_fixture, parametrize_with_cases
+from pytest_cases import param_fixture, parametrize_with_cases
 
-from gptnt.players.actions import (
-    AbsoluteCoordinate,
-    InteractGameAction,
-    NormalisedCoordinate,
-    PlayerOutputType,
-    SendMessageAction,
-)
+from gptnt.players.actions import PlayerOutputType, SendMessageAction
 from gptnt.players.deps import PlayerDeps
 from gptnt.players.exceptions import AIResponseErrorType, ReasoningParsingError
 from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
@@ -24,119 +17,29 @@ from gptnt.players.reasoning_parser.react import (
 )
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
-from tests.players.ai.conftest import SuccessfulOutputCases
+from tests._cases.capabilities import CapabilitiesCases
+from tests._cases.outputs import PredictedActionCases
+from tests.players._models import InnerMonologueModel, ThinkingOutLoudModel
 
 thinking_output = param_fixture(
     "thinking_output", [None, "This is my inner monologue."], ids=["no_thinking", "with_thinking"]
 )
 
 
-class ParsedOutputCase(NamedTuple):
-    action: PlayerOutputType | None
-    thoughts: str | None
-    exception: type[Exception] | None
-    model_output_text: str
-    error_type: set[AIResponseErrorType]
-
-
-class CapabilitiesCases:
-    def case_prompted_set_of_marks(self) -> PlayerCapabilities:
-        return PlayerCapabilities(
-            player_name="test_player",
-            player_type="ai",
-            structured_output_mode="prompted",
-            interaction_location_method="set-of-marks",
-            thinking_method="inner-monologue",
-        )
-
-    def case_prompted_coordinates(self) -> PlayerCapabilities:
-        return PlayerCapabilities(
-            player_name="test_player",
-            player_type="ai",
-            structured_output_mode="prompted",
-            interaction_location_method="coordinates",
-            thinking_method="inner-monologue",
-        )
-
-    def case_react_set_of_marks(self) -> PlayerCapabilities:
-        return PlayerCapabilities(
-            player_name="test_player",
-            player_type="ai",
-            structured_output_mode=None,
-            interaction_location_method="set-of-marks",
-            thinking_method="thinking-out-loud",
-        )
-
-    def case_react_coordinates(self) -> PlayerCapabilities:
-        return PlayerCapabilities(
-            player_name="test_player",
-            player_type="ai",
-            structured_output_mode=None,
-            interaction_location_method="coordinates",
-            thinking_method="thinking-out-loud",
-        )
-
-
-@fixture
-def protocol() -> PlayerProtocol:
-    return PlayerProtocol(
-        role="defuser",
-        communication_style="sync",
-        is_playing_alone=False,
-        include_manual=True,
-        receive_feedback_after_action=False,
-        allow_magic_actions=False,
-    )
-
-
 @parametrize_with_cases("capabilities", cases=CapabilitiesCases, glob="*prompted*")
-@parametrize_with_cases("expected_output", cases=SuccessfulOutputCases)
+@parametrize_with_cases("expected_output", cases=PredictedActionCases)
 def test_inner_monologue_reasoning_parser(
-    protocol: PlayerProtocol,
+    defuser_protocol: PlayerProtocol,
     capabilities: PlayerCapabilities,
     expected_output: PlayerOutputType | str,
     thinking_output: str | None,
 ) -> None:
-    invalid_test_combinations = [
-        (
-            capabilities.interaction_location_method == "coordinates"
-            and capabilities.coordinate_mode == "absolute"
-            and isinstance(expected_output, InteractGameAction)
-            and not isinstance(expected_output.location, AbsoluteCoordinate)
-        ),
-        (
-            capabilities.interaction_location_method == "coordinates"
-            and capabilities.coordinate_mode == "normalised"
-            and isinstance(expected_output, InteractGameAction)
-            and not isinstance(expected_output.location, NormalisedCoordinate)
-        ),
-        (
-            capabilities.interaction_location_method == "set-of-marks"
-            and isinstance(expected_output, InteractGameAction)
-            and not isinstance(expected_output.location, (str, int))
-        ),
-    ]
-    if any(invalid_test_combinations):
-        pytest.skip("Skip invalid test case")
+    CapabilitiesCases.check_expected_output_with_capabilities(expected_output, capabilities)
 
-    # init the model
-    def _inner_monologue_function_model(  # noqa: WPS430
-        messages: list[ModelMessage],  # noqa: ARG001
-        info: AgentInfo,  # noqa: ARG001
-    ) -> ModelResponse:
-        response_parts = [
-            TextPart(
-                content=expected_output.text_part_dump()  # noqa: WPS504
-                if not isinstance(expected_output, str)
-                else expected_output
-            )
-        ]
-        if thinking_output is not None:
-            response_parts.insert(0, ThinkingPart(content=thinking_output))
-        return ModelResponse(parts=response_parts)
-
-    deps = PlayerDeps(capabilities=capabilities, protocol=protocol)
-    agent = Agent(FunctionModel(_inner_monologue_function_model), deps_type=PlayerDeps, retries=0)
+    deps = PlayerDeps(capabilities=capabilities, protocol=defuser_protocol)
+    agent = Agent(
+        InnerMonologueModel(expected_output, thinking_output), deps_type=PlayerDeps, retries=0
+    )
 
     # we need to get a model output
     run_result = agent.run_sync("hi", deps=deps, output_type=deps.output_type)
@@ -148,48 +51,19 @@ def test_inner_monologue_reasoning_parser(
 
 
 @parametrize_with_cases("capabilities", cases=CapabilitiesCases, glob="*react*")
-@parametrize_with_cases("expected_output", cases=SuccessfulOutputCases)
+@parametrize_with_cases("expected_output", cases=PredictedActionCases)
 def test_react_reasoning_parser_with_success(
     capabilities: PlayerCapabilities,
-    protocol: PlayerProtocol,
+    defuser_protocol: PlayerProtocol,
     expected_output: PlayerOutputType | str,
     thinking_output: str | None,
 ) -> None:
-    invalid_test_combinations = [
-        (
-            capabilities.interaction_location_method == "coordinates"
-            and capabilities.coordinate_mode == "absolute"
-            and isinstance(expected_output, InteractGameAction)
-            and not isinstance(expected_output.location, AbsoluteCoordinate)
-        ),
-        (
-            capabilities.interaction_location_method == "coordinates"
-            and capabilities.coordinate_mode == "normalised"
-            and isinstance(expected_output, InteractGameAction)
-            and not isinstance(expected_output.location, NormalisedCoordinate)
-        ),
-        (
-            capabilities.interaction_location_method == "set-of-marks"
-            and isinstance(expected_output, InteractGameAction)
-            and not isinstance(expected_output.location, (str, int))
-        ),
-    ]
-    if any(invalid_test_combinations):
-        pytest.skip("Skip invalid test case")
+    CapabilitiesCases.check_expected_output_with_capabilities(expected_output, capabilities)
 
-    action_as_string = (
-        expected_output.text_part_dump()  # noqa: WPS504
-        if not isinstance(expected_output, str)
-        else expected_output
+    deps = PlayerDeps(capabilities=capabilities, protocol=defuser_protocol)
+    agent = Agent(
+        ThinkingOutLoudModel(expected_output, thinking_output), deps_type=PlayerDeps, retries=0
     )
-    output_text = f"<{REACT_ACT_TAG}>{action_as_string}</{REACT_ACT_TAG}>"
-    if thinking_output is not None:
-        output_text = (
-            f"<{REACT_REASONING_TAG}>{thinking_output}</{REACT_REASONING_TAG}>\n{output_text}"
-        )
-
-    deps = PlayerDeps(capabilities=capabilities, protocol=protocol)
-    agent = Agent(TestModel(custom_output_text=output_text), deps_type=PlayerDeps, retries=0)
 
     # we need to get a model output
     run_result = agent.run_sync("hi", deps=deps, output_type=deps.output_type)
@@ -200,6 +74,14 @@ def test_react_reasoning_parser_with_success(
 
     assert parsed_output.output == expected_output
     assert parsed_output.thoughts == thinking_output
+
+
+class ParsedOutputCase(NamedTuple):
+    action: PlayerOutputType | None
+    thoughts: str | None
+    exception: type[Exception] | None
+    model_output_text: str
+    error_type: set[AIResponseErrorType]
 
 
 class BadReactOutputCases:
@@ -637,9 +519,11 @@ class BadReactOutputCases:
 @parametrize_with_cases("capabilities", cases=CapabilitiesCases, glob="*react*")
 @parametrize_with_cases("expected_output", cases=BadReactOutputCases)
 def test_react_reasoning_parser_with_failures(
-    capabilities: PlayerCapabilities, protocol: PlayerProtocol, expected_output: ParsedOutputCase
+    capabilities: PlayerCapabilities,
+    defuser_protocol: PlayerProtocol,
+    expected_output: ParsedOutputCase,
 ) -> None:
-    deps = PlayerDeps(capabilities=capabilities, protocol=protocol)
+    deps = PlayerDeps(capabilities=capabilities, protocol=defuser_protocol)
     agent = Agent(
         TestModel(custom_output_text=expected_output.model_output_text),
         deps_type=PlayerDeps,

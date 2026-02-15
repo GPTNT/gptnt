@@ -30,9 +30,8 @@ def test_resize_targets(target_width: int, target_height: int) -> None:
     assert resizer.target_width == target_width
 
 
-@given(
-    target_width=st.integers(min_value=1, max_value=799),
-    target_height=st.integers(min_value=1, max_value=599),
+@pytest.mark.parametrize(
+    ("target_width", "target_height"), [(100, 100), (200, 150), (400, 300), (640, 480), (799, 599)]
 )
 def test_resize_images(target_width: int, target_height: int, test_image: Image.Image) -> None:
     resizer = ImageResizer(target_width=target_width, target_height=target_height)

@@ -1,49 +1,19 @@
+from collections.abc import Iterator
+from typing import get_args
+
 import pytest
-from pytest_cases import parametrize_with_cases
+from pytest_cases import fixture, param_fixture, parametrize_with_cases
 
+from gptnt.experiments.experiments import ExperimentGenerator
 from gptnt.experiments.missions import MissionGenerator, MissionGeneratorConfig
+from gptnt.experiments.pairing import Pairing, PairingGenerator, PairingType
+from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.modules import KtaneComponent
+from gptnt.players.specification import PlayerProtocol
 
+from tests._cases.mission_generator_config import MissionGeneratorConfigCases
 
-class MissionGeneratorConfigCases:
-    def case_single_module(self) -> MissionGeneratorConfig:
-        return MissionGeneratorConfig(
-            time_limit=60,
-            allow_back_placement=False,
-            n_modules_min=1,
-            n_modules_max=1,
-            sample_from_modules=False,
-            allow_repeat_module=False,
-            min_optional_widgets=1,
-            max_optional_widgets=5,
-        )
-
-    def case_multiple_modules(self) -> MissionGeneratorConfig:
-        return MissionGeneratorConfig(
-            time_limit=60,
-            allow_back_placement=True,
-            n_modules_min=2,
-            n_modules_max=5,
-            sample_from_modules=True,
-            allow_repeat_module=False,
-            min_optional_widgets=1,
-            max_optional_widgets=5,
-        )
-
-    def case_repeated_modules(self) -> MissionGeneratorConfig:
-        return MissionGeneratorConfig(
-            time_limit=60,
-            allow_back_placement=True,
-            n_modules_min=3,
-            n_modules_max=5,
-            sample_from_modules=True,
-            allow_repeat_module=True,
-            min_optional_widgets=1,
-            max_optional_widgets=5,
-            # Force there to be repeated modules
-            excluded_modules=set(KtaneComponent)
-            - {KtaneComponent.big_button, KtaneComponent.keypad},
-        )
+pairing_type = param_fixture("pairing_type", list(get_args(PairingType.__value__)))
 
 
 @parametrize_with_cases("config", cases=MissionGeneratorConfigCases)
@@ -71,9 +41,6 @@ def test_mission_generation_works(config: MissionGeneratorConfig) -> None:
             )
 
 
-@pytest.mark.xfail(
-    raises=ValueError, reason="This test is expected to fail due to the config settings"
-)
 def test_fails_when_module_repeats_required_but_disallowed() -> None:
     config = MissionGeneratorConfig(
         time_limit=60,
@@ -83,12 +50,15 @@ def test_fails_when_module_repeats_required_but_disallowed() -> None:
         sample_from_modules=True,
         allow_repeat_module=False,
         min_optional_widgets=1,
-        max_optional_widgets=5,  # Force there to be repeated modules
+        max_optional_widgets=5,
         excluded_modules=set(KtaneComponent) - {KtaneComponent.big_button, KtaneComponent.keypad},
     )
 
     generator = MissionGenerator(config=config, num_seeds_per_mission=3, seed=42)
-    _ = list(generator.generate())
+    with pytest.raises(
+        ValueError, match="Cannot take a larger sample than population when replace is False"
+    ):
+        _ = list(generator.generate())
 
 
 @parametrize_with_cases("config", cases=MissionGeneratorConfigCases)
@@ -99,3 +69,39 @@ def test_seed_reproducibility(config: MissionGeneratorConfig) -> None:
     missions2 = list(generator2.generate())
 
     assert missions1 == missions2
+
+
+@fixture
+@parametrize_with_cases("config", cases=MissionGeneratorConfigCases)
+def missions(config: MissionGeneratorConfig) -> Iterator[KtaneMissionSpec]:
+    generator = MissionGenerator(config=config, num_seeds_per_mission=3, seed=42)
+    return generator.generate()
+
+
+@fixture
+def pairings(pairing_type: PairingType) -> Iterator[Pairing]:
+    generator = PairingGenerator(
+        pairing_type=pairing_type, all_players=["test-defuser", "test-expert"], best_model="gemini"
+    )
+    return generator.generate()
+
+
+def test_experiment_generation_does_not_crash(
+    pairing_type: PairingType, missions: Iterator[KtaneMissionSpec], pairings: Iterator[Pairing]
+) -> None:
+    expert_spec = PlayerProtocol(
+        role="expert", communication_style="async", is_playing_alone=False, include_manual=True
+    )
+    generator = ExperimentGenerator(
+        condition="single_module",
+        defuser_protocol=PlayerProtocol(
+            role="defuser",
+            communication_style="async",
+            is_playing_alone=False,
+            include_manual=False,
+        ),
+        expert_protocol=None if pairing_type == "no_expert" else expert_spec,
+    )
+    experiments = list(generator.generate(missions=missions, pairings=pairings))
+
+    assert experiments

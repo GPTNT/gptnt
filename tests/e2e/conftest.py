@@ -1,19 +1,21 @@
 import os
 from collections.abc import AsyncGenerator, Generator
+from contextlib import contextmanager
+from typing import cast, override
 
 import anyio
+import httpx
 import pytest
 import respx
 from asgi_lifespan import LifespanManager
 from fastapi import FastAPI
 from faststream import FastStream, TestApp
-from httpx import ASGITransport, AsyncClient, MockTransport
 from pydantic import RedisDsn
 from pytest_cases import fixture, param_fixture, parametrize
+from respx.models import PassThrough, ResolvedRoute, SideEffectError
 from respx.transports import TryTransport
 
 from gptnt.common.paths import Paths
-from gptnt.common.respx_router import AutoPassThroughRouter
 from gptnt.entrypoints.run_experiment_manager import run as run_experiment_manager
 from gptnt.entrypoints.run_game_instance import main as run_game_instance
 from gptnt.entrypoints.run_player import main as run_player
@@ -28,6 +30,55 @@ from gptnt.services.player.service import PlayerService
 paths = Paths()
 
 pytestmark = pytest.mark.anyio
+
+
+class AutoPassThroughRouter(respx.MockRouter):
+    """A modified router that automatically passes through requests that are not mocked.
+
+    Basically, all that matters is that if a request is not mocked, we are going to raise the
+    PassThrough exception so that it can be handled by another transport (e.g. ASGITransport).
+    """
+
+    @classmethod
+    def from_mock_router(cls, mock_router: respx.MockRouter) -> "AutoPassThroughRouter":
+        """Create a AutoPassThroughRouter from an existing respx.MockRouter instance.
+
+        Just do it by patching the method since that's all that matters.
+        """
+        mock_router.resolver = cls.resolver.__get__(mock_router, respx.MockRouter)
+        new_router = cast("AutoPassThroughRouter", mock_router)
+        return new_router
+
+    @contextmanager
+    @override
+    def resolver(self, request: httpx.Request) -> Generator[ResolvedRoute, None, None]:  # noqa: WPS238 WPS231
+        resolved = ResolvedRoute()
+
+        try:  # noqa: WPS229
+            yield resolved
+
+            # Note: I have removed the section that auto-mocks a 200 response, instead, we are
+            # going to raise PassThrough so that another transport can handle it.
+            if resolved.response == request or (resolved.route is None):
+                # Pass-through request
+                raise PassThrough(  # noqa: TRY301
+                    f"Request marked to pass through: {request!r}",
+                    request=request,
+                    origin=resolved.route,
+                )
+
+            else:
+                # Mocked response
+                assert isinstance(resolved.response, httpx.Response)
+
+        except SideEffectError as error:
+            self.record(request, response=None, route=error.route)
+            raise error.origin from error
+        except PassThrough:
+            self.record(request, response=None, route=resolved.route)
+            raise
+        else:
+            self.record(request, response=resolved.response, route=resolved.route)
 
 
 @fixture(autouse=True)
@@ -101,11 +152,11 @@ async def experiment_manager_app(redis_server_dsn: RedisDsn) -> AsyncGenerator[F
 @fixture
 async def experiment_manager_app_client(
     experiment_manager_app: FastAPI, respx_mock: respx.MockRouter
-) -> AsyncGenerator[AsyncClient]:
+) -> AsyncGenerator[httpx.AsyncClient]:
     """Fixture to create an ExperimentManager app instance."""
-    respx_transport = MockTransport(respx_mock.async_handler)
-    app_transport = ASGITransport(app=experiment_manager_app)
-    async with AsyncClient(
+    respx_transport = httpx.MockTransport(respx_mock.async_handler)
+    app_transport = httpx.ASGITransport(app=experiment_manager_app)
+    async with httpx.AsyncClient(
         base_url="http://em.local", transport=TryTransport([respx_transport, app_transport])
     ) as client:
         yield client

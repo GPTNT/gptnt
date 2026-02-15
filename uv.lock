@@ -1116,7 +1116,6 @@ dependencies = [
     { name = "pybase64" },
     { name = "pydantic" },
     { name = "pydantic-ai" },
-    { name = "respx" },
     { name = "rich" },
     { name = "scikit-image" },
     { name = "sentence-transformers" },
@@ -1150,6 +1149,7 @@ tests = [
     { name = "pytest-mock" },
     { name = "pytest-sugar" },
     { name = "pytest-xdist" },
+    { name = "respx" },
 ]
 visualisation = [
     { name = "pymupdf" },
@@ -1183,7 +1183,6 @@ requires-dist = [
     { name = "pybase64", specifier = ">=1.4.3" },
     { name = "pydantic", specifier = ">=2.10.6" },
     { name = "pydantic-ai", specifier = ">=1" },
-    { name = "respx", specifier = ">=0.22.0" },
     { name = "rich", specifier = ">=13.9.4" },
     { name = "scikit-image", specifier = ">=0.25.2" },
     { name = "sentence-transformers", specifier = ">=4.1.0" },
@@ -1217,6 +1216,7 @@ tests = [
     { name = "pytest-mock", specifier = ">=3.14.0" },
     { name = "pytest-sugar", specifier = ">=1.0.0" },
     { name = "pytest-xdist", specifier = ">=3.6.1" },
+    { name = "respx", specifier = ">=0.22.0" },
 ]
 visualisation = [
     { name = "pymupdf", specifier = ">=1.26.6" },

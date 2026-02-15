@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import hydra
+import pytest
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig, open_dict, read_write
 from pytest_cases import param_fixture
@@ -43,17 +44,18 @@ def test_ai_player_config_is_valid(model: str) -> None:
     assert config
 
 
-# def test_ai_player_can_instantiate_from_config(model: str) -> None:
-#     """Test that the players can be instantiated using Hydra.
+@pytest.mark.skip(reason="This does not work on CI because there are no API keys to try with.")
+def test_ai_player_can_instantiate_from_config(model: str) -> None:
+    """Test that the players can be instantiated using Hydra.
 
-#     Note that this only uses the TestModel and not the actual models.
-#     """
-#     config = load_hydra_config(
-#         config_dir=PLAYER_CONFIG.parent,
-#         config_file_name=PLAYER_CONFIG.name,
-#         overrides=[f"model={model}"],
-#     )
+    Note that this only uses the TestModel and not the actual models.
+    """
+    config = load_hydra_config(
+        config_dir=PLAYER_CONFIG.parent,
+        config_file_name=PLAYER_CONFIG.name,
+        overrides=[f"model={model}"],
+    )
 
-#     # Check that the player can be instantiated
-#     instantiated_player = hydra.utils.instantiate(config.player)
-#     assert instantiated_player
+    # Check that the player can be instantiated
+    instantiated_player = hydra.utils.instantiate(config.player)
+    assert instantiated_player

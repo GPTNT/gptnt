@@ -49,6 +49,7 @@ repos:
       - id: name-tests-test
         args: [--pytest-test-first]
         priority: 0
+        exclude: ^tests/(_.+|.*/_)
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
         types: [text]

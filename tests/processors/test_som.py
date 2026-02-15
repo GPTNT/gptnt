@@ -16,17 +16,17 @@ from gptnt.processors.set_of_marks import (
 segmentation_image_names = param_fixture(
     "segmentation_image_names",
     ["segmentation1.png", "segmentation2.png", "segmentation3.png", "segmentation4.png"],
-    scope="session",
+    scope="module",
 )
 
 
-@fixture(scope="session")
+@fixture(scope="module")
 def segmentation_image(fixture_path: Path, segmentation_image_names: str) -> NDArray[np.uint8]:
     """Fixture to provide a segmentation screenshot as a numpy array."""
     path = fixture_path.joinpath(segmentation_image_names)
     assert path.exists()
     image = load_observation_from_bytes(path.read_bytes())
-    # make the iamge smaller for testing
+    # make the image smaller for testing
     image = image.resize((512, 512), resample=Resampling.NEAREST)
     return np.asarray(image)
 

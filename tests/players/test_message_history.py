@@ -16,7 +16,7 @@ from pydantic_ai import (
     UserPromptPart,
 )
 from pydantic_ai.usage import UsageLimits
-from pytest_cases import fixture, param_fixture, parametrize_with_cases
+from pytest_cases import fixture, parametrize_with_cases
 
 from gptnt.players.actions import SendMessageAction
 from gptnt.players.ai.messages.message_history import MessageHistory
@@ -26,38 +26,14 @@ from gptnt.players.ai.messages.message_transformer import (
     remove_binary_content_from_model_request,
 )
 from gptnt.players.ai.messages.single_run import SingleRun
-from gptnt.players.ai.tokens import estimate_tokens_for_image_per_model
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
+
+from tests._cases.messages import ModelMessageCases
+from tests._cases.protocol import ProtocolCases
 
 # ============================================================================
 # Fixtures & Factories
 # ============================================================================
-
-preserve_last_frame_for_n_turns = param_fixture(
-    "preserve_last_frame_for_n_turns",
-    [0, 1, 3],
-    ids=["preserve_obs_0_turns", "preserve_obs_1_turn", "preserve_obs_3_turns"],
-)
-num_observations = param_fixture(
-    "num_observations", [0, 1, 3], ids=["no_obs", "one_obs", "three_obs"]
-)
-
-
-@fixture
-def mock_image_bytes() -> bytes:
-    """Mock image bytes (1x1 PNG)."""
-    # Minimal valid PNG (1x1 pixel, transparent)
-    return (
-        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
-        b"\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01"
-        b"\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
-    )
-
-
-@fixture
-def tokens_per_image() -> int:
-    """Number of tokens per image observation."""
-    return estimate_tokens_for_image_per_model("test", long_side=640, short_side=480)
 
 
 @fixture
@@ -161,81 +137,20 @@ def capabilities(preserve_last_frame_for_n_turns: int) -> PlayerCapabilities:
     )
 
 
-class MessageScenarioCases:
-    """Different message scenarios for testing."""
-
-    def case_simple_exchange(
-        self, model_request: ModelRequest, simple_text_response: ModelResponse
-    ) -> list[ModelMessage]:
-        """Simple text request-response exchange."""
-        return [model_request, simple_text_response]
-
-    def case_with_tool_call(
-        self, model_request: ModelRequest, tool_call_response_sequence: list[ModelMessage]
-    ) -> list[ModelMessage]:
-        """Request with tool call response."""
-        return [model_request, *tool_call_response_sequence]
-
-    def case_multiple_turns(
-        self, model_request: ModelRequest, simple_text_response: ModelResponse
-    ) -> list[ModelMessage]:
-        """Multiple turns of conversation."""
-        return [model_request, simple_text_response, model_request, simple_text_response]
-
-
-class ProtocolRoleCases:
-    """Different protocol role configurations."""
-
-    def case_defuser(self) -> PlayerProtocol:
-        """Defuser role."""
-        return PlayerProtocol(
-            role="defuser",
-            communication_style="sync",
-            is_playing_alone=False,
-            include_manual=False,
-            receive_feedback_after_action=False,
-            allow_magic_actions=False,
-        )
-
-    def case_defuser_with_manual(self) -> PlayerProtocol:
-        """Defuser role with manual inclusion option."""
-        return PlayerProtocol(
-            role="defuser",
-            communication_style="sync",
-            is_playing_alone=True,
-            include_manual=True,
-            receive_feedback_after_action=False,
-            allow_magic_actions=False,
-        )
-
-    def case_expert(self) -> PlayerProtocol:
-        """Expert role."""
-        return PlayerProtocol(
-            role="expert",
-            communication_style="sync",
-            is_playing_alone=False,
-            include_manual=True,
-            receive_feedback_after_action=False,
-            allow_magic_actions=False,
-        )
-
-
 class TestMessageHistoryBasics:
     """Test basic MessageHistory operations."""
 
-    @parametrize_with_cases("protocol_role", cases=ProtocolRoleCases)
+    @parametrize_with_cases("protocol", cases=ProtocolCases)
     def test_initialization(
-        self, capabilities: PlayerCapabilities, protocol_role: PlayerProtocol
+        self, capabilities: PlayerCapabilities, protocol: PlayerProtocol
     ) -> None:
         """Test MessageHistory initialization."""
         history = MessageHistory(
-            capabilities=capabilities,
-            protocol=protocol_role,
-            force_convert_tool_output_to_native=False,
+            capabilities=capabilities, protocol=protocol, force_convert_tool_output_to_native=False
         )
 
         # if the protocol has the manual, then we expect it to be in the history on init
-        if protocol_role.include_manual:
+        if protocol.include_manual:
             assert not history.is_empty
             assert len(history) == 1
             assert bool(history)
@@ -247,19 +162,17 @@ class TestMessageHistoryBasics:
             assert history.num_times_truncated == 0
             assert len(history.to_history()) == 0
 
-    @parametrize_with_cases("protocol_role", cases=ProtocolRoleCases)
-    @parametrize_with_cases("messages", cases=MessageScenarioCases)
+    @parametrize_with_cases("protocol", cases=ProtocolCases)
+    @parametrize_with_cases("messages", cases=ModelMessageCases)
     def test_update_adds_messages(
         self,
         capabilities: PlayerCapabilities,
-        protocol_role: PlayerProtocol,
+        protocol: PlayerProtocol,
         messages: list[ModelMessage],
     ) -> None:
         """Test that update() adds messages correctly."""
         history = MessageHistory(
-            capabilities=capabilities,
-            protocol=protocol_role,
-            force_convert_tool_output_to_native=False,
+            capabilities=capabilities, protocol=protocol, force_convert_tool_output_to_native=False
         )
 
         usage = RunUsage(
@@ -271,26 +184,24 @@ class TestMessageHistoryBasics:
         assert bool(history)
         assert history.usage == usage
 
-        assert len(history) == 2 if protocol_role.include_manual else len(history) == 1
+        assert len(history) == 2 if protocol.include_manual else len(history) == 1
         assert (
             len(history.to_history()) == len(messages) + 1
-            if protocol_role.include_manual
+            if protocol.include_manual
             else len(history.to_history()) == len(messages)
         )
 
-    @parametrize_with_cases("protocol_role", cases=ProtocolRoleCases)
-    @parametrize_with_cases("messages", cases=MessageScenarioCases)
+    @parametrize_with_cases("protocol", cases=ProtocolCases)
+    @parametrize_with_cases("messages", cases=ModelMessageCases)
     def test_multiple_updates(
         self,
         capabilities: PlayerCapabilities,
-        protocol_role: PlayerProtocol,
+        protocol: PlayerProtocol,
         messages: list[ModelMessage],
     ) -> None:
         """Test multiple updates to message history."""
         history = MessageHistory(
-            capabilities=capabilities,
-            protocol=protocol_role,
-            force_convert_tool_output_to_native=False,
+            capabilities=capabilities, protocol=protocol, force_convert_tool_output_to_native=False
         )
 
         usage = RunUsage(
@@ -302,27 +213,25 @@ class TestMessageHistoryBasics:
             usage=RunUsage(input_tokens=history.usage.total_tokens + 200, output_tokens=50),
         )
 
-        expected_num_runs = 3 if protocol_role.include_manual else 2
+        expected_num_runs = 3 if protocol.include_manual else 2
         expected_num_messages = (
-            2 * len(messages) + 1 if protocol_role.include_manual else 2 * len(messages)
+            2 * len(messages) + 1 if protocol.include_manual else 2 * len(messages)
         )
 
         assert len(history) == expected_num_runs
         assert len(history.to_history()) == expected_num_messages
 
-    @parametrize_with_cases("protocol_role", cases=ProtocolRoleCases)
-    @parametrize_with_cases("messages", cases=MessageScenarioCases)
+    @parametrize_with_cases("protocol", cases=ProtocolCases)
+    @parametrize_with_cases("messages", cases=ModelMessageCases)
     def test_single_run_tracks_metadata(
         self,
         capabilities: PlayerCapabilities,
-        protocol_role: PlayerProtocol,
+        protocol: PlayerProtocol,
         messages: list[ModelMessage],
     ) -> None:
         """Test that SingleRun tracks metadata correctly."""
         history = MessageHistory(
-            capabilities=capabilities,
-            protocol=protocol_role,
-            force_convert_tool_output_to_native=False,
+            capabilities=capabilities, protocol=protocol, force_convert_tool_output_to_native=False
         )
 
         usage = RunUsage(
@@ -330,16 +239,16 @@ class TestMessageHistoryBasics:
         )
         history.update(new_messages=messages, usage=usage)
 
-        expected_num_runs = 2 if protocol_role.include_manual else 1
-        expected_run_idx = 1 if protocol_role.include_manual else 0
+        expected_num_runs = 2 if protocol.include_manual else 1
+        expected_run_idx = 1 if protocol.include_manual else 0
 
         assert len(history.messages_per_run) == expected_num_runs
         run = history.messages_per_run[-1]
         assert isinstance(run, SingleRun)
         assert run.idx == expected_run_idx
 
-        # First message with protocol_role.include_manual=True should have contains_manual=True
-        assert history.messages_per_run[0].contains_manual == protocol_role.include_manual
+        # First message with protocol.include_manual=True should have contains_manual=True
+        assert history.messages_per_run[0].contains_manual == protocol.include_manual
 
 
 class TestToolOutputCoercion:
@@ -365,20 +274,30 @@ class TestToolOutputCoercion:
         assert len(result) == 1
         assert result[0] == simple_text_response
 
-    def test_removes_tool_return_parts(
-        self, model_request: ModelRequest, tool_call_response_sequence: list[ModelMessage]
-    ) -> None:
-        """Test that ToolReturnPart is removed from requests."""
-        result = coerce_tool_output_into_native_output(
-            [model_request, *tool_call_response_sequence]
-        )
+    @parametrize_with_cases("messages", cases=ModelMessageCases, glob="*tool_call*")
+    def test_coerce_multi_turn_tool_call_sequence(self, messages: list[ModelMessage]) -> None:
+        """Test coercion of a sequence of messages with tool calls."""
+        result = coerce_tool_output_into_native_output(messages)
 
-        # Should keep the request but without the ToolReturnPart
-        assert len(result) == 2
-        request = result[0]
-        assert isinstance(request, ModelRequest)
-        assert len(request.parts) == 1
-        assert isinstance(request.parts[0], UserPromptPart)
+        # Make sure we don't lose any responses, like we need to verify the tool call requests are
+        # gone but the responses are still there just with the tool call parts converted to text
+        # parts
+        num_requests_with_tool_return_parts = [
+            1
+            for message in messages
+            if isinstance(message, ModelRequest)
+            for part in message.parts
+            if isinstance(part, ToolReturnPart)
+        ]
+        assert len(result) == len(messages) - sum(num_requests_with_tool_return_parts)
+
+        for message in result:
+            if isinstance(message, ModelRequest):
+                for part in message.parts:
+                    assert not isinstance(part, ToolReturnPart)
+            if isinstance(message, ModelResponse):
+                for part in message.parts:
+                    assert not isinstance(part, ToolCallPart)
 
 
 class TestEnsureValidFinalResponse:
@@ -457,11 +376,11 @@ class TestObservationRemoval:
             f"Expected exactly 1 observation, but found {len(binary_items)}"
         )
 
-    @parametrize_with_cases("protocol_role", cases=ProtocolRoleCases, glob="*defuser*")
+    @parametrize_with_cases("protocol", cases=ProtocolCases, glob="*defuser*")
     def test_defuser_removes_observations_on_update(
         self,
         capabilities: PlayerCapabilities,
-        protocol_role: PlayerProtocol,
+        protocol: PlayerProtocol,
         model_request: ModelRequest,
         simple_text_response: ModelResponse,
         preserve_last_frame_for_n_turns: int,
@@ -474,7 +393,7 @@ class TestObservationRemoval:
         if num_observations == 0:
             pytest.skip("Pointless test when no observations")
 
-        history = MessageHistory(capabilities=capabilities, protocol=protocol_role)
+        history = MessageHistory(capabilities=capabilities, protocol=protocol)
 
         history.update(
             new_messages=[model_request, simple_text_response],
@@ -486,7 +405,7 @@ class TestObservationRemoval:
         )
 
         messages = history.to_history()
-        request = messages[1] if protocol_role.include_manual else messages[0]
+        request = messages[1] if protocol.include_manual else messages[0]
         assert isinstance(request, ModelRequest)
         part = request.parts[0]
         assert isinstance(part, UserPromptPart)
@@ -511,7 +430,7 @@ class TestObservationRemoval:
 
         # To compare the token counts, we need to account for any manual tokens
         manual_tokens = 0
-        if protocol_role.include_manual:
+        if protocol.include_manual:
             manual_tokens = (
                 history.messages_per_run[0].input_tokens
                 + history.messages_per_run[0].output_tokens
@@ -527,11 +446,11 @@ class TestObservationRemoval:
 class TestObservationWindow:
     """Test observation window management."""
 
-    @parametrize_with_cases("protocol_role", cases=ProtocolRoleCases, glob="*defuser*")
+    @parametrize_with_cases("protocol", cases=ProtocolCases, glob="*defuser*")
     def test_removes_old_observations_outside_window(
         self,
         capabilities: PlayerCapabilities,
-        protocol_role: PlayerProtocol,
+        protocol: PlayerProtocol,
         model_request: ModelRequest,
         simple_text_response: ModelResponse,
         preserve_last_frame_for_n_turns: int,
@@ -543,7 +462,7 @@ class TestObservationWindow:
         if num_observations == 0:
             pytest.skip("Pointless test when no observations")
 
-        history = MessageHistory(capabilities=capabilities, protocol=protocol_role)
+        history = MessageHistory(capabilities=capabilities, protocol=protocol)
 
         # Add first turn with observation
         history.update(
@@ -567,9 +486,9 @@ class TestObservationWindow:
         # Now call the method to remove old observations
         history.remove_observations_from_previous_messages()
 
-        first_run_index = 1 if protocol_role.include_manual else 0
+        first_run_index = 1 if protocol.include_manual else 0
         # if we have the manual, it should have obs in it
-        if protocol_role.include_manual:
+        if protocol.include_manual:
             first_run = history.messages_per_run[0]
             assert first_run.contains_binary_content
             assert first_run.contains_manual
@@ -604,18 +523,18 @@ class TestObservationWindow:
             (num_observations - 1) * history.token_accountant.tokens_per_image
         )
 
-    @parametrize_with_cases("protocol_role", cases=ProtocolRoleCases, glob="*defuser*")
+    @parametrize_with_cases("protocol", cases=ProtocolCases, glob="*defuser*")
     def test_window_of_n_keeps_last_n_observations(
         self,
         capabilities: PlayerCapabilities,
-        protocol_role: PlayerProtocol,
+        protocol: PlayerProtocol,
         model_request: ModelRequest,
         simple_text_response: ModelResponse,
         preserve_last_frame_for_n_turns: int,
         num_observations: int,
     ) -> None:
         """Test that window of n keeps last n turns with observations."""
-        history = MessageHistory(capabilities=capabilities, protocol=protocol_role)
+        history = MessageHistory(capabilities=capabilities, protocol=protocol)
 
         # Add turns
         for _ in range(3 + preserve_last_frame_for_n_turns):
@@ -629,13 +548,13 @@ class TestObservationWindow:
         history.remove_observations_from_previous_messages()
 
         # if we have the manual, it should have obs in it
-        if protocol_role.include_manual:
+        if protocol.include_manual:
             first_run = history.messages_per_run[0]
             assert first_run.contains_binary_content
             assert first_run.contains_manual
 
         for run in history.messages_per_run:
-            if run.idx == 0 and protocol_role.include_manual:
+            if run.idx == 0 and protocol.include_manual:
                 # Skip manual run
                 continue
 
@@ -657,18 +576,18 @@ class TestObservationWindow:
             )
             assert run.input_tokens == expected_input_tokens
 
-    @parametrize_with_cases("protocol_role", cases=ProtocolRoleCases, glob="*defuser*")
+    @parametrize_with_cases("protocol", cases=ProtocolCases, glob="*defuser*")
     def test_incremental_window_updates_on_each_turn(
         self,
         capabilities: PlayerCapabilities,
-        protocol_role: PlayerProtocol,
+        protocol: PlayerProtocol,
         model_request: ModelRequest,
         simple_text_response: ModelResponse,
         preserve_last_frame_for_n_turns: int,
         num_observations: int,
     ) -> None:
         """Test that window correctly updates as each turn is added."""
-        history = MessageHistory(capabilities=capabilities, protocol=protocol_role)
+        history = MessageHistory(capabilities=capabilities, protocol=protocol)
 
         for _turn_idx in range(5):
             usage = RunUsage(
@@ -681,7 +600,7 @@ class TestObservationWindow:
 
             for run in history.messages_per_run:
                 # if we have the manual, it should have obs in it and thats it
-                if run.idx == 0 and protocol_role.include_manual:
+                if run.idx == 0 and protocol.include_manual:
                     assert run.contains_binary_content
                     assert run.contains_manual
                     continue
@@ -708,16 +627,16 @@ class TestObservationWindow:
 class TestTruncation:
     """Test message history truncation."""
 
-    @parametrize_with_cases("protocol_role", cases=ProtocolRoleCases)
+    @parametrize_with_cases("protocol", cases=ProtocolCases)
     def test_no_truncation_when_no_limit(
         self,
         capabilities: PlayerCapabilities,
-        protocol_role: PlayerProtocol,
+        protocol: PlayerProtocol,
         model_request: ModelRequest,
         simple_text_response: ModelResponse,
     ) -> None:
         """Test that no truncation occurs when input_tokens_limit is None."""
-        history = MessageHistory(capabilities=capabilities, protocol=protocol_role)
+        history = MessageHistory(capabilities=capabilities, protocol=protocol)
 
         # Add lots of messages
         for _ in range(10):
@@ -729,7 +648,7 @@ class TestTruncation:
         history.truncate_history_if_needed()
 
         # All messages should still be there
-        if protocol_role.include_manual:
+        if protocol.include_manual:
             assert len(history) == 11
         else:
             assert len(history) == 10
@@ -737,11 +656,11 @@ class TestTruncation:
         # And we should not have truncated at all
         assert history.num_times_truncated == 0
 
-    @parametrize_with_cases("protocol_role", cases=ProtocolRoleCases)
+    @parametrize_with_cases("protocol", cases=ProtocolCases)
     def test_no_truncation_when_below_threshold(
         self,
         capabilities: PlayerCapabilities,
-        protocol_role: PlayerProtocol,
+        protocol: PlayerProtocol,
         model_request: ModelRequest,
         simple_text_response: ModelResponse,
     ) -> None:
@@ -749,7 +668,7 @@ class TestTruncation:
         caps = capabilities.model_copy(
             update={"usage_limits": replace(capabilities.usage_limits, input_tokens_limit=100000)}
         )
-        history = MessageHistory(capabilities=caps, protocol=protocol_role)
+        history = MessageHistory(capabilities=caps, protocol=protocol)
 
         # Add lots of messages
         for _ in range(10):
@@ -763,7 +682,7 @@ class TestTruncation:
         history.truncate_history_if_needed()
 
         # All messages should still be there
-        if protocol_role.include_manual:
+        if protocol.include_manual:
             assert len(history) == 11
         else:
             assert len(history) == 10
@@ -771,22 +690,22 @@ class TestTruncation:
         # And we should not have truncated at all
         assert history.num_times_truncated == 0
 
-    @parametrize_with_cases("protocol_role", cases=ProtocolRoleCases)
+    @parametrize_with_cases("protocol", cases=ProtocolCases)
     def test_truncation_occurs_when_over_threshold(
         self,
         capabilities: PlayerCapabilities,
-        protocol_role: PlayerProtocol,
+        protocol: PlayerProtocol,
         model_request: ModelRequest,
         simple_text_response: ModelResponse,
         num_observations: int,
     ) -> None:
         """Test that truncation occurs when over threshold and calculates correctly."""
-        if protocol_role.role == "expert" and num_observations > 0:
+        if protocol.role == "expert" and num_observations > 0:
             pytest.skip("Skipping expert with observations because that's not allowed to happen")
 
         # Set a limit with known threshold
         input_limit = 1000 + (num_observations * 1000)
-        if protocol_role.include_manual:
+        if protocol.include_manual:
             input_limit += 1000
 
         caps = capabilities.model_copy(
@@ -796,11 +715,11 @@ class TestTruncation:
             }
         )
 
-        history = MessageHistory(capabilities=caps, protocol=protocol_role)
+        history = MessageHistory(capabilities=caps, protocol=protocol)
 
         # manually adjust the input tokens for the manual otherwise it's a silly number to test
         # with and its hard to know if it failed or succeeded
-        if protocol_role.include_manual:
+        if protocol.include_manual:
             history.messages_per_run[0].input_tokens = 1000
             history.usage.input_tokens = 1000
 
@@ -832,7 +751,7 @@ class TestTruncation:
         additional_token_margin = (
             history.token_accountant.tokens_per_image * caps.max_observations_per_request
         )
-        if protocol_role.include_manual:
+        if protocol.include_manual:
             additional_token_margin += history.messages_per_run[0].input_tokens
 
         # Figure out the number of turns we expect to remove
@@ -875,5 +794,5 @@ class TestTruncation:
         assert history.usage.input_tokens > 0
 
         # Make sure we didn't remove the manual
-        if protocol_role.include_manual:
+        if protocol.include_manual:
             assert history.messages_per_run[0].contains_manual
