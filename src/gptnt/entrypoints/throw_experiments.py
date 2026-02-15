@@ -13,8 +13,9 @@ from gptnt.entrypoints.run_experiment_manager import EM_PORT
 from gptnt.experiments.experiments import ExperimentSpec
 from gptnt.experiments.wandb import (
     collate_runs_per_experiment_per_game,
+    get_invalid_runs_from_collated_runs,
     get_runs_from_wandb,
-    get_valid_experiments_from_collated_runs,
+    mark_runs_as_old,
 )
 
 logger = get_logger()
@@ -54,18 +55,25 @@ def _filter_experiments(  # noqa: WPS210
             return loaded_experiments
 
     runs_per_experiment_per_game = collate_runs_per_experiment_per_game(wandb_runs)
-    valid_experiments = get_valid_experiments_from_collated_runs(runs_per_experiment_per_game)
-    invalid_experiments: list[ExperimentSpec] = [
-        experiment
-        for experiment in loaded_experiments
-        if experiment.experiment_name not in valid_experiments
-    ]
+    invalid_runs = get_invalid_runs_from_collated_runs(runs_per_experiment_per_game)
+    if invalid_runs:
+        logger.warning(f"Found {len(invalid_runs)} invalid runs on wandb. Adding the 'old' tag")
+        mark_runs_as_old(invalid_runs)
+
+    invalid_experiments = {run.config["experiment_name"] for run in invalid_runs}
+    valid_experiments = {
+        experiment.experiment_name for experiment in loaded_experiments
+    } - invalid_experiments
     logger.info(
         f"{len(invalid_experiments)} experiments to throw",
         invalid=len(invalid_experiments),
         valid=len(valid_experiments),
     )
-    return invalid_experiments
+    return [
+        experiment
+        for experiment in loaded_experiments
+        if experiment.experiment_name in valid_experiments
+    ]
 
 
 @app.command()
