@@ -24,11 +24,6 @@ pytest_plugins = [
 _ = register(PlayerProtocolFactory)
 
 
-# disable Weave and WandB for testing
-os.environ["WEAVE_DISABLED"] = "true"
-os.environ["WANDB_MODE"] = "disabled"
-
-
 @pytest.fixture
 def anyio_backend() -> str:
     return "asyncio"
