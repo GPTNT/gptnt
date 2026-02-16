@@ -251,7 +251,7 @@ class ExperimentRecord(StepRecordsMetricsMixin):
 
 
 def build_experiment_records_from_player_records(
-    *, player_records: list[ExperimentPlayerRecord]
+    player_records: list[ExperimentPlayerRecord],
 ) -> list[ExperimentRecord]:
     """Collate all the player records together into experiment records."""
     experiment_dict: dict[UUID4, list[ExperimentPlayerRecord]] = defaultdict(list)
