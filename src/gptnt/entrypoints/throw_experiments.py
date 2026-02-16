@@ -65,7 +65,7 @@ def _filter_experiments(  # noqa: WPS210
         experiment.experiment_name for experiment in loaded_experiments
     } - invalid_experiments
     logger.info(
-        f"{len(invalid_experiments)} experiments to throw",
+        f"{len(valid_experiments)} experiments to throw",
         invalid=len(invalid_experiments),
         valid=len(valid_experiments),
     )

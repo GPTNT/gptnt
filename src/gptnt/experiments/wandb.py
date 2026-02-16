@@ -34,7 +34,9 @@ def get_runs_from_wandb(
             ]
         },
     )
-    logger.info(f"Found {len(runs)} runs on wandb", runs=len(runs), wandb_path=wandb_path)
+    logger.info(
+        f"Found {len(runs)} runs (not experiments) on wandb", runs=len(runs), wandb_path=wandb_path
+    )
 
     return runs
 
