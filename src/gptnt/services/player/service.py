@@ -57,6 +57,8 @@ class PlayerService(PlayerServiceContext, BaseRPCService[PlayerCommand]):
 
     def __post_init__(self) -> None:
         """Initialize the command handler and register subscribers."""
+        super().__post_init__()
+
         self.commands = {
             "configure_for_experiment": self.configure_for_experiment,
             "forward_pass": self.forward_pass,
@@ -90,7 +92,7 @@ class PlayerService(PlayerServiceContext, BaseRPCService[PlayerCommand]):
 
         async with self.broker, anyio.create_task_group() as tg:
             self._task_group = tg
-            async with self.lifespan():
+            async with super().lifespan():
                 yield
 
     async def get_player_state(self) -> PlayerState:
