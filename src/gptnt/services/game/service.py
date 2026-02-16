@@ -46,6 +46,9 @@ class GameService(GameServiceContext, BaseRPCService[GameCommand]):
 
     def __post_init__(self) -> None:
         """Initialize the command handler."""
+        # Initialise the GameServiceContext
+        super().__post_init__()
+
         self.commands = {
             "advance_game_time": self.advance_time,
             "configure_game": self.configure_game,
