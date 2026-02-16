@@ -71,7 +71,7 @@ class GameService(GameServiceContext, BaseRPCService[GameCommand]):
     @asynccontextmanager
     async def lifespan(self) -> AsyncGenerator[None]:
         """Lifespan for the Game Instance."""
-        async with self.broker, self.lifespan():
+        async with self.broker, super().lifespan():
             yield
 
     async def get_game_state(self) -> GameState:
