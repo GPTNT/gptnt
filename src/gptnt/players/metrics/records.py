@@ -8,6 +8,7 @@ from typing import Annotated, Self, override
 import anyio
 import dill
 import structlog
+from anyio.to_thread import run_sync as run_sync_in_thread
 from pydantic import (
     UUID4,
     AfterValidator,
@@ -78,7 +79,7 @@ class ExperimentStepRecord(BaseModel):
         if isinstance(self.observation, Path):
             async with await anyio.open_file(self.observation, "rb") as obs_file:
                 observation_data = await obs_file.read()
-                observation = dill.loads(observation_data)  # noqa: S301
+                observation = await run_sync_in_thread(dill.loads, observation_data)
                 return self.model_copy(update={"observation": observation})
         return self
 
@@ -214,10 +215,17 @@ class ExperimentPlayerRecord(StepRecordsMetricsMixin):
     async def rebuild_with_observations(self) -> Self:
         """Rebuild the record by loading all observations from disk."""
         loaded_records = []
-        for record in self.step_records:
-            loaded_record = await record.load_observation()  # noqa: WPS476
+
+        async def _load(record: ExperimentStepRecord) -> None:  # noqa: WPS430
+            loaded_record = await record.load_observation()
             loaded_records.append(loaded_record)
-        return self.model_copy(update={"step_records": loaded_records})
+
+        async with anyio.create_task_group() as tg:
+            for record in self.step_records:
+                tg.start_soon(_load, record)
+
+        sorted_records = sorted(loaded_records, key=attrgetter("timestamp"))
+        return self.model_copy(update={"step_records": sorted_records})
 
 
 class ExperimentRecord(StepRecordsMetricsMixin):
