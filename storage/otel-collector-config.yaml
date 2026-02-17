@@ -27,12 +27,15 @@ receivers:
         # \s+                        : Whitespace separator
         # \[(?P<logger>[^\]]+)\]     : Logger name inside square brackets
         # \s+                        : Whitespace separator
+        # (?:\s+\[(?P<session_id>[^\]]+)\])?
+        #                            : Optional session ID inside square brackets
+        # \s+                        : Whitespace separator
         # trace_id=(?P<trace_id>\S*) : trace_id= followed by trace ID (or "" if not set)
         # \s+                        : Whitespace separator
         # span_id=(?P<span_id>\S*)   : span_id= followed by span ID (or "" if not set)
         # \s+                        : Whitespace separator
         # (?P<message>(?s:.*))       : The rest of the line as the log message (including newlines)
-        regex: '^\s*(?P<level>\w+)\s+(?P<timestamp>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})\s+\[(?P<logger>[^\]]+)\]\s+(?:trace_id=(?P<trace_id>\S+)\s+span_id=(?P<span_id>\S+)\s+)?(?P<message>(?s:.*))$'
+        regex: '^\s*(?P<level>\w+)\s+(?P<timestamp>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})\s+\[(?P<logger>[^\]]+)\](?:\s+\[(?P<session_id>[^\]]+)\])?\s+(?:trace_id=(?P<trace_id>\S+)\s+span_id=(?P<span_id>\S+)\s+)?(?P<message>(?s:.*))$'
         timestamp:
           parse_from: attributes.timestamp
           layout: "%Y-%m-%d %H:%M:%S,%L"
