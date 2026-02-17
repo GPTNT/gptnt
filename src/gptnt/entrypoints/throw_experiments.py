@@ -35,12 +35,14 @@ async def _send_experiments(experiments: list[ExperimentSpec]) -> None:
         )
 
 
-def _filter_experiments(  # noqa: WPS210
+def filter_experiments(  # noqa: WPS210
     loaded_experiments: list[ExperimentSpec], *, wandb_path: str
 ) -> list[ExperimentSpec]:
     """Filter the experiments by those already run on wandb."""
+    # Get all the experiment name for the files we have on disk
     loaded_experiment_names = (experiment.experiment_name for experiment in loaded_experiments)
 
+    # Get all the runs from wandb with these experiments (if they exist)
     with console.status("Checking for existing runs on wandb..."):
         wandb_runs = get_runs_from_wandb(
             wandb_path,
@@ -54,26 +56,38 @@ def _filter_experiments(  # noqa: WPS210
             logger.info("No existing runs found on wandb, throwing all experiments.")
             return loaded_experiments
 
+    # Collate the runs into an experiment
     runs_per_experiment_per_game = collate_runs_per_experiment_per_game(wandb_runs)
+
+    # For the ones we pulled from wandb, check if they are invalid and need tagging
     invalid_runs = get_invalid_runs_from_collated_runs(runs_per_experiment_per_game)
     if invalid_runs:
         logger.warning(f"Found {len(invalid_runs)} invalid runs on wandb. Adding the 'old' tag")
         mark_runs_as_old(invalid_runs)
 
-    invalid_experiments = {run.config["experiment_name"] for run in invalid_runs}
-    valid_experiments = {
-        experiment.experiment_name for experiment in loaded_experiments
-    } - invalid_experiments
-    logger.info(
-        f"{len(valid_experiments)} experiments to throw",
-        invalid=len(invalid_experiments),
-        valid=len(valid_experiments),
-    )
-    return [
+    invalid_experiment_names = {run.config["experiment_name"] for run in invalid_runs}
+    invalid_experiments_on_wandb = [
+        spec for spec in loaded_experiments if spec.experiment_name in invalid_experiment_names
+    ]
+
+    specs_not_on_wandb = [
         experiment
         for experiment in loaded_experiments
-        if experiment.experiment_name in valid_experiments
+        if experiment.experiment_name not in runs_per_experiment_per_game
+        and experiment.experiment_name not in invalid_experiment_names
     ]
+
+    # For every experiment in the spec list, if there is a run on wandb that is valid, we should
+    # NOT throw it.
+    specs_to_throw = [*specs_not_on_wandb, *invalid_experiments_on_wandb]
+
+    logger.info(
+        f"{len(specs_to_throw)} experiments to throw",
+        invalid=len(invalid_experiments_on_wandb),
+        missing=len(specs_not_on_wandb),
+        filtered_out=len(loaded_experiments) - len(specs_to_throw),
+    )
+    return specs_to_throw
 
 
 @app.command()
@@ -115,7 +129,7 @@ async def throw_ai_experiments(
         logger.warning("Skipping wandb check for existing runs.")
     else:
         # Filter the experiments by those already run on wandb
-        loaded_experiments = _filter_experiments(
+        loaded_experiments = filter_experiments(
             loaded_experiments, wandb_path=f"{wandb_entity}/{wandb_project}"
         )
 
