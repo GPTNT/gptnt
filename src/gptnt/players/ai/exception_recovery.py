@@ -83,8 +83,15 @@ class GuardrailViolationRecovery(ExceptionRecoveryStrategy[AgentRunError]):
     @override
     def can_handle(self, *, exception: Exception, new_messages: list[ModelMessage]) -> bool:
         return bool(
-            isinstance(exception, AgentRunError)
-            and "filtered due to the prompt triggering Azure OpenAI's content" in exception.message
+            isinstance(exception, AgentRunError)  # noqa: WPS222
+            and (
+                "filtered due to the prompt triggering azure openai's content"
+                in exception.message.lower()
+                or "your prompt was flagged as potentially violating our usage policy"
+                in exception.message.lower()
+                or "invalid prompt" in exception.message.lower()
+                or "invalid_prompt" in exception.message.lower()
+            )
         )
 
     @override
