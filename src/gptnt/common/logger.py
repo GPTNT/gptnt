@@ -145,6 +145,9 @@ def configure_logging(root_log_level: int = logging.INFO) -> None:  # noqa: WPS2
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.INFO)
 
+    # Set faststream to warning to simplify logs
+    logging.getLogger("faststream").setLevel(logging.WARNING)
+
     logging.getLogger("gptnt").setLevel(logging.DEBUG)
 
     monkey_patch_binary_content_repr()
