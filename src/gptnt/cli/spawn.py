@@ -26,7 +26,7 @@ async def _spawn_rooms(orch: ProcessOrchestrator, num_rooms: int, display_num: i
         if orch.shutdown_event.is_set():
             break
         _ = await orch.spawn(  # noqa: WPS476
-            f"game_{room_idx}",
+            f"game__{room_idx}",
             ["uv", "run", "python", "-u", "src/gptnt/entrypoints/run_game_instance.py"],
             extra_env={"DISPLAY": f":{display_num}"},
         )
@@ -66,7 +66,7 @@ async def _spawn_players(
             idx = player_counters.get(player.model_name, 0)
             player_counters[player.model_name] = idx + 1
             _ = await orch.spawn(  # noqa: WPS476
-                f"{player.model_name}_{idx}",
+                f"{player.model_name}__{idx}",
                 [
                     "uv",
                     "run",

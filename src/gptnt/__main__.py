@@ -6,7 +6,9 @@ from gptnt.common.async_typer import AsyncTyper
 
 def main() -> None:
     """Run the CLI."""
-    app = AsyncTyper(help="GPTNT.", no_args_is_help=True, add_completion=False)
+    app = AsyncTyper(
+        help="GPTNT.", no_args_is_help=True, add_completion=False, rich_markup_mode="rich"
+    )
 
     _ = app.command(name="kill", no_args_is_help=True)(force_kill)
     _ = app.command(name="models", no_args_is_help=True)(print_models_table)

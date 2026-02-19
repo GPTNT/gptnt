@@ -1,4 +1,5 @@
 import json
+from typing import Any
 
 import structlog
 from pydantic_ai import TextPart
@@ -48,7 +49,7 @@ actions_to_perform = [
 class DummyDefuserModel(FunctionModel):
     """Dummy function model that generates set of marks actions based on the number of messages."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, provider: Any | None = None) -> None:  # noqa: ARG002
         super().__init__(self.dummy_action)
 
         self.actions_to_perform = iter(actions_to_perform)
@@ -78,7 +79,7 @@ class DummyDefuserModel(FunctionModel):
 class DummyExpertModel(FunctionModel):
     """Dummy function model that generates set of marks actions based on the number of messages."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, provider: Any | None = None) -> None:  # noqa: ARG002
         super().__init__(self.send_message)
 
     def send_message(self, messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:  # noqa: WPS110 ARG002
@@ -96,7 +97,7 @@ class DummyExpertModel(FunctionModel):
 class MagicDefuserModel(FunctionModel):
     """Dummy function model that performs 'magic' actions."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, provider: Any | None = None) -> None:  # noqa: ARG002
         super().__init__(self.magic_function)
 
     def magic_function(self, messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:  # noqa: WPS110 ARG002

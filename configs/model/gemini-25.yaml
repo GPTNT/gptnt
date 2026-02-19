@@ -2,6 +2,7 @@
 
 defaults:
   - _self_
+  - provider: google
 
 capabilities:
   player_name: gemini-25
@@ -17,8 +18,6 @@ action_predictor:
     model:
       _target_: pydantic_ai.models.google.GoogleModel
       model_name: gemini-2.5-flash
-      provider:
-        _target_: pydantic_ai.providers.google.GoogleProvider
 
     model_settings:
       _target_: pydantic_ai.models.google.GoogleModelSettings

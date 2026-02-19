@@ -1,0 +1,7 @@
+# @package player.action_predictor.agent.model
+
+provider:
+  _target_: pydantic_ai.providers.azure.AzureProvider
+  # api_key: ${env:AZURE_OPENAI_API_KEY}
+  # api_version: ${env:AZURE_OPENAI_API_VERSION}
+  # endpoint: ${env:AZURE_OPENAI_ENDPOINT}

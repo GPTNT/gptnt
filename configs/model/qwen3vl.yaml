@@ -1,8 +1,5 @@
 # @package player
 
-defaults:
-  - _self_
-
 capabilities:
   player_name: qwen3vl
   structured_output_mode: null
@@ -22,9 +19,6 @@ action_predictor:
     model:
       _target_: pydantic_ai.models.openai.OpenAIChatModel
       model_name: qwen3vl
-      provider:
-        _target_: pydantic_ai.providers.openai.OpenAIProvider
-        base_url: https://box1.gptnt.space/v1
     model_settings:
       _target_: pydantic_ai.models.openai.OpenAIChatModelSettings
       _convert_: all

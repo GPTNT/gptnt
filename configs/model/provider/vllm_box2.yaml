@@ -1,0 +1,5 @@
+# @package player.action_predictor.agent.model
+
+provider:
+  _target_: pydantic_ai.providers.openai.OpenAIProvider
+  base_url: https://box2.gptnt.space/v1

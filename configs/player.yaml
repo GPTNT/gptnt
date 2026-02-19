@@ -5,6 +5,7 @@ defaults:
   - hydra: default
 
   - model: test_defuser
+  - model/provider: null
 
   - override hydra/job_logging: none
   - override hydra/hydra_logging: none

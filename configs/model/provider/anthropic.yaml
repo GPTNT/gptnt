@@ -1,0 +1,5 @@
+# @package player.action_predictor.agent.model
+
+provider:
+  _target_: pydantic_ai.providers.anthropic.AnthropicProvider
+  # api_key: ${env:ANTHROPIC_API_KEY}

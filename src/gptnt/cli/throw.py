@@ -26,7 +26,9 @@ DEFAULT_OUTPUT_DIR = paths.experiment_recorder.joinpath(CURRENT_TIMESTAMP)
 
 PlayerOption = Annotated[
     list[PlayerSpec],
-    typer.Argument(help="Player specs as MODEL:COUNT (repeatable)", parser=parse_player_spec),
+    typer.Argument(
+        help=r"Player specs as 'MODEL\[@PROVIDER]:COUNT' (repeatable)", parser=parse_player_spec
+    ),
 ]
 
 
@@ -51,9 +53,7 @@ OutputDirOption = Annotated[
 InteractiveOption = Annotated[
     bool,
     typer.Option(
-        "--interactive",
-        "-i",
-        help="Stream process logs to the terminal with coloured prefixes (like docker compose)",
+        "--interactive", "-i", help="Stream process logs to the terminal (like docker compose)"
     ),
 ]
 
@@ -85,7 +85,46 @@ async def throw(  # noqa: WPS213
     logs_dir: LogsDirOption = DEFAULT_LOGS_DIR,
     output_dir: OutputDirOption = DEFAULT_OUTPUT_DIR,
 ) -> None:
-    """Launch a full experiment throw: experiment manager, game rooms, and AI players."""
+    """Launch a full experiment throw: experiment manager, game rooms, and AI players.
+
+    Orchestrates the full experiment pipeline by spinning up an experiment manager, the specified
+    number of game rooms, and AI player processes. All processes are managed together and shut down
+    cleanly on exit.
+
+    [b][u]Player Specs:[/b][/u]
+    Each player spec follows the format `MODEL@PROVIDER:COUNT`, where:
+
+    - `MODEL`    - a model name matching a config in `configs/model/*.yaml`
+    - `PROVIDER` - (optional) a provider override matching a config in
+                   `configs/model/provider/*.yaml`
+    - `COUNT`    - number of player processes to launch for this model (>= 1)
+
+    If `@PROVIDER` is omitted, the model's default provider config is used. The `--players`
+    argument can be repeated to run multiple model types simultaneously in the same throw.
+
+    [b][u]Providers:[/b][/u]
+    Providers are optional overrides that control which inference backend or API endpoint a
+    model uses. Available providers are discovered automatically from
+    `configs/model/provider/*.yaml`. If no provider is specified, the model falls back to its own
+    default configuration.
+
+    [b][u]Examples:[/b][/u]
+    Launch the "big throw":
+        gptnt throw 1 qwen3vl@vllm_box1:2 internvl35@vllm_box2:2 claude45:2 gemini-3:2
+
+    Launch 4 rooms with 8 claude45 players using the default provider:
+        gptnt throw 4 claude45:8
+
+    [b][u]Notes:[/b][/u]
+    - Total processes spawned = `1 (experiment manager) + rooms + total_players`.
+    - Empty experiment recorder output directories from previous runs are cleaned up automatically
+      before each throw.
+    - Both `logs_dir` and `output_dir` are created automatically if they do not exist.
+    - All processes share the `PYTHONUNBUFFERED=1` environment variable to ensure real-time log
+      output.
+    - Signal handling (e.g. `SIGINT`, `SIGTERM`) is managed automatically; all child processes
+      are shut down gracefully on exit.
+    """
     total_players = sum(player.count for player in players)
 
     # Timestamped directories
