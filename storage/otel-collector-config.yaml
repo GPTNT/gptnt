@@ -82,7 +82,7 @@ receivers:
 
 processors:
   filter/traces:
-    error_mode: ignore
+    error_mode: silent
     traces:
       span:
         - name == "Processed"
