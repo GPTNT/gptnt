@@ -52,7 +52,7 @@ async def _spawn_experiment_manager(orch: ProcessOrchestrator) -> None:
     await anyio.sleep(5)
 
 
-async def _spawn_players(
+async def _spawn_players(  # noqa: WPS231
     orch: ProcessOrchestrator, players: list[PlayerSpec], output_dir: Path
 ) -> None:
     console.print(
@@ -65,16 +65,19 @@ async def _spawn_players(
                 break
             idx = player_counters.get(player.model_name, 0)
             player_counters[player.model_name] = idx + 1
+            command = [
+                "uv",
+                "run",
+                "python",
+                "-u",
+                "src/gptnt/entrypoints/run_player.py",
+                f"model={player.model_name}",
+            ]
+            if player.provider:
+                command.append(f"provider={player.provider}")
             _ = await orch.spawn(  # noqa: WPS476
                 f"{player.model_name}__{idx}",
-                [
-                    "uv",
-                    "run",
-                    "python",
-                    "-u",
-                    "src/gptnt/entrypoints/run_player.py",
-                    f"model={player.model_name}",
-                ],
+                command,
                 extra_env={"EXPERIMENT_RECORDER_OUTPUTS": str(output_dir)},
             )
             await anyio.sleep(1)  # noqa: WPS476
