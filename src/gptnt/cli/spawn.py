@@ -74,7 +74,7 @@ async def _spawn_players(  # noqa: WPS231
                 f"model={player.model_name}",
             ]
             if player.provider:
-                command.append(f"provider={player.provider}")
+                command.append(f"model/provider={player.provider}")
             _ = await orch.spawn(  # noqa: WPS476
                 f"{player.model_name}__{idx}",
                 command,
