@@ -81,16 +81,7 @@ receivers:
         max_request_body_size: 33554432
 
 processors:
-  filter/traces:
-    error_mode: silent
-    traces:
-      span:
-        - name == "Processed"
-        - name == "Received"
-        - attributes["messaging.operation"] == "process"
-        - attributes["messaging.operation"] == "publish"
-
-  filter/logs:
+  filter/logs/ktane:
     logs:
       log_record:
         # Drop specific noisy loggers
@@ -166,11 +157,11 @@ service:
   pipelines:
     logs:
       receivers: [filelog/ktane, otlp]
-      processors: [filter/logs, batch]
+      processors: [filter/logs/ktane, batch]
       exporters: [otlphttp/logfire]
     traces:
       receivers: [otlp]
-      processors: [filter/traces, batch]
+      processors: [batch]
       exporters: [otlphttp/logfire]
     metrics:
       receivers: [otlp]
