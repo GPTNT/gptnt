@@ -165,3 +165,13 @@ def configure_logging(root_log_level: int = logging.INFO) -> None:  # noqa: WPS2
     #     root_logger.exception("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
 
     # sys.excepthook = handle_exception
+
+
+def create_faststream_logger(
+    logger_name: str = "faststream", min_level: int = logging.WARNING
+) -> structlog.BoundLogger:
+    """Create a structlog logger for FastStream with the same configuration as the root logger."""
+    return structlog.wrap_logger(
+        structlog.get_logger(logger_name),
+        wrapper_class=structlog.make_filtering_bound_logger(min_level),
+    )

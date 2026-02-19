@@ -10,7 +10,7 @@ from hypercorn.asyncio import serve
 from pydantic import RedisDsn
 from structlog import get_logger
 
-from gptnt.common.logger import configure_logging
+from gptnt.common.logger import configure_logging, create_faststream_logger
 from gptnt.services.broker import create_redis_broker
 from gptnt.services.experiment_manager.api import lifespan, router
 from gptnt.services.experiment_manager.experiment_manager import ExperimentManager
@@ -22,10 +22,12 @@ EM_PORT = 8085
 
 def run(redis_dsn: RedisDsn | None = None) -> FastAPI:
     """Run an experiment manager."""
+    faststream_logger = create_faststream_logger()
+
     redis_dsn = redis_dsn or RedisDsn("redis://localhost:6379")
     redis = Redis.from_url(str(redis_dsn), decode_responses=True)
     redis_broker = create_redis_broker(
-        redis_dsn, client_name="experiment_manager", logger=get_logger("faststream")
+        redis_dsn, client_name="experiment_manager", logger=faststream_logger
     )
 
     experiment_manager = ExperimentManager(redis=redis, redis_broker=redis_broker)

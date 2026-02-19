@@ -7,7 +7,7 @@ from pydantic import RedisDsn
 from structlog import get_logger
 
 from gptnt.common.hydra import get_hydra_overrides
-from gptnt.common.logger import configure_logging
+from gptnt.common.logger import configure_logging, create_faststream_logger
 from gptnt.common.paths import Paths, remove_empty_experiment_recorder_outputs
 from gptnt.ktane.manual import KtaneManualPaths
 from gptnt.services.broker import create_redis_broker
@@ -36,11 +36,13 @@ def main(
     # Instantiate the player from the class
     player_partial = hydra.utils.instantiate(config.player)
 
+    faststream_logger = create_faststream_logger()
+
     # Setup Redis for heartbeats
     heartbeat_redis = Redis.from_url(str(redis_dsn), decode_responses=True)
     player_partial.keywords["redis"] = heartbeat_redis
 
-    broker = create_redis_broker(redis_dsn, client_name="player", logger=get_logger("faststream"))
+    broker = create_redis_broker(redis_dsn, client_name="player", logger=faststream_logger)
 
     player_partial.keywords["game_client"] = GameClient(broker=broker)
     player_partial.keywords["incoming_message_handler"] = IncomingMessageHandler(broker=broker)
@@ -51,7 +53,7 @@ def main(
         broker,
         lifespan=player_service.lifespan,
         after_shutdown=[logfire.shutdown],
-        logger=get_logger("faststream"),
+        logger=faststream_logger,  # pyright: ignore[reportArgumentType]
     )
     app.context.set_global("player_service", player_service)
 

@@ -2,17 +2,17 @@ import uuid
 
 import anyio
 import logfire
+import structlog
 from coredis import Redis
 from faststream import FastStream
 from pydantic import RedisDsn
-from structlog import get_logger
 
-from gptnt.common.logger import configure_logging
+from gptnt.common.logger import configure_logging, create_faststream_logger
 from gptnt.ktane.game_settings import KtaneSettings
 from gptnt.services.broker import create_redis_broker
 from gptnt.services.game.service import GameService
 
-logger = get_logger()
+logger = structlog.get_logger()
 
 
 def main(*, redis_dsn: str | RedisDsn = "redis://localhost:6379") -> FastStream:
@@ -25,8 +25,10 @@ def main(*, redis_dsn: str | RedisDsn = "redis://localhost:6379") -> FastStream:
     ktane_settings.update_environment_variables()
     ktane_settings.create_settings_files()
 
+    faststream_logger = create_faststream_logger()
+
     heartbeat_redis = Redis.from_url(str(redis_dsn), decode_responses=True)
-    broker = create_redis_broker(redis_dsn, client_name="game", logger=get_logger("faststream"))
+    broker = create_redis_broker(redis_dsn, client_name="game", logger=faststream_logger)
 
     game_service = GameService(broker=broker, redis=heartbeat_redis, uuid=service_uuid)
 
@@ -34,7 +36,7 @@ def main(*, redis_dsn: str | RedisDsn = "redis://localhost:6379") -> FastStream:
         broker,
         lifespan=game_service.lifespan,
         after_shutdown=[logfire.shutdown],
-        logger=get_logger("faststream"),
+        logger=faststream_logger,  # pyright: ignore[reportArgumentType]
     )
     app.context.set_global("game_service", game_service)
     return app
