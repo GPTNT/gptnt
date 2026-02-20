@@ -43,7 +43,7 @@ def main(*, redis_dsn: str | RedisDsn = "redis://localhost:6379") -> FastStream:
 
 
 if __name__ == "__main__":
-    _ = logfire.configure(service_name="game", scrubbing=False)
+    _ = logfire.configure(service_name="game", scrubbing=False, send_to_logfire=False)
 
     configure_logging()
     application = main()

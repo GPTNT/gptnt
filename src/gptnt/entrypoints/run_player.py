@@ -62,7 +62,7 @@ def main(
 
 
 if __name__ == "__main__":
-    _ = logfire.configure(service_name="player", scrubbing=False)
+    _ = logfire.configure(service_name="player", scrubbing=False, send_to_logfire=False)
 
     configure_logging()
     remove_empty_experiment_recorder_outputs(paths.experiment_recorder)

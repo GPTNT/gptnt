@@ -81,7 +81,15 @@ receivers:
         max_request_body_size: 33554432
 
 processors:
+  filter/logs/severity:
+    error_mode: ignore
+    logs:
+      log_record:
+        # Drop below WARN, but only if severity is actually set
+        - "severity_number != SEVERITY_NUMBER_UNSPECIFIED and severity_number < SEVERITY_NUMBER_WARN"
+
   filter/logs/ktane:
+    error_mode: ignore
     logs:
       log_record:
         # Drop specific noisy loggers
@@ -135,10 +143,55 @@ processors:
         # Filter Unity ArgumentNullException
         - 'IsMatch(body, "ArgumentNullException: Argument cannot be null")'
 
+  filter/traces/logfire_logs:
+    error_mode: ignore
+    traces:
+      span:
+        # Only filter spans that are Logfire log-type (not actual trace spans)
+        # Drop anything below WARN (13)
+        - |
+          attributes["logfire.span_type"] == "log"
+          and attributes["logfire.level_num"] < 13
+          and not IsMatch(attributes["logfire.msg_template"],
+            "^(Session starting|Session cleaned up)$")
+
+  tail_sampling:
+    # Wait for all spans of a trace to arrive before deciding
+    decision_wait: 660s
+    # How many traces to hold in memory at once
+    num_traces: 70000
+    expected_new_traces_per_sec: 100
+
+    policies:
+      # Always keep traces that contain an error span
+      - name: keep-errors
+        type: status_code
+        status_code:
+          status_codes: [ERROR]
+
+      # Keep a small % of healthy traces for baseline visibility
+      # - name: sample-healthy
+      #   type: probabilistic
+      #   probabilistic:
+      #     sampling_percentage: 5
+
   batch:
     timeout: 10s
     send_batch_size: 256
     send_batch_max_size: 512
+
+  resource/mark_via_collector:
+    attributes:
+      - key: via.otel_collector
+        value: "true"
+        action: insert
+
+  transform/promote_logfire_type:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+          - set(resource.attributes["logfire.span_type"], attributes["logfire.span_type"]) where attributes["logfire.span_type"] != nil
 
 exporters:
   otlphttp/logfire:
@@ -153,17 +206,46 @@ exporters:
     sampling_initial: 5
     sampling_thereafter: 200
 
+connectors:
+  routing/traces:
+    default_pipelines: [traces/sampled]
+    error_mode: ignore
+    table:
+      - condition: 'attributes["logfire.span_type"] == "log"'
+        pipelines: [traces/direct]
+
 service:
   pipelines:
     logs:
       receivers: [filelog/ktane, otlp]
-      processors: [filter/logs/ktane, batch]
+      processors:
+        [
+          resource/mark_via_collector,
+          filter/logs/severity,
+          filter/logs/ktane,
+          batch,
+        ]
       exporters: [otlphttp/logfire]
-    traces:
+
+    # Entry point - filter first, then route
+    traces/ingest:
       receivers: [otlp]
+      processors: [filter/traces/logfire_logs, transform/promote_logfire_type]
+      exporters: [routing/traces]
+
+    # Log-type spans: skip tail sampling, go straight out
+    traces/direct:
+      receivers: [routing/traces]
       processors: [batch]
       exporters: [otlphttp/logfire]
+
+    # Real distributed traces: tail sampled
+    traces/sampled:
+      receivers: [routing/traces]
+      processors: [tail_sampling, batch]
+      exporters: [otlphttp/logfire]
+
     metrics:
       receivers: [otlp]
-      processors: [batch]
+      processors: [resource/mark_via_collector, batch]
       exporters: [otlphttp/logfire]

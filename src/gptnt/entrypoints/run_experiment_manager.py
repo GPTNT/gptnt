@@ -24,6 +24,8 @@ def run(redis_dsn: RedisDsn | None = None) -> FastAPI:
     """Run an experiment manager."""
     faststream_logger = create_faststream_logger()
 
+    logger.error("Quick one")
+
     redis_dsn = redis_dsn or RedisDsn("redis://localhost:6379")
     redis = Redis.from_url(str(redis_dsn), decode_responses=True)
     redis_broker = create_redis_broker(
@@ -47,7 +49,9 @@ def run(redis_dsn: RedisDsn | None = None) -> FastAPI:
 
 
 if __name__ == "__main__":
-    _ = logfire.configure(service_name="experiment_manager", scrubbing=False)
+    _ = logfire.configure(
+        service_name="experiment_manager", scrubbing=False, send_to_logfire=False
+    )
 
     configure_logging()
     config = Config()

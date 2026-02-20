@@ -303,7 +303,7 @@ class ReflectionRunRecovery(ExceptionRecoveryStrategy[AgentRunError]):
         raw_model_output: str | None = None,
         **kwargs: Any,
     ) -> AgentCallResult[SendMessageAction]:
-        logger.error(
+        logger.warning(
             "Unexpected model behavior during reflection. Returning with a default '<error>'."
         )
         model_output = SendMessageAction(message="<error>")

@@ -105,6 +105,7 @@ class Session:
         that task, **not** in the caller's. ``force_stop_experiment`` can then safely cancel the
         scope without affecting sibling tasks.
         """
+        logger.info("Session starting", experiment=self.name, spec=self.spec)
         with self._cancel_scope:
             async with anyio.create_task_group() as tg:
                 self._task_group = tg
