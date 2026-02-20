@@ -2,7 +2,6 @@ import abc
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-import logfire
 import structlog
 
 if TYPE_CHECKING:
@@ -62,9 +61,6 @@ class InstrumentationMixin(abc.ABC, metaclass=PostInitMeta):
 
     def post_init(self) -> None:
         """Post-initialisation method that performs instrumentation."""
-        if not logfire.DEFAULT_LOGFIRE_INSTANCE.config.send_to_logfire:
-            logger.debug("Logfire is not enabled, skipping instrumentation.")
-            return
         self.perform_instrumentation()
 
     @abc.abstractmethod
@@ -82,9 +78,6 @@ class InstrumentationDataclassMixin(abc.ABC):
 
     def __post_init__(self) -> None:
         """Post-initialisation method that performs instrumentation."""
-        if not logfire.DEFAULT_LOGFIRE_INSTANCE.config.send_to_logfire:
-            logger.debug("Logfire is not enabled, skipping instrumentation.")
-            return
         self.perform_instrumentation()
 
     @abc.abstractmethod
