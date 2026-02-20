@@ -243,7 +243,7 @@ def _render_table(expected_names: list[str], collated: CollatedRuns) -> None:  #
         count_text = Text(sessions_str, style=effective_style, justify="right")
 
         table.add_row(
-            str(idx),
+            str(idx + 1),
             Text(name, style=effective_style),
             Text(icon, justify="center"),
             count_text,
