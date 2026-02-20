@@ -1,18 +1,20 @@
 import abc
 from contextlib import suppress
 from dataclasses import InitVar, dataclass, field
+from functools import cache
 from typing import Self, override
 
 import httpx
 import logfire
+from pydantic_ai.models import get_user_agent
+from pydantic_ai.retries import AsyncTenacityTransport, RetryConfig, wait_retry_after
 from structlog import get_logger
+from tenacity import retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from gptnt.common.instrumentation import InstrumentationDataclassMixin
 
 _logger = get_logger()
 
-
-TimeoutTypes = float | httpx.Timeout | None
 
 DEFAULT_CONNECTION_LIMITS = httpx.Limits(
     max_connections=10, max_keepalive_connections=5, keepalive_expiry=30.0
@@ -115,3 +117,71 @@ class ManagedHttpClient(InstrumentationDataclassMixin, abc.ABC):
         Basically we do this to prevent any accidental messages being send to the wrong URL.
         """
         self.recreate_client(url="")
+
+
+MAX_RETRYING_CLIENT_WAIT_SECONDS = 180
+MAX_RETRYING_CLIENT_ATTEMPTS = 5
+
+
+def cached_retrying_async_http_client(
+    *, provider: str | None = None, timeout: int = 600, connect: int = 5
+) -> httpx.AsyncClient:
+    """Cached retrying HTTPX async client that creates a separate client for each provider.
+
+    We copy-paste and extend the logic from Pydantic AI's cached_async_http_client to add the
+    retrying transport while still handling the closed client gracefully.
+    """
+    client = _cached_retrying_async_http_client(
+        provider=provider, timeout=timeout, connect=connect
+    )
+    if client.is_closed:
+        # This happens if the context manager is used, so we need to create a new client.
+        # Since there is no API from `functools.cache` to clear the cache for a specific
+        #  key, clear the entire cache here as a workaround.
+        _cached_retrying_async_http_client.cache_clear()
+        client = _cached_retrying_async_http_client(
+            provider=provider, timeout=timeout, connect=connect
+        )
+    return client
+
+
+@cache
+def _cached_retrying_async_http_client(
+    provider: str | None,  # noqa: ARG001
+    timeout: int = 600,
+    connect: int = 5,
+) -> httpx.AsyncClient:
+    """Create a cached async http client that also has the retrying transport.
+
+    This is an extended version of the _cached_async_http_client from Pydantic AI so we can add and
+    cache the transport to deal with possible closed clients easily.
+
+    Impl for transport is from: https://ai.pydantic.dev/retries/#usage-example
+    """
+    transport = AsyncTenacityTransport(
+        config=RetryConfig(
+            # Retry on HTTP errors and connection issues
+            retry=retry_if_exception_type((httpx.HTTPStatusError, ConnectionError)),
+            # Smart waiting: respects Retry-After headers, falls back to exponential backoff
+            wait=wait_retry_after(
+                fallback_strategy=wait_exponential(multiplier=1, max=60),
+                max_wait=MAX_RETRYING_CLIENT_WAIT_SECONDS,
+            ),
+            # Stop after <num> attempts
+            stop=stop_after_attempt(MAX_RETRYING_CLIENT_ATTEMPTS),
+            # Re-raise the last exception if all retries fail
+            reraise=True,
+        ),
+        validate_response=_should_retry_status,
+    )
+    return httpx.AsyncClient(
+        timeout=httpx.Timeout(timeout=timeout, connect=connect),
+        headers={"User-Agent": get_user_agent()},
+        transport=transport,
+    )
+
+
+def _should_retry_status(response: httpx.Response) -> None:
+    """Raise exceptions for retryable HTTP status codes."""
+    if response.status_code in (429, 502, 503, 504):
+        _ = response.raise_for_status()  # This will raise HTTPStatusError

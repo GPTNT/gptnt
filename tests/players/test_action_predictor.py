@@ -1,7 +1,7 @@
 from typing import Any
 
 import pytest
-from pydantic_ai import Agent, BinaryContent, ModelHTTPError, UserPromptPart
+from pydantic_ai import Agent, BinaryContent, UserPromptPart
 from pydantic_ai.models.test import TestModel
 from pytest_cases import parametrize_with_cases
 
@@ -221,16 +221,19 @@ async def test_send_request_returns_do_nothing_when_structuring_fails(
 
 @pytest.mark.anyio
 @parametrize_with_cases("protocol", cases=ProtocolCases)
-async def test_send_request_raises_when_request_quota_error(
+async def test_send_request_return_do_nothing_when_request_quota_error(
     capabilities: PlayerCapabilities, protocol: PlayerProtocol
 ) -> None:
     """Test that request quota errors are raised and categorized correctly."""
     agent = Agent(ExceededRequestQuotaModel(), retries=0)
     predictor = create_action_predictor(agent=agent, capabilities=capabilities, protocol=protocol)
 
-    # Send request and expect it to raise due to request quota error
-    with pytest.raises(ModelHTTPError):
-        _ = await predictor.send_request_to_agent(message_input="Test message")
+    # Send request and expect it to return DoNothingAction due to request quota error
+    call_result = await predictor.send_request_to_agent(message_input="Test message")
+
+    # Assertions
+    assert isinstance(call_result.output, DoNothingAction)
+    assert call_result.ai_response_error == [AIResponseErrorType.server_error]
 
 
 # ============================================================================

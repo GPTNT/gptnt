@@ -264,14 +264,13 @@ class SomethingNewWentWrongRecovery(DoNothingRecoveryStrategy[AgentRunError]):
         )
 
 
-class RequestQuotaExceededRecovery(ExceptionRecoveryStrategy[ModelHTTPError, None]):
+class RequestQuotaExceededRecovery(DoNothingRecoveryStrategy[ModelHTTPError]):
     """Handle situations where the model provider returns a request quota exceeded error."""
 
     @override
     def can_handle(self, *, exception: Exception, new_messages: list[ModelMessage]) -> bool:
         return bool(
             isinstance(exception, ModelHTTPError)
-            and exception.status_code == 429  # noqa: PLR2004
             and (
                 "quota" in exception.message.lower()
                 or "resource exhausted" in exception.message.lower()
@@ -286,9 +285,14 @@ class RequestQuotaExceededRecovery(ExceptionRecoveryStrategy[ModelHTTPError, Non
         new_messages: list[ModelMessage],
         raw_model_output: str | None = None,
         **kwargs: Any,
-    ) -> None:
+    ) -> AgentCallResult[DoNothingAction]:
         logger.warning("Request quota exceeded for the model provider.", error=exception)
-        raise exception
+        return self.recover_do_nothing(
+            exception=exception,
+            ai_response_error=[AIResponseErrorType.server_error],
+            new_messages=new_messages,
+            raw_model_output=raw_model_output,
+        )
 
 
 class GoogleServerErrorRecovery(DoNothingRecoveryStrategy[GoogleServerError]):
