@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.table import Table
 from whenever import Instant
 
-from gptnt.cli.models import PlayerSpec, parse_player_spec
+from gptnt.cli.models import PlayerSpec
 from gptnt.cli.orchestrator import ProcessOrchestrator
 from gptnt.cli.spawn import handle_signals, run_throw
 from gptnt.common.paths import Paths, remove_empty_experiment_recorder_outputs
@@ -27,7 +27,8 @@ DEFAULT_OUTPUT_DIR = paths.experiment_recorder.joinpath(CURRENT_TIMESTAMP)
 PlayerOption = Annotated[
     list[PlayerSpec],
     typer.Argument(
-        help=r"Player specs as 'MODEL\[@PROVIDER]:COUNT' (repeatable)", parser=parse_player_spec
+        help=r"Player specs as 'MODEL\[@PROVIDER]:COUNT' (repeatable)",
+        parser=PlayerSpec.from_cli_string,
     ),
 ]
 
