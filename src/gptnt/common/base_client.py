@@ -29,8 +29,8 @@ def httpx_create_async_client(base_url: str | httpx.URL) -> httpx.AsyncClient:
 
 
 @dataclass(kw_only=True)
-class BaseClient(InstrumentationDataclassMixin, abc.ABC):
-    """Base class for all clients."""
+class ManagedHttpClient(InstrumentationDataclassMixin, abc.ABC):
+    """Managed async HTTP client with lifecycle, health checks, and instrumentation."""
 
     url: InitVar[str | httpx.URL] = ""
     _client: httpx.AsyncClient = field(init=False)

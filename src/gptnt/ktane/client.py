@@ -6,7 +6,7 @@ import logfire
 import structlog
 from pydantic import AfterValidator, BaseModel, Field
 
-from gptnt.common.base_client import BaseClient
+from gptnt.common.base_client import ManagedHttpClient
 from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.game_settings import KtaneSettings
 from gptnt.ktane.mission_spec import KtaneMissionConfig
@@ -36,7 +36,7 @@ class RawObservationFrames(BaseModel):
 
 
 @dataclass(kw_only=True)
-class KtaneClient(BaseClient):
+class KtaneClient(ManagedHttpClient):
     """Client that interacts with the KTANE game itself."""
 
     async def update_url(self, url: str | httpx.URL) -> None:
