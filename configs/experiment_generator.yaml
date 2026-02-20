@@ -22,7 +22,7 @@ task_name: generate_experiments
 players:
   all:
     - gpt5
-    - claude45
+    # - claude45
     - gemini-3
     - internvl35
     - qwen3vl
