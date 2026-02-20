@@ -1,6 +1,6 @@
 # @package _global_
 
 defaults:
-  - e5-n-best-defuser
-  - override /mission_condition: multiple_modules_n
+  - e5-n-self
+  - override /experiment/pairing: with_best_expert
   - _self_

@@ -4,15 +4,12 @@ defaults:
   - _self_
   - hydra: default
 
-  - mission_condition: single_module
+  - experiment/mission_condition: single_module
+  - experiment/communication_style: sync
+  - experiment/pairing: no_expert
 
-  - communication_style: sync
-
-  - players: default
-  - pairing: no_expert
-
-  - player_specs@defuser_protocol: solo_defuser
-  - player_specs@expert_protocol: none
+  - experiment/player_specs@defuser_protocol: solo_defuser
+  - experiment/player_specs@expert_protocol: none
 
   - experiment: null
 
@@ -20,6 +17,17 @@ defaults:
   - override hydra/hydra_logging: none
 
 task_name: generate_experiments
+
+# list of players to generate experiments for
+players:
+  all:
+    - gpt5
+    - claude45
+    - gemini-3
+    - internvl35
+    - qwen3vl
+  best_expert: gemini-3
+  best_defuser: gemini-3
 
 defuser_protocol: ???
 expert_protocol: ???
@@ -41,4 +49,4 @@ pairing_generator:
   _target_: gptnt.experiments.pairing.PairingGenerator
   pairing_type: ???
   best_model: null
-  all_players: ${all_players}
+  all_players: ${players.all}

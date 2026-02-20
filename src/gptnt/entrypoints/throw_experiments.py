@@ -59,6 +59,8 @@ def filter_experiments(  # noqa: WPS210
     # Collate the runs into an experiment
     runs_per_experiment_per_game = collate_runs_per_experiment_per_game(wandb_runs)
 
+    logger.info(f"{len(wandb_runs)} runs --> {len(runs_per_experiment_per_game)} experiments.")
+
     # For the ones we pulled from wandb, check if they are invalid and need tagging
     invalid_runs = get_invalid_runs_from_collated_runs(runs_per_experiment_per_game)
     if invalid_runs:
@@ -145,6 +147,4 @@ async def throw_ai_experiments(
 
 
 if __name__ == "__main__":
-    # configure_logging()
-
     anyio.run(app())

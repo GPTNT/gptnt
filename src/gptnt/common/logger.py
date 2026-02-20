@@ -66,7 +66,7 @@ def remove_duplicate_message(
 
 
 @run_once
-def configure_logging(root_log_level: int = logging.INFO) -> None:  # noqa: WPS213
+def configure_logging(root_log_level: int = logging.INFO, *, enable_logfire: bool = True) -> None:  # noqa: WPS213
     """Configure structlog for structured logging.
 
     To ensure all the logs are piped together and look the same, everything is put through
@@ -91,12 +91,14 @@ def configure_logging(root_log_level: int = logging.INFO) -> None:  # noqa: WPS2
         structlog.processors.StackInfoRenderer(),
     ]
 
+    logfire_processor = [logfire.StructlogProcessor()] if enable_logfire else []
+
     # Configure structlog to use the standard library logging module, with the processors from
     # above
     structlog.configure(
         processors=[
             *shared_processors,
-            logfire.StructlogProcessor(),
+            *logfire_processor,
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ],
         logger_factory=structlog.stdlib.LoggerFactory(),

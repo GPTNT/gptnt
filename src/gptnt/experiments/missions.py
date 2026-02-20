@@ -65,7 +65,7 @@ class MissionGeneratorConfig(BaseModel):
     @property
     def should_load_mission_specs(self) -> bool:
         """Check if mission specs should be loaded from the directory."""
-        return self.mission_specs_dir is not None and self.mission_specs_dir.exists()
+        return self.mission_specs_dir is not None
 
 
 class MissionGenerator:
@@ -88,6 +88,10 @@ class MissionGenerator:
     def generate(self) -> Iterator[KtaneMissionSpec]:
         """Generate mission specs based on the experiment condition."""
         if self.spec.should_load_mission_specs and self.spec.mission_specs_dir:
+            mission_files = list(self.spec.mission_specs_dir.glob("*.json"))
+            if not mission_files:
+                raise FileNotFoundError(f"No mission specs found in {self.spec.mission_specs_dir}")
+
             for mission_file in self.spec.mission_specs_dir.glob("*.json"):
                 yield self._load_mission_specs(mission_file=mission_file)
         else:

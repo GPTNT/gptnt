@@ -2,5 +2,5 @@
 
 defaults:
   - e5-n-self
-  - override /mission_condition: multiple_modules_n
+  - override /experiment/pairing: with_best_defuser
   - _self_

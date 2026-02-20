@@ -1,6 +1,9 @@
 # @package _global_
 
 defaults:
-  - _e
-  - override /communication_style: async
+  - override /experiment/mission_condition: single_module
+  - override /experiment/communication_style: async
+  - override /experiment/pairing: with_self
+  - override /experiment/player_specs@defuser_protocol: defuser
+  - override /experiment/player_specs@expert_protocol: expert
   - _self_

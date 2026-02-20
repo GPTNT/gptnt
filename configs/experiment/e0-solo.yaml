@@ -1,14 +1,16 @@
 # @package _global_
 
 defaults:
-  - override /mission_condition: single_module
-  - override /communication_style: sync
-  - override /pairing: no_expert
-  - override /players: test_defuser
-  - override /player_specs@defuser_protocol: solo_player
-  - override /player_specs@expert_protocol: none
+  - override /experiment/mission_condition: single_module
+  - override /experiment/communication_style: sync
+  - override /experiment/pairing: no_expert
+  - override /experiment/player_specs@defuser_protocol: solo_player
+  - override /experiment/player_specs@expert_protocol: none
 
   - _self_
+
+players:
+  - test-defuser
 
 mission_generator:
   config:

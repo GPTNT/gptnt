@@ -17,3 +17,5 @@ mission_generator:
 
     min_optional_widgets: 1
     max_optional_widgets: 5
+
+    mission_specs_dir: ${hydra:runtime.cwd}/configs/experiment/mission_specs/multiple_module_n
