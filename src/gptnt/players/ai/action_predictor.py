@@ -153,7 +153,9 @@ class ActionPredictor(InstrumentationDataclassMixin):
             structured output for send message directly, otherwise we just let it be a string and
             hope for the best with parsing it.
         """
-        reflection_prompt = load_reflection_prompt(self._agent_deps.capabilities)
+        reflection_prompt = load_reflection_prompt(
+            self._agent_deps.protocol, self._agent_deps.capabilities
+        )
 
         with capture_run_messages() as run_messages:
             try:

@@ -1,0 +1,8 @@
+Now you must reflect on the game you just played. In your response, address the following points:
+1. What was the final outcome of the game?
+2. Identify any mistakes or missed opportunities. How did you recognise that these were mistakes? What signs or feedback made you aware of them? How could they have been avoided?
+3. What strategies or approaches worked well for you, and which did not?
+4. If you played again, what specific changes would you make?
+5. What lessons did you learn from this experience that can help you perform better in future puzzle games?
+
+Provide your reasoning first, followed by a send_message command in the correct JSON format: '<thought>{REASONING}</thought><action>{"result": {"kind": "send_message", "data": {"message": "{MESSAGE}"}}}', replacing {REASONING} with your reasoning and {MESSAGE} with your final answer.

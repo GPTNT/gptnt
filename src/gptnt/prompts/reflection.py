@@ -3,7 +3,7 @@ from functools import lru_cache
 
 from gptnt.common.paths import Paths
 from gptnt.ktane.state.bomb import BombState
-from gptnt.players.specification import PlayerCapabilities
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.prompts.prompt_cache import PromptCache
 
 paths = Paths()
@@ -18,9 +18,13 @@ class InvalidBombStateForReflectionError(ValueError):
 
 
 @lru_cache(maxsize=1)
-def load_reflection_prompt(capabilities: PlayerCapabilities) -> str:
+def load_reflection_prompt(protocol: PlayerProtocol, capabilities: PlayerCapabilities) -> str:
     """Load the prompt for the given state."""
-    reflection_prompt = PromptCache.get_text(paths.prompts.joinpath("reflection.txt"))
+    reflection_prompt = PromptCache.get_text(
+        paths.prompts.joinpath(
+            "reflection_solo.txt" if protocol.is_playing_alone else "reflection.txt"
+        )
+    )
     if capabilities.thinking_method == "inner-monologue":
         return reflection_prompt.replace("thought", "think").replace(
             "reasoning", "thinking process"
