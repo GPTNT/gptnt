@@ -17,6 +17,7 @@ from rich.text import Text
 
 from gptnt.cli.models import ExperimentsSource
 from gptnt.common.paths import Paths
+from gptnt.experiments.wandb import collate_runs_per_experiment_per_game
 
 if TYPE_CHECKING:
     from pydantic import UUID4
@@ -167,12 +168,7 @@ def _fetch_all_runs(wandb_path: str, experiment_names: list[str]) -> CollatedRun
     console.print(f"  Fetched [bold]{len(runs)}[/bold] total runs from wandb.")
 
     # Group runs by experiment_name -> session_id -> [runs].
-    collated: CollatedRuns = defaultdict(lambda: defaultdict(list))
-    for run in runs:
-        exp_name: str = run.config["experiment_name"]
-        session_id: UUID4 = run.config["session_id"]
-        collated[exp_name][session_id].append(run)
-
+    collated = collate_runs_per_experiment_per_game(runs)
     return collated
 
 
