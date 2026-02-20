@@ -7,6 +7,7 @@ import structlog
 from google.genai.errors import ServerError as GoogleServerError
 from pydantic_ai import (
     AgentRunError,
+    ModelHTTPError,
     ModelMessage,
     ModelResponse,
     RunUsage,
@@ -25,7 +26,7 @@ from gptnt.players.exceptions import (
 logger = structlog.get_logger()
 
 
-class ExceptionRecoveryStrategy[ExceptionT: Exception](ABC):
+class ExceptionRecoveryStrategy[ExceptionT: Exception, RecoveryOutputT](ABC):
     """Handle various AI run exceptions in a graceful manner."""
 
     @abstractmethod
@@ -41,12 +42,20 @@ class ExceptionRecoveryStrategy[ExceptionT: Exception](ABC):
         new_messages: list[ModelMessage],
         raw_model_output: str | None = None,
         **kwargs: Any,
-    ) -> AgentCallResult[Any]:
+    ) -> RecoveryOutputT:
         """Handle the given exception and return a recovery result."""
         raise NotImplementedError
 
 
-class DoNothingRecoveryStrategy[ExceptionT: Exception](ExceptionRecoveryStrategy[ExceptionT], ABC):
+class SendMessageRecoveryStrategy[ExceptionT: Exception](
+    ExceptionRecoveryStrategy[ExceptionT, AgentCallResult[SendMessageAction]], ABC
+):
+    """Mixin to return a SendMessageAction as recovery."""
+
+
+class DoNothingRecoveryStrategy[ExceptionT: Exception](
+    ExceptionRecoveryStrategy[ExceptionT, AgentCallResult[DoNothingAction]], ABC
+):
     """Mixin to return a DoNothingAction as recovery."""
 
     def recover_do_nothing(
@@ -77,7 +86,7 @@ class DoNothingRecoveryStrategy[ExceptionT: Exception](ExceptionRecoveryStrategy
         )
 
 
-class GuardrailViolationRecovery(ExceptionRecoveryStrategy[AgentRunError]):
+class GuardrailViolationRecovery(SendMessageRecoveryStrategy[AgentRunError]):
     """Handle situations where the model output is refused due to guardrail violations."""
 
     @override
@@ -255,6 +264,33 @@ class SomethingNewWentWrongRecovery(DoNothingRecoveryStrategy[AgentRunError]):
         )
 
 
+class RequestQuotaExceededRecovery(ExceptionRecoveryStrategy[ModelHTTPError, None]):
+    """Handle situations where the model provider returns a request quota exceeded error."""
+
+    @override
+    def can_handle(self, *, exception: Exception, new_messages: list[ModelMessage]) -> bool:
+        return bool(
+            isinstance(exception, ModelHTTPError)
+            and exception.status_code == 429  # noqa: PLR2004
+            and (
+                "quota" in exception.message.lower()
+                or "resource exhausted" in exception.message.lower()
+            )
+        )
+
+    @override
+    def recover(
+        self,
+        *,
+        exception: ModelHTTPError,
+        new_messages: list[ModelMessage],
+        raw_model_output: str | None = None,
+        **kwargs: Any,
+    ) -> None:
+        logger.warning("Request quota exceeded for the model provider.", error=exception)
+        raise exception
+
+
 class GoogleServerErrorRecovery(DoNothingRecoveryStrategy[GoogleServerError]):
     """Handle situations where Google API returns a 500 server error."""
 
@@ -284,7 +320,7 @@ class GoogleServerErrorRecovery(DoNothingRecoveryStrategy[GoogleServerError]):
         )
 
 
-class ReflectionRunRecovery(ExceptionRecoveryStrategy[AgentRunError]):
+class ReflectionRunRecovery(SendMessageRecoveryStrategy[AgentRunError]):
     """Handle situations where reflection fails.
 
     A reflection failure is not critical, so we want to just catch it and log it so we move on.
@@ -318,7 +354,7 @@ class ReflectionRunRecovery(ExceptionRecoveryStrategy[AgentRunError]):
         )
 
 
-class ReflectionFormatRecovery(ExceptionRecoveryStrategy[InvalidOutputFormatError]):
+class ReflectionFormatRecovery(SendMessageRecoveryStrategy[InvalidOutputFormatError]):
     """Handle reflection being in an invalid format.
 
     If it's not following the structure, we want to just capture all of it.
@@ -355,6 +391,7 @@ class ReflectionFormatRecovery(ExceptionRecoveryStrategy[InvalidOutputFormatErro
 
 DEFAULT_RECOVERY_STRATEGIES = (
     GuardrailViolationRecovery(),
+    RequestQuotaExceededRecovery(),
     ExceededMaxOutputTokensRecovery(),
     FailedReasoningParserRecovery(),
     InvalidFormatRecovery(),
@@ -377,7 +414,7 @@ class ExceptionRecoveryChain:
     given exception.
     """
 
-    strategies: Sequence[ExceptionRecoveryStrategy[Any]] = field(
+    strategies: Sequence[ExceptionRecoveryStrategy[Any, Any]] = field(
         default=DEFAULT_RECOVERY_STRATEGIES
     )
 

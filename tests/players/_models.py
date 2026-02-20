@@ -1,5 +1,12 @@
 from google.genai.errors import ServerError
-from pydantic_ai import AgentRunError, ModelMessage, ModelResponse, TextPart, ThinkingPart
+from pydantic_ai import (
+    AgentRunError,
+    ModelHTTPError,
+    ModelMessage,
+    ModelResponse,
+    TextPart,
+    ThinkingPart,
+)
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from gptnt.players.actions import PlayerOutputType
@@ -34,6 +41,29 @@ class MaxTokensExceededModel(FunctionModel):
         # Create a response with finish_reason="length"
         response = ModelResponse(parts=[TextPart("partial output...")], finish_reason="length")
         return response
+
+
+class ExceededRequestQuotaModel(FunctionModel):
+    """Model that raises ModelHTTPError for exceeded request quota."""
+
+    def __init__(self) -> None:
+        super().__init__(self._raise_request_quota_error)
+
+    def _raise_request_quota_error(
+        self, _messages: list[ModelMessage], _info: AgentInfo
+    ) -> ModelResponse:
+        """Raise ModelHTTPError with request quota exceeded message."""
+        raise ModelHTTPError(
+            status_code=429,
+            model_name="gemini-3-flash-preview",
+            body={
+                "error": {
+                    "code": 429,
+                    "message": "Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.",
+                    "status": "RESOURCE_EXHAUSTED",
+                }
+            },
+        )
 
 
 class GenericAgentRunErrorModel(FunctionModel):
