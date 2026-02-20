@@ -134,14 +134,20 @@ processors:
         - 'IsMatch(body, "^Loading assemblies.*")'
         - 'IsMatch(body, "^Could not write mod manual.*")'
 
-        # Filter GptntStates Twitch errors
-        - 'attributes["logger"] == "GptntStates" and IsMatch(body, "Twitch bomb is null")'
+        # Filter Twitch bomb is null (can come from GptntStates or Unity logger)
+        - 'IsMatch(body, "Twitch bomb is null")'
 
         # Remove any logs regarding EmptyComponent
         - 'IsMatch(body, ".*EmptyComponent.*")'
 
         # Filter Unity ArgumentNullException
         - 'IsMatch(body, "ArgumentNullException: Argument cannot be null")'
+
+        # Filter TwitchPlaySettings NullReferenceException (fires on every state change when TwitchPlays is not active)
+        - 'IsMatch(body, "TwitchPlaySettings")'
+
+        # Filter Unity missing-script warning on QueueRemoverObject
+        - 'IsMatch(body, "QueueRemoverObject")'
 
   filter/traces/logfire_logs:
     error_mode: ignore
