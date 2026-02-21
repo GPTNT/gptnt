@@ -22,7 +22,6 @@ class ObservabilitySettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="OBSERVABILITY_")
 
     enable_metrics: bool = True
-    bypass_tail_sampling: bool = True
 
     instrument_fastapi: bool = True
     instrument_faststream: bool = True

@@ -60,8 +60,8 @@ class LogfireGauge(abc.ABC):
 
     async def metrics_loop(self) -> None:
         """Periodically update the metrics."""
-        async for _ in periodic(service_timeouts.update_metrics_interval):
-            if observability_settings.enable_metrics:
+        if observability_settings.enable_metrics:
+            async for _ in periodic(service_timeouts.update_metrics_interval):
                 self._update_all_metrics()
 
     @abc.abstractmethod

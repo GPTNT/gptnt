@@ -65,7 +65,10 @@ LimitObservabilityOption = Annotated[
 
 
 def _limit_observability_settings() -> dict[str, str]:
-    """Disable all instrumentation."""
+    """Severely limit instrumentation."""
+    otel_resource_attributes = (
+        f"{os.environ.get('OTEL_RESOURCE_ATTRIBUTES', '')},sampling.aggressive=true".strip(",")
+    )
     return {
         "OBSERVABILITY_INSTRUMENT_FASTAPI": "false",
         "OBSERVABILITY_INSTRUMENT_FASTSTREAM": "false",
@@ -74,8 +77,7 @@ def _limit_observability_settings() -> dict[str, str]:
         "OBSERVABILITY_INSTRUMENT_REDIS": "false",
         "OBSERVABILITY_ENABLE_METRICS": "false",
         "OBSERVABILITY_BYPASS_TAIL_SAMPLING": "false",
-        "OTEL_RESOURCE_ATTRIBUTES": os.environ["OTEL_RESOURCE_ATTRIBUTES"]
-        + ",sampling.aggressive=true",
+        "OTEL_RESOURCE_ATTRIBUTES": otel_resource_attributes,
     }
 
 
