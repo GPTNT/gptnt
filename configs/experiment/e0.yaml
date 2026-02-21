@@ -9,8 +9,9 @@ defaults:
   - _self_
 
 players:
-  - test-defuser
-  - test-expert
+  all:
+    - test-defuser
+    - test-expert
 
 pairing_generator:
   pairing_type: with_best_defuser

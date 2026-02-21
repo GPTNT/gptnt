@@ -10,7 +10,8 @@ defaults:
   - _self_
 
 players:
-  - test-defuser
+  all:
+    - test-defuser
 
 mission_generator:
   config:
