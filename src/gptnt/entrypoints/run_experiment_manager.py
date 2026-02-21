@@ -10,12 +10,15 @@ from hypercorn.asyncio import serve
 from pydantic import RedisDsn
 from structlog import get_logger
 
+from gptnt.common.instrumentation import ObservabilitySettings
 from gptnt.common.logger import configure_logging, create_faststream_logger
 from gptnt.services.broker import create_redis_broker
 from gptnt.services.experiment_manager.api import lifespan, router
 from gptnt.services.experiment_manager.experiment_manager import ExperimentManager
 
 logger = get_logger()
+observability_settings = ObservabilitySettings()
+
 
 EM_PORT = 8085
 
@@ -44,7 +47,8 @@ def run(redis_dsn: RedisDsn | None = None) -> FastAPI:
         allow_headers=["*"],
     )
 
-    _ = logfire.instrument_fastapi(app)
+    if observability_settings.instrument_fastapi:
+        _ = logfire.instrument_fastapi(app)
     return app
 
 
@@ -52,7 +56,7 @@ if __name__ == "__main__":
     _ = logfire.configure(
         service_name="experiment_manager", scrubbing=False, send_to_logfire=False
     )
-
+    observability_settings.instrument_all()
     configure_logging()
     config = Config()
     config.bind = [f"localhost:{EM_PORT}"]

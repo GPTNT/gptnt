@@ -7,6 +7,7 @@ from pydantic import RedisDsn
 from structlog import get_logger
 
 from gptnt.common.hydra import get_hydra_overrides
+from gptnt.common.instrumentation import ObservabilitySettings
 from gptnt.common.logger import configure_logging, create_faststream_logger
 from gptnt.common.paths import Paths, remove_empty_experiment_recorder_outputs
 from gptnt.ktane.manual import KtaneManualPaths
@@ -19,6 +20,8 @@ logger = get_logger()
 
 paths = Paths()
 ktane_manual_paths = KtaneManualPaths()
+
+observability_settings = ObservabilitySettings()
 
 
 def main(
@@ -63,6 +66,7 @@ def main(
 
 if __name__ == "__main__":
     _ = logfire.configure(service_name="player", scrubbing=False, send_to_logfire=False)
+    observability_settings.instrument_all()
 
     configure_logging()
     remove_empty_experiment_recorder_outputs(paths.experiment_recorder)

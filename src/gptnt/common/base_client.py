@@ -1,17 +1,13 @@
-import abc
 from contextlib import suppress
 from dataclasses import InitVar, dataclass, field
 from functools import cache
-from typing import Self, override
+from typing import Self
 
 import httpx
-import logfire
 from pydantic_ai.models import get_user_agent
 from pydantic_ai.retries import AsyncTenacityTransport, RetryConfig, wait_retry_after
 from structlog import get_logger
 from tenacity import retry_if_exception_type, stop_after_attempt, wait_exponential
-
-from gptnt.common.instrumentation import InstrumentationDataclassMixin
 
 _logger = get_logger()
 
@@ -31,8 +27,8 @@ def httpx_create_async_client(base_url: str | httpx.URL) -> httpx.AsyncClient:
 
 
 @dataclass(kw_only=True)
-class ManagedHttpClient(InstrumentationDataclassMixin, abc.ABC):
-    """Managed async HTTP client with lifecycle, health checks, and instrumentation."""
+class ManagedHttpClient:
+    """Managed async HTTP client with lifecycle and health checks."""
 
     url: InitVar[str | httpx.URL] = ""
     _client: httpx.AsyncClient = field(init=False)
@@ -57,7 +53,6 @@ class ManagedHttpClient(InstrumentationDataclassMixin, abc.ABC):
         """Create a new httpx client."""
         url = url or self.base_url
         self._client = httpx_create_async_client(base_url=url)
-        self.perform_instrumentation()
 
     @property
     def is_closed(self) -> bool:
@@ -72,16 +67,6 @@ class ManagedHttpClient(InstrumentationDataclassMixin, abc.ABC):
     async def stop(self) -> None:
         """Closes the API."""
         _ = await self.client.__aexit__()
-
-    @override
-    def perform_instrumentation(self) -> None:
-        _logger.debug(f"Instrumenting {self.__class__.__name__}")
-        logfire.instrument_httpx(
-            self.client,
-            capture_headers=True,
-            capture_request_body=True,
-            capture_response_body=False,
-        )
 
     async def healthcheck(self, *, skip_logger: bool = False) -> bool:
         """Checks the health of the client.

@@ -4,7 +4,10 @@ from faststream.redis import RedisBroker
 from faststream.redis.opentelemetry import RedisTelemetryMiddleware
 from pydantic import RedisDsn
 
+from gptnt.common.instrumentation import ObservabilitySettings
 from gptnt.services.exceptions import exc_middleware, exception_aware_decoder
+
+observability_settings = ObservabilitySettings()
 
 
 def create_redis_broker(url: str | RedisDsn, **kwargs: Any) -> RedisBroker:
@@ -26,10 +29,9 @@ def create_redis_broker(url: str | RedisDsn, **kwargs: Any) -> RedisBroker:
     kwargs["decoder"] = exception_aware_decoder
 
     # Add middlewares
-    kwargs["middlewares"] = [
-        RedisTelemetryMiddleware(),
-        exc_middleware,
-        *kwargs.get("middlewares", []),
-    ]
+    kwargs["middlewares"] = [exc_middleware, *kwargs.get("middlewares", [])]
+
+    if observability_settings.instrument_faststream:
+        kwargs["middlewares"].append(RedisTelemetryMiddleware())
 
     return RedisBroker(str(url), **kwargs)

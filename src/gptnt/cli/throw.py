@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 from typing import Annotated
@@ -58,6 +59,25 @@ InteractiveOption = Annotated[
     ),
 ]
 
+LimitObservabilityOption = Annotated[
+    bool, typer.Option("--limit-observability", help="Disable most instrumentation")
+]
+
+
+def _limit_observability_settings() -> dict[str, str]:
+    """Disable all instrumentation."""
+    return {
+        "OBSERVABILITY_INSTRUMENT_FASTAPI": "false",
+        "OBSERVABILITY_INSTRUMENT_FASTSTREAM": "false",
+        "OBSERVABILITY_INSTRUMENT_HTTPX": "false",
+        "OBSERVABILITY_INSTRUMENT_PYDANTIC_AI": "true",
+        "OBSERVABILITY_INSTRUMENT_REDIS": "false",
+        "OBSERVABILITY_ENABLE_METRICS": "false",
+        "OBSERVABILITY_BYPASS_TAIL_SAMPLING": "false",
+        "OTEL_RESOURCE_ATTRIBUTES": os.environ["OTEL_RESOURCE_ATTRIBUTES"]
+        + ",sampling.aggressive=true",
+    }
+
 
 async def throw(  # noqa: WPS213
     *,
@@ -85,6 +105,7 @@ async def throw(  # noqa: WPS213
     ] = None,
     logs_dir: LogsDirOption = DEFAULT_LOGS_DIR,
     output_dir: OutputDirOption = DEFAULT_OUTPUT_DIR,
+    limit_observability: LimitObservabilityOption = False,
 ) -> None:
     """Launch a full experiment throw: experiment manager, game rooms, and AI players.
 
@@ -150,12 +171,15 @@ async def throw(  # noqa: WPS213
     table.add_section()
     table.add_row("Logs dir", str(logs_dir))
     table.add_row("Output dir", str(output_dir))
+    table.add_row("Limit observability:", "Yes" if limit_observability else "No")
 
     console.print()
     console.print(table)
     console.print()
 
     env_base: dict[str, str] = {"PYTHONUNBUFFERED": "1"}
+    if limit_observability:
+        env_base.update(_limit_observability_settings())
     if wandb_entity:
         env_base["WANDB_ENTITY"] = wandb_entity
     if wandb_project:

@@ -14,6 +14,7 @@ receivers:
 
     resource:
       service.name: "ktane"
+      sampling.aggressive: "true"
 
     operators:
       # Parse the log4net format
@@ -81,13 +82,7 @@ receivers:
         max_request_body_size: 33554432
 
 processors:
-  filter/logs/severity:
-    error_mode: ignore
-    logs:
-      log_record:
-        # Drop below WARN, but only if severity is actually set
-        - "severity_number != SEVERITY_NUMBER_UNSPECIFIED and severity_number < SEVERITY_NUMBER_WARN"
-
+  # ── Ktane noise filter (ALWAYS active)
   filter/logs/ktane:
     error_mode: ignore
     logs:
@@ -149,40 +144,46 @@ processors:
         # Filter Unity missing-script warning on QueueRemoverObject
         - 'IsMatch(body, "QueueRemoverObject")'
 
+  # ── Log severity filter (conditional)
+  # Aggressive mode: drop below WARN
+  # Debug mode:      keep everything
+  filter/logs/severity:
+    error_mode: ignore
+    logs:
+      log_record:
+        - 'resource.attributes["sampling.aggressive"] == "true" and severity_number != SEVERITY_NUMBER_UNSPECIFIED and severity_number < SEVERITY_NUMBER_WARN'
+
+  # ── Logfire log-span filter (conditional) ──────────────────────
+  # Aggressive mode: drop logfire log-spans below WARN
+  # Debug mode:      keep everything
   filter/traces/logfire_logs:
     error_mode: ignore
     traces:
       span:
-        # Only filter spans that are Logfire log-type (not actual trace spans)
-        # Drop anything below WARN (13)
         - |
-          attributes["logfire.span_type"] == "log"
+          resource.attributes["sampling.aggressive"] == "true"
+          and attributes["logfire.span_type"] == "log"
           and attributes["logfire.level_num"] < 13
           and not IsMatch(attributes["logfire.msg_template"],
             "^(Session starting|Session cleaned up)$")
 
+  # ── Tail sampling (only reached in aggressive mode) ────────────
   tail_sampling:
-    # Wait for all spans of a trace to arrive before deciding
     decision_wait: 660s
-    # How many traces to hold in memory at once
     num_traces: 70000
     expected_new_traces_per_sec: 100
-
     policies:
-      # Always keep traces that contain an error span
       - name: keep-errors
         type: status_code
         status_code:
           status_codes: [ERROR]
-
-      # Keep a small % of healthy traces for baseline visibility
-      # - name: sample-healthy
-      #   type: probabilistic
-      #   probabilistic:
-      #     sampling_percentage: 5
+      - name: sample-healthy
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: 0
 
   batch:
-    timeout: 10s
+    timeout: 5s
     send_batch_size: 256
     send_batch_max_size: 512
 
@@ -197,7 +198,7 @@ processors:
     trace_statements:
       - context: span
         statements:
-          - set(resource.attributes["logfire.span_type"], attributes["logfire.span_type"]) where attributes["logfire.span_type"] != nil
+          - set(resource.attributes["logfire.span_type"], span.attributes["logfire.span_type"]) where span.attributes["logfire.span_type"] != nil
 
 exporters:
   otlphttp/logfire:
@@ -214,43 +215,53 @@ exporters:
 
 connectors:
   routing/traces:
-    default_pipelines: [traces/sampled]
+    default_pipelines: [traces/direct] # No flag = debug mode = everything through
     error_mode: ignore
     table:
-      - condition: 'attributes["logfire.span_type"] == "log"'
+      # Log-type spans ALWAYS skip tail sampling
+      - context: span
+        condition: 'attributes["logfire.span_type"] == "log"'
         pipelines: [traces/direct]
+      # Real traces → tail sampling when aggressive
+      - context: resource
+        condition: 'attributes["sampling.aggressive"] == "true"'
+        pipelines: [traces/sampled]
 
 service:
   pipelines:
+    # ── Logs ───────────────────────────────────────────────────────
     logs:
       receivers: [filelog/ktane, otlp]
-      processors:
-        [
+      processors: [
           resource/mark_via_collector,
-          filter/logs/severity,
-          filter/logs/ktane,
+          filter/logs/severity, # Conditional: drops < WARN only when aggressive
+          filter/logs/ktane, # Always: drops ktane noise
           batch,
         ]
       exporters: [otlphttp/logfire]
 
-    # Entry point - filter first, then route
+    # ── Traces: entry point ────────────────────────────────────────
     traces/ingest:
       receivers: [otlp]
-      processors: [filter/traces/logfire_logs, transform/promote_logfire_type]
+      processors: [
+          filter/traces/logfire_logs, # Conditional: drops low-sev log-spans when aggressive
+          transform/promote_logfire_type,
+        ]
       exporters: [routing/traces]
 
-    # Log-type spans: skip tail sampling, go straight out
+    # ── Traces: direct export (debug mode + log-type spans) ───────
     traces/direct:
       receivers: [routing/traces]
-      processors: [batch]
+      processors: [resource/mark_via_collector, batch]
       exporters: [otlphttp/logfire]
 
-    # Real distributed traces: tail sampled
+    # ── Traces: tail sampled (aggressive mode only) ───────────────
     traces/sampled:
       receivers: [routing/traces]
-      processors: [tail_sampling, batch]
+      processors: [tail_sampling, resource/mark_via_collector, batch]
       exporters: [otlphttp/logfire]
 
+    # ── Metrics ────────────────────────────────────────────────────
     metrics:
       receivers: [otlp]
       processors: [resource/mark_via_collector, batch]

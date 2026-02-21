@@ -6,9 +6,11 @@ import logfire
 from opentelemetry.metrics import Counter, _Gauge as Gauge
 
 from gptnt.common.async_ops import periodic
+from gptnt.common.instrumentation import ObservabilitySettings
 from gptnt.services.timeouts import ServiceTimeouts
 
 service_timeouts = ServiceTimeouts()
+observability_settings = ObservabilitySettings()
 
 
 @dataclass(kw_only=True)
@@ -59,7 +61,8 @@ class LogfireGauge(abc.ABC):
     async def metrics_loop(self) -> None:
         """Periodically update the metrics."""
         async for _ in periodic(service_timeouts.update_metrics_interval):
-            self._update_all_metrics()
+            if observability_settings.enable_metrics:
+                self._update_all_metrics()
 
     @abc.abstractmethod
     def _update_all_metrics(self) -> None:

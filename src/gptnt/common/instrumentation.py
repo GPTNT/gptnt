@@ -1,13 +1,45 @@
 import abc
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+import logfire
 import structlog
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
 logger = structlog.get_logger()
+
+
+class ObservabilitySettings(BaseSettings):
+    """Settings for observability and instrumentation.
+
+    This allows us to control whether we enable/disable instrumentation across the codebase from a
+    single place. We don't always need everything when we are doing the big throws because that is
+    just waaaay too many spans and is just entirely unmanageable/costly/unnecessary.
+    """
+
+    model_config = SettingsConfigDict(env_prefix="OBSERVABILITY_")
+
+    enable_metrics: bool = True
+    bypass_tail_sampling: bool = True
+
+    instrument_fastapi: bool = True
+    instrument_faststream: bool = True
+    instrument_httpx: bool = True
+    instrument_pydantic_ai: bool = True
+    instrument_redis: bool = False
+
+    def instrument_all(self) -> None:
+        """Perform instrumentation based on the settings."""
+        if self.instrument_pydantic_ai:
+            logfire.instrument_pydantic_ai()
+        if self.instrument_httpx:
+            logfire.instrument_httpx(
+                capture_headers=True, capture_request_body=True, capture_response_body=False
+            )
+        if self.instrument_redis:
+            logfire.instrument_redis()
 
 
 class PostInitMeta(abc.ABCMeta):
@@ -50,37 +82,3 @@ class PostInitMeta(abc.ABCMeta):
             namespace,
         )
         return cls
-
-
-class InstrumentationMixin(abc.ABC, metaclass=PostInitMeta):
-    """Simplify instrumentation of clients within a class.
-
-    Subclasses should implement the `perform_instrumentation` method to define the specific
-    instrumentation logic.
-    """
-
-    def post_init(self) -> None:
-        """Post-initialisation method that performs instrumentation."""
-        self.perform_instrumentation()
-
-    @abc.abstractmethod
-    def perform_instrumentation(self) -> None:
-        """Perform instrumentation on the class."""
-        raise NotImplementedError
-
-
-@dataclass
-class InstrumentationDataclassMixin(abc.ABC):
-    """Simplify instrumentation of clients within a dataclass.
-
-    Subclasses should implement the `perform_instrumentation` method to define the specific
-    """
-
-    def __post_init__(self) -> None:
-        """Post-initialisation method that performs instrumentation."""
-        self.perform_instrumentation()
-
-    @abc.abstractmethod
-    def perform_instrumentation(self) -> None:
-        """Perform instrumentation on the class."""
-        raise NotImplementedError

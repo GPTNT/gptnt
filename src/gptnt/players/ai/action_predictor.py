@@ -1,12 +1,11 @@
 from dataclasses import dataclass, field
-from typing import Any, override
+from typing import Any
 
 import logfire
 import structlog
 from pydantic_ai import Agent, ModelMessage, capture_run_messages
 from pydantic_ai.models import Model
 
-from gptnt.common.instrumentation import InstrumentationDataclassMixin
 from gptnt.players.actions import AgentCallResult, PlayerOutputType, SendMessageAction
 from gptnt.players.ai.exception_recovery import (
     ExceptionRecoveryChain,
@@ -55,7 +54,7 @@ async def execute_request[DepsT, ModelOutputT, ParserOutputT](
 
 
 @dataclass(kw_only=True)
-class ActionPredictor(InstrumentationDataclassMixin):
+class ActionPredictor:
     """Predict actions to perform using AI agents/models to do so."""
 
     agent: Agent[PlayerDeps | None, PlayerOutputType | str]
@@ -88,13 +87,6 @@ class ActionPredictor(InstrumentationDataclassMixin):
         #       don't bother.
         # Not sure why this is complaining because it used to be fine, but ok
         _ = self.agent.instructions(load_instructions_from_deps)  # pyright: ignore[reportCallIssue, reportArgumentType]
-
-        super().__post_init__()
-
-    @override
-    def perform_instrumentation(self) -> None:
-        logger.debug("Instrumenting AI player.")
-        logfire.instrument_pydantic_ai(self.agent)  # pyright: ignore[reportCallIssue, reportArgumentType]
 
     @property
     def model_name(self) -> str:
