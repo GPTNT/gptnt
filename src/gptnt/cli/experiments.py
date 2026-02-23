@@ -17,7 +17,7 @@ from rich.text import Text
 
 from gptnt.cli.models import ExperimentsSource
 from gptnt.common.paths import Paths
-from gptnt.experiments.wandb import collate_runs_per_experiment_per_game
+from gptnt.experiments.wandb import collate_runs_per_experiment_per_game, is_run_valid
 
 if TYPE_CHECKING:
     from pydantic import UUID4
@@ -146,15 +146,6 @@ def _resolve_experiments(sources: list[ExperimentsSource]) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
-def _is_run_valid(run: Run) -> bool:
-    """Return True if a run finished cleanly with no hard crash."""
-    return (
-        "is_hard_crash" in run.summary
-        and run.summary.get("is_hard_crash", True) is False
-        and run.state == "finished"
-    )
-
-
 def _fetch_all_runs(wandb_path: str, experiment_names: list[str]) -> CollatedRuns:
     """Fetch ALL runs from wandb with no state/tag filters and collate them."""
     with console.status(f"Fetching all runs from [cyan]{wandb_path}[/cyan]..."):
@@ -181,7 +172,7 @@ def _session_status(session_runs: list[Run]) -> str:
     states = {run.state for run in session_runs}
     if states & {"running", "pending"}:
         return STATUS_RUNNING
-    if states == {"finished"} and all(_is_run_valid(run) for run in session_runs):
+    if states == {"finished"} and all(is_run_valid(run) for run in session_runs):
         return STATUS_DONE
     return STATUS_FAILED
 

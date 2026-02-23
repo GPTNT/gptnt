@@ -78,7 +78,7 @@ def is_run_valid(run: Run) -> bool:
         # If the key is not in the summary, the its not valid
         "is_hard_crash" in run.summary
         # Make sure it's not false
-        and run.summary.get("is_hard_crash", False) is False
+        and run.summary.get("is_hard_crash", True) is False
         # make sure the run is finished
         and run.state == "finished"
         and not has_run_falsely_finished(run)
