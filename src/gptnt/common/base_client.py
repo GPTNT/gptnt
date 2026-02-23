@@ -7,7 +7,12 @@ import httpx
 from pydantic_ai.models import get_user_agent
 from pydantic_ai.retries import AsyncTenacityTransport, RetryConfig, wait_retry_after
 from structlog import get_logger
-from tenacity import retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import (
+    retry_if_exception_type,
+    stop_after_attempt,
+    stop_after_delay,
+    wait_exponential,
+)
 
 _logger = get_logger()
 
@@ -106,10 +111,11 @@ class ManagedHttpClient:
 
 MAX_RETRYING_CLIENT_WAIT_SECONDS = 180
 MAX_RETRYING_CLIENT_ATTEMPTS = 5
+MAX_CLIENT_TIMEOUT_SECONDS = 120
 
 
 def cached_retrying_async_http_client(
-    *, provider: str | None = None, timeout: int = 600, connect: int = 5
+    *, provider: str | None = None, timeout: int = MAX_CLIENT_TIMEOUT_SECONDS, connect: int = 5
 ) -> httpx.AsyncClient:
     """Cached retrying HTTPX async client that creates a separate client for each provider.
 
@@ -133,7 +139,7 @@ def cached_retrying_async_http_client(
 @cache
 def _cached_retrying_async_http_client(
     provider: str | None,  # noqa: ARG001
-    timeout: int = 600,
+    timeout: int = MAX_CLIENT_TIMEOUT_SECONDS,
     connect: int = 5,
 ) -> httpx.AsyncClient:
     """Create a cached async http client that also has the retrying transport.
@@ -149,11 +155,12 @@ def _cached_retrying_async_http_client(
             retry=retry_if_exception_type((httpx.HTTPStatusError, ConnectionError)),
             # Smart waiting: respects Retry-After headers, falls back to exponential backoff
             wait=wait_retry_after(
-                fallback_strategy=wait_exponential(multiplier=1, max=60),
-                max_wait=MAX_RETRYING_CLIENT_WAIT_SECONDS,
+                fallback_strategy=wait_exponential(multiplier=1, max=60), max_wait=60
             ),
-            # Stop after <num> attempts
-            stop=stop_after_attempt(MAX_RETRYING_CLIENT_ATTEMPTS),
+            # Stop after <num> attempts or a maximum wall clock time, whichever comes first
+            stop=stop_after_attempt(MAX_RETRYING_CLIENT_ATTEMPTS)
+            | stop_after_delay(MAX_RETRYING_CLIENT_WAIT_SECONDS),
+            # Log retries at warning level
             # Re-raise the last exception if all retries fail
             reraise=True,
         ),
