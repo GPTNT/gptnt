@@ -168,5 +168,5 @@ def _cached_retrying_async_http_client(
 
 def _should_retry_status(response: httpx.Response) -> None:
     """Raise exceptions for retryable HTTP status codes."""
-    if response.status_code in (429, 502, 503, 504):
+    if response.status_code in (429, 502, 503, 504, 524):
         _ = response.raise_for_status()  # This will raise HTTPStatusError
