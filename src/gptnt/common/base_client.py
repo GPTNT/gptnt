@@ -8,6 +8,7 @@ from pydantic_ai.models import get_user_agent
 from pydantic_ai.retries import AsyncTenacityTransport, RetryConfig, wait_retry_after
 from structlog import get_logger
 from tenacity import (
+    RetryCallState,
     retry_if_exception_type,
     stop_after_attempt,
     stop_after_delay,
@@ -163,6 +164,7 @@ def _cached_retrying_async_http_client(
             # Log retries at warning level
             # Re-raise the last exception if all retries fail
             reraise=True,
+            before_sleep=_log_retry,
         ),
         validate_response=_should_retry_status,
     )
@@ -177,3 +179,14 @@ def _should_retry_status(response: httpx.Response) -> None:
     """Raise exceptions for retryable HTTP status codes."""
     if response.status_code in (429, 502, 503, 504, 524):
         _ = response.raise_for_status()  # This will raise HTTPStatusError
+
+
+def _log_retry(retry_state: RetryCallState) -> None:
+    """Log retry attempts."""
+    _logger.warning(
+        "HTTP request failed, retrying...",
+        attempt=retry_state.attempt_number,
+        next_wait=retry_state.next_action.sleep if retry_state.next_action else None,
+        exception=str(retry_state.outcome.exception()) if retry_state.outcome else None,
+        seconds_since_start=retry_state.seconds_since_start,
+    )
