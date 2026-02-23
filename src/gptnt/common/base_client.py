@@ -113,6 +113,7 @@ class ManagedHttpClient:
 MAX_RETRYING_CLIENT_WAIT_SECONDS = 180
 MAX_RETRYING_CLIENT_ATTEMPTS = 5
 MAX_CLIENT_TIMEOUT_SECONDS = 120
+RETRYABLE_HTTP_CODES = frozenset((429, 502, 503, 504, 524))
 
 
 def cached_retrying_async_http_client(
@@ -161,9 +162,8 @@ def _cached_retrying_async_http_client(
             # Stop after <num> attempts or a maximum wall clock time, whichever comes first
             stop=stop_after_attempt(MAX_RETRYING_CLIENT_ATTEMPTS)
             | stop_after_delay(MAX_RETRYING_CLIENT_WAIT_SECONDS),
-            # Log retries at warning level
-            # Re-raise the last exception if all retries fail
-            reraise=True,
+            # When the retrying gives up, it will raise tenacity.RetryError
+            reraise=False,
             before_sleep=_log_retry,
         ),
         validate_response=_should_retry_status,
@@ -177,8 +177,8 @@ def _cached_retrying_async_http_client(
 
 def _should_retry_status(response: httpx.Response) -> None:
     """Raise exceptions for retryable HTTP status codes."""
-    if response.status_code in (429, 502, 503, 504, 524):
-        _ = response.raise_for_status()  # This will raise HTTPStatusError
+    if response.status_code in RETRYABLE_HTTP_CODES:
+        _ = response.raise_for_status()
 
 
 def _log_retry(retry_state: RetryCallState) -> None:

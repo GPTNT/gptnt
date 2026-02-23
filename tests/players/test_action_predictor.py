@@ -25,6 +25,7 @@ from tests.players._models import (
     GenericAgentRunErrorModel,
     InvalidStringOutputModel,
     MaxTokensExceededModel,
+    RetryErrorModel,
     ServerErrorModel,
 )
 
@@ -217,6 +218,21 @@ async def test_send_request_returns_do_nothing_when_structuring_fails(
     assert isinstance(call_result.output, DoNothingAction)
     assert call_result.ai_response_error == [AIResponseErrorType.unknown]
     assert call_result.raw_output == "not valid json at all"
+
+
+@pytest.mark.anyio
+@parametrize_with_cases("protocol", cases=ProtocolCases)
+async def test_send_request_returns_do_nothing_when_retries_exhausted(
+    capabilities: PlayerCapabilities, protocol: PlayerProtocol
+) -> None:
+    """Test that exhausted retries return do nothing with server_error."""
+    agent = Agent(RetryErrorModel(), retries=0)
+    predictor = create_action_predictor(agent=agent, capabilities=capabilities, protocol=protocol)
+
+    call_result = await predictor.send_request_to_agent(message_input="Test message")
+
+    assert isinstance(call_result.output, DoNothingAction)
+    assert call_result.ai_response_error == [AIResponseErrorType.server_error]
 
 
 @pytest.mark.anyio

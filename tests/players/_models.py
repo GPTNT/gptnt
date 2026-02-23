@@ -1,3 +1,4 @@
+import tenacity
 from google.genai.errors import ServerError
 from pydantic_ai import (
     AgentRunError,
@@ -92,6 +93,24 @@ class ServerErrorModel(FunctionModel):
         raise ServerError(
             code=500, response_json={"error": {"message": "Internal server error occurred"}}
         )
+
+
+class _FakeRetryAttempt:
+    """Minimal stand-in for tenacity's internal Future used in RetryError."""
+
+    def exception(self) -> Exception:
+        return RuntimeError("All retries exhausted")
+
+
+class RetryErrorModel(FunctionModel):
+    """Model that raises tenacity.RetryError to simulate all retries being exhausted."""
+
+    def __init__(self) -> None:
+        super().__init__(self._raise_retry_error)
+
+    def _raise_retry_error(self, _messages: list[ModelMessage], _info: AgentInfo) -> ModelResponse:
+        """Raise tenacity.RetryError to simulate exhausted retries."""
+        raise tenacity.RetryError(_FakeRetryAttempt())
 
 
 class InvalidStringOutputModel(FunctionModel):

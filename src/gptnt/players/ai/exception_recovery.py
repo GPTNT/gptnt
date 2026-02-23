@@ -3,7 +3,9 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, override
 
+import httpx
 import structlog
+import tenacity
 from google.genai.errors import ServerError as GoogleServerError
 from pydantic_ai import (
     AgentRunError,
@@ -237,18 +239,20 @@ class InvalidFormatRecovery(
         )
 
 
-class SomethingNewWentWrongRecovery(DoNothingRecoveryStrategy[AgentRunError]):
+class SomethingNewWentWrongRecovery(
+    DoNothingRecoveryStrategy[AgentRunError | httpx.HTTPStatusError]
+):
     """Handle any other situations where something went wrong."""
 
     @override
     def can_handle(self, *, exception: Exception, new_messages: list[ModelMessage]) -> bool:
-        return bool(isinstance(exception, AgentRunError))
+        return bool(isinstance(exception, (AgentRunError, httpx.HTTPStatusError)))
 
     @override
     def recover(
         self,
         *,
-        exception: AgentRunError,
+        exception: AgentRunError | httpx.HTTPStatusError,
         new_messages: list[ModelMessage],
         raw_model_output: str | None = None,
         **kwargs: Any,
@@ -295,6 +299,31 @@ class RequestQuotaExceededRecovery(DoNothingRecoveryStrategy[ModelHTTPError]):
         )
 
 
+class ExhaustedRetriesRecovery(DoNothingRecoveryStrategy[tenacity.RetryError]):
+    """Handle when retries are exhausted."""
+
+    @override
+    def can_handle(self, *, exception: Exception, new_messages: list[ModelMessage]) -> bool:
+        return isinstance(exception, tenacity.RetryError)
+
+    @override
+    def recover(
+        self,
+        *,
+        exception: tenacity.RetryError,
+        new_messages: list[ModelMessage],
+        raw_model_output: str | None = None,
+        **kwargs: Any,
+    ) -> AgentCallResult[DoNothingAction]:
+        logger.warning("Retries are exhausted, returning as DoNothing.", error=exception)
+        return self.recover_do_nothing(
+            exception=exception,
+            ai_response_error=[AIResponseErrorType.server_error],
+            new_messages=new_messages,
+            raw_model_output=raw_model_output,
+        )
+
+
 class GoogleServerErrorRecovery(DoNothingRecoveryStrategy[GoogleServerError]):
     """Handle situations where Google API returns a 500 server error."""
 
@@ -324,7 +353,7 @@ class GoogleServerErrorRecovery(DoNothingRecoveryStrategy[GoogleServerError]):
         )
 
 
-class ReflectionRunRecovery(SendMessageRecoveryStrategy[AgentRunError]):
+class ReflectionRunRecovery(SendMessageRecoveryStrategy[AgentRunError | httpx.HTTPStatusError]):
     """Handle situations where reflection fails.
 
     A reflection failure is not critical, so we want to just catch it and log it so we move on.
@@ -332,13 +361,13 @@ class ReflectionRunRecovery(SendMessageRecoveryStrategy[AgentRunError]):
 
     @override
     def can_handle(self, *, exception: Exception, new_messages: list[ModelMessage]) -> bool:
-        return bool(isinstance(exception, AgentRunError))
+        return bool(isinstance(exception, (AgentRunError, httpx.HTTPStatusError)))
 
     @override
     def recover(
         self,
         *,
-        exception: AgentRunError,
+        exception: AgentRunError | httpx.HTTPStatusError,
         new_messages: list[ModelMessage],
         raw_model_output: str | None = None,
         **kwargs: Any,
@@ -396,6 +425,7 @@ class ReflectionFormatRecovery(SendMessageRecoveryStrategy[InvalidOutputFormatEr
 DEFAULT_RECOVERY_STRATEGIES = (
     GuardrailViolationRecovery(),
     RequestQuotaExceededRecovery(),
+    ExhaustedRetriesRecovery(),
     ExceededMaxOutputTokensRecovery(),
     FailedReasoningParserRecovery(),
     InvalidFormatRecovery(),
@@ -406,6 +436,8 @@ DEFAULT_RECOVERY_STRATEGIES = (
 DEFAULT_REFLECTION_RECOVERY_STRATEGIES = (
     ReflectionFormatRecovery(),
     ReflectionRunRecovery(),
+    GoogleServerErrorRecovery(),
+    ExhaustedRetriesRecovery(),
     SomethingNewWentWrongRecovery(),
 )
 
@@ -439,7 +471,10 @@ class ExceptionRecoveryChain:
                     raw_model_output=raw_model_output,
                     **kwargs,
                 )
-
+        logger.exception(
+            "No recovery strategy could handle the exception. Raising the original exception. EVERYBODY CRASH NOW!",
+            error=exception,
+        )
         raise exception
 
 
