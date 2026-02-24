@@ -212,6 +212,11 @@ class ExperimentPlayerRecord(StepRecordsMetricsMixin):
     step_records: SortedStepRecords
     is_hard_crash: bool = False
 
+    @property
+    def role(self) -> PlayerRole:
+        """Get the role of the player in this record."""
+        return self.player_content.protocol.role
+
     async def rebuild_with_observations(self) -> Self:
         """Rebuild the record by loading all observations from disk."""
         loaded_records = []
