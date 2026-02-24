@@ -12,6 +12,7 @@ from pydantic import UUID4
 from gptnt.experiments.experiments import ExperimentSpec
 from gptnt.services.experiment_descriptor import ExperimentDescriptor
 from gptnt.services.experiment_manager.experiment_runner import (
+    AsyncExperimentRunner,
     ExperimentRunner,
     ExperimentState,
     SyncExperimentRunner,
@@ -147,7 +148,7 @@ class Session:
 
         logger.info("Session cleaned up", experiment=self.name)
 
-    def _create_runner(self) -> SyncExperimentRunner:
+    def _create_runner(self) -> ExperimentRunner:
         """Create an experiment runner based on the communication style."""
         match self.spec.communication_style:
             case "sync":
@@ -157,7 +158,8 @@ class Session:
                     redis_broker=self.redis_broker,
                 )
             case "async":
-                raise NotImplementedError
-                # return AsyncExperimentRunner(
-                #     experiment=self.experiment_descriptor, redis_url=self.redis_url
-                # )
+                return AsyncExperimentRunner(
+                    experiment=self.experiment_descriptor,
+                    redis=self.redis,
+                    redis_broker=self.redis_broker,
+                )

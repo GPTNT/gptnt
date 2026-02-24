@@ -524,7 +524,7 @@ class AsyncExperimentRunner(ExperimentRunner):
     Each player runs on their own, and we don't stop the time.
 
     We (currently) do not support sending feedback to playing during async mode because the loop
-    needs ot move fast.
+    needs to move fast.
     """
 
     @override
