@@ -13,6 +13,7 @@ from pydantic_ai import (
     ModelMessage,
     ModelResponse,
     RunUsage,
+    TextPart,
     UnexpectedModelBehavior,
 )
 
@@ -156,12 +157,37 @@ class ExceededMaxOutputTokensRecovery(
         **kwargs: Any,
     ) -> AgentCallResult[DoNothingAction]:
         logger.warning("Exceeded maximum output tokens", error=str(exception))
+
+        new_messages = self.ensure_the_response_has_some_text(new_messages)
+
         return self.recover_do_nothing(
             exception=exception,
             ai_response_error=[AIResponseErrorType.max_output_tokens_exceeded],
             new_messages=new_messages,
             raw_model_output=raw_model_output,
         )
+
+    def ensure_the_response_has_some_text(
+        self, new_messages: list[ModelMessage]
+    ) -> list[ModelMessage]:
+        """Ensure there is something in the response.
+
+        If we don't have any text in the response, it causes a huge knock-on effect on all future
+        messages which causes everything to be broken and result in nothing but DoNothing's from
+        the model.
+        """
+        response = next(
+            (msg for msg in reversed(new_messages) if isinstance(msg, ModelResponse)), None
+        )
+        if not response:
+            return [*new_messages, ModelResponse(parts=[TextPart(content="")])]
+
+        if not response.text:
+            # Add textpart to the response if its missing
+            response.parts = [*response.parts, TextPart(content="")]
+            new_messages[new_messages.index(response)] = response
+
+        return new_messages
 
 
 class FailedReasoningParserRecovery(DoNothingRecoveryStrategy[ReasoningParsingError]):

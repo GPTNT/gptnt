@@ -44,6 +44,21 @@ class MaxTokensExceededModel(FunctionModel):
         return response
 
 
+class MaxTokensExceededWithNoTextModel(FunctionModel):
+    """Model that raises UnexpectedModelBehavior for max tokens exceeded with no text output."""
+
+    def __init__(self) -> None:
+        super().__init__(self._raise_max_tokens_no_text_error)
+
+    def _raise_max_tokens_no_text_error(
+        self, _messages: list[ModelMessage], _info: AgentInfo
+    ) -> ModelResponse:
+        """Raise UnexpectedModelBehavior with max retries message and no text output."""
+        # Create a response with finish_reason="length" but no text parts
+        response = ModelResponse(parts=[], finish_reason="length")
+        return response
+
+
 class ExceededRequestQuotaModel(FunctionModel):
     """Model that raises ModelHTTPError for exceeded request quota."""
 

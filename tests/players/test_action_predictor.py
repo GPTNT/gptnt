@@ -1,9 +1,10 @@
 from typing import Any
 
 import pytest
-from pydantic_ai import Agent, BinaryContent, UserPromptPart
+from pydantic_ai import Agent, BinaryContent, ModelResponse, UserPromptPart
+from pydantic_ai.models import Model
 from pydantic_ai.models.test import TestModel
-from pytest_cases import parametrize_with_cases
+from pytest_cases import parametrize, parametrize_with_cases
 
 from gptnt.players.actions import (
     DoNothingAction,
@@ -25,6 +26,7 @@ from tests.players._models import (
     GenericAgentRunErrorModel,
     InvalidStringOutputModel,
     MaxTokensExceededModel,
+    MaxTokensExceededWithNoTextModel,
     RetryErrorModel,
     ServerErrorModel,
 )
@@ -139,11 +141,12 @@ async def test_send_request_handles_content_filtering_with_rephrase_request(
 
 @pytest.mark.anyio
 @parametrize_with_cases("protocol", cases=ProtocolCases)
+@parametrize("model_class", [MaxTokensExceededModel, MaxTokensExceededWithNoTextModel])
 async def test_send_request_returns_do_nothing_when_max_tokens_exceeded(
-    capabilities: PlayerCapabilities, protocol: PlayerProtocol
+    capabilities: PlayerCapabilities, protocol: PlayerProtocol, model_class: type[Model]
 ) -> None:
     """Test that max tokens exceeded returns DoNothingAction with max_tokens_exceeded error."""
-    agent = Agent(MaxTokensExceededModel(), retries=0)
+    agent = Agent(model_class(), retries=0)
     predictor = create_action_predictor(agent=agent, capabilities=capabilities, protocol=protocol)
 
     # Send request
@@ -152,8 +155,15 @@ async def test_send_request_returns_do_nothing_when_max_tokens_exceeded(
     # Assertions
     assert call_result.ai_response_error == [AIResponseErrorType.max_output_tokens_exceeded]
     assert isinstance(call_result.output, DoNothingAction)
-    assert call_result.raw_output != ""
     assert call_result.raw_output is not None
+    assert call_result.new_messages
+
+    model_response = next(
+        (message for message in call_result.new_messages if isinstance(message, ModelResponse)),
+        None,
+    )
+    assert model_response is not None
+    assert model_response.text is not None
 
 
 @pytest.mark.anyio
