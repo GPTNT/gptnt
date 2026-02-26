@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from faststream.redis import RedisBroker
 
     from gptnt.ktane.state.bomb import BombState
+    from gptnt.players.specification import PlayerRole
     from gptnt.services.experiment_descriptor import ExperimentDescriptor
 
 logger = structlog.get_logger()
@@ -227,10 +228,11 @@ class ExperimentRunner(abc.ABC):
             await self.game_client.unpause_game()
 
         # Wait for lights on
-        with logfire.span("Waiting for first lights on"):
-            self.game_state_watcher.update_interval = 0.2
+        with (
+            logfire.span("Waiting for first lights on"),
+            self.game_state_watcher.temporary_update_interval(0.2),
+        ):
             await self.game_state_watcher.first_lights_on_event.wait()
-            self.game_state_watcher.reset_update_interval()
 
         await self.game_client.pause_game()
 
@@ -533,24 +535,41 @@ class AsyncExperimentRunner(ExperimentRunner):
         if self.experiment.experiment_spec.some_player_wants_feedback:
             logger.warning("Feedback is not supported in async mode, ignoring.")
 
-        async with anyio.create_task_group() as tg:
-            tg.start_soon(self.run_player_loop, self.defuser_player_client, name="defuser")
-            if self.expert_player_client is not None:
-                tg.start_soon(self.run_player_loop, self.expert_player_client, name="expert")
+        # Unpause the game and let them run
+        await self.game_client.unpause_game()
 
+        # Set the game state watcher to have a faster update interval during the game because we
+        # want to be able to react when the game is over faster (otherwise the players will RUN
+        # several times before we know it)
+        with self.game_state_watcher.temporary_update_interval(0.5):
+            async with anyio.create_task_group() as tg:
+                tg.start_soon(
+                    self.run_player_loop, self.defuser_player_client, "defuser", name="defuser"
+                )
+                if self.expert_player_client is not None:
+                    tg.start_soon(
+                        self.run_player_loop, self.expert_player_client, "expert", name="expert"
+                    )
+
+            logger.debug(
+                "Experiment loop started",
+                experiment=self.experiment.experiment_spec.experiment_name,
+            )
+
+    async def run_player_loop(self, player_client: PlayerClient, role: PlayerRole) -> None:
+        """Run the player loop in async mode."""
         logger.debug(
-            "Experiment loop started", experiment=self.experiment.experiment_spec.experiment_name
+            "Starting (async) player loop", is_game_over=self.is_experiment_over, role=role
         )
 
-    async def run_player_loop(self, player_client: PlayerClient) -> None:
-        """Run the player loop in async mode."""
-        logger.debug("Starting (async) player loop", is_game_over=self.is_experiment_over)
+        player_content = self.experiment.get_player_content_by_role(role)
 
         while not self.is_experiment_over:
-            async with self.guard_step():
-                _ = await player_client.forward_pass()
+            with logfire.span(f"Forward pass ({role}; {player_content.name})"):
+                async with self.guard_step():
+                    _ = await player_client.forward_pass()
 
-                await anyio.sleep(0.5)
+                    await anyio.sleep(0.5)
 
         logger.debug(
             "Player loop completed", experiment=self.experiment.experiment_spec.experiment_name

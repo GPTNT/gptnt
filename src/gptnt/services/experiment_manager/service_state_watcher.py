@@ -1,6 +1,6 @@
 from collections import deque
-from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
+from collections.abc import AsyncGenerator, Generator
+from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass, field
 from enum import Enum
 from time import monotonic
@@ -61,6 +61,9 @@ class BaseServiceStateWatcher[ServiceStateT: Enum]:
         default=service_timeouts.session_state_watcher_interval, repr=False, init=False
     )
 
+    _interval_changed: Event = field(default_factory=Event, init=False, repr=False)
+    """Event for whenever the update interval is changed, to trigger an immediate update."""
+
     # --- Diagnostic tracking fields ---
     _has_ever_connected: bool = field(default=False, init=False, repr=False)
     """Whether we have ever successfully read a heartbeat from this service."""
@@ -108,10 +111,6 @@ class BaseServiceStateWatcher[ServiceStateT: Enum]:
         """Check if the service is ready."""
         return self.ready_state == ReadyState.ready
 
-    def reset_update_interval(self) -> None:
-        """Reset the update interval to the default value."""
-        self.update_interval = service_timeouts.session_state_watcher_interval
-
     @asynccontextmanager
     async def run_monitor(self) -> AsyncGenerator[None]:
         """Run the service state watcher as a context manager.
@@ -128,9 +127,24 @@ class BaseServiceStateWatcher[ServiceStateT: Enum]:
                 tg.cancel_scope.cancel()
                 logger.debug("Service state watcher stopped", service_uuid=self.service_uuid)
 
+    @contextmanager
+    def temporary_update_interval(self, interval: float) -> Generator[None]:
+        """Temporarily set the update interval to a different value within a context."""
+        original_interval = self.update_interval
+        self.update_interval = interval
+        self._interval_changed.set()
+        try:
+            yield
+        finally:
+            self.update_interval = original_interval
+            self._interval_changed.set()
+
     async def update_service_state_loop(self) -> None:
         """Update the service state in a loop."""
-        async for _ in periodic(self.update_interval):
+        while True:  # noqa: WPS457 (this is not a runaway loop since we break on cancellation)
+            with anyio.move_on_after(self.update_interval):
+                await self._interval_changed.wait()
+            self._interval_changed = Event()
             await self.update_service_state()
 
     async def update_service_state(self) -> None:
