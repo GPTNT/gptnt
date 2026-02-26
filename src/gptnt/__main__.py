@@ -1,7 +1,7 @@
 from gptnt.cli.app import run_streamlit_app
-from gptnt.cli.experiments import check_experiments
 from gptnt.cli.kill import force_kill
 from gptnt.cli.models import print_models_table
+from gptnt.cli.status import check_experiment_completion
 from gptnt.cli.throw import throw
 from gptnt.common.async_typer import AsyncTyper
 
@@ -12,7 +12,7 @@ def main() -> None:
         help="GPTNT.", no_args_is_help=True, add_completion=False, rich_markup_mode="rich"
     )
     _ = app.command(name="throw", no_args_is_help=True, rich_help_panel="Interactive")(throw)
-    _ = app.command(name="status", rich_help_panel="Interactive")(check_experiments)
+    _ = app.command(name="status", rich_help_panel="Interactive")(check_experiment_completion)
     _ = app.command(name="kill", no_args_is_help=True, rich_help_panel="Interactive")(force_kill)
     _ = app.command(name="models", no_args_is_help=True, rich_help_panel="Configs")(
         print_models_table

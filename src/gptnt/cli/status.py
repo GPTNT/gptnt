@@ -262,7 +262,7 @@ def _render_summary(summary: dict[str, int], total: int) -> None:
     console.print()
 
 
-def check_experiments(
+def check_experiment_completion(
     sources: ExperimentsArgument = None,
     *,
     wandb_entity: WandbEntityOption,
