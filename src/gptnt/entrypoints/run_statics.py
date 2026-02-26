@@ -95,8 +95,13 @@ class ConfigLoader:
     @property
     def config(self) -> DictConfig:
         """Load the config."""
+        if "@" in self.model:
+            model_name, model_provider = self.model.split("@", 1)
+            overrides = [f"model={model_name}", f"model/provider={model_provider}"]
+        else:
+            overrides = [f"model={self.model}"]
         with hydra.initialize_config_dir(version_base="1.3", config_dir=str(paths.configs)):
-            config = hydra.compose(config_name="player", overrides=[f"model={self.model}"])
+            config = hydra.compose(config_name="player", overrides=overrides)
         return config
 
     @property
