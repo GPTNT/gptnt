@@ -4,10 +4,11 @@ import cv2
 import numpy as np
 import structlog
 from cv2.typing import MatLike
+from numpy.typing import NDArray
 
 from gptnt.processors.labels.color import find_text_color
 from gptnt.processors.labels.position import get_background_corner_coords
-from gptnt.processors.labels.types import (
+from gptnt.processors.labels.types import (  # noqa: WPS235
     BLACK,
     WHITE,
     Color,
@@ -234,3 +235,102 @@ def is_overlapping(c1: Coordinates, c2: Coordinates, dims: NumberBoxDimensions) 
         or c1.y_pos + dims.height + dims.space_between <= c2.y_pos
         or c2.y_pos + dims.height + dims.space_between <= c1.y_pos
     )
+
+
+def draw_mask_on_image(  # noqa: WPS210
+    *,
+    image: RGBArray,
+    coords: NDArray[np.intp],
+    color: tuple[Color, ...],
+    thickness: int,
+    soft_mask_alpha: float,
+) -> tuple[RGBArray, NDArray[np.bool_]]:
+    """Draw outline of a single region with optional color split for top/bottom."""
+    # blank mask
+    mask = np.zeros_like(image[:, :, 0])
+
+    # get all region pixels on the mask
+    for y_coord, x_coord in coords:
+        mask[y_coord, x_coord] = 255
+
+    # dilate mask to expand it outward
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    dilated_mask = cv2.dilate(mask, kernel, iterations=2)
+
+    # find external contours
+    contours, _ = cv2.findContours(dilated_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if soft_mask_alpha > 0:
+        soft_mask_color = color[0]  # fallback if multiple
+        soft_mask = np.zeros_like(image)
+        _ = cv2.drawContours(soft_mask, contours, -1, soft_mask_color, cv2.FILLED)
+
+        mask_region = cv2.drawContours(
+            np.zeros_like(mask), contours, -1, WHITE, cv2.FILLED, lineType=cv2.LINE_AA
+        )
+        mask_region = mask_region.astype(bool)
+
+        image[mask_region] = (
+            image[mask_region] * (1 - soft_mask_alpha) + soft_mask[mask_region] * soft_mask_alpha
+        ).astype(np.uint8)
+
+    if len(color) == 1:
+        # standard single-color outline
+        _ = cv2.drawContours(
+            image=image,
+            contours=contours,
+            contourIdx=-1,
+            color=color[0],
+            thickness=thickness,
+            lineType=cv2.LINE_AA,
+        )
+    else:
+        # split top/bottom logic
+        contour_mask = np.zeros_like(image[:, :, 0])
+        _ = cv2.drawContours(
+            contour_mask, contours, -1, WHITE, thickness=thickness, lineType=cv2.LINE_AA
+        )
+
+        rows = np.any(mask, axis=1)
+        nonzero_row_indices = np.where(rows)[0]
+
+        if nonzero_row_indices.size > 0:
+            height = nonzero_row_indices[-1] - nonzero_row_indices[0] + 1
+        else:
+            height = 0  # no masked area
+
+        midpoint = height // 2
+        quarter_height = midpoint // 2
+
+        mask_start = nonzero_row_indices[0]
+        mask_end = nonzero_row_indices[-1]
+
+        top_mask = np.zeros_like(contour_mask)
+        top_mask[mask_start : mask_start + quarter_height, :] = 1
+
+        middle_top_mask = np.zeros_like(contour_mask)
+        middle_top_mask[mask_start + quarter_height : mask_start + midpoint, :] = 1
+
+        middle_bottom_mask = np.zeros_like(contour_mask)
+        middle_bottom_mask[mask_start + midpoint : mask_start + midpoint + quarter_height, :] = 1
+
+        bottom_mask = np.zeros_like(contour_mask)
+        bottom_mask[mask_start + midpoint + quarter_height : mask_end, :] = 1
+
+        color_top, color_bottom = color[:2]
+
+        top_contour = cv2.bitwise_and(contour_mask, contour_mask, mask=top_mask)
+        image[top_contour > 0] = color_top
+
+        middle_top_contour = cv2.bitwise_and(contour_mask, contour_mask, mask=middle_top_mask)
+        image[middle_top_contour > 0] = color_bottom
+
+        middle_bottom_contour = cv2.bitwise_and(
+            contour_mask, contour_mask, mask=middle_bottom_mask
+        )
+        image[middle_bottom_contour > 0] = color_top
+
+        bottom_contour = cv2.bitwise_and(contour_mask, contour_mask, mask=bottom_mask)
+        image[bottom_contour > 0] = color_bottom
+
+    return image, dilated_mask.astype(bool)

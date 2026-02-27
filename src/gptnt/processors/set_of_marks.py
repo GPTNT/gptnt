@@ -12,21 +12,17 @@ import logfire
 import numpy as np
 import structlog
 from numpy.typing import NDArray
-from skimage.color import hsv2rgb, rgb2hsv
 from skimage.measure import regionprops
 
 from gptnt.ktane.actions import RelativeCoordinate
 from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.players.actions import SetOfMarksLocation
-from gptnt.processors.labels.color import (
-    ENTIRELY_COLOR_DEPENDENT_MODULES,
-    check_colors,
-    get_median_colour,
-)
+from gptnt.processors.labels.color import get_region_color
 from gptnt.processors.labels.drawing import (
     AnnotationBackgroundParams,
     AnnotationTextParams,
     draw_annotation,
+    draw_mask_on_image,
 )
 from gptnt.processors.labels.highlighting import highlight_module_with_square
 from gptnt.processors.labels.keypad import keypad
@@ -40,13 +36,6 @@ from gptnt.processors.labels.ordering import (
 from gptnt.processors.labels.password import password
 from gptnt.processors.labels.simon import simon
 from gptnt.processors.labels.types import (  # noqa: WPS235
-    BLUE,
-    GREEN,
-    IS_LINE_THRESHOLD,
-    RED,
-    WHITE,
-    YELLOW,
-    Color,
     Coordinates,
     DrawData,
     NumberBoxDimensions,
@@ -93,40 +82,83 @@ class InvalidMarkLocationError(KeyError):
         self.mark_id = location
 
 
-def blend_with_image(image: RGBArray, mask: RGBArray, alpha: float = 0.3) -> RGBArray:
-    """Blend a mask with an image using alpha transparency."""
-    blended = cv2.addWeighted(mask, alpha, image, 1 - alpha, 0)
-    return np.asarray(blended, dtype=np.uint8)
-
-
+@logfire.instrument("Convert colourful segmentation to labelled image", extract_args=False)
 def convert_colorful_segm_to_labeled(image_as_array: RGBArray) -> NDArray[np.uint8]:  # noqa: WPS210
     """Convert colourful segmentation to a labelled image.
 
     Input shape: (height, width, channels = 3)
     Output shape: (height, width)
+
+    ---
+
+    ## How to handle anti-aliasing in segmentation masks
+
+    There's a big pain with this process and that's the anti-aliasing that exists when we are
+    dealing with segmentation masks. When we render the segmentation mask, the pixels at the
+    boundaries get blended between the colour of the segment and black (0,0,0). The function for
+    the blending is basically:
+
+        p = alpha * [R, G, B],   0 < alpha ≤ 1
+
+    This can result in hundreds of slightly different pixel values for the same colour/segment. So
+    we need to collapse them down into a single colour so we can properly label them.
+
+    Naively, we could convert to HSV and force S=1 and V=1 for every non-black pixel and then
+    convert it back. This works because we just then have the hue values to differentiate it, but
+    this comes at the cost of needing to convert back and forth, which takes longer (like 500ms and
+    we need this function to be as fast as possible). So why is the hue preserved and is that
+    something we can understand more to avoid the hsv conversion?
+
+    HSV hue for any pixel is computed from channel *ratios*, not absolute values. For the R-max
+    sector as an example:
+
+        H = (G - B) / (max(R,G,B) - min(R,G,B))
+
+    When we plug in the blended pixel, the alpha cancels out from the top and bottom, meaning that
+    H is identical to the original. This means that the "set S=1, V=1, and convert back" is
+    geometrically the same as doing a simple min-max stretch in RGB space:
+
+        normalised_i = (channel_i - min) / (max - min) * 255
+
+    And since it cancels here too, every blended pixel maps to the same normalised uint8 triplet,
+    which is what we want.
+
+    Some edge cases to consider:
+        - Pure black pixels (0,0,0) will stay the same and be correctly labelled as background.
+        - Grey pixels will be a problem, BUT since that's not a valid segment colour (we know this
+          from the mod), we don't need to worry about it.
     """
     # flatten image and group colour channels together
     height, width, color_chan = image_as_array.shape
     # shape: (height * width, channels = 3)
     flattened = image_as_array.reshape(-1, color_chan)
 
-    # make the brightness of all non-black colours equal to 1 (mitigates the anti-aliasing of seg mask)
-    non_black_color_mask = flattened.sum(axis=-1) > 0
-    flattened_hsv = rgb2hsv(flattened)
-    flattened_hsv[:, 2] = non_black_color_mask
-    flattened_hsv[:, 1] = non_black_color_mask
-    flattened_hsv[:, 0] = np.round(flattened_hsv[:, 0], 2)
-    floating_rgb = hsv2rgb(flattened_hsv) * 255  # noqa: WPS432
-    fixed_rgb = floating_rgb.astype(np.uint8)
+    flat_f = flattened.astype(np.float32)
+    min_val = flat_f.min(axis=1, keepdims=True)  # (N, 1)
+    max_val = flat_f.max(axis=1, keepdims=True)  # (N, 1)
+    col_range = max_val - min_val
 
-    # find unique colours and assign labels
-    _, inverse = np.unique(fixed_rgb, axis=0, return_inverse=True)
+    # Normalise to min=0 / max=255 without any HSV conversion.
+    # For anti-aliased pixels (pure colour blended with black) alpha cancels out,
+    # so every blend level maps to the same uint8 triplet.
+    # Fallback denom handles degenerate grey pixels (col_range == 0, max > 0).
+    denom = np.where(col_range > 0, col_range, np.maximum(max_val, 1.0))
+    fixed_rgb = np.where(max_val > 0, (flat_f - min_val) / denom * 255.0, 0).astype(np.uint8)  # noqa: WPS221
+
+    # Pack 3x uint8 → uint32 so np.unique works on a 1-D array (much faster).
+    packed = (
+        fixed_rgb[:, 0].astype(np.uint32) << 16
+        | fixed_rgb[:, 1].astype(np.uint32) << 8
+        | fixed_rgb[:, 2].astype(np.uint32)
+    )
+    _, inverse = np.unique(packed, return_inverse=True)
 
     # reshape the labels to image dimensions again
     # shape: (height, width)
     return inverse.reshape(height, width).astype(np.uint8)
 
 
+@logfire.instrument("Get region properties", extract_args=False)
 def get_region_properties(labeled_image: NDArray[np.uint8]) -> list[RegionProperties]:
     """Extract region properties from a labelled image."""
     props = regionprops(labeled_image)
@@ -153,157 +185,6 @@ def convert_to_grayscale(image: RGBArray) -> RGBArray:
     return np.asarray(grayscale, dtype=np.uint8)
 
 
-def draw_mask_on_image(  # noqa: WPS210
-    *,
-    image: RGBArray,
-    coords: NDArray[np.intp],
-    color: tuple[Color, ...],
-    thickness: int,
-    soft_mask_alpha: float,
-) -> tuple[RGBArray, NDArray[np.bool_]]:
-    """Draw outline of a single region with optional color split for top/bottom."""
-    # blank mask
-    mask = np.zeros_like(image[:, :, 0])
-
-    # get all region pixels on the mask
-    for y_coord, x_coord in coords:
-        mask[y_coord, x_coord] = 255
-
-    # dilate mask to expand it outward
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    dilated_mask = cv2.dilate(mask, kernel, iterations=2)
-
-    # find external contours
-    contours, _ = cv2.findContours(dilated_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    if soft_mask_alpha > 0:
-        soft_mask_color = color[0]  # fallback if multiple
-        soft_mask = np.zeros_like(image)
-        _ = cv2.drawContours(soft_mask, contours, -1, soft_mask_color, cv2.FILLED)
-
-        mask_region = cv2.drawContours(
-            np.zeros_like(mask), contours, -1, WHITE, cv2.FILLED, lineType=cv2.LINE_AA
-        )
-        mask_region = mask_region.astype(bool)
-
-        image[mask_region] = (
-            image[mask_region] * (1 - soft_mask_alpha) + soft_mask[mask_region] * soft_mask_alpha
-        ).astype(np.uint8)
-
-    if len(color) == 1:
-        # standard single-color outline
-        _ = cv2.drawContours(
-            image=image,
-            contours=contours,
-            contourIdx=-1,
-            color=color[0],
-            thickness=thickness,
-            lineType=cv2.LINE_AA,
-        )
-    else:
-        # split top/bottom logic
-        contour_mask = np.zeros_like(image[:, :, 0])
-        _ = cv2.drawContours(
-            contour_mask, contours, -1, WHITE, thickness=thickness, lineType=cv2.LINE_AA
-        )
-
-        rows = np.any(mask, axis=1)
-        nonzero_row_indices = np.where(rows)[0]
-
-        if nonzero_row_indices.size > 0:
-            height = nonzero_row_indices[-1] - nonzero_row_indices[0] + 1
-        else:
-            height = 0  # no masked area
-
-        midpoint = height // 2
-        quarter_height = midpoint // 2
-
-        mask_start = nonzero_row_indices[0]
-        mask_end = nonzero_row_indices[-1]
-
-        top_mask = np.zeros_like(contour_mask)
-        top_mask[mask_start : mask_start + quarter_height, :] = 1
-
-        middle_top_mask = np.zeros_like(contour_mask)
-        middle_top_mask[mask_start + quarter_height : mask_start + midpoint, :] = 1
-
-        middle_bottom_mask = np.zeros_like(contour_mask)
-        middle_bottom_mask[mask_start + midpoint : mask_start + midpoint + quarter_height, :] = 1
-
-        bottom_mask = np.zeros_like(contour_mask)
-        bottom_mask[mask_start + midpoint + quarter_height : mask_end, :] = 1
-
-        color_top, color_bottom = color[:2]
-
-        top_contour = cv2.bitwise_and(contour_mask, contour_mask, mask=top_mask)
-        image[top_contour > 0] = color_top
-
-        middle_top_contour = cv2.bitwise_and(contour_mask, contour_mask, mask=middle_top_mask)
-        image[middle_top_contour > 0] = color_bottom
-
-        middle_bottom_contour = cv2.bitwise_and(
-            contour_mask, contour_mask, mask=middle_bottom_mask
-        )
-        image[middle_bottom_contour > 0] = color_top
-
-        bottom_contour = cv2.bitwise_and(contour_mask, contour_mask, mask=bottom_mask)
-        image[bottom_contour > 0] = color_bottom
-
-    return image, dilated_mask.astype(bool)
-
-
-def is_hsv_white(hsv: tuple[float, float, float]) -> bool:
-    """Check if a given HSV value is (essentially) white."""
-    return hsv[1] < 0.2 and hsv[2] > 150  # noqa: WPS459 PLR2004
-
-
-def is_hsv_black(hsv: tuple[float, float, float]) -> bool:
-    """Check if a given HSV value is (essentially) black."""
-    return hsv[1] < 0.2 and hsv[2] < 50  # noqa: WPS459 PLR2004
-
-
-def handle_venn(region: RegionProperties, image: RGBArray) -> tuple[Color, ...]:
-    """Check if the region is a venn diagram."""
-    has_white, has_blue, has_red = check_colors(region, image)
-    color_mapping = {
-        (True, True, False): (WHITE, BLUE),
-        (True, False, True): (WHITE, RED),
-        (False, True, True): (BLUE, RED),
-        (True, False, False): (WHITE,),
-        (False, True, False): (BLUE,),
-    }
-    colors = color_mapping.get((has_white, has_blue, has_red), (RED,))
-    return colors
-
-
-def get_region_color(  # noqa: WPS212
-    image: RGBArray, segm_image: RGBArray, region: RegionProperties, module: KtaneComponent | None
-) -> tuple[Color, ...]:
-    """Get the colour of a region based on the module type."""
-    # Use image colours for colour dependent modules (but only wire interactables for wire modules)
-
-    if module == KtaneComponent.venn:
-        return handle_venn(region, image)
-
-    if module in ENTIRELY_COLOR_DEPENDENT_MODULES or (
-        module == KtaneComponent.wire_sequence and region.eccentricity > IS_LINE_THRESHOLD
-    ):
-        color = get_median_colour(region, image)
-
-        return (color,)
-
-    if module == KtaneComponent.wire_sequence:
-        # Set the colors of the wire_sequence buttons so that they do not match one of the wires
-        color = get_median_colour(region, segm_image)
-        if color == RED:
-            return (GREEN,)
-        if color == BLUE:
-            return (YELLOW,)
-
-    # Otherwise, use segmentation image colour
-    return (get_median_colour(region, segm_image),)
-
-
 @dataclass
 class MaskDrawingParams:
     """Parameters for drawing masks on the image."""
@@ -316,6 +197,7 @@ class MaskDrawingParams:
     # Minimum size of the square to highlight the module
 
 
+@logfire.instrument("Draw region masks", extract_args=["zoomed_in_component", "drawing_params"])
 def draw_region_masks(  # noqa: WPS210, WPS211
     *,
     image: RGBArray,
@@ -401,6 +283,7 @@ class SetOfMarksHandler:
         """Reset the mark to coordinate mapping."""
         self.mark_to_coordinate = {}
 
+    @logfire.instrument("Extract regions", extract_args=["zoomed_in_component"])
     def extract_regions(
         self, colorful_image: RGBArray, zoomed_in_component: KtaneComponent | None
     ) -> tuple[RGBArray, list[RegionProperties]]:
@@ -475,6 +358,7 @@ class SetOfMarksHandler:
         closest_mark = min(distances, key=distances.get)  # pyright: ignore[reportCallIssue, reportArgumentType]
         return closest_mark
 
+    @logfire.instrument("Draw labels", extract_args=["module"])
     def draw_labels(
         self,
         *,
@@ -520,6 +404,7 @@ class SetOfMarksHandler:
 
         return annotated_image
 
+    @logfire.instrument("Update mark to coordinate mapping", extract_args=["zoomed_in_component"])
     def _update_mark_to_coordinate_mapping(
         self, regions: list[RegionProperties], zoomed_in_component: KtaneComponent | None
     ) -> None:

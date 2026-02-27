@@ -1,10 +1,19 @@
-import colorsys
-
 import numpy as np
 from color_contrast import check_contrast
 
 from gptnt.ktane.state.modules import KtaneComponent
-from gptnt.processors.labels.types import BLACK, WHITE, Color, RegionProperties, RGBArray
+from gptnt.processors.labels.types import (  # noqa: WPS235
+    BLACK,
+    BLUE,
+    GREEN,
+    IS_LINE_THRESHOLD,
+    RED,
+    WHITE,
+    YELLOW,
+    Color,
+    RegionProperties,
+    RGBArray,
+)
 
 ENTIRELY_COLOR_DEPENDENT_MODULES: frozenset[KtaneComponent] = frozenset(
     (KtaneComponent.simon, KtaneComponent.venn, KtaneComponent.wires, KtaneComponent.big_button)
@@ -28,51 +37,6 @@ def get_median_colour(region: RegionProperties, segm_img: RGBArray) -> Color:
 def rgb_to_hex(rgb: Color) -> str:
     """Convert an RGB color to a hex string."""
     return f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
-
-
-def _rgb_to_hsv(rgb: Color) -> tuple[float, float, float]:
-    """Convert an RGB color to HSV."""
-    red, green, blue = rgb
-    red /= MAX_RGB
-    green /= MAX_RGB
-    blue /= MAX_RGB
-    return colorsys.rgb_to_hsv(red, green, blue)
-
-
-def _hsv_to_rgb(hsv: tuple[float, float, float]) -> Color:
-    """Convert an HSV color to RGB."""
-    red, green, blue = colorsys.hsv_to_rgb(*hsv)
-    return int(red * MAX_RGB), int(green * MAX_RGB), int(blue * MAX_RGB)
-
-
-def _boost_vibrancy_hsv(
-    hue: float,
-    saturation: float,
-    value: float,  # noqa: WPS110
-    saturation_boost: float = 0.2,
-    value_boost: float = 0.1,
-) -> tuple[float, float, float]:  # noqa: WPS110
-    """Boosts the vibrancy of a color in HSV space.
-
-    - saturation_boost: amount to increase saturation by (default 0.2)
-    - value_boost: amount to increase value by (default 0.1)
-    Returns modified (hue, saturation, value), clamped to valid ranges.
-    """
-    new_saturation = min(saturation + saturation_boost, 1.0)
-    new_value = min(value + value_boost, 1.0)
-    return hue, new_saturation, new_value
-
-
-def boost_vibrancy(rgb: Color, saturation_boost: float = 0.2, value_boost: float = 0.1) -> Color:
-    """Boosts the vibrancy of a color in RGB space.
-
-    - saturation_boost: amount to increase saturation by (default 0.2)
-    - value_boost: amount to increase value by (default 0.1)
-    Returns modified (r, g, b), clamped to valid ranges.
-    """
-    hsv = _rgb_to_hsv(rgb)
-    boosted_hsv = _boost_vibrancy_hsv(hsv[0], hsv[1], hsv[2], saturation_boost, value_boost)
-    return _hsv_to_rgb(boosted_hsv)
 
 
 def find_text_color(bg_color: Color) -> Color:
@@ -115,3 +79,45 @@ def check_colors(region: RegionProperties, segm_img: RGBArray) -> tuple[bool, bo
     has_red = any(_is_red(rgb) for rgb in pixels)
 
     return has_white, has_blue, has_red
+
+
+def handle_venn(region: RegionProperties, image: RGBArray) -> tuple[Color, ...]:
+    """Check if the region is a venn diagram."""
+    has_white, has_blue, has_red = check_colors(region, image)
+    color_mapping = {
+        (True, True, False): (WHITE, BLUE),
+        (True, False, True): (WHITE, RED),
+        (False, True, True): (BLUE, RED),
+        (True, False, False): (WHITE,),
+        (False, True, False): (BLUE,),
+    }
+    colors = color_mapping.get((has_white, has_blue, has_red), (RED,))
+    return colors
+
+
+def get_region_color(  # noqa: WPS212
+    image: RGBArray, segm_image: RGBArray, region: RegionProperties, module: KtaneComponent | None
+) -> tuple[Color, ...]:
+    """Get the colour of a region based on the module type."""
+    # Use image colours for colour dependent modules (but only wire interactables for wire modules)
+
+    if module == KtaneComponent.venn:
+        return handle_venn(region, image)
+
+    if module in ENTIRELY_COLOR_DEPENDENT_MODULES or (
+        module == KtaneComponent.wire_sequence and region.eccentricity > IS_LINE_THRESHOLD
+    ):
+        color = get_median_colour(region, image)
+
+        return (color,)
+
+    if module == KtaneComponent.wire_sequence:
+        # Set the colors of the wire_sequence buttons so that they do not match one of the wires
+        color = get_median_colour(region, segm_image)
+        if color == RED:
+            return (GREEN,)
+        if color == BLUE:
+            return (YELLOW,)
+
+    # Otherwise, use segmentation image colour
+    return (get_median_colour(region, segm_image),)

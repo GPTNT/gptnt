@@ -116,7 +116,7 @@ def order_regions_reading_order(  # noqa: WPS231
     return [region["label"] for row in rows for region in row]  # noqa: WPS441
 
 
-@logfire.instrument("Relabel Regions", extract_args=["zoomed_in_component"])
+@logfire.instrument("Relabel regions to reading order", extract_args=["zoomed_in_component"])
 def relabel_regions_in_reading_order(
     labeled_image: RGBArray,
     regions: list[RegionProperties],

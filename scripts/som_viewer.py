@@ -62,29 +62,36 @@ def regionprops_to_streamlit_table(regions):
     return df
 
 
-image_path = Path("storage/som_dataset")
+image_path = Path("storage/fixtures/som_dataset")
 
-modules = [
-    None,
-    KtaneComponent.big_button,
-    KtaneComponent.morse_code,
-    KtaneComponent.memory,
-    None,
-    KtaneComponent.password,
-    KtaneComponent.venn,
-    KtaneComponent.maze,
-    KtaneComponent.wire_sequence,
-    KtaneComponent.simon,
-    KtaneComponent.wires,
-    KtaneComponent.keypad,
-    KtaneComponent.whos_on_first,
-]
-image_pairs = zip(
-    modules,
-    sorted(image_path.glob("screenshot*.png")),
-    sorted(image_path.glob("segmentation*.png")),
-    strict=True,
-)
+NAME_TO_MODULE: dict[str, KtaneComponent | None] = {
+    "bomb": None,
+    "button": KtaneComponent.big_button,
+    "keypad": KtaneComponent.keypad,
+    "maze": KtaneComponent.maze,
+    "memory": KtaneComponent.memory,
+    "morse": KtaneComponent.morse_code,
+    "password": KtaneComponent.password,
+    "simon": KtaneComponent.simon,
+    "venn": KtaneComponent.venn,
+    "whoseonfirst": KtaneComponent.whos_on_first,
+    "wires": KtaneComponent.wires,
+    "wireseq": KtaneComponent.wire_sequence,
+}
+
+
+def stem_to_module(stem: str) -> KtaneComponent | None:
+    base = stem.removesuffix("-screen").split("-")[0]
+    return NAME_TO_MODULE.get(base)
+
+
+screen_files = sorted(image_path.glob("*-screen.png"))
+image_pairs = []
+for screen in screen_files:
+    segm = screen.with_name(screen.name.replace("-screen.png", "-segm.png"))
+    if segm.exists():
+        image_pairs.append((stem_to_module(screen.stem), screen, segm))
+
 
 _module_writer = [None, *list(KtaneComponent)]
 _has_writer = [mod in COMPONENT_WRITE_LABEL_MAPPER for mod in _module_writer]
