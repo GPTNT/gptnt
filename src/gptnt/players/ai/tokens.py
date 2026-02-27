@@ -24,7 +24,7 @@ def estimate_tokens_for_image_per_model(model: str, *, long_side: int, short_sid
         assert long_side == 640
         assert short_side == 480
         return 383
-    if "qwen3vl" in model:
+    if "qwen3vl" in model or "qwen35" in model:
         assert long_side == 504
         assert short_side == 504
         return 266
