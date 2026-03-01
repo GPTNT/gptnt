@@ -21,6 +21,7 @@ from tests._cases.capabilities import CapabilitiesCases
 from tests._cases.outputs import PredictedActionCases, ReflectionOutputCases
 from tests._cases.protocol import ProtocolCases
 from tests.players._models import (
+    ALL_ERRORING_MODELS,
     ContentFilteringErrorModel,
     ExceededRequestQuotaModel,
     GenericAgentRunErrorModel,
@@ -288,11 +289,12 @@ async def test_send_reflection_request_returns_valid_output_on_success(
 
 @pytest.mark.anyio
 @parametrize_with_cases("protocol", cases=ProtocolCases)
+@parametrize("model_class", ALL_ERRORING_MODELS)
 async def test_send_reflection_request_handles_agent_run_error_gracefully(
-    capabilities: PlayerCapabilities, protocol: PlayerProtocol
+    capabilities: PlayerCapabilities, protocol: PlayerProtocol, model_class: type[Model]
 ) -> None:
-    """Test that AgentRunError during reflection returns default '<error>' message."""
-    agent = Agent(GenericAgentRunErrorModel(), retries=0)
+    """Test that an error during reflection is handled gracefully."""
+    agent = Agent(model_class(), retries=0)
     predictor = create_action_predictor(agent=agent, capabilities=capabilities, protocol=protocol)
 
     # Send reflection request
@@ -300,8 +302,16 @@ async def test_send_reflection_request_handles_agent_run_error_gracefully(
 
     # Assertions
     assert isinstance(call_result.output, SendMessageAction)
-    assert call_result.output.message == "<error>"
-    assert call_result.ai_response_error == [AIResponseErrorType.unknown]
+
+    if (
+        call_result.ai_response_error
+        and call_result.ai_response_error[0] != AIResponseErrorType.unknown
+    ):
+        assert call_result.output.message != "<error>"
+    else:
+        assert call_result.output.message == "<error>"
+        assert call_result.ai_response_error == [AIResponseErrorType.unknown]
+
     assert call_result.usage is not None  # Should have empty usage
     # Should still have messages (the error message added)
     # assert len(call_result.new_messages) > 0

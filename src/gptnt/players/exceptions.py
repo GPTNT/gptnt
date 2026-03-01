@@ -53,20 +53,23 @@ class InvalidResponseError(ValueError):
         self,
         message: str | None = None,
         *,
+        output: str | None = None,
         response_error: list[AIResponseErrorType] | None = None,
     ) -> None:
         message = message or "The AI response is invalid."
         super().__init__(message)
         self.response_error = response_error
+        self.output = output
 
 
 class ExceededMaxOutputTokensError(InvalidResponseError):
     """Exception raised when the output exceeds max output tokens."""
 
-    def __init__(self, message: str | None = None, *, output: str | None) -> None:
+    def __init__(self, message: str | None = None, *, output: str | None = None) -> None:
         message = message or "Output exceeds maximum output token limit."
-        super().__init__(message, response_error=[AIResponseErrorType.max_output_tokens_exceeded])
-        self.output = output
+        super().__init__(
+            message, response_error=[AIResponseErrorType.max_output_tokens_exceeded], output=output
+        )
 
 
 class InvalidOutputFormatError(InvalidResponseError):
@@ -87,7 +90,11 @@ class InvalidOutputFormatError(InvalidResponseError):
             message
             or f"Output format is invalid. Output does not parse to expected type {expected_type!r}, got output: {output!r}"
         )
-        super().__init__(message, response_error=response_error)
+        super().__init__(
+            message,
+            response_error=response_error or [AIResponseErrorType.action_parsing_failed],
+            output=output,
+        )
         self.output = output
         self.expected_type = expected_type
 
@@ -99,7 +106,11 @@ class ReasoningParsingError(InvalidOutputFormatError):
         self, *, output: str, expected_type: type | None, response_error: list[AIResponseErrorType]
     ) -> None:
         message = f"Error parsing reasoning. Expected type {expected_type!r}, got output: {output!r}, error: {response_error!r}"
-        super().__init__(message, output=output, expected_type=expected_type)
+        super().__init__(
+            message, output=output, expected_type=expected_type, response_error=response_error
+        )
         self.output = output
         self.expected_type = expected_type
+        # We do this to tell the typechecker that we are definitely going to have a response error
+        # when the reasoning parser fails since we are override whatever got sent to the superclass.
         self.response_error = response_error

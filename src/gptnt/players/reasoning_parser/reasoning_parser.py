@@ -9,7 +9,7 @@ from pydantic_ai import AgentRunResult
 from pydantic_core import from_json
 
 from gptnt.players.actions import AgentCallResult
-from gptnt.players.exceptions import InvalidOutputFormatError
+from gptnt.players.exceptions import AIResponseErrorType, InvalidOutputFormatError
 
 logger = structlog.get_logger()
 
@@ -46,13 +46,21 @@ def structure_string_output[OutputT](
     try:
         output_as_json = from_json(clean_output)
     except ValueError as err:
-        raise InvalidOutputFormatError(output=output, expected_type=output_type) from err
+        raise InvalidOutputFormatError(
+            output=output,
+            expected_type=output_type,
+            response_error=[AIResponseErrorType.action_parsing_failed],
+        ) from err
 
     output_as_json = _extract_from_nested_output_dict(output_as_json)
     with suppress(ValidationError):
         return TypeAdapter(output_type).validate_python(output_as_json)
 
-    raise InvalidOutputFormatError(output=output, expected_type=output_type)
+    raise InvalidOutputFormatError(
+        output=output,
+        expected_type=output_type,
+        response_error=[AIResponseErrorType.action_parsing_failed],
+    )
 
 
 @dataclass(kw_only=True)

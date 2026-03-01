@@ -7,10 +7,7 @@ from pydantic_ai import Agent, ModelMessage, capture_run_messages
 from pydantic_ai.models import Model
 
 from gptnt.players.actions import AgentCallResult, PlayerOutputType, SendMessageAction
-from gptnt.players.ai.exception_recovery import (
-    ExceptionRecoveryChain,
-    create_reflection_recovery_chain,
-)
+from gptnt.players.ai.exception_recovery import ExceptionRecoveryChain
 from gptnt.players.ai.input_builder import AgentMessageInput
 from gptnt.players.ai.messages.message_history import MessageHistory
 from gptnt.players.deps import PlayerDeps, load_instructions_from_deps
@@ -68,10 +65,10 @@ class ActionPredictor:
     message_history: MessageHistory = field(init=False, repr=False)
 
     exception_recovery: ExceptionRecoveryChain = field(
-        default_factory=ExceptionRecoveryChain, repr=False
+        default_factory=ExceptionRecoveryChain.with_default_strategies, repr=False
     )
     reflection_exception_recovery: ExceptionRecoveryChain = field(
-        default_factory=create_reflection_recovery_chain, repr=False
+        default_factory=ExceptionRecoveryChain.with_reflection_recovery, repr=False
     )
 
     def __post_init__(self) -> None:

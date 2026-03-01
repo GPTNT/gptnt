@@ -8,6 +8,7 @@ from pydantic_ai import (
     TextPart,
     ThinkingPart,
 )
+from pydantic_ai.models import Model
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from gptnt.players.actions import PlayerOutputType
@@ -191,3 +192,15 @@ class ThinkingOutLoudModel(FunctionModel):
             output_text = f"<{REACT_REASONING_TAG}>{self.thinking_output}</{REACT_REASONING_TAG}>\n{output_text}"
 
         return ModelResponse(parts=[TextPart(content=output_text)])
+
+
+ALL_ERRORING_MODELS: tuple[type[Model], ...] = (
+    ContentFilteringErrorModel,
+    MaxTokensExceededModel,
+    MaxTokensExceededWithNoTextModel,
+    ExceededRequestQuotaModel,
+    GenericAgentRunErrorModel,
+    ServerErrorModel,
+    RetryErrorModel,
+    InvalidStringOutputModel,
+)
