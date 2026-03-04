@@ -17,22 +17,25 @@ def get_runs_from_wandb(
     *,
     additional_filters: list[dict[str, Any]] | None = None,
     timeout: int | None = None,
+    per_page: int = 100,
+    include_running: bool = False,
 ) -> Runs:
     """Get runs from wandb API with specified filters."""
     additional_filters = additional_filters or []
-
+    states = ["running", "finished"] if include_running else ["finished"]
     api = wandb.Api(timeout=timeout)
     runs = api.runs(
         wandb_path,
         filters={
             "$and": [
-                {"state": "finished"},
+                {"state": {"$in": states}},
                 # {"summary_metrics.is_hard_crash": False},
                 # {"summary_metrics.step": {"$gt": 1}},
                 {"tags": {"$nin": ["old"]}},
                 *additional_filters,
             ]
         },
+        per_page=per_page,
     )
     logger.info(
         f"Found {len(runs)} runs (not experiments) on wandb", runs=len(runs), wandb_path=wandb_path

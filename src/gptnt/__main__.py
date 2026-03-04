@@ -2,6 +2,7 @@ import structlog
 from rich.console import Console
 
 from gptnt.cli.app import run_streamlit_app
+from gptnt.cli.cleanup import delete_old_experiment_outputs
 from gptnt.cli.db import db_app
 from gptnt.cli.kill import force_kill
 from gptnt.cli.models import print_models_table
@@ -21,6 +22,9 @@ def main() -> None:
     _ = app.command(name="throw", no_args_is_help=True, rich_help_panel="Interactive")(throw)
     _ = app.command(name="status", rich_help_panel="Interactive")(check_experiment_completion)
     _ = app.command(name="kill", no_args_is_help=True, rich_help_panel="Interactive")(force_kill)
+    _ = app.command(name="cleanup-outputs", rich_help_panel="Interactive")(
+        delete_old_experiment_outputs
+    )
     _ = app.command(name="models", no_args_is_help=True, rich_help_panel="Configs")(
         print_models_table
     )

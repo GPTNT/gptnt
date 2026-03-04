@@ -17,6 +17,7 @@ from sqlmodel import Session, SQLModel, select
 
 from gptnt.app.experiment_loader.db_connection import get_engine
 from gptnt.app.experiment_loader.scanner import ScannedExperiment, scan_experiments_from_directory
+from gptnt.common.logger import create_progress
 from gptnt.common.paths import Paths
 from gptnt.experiments.wandb import (
     collate_runs_per_experiment_per_game,
@@ -35,6 +36,28 @@ db_app = typer.Typer(
 )
 
 
+def _scan_for_experiments(directory: Path, max_workers: int) -> list[ScannedExperiment]:
+    with create_progress() as progress:
+        scan_task = progress.add_task("Scanning for experiment files", total=None)
+
+        def _on_progress(done: int, total: int) -> None:  # noqa: WPS430
+            progress.update(scan_task, total=total, completed=done)
+
+        scanned_experiments, unparsable = scan_experiments_from_directory(
+            directory, on_progress=_on_progress, max_workers=max_workers
+        )
+
+    if unparsable:
+        console.print(
+            f"[yellow]\u26a0[/yellow]  {len(unparsable)} files could not be parsed (skipped)."
+        )
+
+    if len(scanned_experiments) == 0:
+        console.print("[yellow]No experiments found.[/yellow]")
+
+    return scanned_experiments
+
+
 @db_app.command("import")
 def import_experiments(
     directory: Annotated[
@@ -49,36 +72,14 @@ def import_experiments(
     ] = 32,
 ) -> None:
     """Import experiment JSONs from DIRECTORY into a DuckDB file."""
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        MofNCompleteColumn(),
-        TimeElapsedColumn(),
-        TimeRemainingColumn(),
-        console=console,
-    ) as progress:
-        scan_task = progress.add_task("Scanning for experiment files", total=None)
+    scanned_experiments = _scan_for_experiments(directory, max_workers=max_workers)
+    if not scanned_experiments:
+        raise typer.Exit(code=0)
 
-        def _on_progress(done: int, total: int) -> None:  # noqa: WPS430
-            progress.update(scan_task, total=total, completed=done)
+    engine = get_engine(str(output))
+    SQLModel.metadata.create_all(engine)
 
-        scanned_experiments, unparsable = scan_experiments_from_directory(
-            directory, on_progress=_on_progress, max_workers=max_workers
-        )
-
-        if unparsable:
-            console.print(
-                f"[yellow]\u26a0[/yellow]  {len(unparsable)} files could not be parsed (skipped)."
-            )
-
-        if len(scanned_experiments) == 0:
-            console.print("[yellow]No experiments found.[/yellow]")
-            raise typer.Exit(0)
-
-        engine = get_engine(str(output))
-        SQLModel.metadata.create_all(engine)
-
+    with create_progress() as progress:
         write_task = progress.add_task("Writing to DuckDB", total=len(scanned_experiments))
         with Session(engine) as session:
             for row in scanned_experiments:

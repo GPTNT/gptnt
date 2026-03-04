@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Literal, get_args
 import streamlit as st
 import yaml
 from caseconverter import titlecase
+from more_itertools import flatten
 
 from gptnt.experiments.experiments import Condition
 from gptnt.ktane.state.modules import KtaneComponent
@@ -52,6 +53,7 @@ class Filters:
     experiment_name: Sequence[str] = field(default_factory=list)
     strikes: Sequence[int] = field(default_factory=list)
     outcome: Sequence[OutcomeType] = field(default_factory=list)
+    tags: Sequence[str] = field(default_factory=list)
     modules_filter_type: ModuleFilterType = field(default="Include All")
     time_remaining: float = field(default=0)
 
@@ -79,6 +81,7 @@ class Filters:
             seed=seed,
             modules_filter_type="Include All",
             experiment_name=[exp.experiment_name for exp in experiments],
+            tags=list(set(flatten(exp.tags for exp in experiments if exp.tags))),
         )
 
 

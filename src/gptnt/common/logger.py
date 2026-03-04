@@ -4,6 +4,15 @@ from dataclasses import fields
 import logfire
 import structlog
 from pydantic_ai import BinaryContent
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
 from structlog.typing import EventDict
 
 from gptnt.common.run_once import run_once
@@ -176,4 +185,19 @@ def create_faststream_logger(
     return structlog.wrap_logger(
         structlog.get_logger(logger_name),
         wrapper_class=structlog.make_filtering_bound_logger(min_level),
+    )
+
+
+def create_progress(*, extra_fields: list[str] | None = None) -> Progress:
+    """Create a Rich Progress instance with common columns and optional extra fields."""
+    extra_fields = extra_fields or []
+    extra_field_columns = [TextColumn(f"{{task.fields[{field}]}}") for field in extra_fields]
+    return Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        TimeElapsedColumn(),
+        TimeRemainingColumn(),
+        *extra_field_columns,
     )
