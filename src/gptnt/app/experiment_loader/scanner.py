@@ -2,7 +2,7 @@ from collections import defaultdict
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Literal, Self, get_args
+from typing import Literal, Self, get_args, override
 
 import structlog
 from sqlalchemy import Column, Text
@@ -122,6 +122,10 @@ class ScannedExperiment(SQLModel, table=True):
     is_wandb_valid: bool | None = Field(default=None)
 
     tags: list[str] | None = Field(default=None, sa_column=Column(ARRAY(Text), nullable=True))
+
+    @override
+    def __hash__(self) -> int:
+        return hash((self.experiment_name, self.file_path_strings, self.player_uuids))
 
     @property
     def file_paths(self) -> list[Path]:
