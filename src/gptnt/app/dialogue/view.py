@@ -32,8 +32,6 @@ def render_dialogue_view(step_records: list[ExperimentStepRecord]) -> None:
     # 2. Render display controls and capture changes
     output_format, message_display, new_page_size = render_display_controls(state)
 
-    # _ = st.space()
-
     # 3. Handle page size changes (triggers rerun)
     if new_page_size != state.page_size:
         state.set_page_size(new_page_size)

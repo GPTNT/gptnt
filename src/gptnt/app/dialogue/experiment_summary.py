@@ -95,29 +95,9 @@ def render_experiment_progress(experiment_record: ExperimentRecord) -> None:  # 
         )
     columns = st.columns([1, 1], gap=None)
     _ = columns[0].caption("Modules Solved")
-    with columns[1]:
-        _ = st.markdown(
-            f"**{sum(1 for module in bomb_state.modules if module.is_solved)} / {len(bomb_state.modules)}**"
-        )
-
-    # with columns[1], st.container(gap=None):
-
-    # with columns[2], st.container(gap=None):
-    #     )
-    # # with columns[3], st.container(gap=None):
-    #     _ = st.caption("*Final Result*")
-    #     if bomb_state.is_solved:
-    #         final_result = "Solved"
-    #     elif bomb_state.is_timed_out:
-    #         final_result = "Timed Out"
-    #     elif bomb_state.is_strike_out:
-    #         final_result = "Strike Out"
-    #     else:
-    #         final_result = "Unknown"
-    #         _ = st.warning(
-    #             "Bomb state is not solved, timed out, strike out. Something may be wrong with the bomb state recording."
-    #         )
-    #     _ = st.markdown(f"**{final_result}**")
+    _ = columns[1].markdown(
+        f"**{sum(1 for module in bomb_state.modules if module.is_solved)} / {len(bomb_state.modules)}**"
+    )
 
 
 def _render_player_card(
