@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from operator import attrgetter
 from pathlib import Path
-from typing import Annotated, Self, override
+from typing import Annotated, Any, Self, override
 
 import anyio
 import dill
@@ -15,6 +15,7 @@ from pydantic import (
     BaseModel,
     Field,
     PlainSerializer,
+    ValidationInfo,
     computed_field,
     field_validator,
     model_validator,
@@ -90,6 +91,24 @@ class ExperimentStepRecord(BaseModel):
         if not isinstance(messages, str):
             return messages
         return ModelMessagesTypeAdapter.validate_json(messages)
+
+    @model_validator(mode="before")
+    @classmethod
+    def optionally_skip_heavy_objects(
+        cls,
+        data: Any,
+        info: ValidationInfo,  # noqa: WPS110
+    ) -> Any:
+        """Optionally skip loading heavy objects based on context."""
+        if (
+            isinstance(data, dict)
+            and isinstance(info.context, dict)
+            and info.context.get("skip_heavy_field_loading", False)
+        ):
+            data["observation"] = None
+            data["new_messages"] = []
+            data["input_messages"] = []
+        return data
 
 
 SortedStepRecords = Annotated[
