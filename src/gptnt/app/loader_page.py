@@ -45,6 +45,9 @@ def load_options_for_filters() -> Filters:
             experiment_name=session.exec(
                 select(ScannedExperiment.experiment_name).distinct()
             ).all(),
+            tags=list(
+                set(collapse(session.exec(select(ScannedExperiment.tags).distinct()).all()))
+            ),
         )
     return options
 
@@ -77,6 +80,7 @@ def render_experiment_browser(
                         "timer": entry.timer_seconds,
                         "strikes": entry.strike_count,
                         "wandb_valid": entry.is_wandb_valid,
+                        "tags": ", ".join(entry.tags) if entry.tags else "",
                     }
                     for entry in experiments_to_render
                 ]

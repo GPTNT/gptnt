@@ -102,6 +102,7 @@ def _build_predicates(filters: Filters) -> list[Callable[[ScannedExperiment], bo
         ("defuser", filters.defuser),
         ("expert", filters.expert),
         ("seed", filters.seed),
+        ("strikes", filters.strikes),
     ):
         if selected_values:
             predicates.append(
@@ -117,6 +118,11 @@ def _build_predicates(filters: Filters) -> list[Callable[[ScannedExperiment], bo
             predicates.append(
                 lambda exp, selected=selected: not selected.isdisjoint(exp.modules or [])
             )
+
+    if filters.tags:
+        selected = frozenset(filters.tags)
+        predicates.append(lambda exp, selected=selected: not selected.isdisjoint(exp.tags or []))
+
     if filters.experiment_name:
         predicates.append(
             lambda exp, name=filters.experiment_name: all(
@@ -223,6 +229,10 @@ def render_filter_pills(options: Filters, *, default: Filters) -> Filters:
             min_value=0.0,  # noqa: WPS358
         )
 
+    with st.container(horizontal=True, width="content", gap="medium"):
+        filters.tags = st.pills(
+            "**Tags**", options=options.tags, selection_mode="multi", default=default.tags or None
+        )
     return filters
 
 

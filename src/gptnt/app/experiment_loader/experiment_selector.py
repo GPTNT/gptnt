@@ -108,6 +108,8 @@ def render_experiment_card(  # noqa: WPS231
                 _ = st.markdown(f":small[Expert: **{experiment.expert or ''}**]")
             with st.container(horizontal=True, gap=None, width="content"):
                 _ = st.markdown(f":small[Modules: **{', '.join(experiment.modules or [])}**]")
+            for tag in experiment.tags or []:
+                _ = st.badge(tag, color="red")
             with st.container(gap="xsmall", horizontal=True):
                 _ = st.markdown(
                     f":small[:violet[:material/record_voice_over: {(experiment.communication_style or '').title()}]]",
@@ -131,6 +133,7 @@ def render_experiment_card(  # noqa: WPS231
                 _ = st.space(size="stretch")
 
             _ = st.space(size="stretch")
+
         if show_button:
             with st.container(gap=None, width=20, horizontal_alignment="right"):
                 button = st.button(
