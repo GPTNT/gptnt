@@ -28,6 +28,7 @@ class Paths(BaseSettings):
     experiment_recorder_outputs: Path | None = Field(
         default=None, alias="EXPERIMENT_RECORDER_OUTPUTS"
     )
+    experiments_db: Path = output.joinpath("experiments.duckdb")
 
     experiments: Path = storage.joinpath("experiments")
     test_experiments: Path = storage.joinpath("test_experiments")

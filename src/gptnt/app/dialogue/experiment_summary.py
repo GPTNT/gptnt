@@ -23,17 +23,17 @@ def render_experiment_name(experiment_record: ExperimentRecord) -> None:
     spec = experiment_record.experiment_descriptor.experiment_spec
     mission = spec.mission_spec
 
-    columns = st.columns(4, gap=None)
+    columns = st.columns(2, gap=None)
     with columns[0], st.container(gap=None):
         _ = st.caption("*Condition*")
         _ = st.markdown(f"**{titlecase(spec.condition)}**")  # noqa: WPS226
     with columns[1], st.container(gap=None):
         _ = st.caption("*Communication*")
         _ = st.markdown(f"**{titlecase(spec.communication_style)}**")
-    with columns[2], st.container(gap=None):
+    with columns[0], st.container(gap=None):
         _ = st.caption("*Seed*")
         _ = st.markdown(f"**{mission.seed}**")
-    with columns[3], st.container(gap=None):
+    with st.container(gap=None):
         _ = st.caption("*Modules*")
         module_names = sorted(comp.value for comp in mission.components)
         _ = st.markdown(f"**{', '.join(module_names)}**")
@@ -82,37 +82,42 @@ def render_experiment_progress(experiment_record: ExperimentRecord) -> None:  # 
         _ = st.markdown("**Experiment has no recorded bomb state.**")
         return
     # Show strikes, timer progress, modules solved, final result as "strike out", "timed out", or "solved"
-    columns = st.columns(4, gap=None)
-    with columns[0], st.container(gap=None):
-        _ = st.caption("*Strikes*")
+    columns = st.columns([1, 1], gap=None)
+    _ = columns[0].caption("Strikes")
+    with columns[1]:
         _render_strikes(bomb_state.current_strikes, bomb_state.max_strikes)
-
-    with columns[1], st.container(gap=None):
-        _ = st.caption("*Time Left (/Total)*")
+    columns = st.columns([1, 1], gap=None)
+    _ = columns[0].caption("Time Left")
+    with columns[1]:
         _render_time_progress(
             bomb_state.timer_module.seconds_remaining,
             experiment_record.experiment_descriptor.experiment_spec.mission_spec.time_limit,
         )
-
-    with columns[2], st.container(gap=None):
-        _ = st.caption("*Modules Solved*")
+    columns = st.columns([1, 1], gap=None)
+    _ = columns[0].caption("Modules Solved")
+    with columns[1]:
         _ = st.markdown(
             f"**{sum(1 for module in bomb_state.modules if module.is_solved)} / {len(bomb_state.modules)}**"
         )
-    with columns[3], st.container(gap=None):
-        _ = st.caption("*Final Result*")
-        if bomb_state.is_solved:
-            final_result = "Solved"
-        elif bomb_state.is_timed_out:
-            final_result = "Timed Out"
-        elif bomb_state.is_strike_out:
-            final_result = "Strike Out"
-        else:
-            final_result = "Unknown"
-            _ = st.warning(
-                "Bomb state is not solved, timed out, strike out. Something may be wrong with the bomb state recording."
-            )
-        _ = st.markdown(f"**{final_result}**")
+
+    # with columns[1], st.container(gap=None):
+
+    # with columns[2], st.container(gap=None):
+    #     )
+    # # with columns[3], st.container(gap=None):
+    #     _ = st.caption("*Final Result*")
+    #     if bomb_state.is_solved:
+    #         final_result = "Solved"
+    #     elif bomb_state.is_timed_out:
+    #         final_result = "Timed Out"
+    #     elif bomb_state.is_strike_out:
+    #         final_result = "Strike Out"
+    #     else:
+    #         final_result = "Unknown"
+    #         _ = st.warning(
+    #             "Bomb state is not solved, timed out, strike out. Something may be wrong with the bomb state recording."
+    #         )
+    #     _ = st.markdown(f"**{final_result}**")
 
 
 def _render_player_card(
@@ -125,9 +130,9 @@ def _render_player_card(
         else ":material/tools_pliers_wire_stripper:"
     )
 
-    with tw.container(border=True):
+    with tw.container(border=True, gap=None):
         _ = st.markdown(f"**{icon} {role}** — {titlecase(name)}")
-
+        _ = st.space()
         details = {
             "Manual Access": ":material/check:" if protocol.include_manual else ":material/close:",
             "TAPF Feedback": ":material/check:"
@@ -145,7 +150,7 @@ def _render_player_card(
                 with cols[1]:
                     _ = st.markdown(checkmark)
 
-        with st.popover(":small[Reflection]", icon=":material/clinical_notes:"):
+        with st.popover(":small[Reflection]", icon=":material/clinical_notes:", type="tertiary"):
             if reflection:
                 thoughts_render = div(
                     style=styles(font_size=rem(0.9), font_style="italic", line_height=1.4)
@@ -162,7 +167,7 @@ def _render_player_card(
                 )
 
 
-def _render_player_cards(experiment_record: ExperimentRecord) -> None:
+def render_player_cards(experiment_record: ExperimentRecord) -> None:
     """Render player cards side by side."""
     # Try to get the reflection out the playher records if they exist
     defuser_reflection = next(
@@ -209,11 +214,7 @@ def render_experiment_summary_header(experiment_record: ExperimentRecord) -> Non
     Displays experiment metadata, outcome, bomb state, players, and performance metrics in a clear,
     hierarchical layout.
     """
-    with st.container(border=True):
-        _ = tw.markdown(":small[:gray[Experiment Summary]]")
-        render_experiment_name(experiment_record)
+    with st.container(border=True, gap=None):
+        _ = tw.markdown(":gray[Outcome]")
+        _ = st.space()
         render_experiment_progress(experiment_record)
-
-    _render_player_cards(experiment_record)
-
-    _ = st.divider()

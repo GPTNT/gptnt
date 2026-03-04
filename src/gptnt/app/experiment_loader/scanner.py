@@ -1,295 +1,270 @@
-"""Lightweight experiment scanner with filename-based parsing and wandb validation.
+from collections import defaultdict
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+from typing import Literal, Self, get_args
 
-This module scans a directory for experiment files, parses experiment names from filenames,
-optionally validates against wandb, and returns lightweight ScannedExperiment objects.
-"""
+import structlog
+from sqlalchemy import Column, Text
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlmodel import Field, SQLModel
 
-from __future__ import annotations
-
-import re
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, get_args
-
-from pydantic_core import from_json
-
+from gptnt.app.experiment_loader._bomb_state import grab_last_bomb_state_from_experiment_file
 from gptnt.experiments.experiments import Condition
-from gptnt.experiments.wandb import (
-    collate_runs_per_experiment_per_game,
-    get_invalid_runs_from_collated_runs,
-    get_runs_from_wandb,
-)
-from gptnt.ktane.state.bomb import BombState
 from gptnt.players.specification import CommunicationStyle
 
-if TYPE_CHECKING:
-    from pathlib import Path
-
-# Regex for parsing experiment filenames: experiment-{experiment_name}-{player_uuid}.json
-_FILENAME_PATTERN = re.compile(r"^experiment-(.+)-([a-f0-9-]+)\.json$")
-
-# Regex for stripping session UUID from experiment name
-# Format: {config}_({pairing})-{session_uuid}
-# The session UUID is the last UUID-like pattern after the closing parenthesis
-_SESSION_UUID_PATTERN = re.compile(r"-([a-f0-9-]+)$")
+logger = structlog.get_logger()
 
 
-def _strip_session_uuid(experiment_name: str) -> str:
-    """Strip the session UUID from the experiment name for de-duplication.
+def _extract_player_uuid(experiment_name: str, *, uuid_length: int = 36) -> str:
+    """Extract the player UUID from the experiment name.
 
-    Experiment names include a session UUID at the end:
+    Experiment names include a player UUID at the end:
     e.g., single_module_sync_Simon_286_(defuser=qwen3vl--expert=internvl35)-2362252e-3648-4f94-a33f
-
-    For de-duplication, we want to group by the config without the session UUID:
-    e.g., single_module_sync_Simon_286_(defuser=qwen3vl--expert=internvl35)
     """
-    # Find the last UUID pattern after the closing parenthesis
-    match = _SESSION_UUID_PATTERN.search(experiment_name)
-    if match and ")" in experiment_name:
-        # Make sure the UUID is after the closing parenthesis
-        paren_pos = experiment_name.rfind(")")
-        uuid_pos = match.start()
-        if uuid_pos > paren_pos:
-            # Strip the UUID by removing everything from the last hyphen before it
-            return experiment_name[:uuid_pos]
-    return experiment_name
+    return experiment_name[-uuid_length:]
 
 
-@dataclass
-class ScannedExperiment:
-    """Lightweight experiment metadata parsed from filename.
+def _parse_condition(experiment_name: str) -> Condition:
+    """Return the experiment condition prefix, or None if not recognised."""
+    for condition in get_args(Condition.__value__):
+        if condition in experiment_name:
+            return condition
+    raise ValueError(f"Unrecognised condition in experiment name: {experiment_name}")
 
-    The experiment_name is the base configuration without session UUID, ensuring proper de-
-    duplication. Multiple runs of the same experiment (with different session UUIDs) are grouped
-    together.
 
-    The experiment_name is parsed on-demand via properties to extract structured information.
+def _parse_communication_style(experiment_name: str) -> CommunicationStyle:
+    """Return the communication style token, or None if not found."""
+    for style in get_args(CommunicationStyle.__value__):
+        if f"_{style}_" in experiment_name:
+            return style
+    raise ValueError(f"Unrecognised communication style in experiment name: {experiment_name}")
+
+
+def _parse_seed(experiment_name: str) -> int:
+    """Extract the integer seed from the experiment name."""
+    parts = experiment_name.split("_")
+    if len(parts) < 3:  # noqa: PLR2004
+        return 0
+    try:
+        return int(parts[-2])
+    except (ValueError, IndexError) as err:
+        raise ValueError(f"Could not parse seed from experiment name: {experiment_name}") from err
+
+
+def _parse_pairing(experiment_name: str) -> str:
+    """Extract the pairing string ``defuser=X--expert=Y`` from the name."""
+    if "(" in experiment_name and ")" in experiment_name:
+        start = experiment_name.rfind("(")
+        end = experiment_name.rfind(")")
+        return experiment_name[start + 1 : end]
+    raise ValueError(f"Could not parse pairing from experiment name: {experiment_name}")
+
+
+def _parse_defuser(pairing: str) -> str:
+    """Extract the defuser model name from a pairing string."""
+    for part in pairing.split("--"):
+        if part.startswith("defuser="):
+            return part.split("=", 1)[1].split("+")[0]
+    raise ValueError(f"Could not parse defuser from pairing string: {pairing}")
+
+
+def _parse_expert(pairing: str) -> str:
+    """Extract the expert model name from a pairing string."""
+    for part in pairing.split("--"):
+        if part.startswith("expert="):
+            return part.split("=", 1)[1]
+    raise ValueError(f"Could not parse expert from pairing string: {pairing}")
+
+
+class ScannedExperiment(SQLModel, table=True):
+    """Experiment metadata — both the DuckDB ORM table and the in-memory UI object.
+
+    All fields are populated at import time by :func:`_process_group`.
+    Computed fields (``condition``, ``seed``, ``pairing``, etc.) that were
+    previously ``@property`` methods are stored directly so they can be queried
+    from DuckDB without loading the full record.
+
+    List fields use PostgreSQL ``ARRAY(Text)`` via duckdb-engine's inherited
+    dialect.  They are nullable in the DB (``list[str] | None``) so SQLAlchemy
+    does not raise on a missing value; call ``exp.modules or []`` at use-sites.
     """
 
-    experiment_name: str  # Base name without session UUID
-    file_paths: list[Path]  # May include files from multiple sessions
-    total_size_bytes: int
-    bomb_state: BombState
+    __table_args__ = {"extend_existing": True}
+    experiment_name: str = Field(primary_key=True)
+
+    # Stored as TEXT[] — Python attr name differs from DB column so the
+    # ``file_paths`` property can provide ``list[Path]`` without conflict.
+    file_path_strings: list[str] | None = Field(
+        default=None, sa_column=Column("file_paths", ARRAY(Text), nullable=True)
+    )
+    player_uuids: list[str] | None = Field(
+        default=None, sa_column=Column(ARRAY(Text), nullable=True)
+    )
+
+    total_size_bytes: int = 0
+
+    modules: list[str] | None = Field(default=None, sa_column=Column(ARRAY(Text), nullable=True))
+
+    is_solved: bool
+    is_detonated: bool
+    timer_seconds: float = 0
+    strike_count: int = 0
+
+    # Stored computed fields (derived from experiment_name at scan/import time)
+    condition: str
+    seed: int
+    pairing: str
+    defuser: str
+    expert: str
+    communication_style: str
+
+    is_wandb_valid: bool | None = Field(default=None)
+
+    tags: list[str] | None = Field(default=None, sa_column=Column(ARRAY(Text), nullable=True))
 
     @property
-    def condition(self) -> str:
-        """Extract condition from experiment name.
-
-        Format: {condition}_{communication_style}_{modules}_{seed}_({pairing})
-        """
-        for condition in get_args(Condition.__value__):
-            if self.experiment_name.startswith(condition):
-                return condition
-        raise ValueError(f"Condition not found in experiment name: {self.experiment_name}")
+    def file_paths(self) -> list[Path]:
+        """Convenience property returning file paths as Path objects."""
+        return [Path(fp) for fp in (self.file_path_strings or [])]
 
     @property
-    def communication_style(self) -> str:
-        """Extract communication style from experiment name."""
-        for communication_style in get_args(CommunicationStyle.__value__):
-            if f"_{communication_style}_" in self.experiment_name:
-                return communication_style
-        raise ValueError(
-            f"Communication style not found in experiment name: {self.experiment_name}"
+    def defuser_has_manual(self) -> bool:
+        """True when the defuser player was given the physical manual."""
+        return "+manual" in (self.pairing or "")
+
+    @property
+    def is_strike_out(self) -> bool:
+        """True if the experiment ended with a strikeout (3 strikes and detonation)."""
+        return self.strike_count > 2 and not self.is_solved  # noqa: PLR2004
+
+    @property
+    def is_timeout(self) -> bool:
+        """True if the experiment ended with a timeout (0 seconds remaining and not solved)."""
+        return self.timer_seconds <= 0 and not self.is_solved
+
+    @property
+    def end_state(self) -> Literal["Solved", "Strike Out", "Timeout", "Unknown"]:
+        """Return the experiment end state as a human-readable string."""
+        if self.is_solved:
+            return "Solved"
+        if self.is_strike_out:
+            return "Strike Out"
+        if self.is_timeout:
+            return "Timeout"
+        return "Unknown"
+
+    @classmethod
+    def from_files(cls, experiment_name: str, file_paths: list[Path]) -> Self:
+        """Factory method to create a ScannedExperiment from a list of file paths."""
+        experiment_name = experiment_name.replace("experiment-", "").strip()
+        total_size = sum(path.stat().st_size for path in file_paths)
+        loaded_bomb_state_generator = (
+            grab_last_bomb_state_from_experiment_file(path) for path in file_paths
+        )
+        bomb_state = next(
+            (state for state in loaded_bomb_state_generator if state is not None), None
         )
 
-    @property
-    def modules(self) -> list[str]:
-        """Extract sorted module names."""
-        names = sorted(module.name.value for module in self.bomb_state.modules)
-        return names
+        if bomb_state is None:
+            raise ValueError(
+                f"Could not extract bomb state from any files for experiment {experiment_name}"
+            )
+        pairing = _parse_pairing(experiment_name)
+        strike_count = len(bomb_state.strikes) if bomb_state.strikes else 0
 
-    @property
-    def seed(self) -> int:
-        """Extract seed from experiment name."""
-        # Seed is the second-to-last underscore-separated part
-        parts = self.experiment_name.split("_")
-        if len(parts) < 3:  # noqa: PLR2004
-            return 0
-        try:
-            # The seed is before the pairing (which is in parentheses)
-            # So it's at index -2
-            return int(parts[-2])
-        except (ValueError, IndexError):
-            return 0
-
-    @property
-    def pairing(self) -> str:
-        """Extract pairing from experiment name.
-
-        Pairing is the last part in format: (defuser=name--expert=name)
-        """
-        # Find the part in parentheses at the end
-        if "(" in self.experiment_name and ")" in self.experiment_name:
-            start = self.experiment_name.rfind("(")
-            end = self.experiment_name.rfind(")")
-            return self.experiment_name[start + 1 : end]
-        return ""
-
-    @property
-    def defuser(self) -> str:
-        """Extract defuser name from pairing."""
-        assert "defuser=" in self.pairing
-        parts = self.pairing.split("--")
-        for part in parts:
-            if part.startswith("defuser="):
-                return part.split("=", 1)[1].split("+")[0]
-        raise ValueError(f"Defuser not found in pairing: {self.pairing}")
-
-    @property
-    def expert(self) -> str:
-        """Extract expert name from pairing."""
-        if "expert=" in self.pairing:
-            parts = self.pairing.split("--")
-            for part in parts:
-                if part.startswith("expert="):
-                    return part.split("=", 1)[1]
-        raise ValueError(f"Expert not found in pairing: {self.pairing}")
+        return cls(
+            experiment_name=experiment_name,
+            file_path_strings=[str(fp) for fp in file_paths],
+            total_size_bytes=total_size,
+            player_uuids=[_extract_player_uuid(path.stem) for path in file_paths],
+            modules=sorted(module.name.value for module in bomb_state.modules),
+            is_solved=bomb_state.is_solved,
+            is_detonated=bomb_state.is_detonated,
+            timer_seconds=bomb_state.timer_module.seconds_remaining,
+            strike_count=strike_count,
+            condition=_parse_condition(experiment_name),
+            seed=_parse_seed(experiment_name),
+            pairing=pairing,
+            defuser=_parse_defuser(pairing),
+            expert=_parse_expert(pairing),
+            communication_style=_parse_communication_style(experiment_name),
+        )
 
 
-def _parse_filename(path: Path) -> tuple[str, str] | None:
-    """Parse experiment filename to extract experiment name and player UUID."""
-    match = _FILENAME_PATTERN.match(path.name)
-    if not match:
-        return None
-    return match.group(1), match.group(2)
+def _group_by_experiment(
+    file_paths: list[Path], *, uuid_length: int = 36
+) -> dict[str, list[Path]]:
+    """Group experiment files by base experiment config (without player UUID).
 
-
-def _group_by_session(file_paths: list[Path]) -> dict[str, list[Path]]:
-    """Group experiment files by base experiment config (without session UUID).
-
-    Files from different experiment sessions (different UUIDs) but the same
-    configuration should be grouped together for de-duplication.
-
-    Args:
-        file_paths: List of experiment file paths
-
-    Returns:
-        Mapping of base_experiment_name → list of file paths
+    Files from different experiment players (different UUIDs) but the same configuration should be
+    grouped together for de-duplication.
     """
-    grouped: dict[str, list[Path]] = {}
-
+    grouped = defaultdict(list)
     for path in file_paths:
-        parsed = _parse_filename(path)
-        if not parsed:
-            continue
-
-        experiment_name, _ = parsed
-        # Strip session UUID to group by base config
-        base_name = _strip_session_uuid(experiment_name)
-
-        if base_name not in grouped:
-            grouped[base_name] = []
-        grouped[base_name].append(path)
+        # Remove trailing -{uuid}
+        experiment_name = path.stem[: -(uuid_length + 1)]
+        grouped[experiment_name].append(path)
 
     return grouped
 
 
-def scan_experiments_from_directory(directory: Path) -> list[ScannedExperiment]:
+def scan_experiments_from_directory(  # noqa: WPS210
+    directory: Path, on_progress: Callable[[int, int], None] | None = None, max_workers: int = 32
+) -> tuple[list[ScannedExperiment], list[Path]]:
     """Scan directory for experiment files with de-duplication by base config.
 
-    This performs a lightweight scan by only reading filenames and file sizes,
-    not file contents. Experiments with the same configuration but different
-    session UUIDs are grouped together as a single experiment.
+    This performs a lightweight scan by only reading filenames and file sizes, not file contents.
+    Experiments with the same configuration but different session UUIDs are grouped together as a
+    single experiment.
 
     Args:
         directory: Directory to scan for experiment files
+        files_to_skip: Optional set of file names to skip during scanning
+        on_progress: Optional callback invoked after each group is processed.
+            Receives `(processed, total)`.
+        max_workers: Number of threads for parallel file I/O.
 
     Returns:
-        List of ScannedExperiment objects (de-duplicated by base config)
+        Tuple of (scanned_experiments, unparsable_files) where unparsable_files contains paths to
+        files that could not be parsed as valid experiment JSON.
     """
     # Find all experiment files
     experiment_files = list(directory.rglob("experiment-*.json"))
-
     if not experiment_files:
-        return []
+        return [], []
 
-    # Group files by base config (strips session UUID for de-duplication)
-    grouped = _group_by_session(experiment_files)
+    # Group files by base config (strips player UUID for de-duplication)
+    grouped = _group_by_experiment(experiment_files)
+    if on_progress is not None:
+        on_progress(0, len(grouped))
 
-    # Create ScannedExperiment objects
     scanned_experiments: list[ScannedExperiment] = []
-    for base_name, file_paths in grouped.items():
-        total_size = sum(path.stat().st_size for path in file_paths)
-        bomb_states = (grab_last_bomb_state_from_experiment_file(path) for path in file_paths)
-        bomb_state = next((state for state in bomb_states if state is not None), None)
-        assert bomb_state is not None, (
-            f"Could not extract bomb state from any files for experiment: {base_name}"
-        )
+    unparsable_files: list[Path] = []
 
-        scanned_experiments.append(
-            ScannedExperiment(
-                experiment_name=base_name,  # Base name without session UUID
-                file_paths=file_paths,
-                bomb_state=bomb_state,
-                total_size_bytes=total_size,
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {
+            executor.submit(ScannedExperiment.from_files, base_name, file_paths): (
+                base_name,
+                file_paths,
             )
-        )
-    return scanned_experiments
+            for base_name, file_paths in grouped.items()
+        }
+        for idx, future in enumerate(as_completed(futures)):
+            parse_result = future.result()
 
+            if parse_result:
+                scanned_experiments.append(parse_result)
+            else:
+                base_name, file_paths = futures[future]
+                logger.warning(
+                    "Could not extract bomb state from any files for experiment, skipping",
+                    experiment=base_name,
+                    files=file_paths,
+                )
+                unparsable_files.extend(file_paths)
 
-def grab_last_bomb_state_from_experiment_file(file_path: Path) -> BombState | None:
-    """Grab the last bomb state from an experiment file without fully loading it.
+            if on_progress is not None:
+                on_progress(idx + 1, len(grouped))
 
-    This is a lightweight way to get the final bomb state for filtering or summary purposes without
-    parsing the entire experiment.
-    """
-    player_records = from_json(file_path.read_bytes())
-    last_step = player_records["step_records"][-1]
-    if last_step["bomb_state"] is not None:
-        return BombState.model_validate(last_step["bomb_state"])
-    return None
-
-
-def validate_scanned_experiments_with_wandb(
-    scanned_experiments: list[ScannedExperiment], wandb_path: str
-) -> tuple[list[ScannedExperiment], list[ScannedExperiment]]:
-    """Validate scanned experiments against wandb and filter out invalid ones.
-
-    This ensures proper de-duplication: scanned_experiments are already grouped
-    by base config (without session UUID), so each unique experiment configuration
-    appears only once. The validation checks wandb using these base names.
-
-    Args:
-        scanned_experiments: List of scanned experiments (already de-duplicated by base config)
-        wandb_path: Path to wandb project in format "entity/project"
-
-    Returns:
-        Tuple of (valid_experiments, invalid_experiments)
-        - valid_experiments: Experiments with valid wandb runs
-        - invalid_experiments: Experiments with invalid or no wandb runs
-    """
-    all_names = {exp.experiment_name for exp in scanned_experiments}
-
-    # Get runs from wandb filtered by experiment names
-    wandb_runs = get_runs_from_wandb(
-        wandb_path,
-        additional_filters=[{"$or": [{"config.experiment_name": name} for name in all_names]}],
-    )
-
-    # If no runs found, all experiments are invalid (not yet run)
-    if not wandb_runs:
-        return [], scanned_experiments
-
-    # Collate and find invalid runs
-    # Note: There may be multiple runs per experiment (multiple games)
-    runs_per_experiment_per_game = collate_runs_per_experiment_per_game(wandb_runs)
-    invalid_runs = get_invalid_runs_from_collated_runs(runs_per_experiment_per_game)
-
-    # Build set of invalid experiment names (from invalid runs)
-    invalid_experiment_names = {run.config["experiment_name"] for run in invalid_runs}
-
-    # Build set of all experiment names that have any wandb runs
-    all_wandb_experiment_names = {run.config["experiment_name"] for run in wandb_runs}
-
-    # Valid experiments are those with wandb runs that are NOT in the invalid set
-    valid_experiment_names = all_wandb_experiment_names - invalid_experiment_names
-
-    # De-duplicate by experiment_name: filter scanned experiments based on valid names
-    # Each experiment appears only once in scanned_experiments (already grouped by name)
-    valid_experiments = [
-        exp for exp in scanned_experiments if exp.experiment_name in valid_experiment_names
-    ]
-    invalid_experiments = [
-        exp for exp in scanned_experiments if exp.experiment_name not in valid_experiment_names
-    ]
-
-    return valid_experiments, invalid_experiments
+    return scanned_experiments, unparsable_files

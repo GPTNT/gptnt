@@ -1,9 +1,16 @@
+import structlog
+from rich.console import Console
+
 from gptnt.cli.app import run_streamlit_app
+from gptnt.cli.db import db_app
 from gptnt.cli.kill import force_kill
 from gptnt.cli.models import print_models_table
 from gptnt.cli.status import check_experiment_completion
 from gptnt.cli.throw import throw
 from gptnt.common.async_typer import AsyncTyper
+
+logger = structlog.get_logger()
+console = Console()
 
 
 def main() -> None:
@@ -18,6 +25,8 @@ def main() -> None:
         print_models_table
     )
     _ = app.command(name="analyse", rich_help_panel="Analysis")(run_streamlit_app)
+
+    app.add_typer(db_app, name="db", rich_help_panel="Database")
 
     app()
 

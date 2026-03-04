@@ -10,11 +10,10 @@ from gptnt.app.dialogue.components import (
     render_pagination_controls,
 )
 from gptnt.app.dialogue.data import build_step_viewmodels
-from gptnt.app.dialogue.experiment_summary import render_experiment_summary_header
 from gptnt.app.dialogue.state import DialogueState
 
 if TYPE_CHECKING:
-    from gptnt.players.metrics.records import ExperimentRecord, ExperimentStepRecord
+    from gptnt.players.metrics.records import ExperimentStepRecord
 
 
 def render_dialogue_view(step_records: list[ExperimentStepRecord]) -> None:
@@ -33,7 +32,7 @@ def render_dialogue_view(step_records: list[ExperimentStepRecord]) -> None:
     # 2. Render display controls and capture changes
     output_format, message_display, new_page_size = render_display_controls(state)
 
-    _ = st.space()
+    # _ = st.space()
 
     # 3. Handle page size changes (triggers rerun)
     if new_page_size != state.page_size:
@@ -61,11 +60,3 @@ def render_dialogue_view(step_records: list[ExperimentStepRecord]) -> None:
 
     # 8. Render bottom pagination controls
     render_pagination_controls(pagination, state, "bottom")
-
-
-def render_experiment(record: ExperimentRecord) -> None:
-    """Render a single experiment's dialogue view."""
-    render_experiment_summary_header(record)
-
-    step_records = list(record.step_records)
-    render_dialogue_view(step_records)
