@@ -1,12 +1,17 @@
+import io
+import struct
+from concurrent import futures
 from dataclasses import dataclass
-from typing import Annotated
+from typing import Annotated, Literal, Self, overload
 
 import httpx
 import logfire
 import structlog
-from pydantic import AfterValidator, BaseModel, Field
+from PIL import Image
+from pydantic import RootModel
 
 from gptnt.common.base_client import ManagedHttpClient
+from gptnt.common.image_ops import PNGBytes, parse_base64_to_bytes, serialize_bytes_to_base64
 from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.game_settings import KtaneSettings
 from gptnt.ktane.mission_spec import KtaneMissionConfig
@@ -16,23 +21,140 @@ from gptnt.ktane.state.game import GameState
 _logger = structlog.get_logger()
 
 
-def add_failure_reason_from_response(response: httpx.Response) -> None:
-    """Add a failure reason to the response if it exists."""
-    if response.is_error:
-        response.headers["X-Reason"] = response.text
+INT_BYTE_SIZE = 4
+BOOL_BYTE_SIZE = 1
+HEADER_BYTE_SIZE = BOOL_BYTE_SIZE + 3 * INT_BYTE_SIZE
+COLOR_CHANNELS = 3
 
 
-class RawObservationFrames(BaseModel):
-    """Frames from the game.
+PNGPixelBytes = Annotated[bytes, parse_base64_to_bytes, serialize_bytes_to_base64]
+"""Pixel data for a PNG image.
 
-    We keep everything as base64 strings and also note that since they come from the JSON, they
-    don't need to be url-safe and I don't believe that they are.
+This is the raw pixel data, not the PNG file bytes.
+"""
+
+
+class FrameBuffer(RootModel[PNGPixelBytes]):
+    """Raw frame buffer from KTANE.
+
+    The raw bytes are in the format of:
+    1 byte bool: has_segmentation
+    4 bytes int: frame count up to 16
+    4 bytes int: height
+    4 bytes int: width
+    Followed by frame count * (width * height * 3) bytes of RGB24 data (3 bytes per pixel)
+    If has_segmentation is true, the last image is the segmentation mask
     """
 
-    frames: Annotated[list[str], Field(default_factory=list)]
-    segmentation: Annotated[
-        str | None, AfterValidator(lambda image: image if bool(image) else None)
-    ] = None
+    @classmethod
+    def from_pil_images(
+        cls, frames: list[Image.Image], segmentation_mask: Image.Image | None = None
+    ) -> Self:
+        """Create a FrameBuffer from a list of PIL images and an optional segmentation mask.
+
+        This is primarily for testing purposes, as in practice we will be receiving the raw bytes
+        from the game.
+        """
+        all_frames = [*frames, segmentation_mask] if segmentation_mask else frames
+
+        # Store with Unity's flipped Y-axis, matching what FrameBuffer expects
+        pixel_data = b"".join(
+            frame.transpose(Image.Transpose.FLIP_TOP_BOTTOM).tobytes() for frame in all_frames
+        )
+
+        # Pack header: bool(1) + frame_count(4) + height(4) + width(4) = 13 bytes
+        width, height = all_frames[0].size
+        frame_count = len(all_frames)
+        header = struct.pack(
+            "<Biii", int(segmentation_mask is not None), frame_count, height, width
+        )
+
+        return cls(header + pixel_data)
+
+    @property
+    def has_segmentation(self) -> bool:
+        """Quickly check if we have a segmentation mask in the buffer."""
+        return self.root[0] == 1
+
+    @property
+    def frame_count(self) -> int:
+        """Get the number of frames in the buffer."""
+        return struct.unpack_from("<i", self.root, BOOL_BYTE_SIZE)[0]
+
+    @property
+    def frame_height(self) -> int:
+        """Get the height of a frame."""
+        return struct.unpack_from("<i", self.root, BOOL_BYTE_SIZE + INT_BYTE_SIZE)[0]
+
+    @property
+    def frame_width(self) -> int:
+        """Get the width of a frame."""
+        return struct.unpack_from("<i", self.root, BOOL_BYTE_SIZE + 2 * INT_BYTE_SIZE)[0]
+
+    @overload
+    def extract_frames(
+        self, *, output: Literal["pil_image"], last_n_frames: int | None = None
+    ) -> list[Image.Image]: ...
+
+    @overload
+    def extract_frames(
+        self, *, output: Literal["png_bytes"], last_n_frames: int | None = None
+    ) -> list[PNGBytes]: ...
+
+    def extract_frames(
+        self, *, output: Literal["pil_image", "png_bytes"], last_n_frames: int | None = None
+    ) -> list[PNGBytes] | list[Image.Image]:
+        """Convert the last n frames from the buffer to the desired output format."""
+        frame_pixel_data = self._get_frames_pixel_data(last_n_frames=last_n_frames)
+        frame_size = self.frame_width * self.frame_height * COLOR_CHANNELS
+        chunks = [
+            frame_pixel_data[chunk_start : chunk_start + frame_size]
+            for chunk_start in range(0, len(frame_pixel_data), frame_size)
+        ]
+
+        with futures.ThreadPoolExecutor() as executor:
+            images = list(executor.map(self._convert_pixels_to_image, chunks))
+
+            if output == "png_bytes":
+                images = list(executor.map(self._image_to_png_bytes, images))
+
+        return images
+
+    @overload
+    def extract_segmentation(self, *, output: Literal["pil_image"]) -> Image.Image | None: ...
+
+    @overload
+    def extract_segmentation(self, *, output: Literal["png_bytes"]) -> PNGBytes | None: ...
+
+    def extract_segmentation(
+        self, *, output: Literal["pil_image", "png_bytes"]
+    ) -> PNGBytes | Image.Image | None:
+        """Extract the segmentation mask from the buffer, if it exists."""
+        if not self.has_segmentation:
+            return None
+        segmentation_size = self.frame_width * self.frame_height * COLOR_CHANNELS
+        segmentation_pixel_data = self.root[-segmentation_size:]
+        segmentation_image = self._convert_pixels_to_image(segmentation_pixel_data)
+        if output == "png_bytes":
+            segmentation_image = self._image_to_png_bytes(segmentation_image)
+        return segmentation_image
+
+    def _get_frames_pixel_data(self, last_n_frames: int | None = None) -> bytes:
+        frame_size = self.frame_width * self.frame_height * COLOR_CHANNELS
+        count = self.frame_count if last_n_frames is None else min(self.frame_count, last_n_frames)
+
+        end = HEADER_BYTE_SIZE + self.frame_count * frame_size
+        start = end - count * frame_size
+        return self.root[start:end]
+
+    def _convert_pixels_to_image(self, frame_data: bytes) -> Image.Image:
+        img = Image.frombytes("RGB", (self.frame_width, self.frame_height), frame_data)
+        return img.transpose(Image.Transpose.FLIP_TOP_BOTTOM)  # Unity y axis is flipped
+
+    def _image_to_png_bytes(self, img: Image.Image) -> PNGBytes:
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        return buf.getvalue()
 
 
 @dataclass(kw_only=True)
@@ -117,7 +239,7 @@ class KtaneClient(ManagedHttpClient):
         state = BombState.model_validate(response.json())
         return state
 
-    async def get_observation_frames(self) -> RawObservationFrames:
+    async def get_observation_frames(self) -> FrameBuffer:
         """Gets frames and segmentation mask.
 
         Frames are upto 16 frames and a segmentation mask of the last, most recent frame.
@@ -126,12 +248,11 @@ class KtaneClient(ManagedHttpClient):
         # causing something like a connecttimeout when the game is dead (due to the post-game
         # scenario already happened) or another reason, so we need to catch it and handle it. This
         # is coming through as a connecttimeout
-        response = await self.client.get("/buffer")
+        response = await self.client.get("/buffer", headers={"Connection": "close"})
         _ = response.raise_for_status()
 
-        # Get the json from the thing. We keep everything as base64 encoded strings
-        observation_frames = RawObservationFrames.model_validate(response.json())
-        return observation_frames
+        observations = FrameBuffer(response.read())
+        return observations
 
     async def detonate_bomb(self) -> bool:
         """Detonate the bomb."""

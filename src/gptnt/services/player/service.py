@@ -22,6 +22,7 @@ from gptnt.prompts.manual import load_manual_as_prompt
 from gptnt.prompts.prompt_cache import PromptCache
 from gptnt.services.events.player import PlayerMessage, PlayerState, StopPlayerEvent
 from gptnt.services.experiment_descriptor import ExperimentDescriptor
+from gptnt.services.game.client import BombIsDetonatedError
 from gptnt.services.player.context import PlayerServiceContext
 from gptnt.services.rpc import BaseRPCService
 
@@ -164,9 +165,14 @@ class PlayerService(PlayerServiceContext, BaseRPCService[PlayerCommand]):
         # Collect the state and the observations
         if self.protocol.role == "defuser":
             self.state = PlayerState.waiting_for_observation
-            bomb_state, raw_frames = await self.game_client.get_observation()
+            try:
+                bomb_state, frame_buffer = await self.game_client.get_observation()
+            except BombIsDetonatedError:
+                logger.info("Bomb is detonated, skipping forward pass")
+                self.state = PlayerState.waiting_for_turn
+                return {"success": True, "state": self.state.name}
         else:
-            bomb_state, raw_frames = None, None
+            bomb_state, frame_buffer = None, None
 
         self.state = PlayerState.pulling_messages
         messages = self.incoming_message_handler.pull_messages()
@@ -174,7 +180,7 @@ class PlayerService(PlayerServiceContext, BaseRPCService[PlayerCommand]):
         # Prepare the input
         self.state = PlayerState.preparing_agent_input
         agent_input = await self.input_builder.build_agent_input(
-            messages=messages, raw_frames=raw_frames, bomb_state=bomb_state
+            messages=messages, frame_buffer=frame_buffer, bomb_state=bomb_state
         )
 
         # Decide what action to do

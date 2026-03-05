@@ -1,17 +1,15 @@
-import binascii
 from dataclasses import dataclass
 from io import BytesIO
-from typing import Annotated
 
 import logfire
 import numpy as np
-import pybase64
 import structlog
 from PIL import Image
-from pydantic import BaseModel, BeforeValidator, PlainSerializer
+from pydantic import BaseModel
 
-from gptnt.common.image_ops import load_observation_from_bytes
+from gptnt.common.image_ops import PNGBytes
 from gptnt.ktane.actions import KtaneGameplayInput, RelativeCoordinate
+from gptnt.ktane.client import FrameBuffer
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import (
     AbsoluteCoordinate,
@@ -25,25 +23,6 @@ from gptnt.processors.set_of_marks import SetOfMarksHandler
 logger = structlog.get_logger()
 
 
-def _parse_base64_to_bytes(data: str | bytes) -> bytes:
-    """Decode base64 encoded string to bytes if string."""
-    if isinstance(data, bytes):
-        return data
-    return pybase64.b64decode(data)
-
-
-def _serialize_bytes_to_base64(data: bytes) -> str:
-    """Serialize bytes to base64 encoded string for JSON."""
-    return pybase64.b64encode(data).decode("utf-8")
-
-
-ImageBytes = Annotated[
-    bytes,
-    BeforeValidator(_parse_base64_to_bytes),
-    PlainSerializer(_serialize_bytes_to_base64, when_used="json-unless-none"),
-]
-
-
 class Observation(BaseModel):
     """Observation from the game.
 
@@ -51,9 +30,9 @@ class Observation(BaseModel):
     processed image.
     """
 
-    frames: list[ImageBytes]
-    segm_mask: ImageBytes | None
-    som_image: ImageBytes
+    frames: list[PNGBytes]
+    segm_mask: PNGBytes | None
+    som_image: PNGBytes
 
 
 @dataclass(kw_only=True)
@@ -78,42 +57,40 @@ class ObservationHandler:
         logger.debug("Observation handler reset, cleared set of marks painter.")
 
     def handle_new_observation(
-        self,
-        *,
-        frames: list[bytes] | list[str],
-        segmentation: str | bytes | None,
-        bomb_state: BombState,
-        num_frames_to_use: int = 1,
+        self, *, frame_buffer: FrameBuffer, bomb_state: BombState, num_frames_to_use: int = 1
     ) -> Observation:
         """Handle a new observation from the game."""
         # Reset any existing mark-to-coordinate mappings so we don't leak them between observations
         if self.set_of_marks_painter:
             self.set_of_marks_painter.reset()
 
-        with logfire.span("Decoding frames and segmentation"):
-            frames = self._decode_frames(frames, num_frames_to_use=num_frames_to_use)
-            segmentation = self._decode_segmentation(segmentation)
-
         # If we are not resizing nor applying SoM, we can just use the last frame
         if self.image_resizer is None and self.set_of_marks_painter is None:
             logger.debug("No image resizer or set of marks painter, using last frame only.")
-            return Observation(frames=frames, segm_mask=segmentation, som_image=frames[-1])
+            frames = frame_buffer.extract_frames(
+                output="png_bytes", last_n_frames=num_frames_to_use
+            )
+            return Observation(
+                frames=frames,
+                segm_mask=frame_buffer.extract_segmentation(output="png_bytes"),
+                som_image=frames[-1],
+            )
 
-        # Make a list of images
-        images = [load_observation_from_bytes(frame) for frame in frames]
+        # Make a list of all the frames (as pillow)
+        images = frame_buffer.extract_frames(output="pil_image", last_n_frames=num_frames_to_use)
 
         # Apply set of marks only on the last image IF we want set of marks
         last_image = images[-1]
         if (
             self.set_of_marks_painter
-            and segmentation
+            and frame_buffer.has_segmentation
             and self.interaction_location_method == "set-of-marks"
         ):
+            segmentation = frame_buffer.extract_segmentation(output="pil_image")
+            assert segmentation is not None
             with logfire.span("Applying set of marks on last frame"):
-                segm_image = load_observation_from_bytes(segmentation)
-
                 last_image = self._apply_set_of_marks(
-                    raw_image=last_image, segmentation_image=segm_image, bomb_state=bomb_state
+                    raw_image=last_image, segmentation_image=segmentation, bomb_state=bomb_state
                 )
                 logger.debug(
                     "Set of marks mapping applied",
@@ -137,7 +114,11 @@ class ObservationHandler:
                 image.save(image_buffer, format="PNG")
                 frames.append(image_buffer.getvalue())
 
-        return Observation(frames=frames, segm_mask=segmentation, som_image=som_buffer.getvalue())
+        return Observation(
+            frames=frames,
+            segm_mask=frame_buffer.extract_segmentation(output="png_bytes"),
+            som_image=som_buffer.getvalue(),
+        )
 
     def convert_to_game_action(self, *, action: GameInteractionActionType) -> KtaneGameplayInput:
         """Convert the action to the game action."""
@@ -185,26 +166,3 @@ class ObservationHandler:
         )
         set_of_marks_image = Image.fromarray(set_of_marks_array.astype(np.uint8), "RGB")
         return set_of_marks_image
-
-    def _decode_segmentation(self, segmentation: str | bytes | None) -> bytes | None:
-        """Decode segmentation mask from base64 if needed."""
-        if segmentation is None or isinstance(segmentation, bytes):
-            return segmentation
-
-        try:
-            return pybase64.b64decode(segmentation)
-        except binascii.Error:
-            logger.exception(
-                "Failed to decode segmentation mask, it might not be base64 encoded? Setting the segmentation to None",
-                segmentation=segmentation,
-            )
-            return None
-
-    def _decode_frames(
-        self, frames: list[bytes] | list[str], *, num_frames_to_use: int
-    ) -> list[bytes]:
-        """Decode frames from base64 if needed."""
-        return [
-            pybase64.b64decode(frame) if isinstance(frame, str) else frame
-            for frame in frames[-num_frames_to_use:]
-        ]

@@ -84,21 +84,6 @@ async def test_start_mission_returns_false_on_failing(
     assert route.called is True
 
 
-@respx.mock
-@pytest.mark.anyio
-async def test_get_observation_returns_screenshot_as_bytes(
-    ktane_client: KtaneClient, screenshot: str
-) -> None:
-    route = respx.get(f"{ktane_client.client.base_url}/buffer").mock(
-        return_value=httpx.Response(
-            httpx.codes.OK, json={"frames": [screenshot], "segmentation": None}
-        )
-    )
-    screenshot_response = await ktane_client.get_observation_frames()
-    assert route.called is True
-    assert screenshot_response.frames[0] == screenshot
-
-
 @pytest.mark.parametrize("action_type", list(GameActionType))
 def test_ktane_coordinate_action_correctly_converts_to_query_params(
     action_type: GameActionType,

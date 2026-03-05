@@ -5,6 +5,7 @@ from pytest_cases import fixture, param_fixture
 
 from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.ktane.actions import RelativeCoordinate
+from gptnt.ktane.client import FrameBuffer
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import InteractGameAction, SetOfMarksLocation
 from gptnt.players.observation_handler import ObservationHandler
@@ -74,6 +75,14 @@ def wires_segmentation_image(fixture_path: Path) -> bytes:
 
 
 @fixture
+def wires_frame_buffer(wires_screen_image: bytes, wires_segmentation_image: bytes) -> FrameBuffer:
+    """Create a FrameBuffer for the wires-6 observation."""
+    screen_image = load_observation_from_bytes(wires_screen_image)
+    segm_image = load_observation_from_bytes(wires_segmentation_image)
+    return FrameBuffer.from_pil_images(frames=[screen_image], segmentation_mask=segm_image)
+
+
+@fixture
 def minimal_bomb_state() -> BombState:
     """Create a minimal bomb state for testing."""
     return BombState.model_validate(
@@ -102,6 +111,7 @@ def test_som_coordinates_preserved_after_resize(
     observation_handler: ObservationHandler,
     wires_screen_image: bytes,
     wires_segmentation_image: bytes,
+    wires_frame_buffer: FrameBuffer,
     minimal_bomb_state: BombState,
 ) -> None:
     """Test that SoM mark-to-coordinate mapping uses original image dimensions (512x384).
@@ -137,10 +147,7 @@ def test_som_coordinates_preserved_after_resize(
     # STEP 2: Handle the observation through the full pipeline
     # This should apply SoM BEFORE resizing
     _ = observation_handler.handle_new_observation(
-        frames=[wires_screen_image],
-        segmentation=wires_segmentation_image,
-        bomb_state=minimal_bomb_state,
-        num_frames_to_use=1,
+        frame_buffer=wires_frame_buffer, bomb_state=minimal_bomb_state, num_frames_to_use=1
     )
 
     # Verify SoM was applied and marks were created
@@ -205,8 +212,7 @@ def test_som_coordinates_preserved_after_resize(
 
 def test_som_mark_to_coordinate_conversion_through_observation_handler(
     observation_handler: ObservationHandler,
-    wires_screen_image: bytes,
-    wires_segmentation_image: bytes,
+    wires_frame_buffer: FrameBuffer,
     minimal_bomb_state: BombState,
 ) -> None:
     """Test the full flow from observation handling to coordinate conversion.
@@ -219,10 +225,7 @@ def test_som_mark_to_coordinate_conversion_through_observation_handler(
     """
     # Handle the observation
     _ = observation_handler.handle_new_observation(
-        frames=[wires_screen_image],
-        segmentation=wires_segmentation_image,
-        bomb_state=minimal_bomb_state,
-        num_frames_to_use=1,
+        frame_buffer=wires_frame_buffer, bomb_state=minimal_bomb_state, num_frames_to_use=1
     )
 
     som_handler = observation_handler.set_of_marks_painter
@@ -254,8 +257,7 @@ def test_som_mark_to_coordinate_conversion_through_observation_handler(
 
 def test_som_click_action_converts_to_original_coordinates(
     observation_handler: ObservationHandler,
-    wires_screen_image: bytes,
-    wires_segmentation_image: bytes,
+    wires_frame_buffer: FrameBuffer,
     minimal_bomb_state: BombState,
 ) -> None:
     """Test that click actions with SoM marks convert to coordinates relative to original image.
@@ -268,10 +270,7 @@ def test_som_click_action_converts_to_original_coordinates(
     """
     # Handle the observation to create marks
     _ = observation_handler.handle_new_observation(
-        frames=[wires_screen_image],
-        segmentation=wires_segmentation_image,
-        bomb_state=minimal_bomb_state,
-        num_frames_to_use=1,
+        frame_buffer=wires_frame_buffer, bomb_state=minimal_bomb_state, num_frames_to_use=1
     )
 
     som_handler = observation_handler.set_of_marks_painter

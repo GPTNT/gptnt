@@ -4,7 +4,7 @@ import logfire
 import structlog
 from pydantic_ai import BinaryContent
 
-from gptnt.ktane.client import RawObservationFrames
+from gptnt.ktane.client import FrameBuffer
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.metrics.recorder import ExperimentPlayerRecorder
 from gptnt.players.observation_handler import ObservationHandler
@@ -34,7 +34,7 @@ class AgentInputBuilder:
         self,
         *,
         messages: str | None,
-        raw_frames: RawObservationFrames | None,
+        frame_buffer: FrameBuffer | None,
         bomb_state: BombState | None,
     ) -> AgentMessageInput:
         """Build the input for the agent."""
@@ -49,10 +49,12 @@ class AgentInputBuilder:
         # 3. Add observations if we are the defuser
         if self.protocol.role == "defuser":
             with logfire.span("Adding observations to defuser input"):
-                assert raw_frames is not None, "Raw frames must be provided for defuser protocol"
+                assert frame_buffer is not None, (
+                    "Frame buffer must be provided for defuser protocol"
+                )
                 assert bomb_state is not None, "Bomb state must be provided for defuser protocol"
                 observations = await self._prepare_frames(
-                    raw_frames=raw_frames, bomb_state=bomb_state
+                    frame_buffer=frame_buffer, bomb_state=bomb_state
                 )
                 agent_input.extend(observations)
 
@@ -60,7 +62,7 @@ class AgentInputBuilder:
 
     @logfire.instrument("Prepare frames", extract_args=["bomb_state"])
     async def _prepare_frames(
-        self, *, raw_frames: RawObservationFrames, bomb_state: BombState
+        self, *, frame_buffer: FrameBuffer, bomb_state: BombState
     ) -> list[BinaryContent]:
         """Prepare frames from the game."""
         num_frames_to_use = (
@@ -69,10 +71,7 @@ class AgentInputBuilder:
             else 1
         )
         observation = self.observation_handler.handle_new_observation(
-            frames=raw_frames.frames,
-            segmentation=raw_frames.segmentation,
-            bomb_state=bomb_state,
-            num_frames_to_use=num_frames_to_use,
+            frame_buffer=frame_buffer, bomb_state=bomb_state, num_frames_to_use=num_frames_to_use
         )
 
         # Separate to below where we don't include the final frame, here we want to track it so

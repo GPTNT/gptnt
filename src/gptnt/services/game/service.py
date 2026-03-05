@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from faststream.redis import RedisBroker
 
 from gptnt.ktane.actions import KtaneGameplayInput
-from gptnt.ktane.client import RawObservationFrames
+from gptnt.ktane.client import FrameBuffer
 from gptnt.ktane.mission_spec import KtaneMissionConfig
 from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.game import GameState
@@ -227,7 +227,7 @@ class GameService(GameServiceContext, BaseRPCService[GameCommand]):
                 headers={"X-Reason": err.response.text},
             ) from err
 
-    async def get_observation_frames(self) -> RawObservationFrames:
+    async def get_observation_frames(self) -> FrameBuffer:
         """Get the current observation frames."""
         try:
             return await self.ktane_client.get_observation_frames()

@@ -10,6 +10,7 @@ from pydantic import UUID4
 from pydantic_ai import ModelMessage
 from whenever import Instant
 
+from gptnt.common.image_ops import PNGBytes
 from gptnt.common.paths import Paths
 from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.state.bomb import BombState
@@ -75,9 +76,9 @@ class ExperimentPlayerRecorder:
         self,
         *,
         bomb_state: BombState,
-        frames: list[bytes],
-        segm_mask: bytes | None,
-        som_image: bytes,
+        frames: list[PNGBytes],
+        segm_mask: PNGBytes | None,
+        som_image: PNGBytes,
     ) -> None:
         """Store the observation and bomb state context for the current step.
 

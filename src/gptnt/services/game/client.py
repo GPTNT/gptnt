@@ -10,7 +10,7 @@ from pydantic import UUID4
 
 from gptnt.experiments.time_limits import SECONDS_PER_ACTION
 from gptnt.ktane.actions import KtaneGameplayInput
-from gptnt.ktane.client import RawObservationFrames
+from gptnt.ktane.client import FrameBuffer
 from gptnt.ktane.mission_spec import KtaneMissionConfig, KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.game import GameState
@@ -19,6 +19,10 @@ from gptnt.services.timeouts import ServiceTimeouts
 
 logger = structlog.get_logger()
 timeouts = ServiceTimeouts()
+
+
+class BombIsDetonatedError(Exception):
+    """Raised when the bomb is detonated for easy handling in the player service."""
 
 
 @dataclass(kw_only=True)
@@ -103,16 +107,18 @@ class GameClient(BaseRPCClient):
         return BombState.model_validate(bomb_state_json)
 
     @logfire.instrument("Get frames")
-    async def get_frames(self) -> RawObservationFrames:
+    async def get_frames(self) -> FrameBuffer:
         """Get the current frames."""
-        frames_json = await self._send_command(
+        frames_as_buffer = await self._send_command(
             "get_frames", timeout=timeouts.get_observation_timeout
         )
-        return RawObservationFrames.model_validate(frames_json)
+        return FrameBuffer(frames_as_buffer)
 
     @logfire.instrument("Get observation")
-    async def get_observation(self) -> tuple[BombState, RawObservationFrames]:
+    async def get_observation(self) -> tuple[BombState, FrameBuffer]:
         """Get the current observation."""
-        frames = await self.get_frames()
         bomb_state = await self.get_bomb_state()
+        if bomb_state.is_detonated:
+            raise BombIsDetonatedError("Bomb is detonated")
+        frames = await self.get_frames()
         return bomb_state, frames

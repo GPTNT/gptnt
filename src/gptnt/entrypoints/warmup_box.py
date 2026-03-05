@@ -11,10 +11,11 @@ from structlog import get_logger
 from whenever import Instant
 
 from gptnt.common.hydra import get_hydra_overrides
+from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
 from gptnt.ktane.actions import GameActionType
-from gptnt.ktane.client import RawObservationFrames
+from gptnt.ktane.client import FrameBuffer
 from gptnt.ktane.manual import KtaneManualPaths
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.ai.action_predictor import ActionPredictor
@@ -53,9 +54,9 @@ class BoxWarmer:
             recorder=None,
         )
         message = self.generate_message(protocol)
-        raw_frames, bomb_state = self.generate_observations()
+        frame_buffer, bomb_state = self.generate_observations()
         model_input = await input_builder.build_agent_input(
-            messages=message, raw_frames=raw_frames, bomb_state=bomb_state
+            messages=message, frame_buffer=frame_buffer, bomb_state=bomb_state
         )
         response = await self.action_predictor.send_request_to_agent(message_input=model_input)
         logger.info(
@@ -74,18 +75,25 @@ class BoxWarmer:
             case "expert":
                 return "Tell me what to do."
 
-    def generate_observations(self) -> tuple[RawObservationFrames, BombState]:
+    def generate_observations(self) -> tuple[FrameBuffer, BombState]:
         """Generate simple observations for warming up."""
         warmup_json = orjson.loads(
             paths.storage.joinpath("fixtures", "defuser_warmup.json").read_bytes()
         )
         bomb_state = BombState.model_validate(warmup_json["bomb_state"])
 
-        raw_obs_frames = RawObservationFrames(
-            frames=warmup_json["observation"]["frames"],
-            segmentation=warmup_json["observation"]["segm_mask"],
+        obs = warmup_json["observation"]
+        raw_frames: list[str] = obs["frames"]
+        raw_segm: str | None = obs.get("segm_mask")
+
+        frames = [load_observation_from_bytes(frame) for frame in raw_frames]
+        segmentation_mask = load_observation_from_bytes(raw_segm) if raw_segm else None
+
+        frame_buffer = FrameBuffer.from_pil_images(
+            frames=frames, segmentation_mask=segmentation_mask
         )
-        return raw_obs_frames, bomb_state
+
+        return frame_buffer, bomb_state
 
 
 def generate_protocol() -> PlayerProtocol:
