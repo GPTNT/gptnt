@@ -27,9 +27,6 @@ class AppState:
     # Loaded data
     loaded_experiment: ExperimentRecord | None = field(default=None, init=False)
 
-    # State
-    user: str | None = field(default=None)
-
     @classmethod
     def create(cls) -> AppState:
         """Create a new state instance pre-populated from the DuckDB database."""

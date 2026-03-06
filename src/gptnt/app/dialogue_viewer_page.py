@@ -25,13 +25,6 @@ def dialogue_viewer_page() -> None:
             st.stop()
 
     with st.sidebar:
-        user = st.text_input(
-            "Name",
-            placeholder="Your name here",
-            help="Enter your name to enable saving annotations.",
-        )
-        state.user = user.lower().strip().replace(" ", "") if user else None
-
         if state.loader.selected_experiment:
             _ = st.subheader("Selected Experiment")
             # _ = st.caption("*Go to the Dialogue Viewer page to load the experiment.*")
@@ -64,10 +57,7 @@ def dialogue_viewer_page() -> None:
         save_button = st.button(
             "Save annotations",
             icon=":material/save:",
-            disabled=not state.user,
-            help=None
-            if state.user
-            else "You must enter your name above to enable saving annotations.",
+            disabled=state.loader.selected_experiment.tags == new_tags,
         )
 
         if save_button and new_tags != state.loader.selected_experiment.tags:
