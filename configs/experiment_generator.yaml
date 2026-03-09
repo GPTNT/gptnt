@@ -45,6 +45,7 @@ experiment_generator:
   condition: ???
   defuser_protocol: ${defuser_protocol}
   expert_protocol: ${expert_protocol}
+  attempts_per_mission: 1
 
 pairing_generator:
   _target_: gptnt.experiments.pairing.PairingGenerator

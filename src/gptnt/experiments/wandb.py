@@ -48,9 +48,9 @@ def collate_runs_per_experiment_per_game(runs: list[Run] | Runs) -> CollatedRuns
     """Collate all the runs by experiments, and then by their session_id."""
     runs_per_experiment_per_game: CollatedRuns = defaultdict(lambda: defaultdict(list))
     for run in track(runs, description="Collating runs...", total=len(runs)):
-        experiment_name: str = run.config["experiment_name"]
+        attempt_name: str = run.config["attempt_name"]
         session_id: UUID4 = run.config["session_id"]
-        runs_per_experiment_per_game[experiment_name][session_id].append(run)
+        runs_per_experiment_per_game[attempt_name][session_id].append(run)
     return runs_per_experiment_per_game
 
 
@@ -91,10 +91,10 @@ def is_run_valid(run: Run) -> bool:
 def get_invalid_runs_from_collated_runs(collated_runs: CollatedRuns) -> list[Run]:
     """Get invalid run names from the collated runs."""
     invalid_runs = []
-    for experiment_name, runs_per_game in track(
+    for attempt_name, runs_per_game in track(
         collated_runs.items(), description="Checking for invalid runs..."
     ):
-        expected_num_players = 1 if "expert=None" in experiment_name else 2
+        expected_num_players = 1 if "expert=None" in attempt_name else 2
         invalid_games = [
             session_id
             for session_id, runs in runs_per_game.items()
@@ -108,11 +108,11 @@ def get_invalid_runs_from_collated_runs(collated_runs: CollatedRuns) -> list[Run
 def get_valid_experiments_from_collated_runs(collated_runs: CollatedRuns) -> list[str]:
     """Get valid experiment names from the collated runs."""
     valid_experiments = []
-    for experiment_name, runs_per_game in track(
+    for attempt_name, runs_per_game in track(
         collated_runs.items(), description="Filtering valid experiments..."
     ):
         # figure out if there should be one per game or two
-        expected_num_players = 1 if "expert=None" in experiment_name else 2
+        expected_num_players = 1 if "expert=None" in attempt_name else 2
         valid_games = [
             session_id
             for session_id, runs in runs_per_game.items()
@@ -120,7 +120,7 @@ def get_valid_experiments_from_collated_runs(collated_runs: CollatedRuns) -> lis
             and len(runs) == expected_num_players
         ]
         if valid_games:
-            valid_experiments.append(experiment_name)
+            valid_experiments.append(attempt_name)
 
     return valid_experiments
 
@@ -135,8 +135,8 @@ def mark_runs_as_old(runs: list[Run]) -> None:
 def mark_invalid_games_as_old(collated_runs: CollatedRuns) -> None:
     """Mark invalid games as old from the collated runs."""
     counter = 0
-    for experiment_name, runs_per_game in track(collated_runs.items()):
-        expected_num_players = 1 if "expert=None" in experiment_name else 2
+    for attempt_name, runs_per_game in track(collated_runs.items()):
+        expected_num_players = 1 if "expert=None" in attempt_name else 2
         for runs in runs_per_game.values():
             if len(runs) != expected_num_players:
                 for run in runs:

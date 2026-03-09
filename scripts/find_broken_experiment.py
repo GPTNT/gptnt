@@ -58,15 +58,13 @@ def find_in_output_logs(runs, error_string: str):
 
 
 def get_related_runs(runs):
-    # Extract experiment names from the fetched runs
-    experiment_names = {run.config["experiment_name"] for run in runs}
+    # Extract attempt names from the fetched runs
+    attempt_names = {run.config["attempt_name"] for run in runs}
 
     # Find all wandb runs matching those experiment names
     related_runs = get_runs_from_wandb(
         WANDB_PATH,
-        additional_filters=[
-            {"$or": [{"config.experiment_name": name} for name in experiment_names]}
-        ],
+        additional_filters=[{"$or": [{"config.attempt_name": name} for name in attempt_names]}],
     )
 
     # Combine: original runs (by ID) + related runs (by experiment name), deduplicated

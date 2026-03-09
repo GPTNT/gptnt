@@ -18,16 +18,16 @@ def check_if_experiments_on_wandb(
 
     This is used to prevent duplicate experiments from being run.
     """
-    # Extract all the experiment names
-    experiment_names = [
-        {"config.experiment_name": experiment.experiment_name} for experiment in experiments
+    # Extract all the attempt names
+    attempt_names = [
+        {"config.attempt_name": experiment.attempt_name} for experiment in experiments
     ]
     wandb_runs = wandb.Api().runs(
         path=f"{wandb_entity}/{wandb_project}",
         filters={
             "$and": [
                 {"state": "finished"},
-                {"$or": experiment_names},
+                {"$or": attempt_names},
                 {"summary_metrics.hard_crash": False},
                 {"tags": {"$nin": ["old"]}},
             ]

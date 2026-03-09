@@ -51,7 +51,7 @@ class Filters:
     defuser: Sequence[str] = field(default_factory=list)
     expert: Sequence[str] = field(default_factory=list)
     seed: Sequence[int] = field(default_factory=list)
-    experiment_name: Sequence[str] = field(default_factory=list)
+    name: Sequence[str] = field(default_factory=list)
     strikes: Sequence[int] = field(default_factory=list)
     outcome: Sequence[OutcomeType] = field(default_factory=list)
     tags: Sequence[str] = field(default_factory=list)
@@ -69,7 +69,7 @@ class Filters:
                 tuple(self.defuser),
                 tuple(self.expert),
                 tuple(self.seed),
-                tuple(self.experiment_name),
+                tuple(self.name),
                 tuple(self.strikes),
                 tuple(self.outcome),
                 tuple(self.tags),
@@ -101,7 +101,7 @@ class Filters:
             expert=expert,
             seed=seed,
             modules_filter_type="Include All",
-            experiment_name=[exp.experiment_name for exp in experiments],
+            name=[exp.name for exp in experiments],
             tags=list(set(flatten(exp.tags for exp in experiments if exp.tags))),
         )
 
@@ -144,11 +144,9 @@ def _build_predicates(filters: Filters) -> list[Callable[[ScannedExperiment], bo
         selected = frozenset(filters.tags)
         predicates.append(lambda exp, selected=selected: not selected.isdisjoint(exp.tags or []))
 
-    if filters.experiment_name:
+    if filters.name:
         predicates.append(
-            lambda exp, name=filters.experiment_name: all(
-                part.lower() in exp.experiment_name.lower() for part in name
-            )
+            lambda exp, name=filters.name: all(part.lower() in exp.name.lower() for part in name)
         )
 
     if filters.time_remaining > 0:
@@ -169,6 +167,13 @@ def apply_filters(
     return [exp for exp in scanned_experiments if all(pred(exp) for pred in predicates)]
 
 
+def _dummy_model_filter_func(model_name: str) -> str:
+    """Add an icon if its one of the dummy models."""
+    if model_name.startswith("test"):
+        return f"{model_name} :yellow[:material/science_off:]"
+    return model_name
+
+
 def render_filter_pills(options: Filters, *, default: Filters) -> Filters:
     """Render filter pills UI for experiment filtering.
 
@@ -179,7 +184,7 @@ def render_filter_pills(options: Filters, *, default: Filters) -> Filters:
 
     filters.condition = st.pills(
         "**Conditions**",
-        options=options.condition,
+        options=sorted(options.condition),
         selection_mode="multi",
         default=default.condition or None,
         format_func=titlecase,
@@ -187,14 +192,14 @@ def render_filter_pills(options: Filters, *, default: Filters) -> Filters:
     with st.container(horizontal=True, width="content", gap="medium"):
         filters.communication_style = st.pills(
             "**Communication Style**",
-            options=options.communication_style,
+            options=sorted(options.communication_style),
             selection_mode="multi",
             default=default.communication_style or None,
             format_func=titlecase,
         )
         filters.seed = st.pills(
             "**Seed**",
-            options=options.seed,
+            options=sorted(options.seed),
             selection_mode="multi",
             default=default.seed or None,
             format_func=str,
@@ -216,7 +221,7 @@ def render_filter_pills(options: Filters, *, default: Filters) -> Filters:
     filters.modules_filter_type = module_filter_type
     filters.modules = st.pills(
         "**Modules**",
-        options=options.modules,
+        options=sorted(options.modules),
         selection_mode="multi",
         default=default.modules or None,
         # format_func=titlecase,
@@ -225,16 +230,18 @@ def render_filter_pills(options: Filters, *, default: Filters) -> Filters:
     with st.container(horizontal=True, width="content", gap="medium"):
         filters.defuser = st.pills(
             "**Defuser**",
-            options=options.defuser,
+            options=sorted(options.defuser),
             selection_mode="multi",
             default=default.defuser or None,
             width="content",
+            format_func=_dummy_model_filter_func,
         )
         filters.expert = st.pills(
             "**Expert**",
-            options=options.expert,
+            options=sorted(options.expert),
             selection_mode="multi",
             default=default.expert or None,
+            format_func=_dummy_model_filter_func,
         )
 
     with st.container(horizontal=True, width="content", gap="medium"):
@@ -251,7 +258,10 @@ def render_filter_pills(options: Filters, *, default: Filters) -> Filters:
 
     with st.container(horizontal=True, width="content", gap="medium"):
         filters.tags = st.pills(
-            "**Tags**", options=options.tags, selection_mode="multi", default=default.tags or None
+            "**Tags**",
+            options=sorted(options.tags),
+            selection_mode="multi",
+            default=default.tags or None,
         )
     return filters
 
@@ -265,11 +275,9 @@ def render_filters(options: Filters, *, expanded: bool = True) -> Filters:
             "Select one or more values for each. Empty means no filtering on that attribute."
         )
         with st.container(horizontal=True, width=500):
-            experiment_name = st.text_input(
-                "Experiment Name", placeholder="Filter by experiment name..."
-            )
+            name = st.text_input("Name", placeholder="Filter by experiment/attempt name...")
 
-        default = Filters(experiment_name=[experiment_name] if experiment_name else [])
+        default = Filters(name=[name] if name else [])
 
         filters = render_filter_pills(options, default=default)
         return filters

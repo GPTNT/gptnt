@@ -109,13 +109,13 @@ def _generate_experiments_to_tmpdir(tmpdir: Path, names: list[str] | None = None
             console.print(proc.stderr)
             raise typer.Exit(code=1)
 
-    return _load_experiment_names_from_dir(tmpdir)
+    return _load_attempt_names_from_dir(tmpdir)
 
 
-def _load_experiment_names_from_dir(directory: Path) -> list[str]:
-    """Load experiment names from a directory of JSON files."""
-    experiment_names = [path.stem for path in directory.glob("*.json")]
-    return experiment_names
+def _load_attempt_names_from_dir(directory: Path) -> list[str]:
+    """Load attempt names from a directory of JSON files."""
+    attempt_names = [path.stem for path in directory.glob("*.json")]
+    return attempt_names
 
 
 def _resolve_experiments(sources: list[ExperimentsSource]) -> list[str]:
@@ -130,7 +130,7 @@ def _resolve_experiments(sources: list[ExperimentsSource]) -> list[str]:
             raise typer.BadParameter("Cannot mix a directory path with experiment names.")
         directory = Path(sources[0].raw)
         console.print(f"[dim]Loading experiments from {directory}[/dim]")
-        return _load_experiment_names_from_dir(directory)
+        return _load_attempt_names_from_dir(directory)
 
     if any(src.kind == "dir" for src in sources):
         raise typer.BadParameter("Cannot mix a directory path with experiment names.")
@@ -146,19 +146,17 @@ def _resolve_experiments(sources: list[ExperimentsSource]) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
-def _fetch_all_runs(wandb_path: str, experiment_names: list[str]) -> CollatedRuns:
+def _fetch_all_runs(wandb_path: str, attempt_names: list[str]) -> CollatedRuns:
     """Fetch ALL runs from wandb with no state/tag filters and collate them."""
     with console.status(f"Fetching all runs from [cyan]{wandb_path}[/cyan]..."):
         api = wandb.Api()
         runs = api.runs(
             wandb_path,
-            filters={
-                "$and": [{"$or": [{"config.experiment_name": name} for name in experiment_names]}]
-            },
+            filters={"$and": [{"$or": [{"config.attempt_name": name} for name in attempt_names]}]},
         )
     console.print(f"  Fetched [bold]{len(runs)}[/bold] total runs from wandb.")
 
-    # Group runs by experiment_name -> session_id -> [runs].
+    # Group runs by attempt_name -> session_id -> [runs].
     collated = collate_runs_per_experiment_per_game(runs)
     return collated
 

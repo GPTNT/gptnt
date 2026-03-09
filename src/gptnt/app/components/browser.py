@@ -11,7 +11,7 @@ def _select_callback(experiment: ScannedExperiment) -> None:
     state.loader.selected_experiment = experiment
     if state.loaded_experiment:
         state.loaded_experiment = None
-    _ = st.toast(f"Selected experiment: {experiment.experiment_name}")
+    _ = st.toast(f"Selected experiment: {experiment.name}")
 
 
 def render_experiment_browser(
@@ -31,7 +31,7 @@ def render_experiment_browser(
             df = pd.DataFrame(
                 [
                     {
-                        "experiment": entry.experiment_name,
+                        "attempt_name": entry.name,
                         "condition": entry.condition,
                         "style": entry.communication_style,
                         "modules": ", ".join(entry.modules) if entry.modules else "",

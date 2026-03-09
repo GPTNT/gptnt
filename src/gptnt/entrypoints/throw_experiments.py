@@ -39,15 +39,15 @@ def filter_experiments(  # noqa: WPS210
     loaded_experiments: list[ExperimentSpec], *, wandb_path: str
 ) -> list[ExperimentSpec]:
     """Filter the experiments by those already run on wandb."""
-    # Get all the experiment name for the files we have on disk
-    loaded_experiment_names = (experiment.experiment_name for experiment in loaded_experiments)
+    # Get all the attempt names for the files we have on disk
+    loaded_attempt_names = (experiment.attempt_name for experiment in loaded_experiments)
 
     # Get all the runs from wandb with these experiments (if they exist)
     with console.status("Checking for existing runs on wandb..."):
         wandb_runs = get_runs_from_wandb(
             wandb_path,
             additional_filters=[
-                {"$or": [{"config.experiment_name": name} for name in loaded_experiment_names]}
+                {"$or": [{"config.attempt_name": name} for name in loaded_attempt_names]}
             ],
         )
 
@@ -67,16 +67,16 @@ def filter_experiments(  # noqa: WPS210
         logger.warning(f"Found {len(invalid_runs)} invalid runs on wandb. Adding the 'old' tag")
         mark_runs_as_old(invalid_runs)
 
-    invalid_experiment_names = {run.config["experiment_name"] for run in invalid_runs}
+    invalid_attempts_names = {run.config["attempt_name"] for run in invalid_runs}
     invalid_experiments_on_wandb = [
-        spec for spec in loaded_experiments if spec.experiment_name in invalid_experiment_names
+        spec for spec in loaded_experiments if spec.attempt_name in invalid_attempts_names
     ]
 
     specs_not_on_wandb = [
         experiment
         for experiment in loaded_experiments
-        if experiment.experiment_name not in runs_per_experiment_per_game
-        and experiment.experiment_name not in invalid_experiment_names
+        if experiment.attempt_name not in runs_per_experiment_per_game
+        and experiment.attempt_name not in invalid_attempts_names
     ]
 
     # For every experiment in the spec list, if there is a run on wandb that is valid, we should
@@ -136,9 +136,9 @@ async def throw_ai_experiments(
         )
 
     if delete_unneeded:
-        all_experiment_names = [experiment.experiment_name for experiment in loaded_experiments]
+        all_names = [experiment.attempt_name for experiment in loaded_experiments]
         for path in experiment_paths:
-            if path.stem not in all_experiment_names:
+            if path.stem not in all_names:
                 path.unlink(missing_ok=True)
 
     if not dry_run:

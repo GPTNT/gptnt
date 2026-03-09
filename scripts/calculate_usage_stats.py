@@ -228,8 +228,8 @@ def fix_negative_tokens_with_max(df: pd.DataFrame) -> pd.DataFrame:
     return df_fixed
 
 
-def extract_experiment_name_from_attributes(attributes_value: Any) -> str | None:
-    """Extract experiment_name from attributes."""
+def extract_attempt_name_from_attributes(attributes_value: Any) -> str | None:
+    """Extract attempt_name from attributes."""
     if pd.isna(attributes_value) or attributes_value is None:
         return None
 
@@ -245,8 +245,8 @@ def extract_experiment_name_from_attributes(attributes_value: Any) -> str | None
         else:
             return None
 
-        # Extract experiment_name directly
-        return attributes_dict.get("experiment_name", None)
+        # Extract attempt_name directly
+        return attributes_dict.get("attempt_name", None)
 
     except (ValueError, TypeError, AttributeError):
         return None
@@ -372,25 +372,25 @@ def extract_thinking_framework_from_attributes(attributes_value: Any) -> str | N
         return None
 
 
-def extract_module_from_experiment_name(experiment_name: str) -> str | None:
+def extract_module_from_attempt_name(attempt_name: str) -> str | None:
     """Extract module from experiment name (e.g., 'Password' from
     'repeated_modules_2_sync_Password_337_(defuser=claude37+react--expert=claude')."""
-    if pd.isna(experiment_name) or not isinstance(experiment_name, str):
+    if pd.isna(attempt_name) or not isinstance(attempt_name, str):
         return None
 
     try:
         # First try: look for pattern _ModuleName_digits_(
-        match = re.search(r"_([^_]+)_\d+_\(", experiment_name)
+        match = re.search(r"_([^_]+)_\d+_\(", attempt_name)
         if match:
             return match.group(1)
 
         # Second try: look for pattern _ModuleName_digits at the end
-        match = re.search(r"_([^_]+)_\d+$", experiment_name)
+        match = re.search(r"_([^_]+)_\d+$", attempt_name)
         if match:
             return match.group(1)
 
         # Third try: more flexible - find any word followed by _digits
-        match = re.search(r"_([A-Za-z][A-Za-z0-9]*)_\d+", experiment_name)
+        match = re.search(r"_([A-Za-z][A-Za-z0-9]*)_\d+", attempt_name)
         if match:
             return match.group(1)
 
@@ -415,8 +415,8 @@ def process_weave_data(df: pd.DataFrame) -> pd.DataFrame:
 
     # Extract all fields from attributes
     if "attributes" in processed_df.columns:
-        processed_df["experiment_name"] = processed_df["attributes"].apply(
-            extract_experiment_name_from_attributes
+        processed_df["attempt_name"] = processed_df["attributes"].apply(
+            extract_attempt_name_from_attributes
         )
         processed_df["game_id"] = processed_df["attributes"].apply(extract_game_id_from_attributes)
         processed_df["is_playing_alone"] = processed_df["attributes"].apply(
@@ -432,10 +432,10 @@ def process_weave_data(df: pd.DataFrame) -> pd.DataFrame:
             extract_condition_from_attributes
         )
 
-    # Extract condition and module from experiment_name
-    if "experiment_name" in processed_df.columns:
-        processed_df["module"] = processed_df["experiment_name"].apply(
-            extract_module_from_experiment_name
+    # Extract condition and module from attempt_name
+    if "attempt_name" in processed_df.columns:
+        processed_df["module"] = processed_df["attempt_name"].apply(
+            extract_module_from_attempt_name
         )
 
         # Set module to 'N/A' when condition is 'multiple_modules'

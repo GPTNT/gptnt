@@ -33,7 +33,7 @@ def generate_experiments(cfg: DictConfig) -> None:  # noqa: WPS210
 
     paths.experiments.mkdir(parents=True, exist_ok=True)
     for experiment in track(experiments, description="Generating experiments..."):
-        file_path = paths.experiments.joinpath(experiment.experiment_name).with_suffix(".json")
+        file_path = paths.experiments.joinpath(experiment.attempt_name).with_suffix(".json")
         file_path.parent.mkdir(parents=True, exist_ok=True)
         _ = file_path.write_text(experiment.model_dump_json())
 

@@ -81,23 +81,21 @@ class ExperimentLoader:
 
         # Keep selected_experiment in sync with freshly-loaded data
         if self.selected_experiment is not None:
-            by_name = {exp.experiment_name: exp for exp in self.scanned_experiments}
-            self.selected_experiment = by_name.get(self.selected_experiment.experiment_name)
+            by_name = {exp.name: exp for exp in self.scanned_experiments}
+            self.selected_experiment = by_name.get(self.selected_experiment.name)
 
-    def load_experiment_record(self, experiment_name: str) -> ExperimentRecord | None:
+    def load_experiment_record(self, name: str) -> ExperimentRecord | None:
         """Load the full ``ExperimentRecord`` by reading raw player JSON files from disk.
 
         Returns ``None`` if the experiment is not found or has no associated files.
         """
         with self.connection().session as session:
             exp = session.exec(
-                select(ScannedExperiment).where(
-                    ScannedExperiment.experiment_name == experiment_name
-                )
+                select(ScannedExperiment).where(ScannedExperiment.name == name)
             ).one_or_none()
 
         if not exp or not exp.file_path_strings:
-            logger.warning("No experiment files found in DB", experiment_name=experiment_name)
+            logger.warning("No experiment files found in DB", name=name)
             return None
 
         player_records: list[ExperimentPlayerRecord] = [
@@ -107,10 +105,10 @@ class ExperimentLoader:
         records = build_experiment_records_from_player_records(player_records)
         return records[0] if records else None
 
-    def save_tags(self, experiment_name: str, tags: list[str]) -> None:
+    def save_tags(self, name: str, tags: list[str]) -> None:
         """Persist tag changes for an experiment to DuckDB and update in-memory state."""
         with self.connection().session as session:
-            exp = session.get(ScannedExperiment, experiment_name)
+            exp = session.get(ScannedExperiment, name)
             if exp:
                 exp.tags = tags
                 session.add(exp)
@@ -118,13 +116,10 @@ class ExperimentLoader:
 
         # Mirror change in memory so the UI reflects it without a full refresh
         for exp in self.scanned_experiments:
-            if exp.experiment_name == experiment_name:
+            if exp.name == name:
                 exp.tags = tags
                 break
-        if (
-            self.selected_experiment is not None
-            and self.selected_experiment.experiment_name == experiment_name
-        ):
+        if self.selected_experiment is not None and self.selected_experiment.name == name:
             self.selected_experiment.tags = tags
 
     @property

@@ -105,6 +105,8 @@ class WandbExperimentPlayerRecorder(ExperimentPlayerRecorder):
                 "game_uuid": experiment_descriptor.game_uuid,
                 "player_uuid": self.player_uuid,
                 "experiment_name": experiment_descriptor.experiment_spec.experiment_name,
+                "attempt": experiment_descriptor.experiment_spec.attempt,
+                "attempt_name": experiment_descriptor.experiment_spec.attempt_name,
                 **protocol.model_dump(mode="json"),
                 **experiment_descriptor.experiment_spec.model_dump(mode="json"),
                 **experiment_descriptor.experiment_spec.mission_spec.model_dump(

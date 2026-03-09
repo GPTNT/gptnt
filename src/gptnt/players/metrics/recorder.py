@@ -67,7 +67,7 @@ class ExperimentPlayerRecorder:
         self.start_time = Instant.now()
         logger.debug(
             "Configured experiment logger",
-            experiment_name=experiment_descriptor.name,
+            attempt_name=experiment_descriptor.name,
             protocol=protocol,
             player_uuid=str(player_uuid),
         )

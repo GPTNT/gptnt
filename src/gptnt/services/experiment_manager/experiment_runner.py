@@ -447,7 +447,7 @@ class SyncExperimentRunner(ExperimentRunner):
 
         logger.debug(
             "Experiment sync loop completed",
-            experiment=self.experiment.experiment_spec.experiment_name,
+            experiment=self.experiment.experiment_spec.attempt_name,
         )
 
     async def run_single_sync_step(self) -> None:
@@ -552,8 +552,7 @@ class AsyncExperimentRunner(ExperimentRunner):
                     )
 
             logger.debug(
-                "Experiment loop started",
-                experiment=self.experiment.experiment_spec.experiment_name,
+                "Experiment loop started", experiment=self.experiment.experiment_spec.attempt_name
             )
 
     async def run_player_loop(self, player_client: PlayerClient, role: PlayerRole) -> None:
@@ -572,5 +571,5 @@ class AsyncExperimentRunner(ExperimentRunner):
                     await anyio.sleep(0.5)
 
         logger.debug(
-            "Player loop completed", experiment=self.experiment.experiment_spec.experiment_name
+            "Player loop completed", experiment=self.experiment.experiment_spec.attempt_name
         )

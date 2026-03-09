@@ -38,8 +38,8 @@ class ExperimentDescriptor(BaseModel, frozen=True):
 
     @property
     def name(self) -> str:
-        """Get the name of the experiment, which is just the experiment name."""
-        return self.experiment_spec.experiment_name
+        """Get the detailed name of the experiment."""
+        return self.experiment_spec.attempt_name
 
     @property
     def mission_spec(self) -> KtaneMissionSpec:

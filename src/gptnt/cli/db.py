@@ -105,7 +105,7 @@ def validate_scanned_experiments_with_wandb(
 ) -> tuple[list[ScannedExperiment], list[ScannedExperiment]]:
     """Validate scanned experiments against wandb and filter out invalid ones.
 
-    Queries wandb using paired (experiment_name, player_uuid) filters for precision.
+    Queries wandb using paired (attempt_name, player_uuid) filters for precision.
     When ``updated_after`` is set, only runs updated since that timestamp are fetched
     (incremental sync). Experiments not returned by an incremental query keep their
     existing ``wandb_valid`` value.
@@ -113,11 +113,11 @@ def validate_scanned_experiments_with_wandb(
     Mutates ``wandb_valid`` and ``wandb_last_updated`` on each ``ScannedExperiment``
     in place, then returns ``(valid_experiments, invalid_experiments)``.
     """
-    exp_by_name = {exp.experiment_name: exp for exp in scanned_experiments}
+    exp_by_name = {exp.name: exp for exp in scanned_experiments}
     experiment_conditions = [
         {
             "$and": [
-                {"config.experiment_name": exp.experiment_name},
+                {"config.attempt_name": exp.name},
                 {
                     "config.player_uuid": {
                         "$in": [uuid for uuid in (exp.player_uuids or []) if uuid]
@@ -140,8 +140,8 @@ def validate_scanned_experiments_with_wandb(
     invalid_runs = get_invalid_runs_from_collated_runs(
         collate_runs_per_experiment_per_game(wandb_runs)
     )
-    invalid_names = {run.config["experiment_name"] for run in invalid_runs}
-    all_wandb_names = {run.config["experiment_name"] for run in wandb_runs}
+    invalid_names = {run.config["attempt_name"] for run in invalid_runs}
+    all_wandb_names = {run.config["attempt_name"] for run in wandb_runs}
     valid_names = all_wandb_names - invalid_names
 
     for wandb_name in all_wandb_names:
@@ -149,8 +149,8 @@ def validate_scanned_experiments_with_wandb(
             exp_by_name[wandb_name].is_wandb_valid = wandb_name in valid_names
 
     return (
-        [exp for exp in scanned_experiments if exp.experiment_name in valid_names],
-        [exp for exp in scanned_experiments if exp.experiment_name not in valid_names],
+        [exp for exp in scanned_experiments if exp.name in valid_names],
+        [exp for exp in scanned_experiments if exp.name not in valid_names],
     )
 
 
@@ -191,8 +191,8 @@ def validate_experiments(
         )
 
         # The returned experiments may be detached; re-fetch and mutate so SQLModel tracks changes
-        names_valid = {exp.experiment_name for exp in valid}
-        names_invalid = {exp.experiment_name for exp in invalid}
+        names_valid = {exp.name for exp in valid}
+        names_invalid = {exp.name for exp in invalid}
 
         with Progress(
             SpinnerColumn(),
@@ -205,10 +205,10 @@ def validate_experiments(
         ) as progress:
             task = progress.add_task("Scanning for experiment files", total=len(candidates))
             for exp in candidates:
-                if exp.experiment_name in names_valid:
+                if exp.name in names_valid:
                     exp.is_wandb_valid = True
                     session.add(exp)
-                elif exp.experiment_name in names_invalid:
+                elif exp.name in names_invalid:
                     exp.is_wandb_valid = False
                     session.add(exp)
                 progress.advance(task)

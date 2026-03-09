@@ -58,7 +58,7 @@ class Session:
     @property
     def name(self) -> str:
         """Get the name of the room instance, which is just the experiment name."""
-        return f"{self.spec.experiment_name}--{self.experiment_uuid}"
+        return f"{self.spec.attempt_name}--{self.experiment_uuid}"
 
     @property
     def state(self) -> ExperimentState:

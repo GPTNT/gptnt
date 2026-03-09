@@ -18,27 +18,6 @@ if TYPE_CHECKING:
     from gptnt.players.specification import PlayerProtocol
 
 
-def render_experiment_name(experiment_record: ExperimentRecord) -> None:
-    """Render experiment name."""
-    spec = experiment_record.experiment_descriptor.experiment_spec
-    mission = spec.mission_spec
-
-    columns = st.columns(2, gap=None)
-    with columns[0], st.container(gap=None):
-        _ = st.caption("*Condition*")
-        _ = st.markdown(f"**{titlecase(spec.condition)}**")  # noqa: WPS226
-    with columns[1], st.container(gap=None):
-        _ = st.caption("*Communication*")
-        _ = st.markdown(f"**{titlecase(spec.communication_style)}**")
-    with columns[0], st.container(gap=None):
-        _ = st.caption("*Seed*")
-        _ = st.markdown(f"**{mission.seed}**")
-    with st.container(gap=None):
-        _ = st.caption("*Modules*")
-        module_names = sorted(comp.value for comp in mission.components)
-        _ = st.markdown(f"**{', '.join(module_names)}**")
-
-
 def _render_strikes(current: int, max_strikes: int) -> None:
     """Render strikes with color coding."""
     color = "red" if current >= max_strikes else ""

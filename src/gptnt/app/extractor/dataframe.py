@@ -6,7 +6,7 @@ from gptnt.app.experiment_loader.scanner import ScannedExperiment
 from gptnt.players.specification import PlayerRole
 
 EXPERIMENT_META_COLUMNS = (
-    "experiment_name",
+    "name",
     "condition",
     "seed",
     "defuser",
@@ -39,7 +39,7 @@ def results_to_dataframe(
     """
     rows = [
         {
-            "experiment_name": experiment.experiment_name,
+            "name": experiment.name,
             "condition": experiment.condition,
             "seed": experiment.seed,
             "defuser": experiment.defuser,

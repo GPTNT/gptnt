@@ -10,12 +10,11 @@ from gptnt.players.specification import CommunicationStyle, PlayerProtocol, Play
 
 type Condition = Literal[
     "single_module",
+    "repeated_modules_2",
+    "repeated_modules_4",
     "multiple_modules_2",
     "multiple_modules_2_front",
     "multiple_modules_n",
-    "multiple_modules_5",
-    "repeated_modules_2",
-    "repeated_modules_4",
 ]
 
 
@@ -27,6 +26,7 @@ class ExperimentSpec(BaseModel, frozen=True):
 
     mission_spec: KtaneMissionSpec
     condition: Condition
+    attempt: int = 1
 
     defuser_protocol: PlayerProtocol
     defuser_name: str
@@ -79,6 +79,11 @@ class ExperimentSpec(BaseModel, frozen=True):
         return f"{self.condition}_{self.communication_style}_{module_names}_{self.mission_spec.seed}_({self.pairing})"
 
     @property
+    def attempt_name(self) -> str:
+        """Get the name for the attempt."""
+        return f"{self.experiment_name}_attempt{self.attempt}"
+
+    @property
     def some_player_wants_feedback(self) -> bool:
         """Check if any player wants feedback."""
         defuser_wants_feedback = self.defuser_protocol.receive_feedback_after_action
@@ -89,7 +94,15 @@ class ExperimentSpec(BaseModel, frozen=True):
 
     @override
     def __hash__(self) -> int:
-        return hash((self.mission_spec, self.pairing, self.condition, self.communication_style))
+        return hash(
+            (
+                self.mission_spec,
+                self.pairing,
+                self.condition,
+                self.communication_style,
+                self.attempt,
+            )
+        )
 
     def get_player_protocol(self, role: PlayerRole) -> PlayerProtocol | None:
         """Get the player protocol for the given role."""
@@ -125,6 +138,7 @@ class ExperimentGenerator(BaseModel):
     expert_protocol: Annotated[
         PlayerProtocol | None, BeforeValidator(lambda expert: expert if expert else None)
     ]
+    attempts_per_mission: int = 1
 
     def generate(
         self, missions: Iterator[KtaneMissionSpec], pairings: Iterator[Pairing]
@@ -135,12 +149,14 @@ class ExperimentGenerator(BaseModel):
                 raise ValueError(
                     "If the expert is set in the pairing, then `expert_protocol` must be set."
                 )
-            experiment = ExperimentSpec(
-                mission_spec=mission,
-                condition=self.condition,
-                defuser_protocol=self.defuser_protocol,
-                defuser_name=pairing.defuser,
-                expert_protocol=self.expert_protocol,
-                expert_name=pairing.expert,
-            )
-            yield experiment
+            for attempt in range(1, self.attempts_per_mission + 1):
+                experiment = ExperimentSpec(
+                    mission_spec=mission,
+                    condition=self.condition,
+                    defuser_protocol=self.defuser_protocol,
+                    defuser_name=pairing.defuser,
+                    expert_protocol=self.expert_protocol,
+                    expert_name=pairing.expert,
+                    attempt=attempt,
+                )
+                yield experiment

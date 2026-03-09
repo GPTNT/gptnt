@@ -44,10 +44,8 @@ def _parse_communication_style(experiment_name: str) -> CommunicationStyle:
 def _parse_seed(experiment_name: str) -> int:
     """Extract the integer seed from the experiment name."""
     parts = experiment_name.split("_")
-    if len(parts) < 3:  # noqa: PLR2004
-        return 0
     try:
-        return int(parts[-2])
+        return int(parts[-3])
     except (ValueError, IndexError) as err:
         raise ValueError(f"Could not parse seed from experiment name: {experiment_name}") from err
 
@@ -77,6 +75,15 @@ def _parse_expert(pairing: str) -> str:
     raise ValueError(f"Could not parse expert from pairing string: {pairing}")
 
 
+def _parse_attempt(attempt_name: str) -> int:
+    """Extract the attempt number from the unique experiment name."""
+    attempt_start = attempt_name.rfind("_attempt")
+    # attempt is last in the name list before the uuid, and the uuid starts with a -
+    attempt_num_string = attempt_name[attempt_start + len("_attempt") :].split("-", 1)[0]
+    # get the ≠value between and cast to int
+    return int(attempt_num_string)
+
+
 class ScannedExperiment(SQLModel, table=True):
     """Experiment metadata — both the DuckDB ORM table and the in-memory UI object.
 
@@ -91,7 +98,7 @@ class ScannedExperiment(SQLModel, table=True):
     """
 
     __table_args__ = {"extend_existing": True}
-    experiment_name: str = Field(primary_key=True)
+    name: str = Field(primary_key=True)
 
     # Stored as TEXT[] — Python attr name differs from DB column so the
     # ``file_paths`` property can provide ``list[Path]`` without conflict.
@@ -119,6 +126,7 @@ class ScannedExperiment(SQLModel, table=True):
     defuser: str
     expert: str
     communication_style: str
+    attempt: int
 
     is_wandb_valid: bool | None = Field(default=None)
 
@@ -131,12 +139,7 @@ class ScannedExperiment(SQLModel, table=True):
         )
         player_uuids_for_hash = tuple(self.player_uuids) if self.player_uuids else ()
         return hash(
-            (
-                self.experiment_name,
-                file_path_strings_for_hash,
-                player_uuids_for_hash,
-                self.total_size_bytes,
-            )
+            (self.name, file_path_strings_for_hash, player_uuids_for_hash, self.total_size_bytes)
         )
 
     @property
@@ -171,9 +174,9 @@ class ScannedExperiment(SQLModel, table=True):
         return "Unknown"
 
     @classmethod
-    def from_files(cls, experiment_name: str, file_paths: list[Path]) -> Self:
+    def from_files(cls, attempt_name: str, file_paths: list[Path]) -> Self:
         """Factory method to create a ScannedExperiment from a list of file paths."""
-        experiment_name = experiment_name.replace("experiment-", "").strip()
+        attempt_name = attempt_name.replace("experiment-", "").strip()
         total_size = sum(path.stat().st_size for path in file_paths)
         loaded_bomb_state_generator = (
             grab_last_bomb_state_from_experiment_file(path) for path in file_paths
@@ -184,13 +187,13 @@ class ScannedExperiment(SQLModel, table=True):
 
         if bomb_state is None:
             raise ValueError(
-                f"Could not extract bomb state from any files for experiment {experiment_name}"
+                f"Could not extract bomb state from any files for experiment {attempt_name}"
             )
-        pairing = _parse_pairing(experiment_name)
+        pairing = _parse_pairing(attempt_name)
         strike_count = len(bomb_state.strikes) if bomb_state.strikes else 0
 
         return cls(
-            experiment_name=experiment_name,
+            name=attempt_name,
             file_path_strings=[str(fp) for fp in file_paths],
             total_size_bytes=total_size,
             player_uuids=[_extract_player_uuid(path.stem) for path in file_paths],
@@ -199,29 +202,30 @@ class ScannedExperiment(SQLModel, table=True):
             is_detonated=bomb_state.is_detonated,
             timer_seconds=bomb_state.timer_module.seconds_remaining,
             strike_count=strike_count,
-            condition=_parse_condition(experiment_name),
-            seed=_parse_seed(experiment_name),
+            condition=_parse_condition(attempt_name),
+            seed=_parse_seed(attempt_name),
             pairing=pairing,
             defuser=_parse_defuser(pairing),
             expert=_parse_expert(pairing),
-            communication_style=_parse_communication_style(experiment_name),
+            communication_style=_parse_communication_style(attempt_name),
             num_modules_solved=bomb_state.num_modules_solved,
+            attempt=_parse_attempt(attempt_name),
         )
 
 
-def _group_by_experiment(
+def _group_by_unique_experiment(
     file_paths: list[Path], *, uuid_length: int = 36
 ) -> dict[str, list[Path]]:
-    """Group experiment files by base experiment config (without player UUID).
+    """Group experiment files by base experiment config (with attempt, without player UUID).
 
-    Files from different experiment players (different UUIDs) but the same configuration should be
-    grouped together for de-duplication.
+    Files from different players (different UUIDs) but the same attempt should be grouped together
+    for de-duplication.
     """
     grouped = defaultdict(list)
     for path in file_paths:
         # Remove trailing -{uuid}
-        experiment_name = path.stem[: -(uuid_length + 1)]
-        grouped[experiment_name].append(path)
+        attempt_name = path.stem[: -(uuid_length + 1)]
+        grouped[attempt_name].append(path)
 
     return grouped
 
@@ -252,7 +256,7 @@ def scan_experiments_from_directory(  # noqa: WPS210
         return [], []
 
     # Group files by base config (strips player UUID for de-duplication)
-    grouped = _group_by_experiment(experiment_files)
+    grouped = _group_by_unique_experiment(experiment_files)
     if on_progress is not None:
         on_progress(0, len(grouped))
 

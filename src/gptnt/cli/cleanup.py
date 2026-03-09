@@ -20,23 +20,23 @@ paths = Paths()
 def parse_experiment_outputs_from_directory(
     directory: Path, *, _uuid_length: int = 36
 ) -> set[tuple[str, str, Path]]:
-    """Scan for experiment output files and extract (experiment_name, player_uuid, path) tuples."""
+    """Scan for experiment output files and extract (attempt_name, player_uuid, path) tuples."""
     experiments_to_check: set[tuple[str, str, Path]] = set()
     with create_progress() as progress:
         for path in progress.track(
             list(directory.rglob("experiment-*.json")), description="Scanning for experiment files"
         ):
             clean_file_name = path.stem.replace("experiment-", "")
-            experiment_name = clean_file_name[: -_uuid_length - 1]  # remove trailing -{uuid}
+            attempt_name = clean_file_name[: -_uuid_length - 1]  # remove trailing -{uuid}
             player_uuid = clean_file_name[-_uuid_length:]
-            experiments_to_check.add((experiment_name, player_uuid, path))
+            experiments_to_check.add((attempt_name, player_uuid, path))
     return experiments_to_check
 
 
 def get_valid_wandb_runs_for_experiments(
     experiments_to_check: set[tuple[str, str, Path]], wandb_entity: str, wandb_project: str
 ) -> Runs:
-    """Query WandB for valid runs matching the (experiment_name, player_uuid) pairs."""
+    """Query WandB for valid runs matching the (attempt_name, player_uuid) pairs."""
     valid_wandb_runs = get_runs_from_wandb(
         f"{wandb_entity}/{wandb_project}",
         additional_filters=[
@@ -44,11 +44,11 @@ def get_valid_wandb_runs_for_experiments(
                 "$or": [
                     {
                         "$and": [
-                            {"config.experiment_name": experiment_name},
+                            {"config.attempt_name": attempt_name},
                             {"config.player_uuid": player_uuid},
                         ]
                     }
-                    for experiment_name, player_uuid, _ in experiments_to_check
+                    for attempt_name, player_uuid, _ in experiments_to_check
                 ]
             }
         ],
@@ -73,7 +73,7 @@ def get_experiment_outputs_to_delete(
         )
         for run in valid_wandb_runs:
             exp_path = pair_per_experiment_output.get(
-                (run.config["experiment_name"], run.config["player_uuid"])
+                (run.config["attempt_name"], run.config["player_uuid"])
             )
 
             if exp_path:
@@ -106,7 +106,7 @@ def delete_old_experiment_outputs(
     ] = False,
 ) -> None:
     """Delete any experiment output files that are marked as invalid in WandB."""
-    # 1. Scan for experiment output files and extract (experiment_name, player_uuid, path) tuples
+    # 1. Scan for experiment output files and extract (attempt_name, player_uuid, path) tuples
     experiments_to_check = parse_experiment_outputs_from_directory(directory)
     if len(experiments_to_check) == 0:
         console.print(
@@ -118,7 +118,7 @@ def delete_old_experiment_outputs(
         f"Found {len(experiments_to_check)} experiment output files to check against WandB."
     )
 
-    # 2. Query WandB for valid runs matching the (experiment_name, player_uuid) pairs
+    # 2. Query WandB for valid runs matching the (attempt_name, player_uuid) pairs
     valid_wandb_runs = get_valid_wandb_runs_for_experiments(
         experiments_to_check, wandb_entity, wandb_project
     )

@@ -16,6 +16,7 @@ from gptnt.app.experiment_loader.experiment_selector import (
     get_pagination_state,
     render_experiment_card,
     render_pagination_controls,
+    render_selector_legend,
 )
 from gptnt.app.experiment_loader.scanner import ScannedExperiment
 
@@ -38,9 +39,7 @@ def load_options_for_filters() -> Filters:
             defuser=session.exec(select(ScannedExperiment.defuser).distinct()).all(),
             expert=session.exec(select(ScannedExperiment.expert).distinct()).all(),
             seed=session.exec(select(ScannedExperiment.seed).distinct()).all(),
-            experiment_name=session.exec(
-                select(ScannedExperiment.experiment_name).distinct()
-            ).all(),
+            name=session.exec(select(ScannedExperiment.name).distinct()).all(),
             tags=list(
                 set(collapse(session.exec(select(ScannedExperiment.tags).distinct()).all()))
             ),
@@ -70,16 +69,16 @@ def dialogue_selector_page() -> None:
     if state.loader.filtered_experiments and filters != state.loader.applied_filters:
         state.loader.filtered_experiments = []
         st.rerun()
-
     with st.container(horizontal=True, vertical_alignment="center"):
-        load_button = st.button(
-            "Load experiments", icon=":material/downloading:", type="primary", width="content"
-        )
-        if state.loader.filtered_experiments:
-            _ = st.caption(
-                f"Found {len(state.loader.filtered_experiments)} experiments matching the filters."
+        with st.container(horizontal=True, vertical_alignment="center"):
+            load_button = st.button(
+                "Load experiments", icon=":material/downloading:", type="primary", width="content"
             )
-
+            if state.loader.filtered_experiments:
+                _ = st.caption(
+                    f"Found {len(state.loader.filtered_experiments)} experiments matching the filters."
+                )
+        render_selector_legend()
     with st.container(horizontal=True):
         pagination_state = get_pagination_state(len(state.loader.filtered_experiments))
         render_pagination_controls(pagination_state)
@@ -149,7 +148,7 @@ def dialogue_viewer_page() -> None:
         )
 
         if save_button and new_tags != state.loader.selected_experiment.tags:
-            state.loader.save_tags(state.loader.selected_experiment.experiment_name, new_tags)
+            state.loader.save_tags(state.loader.selected_experiment.name, new_tags)
 
     with tw.container(classes="max-w-3xl"):
         render_player_cards(state.loaded_experiment)

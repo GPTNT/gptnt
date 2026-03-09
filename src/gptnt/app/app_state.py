@@ -44,9 +44,9 @@ class AppState:
             return None
 
         selected = self.loader.selected_experiment
-        logger.info("Loading experiment from DB", experiment_name=selected.experiment_name)
+        logger.info("Loading experiment from DB", name=selected.name)
 
-        record = self.loader.load_experiment_record(selected.experiment_name)
+        record = self.loader.load_experiment_record(selected.name)
         self.loaded_experiment = record
         if record:
             logger.info(
