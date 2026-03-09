@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, get_args
+from typing import TYPE_CHECKING, Literal, get_args, override
 
 import streamlit as st
 import yaml
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from gptnt.app.experiment_loader.scanner import ScannedExperiment
+
 
 type ModuleFilterType = Literal["Include All", "Include Any"]
 type OutcomeType = Literal["Solved", "Strike Out", "Timeout"]
@@ -40,7 +41,7 @@ ALL_MODULES = sorted({component.value for component in KtaneComponent})
 ALL_PLAYERS = _load_available_players()
 
 
-@dataclass
+@dataclass()
 class Filters:
     """Filters for experiments."""
 
@@ -56,6 +57,26 @@ class Filters:
     tags: Sequence[str] = field(default_factory=list)
     modules_filter_type: ModuleFilterType = field(default="Include All")
     time_remaining: float = field(default=0)
+
+    @override
+    def __hash__(self) -> int:
+        """Custom hash implementation to allow caching with mutable default fields."""
+        return hash(
+            (
+                tuple(self.condition),
+                tuple(self.communication_style),
+                tuple(self.modules),
+                tuple(self.defuser),
+                tuple(self.expert),
+                tuple(self.seed),
+                tuple(self.experiment_name),
+                tuple(self.strikes),
+                tuple(self.outcome),
+                tuple(self.tags),
+                self.modules_filter_type,
+                self.time_remaining,
+            )
+        )
 
     @classmethod
     def from_experiments(cls, experiments: list[ScannedExperiment]) -> Filters:
@@ -102,7 +123,7 @@ def _build_predicates(filters: Filters) -> list[Callable[[ScannedExperiment], bo
         ("defuser", filters.defuser),
         ("expert", filters.expert),
         ("seed", filters.seed),
-        ("strikes", filters.strikes),
+        ("strike_count", filters.strikes),
     ):
         if selected_values:
             predicates.append(
@@ -140,7 +161,6 @@ def _build_predicates(filters: Filters) -> list[Callable[[ScannedExperiment], bo
     return predicates
 
 
-@st.cache_data
 def apply_filters(
     scanned_experiments: list[ScannedExperiment], filters: Filters
 ) -> list[ScannedExperiment]:
@@ -248,6 +268,7 @@ def render_filters(options: Filters, *, expanded: bool = True) -> Filters:
             experiment_name = st.text_input(
                 "Experiment Name", placeholder="Filter by experiment name..."
             )
+
         default = Filters(experiment_name=[experiment_name] if experiment_name else [])
 
         filters = render_filter_pills(options, default=default)

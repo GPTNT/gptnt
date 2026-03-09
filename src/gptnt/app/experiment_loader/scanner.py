@@ -110,6 +110,7 @@ class ScannedExperiment(SQLModel, table=True):
     is_detonated: bool
     timer_seconds: float = 0
     strike_count: int = 0
+    num_modules_solved: int = 0
 
     # Stored computed fields (derived from experiment_name at scan/import time)
     condition: str
@@ -125,7 +126,18 @@ class ScannedExperiment(SQLModel, table=True):
 
     @override
     def __hash__(self) -> int:
-        return hash((self.experiment_name, self.file_path_strings, self.player_uuids))
+        file_path_strings_for_hash = (
+            tuple(self.file_path_strings) if self.file_path_strings else ()
+        )
+        player_uuids_for_hash = tuple(self.player_uuids) if self.player_uuids else ()
+        return hash(
+            (
+                self.experiment_name,
+                file_path_strings_for_hash,
+                player_uuids_for_hash,
+                self.total_size_bytes,
+            )
+        )
 
     @property
     def file_paths(self) -> list[Path]:
@@ -193,6 +205,7 @@ class ScannedExperiment(SQLModel, table=True):
             defuser=_parse_defuser(pairing),
             expert=_parse_expert(pairing),
             communication_style=_parse_communication_style(experiment_name),
+            num_modules_solved=bomb_state.num_modules_solved,
         )
 
 

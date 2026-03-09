@@ -13,6 +13,8 @@ if TYPE_CHECKING:
 PAGE_SIZE = 50
 PAGINATION_STATE_KEY = "exp_selector_page"
 
+STREAMLIT_RED = "#BD4043"
+
 
 @dataclass
 class PaginationState:
@@ -94,12 +96,13 @@ def render_experiment_card(  # noqa: WPS231
     show_button: bool = True,
 ) -> ScannedExperiment | None:
     """Render a single experiment card with selection button."""
-    with st.container(gap=None, horizontal=True, border=True, width=350):
-        if idx is not None:
-            _ = st.markdown(f":gray[:small[#{idx + 1}]]", width="content")
-            _ = st.space(size="xsmall")
+    with st.container(gap=None, horizontal=True, height="stretch", border=True, width=350):
+        with st.container(gap=None, width=30, height="stretch", vertical_alignment="distribute"):
+            if idx is not None:
+                _ = st.markdown(f":gray[:small[#{idx + 1}]]")
+                _ = st.space(size="stretch")
 
-        with st.container(gap=None):
+        with st.container(gap=None, height="stretch"):
             with st.container(horizontal=True, gap="small", width="content"):
                 defuser_name = experiment.defuser or ""
                 if experiment.defuser_has_manual:
@@ -119,23 +122,36 @@ def render_experiment_card(  # noqa: WPS231
                     f":small[:green[:material/potted_plant: {experiment.seed}]]", width="content"
                 )
                 _ = st.markdown(
-                    f":small[:gray[:material/timer: {experiment.timer_seconds:.1f}s]]",
+                    f":small[:blue[:material/crossword: {experiment.num_modules_solved}/{len(experiment.modules or [])}]]",
                     width="content",
                 )
+                timer_color = "#0891B2"
+                timer_icon = ":material/timer:"
+                if experiment.timer_seconds <= 0:
+                    timer_color = STREAMLIT_RED
+                    timer_icon = ":material/alarm:"
                 _ = st.markdown(
-                    f":small[:orange[:material/dangerous: {experiment.strike_count}]]",
+                    f'<span style="color: {timer_color};">:small[{timer_icon} {experiment.timer_seconds:.1f}s]</span>',
+                    unsafe_allow_html=True,
+                    width="content",
+                )
+                strike_color = "#F59E0B"
+                if experiment.strike_count >= 3:  # noqa: PLR2004
+                    strike_color = STREAMLIT_RED
+                _ = st.markdown(
+                    f'<span style="color: {strike_color};">:small[:material/dangerous: {experiment.strike_count}]</span>',
+                    unsafe_allow_html=True,
                     width="content",
                 )
                 if experiment.is_solved:
-                    _ = st.markdown(":small[:green[:material/celebration:]]", width="content")
+                    _ = st.markdown(":small[:green[:material/celebration:]]")
                 if experiment.is_detonated:
-                    _ = st.markdown(":small[:red[:material/destruction:]]", width="content")
-                _ = st.space(size="stretch")
-
-            _ = st.space(size="stretch")
+                    _ = st.markdown(":small[:red[:material/destruction:]]")
 
         if show_button:
-            with st.container(gap=None, width=20, horizontal_alignment="right"):
+            with st.container(
+                gap=None, width=20, height="stretch", vertical_alignment="distribute"
+            ):
                 button = st.button(
                     "",
                     key=f"select_{experiment.experiment_name}",

@@ -58,7 +58,7 @@ class DuckDBConnection(BaseConnection[Engine]):
 
         Safe to call repeatedly.
         """
-        from gptnt.app.experiment_loader.scanner import ScannedExperiment  # noqa: PLC0415, F401
+        # from gptnt.app.experiment_loader.scanner import ScannedExperiment
 
         SQLModel.metadata.create_all(self._instance)
 

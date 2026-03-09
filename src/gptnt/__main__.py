@@ -1,12 +1,12 @@
 import structlog
 from rich.console import Console
 
-from gptnt.cli.app import run_streamlit_app
 from gptnt.cli.cleanup import delete_old_experiment_outputs
 from gptnt.cli.db import db_app
 from gptnt.cli.kill import force_kill
 from gptnt.cli.models import print_models_table
 from gptnt.cli.status import check_experiment_completion
+from gptnt.cli.streamlit import run_streamlit_app
 from gptnt.cli.throw import throw
 from gptnt.common.async_typer import AsyncTyper
 

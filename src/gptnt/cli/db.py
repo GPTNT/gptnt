@@ -17,6 +17,7 @@ from sqlmodel import Session, SQLModel, select
 
 from gptnt.app.experiment_loader.db_connection import get_engine
 from gptnt.app.experiment_loader.scanner import ScannedExperiment, scan_experiments_from_directory
+from gptnt.cli._fields import WandbEntityOption, WandbProjectOption
 from gptnt.common.logger import create_progress
 from gptnt.common.paths import Paths
 from gptnt.experiments.wandb import (
@@ -62,10 +63,15 @@ def _scan_for_experiments(directory: Path, max_workers: int) -> list[ScannedExpe
 def import_experiments(
     directory: Annotated[
         Path,
-        typer.Argument(help="Directory containing experiment JSON files to import.", exists=True),
+        typer.Argument(
+            help="Directory containing experiment JSON files to import.",
+            exists=True,
+            envvar="EXPERIMENT_RECORDER",
+        ),
     ],
     output: Annotated[
-        Path, typer.Option("--output", "-o", help="Output DuckDB file path.")
+        Path,
+        typer.Option("--output", "-o", help="Output DuckDB file path.", envvar="EXPERIMENTS_DB"),
     ] = paths.experiments_db,
     max_workers: Annotated[
         int, typer.Option("--max-workers", "-j", help="Parallel worker threads for scanning.")
@@ -124,7 +130,9 @@ def validate_scanned_experiments_with_wandb(
     ]
 
     additional_filters = [{"$or": experiment_conditions}] if experiment_conditions else []
-    wandb_runs = get_runs_from_wandb(wandb_path, additional_filters=additional_filters)
+    wandb_runs = get_runs_from_wandb(
+        wandb_path, additional_filters=additional_filters, per_page=1000
+    )
 
     if not wandb_runs:
         return [], scanned_experiments
@@ -148,13 +156,13 @@ def validate_scanned_experiments_with_wandb(
 
 @db_app.command("validate")
 def validate_experiments(
-    wandb_path: Annotated[
-        str, typer.Option("--wandb-path", "-w", help="WandB project path (entity/project).")
-    ],
+    *,
     db_path: Annotated[
         Path,
         typer.Option(help="Path to the DuckDB file to validate.", file_okay=True, exists=True),
     ] = paths.experiments_db,
+    wandb_entity: WandbEntityOption,
+    wandb_project: WandbProjectOption,
 ) -> None:
     """Validate experiment runs against WandB and update the wandb_valid column.
 
@@ -175,10 +183,12 @@ def validate_experiments(
 
         console.print(
             f"Validating [cyan]{len(candidates)}[/cyan] experiments against"
-            f" WandB [cyan]{wandb_path}[/cyan]"
+            f" WandB [cyan]{wandb_entity}/{wandb_project}[/cyan]"
         )
 
-        valid, invalid = validate_scanned_experiments_with_wandb(candidates, wandb_path=wandb_path)
+        valid, invalid = validate_scanned_experiments_with_wandb(
+            candidates, wandb_path=f"{wandb_entity}/{wandb_project}"
+        )
 
         # The returned experiments may be detached; re-fetch and mutate so SQLModel tracks changes
         names_valid = {exp.experiment_name for exp in valid}

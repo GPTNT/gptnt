@@ -111,6 +111,11 @@ class BombState(BaseModel):
         return False
 
     @property
+    def num_modules_solved(self) -> int:
+        """Count how many modules are solved."""
+        return sum(module.is_solved for module in self.modules)
+
+    @property
     def is_timed_out(self) -> bool:
         """Check if the bomb is timed out."""
         return self.is_detonated and self.timer_module.seconds_remaining <= 0

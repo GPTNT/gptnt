@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import streamlit as st
 import structlog
@@ -16,6 +17,9 @@ from gptnt.players.metrics.records import (
     build_experiment_records_from_player_records,
 )
 
+if TYPE_CHECKING:
+    from gptnt.app.components.filters import Filters
+
 logger = structlog.get_logger()
 paths = Paths()
 
@@ -28,12 +32,17 @@ class ExperimentLoader:
         db_path: Absolute (or resolvable) path to the `experiments.duckdb` file.
         scanned_experiments: In-memory list of experiment metadata rows,
             populated on creation and on :meth:`refresh`.
+        filtered_experiments: Subset of `scanned_experiments` matching the current filter criteria.
+        applied_filters: The currently applied filter criteria, if any.
         selected_experiment: The experiment chosen in the browser UI.
     """
 
     db_path: str
 
     scanned_experiments: list[ScannedExperiment] = field(default_factory=list)
+    filtered_experiments: list[ScannedExperiment] = field(default_factory=list)
+    applied_filters: Filters | None = None
+
     selected_experiment: ScannedExperiment | None = field(default=None)
 
     skip_invalid_runs: bool = True
@@ -64,6 +73,7 @@ class ExperimentLoader:
             if self.skip_invalid_runs:
                 statement = statement.where(ScannedExperiment.is_wandb_valid == True)  # noqa: E712
             self.scanned_experiments = list(session.exec(statement).all())
+            self.filtered_experiments = []
 
         logger.info(
             "Loaded experiments from DB", count=len(self.scanned_experiments), db=self.db_path

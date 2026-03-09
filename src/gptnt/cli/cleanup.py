@@ -6,6 +6,7 @@ import typer
 from rich.console import Console
 from wandb.apis.public import Runs
 
+from gptnt.cli._fields import WandbEntityOption, WandbProjectOption
 from gptnt.common.logger import create_progress
 from gptnt.common.paths import Paths
 from gptnt.experiments.wandb import get_runs_from_wandb
@@ -93,24 +94,8 @@ def delete_old_experiment_outputs(
         typer.Argument(help="Directory containing experiment JSON files to delete.", exists=True),
     ] = paths.experiment_recorder,
     *,
-    wandb_entity: Annotated[
-        str,
-        typer.Option(
-            "--wandb-entity",
-            help="WandB entity (user or team) name",
-            envvar="WANDB_ENTITY",
-            rich_help_panel="WandB",
-        ),
-    ],
-    wandb_project: Annotated[
-        str,
-        typer.Option(
-            "--wandb-project",
-            help="WandB project name",
-            envvar="WANDB_PROJECT",
-            rich_help_panel="WandB",
-        ),
-    ],
+    wandb_entity: WandbEntityOption,
+    wandb_project: WandbProjectOption,
     dry_run: Annotated[
         bool,
         typer.Option(

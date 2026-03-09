@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import os
 import sys
 from pathlib import Path
@@ -10,6 +8,7 @@ from rich.console import Console
 from rich.table import Table
 from whenever import Instant
 
+from gptnt.cli._fields import WandbEntityOption, WandbProjectOption
 from gptnt.cli.models import PlayerSpec
 from gptnt.cli.orchestrator import ProcessOrchestrator
 from gptnt.cli.spawn import handle_signals, run_throw
@@ -87,24 +86,8 @@ async def throw(  # noqa: WPS213
     players: PlayerOption,
     display_num: DisplayNumOption = 3,
     interactive: InteractiveOption = False,
-    wandb_entity: Annotated[
-        str | None,
-        typer.Option(
-            "--wandb-entity",
-            help="Wandb entity (user or team)",
-            envvar="WANDB_ENTITY",
-            rich_help_panel="WandB",
-        ),
-    ] = None,
-    wandb_project: Annotated[
-        str | None,
-        typer.Option(
-            "--wandb-project",
-            help="Wandb project name",
-            envvar="WANDB_PROJECT",
-            rich_help_panel="WandB",
-        ),
-    ] = None,
+    wandb_entity: WandbEntityOption,
+    wandb_project: WandbProjectOption,
     logs_dir: LogsDirOption = DEFAULT_LOGS_DIR,
     output_dir: OutputDirOption = DEFAULT_OUTPUT_DIR,
     limit_observability: LimitObservabilityOption = False,
