@@ -8,7 +8,7 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from gptnt.ktane.actions import (
     GameActionType,
-    GameActionTypeWithMagic,
+    GameActionTypeWithExtras,
     KtaneBaseAction,
     RelativeCoordinate,
 )
@@ -102,7 +102,7 @@ class MagicDefuserModel(FunctionModel):
 
     def magic_function(self, messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:  # noqa: WPS110 ARG002
         """Perform a magic action."""
-        magic_action = KtaneBaseAction[GameActionTypeWithMagic, RelativeCoordinate](
+        magic_action = KtaneBaseAction[GameActionTypeWithExtras, RelativeCoordinate](
             action="magic", location=None
         )
 
@@ -111,4 +111,24 @@ class MagicDefuserModel(FunctionModel):
         )
 
         return_as_dict = {"result": {"kind": "perform_magic", "data": model_response}}
+        return ModelResponse(parts=[TextPart(content=json.dumps(return_as_dict))])
+
+
+class LotteryDefuserModel(FunctionModel):
+    """Dummy function model that performs 'lottery' actions."""
+
+    def __init__(self, *, provider: Any | None = None) -> None:  # noqa: ARG002
+        super().__init__(self.lottery_function)
+
+    def lottery_function(self, messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:  # noqa: WPS110 ARG002
+        """Perform a lottery action."""
+        lottery_action = KtaneBaseAction[GameActionTypeWithExtras, RelativeCoordinate](
+            action="lottery", location=None
+        )
+
+        model_response = lottery_action.model_dump(
+            mode="json", exclude_unset=True, exclude_defaults=True
+        )
+
+        return_as_dict = {"result": {"kind": "perform_lottery", "data": model_response}}
         return ModelResponse(parts=[TextPart(content=json.dumps(return_as_dict))])

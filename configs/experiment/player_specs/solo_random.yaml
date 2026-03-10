@@ -1,0 +1,10 @@
+defaults:
+  - _default
+  - solo_defuser
+  - _self_
+
+role: "defuser"
+is_playing_alone: true
+include_manual: false
+allow_magic_actions: false
+allow_lottery_actions: true

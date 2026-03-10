@@ -12,6 +12,7 @@ from pydantic_ai.messages import BinaryContent, ModelRequest, UserPromptPart
 from gptnt.players.actions import (
     DoNothingAction,
     InteractGameAction,
+    LotteryGameAction,
     MagicGameAction,
     PlayerOutputType,
     SendMessageAction,
@@ -32,6 +33,7 @@ ACTION_ICONS: dict[type[PlayerOutputType], str] = {  # noqa: WPS407
     InteractGameAction: "🎮",
     DoNothingAction: "⏸",
     MagicGameAction: "✨",
+    LotteryGameAction: "🍀",
 }
 
 

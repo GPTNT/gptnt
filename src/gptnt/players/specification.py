@@ -163,6 +163,9 @@ class PlayerProtocol(BaseModel, frozen=True):
     allow_magic_actions: bool = False
     """Whether the player is allowed to perform magic actions."""
 
+    allow_lottery_actions: bool = False
+    """Whether the player is allowed to perform lottery actions."""
+
     @property
     def is_solo_player(self) -> bool:
         """Whether the player is a solo player.

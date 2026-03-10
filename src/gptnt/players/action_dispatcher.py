@@ -7,7 +7,7 @@ import logfire
 import structlog
 
 from gptnt.ktane.actions import (
-    GameActionTypeWithMagic,
+    GameActionTypeWithExtras,
     KtaneBaseAction,
     KtaneGameplayInput,
     RelativeCoordinate,
@@ -17,6 +17,7 @@ from gptnt.players.actions import (
     DoNothingAction,
     GameInteractionActionType,
     InteractGameAction,
+    LotteryGameAction,
     MagicGameAction,
     PlayerOutputType,
     SendMessageAction,
@@ -75,6 +76,7 @@ class BaseActionDispatcher(abc.ABC):
             DoNothingAction: self._do_nothing_action,
             InteractGameAction: self._send_game_action,
             MagicGameAction: self._send_game_action,
+            LotteryGameAction: self._send_game_action,
         }
         output_handler = next(
             switcher[output_class]
@@ -94,7 +96,7 @@ class BaseActionDispatcher(abc.ABC):
 
     @abc.abstractmethod
     async def send_game_action(
-        self, action: KtaneBaseAction[GameActionTypeWithMagic, RelativeCoordinate]
+        self, action: KtaneBaseAction[GameActionTypeWithExtras, RelativeCoordinate]
     ) -> None:
         """Send a game action to the current game."""
         raise NotImplementedError

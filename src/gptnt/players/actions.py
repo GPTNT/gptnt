@@ -100,7 +100,17 @@ class MagicGameAction(
     model_config = ConfigDict(title="perform_magic")
 
 
-type GameInteractionActionType = MagicGameAction | InteractGameAction[InteractableLocation]
+class LotteryGameAction(
+    KtaneBaseAction[Literal["lottery"], InteractableLocation], ModelOutputDumpsMixin
+):
+    """Lottery action for the player to take in the game."""
+
+    model_config = ConfigDict(title="perform_lottery")
+
+
+type GameInteractionActionType = (
+    MagicGameAction | LotteryGameAction | InteractGameAction[InteractableLocation]
+)
 """Action types representing only game interaction actions."""
 
 
@@ -109,6 +119,7 @@ type PlayerOutputType = (
     | SendMessageAction
     | InteractGameAction[InteractableLocation]
     | MagicGameAction
+    | LotteryGameAction
 )
 """Any possible output from a player."""
 

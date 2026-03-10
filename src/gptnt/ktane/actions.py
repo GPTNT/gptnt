@@ -113,7 +113,7 @@ class KtaneBaseAction(BaseModel, Generic[KtaneActionT, LocationDataT_co]):  # no
         )
 
 
-type GameActionTypeWithMagic = GameActionType | Literal["magic"]
+type GameActionTypeWithExtras = GameActionType | Literal["magic", "lottery"]
 
-KtaneGameplayInput = KtaneBaseAction[GameActionTypeWithMagic, RelativeCoordinate]
+KtaneGameplayInput = KtaneBaseAction[GameActionTypeWithExtras, RelativeCoordinate]
 """Everything the game actually accepts as input for gameplay actions."""

@@ -7,6 +7,7 @@ from pydantic_ai.output import OutputSpec
 from gptnt.players.actions import (
     DoNothingAction,
     InteractGameAction,
+    LotteryGameAction,
     MagicGameAction,
     PlayerOutputType,
     SendMessageAction,
@@ -60,6 +61,9 @@ class PlayerDeps(BaseModel, frozen=True):
 
         if self.protocol.allow_magic_actions:
             output.append(MagicGameAction)
+
+        if self.protocol.allow_lottery_actions:
+            output.append(LotteryGameAction)
 
         clean_output: list[type[PlayerOutputType]] = []
         for output_type in output:
