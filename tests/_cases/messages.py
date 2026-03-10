@@ -118,6 +118,7 @@ class ModelMessageCases:
             num_obs_in_request = sum(
                 1
                 for part in request.parts
+                if isinstance(part, UserPromptPart)
                 for content in part.content
                 if isinstance(content, BinaryContent)
             )

@@ -4,7 +4,7 @@ defaults:
   - _self_
 
 capabilities:
-  player_name: claude45
+  player_name: claude46
   structured_output_mode: null
   thinking_method: thinking-out-loud
   include_schema_in_instructions: true
@@ -16,10 +16,11 @@ action_predictor:
   agent:
     model:
       _target_: pydantic_ai.models.anthropic.AnthropicModel
-      model_name: claude-sonnet-4-5
+      model_name: claude-sonnet-4-6
 
     model_settings:
       _target_: pydantic_ai.models.anthropic.AnthropicModelSettings
       _convert_: all
+      anthropic_effort: low
       anthropic_thinking:
         type: disabled

@@ -12,7 +12,7 @@ def estimate_tokens_for_image_per_model(model: str, *, long_side: int, short_sid
     This needs to be improved to support more models and be more accurate.
     """
     model = model.lower()
-    if "claude45" in model:
+    if "claude46" in model:
         assert long_side == 640
         assert short_side == 480
         return 424
