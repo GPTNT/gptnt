@@ -69,6 +69,7 @@ def dialogue_selector_page() -> None:
     if state.loader.filtered_experiments and filters != state.loader.applied_filters:
         state.loader.filtered_experiments = []
         st.rerun()
+
     with st.container(horizontal=True, vertical_alignment="center"):
         with st.container(horizontal=True, vertical_alignment="center"):
             load_button = st.button(
@@ -86,10 +87,15 @@ def dialogue_selector_page() -> None:
     if load_button:
         filtered = apply_filters(state.loader.scanned_experiments, filters)
         state.loader.applied_filters = filters
+
         if filtered:
             state.loader.filtered_experiments = filtered
         else:
-            filtered = []
+            _ = st.warning(
+                "No experiments found matching the filters. Please adjust your filters and try again."
+            )
+            st.stop()
+
         st.rerun()
 
     if state.loader.filtered_experiments:

@@ -57,6 +57,7 @@ class Filters:
     tags: Sequence[str] = field(default_factory=list)
     modules_filter_type: ModuleFilterType = field(default="Include All")
     time_remaining: float = field(default=0)
+    defuser_has_manual: bool | None = field(default=None)
 
     @override
     def __hash__(self) -> int:
@@ -75,6 +76,7 @@ class Filters:
                 tuple(self.tags),
                 self.modules_filter_type,
                 self.time_remaining,
+                self.defuser_has_manual,
             )
         )
 
@@ -152,6 +154,11 @@ def _build_predicates(filters: Filters) -> list[Callable[[ScannedExperiment], bo
     if filters.time_remaining > 0:
         predicates.append(lambda exp, time=filters.time_remaining: exp.timer_seconds >= time)
 
+    if filters.defuser_has_manual is not None:
+        predicates.append(
+            lambda exp, selected=filters.defuser_has_manual: exp.defuser_has_manual == selected
+        )
+
     active_outcomes = [fn for key, fn in OUTCOME_CHECKS.items() if key in filters.outcome]
     if active_outcomes:
         predicates.append(lambda exp, checks=active_outcomes: any(check(exp) for check in checks))
@@ -204,27 +211,32 @@ def render_filter_pills(options: Filters, *, default: Filters) -> Filters:
             default=default.seed or None,
             format_func=str,
         )
-    module_filter_type: ModuleFilterType | None = st.segmented_control(
-        "**Modules Filter Type**",
-        options=["Include All", "Include Any"],
-        default=default.modules_filter_type,
-        help=(
-            "When filtering by modules, 'Include All' means the experiment must contain ALL "
-            "selected modules. 'Include Any' means the experiment must contain at least one "
-            "of the selected modules."
-        ),
-    )
-    if not module_filter_type:
-        _ = st.error("Please select a filter type for modules.")
-        st.stop()
 
-    filters.modules_filter_type = module_filter_type
+    with st.container(horizontal=True, width="content"):
+        module_filter_type: ModuleFilterType | None = st.segmented_control(
+            "**Modules Filter Type**",
+            options=["Include All", "Include Any"],
+            default=default.modules_filter_type,
+            help=(
+                "When filtering by modules, 'Include All' means the experiment must contain ALL "
+                "selected modules. 'Include Any' means the experiment must contain at least one "
+                "of the selected modules."
+            ),
+        )
+        if module_filter_type is None:
+            _ = st.error("Please select a filter type for modules.")
+            st.stop()
+        filters.modules_filter_type = module_filter_type
+
+        filters.defuser_has_manual = st.segmented_control(
+            "**Defuser Has Manual**", options=[False, True], selection_mode="single", default=None
+        )
+
     filters.modules = st.pills(
         "**Modules**",
         options=sorted(options.modules),
         selection_mode="multi",
         default=default.modules or None,
-        # format_func=titlecase,
     )
 
     with st.container(horizontal=True, width="content", gap="medium"):
