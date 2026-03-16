@@ -1,5 +1,6 @@
 import asyncio
 from pathlib import Path
+from typing import cast
 
 import streamlit as st
 
@@ -86,12 +87,12 @@ def render_extractor_view(scanned_experiments: list[ScannedExperiment], filters:
     # 3. Download + preview
     with st.container(horizontal=True, vertical_alignment="center"):
         _ = st.caption("Showing up to 50 rows. Use the download button to get everything.")
-        csv_name = "__".join(fields)
+        json_name = "__".join(fields)
         _ = st.download_button(
-            label="Download CSV",
-            data=df.to_csv(index=False),
-            file_name=f"{csv_name}.csv",
-            mime="text/csv",
+            label="Download JSON",
+            data=cast("str", df.to_json(orient="records")),
+            file_name=f"{json_name}.json",
+            mime="application/json",
             type="primary",
         )
     _ = st.markdown("**Preview**")
