@@ -131,7 +131,7 @@ def validate_scanned_experiments_with_wandb(
 
     additional_filters = [{"$or": experiment_conditions}] if experiment_conditions else []
     wandb_runs = get_runs_from_wandb(
-        wandb_path, additional_filters=additional_filters, per_page=1000
+        wandb_path, timeout=120, additional_filters=additional_filters, per_page=1000
     )
 
     if not wandb_runs:
