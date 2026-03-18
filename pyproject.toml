@@ -201,7 +201,7 @@ asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
 line-length = 99
-target-version = "py312"
+target-version = "py313"
 unsafe-fixes = true
 src = ["src"]
 force-exclude = true

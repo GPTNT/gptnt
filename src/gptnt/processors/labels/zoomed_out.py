@@ -27,7 +27,7 @@ def _split_rows(
 
 def _generate_top_row_draw_data(
     regions: list[RegionProperties], box_dims: NumberBoxDimensions, offset: int
-) -> Generator[DrawData, None, None]:
+) -> Generator[DrawData]:
     """Generate draw data for a single row of regions."""
     sorted_regions = sorted(regions, key=lambda region: region.bbox[1])
 
@@ -43,7 +43,7 @@ def _generate_top_row_draw_data(
 
 def _generate_bottom_row_draw_data(
     regions: list[RegionProperties], box_dims: NumberBoxDimensions, offset: int
-) -> Generator[DrawData, None, None]:
+) -> Generator[DrawData]:
     """Generate draw data for a single row of regions."""
     sorted_regions = sorted(regions, key=lambda region: region.bbox[1])
 

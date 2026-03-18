@@ -51,7 +51,7 @@ class AutoPassThroughRouter(respx.MockRouter):
 
     @contextmanager
     @override
-    def resolver(self, request: httpx.Request) -> Generator[ResolvedRoute, None, None]:  # noqa: WPS238 WPS231
+    def resolver(self, request: httpx.Request) -> Generator[ResolvedRoute]:  # noqa: WPS238 WPS231
         resolved = ResolvedRoute()
 
         try:  # noqa: WPS229

@@ -1,3 +1,4 @@
+import itertools
 from pathlib import Path
 from typing import Annotated
 
@@ -129,10 +130,12 @@ def validate_scanned_experiments_with_wandb(
         if any(uuid for uuid in (exp.player_uuids or []))  # skip experiments with no valid UUIDs
     ]
 
-    additional_filters = [{"$or": experiment_conditions}] if experiment_conditions else []
-    wandb_runs = get_runs_from_wandb(
-        wandb_path, timeout=120, additional_filters=additional_filters, per_page=1000
-    )
+    wandb_runs = []
+    for chunk in itertools.batched(experiment_conditions, 1000, strict=False):
+        chunk_runs = get_runs_from_wandb(
+            wandb_path, timeout=120, additional_filters=[{"$or": chunk}], per_page=1000
+        )
+        wandb_runs.extend(chunk_runs)
 
     if not wandb_runs:
         return [], scanned_experiments
