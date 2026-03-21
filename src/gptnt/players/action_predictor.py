@@ -6,15 +6,18 @@ import structlog
 from pydantic_ai import Agent, ModelMessage, capture_run_messages
 from pydantic_ai.models import Model
 
-from gptnt.players.actions import AgentCallResult, PlayerOutputType, SendMessageAction
-from gptnt.players.ai.exception_recovery import ExceptionRecoveryChain
-from gptnt.players.ai.input_builder import AgentMessageInput
-from gptnt.players.ai.messages.message_history import MessageHistory
+from gptnt.players.actions import PlayerOutputType, SendMessageAction
 from gptnt.players.deps import PlayerDeps, load_instructions_from_deps
+from gptnt.players.exception_recovery import ExceptionRecoveryChain
 from gptnt.players.exceptions import ExceededMaxOutputTokensError
+from gptnt.players.history.message_history import MessageHistory
+from gptnt.players.input_builder import AgentMessageInput
+from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
+from gptnt.players.reasoning_parser.react import ReactStyleReasoningParser
 from gptnt.players.reasoning_parser.reasoning_parser import ReasoningParser
-from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.players.result import AgentCallResult
 from gptnt.prompts.reflection import load_reflection_prompt
+from gptnt.specification import PlayerCapabilities, PlayerProtocol
 
 logger = structlog.get_logger()
 
@@ -76,7 +79,11 @@ class ActionPredictor:
 
         These can only be done here because we init agents with Hydra.
         """
-        self.reasoning_parser = self.capabilities.reasoning_parser
+        match self.capabilities.thinking_method:
+            case "inner-monologue":
+                self.reasoning_parser = InnerMonologueReasoningParser()
+            case "thinking-out-loud":
+                self.reasoning_parser = ReactStyleReasoningParser()
 
         self.agent._deps_type = PlayerDeps  # noqa: SLF001
         # TODO: I think we can provide instruction functions to the init now so this should be

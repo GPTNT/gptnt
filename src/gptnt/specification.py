@@ -1,4 +1,4 @@
-from typing import Any, Literal, Self, override
+from typing import Literal, Self, override
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.fields import computed_field
@@ -8,16 +8,17 @@ from pydantic_ai.usage import UsageLimits
 
 from gptnt.common.image_ops import ImageDimensions
 from gptnt.ktane.game_settings import KtaneSettings
-from gptnt.players.actions import AbsoluteCoordinate, NormalisedCoordinate, SingleAlphabetLetter
-from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
-from gptnt.players.reasoning_parser.react import ReactStyleReasoningParser
-from gptnt.players.reasoning_parser.reasoning_parser import ReasoningParser
+from gptnt.players.locations import (
+    CoordinateMode,
+    InteractionLocationMethod,
+    PixelLocation,
+    ScaledLocation,
+    SingleAlphabetLetter,
+)
 
 type PlayerType = Literal["ai", "human"]
 type PlayerRole = Literal["defuser", "expert"]
 type CommunicationStyle = Literal["async", "sync"]
-type InteractionLocationMethod = Literal["set-of-marks", "coordinates"]
-type CoordinateMode = Literal["absolute", "normalised"]
 type ThinkingMethod = Literal["inner-monologue", "thinking-out-loud"]
 """Thinking method used by players.
 
@@ -72,7 +73,7 @@ class PlayerCapabilities(BaseModel):
 
     Normalised coordinates are on a scale from 0 to 1000, while absolute coordinates are in pixel
     values based on the image dimensions. You can change the ranges of normalised coordinates in
-    the NormalisedCoordinates class var.
+    the ScaledLocation class var.
     """
 
     preserve_last_frame_for_n_turns: int = 0
@@ -103,7 +104,7 @@ class PlayerCapabilities(BaseModel):
     @property
     def interact_location_type(
         self,
-    ) -> type[SingleAlphabetLetter] | type[AbsoluteCoordinate] | type[NormalisedCoordinate]:
+    ) -> type[SingleAlphabetLetter] | type[PixelLocation] | type[ScaledLocation]:
         """The type used for interaction locations.
 
         This is based on the interaction location method so that we can dynamically create the
@@ -111,24 +112,15 @@ class PlayerCapabilities(BaseModel):
         """
         match self.coordinate_mode:
             case "absolute":
-                coordinate_flavour = AbsoluteCoordinate
+                coordinate_flavour = PixelLocation
             case "normalised":
-                coordinate_flavour = NormalisedCoordinate
+                coordinate_flavour = ScaledLocation
 
         match self.interaction_location_method:
             case "set-of-marks":
                 return SingleAlphabetLetter  # pyright: ignore[reportReturnType]
             case "coordinates":
                 return coordinate_flavour
-
-    @property
-    def reasoning_parser[OutputT](self) -> ReasoningParser[Any, OutputT]:
-        """Load the right reasoning parser for the player."""
-        match self.thinking_method:
-            case "inner-monologue":
-                return InnerMonologueReasoningParser()
-            case "thinking-out-loud":
-                return ReactStyleReasoningParser()
 
     @override
     def __hash__(self) -> int:

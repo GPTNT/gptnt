@@ -4,17 +4,17 @@ import structlog
 from pydantic_ai import BinaryContent, RunUsage
 from pydantic_ai.messages import ModelMessage, ModelRequest, UserPromptPart
 
-from gptnt.players.ai.messages.message_transformer import (
+from gptnt.players.history.message_transformer import (
     coerce_tool_output_into_native_output,
     ensure_messages_have_valid_final_response,
 )
-from gptnt.players.ai.messages.observation_window_manager import ObservationWindowManager
-from gptnt.players.ai.messages.single_run import SingleRun
-from gptnt.players.ai.messages.token_accountant import TokenAccountant
-from gptnt.players.ai.messages.truncation_policy import TruncationPolicy
-from gptnt.players.ai.tokens import count_tokens_from_text
-from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.players.history.observation_window_manager import ObservationWindowManager
+from gptnt.players.history.single_run import SingleRun
+from gptnt.players.history.token_accountant import TokenAccountant
+from gptnt.players.history.truncation_policy import TruncationPolicy
+from gptnt.players.tokens import count_tokens_from_text
 from gptnt.prompts.manual import load_manual_as_prompt
+from gptnt.specification import PlayerCapabilities, PlayerProtocol
 
 logger = structlog.get_logger()
 

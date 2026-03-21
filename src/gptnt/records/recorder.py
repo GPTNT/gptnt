@@ -12,13 +12,14 @@ from whenever import Instant
 
 from gptnt.common.image_ops import PNGBytes
 from gptnt.common.paths import Paths
+from gptnt.experiments.experiment_descriptor import ExperimentDescriptor
 from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.state.bomb import BombState
-from gptnt.players.actions import AgentCallResult, PlayerOutputType
+from gptnt.players.actions import PlayerOutputType
 from gptnt.players.observation_handler import Observation
-from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.players.result import AgentCallResult
 from gptnt.records.models import ExperimentPlayerRecord, ExperimentStepRecord
-from gptnt.services.experiment_descriptor import ExperimentDescriptor
+from gptnt.specification import PlayerCapabilities, PlayerProtocol
 
 logger = structlog.get_logger()
 

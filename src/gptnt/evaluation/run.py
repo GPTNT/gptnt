@@ -23,8 +23,10 @@ from gptnt.dataset.defuser_vqa.constants import (
 )
 from gptnt.evaluation.model import EvalModel, ModelOutput
 from gptnt.evaluation.preprocess import PostprocessInputsFunc
-from gptnt.players.specification import PlayerCapabilities
+from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
+from gptnt.players.reasoning_parser.react import ReactStyleReasoningParser
 from gptnt.processors.image_resizer import ImageResizer
+from gptnt.specification import PlayerCapabilities
 
 logger = structlog.get_logger()
 paths = Paths()
@@ -141,7 +143,11 @@ class RunEvaluation(abc.ABC):
         assert isinstance(self.eval_model.name, str), "Model must have a name"
         self.model_name = self.eval_model.name
         self.eval_model.update_output_dir(self.output_dir)
-        self.eval_model.update_reasoning_parser(self.capabilities.reasoning_parser)
+        self.eval_model.update_reasoning_parser(
+            InnerMonologueReasoningParser()
+            if self.capabilities.thinking_method == "inner-monologue"
+            else ReactStyleReasoningParser()
+        )
 
     @property
     def output_dir(self) -> Path:

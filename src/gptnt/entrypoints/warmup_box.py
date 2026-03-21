@@ -18,13 +18,13 @@ from gptnt.ktane.actions import GameActionType
 from gptnt.ktane.client import FrameBuffer
 from gptnt.ktane.manual import KtaneManualPaths
 from gptnt.ktane.state.bomb import BombState
-from gptnt.players.ai.action_predictor import ActionPredictor
-from gptnt.players.ai.input_builder import AgentInputBuilder
-from gptnt.players.ai.messages.message_history import MessageHistory
+from gptnt.players.action_predictor import ActionPredictor
+from gptnt.players.history.message_history import MessageHistory
+from gptnt.players.input_builder import AgentInputBuilder
 from gptnt.players.observation_handler import ObservationHandler
-from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.prompts.manual import load_manual_as_prompt
 from gptnt.prompts.prompt_cache import PromptCache
+from gptnt.specification import PlayerCapabilities, PlayerProtocol
 
 console = Console()
 logger = get_logger()

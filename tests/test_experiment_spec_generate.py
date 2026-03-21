@@ -9,7 +9,7 @@ from gptnt.experiments.missions import MissionGenerator, MissionGeneratorConfig
 from gptnt.experiments.pairing import Pairing, PairingGenerator, PairingType
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.modules import KtaneComponent
-from gptnt.players.specification import PlayerProtocol
+from gptnt.specification import PlayerProtocol
 
 from tests._cases.mission_generator_config import MissionGeneratorConfigCases
 

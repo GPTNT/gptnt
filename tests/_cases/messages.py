@@ -14,7 +14,7 @@ from pydantic_ai.messages import UserPromptPart
 from pytest_cases import fixture, param_fixture
 from whenever import Instant
 
-from gptnt.players.ai.tokens import estimate_tokens_for_image_per_model
+from gptnt.players.tokens import estimate_tokens_for_image_per_model
 
 
 @fixture

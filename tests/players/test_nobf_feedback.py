@@ -1,9 +1,10 @@
 from hypothesis import given, strategies as st
 from pydantic_ai import RunUsage
 
-from gptnt.players.actions import AgentCallResult, DoNothingAction, PlayerOutputType
+from gptnt.players.actions import DoNothingAction, PlayerOutputType
 from gptnt.players.exceptions import AIResponseErrorType
 from gptnt.players.feedback.nobf import NaughtyOutputBehaviourFeedbackGenerator
+from gptnt.players.result import AgentCallResult
 
 
 @given(

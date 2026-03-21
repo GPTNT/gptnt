@@ -19,14 +19,14 @@ from pydantic_ai.usage import UsageLimits
 from pytest_cases import fixture, parametrize_with_cases
 
 from gptnt.players.actions import SendMessageAction
-from gptnt.players.ai.messages.message_history import MessageHistory
-from gptnt.players.ai.messages.message_transformer import (
+from gptnt.players.history.message_history import MessageHistory
+from gptnt.players.history.message_transformer import (
     coerce_tool_output_into_native_output,
     ensure_messages_have_valid_final_response,
     remove_binary_content_from_model_request,
 )
-from gptnt.players.ai.messages.single_run import SingleRun
-from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.players.history.single_run import SingleRun
+from gptnt.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cases.messages import ModelMessageCases
 from tests._cases.protocol import ProtocolCases

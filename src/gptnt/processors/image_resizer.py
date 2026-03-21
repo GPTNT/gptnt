@@ -7,7 +7,7 @@ from PIL.Image import Image, Resampling
 from structlog import get_logger
 
 from gptnt.ktane.actions import RelativeCoordinate
-from gptnt.players.actions import AbsoluteCoordinate
+from gptnt.players.locations import PixelLocation
 
 logger = get_logger()
 
@@ -15,7 +15,7 @@ logger = get_logger()
 class CoordinateOutOfBoundsError(ValueError):
     """Raised when a coordinate is out of bounds."""
 
-    def __init__(self, coordinate: AbsoluteCoordinate) -> None:
+    def __init__(self, coordinate: PixelLocation) -> None:
         super().__init__(f"Coordinate out of bounds: {coordinate}")
         self.coordinate = coordinate
 
@@ -50,9 +50,7 @@ class ImageResizer:
             interpolation=resampling_method_override or self.resampling_method,
         )
 
-    def convert_absolute_to_relative(
-        self, *, coordinate: AbsoluteCoordinate
-    ) -> RelativeCoordinate:
+    def convert_absolute_to_relative(self, *, coordinate: PixelLocation) -> RelativeCoordinate:
         """Convert absolute coordinate to relative coordinate based on target dimensions."""
         if not (0 <= coordinate.x < self.target_width) or not (
             0 <= coordinate.y < self.target_height

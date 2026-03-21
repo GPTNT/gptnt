@@ -12,11 +12,11 @@ from pydantic import UUID4
 
 from gptnt.common.async_ops import periodic
 from gptnt.experiments.experiments import ExperimentSpec
-from gptnt.services.events.heartbeat import Heartbeat
-from gptnt.services.events.tombstone import ServiceExpiredContext
 from gptnt.services.experiment_manager.experiment_runner import ExperimentState
 from gptnt.services.experiment_manager.matchmaking import get_playable_pairings
 from gptnt.services.experiment_manager.session import Session
+from gptnt.services.heartbeat import Heartbeat
+from gptnt.services.heartbeat.tombstone import ServiceExpiredContext
 from gptnt.services.registry.manifest import (
     GameServiceManifest,
     PlayerServiceManifest,

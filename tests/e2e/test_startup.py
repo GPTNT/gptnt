@@ -9,9 +9,9 @@ from faststream.redis import TestRedisBroker
 from gptnt.common.paths import Paths
 from gptnt.ktane.state.game import GameState
 from gptnt.services.broker import create_redis_broker
-from gptnt.services.events.player import PlayerState
 from gptnt.services.experiment_manager.experiment_manager import ExperimentManager
 from gptnt.services.game.service import GameService
+from gptnt.services.heartbeat.base import PlayerState
 from gptnt.services.player.service import PlayerService
 
 paths = Paths()

@@ -13,12 +13,12 @@ from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.executable import get_executable_path
 from gptnt.ktane.game_settings import KtaneSettings
 from gptnt.ktane.mission_spec import KtaneMissionConfig
+from gptnt.ktane.process_manager import GameProcessManager
 from gptnt.ktane.state.game import GameState
 from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.processors.labels.drawing import AnnotationBackgroundParams, AnnotationTextParams
 from gptnt.processors.set_of_marks import MaskDrawingParams, SetOfMarksHandler
-from gptnt.services.game.process_manager import GameProcessManager
 
 logger = structlog.get_logger()
 

@@ -4,9 +4,9 @@ from typing import Any
 
 import pandas as pd
 
-from gptnt.players.specification import PlayerRole
 from gptnt.records.db.connection import DuckDBConnection
 from gptnt.records.models import ExperimentMetadata, ExperimentStepRecord
+from gptnt.specification import PlayerRole
 
 
 def extract_values(obj: Any, path: str) -> list[Any]:  # noqa: WPS110

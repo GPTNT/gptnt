@@ -1,14 +1,8 @@
 from pytest_cases import param_fixture
 
 from gptnt.ktane.actions import GameActionType, RelativeCoordinate
-from gptnt.players.actions import (
-    AbsoluteCoordinate,
-    DoNothingAction,
-    InteractGameAction,
-    NormalisedCoordinate,
-    SendMessageAction,
-    SingleAlphabetLetter,
-)
+from gptnt.players.actions import DoNothingAction, InteractGameAction, SendMessageAction
+from gptnt.players.locations import PixelLocation, ScaledLocation, SingleAlphabetLetter
 
 game_command = param_fixture(
     "game_command", list(GameActionType), ids=[action.value for action in GameActionType]
@@ -51,22 +45,22 @@ class PredictedActionCases:
 
     def case_interact_absolute_coordinate(
         self, game_command: GameActionType
-    ) -> InteractGameAction[AbsoluteCoordinate]:
+    ) -> InteractGameAction[PixelLocation]:
         """InteractGameAction with absolute coordinate."""
-        return InteractGameAction[AbsoluteCoordinate](
+        return InteractGameAction[PixelLocation](
             action=game_command,
-            location=AbsoluteCoordinate(x=100, y=200)
+            location=PixelLocation(x=100, y=200)
             if game_command in GameActionType.require_location()
             else None,
         )
 
     def case_interact_normalised_coordinate(
         self, game_command: GameActionType
-    ) -> InteractGameAction[NormalisedCoordinate]:
+    ) -> InteractGameAction[ScaledLocation]:
         """InteractGameAction with normalised coordinate."""
-        return InteractGameAction[NormalisedCoordinate](
+        return InteractGameAction[ScaledLocation](
             action=game_command,
-            location=NormalisedCoordinate(x=500, y=750)
+            location=ScaledLocation(x=500, y=750)
             if game_command in GameActionType.require_location()
             else None,
         )

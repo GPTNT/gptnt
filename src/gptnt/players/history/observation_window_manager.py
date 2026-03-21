@@ -4,9 +4,9 @@ from dataclasses import dataclass
 import logfire
 from pydantic_ai.messages import ModelMessage, ModelRequest
 
-from gptnt.players.ai.messages.message_transformer import remove_binary_content_from_model_request
-from gptnt.players.ai.messages.single_run import SingleRun
-from gptnt.players.ai.messages.token_accountant import TokenAccountant
+from gptnt.players.history.message_transformer import remove_binary_content_from_model_request
+from gptnt.players.history.single_run import SingleRun
+from gptnt.players.history.token_accountant import TokenAccountant
 
 
 @dataclass(kw_only=True)

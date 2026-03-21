@@ -9,7 +9,7 @@
 # from gptnt.experiments.experiments import ExperimentSpec
 # from gptnt.players.actions import NO_NEW_MESSAGES_SENTINEL
 # from gptnt.services.events.player import PlayerState
-# from gptnt.services.experiment_descriptor import ExperimentDescriptor
+# from gptnt.experiments.experiment_descriptor import ExperimentDescriptor
 # from gptnt.services.player.client import PlayerClient
 # from gptnt.services.player.context import PlayerContext
 

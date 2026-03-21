@@ -23,6 +23,7 @@ from pydantic_ai import ModelMessage, ModelMessagesTypeAdapter, RunUsage
 
 from gptnt.common.duckdb import AsBlob, AsJSON, DuckDBSchemaMixin
 from gptnt.common.logger import monkey_patch_binary_content_repr
+from gptnt.experiments.experiment_descriptor import ExperimentDescriptor, PlayerContent
 from gptnt.experiments.experiments import Condition
 from gptnt.ktane.actions import KtaneBaseAction, KtaneGameplayInput
 from gptnt.ktane.state.bomb import BombState
@@ -30,8 +31,7 @@ from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.players.actions import DoNothingAction, PlayerOutputType, SendMessageAction
 from gptnt.players.exceptions import AIResponseErrorType
 from gptnt.players.observation_handler import Observation
-from gptnt.players.specification import CommunicationStyle, PlayerRole
-from gptnt.services.experiment_descriptor import ExperimentDescriptor, PlayerContent
+from gptnt.specification import CommunicationStyle, PlayerRole
 
 logger = structlog.get_logger()
 

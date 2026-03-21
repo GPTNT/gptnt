@@ -10,9 +10,9 @@ from more_itertools import flatten
 
 from gptnt.experiments.experiments import Condition
 from gptnt.ktane.state.modules import KtaneComponent
-from gptnt.players.specification import CommunicationStyle
 from gptnt.records.db.connection import DuckDBConnection
 from gptnt.records.models import ExperimentMetadata
+from gptnt.specification import CommunicationStyle
 
 type ModuleFilterType = Literal["Include All", "Include Any"]
 type OutcomeType = Literal["Solved", "Strike Out", "Timeout"]

@@ -4,8 +4,8 @@ from dataclasses import dataclass
 import logfire
 import structlog
 
-from gptnt.players.ai.messages.single_run import SingleRun
-from gptnt.players.ai.messages.token_accountant import TokenAccountant
+from gptnt.players.history.single_run import SingleRun
+from gptnt.players.history.token_accountant import TokenAccountant
 
 logger = structlog.get_logger()
 

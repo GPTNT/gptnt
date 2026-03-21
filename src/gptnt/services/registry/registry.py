@@ -11,9 +11,11 @@ from structlog import get_logger
 
 from gptnt.common.async_ops import periodic
 from gptnt.ktane.state.game import GameState
-from gptnt.services.events.heartbeat import GameHeartbeat, Heartbeat, PlayerHeartbeat
-from gptnt.services.events.player import PlayerState
-from gptnt.services.events.tombstone import ServiceExpiredContext
+from gptnt.services.heartbeat import Heartbeat
+from gptnt.services.heartbeat.base import PlayerState
+from gptnt.services.heartbeat.game import GameHeartbeat
+from gptnt.services.heartbeat.player import PlayerHeartbeat
+from gptnt.services.heartbeat.tombstone import ServiceExpiredContext
 from gptnt.services.registry.manifest import ServiceManifest, ServiceState
 from gptnt.services.registry.metrics import LogfireGauge
 from gptnt.services.timeouts import ServiceTimeouts

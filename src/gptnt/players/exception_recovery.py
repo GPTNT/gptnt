@@ -17,8 +17,7 @@ from pydantic_ai import (
     UnexpectedModelBehavior,
 )
 
-from gptnt.players.actions import AgentCallResult, DoNothingAction, SendMessageAction
-from gptnt.players.ai.messages.message_transformer import ensure_messages_have_valid_final_response
+from gptnt.players.actions import DoNothingAction, SendMessageAction
 from gptnt.players.exceptions import (
     AIResponseErrorType,
     ExceededMaxOutputTokensError,
@@ -26,6 +25,8 @@ from gptnt.players.exceptions import (
     InvalidResponseError,
     ReasoningParsingError,
 )
+from gptnt.players.history.message_transformer import ensure_messages_have_valid_final_response
+from gptnt.players.result import AgentCallResult
 
 logger = structlog.get_logger()
 

@@ -11,12 +11,8 @@ from gptnt.common.image_ops import PNGBytes
 from gptnt.ktane.actions import KtaneGameplayInput, RelativeCoordinate
 from gptnt.ktane.client import FrameBuffer
 from gptnt.ktane.state.bomb import BombState
-from gptnt.players.actions import (
-    AbsoluteCoordinate,
-    GameInteractionActionType,
-    NormalisedCoordinate,
-)
-from gptnt.players.specification import InteractionLocationMethod
+from gptnt.players.actions import GameInteractionActionType
+from gptnt.players.locations import InteractionLocationMethod, PixelLocation, ScaledLocation
 from gptnt.processors.image_resizer import ImageResizer
 from gptnt.processors.set_of_marks import SetOfMarksHandler
 
@@ -131,17 +127,17 @@ class ObservationHandler:
                 mark_id=action.location
             )
 
-        if self.image_resizer and isinstance(action_location, AbsoluteCoordinate):
+        if self.image_resizer and isinstance(action_location, PixelLocation):
             logger.info(f"Converting absolute coordinate {action_location} to relative.")
             action_location = self.image_resizer.convert_absolute_to_relative(
                 coordinate=action_location
             )
 
-        if self.image_resizer and isinstance(action_location, NormalisedCoordinate):
+        if self.image_resizer and isinstance(action_location, ScaledLocation):
             logger.info(f"Converting normalised coordinate {action_location} to relative.")
             action_location = RelativeCoordinate(
-                x_pos=action_location.x / NormalisedCoordinate.upper_bound,
-                y_pos=action_location.y / NormalisedCoordinate.upper_bound,
+                x_pos=action_location.x / ScaledLocation.upper_bound,
+                y_pos=action_location.y / ScaledLocation.upper_bound,
             )
 
         return KtaneGameplayInput.model_validate(

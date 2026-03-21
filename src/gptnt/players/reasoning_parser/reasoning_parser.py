@@ -8,8 +8,8 @@ from pydantic import TypeAdapter, ValidationError
 from pydantic_ai import AgentRunResult
 from pydantic_core import from_json
 
-from gptnt.players.actions import AgentCallResult
 from gptnt.players.exceptions import AIResponseErrorType, InvalidOutputFormatError
+from gptnt.players.result import AgentCallResult
 
 logger = structlog.get_logger()
 

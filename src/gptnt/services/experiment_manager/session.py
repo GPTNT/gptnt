@@ -9,8 +9,8 @@ from coredis import Redis
 from faststream.redis import RedisBroker
 from pydantic import UUID4
 
+from gptnt.experiments.experiment_descriptor import ExperimentDescriptor
 from gptnt.experiments.experiments import ExperimentSpec
-from gptnt.services.experiment_descriptor import ExperimentDescriptor
 from gptnt.services.experiment_manager.experiment_runner import (
     AsyncExperimentRunner,
     ExperimentRunner,

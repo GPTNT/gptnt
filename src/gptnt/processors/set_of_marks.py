@@ -16,7 +16,7 @@ from skimage.measure import regionprops
 
 from gptnt.ktane.actions import RelativeCoordinate
 from gptnt.ktane.state.modules import KtaneComponent
-from gptnt.players.actions import SetOfMarksLocation
+from gptnt.players.locations import SetOfMarksLocation
 from gptnt.processors.labels.color import get_region_color
 from gptnt.processors.labels.drawing import (
     AnnotationBackgroundParams,

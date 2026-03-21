@@ -12,19 +12,21 @@ from faststream.redis import RedisBroker
 from pydantic import BaseModel
 
 from gptnt.common.paths import Paths
+from gptnt.experiments.experiment_descriptor import ExperimentDescriptor
 from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.manual import KtaneManualPaths
-from gptnt.players.actions import AgentCallResult, PlayerOutputType
-from gptnt.players.ai.input_builder import AgentInputBuilder
-from gptnt.players.ai.messages.message_history import MessageHistory
-from gptnt.players.specification import PlayerProtocol
+from gptnt.players.actions import PlayerOutputType
+from gptnt.players.history.message_history import MessageHistory
+from gptnt.players.input_builder import AgentInputBuilder
+from gptnt.players.result import AgentCallResult
 from gptnt.prompts.manual import load_manual_as_prompt
 from gptnt.prompts.prompt_cache import PromptCache
-from gptnt.services.events.player import PlayerMessage, PlayerState, StopPlayerEvent
-from gptnt.services.experiment_descriptor import ExperimentDescriptor
 from gptnt.services.game.client import BombIsDetonatedError
-from gptnt.services.player.context import PlayerServiceContext
+from gptnt.services.heartbeat.base import PlayerState
+from gptnt.services.player.agent import PlayerAgent
+from gptnt.services.player.commands import PlayerMessage, StopPlayerEvent
 from gptnt.services.rpc import BaseRPCService
+from gptnt.specification import PlayerProtocol
 
 logger = structlog.get_logger()
 
@@ -45,11 +47,11 @@ class _ConfigureExperimentPayload(BaseModel):
 
 
 @dataclass(kw_only=True)
-class PlayerService(PlayerServiceContext, BaseRPCService[PlayerCommand]):
+class PlayerService(PlayerAgent, BaseRPCService[PlayerCommand]):
     """Service for a player instance.
 
     Registers Redis RPC handlers and coordinates the player lifecycle while delegating the
-    underlying work to the core player components managed by PlayerServiceContext.
+    underlying work to the core player components managed by PlayerAgent.
     """
 
     broker: RedisBroker

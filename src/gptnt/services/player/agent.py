@@ -6,24 +6,24 @@ from uuid import uuid4
 import structlog
 from pydantic import UUID4
 
-from gptnt.players.ai.action_predictor import ActionPredictor
-from gptnt.players.ai.input_builder import AgentInputBuilder
-from gptnt.players.ai.messages.message_history import MessageHistory
+from gptnt.experiments.experiment_descriptor import ExperimentDescriptor
+from gptnt.players.action_predictor import ActionPredictor
 from gptnt.players.feedback.nobf import NaughtyOutputBehaviourFeedbackGenerator
+from gptnt.players.history.message_history import MessageHistory
+from gptnt.players.input_builder import AgentInputBuilder
 from gptnt.players.observation_handler import ObservationHandler
-from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.records.recorder import ExperimentPlayerRecorder
-from gptnt.services.events.heartbeat import PlayerHeartbeat
-from gptnt.services.events.player import PlayerState
-from gptnt.services.experiment_descriptor import ExperimentDescriptor
 from gptnt.services.game.client import GameClient
-from gptnt.services.heartbeat_broadcaster import HeartbeatBroadcaster
+from gptnt.services.heartbeat.base import PlayerState
+from gptnt.services.heartbeat.broadcaster import HeartbeatBroadcaster
+from gptnt.services.heartbeat.player import PlayerHeartbeat
 from gptnt.services.player.action_dispatcher import ActionDispatcher
 from gptnt.services.player.message_handler import IncomingMessageHandler
+from gptnt.specification import PlayerCapabilities, PlayerProtocol
 
 
 @dataclass(kw_only=True)
-class PlayerServiceContext(HeartbeatBroadcaster):
+class PlayerAgent(HeartbeatBroadcaster):
     """Context for the player service instance.
 
     This composes the various player components and manages the shared state to help the actual

@@ -9,7 +9,6 @@ import structlog
 from json_repair import repair_json
 from pydantic_ai import AgentRunResult
 
-from gptnt.players.actions import AgentCallResult
 from gptnt.players.exceptions import (
     AIResponseErrorType,
     InvalidOutputFormatError,
@@ -19,6 +18,7 @@ from gptnt.players.reasoning_parser.reasoning_parser import (
     ReasoningParser,
     structure_string_output,
 )
+from gptnt.players.result import AgentCallResult
 
 logger = structlog.get_logger()
 

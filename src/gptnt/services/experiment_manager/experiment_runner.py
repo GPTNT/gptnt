@@ -14,11 +14,8 @@ import structlog
 
 from gptnt.common.async_ops import Event
 from gptnt.prompts.reflection import convert_bomb_state_to_reflection
-from gptnt.services.experiment_manager.service_state_watcher import (
-    GameStateWatcher,
-    PlayerStateWatcher,
-)
 from gptnt.services.game.client import GameClient
+from gptnt.services.heartbeat.watcher import GameStateWatcher, PlayerStateWatcher
 from gptnt.services.player.client import PlayerClient
 from gptnt.services.timeouts import ServiceTimeouts
 
@@ -28,9 +25,9 @@ if TYPE_CHECKING:
     from coredis import Redis
     from faststream.redis import RedisBroker
 
+    from gptnt.experiments.experiment_descriptor import ExperimentDescriptor
     from gptnt.ktane.state.bomb import BombState
-    from gptnt.players.specification import PlayerRole
-    from gptnt.services.experiment_descriptor import ExperimentDescriptor
+    from gptnt.specification import PlayerRole
 
 logger = structlog.get_logger()
 timeouts = ServiceTimeouts()

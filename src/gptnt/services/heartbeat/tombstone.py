@@ -5,8 +5,7 @@ from pydantic import BaseModel, BeforeValidator, Field
 from pydantic.types import UUID4
 from whenever import Instant
 
-from gptnt.services.events.base import BaseEvent
-from gptnt.services.events.heartbeat import ReadyState
+from gptnt.services.heartbeat.base import BaseEvent, ReadyState
 
 
 class FailureCategory(Enum):

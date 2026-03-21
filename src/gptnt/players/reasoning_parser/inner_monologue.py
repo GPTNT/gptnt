@@ -4,11 +4,11 @@ from typing import Any, override
 import structlog
 from pydantic_ai import AgentRunResult, ThinkingPart
 
-from gptnt.players.actions import AgentCallResult
 from gptnt.players.reasoning_parser.reasoning_parser import (
     ReasoningParser,
     structure_string_output,
 )
+from gptnt.players.result import AgentCallResult
 
 logger = structlog.get_logger()
 

@@ -2,7 +2,7 @@ from typing import Any
 
 from pytest_cases import fixture, parametrize
 
-from gptnt.players.actions import SetOfMarksLocation
+from gptnt.players.locations import SetOfMarksLocation
 from gptnt.processors.labels.drawing import AnnotationBackgroundParams, AnnotationTextParams
 from gptnt.processors.set_of_marks import MaskDrawingParams, SetOfMarksHandler
 

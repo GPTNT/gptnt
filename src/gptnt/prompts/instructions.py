@@ -3,8 +3,8 @@ from functools import lru_cache
 import structlog
 
 from gptnt.common.paths import Paths
-from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.prompts.prompt_cache import PromptCache
+from gptnt.specification import PlayerCapabilities, PlayerProtocol
 
 paths = Paths()
 

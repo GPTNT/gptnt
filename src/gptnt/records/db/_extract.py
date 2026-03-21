@@ -10,9 +10,9 @@ import structlog
 from rich.progress import Progress
 
 from gptnt.common.logger import ProgressSentinel, with_default_progress
+from gptnt.experiments.experiment_descriptor import ExperimentDescriptor
 from gptnt.ktane.state.bomb import BombState
 from gptnt.records.models import ExperimentMetadata, ExperimentStepRecord, is_valid_experiment
-from gptnt.services.experiment_descriptor import ExperimentDescriptor
 
 logger = structlog.get_logger()
 

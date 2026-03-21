@@ -6,7 +6,7 @@ from pydantic import BaseModel, BeforeValidator, model_validator
 
 from gptnt.experiments.pairing import Pairing
 from gptnt.ktane.mission_spec import KtaneMissionSpec
-from gptnt.players.specification import CommunicationStyle, PlayerProtocol, PlayerRole
+from gptnt.specification import CommunicationStyle, PlayerProtocol, PlayerRole
 
 type Condition = Literal[
     "single_module",

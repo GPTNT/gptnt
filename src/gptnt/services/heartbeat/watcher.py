@@ -13,8 +13,7 @@ from pydantic import UUID4, TypeAdapter
 
 from gptnt.common.async_ops import Event, periodic
 from gptnt.ktane.state.game import GameState
-from gptnt.services.events.heartbeat import ReadyState
-from gptnt.services.events.player import PlayerState
+from gptnt.services.heartbeat.base import PlayerState, ReadyState
 from gptnt.services.timeouts import ServiceTimeouts
 
 logger = structlog.get_logger()

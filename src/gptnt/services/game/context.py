@@ -10,10 +10,10 @@ import structlog
 
 from gptnt.common.async_ops import Event, periodic
 from gptnt.ktane.client import KtaneClient
-from gptnt.services.events.heartbeat import GameHeartbeat
-from gptnt.services.game.process_manager import GameProcessManager
+from gptnt.ktane.process_manager import GameProcessManager
 from gptnt.services.game.state_monitor import GameStateMonitor
-from gptnt.services.heartbeat_broadcaster import HeartbeatBroadcaster
+from gptnt.services.heartbeat.broadcaster import HeartbeatBroadcaster
+from gptnt.services.heartbeat.game import GameHeartbeat
 from gptnt.services.timeouts import ServiceTimeouts
 
 logger = structlog.get_logger()

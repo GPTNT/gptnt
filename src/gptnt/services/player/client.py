@@ -7,12 +7,12 @@ import structlog
 from faststream.redis import RedisBroker
 from pydantic import UUID4
 
+from gptnt.experiments.experiment_descriptor import ExperimentDescriptor
 from gptnt.ktane.state.bomb import BombState
-from gptnt.players.specification import PlayerProtocol
-from gptnt.services.events.player import PlayerMessage, StopPlayerEvent
-from gptnt.services.experiment_descriptor import ExperimentDescriptor
+from gptnt.services.player.commands import PlayerMessage, StopPlayerEvent
 from gptnt.services.rpc import BaseRPCClient
 from gptnt.services.timeouts import ServiceTimeouts
+from gptnt.specification import PlayerProtocol
 
 logger = structlog.get_logger()
 

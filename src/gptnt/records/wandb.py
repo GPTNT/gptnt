@@ -12,13 +12,14 @@ from pydantic import UUID4
 from pydantic_ai import ModelMessage
 
 from gptnt.common.image_ops import load_observation_from_bytes
+from gptnt.experiments.experiment_descriptor import ExperimentDescriptor
 from gptnt.ktane.actions import KtaneGameplayInput
-from gptnt.players.actions import AgentCallResult, PlayerOutputType
+from gptnt.players.actions import PlayerOutputType
 from gptnt.players.observation_handler import Observation
-from gptnt.players.specification import PlayerProtocol
+from gptnt.players.result import AgentCallResult
 from gptnt.records.models import ExperimentStepRecord
 from gptnt.records.recorder import ExperimentPlayerRecorder
-from gptnt.services.experiment_descriptor import ExperimentDescriptor
+from gptnt.specification import PlayerProtocol
 
 logger = structlog.get_logger()
 

@@ -164,7 +164,7 @@ per-file-ignores = [
     "src/gptnt/processors/*:WPS203",
     "src/gptnt/dataset/*:WPS202,WPS204,WPS226",
     "src/gptnt/common/duckdb.py:WPS110,WPS111,WPS430",
-    "src/gptnt/players/ai/tokens.py:WPS402",
+    "src/gptnt/players/tokens.py:WPS402",
 ]
 select = ["WPS"]
 max-line-length = 99
@@ -303,7 +303,7 @@ max-complexity = 18
 "**/tests/*" = ["D", "S101", "INP001", "PLR2004", "FBT001", "SLF001", "ANN001"]
 "scripts/*" = ["INP001", "D", "ANN", "PLR", "PD", "S"]
 "src/gptnt/dataset/defuser_vqa/*" = ["S311"] # Allow standard random for dataset generation
-"src/gptnt/players/ai/tokens.py" = ["PLR2004"]
+"src/gptnt/players/tokens.py" = ["PLR2004"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

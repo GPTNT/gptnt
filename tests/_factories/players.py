@@ -1,7 +1,7 @@
 import factory
 from pydantic_ai import UsageLimits
 
-from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.specification import PlayerCapabilities, PlayerProtocol
 
 
 class PlayerProtocolFactory(factory.Factory[PlayerProtocol]):

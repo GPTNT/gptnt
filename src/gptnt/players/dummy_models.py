@@ -12,7 +12,8 @@ from gptnt.ktane.actions import (
     KtaneBaseAction,
     RelativeCoordinate,
 )
-from gptnt.players.actions import InteractGameAction, SendMessageAction, SetOfMarksLocation
+from gptnt.players.actions import InteractGameAction, SendMessageAction
+from gptnt.players.locations import SetOfMarksLocation
 
 logger = structlog.get_logger()
 

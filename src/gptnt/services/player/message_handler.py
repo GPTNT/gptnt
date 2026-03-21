@@ -5,9 +5,9 @@ from faststream.redis import RedisBroker
 from faststream.redis.subscriber.usecases import ChannelSubscriber
 from pydantic import UUID4
 
+from gptnt.experiments.experiment_descriptor import ExperimentDescriptor
 from gptnt.players.actions import NO_NEW_MESSAGES_SENTINEL
-from gptnt.players.specification import PlayerRole
-from gptnt.services.experiment_descriptor import ExperimentDescriptor
+from gptnt.specification import PlayerRole
 
 logger = structlog.get_logger()
 

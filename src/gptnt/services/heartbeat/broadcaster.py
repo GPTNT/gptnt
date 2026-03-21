@@ -12,8 +12,9 @@ from structlog import get_logger
 from whenever import TimeDelta
 
 from gptnt.common.async_ops import periodic
-from gptnt.services.events.heartbeat import Heartbeat, ReadyState
-from gptnt.services.events.tombstone import FailureCategory, Tombstone
+from gptnt.services.heartbeat import Heartbeat
+from gptnt.services.heartbeat.base import ReadyState
+from gptnt.services.heartbeat.tombstone import FailureCategory, Tombstone
 from gptnt.services.registry.manifest import ServiceManifest
 from gptnt.services.timeouts import ServiceTimeouts
 

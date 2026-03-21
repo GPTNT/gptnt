@@ -16,7 +16,7 @@ from structlog.tracebacks import ExceptionDictTransformer
 from weave.flow.model import Model as WeaveModel
 
 from gptnt.common.paths import Paths
-from gptnt.players.ai.action_predictor import execute_request
+from gptnt.players.action_predictor import execute_request
 from gptnt.players.reasoning_parser.reasoning_parser import ReasoningParser
 
 logger = structlog.get_logger()

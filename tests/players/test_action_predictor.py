@@ -6,16 +6,16 @@ from pydantic_ai.models import Model
 from pydantic_ai.models.test import TestModel
 from pytest_cases import parametrize, parametrize_with_cases
 
+from gptnt.players.action_predictor import ActionPredictor
 from gptnt.players.actions import (
     DoNothingAction,
     InteractGameAction,
     PlayerOutputType,
     SendMessageAction,
 )
-from gptnt.players.ai.action_predictor import ActionPredictor
-from gptnt.players.ai.messages.message_history import MessageHistory
 from gptnt.players.exceptions import AIResponseErrorType
-from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.players.history.message_history import MessageHistory
+from gptnt.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cases.capabilities import CapabilitiesCases
 from tests._cases.outputs import PredictedActionCases, ReflectionOutputCases

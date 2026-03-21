@@ -5,8 +5,8 @@ from htbuilder import div, styles
 from htbuilder.units import rem
 
 from gptnt.players.actions import SendMessageAction
-from gptnt.players.specification import PlayerProtocol
 from gptnt.records.models import ExperimentRecord, ExperimentStepRecord
+from gptnt.specification import PlayerProtocol
 
 
 def render_player_card(

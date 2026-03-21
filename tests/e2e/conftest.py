@@ -22,10 +22,10 @@ from gptnt.entrypoints.run_player import main as run_player
 from gptnt.experiments.experiments import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.modules import KtaneComponent
-from gptnt.players.specification import PlayerProtocol
 from gptnt.services.experiment_manager.experiment_manager import ExperimentManager
 from gptnt.services.game.service import GameService
 from gptnt.services.player.service import PlayerService
+from gptnt.specification import PlayerProtocol
 
 paths = Paths()
 

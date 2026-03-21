@@ -43,8 +43,8 @@ from gptnt.evaluation.scorers import (
     StringBasedComparer,
     create_scorers,
 )
-from gptnt.players.specification import PlayerCapabilities, PlayerRole
 from gptnt.processors.image_resizer import ImageResizer
+from gptnt.specification import PlayerCapabilities, PlayerRole
 
 logger = get_logger()
 paths = Paths()

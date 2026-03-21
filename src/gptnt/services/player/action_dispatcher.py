@@ -4,12 +4,12 @@ from typing import Any, override
 import logfire
 import structlog
 
+from gptnt.experiments.experiment_descriptor import ExperimentDescriptor
 from gptnt.ktane.actions import KtaneGameplayInput
-from gptnt.players.action_dispatcher import BaseActionDispatcher
-from gptnt.players.specification import PlayerProtocol
-from gptnt.services.experiment_descriptor import ExperimentDescriptor
+from gptnt.players.base_action_dispatcher import BaseActionDispatcher
 from gptnt.services.game.client import GameClient
 from gptnt.services.player.message_handler import IncomingMessageHandler
+from gptnt.specification import PlayerProtocol
 
 logger = structlog.get_logger()
 

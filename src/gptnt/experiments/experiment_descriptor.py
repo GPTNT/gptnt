@@ -5,7 +5,7 @@ from whenever import Instant
 
 from gptnt.experiments.experiments import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
-from gptnt.players.specification import CommunicationStyle, PlayerProtocol, PlayerRole
+from gptnt.specification import CommunicationStyle, PlayerProtocol, PlayerRole
 
 
 class PlayerContent(NamedTuple):

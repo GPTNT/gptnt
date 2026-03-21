@@ -2,13 +2,9 @@ import pytest
 from pytest_cases import param_fixture
 
 from gptnt.ktane.actions import GameActionType
-from gptnt.players.actions import (
-    AbsoluteCoordinate,
-    InteractGameAction,
-    NormalisedCoordinate,
-    PlayerOutputType,
-)
-from gptnt.players.specification import PlayerCapabilities
+from gptnt.players.actions import InteractGameAction, PlayerOutputType
+from gptnt.players.locations import PixelLocation, ScaledLocation
+from gptnt.specification import PlayerCapabilities
 
 interaction_location_method = param_fixture(
     "interaction_location_method", ["set-of-marks", "coordinates"]
@@ -97,14 +93,14 @@ class CapabilitiesCases:
                 and capabilities.coordinate_mode == "absolute"
                 and isinstance(expected_output, InteractGameAction)
                 and expected_output.action in GameActionType.require_location()
-                and not isinstance(expected_output.location, AbsoluteCoordinate)
+                and not isinstance(expected_output.location, PixelLocation)
             ),
             (
                 capabilities.interaction_location_method == "coordinates"
                 and capabilities.coordinate_mode == "normalised"
                 and isinstance(expected_output, InteractGameAction)
                 and expected_output.action in GameActionType.require_location()
-                and not isinstance(expected_output.location, NormalisedCoordinate)
+                and not isinstance(expected_output.location, ScaledLocation)
             ),
             (
                 capabilities.interaction_location_method == "set-of-marks"

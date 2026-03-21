@@ -41,7 +41,7 @@ player:
     wandb_project: ${oc.env:WANDB_PROJECT,gptnt}
 
   action_predictor:
-    _target_: gptnt.players.ai.action_predictor.ActionPredictor
+    _target_: gptnt.players.action_predictor.ActionPredictor
     capabilities: ${player.capabilities}
     agent:
       _target_: pydantic_ai.Agent

@@ -13,8 +13,8 @@ from gptnt.ktane.client import FrameBuffer
 from gptnt.ktane.mission_spec import KtaneMissionConfig
 from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.game import GameState
-from gptnt.services.events.heartbeat import ReadyState
 from gptnt.services.game.context import GameServiceContext
+from gptnt.services.heartbeat.base import ReadyState
 from gptnt.services.rpc import BaseRPCService
 
 logger = structlog.get_logger()

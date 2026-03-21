@@ -7,8 +7,8 @@ from httpx import HTTPError
 
 from gptnt.common.async_ops import AsyncValue, Event, periodic
 from gptnt.ktane.client import KtaneClient
+from gptnt.ktane.process_manager import GameProcessManager
 from gptnt.ktane.state.game import GameState
-from gptnt.services.game.process_manager import GameProcessManager
 from gptnt.services.timeouts import ServiceTimeouts
 
 logger = structlog.get_logger()

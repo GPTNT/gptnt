@@ -13,7 +13,6 @@ from gptnt.ktane.actions import (
     RelativeCoordinate,
 )
 from gptnt.players.actions import (
-    AgentCallResult,
     DoNothingAction,
     GameInteractionActionType,
     InteractGameAction,
@@ -24,9 +23,10 @@ from gptnt.players.actions import (
 )
 from gptnt.players.exceptions import AIResponseErrorType
 from gptnt.players.observation_handler import ObservationHandler
-from gptnt.players.specification import PlayerProtocol
+from gptnt.players.result import AgentCallResult
 from gptnt.processors.image_resizer import CoordinateOutOfBoundsError
 from gptnt.processors.set_of_marks import InvalidMarkLocationError
+from gptnt.specification import PlayerProtocol
 
 logger = structlog.get_logger()
 
@@ -78,15 +78,16 @@ class BaseActionDispatcher(abc.ABC):
             MagicGameAction: self._send_game_action,
             LotteryGameAction: self._send_game_action,
         }
-        output_handler = next(
-            switcher[output_class]
-            for output_class in output_type.__mro__
-            if output_class in switcher
-        )
-        if not output_handler:  # pyright: ignore[reportUnnecessaryComparison]
+        try:
+            output_handler = next(
+                switcher[output_class]
+                for output_class in output_type.__mro__
+                if output_class in switcher
+            )
+        except StopIteration as err:
             raise ValueError(
                 f"Output type '{output_type}' not found in switcher. Please add it to the switcher."
-            )
+            ) from err
         return output_handler
 
     @abc.abstractmethod

@@ -1,8 +1,9 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from gptnt.players.actions import AgentCallResult, PlayerOutputType
+from gptnt.players.actions import PlayerOutputType
 from gptnt.players.exceptions import AIResponseErrorType
+from gptnt.players.result import AgentCallResult
 
 
 @dataclass(kw_only=True)
