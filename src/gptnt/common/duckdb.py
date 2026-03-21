@@ -1,8 +1,7 @@
-import types
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Any, Union, cast, get_args, get_origin, get_type_hints
+from typing import Annotated, Any, cast, get_args, get_origin, get_type_hints
 from uuid import UUID
 
 import msgpack
@@ -17,6 +16,8 @@ from pydantic import (
     model_serializer,
 )
 from pydantic_core import PydanticUndefined, core_schema, from_json, to_jsonable_python
+
+from gptnt.common.types import UNION_ORIGINS, is_nullable
 
 
 @dataclass(frozen=True)
@@ -98,8 +99,6 @@ class AsJSON(DuckDBType):
         return core_schema.no_info_wrap_validator_function(json_validator, inner_schema)
 
 
-AsVarchar = DuckDBType("VARCHAR")
-
 SCALAR_MAP: dict[type, str] = {  # noqa: WPS407
     str: "VARCHAR",
     int: "INTEGER",
@@ -109,29 +108,6 @@ SCALAR_MAP: dict[type, str] = {  # noqa: WPS407
     Path: "VARCHAR",
     bytes: "BLOB",
 }
-
-# Both the old typing.Union and the Python 3.10+ `X | Y` union type.
-_UNION_ORIGINS: frozenset[Any] = frozenset(
-    x for x in (Union, getattr(types, "UnionType", None)) if x is not None
-)
-
-
-def extract_base_types(type_hint: type) -> set[type]:
-    """Recursively extract all base types from a nested Union/Annotated structure."""
-    origin = get_origin(type_hint)
-    args = get_args(type_hint)
-
-    if origin in _UNION_ORIGINS:
-        return {base_type for arg in args for base_type in extract_base_types(arg)}
-
-    if origin is Annotated:
-        return extract_base_types(args[0])
-
-    return {type_hint}
-
-
-def _is_nullable(annotation: type) -> bool:
-    return type(None) in extract_base_types(annotation)  # noqa: WPS516
 
 
 def _as_duckdb_marker(meta: Any) -> DuckDBType | None:
@@ -156,7 +132,7 @@ def _find_marker(annotation: type) -> DuckDBType | None:  # noqa: WPS231
                 return marker
         return _find_marker(args[0])
 
-    if origin in _UNION_ORIGINS:
+    if origin in UNION_ORIGINS:
         for arg in args:
             if arg is not type(None) and (marker := _find_marker(arg)):  # noqa: WPS516
                 return marker
@@ -171,7 +147,7 @@ def _to_duckdb_type(annotation: type) -> str:
     if origin is Annotated:
         return _to_duckdb_type(args[0])
 
-    if origin in _UNION_ORIGINS:
+    if origin in UNION_ORIGINS:
         non_none = [arg for arg in args if arg is not type(None)]  # noqa: WPS516
         return _to_duckdb_type(non_none[0]) if len(non_none) == 1 else "VARCHAR"
 
@@ -198,7 +174,7 @@ def generate_duckdb_schema(model: type["DuckDBSchemaMixin"]) -> str:  # noqa: WP
 
         override = _find_marker(raw)
         sql_type = override.sql_type if override else _to_duckdb_type(raw)
-        nullable = has_default or _is_nullable(raw)
+        nullable = has_default or is_nullable(raw)
 
         constraint = "" if nullable else " NOT NULL"
         lines.append(f"    {name} {sql_type}{constraint}")
@@ -212,7 +188,7 @@ def generate_duckdb_schema(model: type["DuckDBSchemaMixin"]) -> str:  # noqa: WP
 
         override = _find_marker(raw)
         sql_type = override.sql_type if override else _to_duckdb_type(raw)
-        nullable = _is_nullable(raw)
+        nullable = is_nullable(raw)
 
         constraint = "" if nullable else " NOT NULL"
         lines.append(f"    {name} {sql_type}{constraint}")
