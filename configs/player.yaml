@@ -23,7 +23,7 @@ player:
     _target_: gptnt.players.feedback.nobf.NaughtyOutputBehaviourFeedbackGenerator
 
   capabilities:
-    _target_: gptnt.players.specification.PlayerCapabilities
+    _target_: gptnt.specification.PlayerCapabilities
     player_type: ai
     player_name: ???
     structured_output_mode: ???
@@ -35,7 +35,7 @@ player:
       _target_: pydantic_ai.usage.UsageLimits
 
   experiment_recorder:
-    _target_: gptnt.players.metrics.wandb.WandbExperimentPlayerRecorder
+    _target_: gptnt.records.wandb.WandbExperimentPlayerRecorder
     capabilities: ${player.capabilities}
     wandb_entity: ${oc.env:WANDB_ENTITY,gptnt}
     wandb_project: ${oc.env:WANDB_PROJECT,gptnt}
