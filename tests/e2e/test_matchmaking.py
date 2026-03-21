@@ -43,7 +43,7 @@ async def test_session_created_when_valid_match_exists(
     mocker: MockerFixture,
 ) -> None:
     #  Mock `session.run` to not actually run the experiment
-    _ = mocker.patch("gptnt.services.experimnent_manager.session.Session.run", autospec=True)
+    _ = mocker.patch("gptnt.services.experiment_manager.session.Session.run", autospec=True)
 
     for game in experiment_manager.ready_games:
         if game.uuid == game_service.uuid:
