@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import io
 import itertools
 from typing import cast
@@ -16,6 +14,8 @@ from pydantic_ai import (
     TextPart,
     UserPromptPart,
 )
+
+from gptnt.records.models import ExperimentStepRecord
 
 
 def render_image_gallery(
@@ -137,3 +137,21 @@ def render_thoughts(thoughts: str) -> None:
     """Render the model's thoughts in an expander."""
     with st.expander(":small[Thoughts]", icon=":material/neurology:", expanded=False):
         render_small_html_text(thoughts)
+
+
+@st.dialog("Messages for this step", width="medium")
+def render_messages_modal(step: ExperimentStepRecord) -> None:
+    """Render a dialog showing input and new messages for this step."""
+    all_messages = list(itertools.chain(step.input_messages, step.new_messages))
+
+    render_model_instructions(all_messages)
+
+    for msg_idx, message in enumerate(all_messages):
+        if isinstance(message, ModelRequest):
+            user_parts = [part for part in message.parts if isinstance(part, UserPromptPart)]
+            render_user_prompts(user_parts, is_expanded=(msg_idx >= len(all_messages) - 2))
+        else:
+            render_model_response(message, is_expanded=(msg_idx >= len(all_messages) - 1))
+
+    if not step.input_messages and not step.new_messages:
+        _ = st.warning("No messages recorded for this step")

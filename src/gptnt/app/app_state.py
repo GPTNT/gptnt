@@ -1,15 +1,11 @@
-from __future__ import annotations
-
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import Self
 
 import streamlit as st
 import structlog
 
-from gptnt.app.experiment_loader.state import ExperimentLoader
-
-if TYPE_CHECKING:
-    from gptnt.players.metrics.records import ExperimentRecord
+from gptnt.app.loader import ExperimentLoader
+from gptnt.records.models import ExperimentRecord
 
 logger = structlog.get_logger()
 
@@ -28,7 +24,7 @@ class AppState:
     loaded_experiment: ExperimentRecord | None = field(default=None, init=False)
 
     @classmethod
-    def create(cls) -> AppState:
+    def create(cls) -> Self:
         """Create a new state instance pre-populated from the DuckDB database."""
         loader = ExperimentLoader.create()
         return cls(loader=loader)
@@ -44,9 +40,9 @@ class AppState:
             return None
 
         selected = self.loader.selected_experiment
-        logger.info("Loading experiment from DB", name=selected.name)
+        logger.info("Loading experiment from DB", name=selected.attempt_name)
 
-        record = self.loader.load_experiment_record(selected.name)
+        record = self.loader.load_experiment_record(self.loader.selected_experiment)
         self.loaded_experiment = record
         if record:
             logger.info(

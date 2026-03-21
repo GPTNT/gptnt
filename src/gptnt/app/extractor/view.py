@@ -1,54 +1,56 @@
-import asyncio
-from pathlib import Path
 from typing import cast
 
 import streamlit as st
 
 from gptnt.app.components.filters import Filters, apply_filters
-from gptnt.app.experiment_loader.scanner import ScannedExperiment
-from gptnt.app.extractor.components import render_field_input
-from gptnt.app.extractor.data import ExtractedGroupedResults, extract_across_file_groups
-from gptnt.app.extractor.dataframe import results_to_dataframe
+from gptnt.app.extractor.data import extract_from_step_records_db, results_to_dataframe
+from gptnt.app.extractor.path_validator import validate_path
+from gptnt.records.db.connection import DuckDBConnection
 
 
-def extract_data_from_files(
-    *, file_groups: dict[ScannedExperiment, list[Path]], fields: list[str], num_total_files: int
-) -> tuple[ExtractedGroupedResults, list[Path]]:
-    """Extract specified fields from files grouped by experiment.
+def _parse_fields(raw: str) -> list[str]:
+    """Parse newline-separated field paths, stripping blanks."""
+    return [line.strip() for line in raw.splitlines() if line.strip()]
 
-    Args:
-        file_groups: Mapping of experiment → list of file paths to extract from.
-        fields: List of field names to extract from each file.
-        num_total_files: Total number of files to be processed.
+
+def render_field_input() -> tuple[list[str], bool]:
+    """Render the field path input widget with real-time per-field validation.
+
+    Returns:
+        A tuple of `(fields, all_valid)` where:
+        - `fields` is the parsed list of field path strings entered by the user.
+        - `all_valid` is True only when at least one field is entered and all pass
+          validation. Use this to gate the Extract button.
     """
-    # 2b. Extract across all files concurrently
-    progress_bar = st.progress(0, text="Loading files…")
+    with st.container(horizontal=True, vertical_alignment="bottom"):
+        with st.container():
+            fields_input = st.text_area(
+                "Fields to extract (one per line)",
+                placeholder="bomb_state.modules[].module_name\nerror_type[]\nstep",
+                height=120,
+            )
+            fields = _parse_fields(fields_input)
 
-    def _update_progress(completed: int, total: int) -> None:  # noqa: WPS430
-        fraction = completed / total if total else 1.0
-        _ = progress_bar.progress(fraction, text=f"Loaded {completed} / {total} files…")
+            all_valid = True
+            for field in fields:
+                try:
+                    validate_path(field)
+                except AttributeError as err:
+                    all_valid = False
+                    _ = st.error(f"**{field}** — {err}", icon=":material/close:")
 
-    extracted_data, broken_files = asyncio.run(
-        extract_across_file_groups(file_groups, fields, progress_callback=_update_progress)
-    )
+        extract_button = st.button("Extract", disabled=not all_valid, type="primary")
 
-    if broken_files:
-        _ = st.warning(f"{len(broken_files)} files skipped due to errors.")
-        for path in broken_files:
-            _ = st.caption(f" - {path}")
-
-    _ = progress_bar.progress(1.0, text=f"Done — {num_total_files} files loaded.")
-
-    return extracted_data, broken_files
+    return fields, extract_button
 
 
-def render_extractor_view(scanned_experiments: list[ScannedExperiment], filters: Filters) -> None:
-    """Orchestrate the full field-extraction UI.
+def render_extractor_view(connection: DuckDBConnection, filters: Filters) -> None:
+    """Orchestrate the full field-extraction UI (DB-backed).
 
     Pipeline:
         1. Render field input widget → obtain fields + button state
-        2. On button press: apply filters, extract fields across all matching files,
-           build the result DataFrame, display progress throughout
+        2. On button press: apply filters, fetch + extract fields from the
+           experiment_step_records table, build the result DataFrame
         3. Render download button and DataFrame preview
     """
     # 1. Field input + extract button
@@ -61,27 +63,41 @@ def render_extractor_view(scanned_experiments: list[ScannedExperiment], filters:
     with st.status("Running...", expanded=True) as status:
         # 2a. Apply filters
         st.write("Applying filters...")
-        filtered_experiments = apply_filters(scanned_experiments, filters)
-        file_groups = {exp: exp.file_paths for exp in filtered_experiments}
+        filtered_experiments = apply_filters(connection, filters)
 
-        total_files = sum(len(fps) for fps in file_groups.values())
         st.write(
             f"Extracting {len(fields)} field(s) across "
-            f"{len(file_groups)} experiments ({total_files} files)..."
+            f"{len(filtered_experiments)} experiments from database..."
         )
 
-        extracted_data, broken_files = extract_data_from_files(
-            file_groups=file_groups, fields=fields, num_total_files=total_files
+        # 2b. Extract from DB with progress per experiment
+        progress_bar = st.progress(0, text="Processing experiments…")
+
+        def _update_progress(completed: int, total: int) -> None:  # noqa: WPS430
+            fraction = completed / total if total else 1.0
+            _ = progress_bar.progress(
+                fraction, text=f"Processed {completed} / {total} experiments…"
+            )
+
+        extracted_data = extract_from_step_records_db(
+            connection=connection,
+            experiments=filtered_experiments,
+            fields=fields,
+            progress_callback=_update_progress,
+        )
+
+        _ = progress_bar.progress(
+            1.0, text=f"Done — {len(filtered_experiments)} experiments processed."
         )
 
         # 2c. Build DataFrame
         st.write("Building dataframe...")
-        df = results_to_dataframe(extracted_data, fields)
+        df = results_to_dataframe(extracted_data)
 
         status.update(
-            label=f":material/grading: Extracted from {len(file_groups)} experiments, skipped {len(broken_files)}.",
+            label=f":material/grading: Extracted from {len(filtered_experiments)} experiments.",
             state="complete",
-            expanded=bool(broken_files),
+            expanded=False,
         )
 
     # 3. Download + preview

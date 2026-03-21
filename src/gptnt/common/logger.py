@@ -1,5 +1,8 @@
 import logging
+from collections.abc import Callable
 from dataclasses import fields
+from functools import wraps
+from typing import Any, ParamSpec, TypeVar, cast, override
 
 import logfire
 import structlog
@@ -8,11 +11,14 @@ from rich.progress import (
     BarColumn,
     MofNCompleteColumn,
     Progress,
+    ProgressColumn,
     SpinnerColumn,
+    Task,
     TextColumn,
     TimeElapsedColumn,
     TimeRemainingColumn,
 )
+from rich.text import Text
 from structlog.typing import EventDict
 
 from gptnt.common.run_once import run_once
@@ -188,16 +194,56 @@ def create_faststream_logger(
     )
 
 
+class OptionalFieldColumn(ProgressColumn):
+    """Renders an optional task field, defaulting to '' if not provided."""
+
+    def __init__(self, field: str, default: str = "") -> None:
+        super().__init__()
+        self.field = field
+        self.default = default
+
+    @override
+    def render(self, task: Task) -> Text:
+        return Text.from_markup(str(task.fields.get(self.field, self.default)))
+
+
 def create_progress(*, extra_fields: list[str] | None = None) -> Progress:
     """Create a Rich Progress instance with common columns and optional extra fields."""
     extra_fields = extra_fields or []
-    extra_field_columns = [TextColumn(f"{{task.fields[{field}]}}") for field in extra_fields]
+    extra_field_columns = [OptionalFieldColumn(field) for field in extra_fields]
     return Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
         MofNCompleteColumn(),
         TimeElapsedColumn(),
-        TimeRemainingColumn(),
+        TimeRemainingColumn(compact=True),
         *extra_field_columns,
     )
+
+
+FnParams = ParamSpec("FnParams")
+FnReturn = TypeVar("FnReturn")
+
+
+def with_default_progress(
+    **progress_kwargs: Any,
+) -> Callable[[Callable[FnParams, FnReturn]], Callable[FnParams, FnReturn]]:
+    """Decorator factory that injects a default Progress if none is provided."""
+
+    def decorator(fn: Callable[FnParams, FnReturn]) -> Callable[FnParams, FnReturn]:
+        @wraps(fn)
+        def wrapper(*args: FnParams.args, **kwargs: FnParams.kwargs) -> FnReturn:
+            if kwargs.get("progress") is None:
+                with create_progress(**progress_kwargs) as progress:
+                    kwargs["progress"] = progress
+                    return fn(*args, **kwargs)
+            return fn(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+ProgressSentinel = cast("Progress", cast("object", None))
+"""A sentinel indicating that no progress was provided and the default should be used."""

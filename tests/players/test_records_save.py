@@ -14,9 +14,9 @@ from gptnt.experiments.experiments import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import DoNothingAction
-from gptnt.players.metrics.records import ExperimentPlayerRecord, ExperimentStepRecord
 from gptnt.players.observation_handler import Observation
 from gptnt.players.specification import PlayerProtocol
+from gptnt.records.models import ExperimentPlayerRecord, ExperimentStepRecord
 from gptnt.services.experiment_descriptor import ExperimentDescriptor, PlayerContent
 
 

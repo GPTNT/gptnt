@@ -107,7 +107,7 @@ async def handle_signals(orch: ProcessOrchestrator) -> AsyncGenerator[None]:
     _ = signal.signal(signal.SIGINT, _signal_handler)
     _ = signal.signal(signal.SIGTERM, _signal_handler)
 
-    try:  # noqa: WPS501, WPS243
+    try:  # noqa: WPS243
         yield
     finally:
         orch.close_log_files()
@@ -128,7 +128,7 @@ async def _do_spawn_and_monitor(
     await _spawn_players(orch, players, output_dir)
 
 
-async def run_throw(  # noqa: WPS213
+async def run_throw(
     orch: ProcessOrchestrator,
     num_rooms: int,
     players: list[PlayerSpec],

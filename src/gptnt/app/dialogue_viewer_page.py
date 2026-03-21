@@ -1,50 +1,20 @@
 import st_tailwind as tw
 import streamlit as st
-from more_itertools import collapse
-from sqlmodel import select
 
 from gptnt.app.app_state import get_state
-from gptnt.app.components.browser import render_experiment_browser
-from gptnt.app.components.filters import Filters, apply_filters, render_filters
-from gptnt.app.dialogue.experiment_summary import (
-    render_experiment_summary_header,
-    render_player_cards,
+from gptnt.app.components.db import render_db_status
+from gptnt.app.components.dialogue_view import render_dialogue_view
+from gptnt.app.components.experiment_browser import (
+    BROWSER_PAGE_SIZE,
+    BROWSER_PAGINATION_STATE_KEY,
+    render_experiment_browser,
 )
-from gptnt.app.dialogue.view import render_dialogue_view
-from gptnt.app.experiment_loader.components import render_db_status
-from gptnt.app.experiment_loader.experiment_selector import (
-    get_pagination_state,
-    render_experiment_card,
-    render_pagination_controls,
-    render_selector_legend,
-)
-from gptnt.app.experiment_loader.scanner import ScannedExperiment
+from gptnt.app.components.experiment_card import render_experiment_card, render_selector_legend
+from gptnt.app.components.filters import apply_filters, load_options_for_filters, render_filters
+from gptnt.app.components.pagination import get_pagination_state, render_pagination_controls
+from gptnt.app.components.player_card import render_player_cards
 
 _ = tw.initialize_tailwind()
-
-
-@st.cache_data()
-def load_options_for_filters() -> Filters:
-    """Load the options for the filters from the database."""
-    state = get_state()
-    with state.loader.connection().session as session:
-        options = Filters(
-            condition=session.exec(select(ScannedExperiment.condition).distinct()).all(),
-            communication_style=session.exec(
-                select(ScannedExperiment.communication_style).distinct()
-            ).all(),
-            modules=list(
-                set(collapse(session.exec(select(ScannedExperiment.modules).distinct()).all()))
-            ),
-            defuser=session.exec(select(ScannedExperiment.defuser).distinct()).all(),
-            expert=session.exec(select(ScannedExperiment.expert).distinct()).all(),
-            seed=session.exec(select(ScannedExperiment.seed).distinct()).all(),
-            name=session.exec(select(ScannedExperiment.name).distinct()).all(),
-            tags=list(
-                set(collapse(session.exec(select(ScannedExperiment.tags).distinct()).all()))
-            ),
-        )
-    return options
 
 
 def dialogue_selector_page() -> None:
@@ -54,16 +24,7 @@ def dialogue_selector_page() -> None:
         render_db_status(state.loader)
         _ = st.divider()
 
-    with st.sidebar:
-        entry_render_format = st.segmented_control(
-            "Render Format", options=["Cards", "Table"], default="Cards"
-        )
-        if not entry_render_format:
-            _ = st.error("Please select a render format.")
-            st.stop()
-        _ = st.space("stretch")
-
-    options = load_options_for_filters()
+    options = load_options_for_filters(state.loader.connection())
     filters = render_filters(options, expanded=not bool(state.loader.filtered_experiments))
 
     if state.loader.filtered_experiments and filters != state.loader.applied_filters:
@@ -80,12 +41,15 @@ def dialogue_selector_page() -> None:
                     f"Found {len(state.loader.filtered_experiments)} experiments matching the filters."
                 )
         render_selector_legend()
+
     with st.container(horizontal=True):
-        pagination_state = get_pagination_state(len(state.loader.filtered_experiments))
-        render_pagination_controls(pagination_state)
+        pagination_state = get_pagination_state(
+            BROWSER_PAGINATION_STATE_KEY, len(state.loader.filtered_experiments), BROWSER_PAGE_SIZE
+        )
+        render_pagination_controls(pagination_state, BROWSER_PAGINATION_STATE_KEY)
 
     if load_button:
-        filtered = apply_filters(state.loader.scanned_experiments, filters)
+        filtered = apply_filters(state.loader.connection(), filters)
         state.loader.applied_filters = filters
 
         if filtered:
@@ -99,7 +63,7 @@ def dialogue_selector_page() -> None:
         st.rerun()
 
     if state.loader.filtered_experiments:
-        render_experiment_browser(state.loader.filtered_experiments, entry_render_format)
+        render_experiment_browser(state.loader.filtered_experiments)
 
 
 def dialogue_viewer_page() -> None:
@@ -117,7 +81,6 @@ def dialogue_viewer_page() -> None:
     with st.sidebar:
         if state.loader.selected_experiment:
             _ = st.subheader("Selected Experiment")
-            # _ = st.caption("*Go to the Dialogue Viewer page to load the experiment.*")
             _ = render_experiment_card(state.loader.selected_experiment, show_button=False)
 
         if st.button(
@@ -133,8 +96,6 @@ def dialogue_viewer_page() -> None:
         st.stop()
 
     with st.sidebar:
-        render_experiment_summary_header(state.loaded_experiment)
-
         _ = st.divider()
 
         new_tags = st.multiselect(
@@ -154,7 +115,7 @@ def dialogue_viewer_page() -> None:
         )
 
         if save_button and new_tags != state.loader.selected_experiment.tags:
-            state.loader.save_tags(state.loader.selected_experiment.name, new_tags)
+            state.loader.save_tags(state.loader.selected_experiment, new_tags)
 
     with tw.container(classes="max-w-3xl"):
         render_player_cards(state.loaded_experiment)

@@ -88,6 +88,16 @@ class BombState(BaseModel):
     ]
 
     @property
+    def module_names(self) -> list[KtaneComponent]:
+        """Get the names of all modules on the bomb."""
+        return [module.name for module in self.modules]
+
+    @property
+    def seconds_remaining(self) -> float:
+        """Get the remaining time on the bomb."""
+        return self.timer_module.seconds_remaining
+
+    @property
     def zoomed_in_component(self) -> KtaneComponent | None:
         """Get the currently zoomed in component, if we are zoomed in."""
         for module in self.modules:

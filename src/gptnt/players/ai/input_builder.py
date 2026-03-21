@@ -6,9 +6,9 @@ from pydantic_ai import BinaryContent
 
 from gptnt.ktane.client import FrameBuffer
 from gptnt.ktane.state.bomb import BombState
-from gptnt.players.metrics.recorder import ExperimentPlayerRecorder
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.records.recorder import ExperimentPlayerRecorder
 
 logger = structlog.get_logger()
 

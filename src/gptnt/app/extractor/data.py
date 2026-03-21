@@ -1,17 +1,12 @@
-import asyncio
 from collections import defaultdict
 from collections.abc import Callable, Sequence
-from pathlib import Path
 from typing import Any
 
-import ijson
-from streamlit_concurrency import run_in_executor
+import pandas as pd
 
-from gptnt.app.experiment_loader.scanner import ScannedExperiment
 from gptnt.players.specification import PlayerRole
-
-# role → {field → [values]}
-FileResult = dict[PlayerRole, dict[str, list[Any]]]
+from gptnt.records.db.connection import DuckDBConnection
+from gptnt.records.models import ExperimentMetadata, ExperimentStepRecord
 
 
 def extract_values(obj: Any, path: str) -> list[Any]:  # noqa: WPS110
@@ -68,84 +63,93 @@ def _recurse(current: Any, levels: list[str]) -> list[Any]:  # noqa: WPS212
     return _recurse(field_value, remaining)
 
 
-def _load_and_extract(filepath: Path, paths: list[str]) -> FileResult:
-    """One pass through the file, extracting all requested fields simultaneously."""
-    local: dict[PlayerRole, dict[str, list[Any]]] = defaultdict(lambda: defaultdict(list))
-    with filepath.open("rb") as open_file:
-        try:
-            for record in ijson.items(open_file, "step_records.item"):
-                role = record["role"]
-                for path in paths:
-                    local[role][path].extend(extract_values(record, path))
-        except ijson.IncompleteJSONError as err:
-            raise ValueError(
-                f"File {filepath} is not a valid JSON file or is incomplete."
-            ) from err
-
-    return {role: dict(fields) for role, fields in local.items()}
+ExtractedGroupedResults = dict[ExperimentMetadata, dict[PlayerRole, dict[str, list[Any]]]]
 
 
-_load_and_extract_async = run_in_executor(executor="process")(_load_and_extract)
-
-
-async def _run_one(
-    key: ScannedExperiment, filepath: Path, attr_paths: list[str]
-) -> tuple[ScannedExperiment, FileResult, Path | None]:
-    try:
-        extracted = await _load_and_extract_async(filepath, attr_paths)
-    except Exception:  # noqa: BLE001
-        # We just want to catch any exception so we can look into it more.
-        return key, {}, filepath
-    else:
-        return key, extracted, None
-
-
-ExtractedGroupedResults = dict[ScannedExperiment, dict[PlayerRole, dict[str, list[Any]]]]
-
-
-async def extract_across_file_groups(  # noqa: WPS210
-    file_groups: dict[ScannedExperiment, list[Path]],
-    attr_paths: list[str],
+def extract_from_step_records_db(  # noqa: WPS210
+    *,
+    connection: DuckDBConnection,
+    experiments: list[ExperimentMetadata],
+    fields: list[str],
     progress_callback: Callable[[int, int], None] | None = None,
-) -> tuple[ExtractedGroupedResults, list[Path]]:
-    """Extract fields from all files in all experiment groups concurrently.
+) -> ExtractedGroupedResults:
+    """Extract fields from ExperimentStepRecord rows in DuckDB.
+
+    Fetches all relevant step records in a single query, then extracts the requested dot-notation
+    field paths from each deserialized record.
+
+    I've also kept everything in this one func just to keep it together and easier to read.
 
     Args:
-        file_groups:       Mapping of experiment → list of result file paths.
-        attr_paths:        Dot-notation field paths to extract from each step record.
-        progress_callback: Optional callable receiving (completed, total) after each file.
+        connection:        Active DuckDB connection.
+        experiments:       Experiments whose step records to query (filtered already).
+        fields:            Dot-notation field paths to extract from each step record.
+        progress_callback: Optional callable receiving (completed, total)
+                           after each experiment's rows are processed.
 
     Returns:
-        A tuple of (grouped results, list of broken file paths).
-        Grouped results: experiment → role → field → [values].
+        experiment → role → field → [values], same shape as the old file-based output.
     """
-    # experiment → role → field → [values]
-    grouped: ExtractedGroupedResults = {  # noqa: WPS426
-        key: defaultdict(lambda: defaultdict(list)) for key in file_groups
-    }
-    broken_files: list[Path] = []
+    if not experiments:
+        return {}
 
-    tasks = [
-        _run_one(key, filepath, attr_paths)
-        for key, filepaths in file_groups.items()
-        for filepath in filepaths
-    ]
+    session_map: dict[str, ExperimentMetadata] = {str(exp.session_id): exp for exp in experiments}
 
-    for completed_idx, coro in enumerate(asyncio.as_completed(tasks)):
-        key, extracted, broken_filepath = await coro  # noqa: WPS476
-        if broken_filepath:
-            broken_files.append(broken_filepath)
-        else:
-            for role, field_values in extracted.items():
-                for field, values in field_values.items():  # noqa: WPS110
-                    grouped[key][role][field].extend(values)
-        if progress_callback is not None:
-            progress_callback(completed_idx + 1, len(tasks))
-
-    return (
-        {
-            experiment: {role: dict(fields) for role, fields in group.items()}  # noqa: WPS441
-            for experiment, group in grouped.items()
-        },
-        broken_files,
+    # Single query for all sessions
+    placeholders = ", ".join("?" * len(experiments))
+    query = connection.execute(
+        f"SELECT * FROM {ExperimentStepRecord.table_name()} WHERE session_id IN ({placeholders})",  # noqa: S608
+        list(session_map.keys()),
     )
+    col_names = [desc[0] for desc in query.description]
+
+    # Pre-group raw rows by session_id before deserialisation
+    rows_by_session: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in query.fetchall():
+        row_dict = dict(zip(col_names, row, strict=False))
+        rows_by_session[str(row_dict["session_id"])].append(row_dict)
+
+    grouped: ExtractedGroupedResults = {  # noqa: WPS426
+        exp: defaultdict(lambda: defaultdict(list)) for exp in experiments
+    }
+
+    total = len(experiments)
+    for idx, exp in enumerate(experiments):
+        for row_dict in rows_by_session.get(str(exp.session_id), []):
+            # Skip observation/messages blobs
+            step = ExperimentStepRecord.model_validate(
+                row_dict, context={"skip_heavy_field_loading": True}
+            )
+            role = step.role
+            for field_path in fields:
+                field_values = extract_values(step, field_path)
+                grouped[exp][role][field_path].extend(field_values)
+
+        if progress_callback is not None:
+            progress_callback(idx + 1, total)
+
+    return {
+        exp_metadata: {role: dict(field_vals) for role, field_vals in group.items()}
+        for exp_metadata, group in grouped.items()
+    }
+
+
+def results_to_dataframe(
+    extracted_data: dict[ExperimentMetadata, dict[PlayerRole, dict[str, list[Any]]]],
+) -> pd.DataFrame:
+    """Convert extracted field data into a flat DataFrame.
+
+    Each row represents one (experiment, role) combination, with extracted
+    field values as additional columns alongside experiment metadata.
+
+    Args:
+        extracted_data: experiment → role → field → [values], as returned by
+                        ``extract_across_file_groups``.
+        fields:         Ordered list of extracted field names, used as column headers.
+    """
+    rows = [
+        {**experiment.model_dump(mode="json", by_alias=True), "role": role, **field_values}
+        for experiment, grouped in extracted_data.items()
+        for role, field_values in grouped.items()
+    ]
+    return pd.DataFrame(rows)

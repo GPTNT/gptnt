@@ -131,5 +131,5 @@ class ExperimentsSource:
         """Parse a CLI token as either an existing directory or an experiment name stem."""
         path = Path(raw)
         if path.exists() and path.is_dir():
-            return ExperimentsSource(kind="dir", raw=raw)
-        return ExperimentsSource(kind="name", raw=raw)
+            return cls(kind="dir", raw=raw)
+        return cls(kind="name", raw=raw)

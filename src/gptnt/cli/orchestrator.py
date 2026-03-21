@@ -80,8 +80,8 @@ class ProcessOrchestrator:
     ) -> TrackedProcess:
         """Spawn a subprocess, redirecting stdout+stderr to a log file.
 
-        In interactive mode, output is piped and tee'd to both the log file and
-        the console with a coloured name prefix (like ``docker compose``).
+        In interactive mode, output is piped and tee'd to both the log file and the console with a
+        coloured name prefix (like `docker compose`).
         """
         env = {**self.env_base, **(extra_env or {})}
         log_path = self.logs_dir / f"{name}.log"
@@ -190,7 +190,7 @@ def build_status_table(orch: ProcessOrchestrator) -> Table:
     return table
 
 
-async def monitor_status(orch: ProcessOrchestrator) -> None:  # noqa: WPS213, WPS231
+async def monitor_status(orch: ProcessOrchestrator) -> None:  # noqa: WPS231
     """Monitor the status of all the processes."""
     console.print()
     console.rule("[bold]Monitoring processes[/bold]")
@@ -224,8 +224,8 @@ async def monitor_status(orch: ProcessOrchestrator) -> None:  # noqa: WPS213, WP
 async def _stream_output(tp: TrackedProcess, *, max_name_len: int = 20) -> None:
     """Read lines from a piped process and tee to console + log file.
 
-    Each line is prefixed with the process name in its assigned colour,
-    similar to ``docker compose`` output.
+    Each line is prefixed with the process name in its assigned colour, similar to `docker compose`
+    output.
     """
     assert tp.process.stdout is not None
     padded = tp.name[:max_name_len].ljust(max_name_len)
@@ -238,12 +238,11 @@ async def _stream_output(tp: TrackedProcess, *, max_name_len: int = 20) -> None:
         tp.log_file.flush()
 
 
-async def monitor_interactive(orch: ProcessOrchestrator) -> None:  # noqa: WPS213, WPS231
+async def monitor_interactive(orch: ProcessOrchestrator) -> None:  # noqa: WPS231
     """Monitor processes in interactive mode — stream output and watch for failures.
 
-    The streaming tasks are started by ``spawn()`` into the task group. This
-    function just polls process status until everything completes or something
-    fails.
+    The streaming tasks are started by ``spawn()`` into the task group. This function just polls
+    process status until everything completes or something fails.
     """
     console.print()
     console.rule("[bold]Monitoring processes (interactive)[/bold]")

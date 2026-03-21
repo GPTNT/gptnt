@@ -1,0 +1,257 @@
+import types
+from dataclasses import dataclass, field
+from enum import Enum
+from pathlib import Path
+from typing import Annotated, Any, Union, cast, get_args, get_origin, get_type_hints
+from uuid import UUID
+
+import msgpack
+import zstandard as zstd
+from caseconverter import snakecase
+from duckdb import DuckDBPyConnection
+from pydantic import (
+    BaseModel,
+    GetCoreSchemaHandler,
+    SerializationInfo,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+)
+from pydantic_core import PydanticUndefined, core_schema, from_json, to_jsonable_python
+
+
+@dataclass(frozen=True)
+class DuckDBType:
+    """Annotated metadata marker to pin a field to a specific DuckDB type."""
+
+    sql_type: str
+
+
+@dataclass(frozen=True)
+class AsBlob(DuckDBType):
+    """Annotated marker that stores a field as a zstd+msgpack-compressed DuckDB BLOB.
+
+    If you use this and then DuckDB the thing, we can easily use the context with dumping to store
+    it as a compressed blob and return it back without needing all new logic.
+    """
+
+    sql_type: str = field(default="BLOB", init=False)
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> core_schema.CoreSchema:
+        """Perform (de-)blob-ification when `context={"mode": "blob"}`."""
+        inner_schema = handler(source_type)
+
+        def blob_validator(
+            v: Any, next_validator: core_schema.ValidatorFunctionWrapHandler
+        ) -> Any:
+            if isinstance(v, (bytes, bytearray)):
+                v = msgpack.unpackb(zstd.decompress(bytes(v)), raw=False)
+            return next_validator(v)
+
+        def blob_serializer(
+            v: Any,
+            next_serializer: core_schema.SerializerFunctionWrapHandler,
+            info: core_schema.SerializationInfo,
+        ) -> Any:
+            if info.context and info.context.get("mode") == "blob":
+                packed_bytes = cast(
+                    "bytes", msgpack.packb(to_jsonable_python(v), use_bin_type=True)
+                )
+                return zstd.compress(packed_bytes, level=9)
+            return next_serializer(v)
+
+        return core_schema.no_info_wrap_validator_function(
+            blob_validator,
+            inner_schema,
+            serialization=core_schema.wrap_serializer_function_ser_schema(
+                blob_serializer, schema=inner_schema, info_arg=True
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class AsJSON(DuckDBType):
+    """Annotated marker that stores a field as a DuckDB JSON column.
+
+    Handles the round-trip: JSON strings returned by DuckDB are parsed back
+    into Python objects before Pydantic validation runs.
+    """
+
+    sql_type: str = field(default="JSON", init=False)
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> core_schema.CoreSchema:
+        """Perform JSON parsing on the way in, leaving serialization as default."""
+        inner_schema = handler(source_type)
+
+        def json_validator(
+            v: Any, next_validator: core_schema.ValidatorFunctionWrapHandler
+        ) -> Any:
+            if isinstance(v, str):
+                v = from_json(v)
+            return next_validator(v)
+
+        return core_schema.no_info_wrap_validator_function(json_validator, inner_schema)
+
+
+AsVarchar = DuckDBType("VARCHAR")
+
+SCALAR_MAP: dict[type, str] = {  # noqa: WPS407
+    str: "VARCHAR",
+    int: "INTEGER",
+    float: "DOUBLE",
+    bool: "BOOLEAN",
+    UUID: "UUID",
+    Path: "VARCHAR",
+    bytes: "BLOB",
+}
+
+# Both the old typing.Union and the Python 3.10+ `X | Y` union type.
+_UNION_ORIGINS: frozenset[Any] = frozenset(
+    x for x in (Union, getattr(types, "UnionType", None)) if x is not None
+)
+
+
+def extract_base_types(type_hint: type) -> set[type]:
+    """Recursively extract all base types from a nested Union/Annotated structure."""
+    origin = get_origin(type_hint)
+    args = get_args(type_hint)
+
+    if origin in _UNION_ORIGINS:
+        return {base_type for arg in args for base_type in extract_base_types(arg)}
+
+    if origin is Annotated:
+        return extract_base_types(args[0])
+
+    return {type_hint}
+
+
+def _is_nullable(annotation: type) -> bool:
+    return type(None) in extract_base_types(annotation)  # noqa: WPS516
+
+
+def _as_duckdb_marker(meta: Any) -> DuckDBType | None:
+    """Accept a DuckDBType instance OR the bare class (e.g. AsBlob without parens)."""
+    if isinstance(meta, DuckDBType):
+        return meta
+    if isinstance(meta, type) and issubclass(meta, DuckDBType):
+        sql_type = getattr(meta, "sql_type", None)
+        if isinstance(sql_type, str):
+            return DuckDBType(sql_type)
+    return None
+
+
+def _find_marker(annotation: type) -> DuckDBType | None:  # noqa: WPS231
+    """Recursively find a DuckDBType marker anywhere in an annotation."""
+    origin = get_origin(annotation)
+    args = get_args(annotation)
+
+    if origin is Annotated:
+        for meta in args[1:]:
+            if (marker := _as_duckdb_marker(meta)) is not None:
+                return marker
+        return _find_marker(args[0])
+
+    if origin in _UNION_ORIGINS:
+        for arg in args:
+            if arg is not type(None) and (marker := _find_marker(arg)):  # noqa: WPS516
+                return marker
+
+    return None
+
+
+def _to_duckdb_type(annotation: type) -> str:
+    origin = get_origin(annotation)
+    args = get_args(annotation)
+
+    if origin is Annotated:
+        return _to_duckdb_type(args[0])
+
+    if origin in _UNION_ORIGINS:
+        non_none = [arg for arg in args if arg is not type(None)]  # noqa: WPS516
+        return _to_duckdb_type(non_none[0]) if len(non_none) == 1 else "VARCHAR"
+
+    if origin is list:
+        inner = _to_duckdb_type(args[0]) if args else "VARCHAR"
+        return f"{inner}[]"
+
+    if isinstance(annotation, type) and issubclass(annotation, Enum):  # pyright: ignore[reportUnnecessaryIsInstance]
+        return "VARCHAR"
+
+    return SCALAR_MAP.get(annotation, "VARCHAR")
+
+
+def generate_duckdb_schema(model: type["DuckDBSchemaMixin"]) -> str:  # noqa: WPS210, WPS231
+    """Generate a CREATE TABLE statement from a DuckDBSchemaMixin subclass."""
+    table_name = model.table_name()
+
+    raw_hints = get_type_hints(model, include_extras=True)
+
+    lines: list[str] = []
+    for name, model_field in model.model_fields.items():
+        raw = raw_hints.get(name, model_field.annotation)
+        has_default = not model_field.is_required()
+
+        override = _find_marker(raw)
+        sql_type = override.sql_type if override else _to_duckdb_type(raw)
+        nullable = has_default or _is_nullable(raw)
+
+        constraint = "" if nullable else " NOT NULL"
+        lines.append(f"    {name} {sql_type}{constraint}")
+
+    for name, cfield in model.model_computed_fields.items():
+        raw = cfield.return_type
+
+        if raw is PydanticUndefined:
+            lines.append(f"    {name} VARCHAR")
+            continue
+
+        override = _find_marker(raw)
+        sql_type = override.sql_type if override else _to_duckdb_type(raw)
+        nullable = _is_nullable(raw)
+
+        constraint = "" if nullable else " NOT NULL"
+        lines.append(f"    {name} {sql_type}{constraint}")
+
+    return f"CREATE TABLE IF NOT EXISTS {table_name} (\n{',\n'.join(lines)}\n);"
+
+
+class DuckDBSchemaMixin(BaseModel):
+    """Mix into any BaseModel to get .create_table_sql()."""
+
+    @classmethod
+    def table_name(cls) -> str:
+        """Return the DuckDB table name for this model."""
+        if title := cls.model_config.get("title"):
+            return title
+        return snakecase(cls.__name__)
+
+    @classmethod
+    def generate_duckdb_schema(cls) -> str:
+        """Generate a CREATE TABLE statement for this model."""
+        return generate_duckdb_schema(cls)
+
+    @classmethod
+    def create_table(cls, conn: DuckDBPyConnection) -> None:
+        """Execute the schema against an open DuckDB connection."""
+        _ = conn.execute(cls.generate_duckdb_schema())
+
+    @model_serializer(mode="wrap")
+    def blob_serialize(
+        self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
+    ) -> dict[str, Any]:
+        """When context={'mode': 'blob'}: AsBlob fields → compressed bytes, rest → JSON-compatible.
+
+        The handler propagates context down to field-level serializers, so AsBlob fields naturally
+        return bytes — no field-name hardcoding needed.
+        """
+        if info.context and info.context.get("mode") == "blob":
+            raw = handler(self)  # AsBlob fields → bytes, others → Python objects
+            return {
+                k: v if isinstance(v, bytes) else to_jsonable_python(v) for k, v in raw.items()
+            }
+        return handler(self)

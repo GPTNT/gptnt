@@ -1,5 +1,3 @@
-from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from operator import attrgetter
 from pathlib import Path
@@ -13,6 +11,7 @@ from pydantic import (
     UUID4,
     AfterValidator,
     BaseModel,
+    ConfigDict,
     Field,
     PlainSerializer,
     ValidationInfo,
@@ -21,15 +20,17 @@ from pydantic import (
     model_validator,
 )
 from pydantic_ai import ModelMessage, ModelMessagesTypeAdapter, RunUsage
-from tqdm import tqdm
 
+from gptnt.common.duckdb import AsBlob, AsJSON, DuckDBSchemaMixin
 from gptnt.common.logger import monkey_patch_binary_content_repr
+from gptnt.experiments.experiments import Condition
 from gptnt.ktane.actions import KtaneBaseAction, KtaneGameplayInput
 from gptnt.ktane.state.bomb import BombState
+from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.players.actions import DoNothingAction, PlayerOutputType, SendMessageAction
 from gptnt.players.exceptions import AIResponseErrorType
 from gptnt.players.observation_handler import Observation
-from gptnt.players.specification import PlayerRole
+from gptnt.players.specification import CommunicationStyle, PlayerRole
 from gptnt.services.experiment_descriptor import ExperimentDescriptor, PlayerContent
 
 logger = structlog.get_logger()
@@ -39,10 +40,11 @@ ModelMessagesList = Annotated[
     list[ModelMessage],
     Field(default_factory=list),
     PlainSerializer(ModelMessagesTypeAdapter.dump_json, when_used="json"),
+    AsBlob,
 ]
 
 
-class ExperimentStepRecord(BaseModel):
+class ExperimentStepRecord(DuckDBSchemaMixin):
     """Record of a single step in the experiment."""
 
     step: int
@@ -52,16 +54,16 @@ class ExperimentStepRecord(BaseModel):
     player_uuid: UUID4
     player_name: str
 
-    output: PlayerOutputType | KtaneGameplayInput
+    output: Annotated[PlayerOutputType | KtaneGameplayInput, AsJSON]
     raw_output: str | None
     thoughts: str | None = None
 
     input_messages: ModelMessagesList = Field(default_factory=list)
     new_messages: ModelMessagesList = Field(default_factory=list)
 
-    bomb_state: BombState | None
-    observation: Annotated[Observation | Path | None, Field(repr=False)]
-    usage: RunUsage
+    bomb_state: Annotated[BombState | None, AsJSON]
+    observation: Annotated[Observation | Path | None, AsBlob, Field(repr=False)]
+    usage: Annotated[RunUsage, AsBlob]
     num_prompt_truncations: int
     error_type: list[AIResponseErrorType] | None = None
     is_reflection: bool = False
@@ -222,6 +224,14 @@ class StepRecordsMetricsMixin(BaseModel):
                 return record.bomb_state.current_strikes
         return None
 
+    @property
+    def final_bomb_state(self) -> BombState | None:
+        """Get the final bomb state from the step records."""
+        for record in reversed(self.step_records):
+            if record.bomb_state is not None:
+                return record.bomb_state
+        return None
+
 
 class ExperimentPlayerRecord(StepRecordsMetricsMixin):
     """Records for a single player in an experiment."""
@@ -250,6 +260,94 @@ class ExperimentPlayerRecord(StepRecordsMetricsMixin):
 
         sorted_records = sorted(loaded_records, key=attrgetter("timestamp"))
         return self.model_copy(update={"step_records": sorted_records})
+
+    @classmethod
+    def from_metadata_and_steps(
+        cls, metadata: "ExperimentMetadata", step_records: list[ExperimentStepRecord]
+    ) -> Self:
+        """Reconstruct a player record from DuckDB-sourced data.
+
+        All `step_records` must belong to the same player (single `player_uuid`).
+        """
+        if not step_records:
+            raise ValueError("Cannot construct ExperimentPlayerRecord with no step records.")
+
+        role = step_records[0].role
+        player_content = metadata.experiment_descriptor.get_player_content_by_role(role)
+
+        return cls(
+            experiment_descriptor=metadata.experiment_descriptor,
+            player_content=player_content,
+            step_records=step_records,
+            is_hard_crash=metadata.is_valid is False,  # ← see note below
+        )
+
+
+class ExperimentMetadata(DuckDBSchemaMixin):
+    """Experiment-level metadata — one row per experiment."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    attempt_name: Annotated[str, Field(alias="name")]
+    session_id: UUID4
+
+    file_paths: list[Path]
+
+    player_uuids: list[UUID4]
+
+    is_valid: bool | None = None
+
+    condition: Condition
+    seed: int
+    pairing: str
+    defuser_name: Annotated[str, Field(alias="defuser")]
+    expert_name: Annotated[str | None, Field(alias="expert")]
+    communication_style: CommunicationStyle
+    attempt: int
+
+    modules: list[KtaneComponent]
+
+    is_solved: bool
+    is_detonated: bool
+    seconds_remaining: Annotated[float, Field(alias="timer_seconds")]
+    strike_count: int
+    num_modules_solved: int
+
+    experiment_descriptor: Annotated[ExperimentDescriptor, AsJSON]
+
+    # Any custom tags to describe the experiment
+    tags: list[str] = Field(default_factory=list)
+
+    @override
+    def __hash__(self) -> int:
+        """Hash based on the unique attempt name."""
+        return hash((self.attempt_name, self.session_id, tuple(self.player_uuids)))
+
+    @property
+    def defuser_has_manual(self) -> bool:
+        """True when the defuser player was given the physical manual."""
+        return "+manual" in (self.pairing or "")
+
+    @property
+    def is_strike_out(self) -> bool:
+        """True if the experiment ended with a strikeout (3 strikes and detonation)."""
+        return self.strike_count > 2 and not self.is_solved  # noqa: PLR2004
+
+    @property
+    def is_timeout(self) -> bool:
+        """True if the experiment ended with a timeout (0 seconds remaining and not solved)."""
+        return self.seconds_remaining <= 0 and not self.is_solved
+
+    @property
+    def modules_str(self) -> list[str]:
+        """Comma-separated string of module names for easy display."""
+        return [module.name for module in self.modules]
+
+    @computed_field
+    @property
+    def file_names(self) -> list[str]:
+        """Compute the list of file names associated with this experiment."""
+        return [f"experiment-{self.attempt_name}-{uuid}.json" for uuid in self.player_uuids]
 
 
 class ExperimentRecord(StepRecordsMetricsMixin):
@@ -282,49 +380,15 @@ class ExperimentRecord(StepRecordsMetricsMixin):
         return self
 
 
-def build_experiment_records_from_player_records(
-    player_records: list[ExperimentPlayerRecord],
-) -> list[ExperimentRecord]:
-    """Collate all the player records together into experiment records."""
-    experiment_dict: dict[UUID4, list[ExperimentPlayerRecord]] = defaultdict(list)
-    for player_record in player_records:
-        exp_id = player_record.experiment_descriptor.session_id
-        experiment_dict[exp_id].append(player_record)
+def is_valid_experiment(*, is_hard_crash: bool, final_bomb_state: BombState) -> bool:
+    """Determine if the experiment is valid (i.e. no hard crashes and good ending)."""
+    is_good_solved = (
+        final_bomb_state.is_solved is True
+        and final_bomb_state.is_timed_out is False
+        and final_bomb_state.is_strike_out is False
+    )
+    is_good_failed = final_bomb_state.is_solved is False and (
+        final_bomb_state.is_timed_out is True or final_bomb_state.is_strike_out is True
+    )
 
-    experiment_records = [
-        ExperimentRecord.from_player_records(player_records=exp_player_records)
-        for exp_player_records in experiment_dict.values()
-    ]
-
-    return experiment_records
-
-
-def _load_player_record(file_path: Path) -> ExperimentPlayerRecord:
-    """Load a single player record from disk."""
-    return ExperimentPlayerRecord.model_validate_json(file_path.read_text())
-
-
-def load_player_records_from_dir(
-    path: Path, *, max_workers: int = 32
-) -> list[ExperimentPlayerRecord]:
-    """Load all player records as fast as possible.
-
-    Uses multithreading for this.
-    """
-    all_files = list(path.rglob("experiment-*.json"))
-
-    logger.info("Loading player records", num_files=len(all_files), max_workers=max_workers)
-
-    player_records: list[ExperimentPlayerRecord] = []
-
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_path = {
-            executor.submit(_load_player_record, file_path): file_path for file_path in all_files
-        }
-        for future in tqdm(
-            as_completed(future_to_path), total=len(future_to_path), desc="Loading player records"
-        ):
-            player_record = future.result()
-            player_records.append(player_record)
-
-    return player_records
+    return not is_hard_crash and (is_good_solved or is_good_failed)

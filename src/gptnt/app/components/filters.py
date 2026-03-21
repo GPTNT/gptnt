@@ -1,8 +1,7 @@
-from __future__ import annotations
-
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, get_args, override
+from typing import Any, Literal, Self, get_args, override
 
 import streamlit as st
 import yaml
@@ -12,12 +11,8 @@ from more_itertools import flatten
 from gptnt.experiments.experiments import Condition
 from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.players.specification import CommunicationStyle
-
-if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
-
-    from gptnt.app.experiment_loader.scanner import ScannedExperiment
-
+from gptnt.records.db.connection import DuckDBConnection
+from gptnt.records.models import ExperimentMetadata
 
 type ModuleFilterType = Literal["Include All", "Include Any"]
 type OutcomeType = Literal["Solved", "Strike Out", "Timeout"]
@@ -51,12 +46,12 @@ class Filters:
     defuser: Sequence[str] = field(default_factory=list)
     expert: Sequence[str] = field(default_factory=list)
     seed: Sequence[int] = field(default_factory=list)
-    name: Sequence[str] = field(default_factory=list)
+    attempt_name: Sequence[str] = field(default_factory=list)
     strikes: Sequence[int] = field(default_factory=list)
     outcome: Sequence[OutcomeType] = field(default_factory=list)
     tags: Sequence[str] = field(default_factory=list)
     modules_filter_type: ModuleFilterType = field(default="Include All")
-    time_remaining: float = field(default=0)
+    seconds_remaining: float = field(default=0)
     defuser_has_manual: bool | None = field(default=None)
 
     @override
@@ -70,32 +65,32 @@ class Filters:
                 tuple(self.defuser),
                 tuple(self.expert),
                 tuple(self.seed),
-                tuple(self.name),
+                tuple(self.attempt_name),
                 tuple(self.strikes),
                 tuple(self.outcome),
                 tuple(self.tags),
                 self.modules_filter_type,
-                self.time_remaining,
+                self.seconds_remaining,
                 self.defuser_has_manual,
             )
         )
 
     @classmethod
-    def from_experiments(cls, experiments: list[ScannedExperiment]) -> Filters:
+    def from_experiments(cls, experiments: list[ExperimentMetadata]) -> Self:
         """Derive available filter options from a list of scanned experiments.
 
         Uses the full set of valid conditions, communication styles, and modules from the type
         definitions, and derives defusers, experts, and seeds from the actual scanned data.
         """
         if experiments:
-            defuser = sorted({exp.defuser for exp in experiments if exp.defuser})
-            expert = sorted({exp.expert for exp in experiments if exp.expert})
+            defuser = sorted({exp.defuser_name for exp in experiments if exp.defuser_name})
+            expert = sorted({exp.expert_name for exp in experiments if exp.expert_name})
             seed = sorted({exp.seed for exp in experiments if exp.seed})
         else:
             defuser = ALL_PLAYERS
             expert = [*ALL_PLAYERS, "None"]
             seed = []
-        return Filters(
+        return cls(
             condition=ALL_CONDITIONS,
             communication_style=ALL_COMMUNICATION_STYLES,
             modules=ALL_MODULES,
@@ -103,75 +98,9 @@ class Filters:
             expert=expert,
             seed=seed,
             modules_filter_type="Include All",
-            name=[exp.name for exp in experiments],
+            attempt_name=[exp.attempt_name for exp in experiments],
             tags=list(set(flatten(exp.tags for exp in experiments if exp.tags))),
         )
-
-
-OUTCOME_CHECKS: dict[OutcomeType, Callable[[ScannedExperiment], bool]] = {  # noqa: WPS407
-    "Solved": lambda exp: exp.is_solved,
-    "Strike Out": lambda exp: exp.is_strike_out,
-    "Timeout": lambda exp: exp.is_timeout,
-}
-
-
-def _build_predicates(filters: Filters) -> list[Callable[[ScannedExperiment], bool]]:  # noqa: WPS231
-    """Build a list of predicate functions based on the selected filters."""
-    predicates: list[Callable[[ScannedExperiment], bool]] = []
-
-    for attr, selected_values in (  # noqa: WPS426
-        ("condition", filters.condition),
-        ("communication_style", filters.communication_style),
-        ("defuser", filters.defuser),
-        ("expert", filters.expert),
-        ("seed", filters.seed),
-        ("strike_count", filters.strikes),
-    ):
-        if selected_values:
-            predicates.append(
-                lambda exp, attr=attr, selected_values=selected_values: getattr(exp, attr)
-                in selected_values
-            )
-
-    if filters.modules:
-        selected = frozenset(filters.modules)
-        if filters.modules_filter_type == "Include All":
-            predicates.append(lambda exp, selected=selected: selected.issubset(exp.modules or []))
-        else:
-            predicates.append(
-                lambda exp, selected=selected: not selected.isdisjoint(exp.modules or [])
-            )
-
-    if filters.tags:
-        selected = frozenset(filters.tags)
-        predicates.append(lambda exp, selected=selected: not selected.isdisjoint(exp.tags or []))
-
-    if filters.name:
-        predicates.append(
-            lambda exp, name=filters.name: all(part.lower() in exp.name.lower() for part in name)
-        )
-
-    if filters.time_remaining > 0:
-        predicates.append(lambda exp, time=filters.time_remaining: exp.timer_seconds >= time)
-
-    if filters.defuser_has_manual is not None:
-        predicates.append(
-            lambda exp, selected=filters.defuser_has_manual: exp.defuser_has_manual == selected
-        )
-
-    active_outcomes = [fn for key, fn in OUTCOME_CHECKS.items() if key in filters.outcome]
-    if active_outcomes:
-        predicates.append(lambda exp, checks=active_outcomes: any(check(exp) for check in checks))
-
-    return predicates
-
-
-def apply_filters(
-    scanned_experiments: list[ScannedExperiment], filters: Filters
-) -> list[ScannedExperiment]:
-    """Apply filters to scanned experiments."""
-    predicates = _build_predicates(filters)
-    return [exp for exp in scanned_experiments if all(pred(exp) for pred in predicates)]
 
 
 def _dummy_model_filter_func(model_name: str) -> str:
@@ -248,6 +177,7 @@ def render_filter_pills(options: Filters, *, default: Filters) -> Filters:
             width="content",
             format_func=_dummy_model_filter_func,
         )
+
         filters.expert = st.pills(
             "**Expert**",
             options=sorted(options.expert),
@@ -263,7 +193,7 @@ def render_filter_pills(options: Filters, *, default: Filters) -> Filters:
         filters.outcome = st.segmented_control(
             "**Outcome**", options=["Solved", "Strike Out", "Timeout"], selection_mode="multi"
         )
-        filters.time_remaining = st.number_input(
+        filters.seconds_remaining = st.number_input(
             "Minimum Seconds Remaining",
             min_value=0.0,  # noqa: WPS358
         )
@@ -289,7 +219,123 @@ def render_filters(options: Filters, *, expanded: bool = True) -> Filters:
         with st.container(horizontal=True, width=500):
             name = st.text_input("Name", placeholder="Filter by experiment/attempt name...")
 
-        default = Filters(name=[name] if name else [])
+        default = Filters(attempt_name=[name] if name else [])
 
         filters = render_filter_pills(options, default=default)
         return filters
+
+
+def distinct[OutT](conn: DuckDBConnection, col: str) -> list[OutT]:
+    """Fetch distinct non-null values for a scalar column."""
+    return [
+        row[0]
+        for row in conn.execute(
+            f"SELECT DISTINCT {col} FROM experiment_metadata ORDER BY {col}"  # noqa: S608
+        ).fetchall()
+    ]
+
+
+def distinct_unnested[OutT](conn: DuckDBConnection, col: str) -> list[OutT]:
+    """Fetch distinct values from an array column via DuckDB's unnest."""
+    return [
+        row[0]
+        for row in conn.execute(
+            f"SELECT DISTINCT unnest({col}) AS val FROM experiment_metadata ORDER BY val"  # noqa: S608
+        ).fetchall()
+    ]
+
+
+def load_options_for_filters(connection: DuckDBConnection) -> Filters:
+    """Load the options for the filters from the database."""
+    return Filters(
+        condition=distinct(connection, "condition"),
+        communication_style=distinct(connection, "communication_style"),
+        modules=distinct_unnested(connection, "modules"),
+        defuser=distinct(connection, "defuser_name"),
+        expert=list(map(str, distinct(connection, "expert_name"))),
+        seed=distinct(connection, "seed"),
+        attempt_name=distinct(connection, "attempt_name"),
+        tags=distinct_unnested(connection, "tags"),
+    )
+
+
+OUTCOME_SQL: dict[OutcomeType, str] = {  # noqa: WPS407
+    "Solved": "is_solved = true",
+    "Strike Out": "(strike_count > 2 AND NOT is_solved)",
+    "Timeout": "(seconds_remaining <= 0 AND NOT is_solved)",
+}
+
+
+def _build_sql_filters(filters: Filters) -> tuple[str, list[Any]]:  # noqa: PLR0912, WPS210, WPS213, WPS231
+    """Translate a Filters object into a parameterised SQL WHERE clause."""
+    clauses: list[str] = []
+    params: list[Any] = []
+
+    for col, col_values in (
+        ("condition", filters.condition),
+        ("communication_style", filters.communication_style),
+        ("defuser_name", filters.defuser),
+        ("seed", filters.seed),
+        ("strike_count", filters.strikes),
+    ):
+        if col_values:
+            placeholders = ", ".join("?" * len(col_values))
+            clauses.append(f"{col} IN ({placeholders})")
+            params.extend(col_values)
+
+    # We do the expert separately because it can be none
+    if filters.expert:
+        real_experts = [e for e in filters.expert if e != "None"]  # noqa: WPS111
+        include_null = len(real_experts) < len(list(filters.expert))
+
+        parts: list[str] = []
+        if real_experts:
+            placeholders = ", ".join("?" * len(real_experts))
+            parts.append(f"expert_name IN ({placeholders})")
+            params.extend(real_experts)
+        if include_null:
+            parts.append("expert_name IS NULL")
+        clauses.append(f"({' OR '.join(parts)})")
+
+    if filters.modules:
+        fn = "list_has_all" if filters.modules_filter_type == "Include All" else "list_has_any"
+        clauses.append(f"{fn}(modules, ?)")
+        params.append(list(filters.modules))
+
+    if filters.tags:
+        clauses.append("list_has_any(tags, ?)")
+        params.append(list(filters.tags))
+
+    for part in filters.attempt_name:
+        clauses.append("lower(attempt_name) LIKE ?")
+        params.append(f"%{part.lower()}%")
+
+    if filters.seconds_remaining > 0:
+        clauses.append("seconds_remaining >= ?")
+        params.append(filters.seconds_remaining)
+
+    if filters.defuser_has_manual is True:
+        clauses.append("pairing LIKE '%+manual%'")
+    elif filters.defuser_has_manual is False:
+        clauses.append("(pairing IS NULL OR pairing NOT LIKE '%+manual%')")
+
+    active = [OUTCOME_SQL[key] for key in filters.outcome if key in OUTCOME_SQL]
+    if active:
+        clauses.append(f"({' OR '.join(active)})")
+
+    where = ""
+    if clauses:
+        where = f"WHERE {' AND '.join(clauses)}"
+    return where, params
+
+
+def apply_filters(connection: DuckDBConnection, filters: Filters) -> list[ExperimentMetadata]:
+    """Fetch experiments from DuckDB with all filters applied server-side."""
+    where, params = _build_sql_filters(filters)
+    output = connection.execute(f"SELECT * FROM {ExperimentMetadata.table_name()} {where}", params)  # noqa: S608
+
+    col_names = [desc[0] for desc in output.description]
+    return [
+        ExperimentMetadata.model_validate(dict(zip(col_names, row, strict=False)))
+        for row in output.fetchall()
+    ]

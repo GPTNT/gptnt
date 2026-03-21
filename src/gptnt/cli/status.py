@@ -1,32 +1,30 @@
-from __future__ import annotations
-
+import itertools
 import os
 import subprocess
 import sys
 import tempfile
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 import typer
 import wandb
+from pydantic import UUID4
 from rich import box
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
+from wandb.apis.public import Run
 
+from gptnt.cli._fields import WandbEntityOption, WandbProjectOption
 from gptnt.cli.models import ExperimentsSource
-from gptnt.common.paths import Paths
-from gptnt.experiments.wandb import collate_runs_per_experiment_per_game, is_run_valid
-
-if TYPE_CHECKING:
-    from pydantic import UUID4
-    from wandb.apis.public import Run
-
-    from gptnt.experiments.wandb import CollatedRuns
+from gptnt.experiments.wandb import (
+    CollatedRuns,
+    collate_runs_per_experiment_per_game,
+    is_run_valid,
+)
 
 console = Console()
-paths = Paths()
 
 
 # Status constants
@@ -35,41 +33,36 @@ STATUS_RUNNING = "running"
 STATUS_FAILED = "failed"
 STATUS_NOT_STARTED = "not attempted"
 
-STATUS_ICONS: dict[str, str] = {  # noqa: WPS407
+STATUS_ICONS: dict[str, str] = {
     STATUS_DONE: "✅",
     STATUS_RUNNING: "🔄",
     STATUS_FAILED: "❌",
     STATUS_NOT_STARTED: "·",
 }
 
-STATUS_STYLES: dict[str, str] = {  # noqa: WPS407
+STATUS_STYLES: dict[str, str] = {
     STATUS_DONE: "green",
     STATUS_RUNNING: "cyan",
     STATUS_FAILED: "red",
     STATUS_NOT_STARTED: "dim",
 }
+STATUS_SORT_ORDER: dict[str, int] = {
+    STATUS_NOT_STARTED: 0,
+    STATUS_DONE: 1,
+    STATUS_FAILED: 2,
+    STATUS_RUNNING: 3,
+}
 
-# CLI type aliases
+DEFAULT_EXPERIMENT_LIST = (
+    "e1-single-pairwise",
+    "e2-single-solo-defuser",
+    "e3-single-solo-player",
+    "e4-rep2-self",
+    "e5-n-self",
+    "e6-single-self-async",
+    "e7-n-self-async",
+)
 
-WandbEntityOption = Annotated[
-    str,
-    typer.Option(
-        "--wandb-entity",
-        help="WandB entity (user or team) name",
-        envvar="WANDB_ENTITY",
-        rich_help_panel="WandB",
-    ),
-]
-
-WandbProjectOption = Annotated[
-    str,
-    typer.Option(
-        "--wandb-project",
-        help="WandB project name",
-        envvar="WANDB_PROJECT",
-        rich_help_panel="WandB",
-    ),
-]
 
 ExperimentsArgument = Annotated[
     list[ExperimentsSource] | None,
@@ -91,9 +84,7 @@ def _generate_experiments_to_tmpdir(tmpdir: Path, names: list[str] | None = None
     command = [sys.executable, "-m", "gptnt.entrypoints.generate_experiments"]
 
     if names is None:
-        names = sorted(
-            path.stem for path in paths.configs.joinpath("experiment").glob("e[1-9]*.yaml")
-        )
+        names = sorted(DEFAULT_EXPERIMENT_LIST)
     for experiment in names:
         console.print(f"  Adding experiment variant: [cyan]{experiment}[/cyan]")
         env = {**os.environ, "EXPERIMENTS": str(tmpdir)}
@@ -141,23 +132,27 @@ def _resolve_experiments(sources: list[ExperimentsSource]) -> list[str]:
         return _generate_experiments_to_tmpdir(Path(tmpdir), names=names)
 
 
-# ---------------------------------------------------------------------------
-# Wandb helpers
-# ---------------------------------------------------------------------------
-
-
-def _fetch_all_runs(wandb_path: str, attempt_names: list[str]) -> CollatedRuns:
+def _fetch_all_runs(
+    wandb_path: str, attempt_names: list[str], *, chunk_size: int = 500
+) -> CollatedRuns:
     """Fetch ALL runs from wandb with no state/tag filters and collate them."""
+    api = wandb.Api()
+
+    all_runs = []
     with console.status(f"Fetching all runs from [cyan]{wandb_path}[/cyan]..."):
-        api = wandb.Api()
-        runs = api.runs(
-            wandb_path,
-            filters={"$and": [{"$or": [{"config.attempt_name": name} for name in attempt_names]}]},
-        )
-    console.print(f"  Fetched [bold]{len(runs)}[/bold] total runs from wandb.")
+        for chunk in itertools.batched(attempt_names, n=chunk_size, strict=False):
+            chunk_runs = api.runs(
+                wandb_path,
+                filters={"$and": [{"$or": [{"config.attempt_name": name} for name in chunk]}]},
+                per_page=chunk_size,
+            )
+            all_runs.extend(chunk_runs)
+            console.print(
+                f"    [dim]Fetched [bold]{len(all_runs)}[/bold] total runs from wandb.[/dim]"
+            )
 
     # Group runs by attempt_name -> session_id -> [runs].
-    collated = collate_runs_per_experiment_per_game(runs)
+    collated = collate_runs_per_experiment_per_game(all_runs)
     return collated
 
 
@@ -173,6 +168,16 @@ def _session_status(session_runs: list[Run]) -> str:
     if states == {"finished"} and all(is_run_valid(run) for run in session_runs):
         return STATUS_DONE
     return STATUS_FAILED
+
+
+def _get_experiment_status(name: str, collated: CollatedRuns) -> str:
+    """Return the single overall status string for an experiment."""
+    sessions = collated.get(name, {})
+    if not sessions:
+        return STATUS_NOT_STARTED
+    session_statuses = {sid: _session_status(runs) for sid, runs in sessions.items()}
+    overall, _, _ = _experiment_summary(session_statuses)
+    return overall
 
 
 def _experiment_summary(session_statuses: dict[UUID4, str]) -> tuple[str, str, str]:
@@ -197,7 +202,6 @@ def _experiment_summary(session_statuses: dict[UUID4, str]) -> tuple[str, str, s
     return overall, f"{done_n}/{total}", notes
 
 
-# Rendering
 def _render_table(expected_names: list[str], collated: CollatedRuns) -> None:  # noqa: WPS210
     table = Table(
         box=box.SIMPLE,
@@ -281,6 +285,9 @@ def check_experiment_completion(
     console.print(f"[bold]Checking experiments against[/bold] [cyan]{wandb_path}[/cyan]\n")
     collated_runs = _fetch_all_runs(wandb_path, expected)
 
-    expected_names = sorted(expected)
+    expected_names = sorted(
+        expected,
+        key=lambda name: (STATUS_SORT_ORDER[_get_experiment_status(name, collated_runs)], name),
+    )
     console.print()
     _render_table(expected_names, collated_runs)

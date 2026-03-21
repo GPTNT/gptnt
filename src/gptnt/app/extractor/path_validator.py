@@ -3,7 +3,7 @@ import typing
 
 from pydantic import BaseModel
 
-from gptnt.players.metrics.records import ExperimentStepRecord
+from gptnt.records.models import ExperimentStepRecord
 
 
 def _get_non_none_types(tp: typing.Any) -> list[typing.Any]:

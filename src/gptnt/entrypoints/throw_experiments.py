@@ -11,12 +11,7 @@ from gptnt.common.async_typer import AsyncTyper
 from gptnt.common.paths import Paths
 from gptnt.entrypoints.run_experiment_manager import EM_PORT
 from gptnt.experiments.experiments import ExperimentSpec
-from gptnt.experiments.wandb import (
-    collate_runs_per_experiment_per_game,
-    get_invalid_runs_from_collated_runs,
-    get_runs_from_wandb,
-    mark_runs_as_old,
-)
+from gptnt.experiments.wandb import collate_runs_per_experiment_per_game, get_runs_from_wandb
 
 logger = get_logger()
 paths = Paths()
@@ -61,35 +56,20 @@ def filter_experiments(  # noqa: WPS210
 
     logger.info(f"{len(wandb_runs)} runs --> {len(runs_per_experiment_per_game)} experiments.")
 
-    # For the ones we pulled from wandb, check if they are invalid and need tagging
-    invalid_runs = get_invalid_runs_from_collated_runs(runs_per_experiment_per_game)
-    if invalid_runs:
-        logger.warning(f"Found {len(invalid_runs)} invalid runs on wandb. Adding the 'old' tag")
-        mark_runs_as_old(invalid_runs)
-
-    invalid_attempts_names = {run.config["attempt_name"] for run in invalid_runs}
-    invalid_experiments_on_wandb = [
-        spec for spec in loaded_experiments if spec.attempt_name in invalid_attempts_names
-    ]
-
+    # For every experiment in the spec list, if there is a run on wandb that is valid, we should
+    # NOT throw it.
     specs_not_on_wandb = [
         experiment
         for experiment in loaded_experiments
         if experiment.attempt_name not in runs_per_experiment_per_game
-        and experiment.attempt_name not in invalid_attempts_names
     ]
 
-    # For every experiment in the spec list, if there is a run on wandb that is valid, we should
-    # NOT throw it.
-    specs_to_throw = [*specs_not_on_wandb, *invalid_experiments_on_wandb]
-
     logger.info(
-        f"{len(specs_to_throw)} experiments to throw",
-        invalid=len(invalid_experiments_on_wandb),
+        f"{len(specs_not_on_wandb)} experiments to throw",
         missing=len(specs_not_on_wandb),
-        filtered_out=len(loaded_experiments) - len(specs_to_throw),
+        filtered_out=len(loaded_experiments) - len(specs_not_on_wandb),
     )
-    return specs_to_throw
+    return specs_not_on_wandb
 
 
 @app.command()

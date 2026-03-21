@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import streamlit as st
@@ -8,86 +7,12 @@ import streamlit as st
 if TYPE_CHECKING:
     from streamlit.runtime.state import WidgetCallback
 
-    from gptnt.app.experiment_loader.scanner import ScannedExperiment
+    from gptnt.records.models import ExperimentMetadata
 
-PAGE_SIZE = 50
-PAGINATION_STATE_KEY = "exp_selector_page"
 
 STREAMLIT_RED = "#BD4043"
 TIMER_COLOR = "#0891B2"
 STRIKE_COLOR = "#F59E0B"
-
-
-@dataclass
-class PaginationState:
-    """State for paginated experiment display."""
-
-    current_page: int
-    total_pages: int
-    start_idx: int
-    end_idx: int
-    total_items: int
-
-
-def get_pagination_state(total_experiments: int) -> PaginationState:
-    """Initialize and get current pagination state."""
-    if PAGINATION_STATE_KEY not in st.session_state:
-        st.session_state[PAGINATION_STATE_KEY] = 0
-
-    total_pages = (total_experiments + PAGE_SIZE - 1) // PAGE_SIZE
-    current_page = st.session_state[PAGINATION_STATE_KEY]
-
-    # Ensure current page is valid
-    if current_page >= total_pages:
-        current_page = max(0, total_pages - 1)
-        st.session_state[PAGINATION_STATE_KEY] = current_page
-
-    start_idx = current_page * PAGE_SIZE
-    end_idx = min(start_idx + PAGE_SIZE, total_experiments)
-
-    return PaginationState(
-        current_page=current_page,
-        total_pages=total_pages,
-        start_idx=start_idx,
-        end_idx=end_idx,
-        total_items=total_experiments,
-    )
-
-
-@st.fragment
-def render_pagination_controls(pagination: PaginationState) -> None:
-    """Render pagination controls (prev/next buttons)."""
-    if pagination.total_pages <= 1:
-        return
-    with st.container(
-        horizontal=True, gap="xsmall", vertical_alignment="center", width="content", border=True
-    ):
-        _ = st.caption(
-            f"{pagination.start_idx + 1}-{pagination.end_idx} of {pagination.total_items}",
-            width="content",
-        )
-        if st.button(
-            "Prev",
-            icon=":material/chevron_backward:",
-            disabled=pagination.current_page == 0,
-            key="exp_prev",
-            type="tertiary",
-            width="content",
-        ):
-            st.session_state[PAGINATION_STATE_KEY] -= 1
-            st.rerun()
-
-        if st.button(
-            "Next",
-            icon=":material/chevron_forward:",
-            icon_position="right",
-            disabled=pagination.current_page >= pagination.total_pages - 1,
-            key="exp_next",
-            type="tertiary",
-            width="content",
-        ):
-            st.session_state[PAGINATION_STATE_KEY] += 1
-            st.rerun()
 
 
 def render_selector_legend() -> None:
@@ -118,12 +43,12 @@ def render_selector_legend() -> None:
 
 
 def render_experiment_card(  # noqa: WPS231
-    experiment: ScannedExperiment,
+    experiment: ExperimentMetadata,
     button_callback: WidgetCallback | None = None,
     idx: int | None = None,
     *,
     show_button: bool = True,
-) -> ScannedExperiment | None:
+) -> ExperimentMetadata | None:
     """Render a single experiment card with selection button."""
     with st.container(gap=None, horizontal=True, height="stretch", border=True, width=375):
         with st.container(gap=None, width=30, height="stretch", vertical_alignment="distribute"):
@@ -133,13 +58,13 @@ def render_experiment_card(  # noqa: WPS231
 
         with st.container(gap=None, height="stretch"):
             with st.container(horizontal=True, gap="small", width="content"):
-                defuser_name = experiment.defuser or ""
+                defuser_name = experiment.defuser_name or ""
                 if experiment.defuser_has_manual:
                     defuser_name = f"{defuser_name}+:material/book_2:"
                 _ = st.markdown(f":small[Defuser: **{defuser_name}**]")
-                _ = st.markdown(f":small[Expert: **{experiment.expert or ''}**]")
+                _ = st.markdown(f":small[Expert: **{experiment.expert_name!s}**]")
             with st.container(horizontal=True, gap=None, width="content"):
-                _ = st.markdown(f":small[Modules: **{', '.join(experiment.modules or [])}**]")
+                _ = st.markdown(f":small[Modules: **{', '.join(experiment.modules_str or [])}**]")
             for tag in experiment.tags or []:
                 _ = st.badge(tag, color="red")
             with st.container(gap="xsmall", horizontal=True):
@@ -161,11 +86,11 @@ def render_experiment_card(  # noqa: WPS231
                 )
                 timer_color = TIMER_COLOR
                 timer_icon = ":material/timer:"
-                if experiment.timer_seconds <= 0:
+                if experiment.seconds_remaining <= 0:
                     timer_color = STREAMLIT_RED
                     timer_icon = ":material/alarm:"
                 _ = st.markdown(
-                    f'<span style="color: {timer_color};">:small[{timer_icon} {experiment.timer_seconds:.1f}s]</span>',
+                    f'<span style="color: {timer_color};">:small[{timer_icon} {experiment.seconds_remaining:.1f}s]</span>',
                     unsafe_allow_html=True,
                     width="content",
                 )
@@ -188,7 +113,7 @@ def render_experiment_card(  # noqa: WPS231
             ):
                 button = st.button(
                     "",
-                    key=f"select_{experiment.name}",
+                    key=f"select_{experiment.attempt_name}",
                     icon=":material/play_circle:",
                     type="tertiary",
                     on_click=button_callback,
@@ -199,35 +124,3 @@ def render_experiment_card(  # noqa: WPS231
                 return experiment
 
     return None
-
-
-@st.cache_data
-def _sort_and_index_experiments(
-    experiments: list[ScannedExperiment],
-) -> list[tuple[int, ScannedExperiment]]:
-    """Sort experiments by name and index them."""
-    sorted_experiments = sorted(experiments, key=lambda exp: exp.name)
-    return list(enumerate(sorted_experiments))
-
-
-def render_experiment_selector(
-    scanned_experiments: list[ScannedExperiment], button_callback: WidgetCallback | None = None
-) -> None:
-    """Render experiment selector with detailed metadata and pagination.
-
-    Shows scanned experiments and allows selection before loading.
-    """
-    if not scanned_experiments:
-        _ = st.info("No experiments to show.")
-        return
-
-    # Sort by name for consistent display
-    indexed_experiments = _sort_and_index_experiments(scanned_experiments)
-
-    # Get pagination state
-    pagination = get_pagination_state(len(indexed_experiments))
-    page_experiments = indexed_experiments[pagination.start_idx : pagination.end_idx]
-
-    with st.container(horizontal=True):
-        for idx, experiment in page_experiments:
-            _ = render_experiment_card(experiment, button_callback=button_callback, idx=idx)
