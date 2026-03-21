@@ -1,13 +1,12 @@
 from pathlib import Path
 from typing import Annotated
 
-import anyio
 import httpx
 import typer
 from rich.console import Console
 from structlog import get_logger
 
-from gptnt.common.async_typer import AsyncTyper
+from gptnt.cli._fields import WandbEntityOption, WandbProjectOption
 from gptnt.common.paths import Paths
 from gptnt.entrypoints.run_experiment_manager import EM_PORT
 from gptnt.experiments.experiments import ExperimentSpec
@@ -16,9 +15,6 @@ from gptnt.experiments.wandb import collate_runs_per_experiment_per_game, get_ru
 logger = get_logger()
 paths = Paths()
 console = Console()
-
-
-app = AsyncTyper(help="Throw AI experiments to the experiment queue.", no_args_is_help=True)
 
 
 async def _send_experiments(experiments: list[ExperimentSpec]) -> None:
@@ -72,14 +68,11 @@ def filter_experiments(  # noqa: WPS210
     return specs_not_on_wandb
 
 
-@app.command()
-async def throw_ai_experiments(
+async def send_experiment_specs_to_em(
     *,
     experiments_dir: Annotated[Path, typer.Option(help="Path to experiments")] = paths.experiments,
-    wandb_entity: Annotated[
-        str, typer.Option(help="Wandb entity (user or team) name", envvar="WANDB_ENTITY")
-    ],
-    wandb_project: Annotated[str, typer.Option(help="Wandb project name", envvar="WANDB_PROJECT")],
+    wandb_entity: WandbEntityOption,
+    wandb_project: WandbProjectOption,
     dry_run: Annotated[
         bool, typer.Option(help="If set, only logs the experiments that would be thrown")
     ] = False,
@@ -87,10 +80,10 @@ async def throw_ai_experiments(
         bool, typer.Option(help="If set, skips checking wandb for existing runs")
     ] = False,
     delete_unneeded: Annotated[
-        bool, typer.Option(help="If set, deletes any unneeded experiments")
+        bool, typer.Option(help="If set, deletes any unneeded experiment specs from the directory")
     ] = False,
 ) -> None:
-    """Throw the AI experiments."""
+    """Send the experiment specs to the EM queue."""
     if dry_run:
         logger.warning("Dry run mode is enabled. No experiments will be thrown.")
 
@@ -124,7 +117,3 @@ async def throw_ai_experiments(
     if not dry_run:
         await _send_experiments(loaded_experiments)
         logger.info("All experiments thrown.")
-
-
-if __name__ == "__main__":
-    anyio.run(app())

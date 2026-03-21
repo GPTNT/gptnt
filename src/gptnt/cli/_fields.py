@@ -4,6 +4,8 @@ from typing import Annotated
 
 import typer
 
+from gptnt.cli.models import PlayerSpec
+
 WandbEntityOption = Annotated[
     str,
     typer.Option(
@@ -20,5 +22,13 @@ WandbProjectOption = Annotated[
         help="WandB project name",
         envvar="WANDB_PROJECT",
         rich_help_panel="WandB",
+    ),
+]
+
+PlayerOption = Annotated[
+    list[PlayerSpec],
+    typer.Argument(
+        help=r"Player specs as 'MODEL\[@PROVIDER]\[:COUNT]' (repeatable)",
+        parser=PlayerSpec.from_cli_string,
     ),
 ]

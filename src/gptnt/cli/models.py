@@ -51,7 +51,7 @@ class PlayerSpec:
 
     model_name: str
     provider: str | None
-    count: int
+    count: int = 1
 
     @classmethod
     def from_cli_string(cls, spec: str) -> PlayerSpec:
@@ -69,12 +69,11 @@ class PlayerSpec:
 
 def _split_spec(spec: str) -> tuple[str, str | None, str]:
     """Split 'MODEL[@PROVIDER]:COUNT' into (model_name, provider, count_str)."""
-    if ":" not in spec:
-        raise typer.BadParameter(
-            f"Invalid player spec '{spec}'. Expected MODEL[@PROVIDER]:COUNT (e.g. claude45:3 or claude45@openai:3)."
-        )
-    last_colon = spec.rfind(":")
-    model_provider_part, count_str = spec[:last_colon], spec[last_colon + 1 :]
+    if ":" in spec:
+        last_colon = spec.rfind(":")
+        model_provider_part, count_str = spec[:last_colon], spec[last_colon + 1 :]
+    else:
+        model_provider_part, count_str = spec, "1"
 
     if "@" in model_provider_part:
         model_name, provider = model_provider_part.split("@", 1)

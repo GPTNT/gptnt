@@ -8,7 +8,7 @@ import anyio
 import typer
 from rich.console import Console
 
-from gptnt.cli.orchestrator import ProcessOrchestrator, monitor_interactive, monitor_status
+from gptnt.cli._orchestrator import ProcessOrchestrator, monitor_interactive, monitor_status
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -128,7 +128,7 @@ async def _do_spawn_and_monitor(
     await _spawn_players(orch, players, output_dir)
 
 
-async def run_throw(
+async def spawn_and_monitor(
     orch: ProcessOrchestrator,
     num_rooms: int,
     players: list[PlayerSpec],

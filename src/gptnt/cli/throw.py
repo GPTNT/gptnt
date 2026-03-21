@@ -8,10 +8,9 @@ from rich.console import Console
 from rich.table import Table
 from whenever import Instant
 
-from gptnt.cli._fields import WandbEntityOption, WandbProjectOption
-from gptnt.cli.models import PlayerSpec
-from gptnt.cli.orchestrator import ProcessOrchestrator
-from gptnt.cli.spawn import handle_signals, run_throw
+from gptnt.cli._fields import PlayerOption, WandbEntityOption, WandbProjectOption
+from gptnt.cli._orchestrator import ProcessOrchestrator
+from gptnt.cli._spawn import handle_signals, spawn_and_monitor
 from gptnt.common.paths import Paths, remove_empty_experiment_recorder_outputs
 
 console = Console()
@@ -22,15 +21,6 @@ CURRENT_TIMESTAMP = Instant.now().py_datetime().strftime("%Y%m%d_%H%M%S")
 
 DEFAULT_LOGS_DIR = paths.logs.joinpath(f"throw_{CURRENT_TIMESTAMP}/")
 DEFAULT_OUTPUT_DIR = paths.experiment_recorder.joinpath(CURRENT_TIMESTAMP)
-
-
-PlayerOption = Annotated[
-    list[PlayerSpec],
-    typer.Argument(
-        help=r"Player specs as 'MODEL\[@PROVIDER]:COUNT' (repeatable)",
-        parser=PlayerSpec.from_cli_string,
-    ),
-]
 
 
 DisplayNumOption = Annotated[
@@ -175,4 +165,4 @@ async def throw(  # noqa: WPS213
     )
 
     async with handle_signals(orch):
-        await run_throw(orch, rooms, players, display_num, output_dir)
+        await spawn_and_monitor(orch, rooms, players, display_num, output_dir)
