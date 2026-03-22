@@ -4,13 +4,13 @@ We provide a way to run static evaluations of different models using predefined 
 
 ## Entrypoint
 
-The main entrypoint for running all the static evaluations is:
+Statics are integrated into the main `gptnt` CLI under the `statics` sub-command:
 
 ```bash
-uv run python src/gptnt/entrypoints/run_statics.py <task> --model <model> [--throw] [--upload]
+gptnt statics <task> --model <model> [--throw] [--upload]
 ```
 
-From there, you can find and follow the code for how everything is run. Your main argument are:
+Run `gptnt statics --help` to see all available tasks. Your main arguments are:
 
 - `task`: The task to evaluate
 - `--model`: The model to evaluate, from `configs/model/`
@@ -19,10 +19,10 @@ From there, you can find and follow the code for how everything is run. Your mai
 - `--download`: To download and process the dataset before throwing. By default, this is just False and done during the running, but this helps with checking for dataset issues.
 - `--limit-instances`: To limit the number of instances to run for debugging purposes.
 
-For example, to run the defuser grounding evaluation with GPT-5:
+For example, to run the defuser grounding coordinates evaluation:
 
 ```bash
-uv run python src/gptnt/entrypoints/run_statics.py defuser-grounding --model gpt-5 --throw --upload --limit-instances 10
+gptnt statics defuser-grounding-coordinates --model <your-model> --throw --upload --limit-instances 10
 ```
 
 ### High-level of how it works

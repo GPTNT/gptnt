@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import abc
 from dataclasses import dataclass, field
-from typing import Any, Literal, override
+from typing import TYPE_CHECKING, Any, Literal, override
 
 import json_repair
 import numpy as np
@@ -10,7 +12,6 @@ from numpy.typing import NDArray
 from pydantic import BaseModel, PrivateAttr, ValidationError
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import cos_sim as cosine_similarity
-from weave.trace.op import Op
 
 from gptnt.dataset.defuser_vqa.constants import (
     GROUNDING_HALLUCINATION_TYPE_A_RESPONSE,
@@ -19,6 +20,9 @@ from gptnt.dataset.defuser_vqa.constants import (
     TaskType,
 )
 from gptnt.evaluation.postprocess import PostProcessModelOutputsFunc, default_postprocess
+
+if TYPE_CHECKING:
+    from weave.trace.op import Op
 
 type PredictionOutput = dict[Literal["output"], str]
 

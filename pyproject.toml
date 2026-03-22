@@ -160,6 +160,7 @@ per-file-ignores = [
     "scripts/*:WPS",
     "tests/*:WPS110,WPS2,WPS118,WPS432,WPS435,WPS444,WPS476,WPS411",
     "src/gptnt/cli/*:WPS211,WPS213,WPS238,WPS407",
+    "src/gptnt/__main__.py:WPS213",
     "src/gptnt/ktane/state/*:WPS202,WPS226",
     "src/gptnt/processors/*:WPS203",
     "src/gptnt/dataset/*:WPS202,WPS204,WPS226",
