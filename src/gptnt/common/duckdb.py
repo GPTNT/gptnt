@@ -15,9 +15,11 @@ from pydantic import (
     SerializerFunctionWrapHandler,
     model_serializer,
 )
-from pydantic_core import PydanticUndefined, core_schema, from_json, to_jsonable_python
+from pydantic_core import PydanticUndefined, core_schema, from_json, to_json, to_jsonable_python
 
 from gptnt.common.types import UNION_ORIGINS, is_nullable
+
+EXPORT_CONTEXT_MARKER = "db"
 
 
 @dataclass(frozen=True)
@@ -41,7 +43,7 @@ class AsBlob(DuckDBType):
     def __get_pydantic_core_schema__(
         cls, source_type: Any, handler: GetCoreSchemaHandler
     ) -> core_schema.CoreSchema:
-        """Perform (de-)blob-ification when `context={"mode": "blob"}`."""
+        """Perform (de-)blob-ification when `context={"mode": "db"}`."""
         inner_schema = handler(source_type)
 
         def blob_validator(
@@ -56,11 +58,11 @@ class AsBlob(DuckDBType):
             next_serializer: core_schema.SerializerFunctionWrapHandler,
             info: core_schema.SerializationInfo,
         ) -> Any:
-            if info.context and info.context.get("mode") == "blob":
+            if info.context and info.context.get("mode") == EXPORT_CONTEXT_MARKER:
                 packed_bytes = cast(
                     "bytes", msgpack.packb(to_jsonable_python(v), use_bin_type=True)
                 )
-                return zstd.compress(packed_bytes, level=9)
+                return zstd.compress(packed_bytes, level=19)
             return next_serializer(v)
 
         return core_schema.no_info_wrap_validator_function(
@@ -76,8 +78,7 @@ class AsBlob(DuckDBType):
 class AsJSON(DuckDBType):
     """Annotated marker that stores a field as a DuckDB JSON column.
 
-    Handles the round-trip: JSON strings returned by DuckDB are parsed back
-    into Python objects before Pydantic validation runs.
+    Handles the round-trip: JSON strings returned by DuckDB are parsed back into Python objects before Pydantic validation runs.
     """
 
     sql_type: str = field(default="JSON", init=False)
@@ -97,6 +98,50 @@ class AsJSON(DuckDBType):
             return next_validator(v)
 
         return core_schema.no_info_wrap_validator_function(json_validator, inner_schema)
+
+
+@dataclass(frozen=True)
+class AsVarchar(DuckDBType):
+    """Annotated marker that stores a field as a DuckDB VARCHAR column.
+
+    Serialises the Python value to `str(v)` when `context={"mode": "db"}`.
+
+    On the way back in, the raw string is passed straight through to Pydantic's normal
+    coercion/validation for the annotated type.
+    """
+
+    sql_type: str = field(default="VARCHAR", init=False)
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> core_schema.CoreSchema:
+        """Stringify on serialisation when ``context={"mode": "db"}``."""
+        inner_schema = handler(source_type)
+
+        def varchar_validator(
+            v: Any, next_validator: core_schema.ValidatorFunctionWrapHandler
+        ) -> Any:
+            # Strings arriving from a VARCHAR column are passed straight through;
+            # the inner validator handles any further coercion (e.g. str -> Enum).
+            return next_validator(v)
+
+        def varchar_serializer(
+            v: Any,
+            next_serializer: core_schema.SerializerFunctionWrapHandler,
+            info: core_schema.SerializationInfo,
+        ) -> Any:
+            if info.context and info.context.get("mode") == EXPORT_CONTEXT_MARKER:
+                return to_json(v).decode()
+            return next_serializer(v)
+
+        return core_schema.no_info_wrap_validator_function(
+            varchar_validator,
+            inner_schema,
+            serialization=core_schema.wrap_serializer_function_ser_schema(
+                varchar_serializer, schema=inner_schema, info_arg=True
+            ),
+        )
 
 
 SCALAR_MAP: dict[type, str] = {  # noqa: WPS407
@@ -217,15 +262,15 @@ class DuckDBSchemaMixin(BaseModel):
         _ = conn.execute(cls.generate_duckdb_schema())
 
     @model_serializer(mode="wrap")
-    def blob_serialize(
+    def db_serialize(
         self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
     ) -> dict[str, Any]:
-        """When context={'mode': 'blob'}: AsBlob fields → compressed bytes, rest → JSON-compatible.
+        """When context={'mode': 'db'}: AsBlob fields → compressed bytes, rest → JSON-compatible.
 
         The handler propagates context down to field-level serializers, so AsBlob fields naturally
         return bytes — no field-name hardcoding needed.
         """
-        if info.context and info.context.get("mode") == "blob":
+        if info.context and info.context.get("mode") == EXPORT_CONTEXT_MARKER:
             raw = handler(self)  # AsBlob fields → bytes, others → Python objects
             return {
                 k: v if isinstance(v, bytes) else to_jsonable_python(v) for k, v in raw.items()

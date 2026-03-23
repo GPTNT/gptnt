@@ -21,7 +21,7 @@ from pydantic import (
 )
 from pydantic_ai import ModelMessage, ModelMessagesTypeAdapter, RunUsage
 
-from gptnt.common.duckdb import AsBlob, AsJSON, DuckDBSchemaMixin
+from gptnt.common.duckdb import AsBlob, AsJSON, AsVarchar, DuckDBSchemaMixin
 from gptnt.common.logger import monkey_patch_binary_content_repr
 from gptnt.experiments.experiment_descriptor import ExperimentDescriptor, PlayerContent
 from gptnt.experiments.experiments import Condition
@@ -54,7 +54,7 @@ class ExperimentStepRecord(DuckDBSchemaMixin):
     player_uuid: UUID4
     player_name: str
 
-    output: Annotated[PlayerOutputType | KtaneGameplayInput, AsJSON]
+    output: Annotated[PlayerOutputType | KtaneGameplayInput, AsVarchar]
     raw_output: str | None
     thoughts: str | None = None
 

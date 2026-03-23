@@ -1,5 +1,6 @@
 import mmap
 from collections import defaultdict
+from collections.abc import Iterator
 from contextlib import suppress
 from pathlib import Path
 from typing import Any
@@ -9,6 +10,7 @@ import ijson
 import structlog
 from rich.progress import Progress
 
+from gptnt.common.duckdb import EXPORT_CONTEXT_MARKER
 from gptnt.common.logger import ProgressSentinel, with_default_progress
 from gptnt.experiments.experiment_descriptor import ExperimentDescriptor
 from gptnt.ktane.state.bomb import BombState
@@ -18,7 +20,6 @@ logger = structlog.get_logger()
 
 type DumpedExperimentMetadata = dict[str, Any]
 type BlobbedStepRecord = dict[str, Any]
-type CombinedExperimentData = tuple[DumpedExperimentMetadata, list[BlobbedStepRecord]]
 
 
 BOMB_STATE_MARKER = b'"bomb_state":'
@@ -167,26 +168,18 @@ def extract_metadata_from_paths(paths: list[Path]) -> DumpedExperimentMetadata:
     ).model_dump(mode="json")
 
 
-def extract_blobbed_step_record_from_paths(paths: list[Path]) -> list[BlobbedStepRecord]:
-    """Extract step records and return them as a list of dictionaries with blobbed fields."""
-    step_records: list[BlobbedStepRecord] = []
+def iter_blobbed_step_records(paths: list[Path]) -> Iterator[BlobbedStepRecord]:
+    """Stream step records one at a time as blobbed dictionaries.
+
+    Yields one record at a time without accumulating a list, keeping memory bounded to a single
+    step record at a time regardless of how many steps are in the files.
+    """
     for path in paths:
         with path.open("rb") as open_file:
-            step_records.extend(ijson.items(open_file, "step_records.item"))
-
-    blobbed_step_records = [
-        ExperimentStepRecord.model_validate(step).model_dump(context={"mode": "blob"})
-        for step in step_records
-    ]
-    return blobbed_step_records
-
-
-def extract_combined_from_paths(file_paths: list[Path]) -> CombinedExperimentData:
-    """Extract metadata and step records together to minimise redundant disk reads."""
-    return (
-        extract_metadata_from_paths(file_paths),
-        extract_blobbed_step_record_from_paths(file_paths),
-    )
+            for step in ijson.items(open_file, "step_records.item"):
+                yield ExperimentStepRecord.model_validate(step).model_dump(
+                    context={"mode": EXPORT_CONTEXT_MARKER}
+                )
 
 
 def group_by_unique_experiment(

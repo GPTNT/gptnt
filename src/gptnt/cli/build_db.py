@@ -11,6 +11,7 @@ from gptnt.common.logger import create_progress
 from gptnt.common.paths import Paths
 from gptnt.records.db.ingest import ingest_player_records
 from gptnt.records.db.validate import (
+    get_all_experiments_from_db,
     get_non_validated_experiments_from_db,
     update_db_with_validation_results,
     validate_experiments_against_wandb,
@@ -44,14 +45,21 @@ def build_metadata_database(
             default_factory=os.cpu_count,
         ),
     ],
-    max_queue_size: Annotated[
+    step_queue_size: Annotated[
         int,
         typer.Option(
-            "--max-queue-size",
-            help="Maximum number of items to hold in the write queue before blocking workers.",
-            default_factory=lambda: 2 * os.cpu_count(),  # pyright: ignore[reportOperatorIssue]
+            "--step-queue-size",
+            help="Maximum step records buffered in the write queue. Lower = less peak RAM.",
+            default_factory=lambda: 500,
         ),
     ],
+    writer_batch_size: Annotated[
+        int,
+        typer.Option(
+            "--writer-batch-size",
+            help="Number of step records the writer thread inserts in a single transaction. Higher = faster ingestion but more RAM usage.",
+        ),
+    ] = 100,
     skip_json_cleanup: Annotated[
         bool,
         typer.Option(
@@ -77,6 +85,13 @@ def build_metadata_database(
         typer.Option(
             "--skip-validation",
             help="Don't validate runs against WandB, just import everything as-is (not recommended).",
+        ),
+    ] = False,
+    force_validation: Annotated[
+        bool,
+        typer.Option(
+            "--force-validation",
+            help="Force re-validation of all runs against WandB, even if they were previously marked as valid (useful if you want to re-validate against a different WandB project or after fixing some issue with the validation).",
         ),
     ] = False,
     delete_existing_db: Annotated[
@@ -118,13 +133,19 @@ def build_metadata_database(
                 max_workers=max_workers,
                 progress=progress,
                 skip_filtering=skip_filtering,
-                max_queue_size=max_queue_size,
+                step_queue_size=step_queue_size,
+                writer_batch_size=writer_batch_size,
             )
 
         if not skip_validation:
-            non_validated_experiments = get_non_validated_experiments_from_db(
-                db_path=output_db, progress=progress
-            )
+            if force_validation:
+                non_validated_experiments = get_all_experiments_from_db(
+                    db_path=output_db, progress=progress
+                )
+            else:
+                non_validated_experiments = get_non_validated_experiments_from_db(
+                    db_path=output_db, progress=progress
+                )
             valid_scanned_experiments = validate_experiments_against_wandb(
                 non_validated_experiments,
                 wandb_path=f"{wandb_entity}/{wandb_project}",

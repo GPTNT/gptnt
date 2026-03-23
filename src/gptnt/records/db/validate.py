@@ -11,6 +11,25 @@ from gptnt.records.models import ExperimentMetadata
 
 
 @with_default_progress()
+def get_all_experiments_from_db(
+    db_path: Path, *, progress: Progress = ProgressSentinel
+) -> list[ExperimentMetadata]:
+    """Get all experiments from the DuckDB file."""
+    task = progress.add_task("Fetching all experiments from DuckDB", total=None)
+
+    with duckdb.connect(str(db_path)) as conn:
+        output = conn.execute("SELECT * FROM experiment_metadata")
+        columns = [desc[0] for desc in output.description]
+        experiments = [
+            ExperimentMetadata.model_validate(dict(zip(columns, row, strict=False)))
+            for row in output.fetchall()
+        ]
+
+    progress.update(task, total=len(experiments), completed=len(experiments))
+    return experiments
+
+
+@with_default_progress()
 def get_non_validated_experiments_from_db(
     db_path: Path, *, progress: Progress = ProgressSentinel
 ) -> list[ExperimentMetadata]:
