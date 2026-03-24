@@ -28,7 +28,7 @@ player:
     player_name: ???
     structured_output_mode: ???
     thinking_method: ???
-    interaction_location_method: set-of-marks
+    interaction_location_method: ???
     preserve_last_frame_for_n_turns: 1
     enable_nobf_generation: true
     usage_limits:

@@ -5,7 +5,7 @@ from whenever import Instant
 
 from gptnt.experiments.experiments import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
-from gptnt.specification import CommunicationStyle, PlayerProtocol, PlayerRole
+from gptnt.specification import CommunicationStyle, PlayerCapabilities, PlayerProtocol, PlayerRole
 
 
 class PlayerContent(NamedTuple):
@@ -18,6 +18,7 @@ class PlayerContent(NamedTuple):
     protocol: PlayerProtocol
     name: str
     uuid: UUID4
+    capabilities: PlayerCapabilities
 
 
 class ExperimentDescriptor(BaseModel, frozen=True):
@@ -33,6 +34,9 @@ class ExperimentDescriptor(BaseModel, frozen=True):
     expert_uuid: UUID4 | None
     defuser_uuid: UUID4
     game_uuid: UUID4
+
+    defuser_capabilities: PlayerCapabilities
+    expert_capabilities: PlayerCapabilities | None
 
     start_time: Instant = Field(default_factory=Instant.now)
 
@@ -76,12 +80,14 @@ class ExperimentDescriptor(BaseModel, frozen=True):
             self.expert_uuid is None
             or self.experiment_spec.expert_protocol is None
             or self.experiment_spec.expert_name is None
+            or self.expert_capabilities is None
         ):
             return None
         return PlayerContent(
             protocol=self.experiment_spec.expert_protocol,
             name=self.experiment_spec.expert_name,
             uuid=self.expert_uuid,
+            capabilities=self.expert_capabilities,
         )
 
     @property
@@ -91,6 +97,7 @@ class ExperimentDescriptor(BaseModel, frozen=True):
             protocol=self.experiment_spec.defuser_protocol,
             name=self.experiment_spec.defuser_name,
             uuid=self.defuser_uuid,
+            capabilities=self.defuser_capabilities,
         )
 
     def get_uuid_for_other_role(self, *, current_role: PlayerRole) -> UUID4 | None:

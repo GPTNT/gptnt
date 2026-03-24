@@ -143,28 +143,13 @@ def extract_metadata_from_paths(paths: list[Path]) -> DumpedExperimentMetadata:
 
     assert final_bomb_state is not None, "No bomb state found in any of the provided files"
 
-    return ExperimentMetadata(
-        attempt_name=experiment_descriptor.experiment_spec.attempt_name,
-        session_id=experiment_descriptor.session_id,
-        condition=experiment_descriptor.experiment_spec.condition,
-        communication_style=experiment_descriptor.experiment_spec.communication_style,
-        modules=experiment_descriptor.experiment_spec.mission_spec.components,
-        pairing=experiment_descriptor.experiment_spec.pairing,
-        defuser_name=experiment_descriptor.experiment_spec.defuser_name,
-        expert_name=experiment_descriptor.experiment_spec.expert_name,
-        attempt=experiment_descriptor.experiment_spec.attempt,
-        player_uuids=experiment_descriptor.player_uuids,
-        seed=experiment_descriptor.experiment_spec.mission_spec.seed,
-        is_solved=final_bomb_state.is_solved,
-        is_detonated=final_bomb_state.is_detonated,
-        seconds_remaining=final_bomb_state.seconds_remaining,
-        strike_count=final_bomb_state.current_strikes,
-        num_modules_solved=final_bomb_state.num_modules_solved,
+    return ExperimentMetadata.from_descriptor_and_bomb_state(
+        descriptor=experiment_descriptor,
+        final_bomb_state=final_bomb_state,
         file_paths=paths,
         is_valid=is_valid_experiment(
             is_hard_crash=is_hard_crash, final_bomb_state=final_bomb_state
         ),
-        experiment_descriptor=experiment_descriptor,
     ).model_dump(mode="json")
 
 

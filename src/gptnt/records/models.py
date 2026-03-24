@@ -31,7 +31,7 @@ from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.players.actions import DoNothingAction, PlayerOutputType, SendMessageAction
 from gptnt.players.exceptions import AIResponseErrorType
 from gptnt.players.observation_handler import Observation
-from gptnt.specification import CommunicationStyle, PlayerRole
+from gptnt.specification import CommunicationStyle, PlayerCapabilities, PlayerRole
 
 logger = structlog.get_logger()
 
@@ -315,8 +315,46 @@ class ExperimentMetadata(DuckDBSchemaMixin):
 
     experiment_descriptor: Annotated[ExperimentDescriptor, AsJSON]
 
+    defuser_capabilities: Annotated[PlayerCapabilities, AsJSON]
+    expert_capabilities: Annotated[PlayerCapabilities | None, AsJSON]
+
     # Any custom tags to describe the experiment
     tags: list[str] = Field(default_factory=list)
+
+    @classmethod
+    def from_descriptor_and_bomb_state(
+        cls,
+        *,
+        descriptor: ExperimentDescriptor,
+        final_bomb_state: BombState,
+        file_paths: list[Path],
+        is_valid: bool,
+    ) -> Self:
+        """Construct ExperimentMetadata from an ExperimentDescriptor and final BombState."""
+        spec = descriptor.experiment_spec
+        return cls(
+            attempt_name=spec.attempt_name,
+            session_id=descriptor.session_id,
+            condition=spec.condition,
+            communication_style=spec.communication_style,
+            modules=spec.mission_spec.components,
+            pairing=spec.pairing,
+            defuser_name=spec.defuser_name,
+            expert_name=spec.expert_name,
+            attempt=spec.attempt,
+            player_uuids=descriptor.player_uuids,
+            seed=spec.mission_spec.seed,
+            is_solved=final_bomb_state.is_solved,
+            is_detonated=final_bomb_state.is_detonated,
+            seconds_remaining=final_bomb_state.seconds_remaining,
+            strike_count=final_bomb_state.current_strikes,
+            num_modules_solved=final_bomb_state.num_modules_solved,
+            file_paths=file_paths,
+            is_valid=is_valid,
+            experiment_descriptor=descriptor,
+            defuser_capabilities=descriptor.defuser_capabilities,
+            expert_capabilities=descriptor.expert_capabilities,
+        )
 
     @override
     def __hash__(self) -> int:

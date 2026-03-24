@@ -17,7 +17,7 @@ from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import DoNothingAction
 from gptnt.players.observation_handler import Observation
 from gptnt.records.models import ExperimentPlayerRecord, ExperimentStepRecord
-from gptnt.specification import PlayerProtocol
+from gptnt.specification import PlayerCapabilities, PlayerProtocol
 
 
 @fixture
@@ -102,7 +102,12 @@ def player_protocol() -> PlayerProtocol:
 @fixture
 def player_content(player_protocol: PlayerProtocol) -> PlayerContent:
     """Create a minimal player content."""
-    return PlayerContent(protocol=player_protocol, name="test-player", uuid=uuid4())
+    return PlayerContent(
+        protocol=player_protocol,
+        name="test-player",
+        uuid=uuid4(),
+        capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai"),
+    )
 
 
 @fixture
@@ -132,6 +137,8 @@ def experiment_descriptor(player_protocol: PlayerProtocol) -> ExperimentDescript
         expert_uuid=None,
         game_uuid=uuid4(),
         start_time=Instant.now(),
+        defuser_capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai"),
+        expert_capabilities=None,
     )
 
 

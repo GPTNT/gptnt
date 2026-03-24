@@ -84,6 +84,8 @@ class Session:
             expert_uuid=self.expert.uuid if self.expert else None,
             defuser_uuid=self.defuser.uuid,
             game_uuid=self.game.uuid,
+            defuser_capabilities=self.defuser.heartbeat.capabilities,
+            expert_capabilities=self.expert.heartbeat.capabilities if self.expert else None,
         )
 
     @property
