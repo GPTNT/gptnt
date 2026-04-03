@@ -812,3 +812,4 @@ storage/vqa_and_grounding/runs_df.json
 # Human eval data
 storage/human_eval
 scrap/
+stats/
