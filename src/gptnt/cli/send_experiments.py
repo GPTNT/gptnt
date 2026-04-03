@@ -7,10 +7,15 @@ from rich.console import Console
 from structlog import get_logger
 
 from gptnt.cli._fields import WandbEntityOption, WandbProjectOption
+from gptnt.cli.cleanup import cleanup_wandb_runs
 from gptnt.common.paths import Paths
 from gptnt.entrypoints.run_experiment_manager import EM_PORT
 from gptnt.experiments.experiments import ExperimentSpec
-from gptnt.experiments.wandb import collate_runs_per_experiment_per_game, get_runs_from_wandb
+from gptnt.experiments.wandb import (
+    CollatedRuns,
+    collate_runs_per_experiment_per_game,
+    get_runs_from_wandb,
+)
 
 logger = get_logger()
 paths = Paths()
@@ -26,38 +31,52 @@ async def _send_experiments(experiments: list[ExperimentSpec]) -> None:
         )
 
 
+def _gather_and_collate(attempt_names: list[str], wandb_path: str) -> CollatedRuns | None:
+    """Gather and collate runs from WandB."""
+    with console.status("Checking for existing runs on wandb..."):
+        wandb_runs = get_runs_from_wandb(
+            wandb_path,
+            additional_filters=[
+                {"$or": [{"config.attempt_name": name} for name in attempt_names]}
+            ],
+            per_page=1000,
+        )
+        if len(wandb_runs) == 0:
+            return None
+
+    # Collate the runs into an experiment
+    collated_runs = collate_runs_per_experiment_per_game(wandb_runs)
+    logger.info(f"{len(wandb_runs)} runs --> {len(collated_runs)} experiments.")
+    return collated_runs
+
+
 def filter_experiments(  # noqa: WPS210
     loaded_experiments: list[ExperimentSpec], *, wandb_path: str
 ) -> list[ExperimentSpec]:
     """Filter the experiments by those already run on wandb."""
     # Get all the attempt names for the files we have on disk
-    loaded_attempt_names = (experiment.attempt_name for experiment in loaded_experiments)
+    loaded_attempt_names = [experiment.attempt_name for experiment in loaded_experiments]
 
-    # Get all the runs from wandb with these experiments (if they exist)
-    with console.status("Checking for existing runs on wandb..."):
-        wandb_runs = get_runs_from_wandb(
-            wandb_path,
-            additional_filters=[
-                {"$or": [{"config.attempt_name": name} for name in loaded_attempt_names]}
-            ],
-        )
+    collated_runs = _gather_and_collate(loaded_attempt_names, wandb_path)
+    if collated_runs is None:
+        logger.info("No existing runs found on wandb, throwing all experiments.")
+        return loaded_experiments
 
-        # If there are no runs, return all loaded experiments
-        if len(wandb_runs) == 0:
-            logger.info("No existing runs found on wandb, throwing all experiments.")
-            return loaded_experiments
+    # Cleanup now
+    cleanup_wandb_runs(collated_runs)
 
-    # Collate the runs into an experiment
-    runs_per_experiment_per_game = collate_runs_per_experiment_per_game(wandb_runs)
-
-    logger.info(f"{len(wandb_runs)} runs --> {len(runs_per_experiment_per_game)} experiments.")
+    # and re-gather again
+    collated_runs = _gather_and_collate(loaded_attempt_names, wandb_path)
+    if collated_runs is None:
+        logger.info("No existing runs found on wandb, throwing all experiments.")
+        return loaded_experiments
 
     # For every experiment in the spec list, if there is a run on wandb that is valid, we should
     # NOT throw it.
     specs_not_on_wandb = [
         experiment
         for experiment in loaded_experiments
-        if experiment.attempt_name not in runs_per_experiment_per_game
+        if experiment.attempt_name not in collated_runs
     ]
 
     logger.info(
