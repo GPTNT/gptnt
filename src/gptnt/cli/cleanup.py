@@ -10,9 +10,10 @@ from rich.table import Table
 from wandb.apis.public import Runs
 
 from gptnt.cli._fields import WandbEntityOption, WandbProjectOption
-from gptnt.common.logger import create_progress
+from gptnt.common.logger import ProgressSentinel, create_progress, with_default_progress
 from gptnt.common.paths import Paths
 from gptnt.experiments.wandb import (
+    CollatedRuns,
     collate_runs_per_experiment_per_game,
     delete_old_experiment_outputs,
     get_runs_from_wandb,
@@ -73,6 +74,16 @@ def _get_all_runs(
     return all_runs
 
 
+@with_default_progress(extra_fields=["extra"])
+def cleanup_wandb_runs(
+    collated_runs: CollatedRuns, *, progress: Progress = ProgressSentinel, dry_run: bool = False
+) -> None:
+    """Mark runs on WandB as old if they are invalid for any reason."""
+    mark_mismatched_player_games_as_old(collated_runs, progress=progress, dry_run=dry_run)
+    mark_duplicate_runs_as_old(collated_runs, progress=progress, dry_run=dry_run)
+    mark_falsely_finished_as_old(collated_runs, progress=progress, dry_run=dry_run)
+
+
 def cleanup_experiment_outputs(
     directory: Annotated[
         Path | None,
@@ -94,6 +105,13 @@ def cleanup_experiment_outputs(
             help="Whether to include dummy runs in the checking, which can be A LOT",
         ),
     ] = False,
+    do_not_old_if_no_output_file: Annotated[
+        bool,
+        typer.Option(
+            "--do-not-old-if-no-output-file",
+            help="By default, if a run does not have an output file, we mark it as old. Setting this flag disables that behavior.",
+        ),
+    ] = False,
 ) -> None:
     """Consolidate and cleanup experiment outputs and WandB runs in one go."""
     console.rule("[bold]Experiment Cleanup[/bold]")
@@ -112,9 +130,7 @@ def cleanup_experiment_outputs(
             raise typer.Exit(code=0)
 
         collated_runs = collate_runs_per_experiment_per_game(all_runs, progress=progress)
-        mark_mismatched_player_games_as_old(collated_runs, progress=progress, dry_run=dry_run)
-        mark_duplicate_runs_as_old(collated_runs, progress=progress, dry_run=dry_run)
-        mark_falsely_finished_as_old(collated_runs, progress=progress, dry_run=dry_run)
+        cleanup_wandb_runs(collated_runs, progress=progress, dry_run=dry_run)
 
         if directory is None:
             console.print("[yellow]No directory provided, so skipping file deletion.[/yellow]")
@@ -126,13 +142,14 @@ def cleanup_experiment_outputs(
             console.print("[yellow]No experiment output files found. Nothing else to do.[/yellow]")
             raise typer.Exit(code=0)
 
-        # If the run does not have an output file, mark the run as old
-        mark_runs_without_output_files_as_old(
-            runs=all_runs,
-            experiment_outputs=experiment_outputs,
-            progress=progress,
-            dry_run=dry_run,
-        )
+        if not do_not_old_if_no_output_file:
+            # If the run does not have an output file, mark the run as old
+            mark_runs_without_output_files_as_old(
+                runs=all_runs,
+                experiment_outputs=experiment_outputs,
+                progress=progress,
+                dry_run=dry_run,
+            )
 
         # For all the valid runs, delete any output files that are not in that list and therefore
         # are invalid
