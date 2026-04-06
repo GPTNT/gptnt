@@ -361,16 +361,19 @@ class ExperimentMetadata(DuckDBSchemaMixin):
         """Hash based on the unique attempt name."""
         return hash((self.attempt_name, self.session_id, tuple(self.player_uuids)))
 
+    @computed_field
     @property
     def defuser_has_manual(self) -> bool:
         """True when the defuser player was given the physical manual."""
         return "+manual" in (self.pairing or "")
 
+    @computed_field
     @property
     def is_strike_out(self) -> bool:
         """True if the experiment ended with a strikeout (3 strikes and detonation)."""
         return self.strike_count > 2 and not self.is_solved  # noqa: PLR2004
 
+    @computed_field
     @property
     def is_timeout(self) -> bool:
         """True if the experiment ended with a timeout (0 seconds remaining and not solved)."""
