@@ -1,6 +1,6 @@
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
-from pydantic import UUID4, BaseModel, Field
+from pydantic import UUID4, BaseModel, Field, model_validator
 from whenever import Instant
 
 from gptnt.experiments.experiments import ExperimentSpec
@@ -117,3 +117,20 @@ class ExperimentDescriptor(BaseModel, frozen=True):
                 if self.expert is None:
                     raise ValueError("No expert configured for this experiment.")
                 return self.expert
+
+    @model_validator(mode="before")
+    @classmethod
+    def auto_handle_missing_expert_capabilities(cls, data: Any) -> Any:
+        """Set expert capabilities to None if there is no expert.
+
+        This can happen is the record got saved weird (and the none got removed, which happened in
+        the past). However, if these very specific conditions are invalid, then we should be
+        raising.
+        """
+        if isinstance(data, dict) and (
+            data.get("expert_uuid") is None
+            and data.get("experiment_spec", {}).get("expert_protocol") is None
+            and data.get("experiment_spec", {}).get("expert_name") is None
+        ):
+            data["expert_capabilities"] = None
+        return data
