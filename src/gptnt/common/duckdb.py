@@ -1,3 +1,4 @@
+from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -116,14 +117,19 @@ class AsVarchar(DuckDBType):
     def __get_pydantic_core_schema__(
         cls, source_type: Any, handler: GetCoreSchemaHandler
     ) -> core_schema.CoreSchema:
-        """Stringify on serialisation when ``context={"mode": "db"}``."""
+        """Stringify when `context={"mode": "db"}`."""
         inner_schema = handler(source_type)
 
         def varchar_validator(
-            v: Any, next_validator: core_schema.ValidatorFunctionWrapHandler
+            v: Any,
+            next_validator: core_schema.ValidatorFunctionWrapHandler,
+            info: core_schema.ValidationInfo,
         ) -> Any:
-            # Strings arriving from a VARCHAR column are passed straight through;
-            # the inner validator handles any further coercion (e.g. str -> Enum).
+            # We might be using VARCHAR to json-serialize it so we need to try to get it back, but
+            # not raise a problem if it doesnt work because another validate will handle it
+            if info.context and info.context.get("mode") == EXPORT_CONTEXT_MARKER:
+                with suppress(ValueError):
+                    v = from_json(v)
             return next_validator(v)
 
         def varchar_serializer(
@@ -135,7 +141,7 @@ class AsVarchar(DuckDBType):
                 return to_json(v).decode()
             return next_serializer(v)
 
-        return core_schema.no_info_wrap_validator_function(
+        return core_schema.with_info_wrap_validator_function(
             varchar_validator,
             inner_schema,
             serialization=core_schema.wrap_serializer_function_ser_schema(
