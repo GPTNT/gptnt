@@ -61,7 +61,8 @@ class AsBlob(DuckDBType):
         ) -> Any:
             if info.context and info.context.get("mode") == EXPORT_CONTEXT_MARKER:
                 packed_bytes = cast(
-                    "bytes", msgpack.packb(to_jsonable_python(v), use_bin_type=True)
+                    "bytes",
+                    msgpack.packb(to_jsonable_python(v, context=info.context), use_bin_type=True),
                 )
                 return zstd.compress(packed_bytes, level=19)
             return next_serializer(v)
@@ -88,7 +89,11 @@ class AsJSON(DuckDBType):
     def __get_pydantic_core_schema__(
         cls, source_type: Any, handler: GetCoreSchemaHandler
     ) -> core_schema.CoreSchema:
-        """Perform JSON parsing on the way in, leaving serialization as default."""
+        """Parse JSON strings on the way in; serialise to JSON strings in DB export mode.
+
+        Without the DB context, serialisation falls back to default Pydantic behaviour so that
+        model_dump(mode="json") still produces plain Python objects for general use.
+        """
         inner_schema = handler(source_type)
 
         def json_validator(
@@ -98,7 +103,22 @@ class AsJSON(DuckDBType):
                 v = from_json(v)
             return next_validator(v)
 
-        return core_schema.no_info_wrap_validator_function(json_validator, inner_schema)
+        def json_serializer(
+            v: Any, next_serializer: SerializerFunctionWrapHandler, info: SerializationInfo
+        ) -> Any:
+            if info.context and info.context.get("mode") == EXPORT_CONTEXT_MARKER:
+                if v is None:
+                    return None
+                return to_json(v, context=info.context).decode()
+            return next_serializer(v)
+
+        return core_schema.no_info_wrap_validator_function(
+            json_validator,
+            inner_schema,
+            serialization=core_schema.wrap_serializer_function_ser_schema(
+                json_serializer, schema=inner_schema, info_arg=True
+            ),
+        )
 
 
 @dataclass(frozen=True)
@@ -138,7 +158,7 @@ class AsVarchar(DuckDBType):
             info: core_schema.SerializationInfo,
         ) -> Any:
             if info.context and info.context.get("mode") == EXPORT_CONTEXT_MARKER:
-                return to_json(v).decode()
+                return to_json(v, context=info.context).decode()
             return next_serializer(v)
 
         return core_schema.with_info_wrap_validator_function(

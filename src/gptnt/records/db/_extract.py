@@ -150,7 +150,7 @@ def extract_metadata_from_paths(paths: list[Path]) -> DumpedExperimentMetadata:
         is_valid=is_valid_experiment(
             is_hard_crash=is_hard_crash, final_bomb_state=final_bomb_state
         ),
-    ).model_dump(mode="json")
+    ).model_dump(context={"mode": EXPORT_CONTEXT_MARKER})
 
 
 def iter_blobbed_step_records(paths: list[Path]) -> Iterator[BlobbedStepRecord]:

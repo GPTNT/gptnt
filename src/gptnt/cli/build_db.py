@@ -9,7 +9,7 @@ from gptnt.cli._fields import WandbEntityOption, WandbProjectOption
 from gptnt.cli.cleanup import cleanup_experiment_outputs
 from gptnt.common.logger import create_progress
 from gptnt.common.paths import Paths
-from gptnt.records.db.ingest import ingest_player_records
+from gptnt.records.db.ingest import extract_player_records_to_parquet, merge_parquet_into_db
 from gptnt.records.db.validate import (
     get_all_experiments_from_db,
     get_non_validated_experiments_from_db,
@@ -45,21 +45,20 @@ def build_metadata_database(
             default_factory=os.cpu_count,
         ),
     ],
-    step_queue_size: Annotated[
+    batch_size: Annotated[
         int,
         typer.Option(
-            "--step-queue-size",
-            help="Maximum step records buffered in the write queue. Lower = less peak RAM.",
-            default_factory=lambda: 500,
+            "--batch-size",
+            help="Number of step records per parquet batch file. Higher = faster ingestion but more RAM per worker.",
         ),
-    ],
-    writer_batch_size: Annotated[
-        int,
+    ] = 1000,
+    tmp_dir: Annotated[
+        Path | None,
         typer.Option(
-            "--writer-batch-size",
-            help="Number of step records the writer thread inserts in a single transaction. Higher = faster ingestion but more RAM usage.",
+            "--tmp-dir",
+            help="Directory for intermediate parquet files. Defaults to a '.ingest_tmp' folder next to the output DB. Point at a fast scratch disk to maximise throughput.",
         ),
-    ] = 100,
+    ] = None,
     skip_json_cleanup: Annotated[
         bool,
         typer.Option(
@@ -71,6 +70,20 @@ def build_metadata_database(
         typer.Option(
             "--skip-filtering",
             help="Skip filtering out already-ingested experiments before ingesting new ones.",
+        ),
+    ] = False,
+    skip_extraction: Annotated[
+        bool,
+        typer.Option(
+            "--skip-extraction",
+            help="Skip the JSON-to-parquet extraction phase and load parquet files already present in tmp-dir directly into DuckDB. Requires --tmp-dir to point at the existing parquet files.",
+        ),
+    ] = False,
+    keep_tmp_dir: Annotated[
+        bool,
+        typer.Option(
+            "--keep-tmp-dir",
+            help="Keep the intermediate parquet files in tmp-dir after a successful merge instead of deleting them.",
         ),
     ] = False,
     skip_ingestion: Annotated[
@@ -122,19 +135,28 @@ def build_metadata_database(
 
     with create_progress(extra_fields=["extra"]) as progress:
         if not skip_ingestion:
-            all_outputs = list(directory.rglob("*.json"))
-            progress.console.print(
-                f"Found [green]{len(all_outputs)}[/green] JSON files to process."
-            )
+            effective_tmp_dir = tmp_dir or (output_db.parent / ".ingest_tmp")
 
-            ingest_player_records(
-                player_record_paths=all_outputs,
+            if not skip_extraction:
+                all_outputs = list(directory.rglob("*.json"))
+                progress.console.print(
+                    f"Found [green]{len(all_outputs)}[/green] JSON files to process."
+                )
+                extract_player_records_to_parquet(
+                    player_record_paths=all_outputs,
+                    db_path=output_db,
+                    tmp_dir=effective_tmp_dir,
+                    max_workers=max_workers,
+                    batch_size=batch_size,
+                    progress=progress,
+                    skip_filtering=skip_filtering,
+                )
+
+            merge_parquet_into_db(
+                tmp_dir=effective_tmp_dir,
                 db_path=output_db,
-                max_workers=max_workers,
+                keep_tmp_dir=keep_tmp_dir,
                 progress=progress,
-                skip_filtering=skip_filtering,
-                step_queue_size=step_queue_size,
-                writer_batch_size=writer_batch_size,
             )
 
         if not skip_validation:

@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import contextlib
 import multiprocessing
-from typing import TYPE_CHECKING
+import shutil
+from functools import partial
+from typing import TYPE_CHECKING, Any
 
 import duckdb
 import structlog
@@ -13,12 +16,10 @@ from gptnt.records.db._extract import (
     group_by_unique_experiment,
     iter_blobbed_step_records,
 )
+from gptnt.records.db._parquet_writer import write_metadata, write_steps_batch
 from gptnt.records.db._schema import ensure_schema
-from gptnt.records.db._writer import ExperimentDoneSignal, QueueDepthT, StepQueueT, WriterThread
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
-    from multiprocessing.pool import Pool
     from pathlib import Path
 
     from rich.progress import Progress
@@ -26,43 +27,28 @@ if TYPE_CHECKING:
 logger = structlog.get_logger()
 
 
-# Set once per worker process by _worker_init — never written from the main process.
-_step_queue: StepQueueT | None = None
-_queue_depth: QueueDepthT | None = None
-
-
-def _worker_init(step_queue: StepQueueT, queue_depth: QueueDepthT) -> None:
-    global _step_queue, _queue_depth  # noqa: PLW0603, WPS420
-    _step_queue = step_queue
-    _queue_depth = queue_depth
-
-
-def _stream_experiment_to_queue(file_paths: list[Path]) -> None:
-    """Extract and push one experiment's data — called inside a try/except by the pool worker."""
-    assert _step_queue is not None, "Worker not initialised"
-    assert _queue_depth is not None, "Worker not initialised"
-    metadata = extract_metadata_from_paths(file_paths)
+def _extract_experiment_to_parquet(
+    file_paths: list[Path], *, tmp_dir: Path, batch_size: int
+) -> None:
+    """Extract one experiment's data and write it to parquet files — no queue, no contention."""
+    batch = []
     for record in iter_blobbed_step_records(file_paths):
-        with _queue_depth.get_lock():
-            _queue_depth.value += 1
-        _step_queue.put(record)  # blocks when queue is full — natural back-pressure
-    with _queue_depth.get_lock():
-        _queue_depth.value += 1
-    _step_queue.put(ExperimentDoneSignal(metadata=metadata))
+        batch.append(record)
+        if len(batch) >= batch_size:
+            write_steps_batch(batch, tmp_dir)
+            batch = []
+    if batch:
+        write_steps_batch(batch, tmp_dir)
+    write_metadata(extract_metadata_from_paths(file_paths), tmp_dir)
 
 
-def extract_and_enqueue(file_paths: list[Path]) -> None:
-    """Extract experiment data and stream it directly into the writer queue.
-
-    Step records are pushed one at a time through a bounded queue. The worker blocks on queue.put()
-    when the queue is full, providing structural back-pressure that stops disk reads when the
-    writer cannot keep up. An ExperimentDoneSignal is pushed last so the writer knows when all step
-    records for an experiment have been enqueued and can commit the metadata.
+def extract_to_parquet(file_paths: list[Path], **kwargs: Any) -> None:
+    """Extract experiment data and write it to parquet files in the worker-local tmp_dir.
 
     Exceptions are logged and swallowed so a single bad experiment group doesn't kill the pool.
     """
     try:
-        _stream_experiment_to_queue(file_paths)
+        _extract_experiment_to_parquet(file_paths, **kwargs)
     except Exception:
         logger.exception("Error extracting data from experiment files", file_paths=file_paths)
 
@@ -70,8 +56,7 @@ def extract_and_enqueue(file_paths: list[Path]) -> None:
 def _cleanup_orphaned_step_records(connection: duckdb.DuckDBPyConnection) -> None:
     """Remove step records that have no corresponding experiment metadata entry.
 
-    These can arise if ingestion was interrupted after step records were written but before the
-    ExperimentDoneSignal was processed and the metadata committed.
+    These can arise if ingestion was interrupted before metadata was committed.
     """
     _ = connection.execute(
         "DELETE FROM experiment_step_record "
@@ -79,36 +64,72 @@ def _cleanup_orphaned_step_records(connection: duckdb.DuckDBPyConnection) -> Non
     )
 
 
-@with_default_progress()
-def extract_all_data(
-    grouped_paths: dict[str, list[Path]], *, pool: Pool, progress: Progress = ProgressSentinel
-) -> Iterator[None]:
-    """Submit all groups to the pool; workers stream results directly to the writer queue.
+def _prepare_tmp_dir(tmp_dir: Path) -> None:
+    """Delete any leftover tmp dir from a previous crashed run, then create it fresh."""
+    if tmp_dir.exists():
+        logger.warning("Leftover tmp dir found — removing (crash recovery)", path=tmp_dir)
+        shutil.rmtree(tmp_dir)
+    tmp_dir.mkdir(parents=True)
 
-    Yields once per completed group so the caller can poll for writer errors between completions.
-    """
+
+@with_default_progress()
+def _extract_all_to_parquet(
+    grouped_paths: dict[str, list[Path]],
+    *,
+    tmp_dir: Path,
+    max_workers: int,
+    batch_size: int,
+    progress: Progress = ProgressSentinel,
+) -> None:
+    """Fan out extraction across a worker pool; each worker writes parquet files to tmp_dir."""
     task = progress.add_task("Extracting data", total=len(grouped_paths))
-    for _ in pool.imap_unordered(extract_and_enqueue, grouped_paths.values()):
-        progress.advance(task)
-        yield
+    with multiprocessing.Pool(processes=max_workers) as pool:
+        for _ in pool.imap_unordered(
+            partial(extract_to_parquet, tmp_dir=tmp_dir, batch_size=batch_size),
+            grouped_paths.values(),
+        ):
+            progress.advance(task)
+
+
+def _execute_parquet_merge(tmp_dir: Path, db_path: Path) -> None:
+    """Bulk-load all parquet files from tmp_dir into DuckDB in a single transaction."""
+    steps_glob = str(tmp_dir / "steps_*.parquet")
+    meta_glob = str(tmp_dir / "meta_*.parquet")
+
+    with duckdb.connect(db_path) as con:
+        _ = con.execute(f"SET threads = {multiprocessing.cpu_count()}")
+        _ = con.execute("SET preserve_insertion_order = false")
+        _ = con.execute("SET checkpoint_threshold='16GB'")
+        _ = con.begin()
+        try:  # noqa: WPS229
+            _ = con.execute(
+                f"INSERT INTO experiment_step_record SELECT * FROM read_parquet('{steps_glob}', union_by_name=true)"  # noqa: S608
+            )
+            _ = con.execute(
+                f"INSERT INTO experiment_metadata SELECT * FROM read_parquet('{meta_glob}', union_by_name=true)"  # noqa: S608
+            )
+        except Exception:
+            _ = con.rollback()
+            raise
+        else:
+            _ = con.commit()
 
 
 @with_default_progress()
-def ingest_player_records(
+def extract_player_records_to_parquet(
     *,
     player_record_paths: list[Path],
     db_path: Path,
+    tmp_dir: Path,
     max_workers: int = 6,
-    step_queue_size: int = 500,
-    writer_batch_size: int = 100,
+    batch_size: int = 100,
     progress: Progress = ProgressSentinel,
     skip_filtering: bool = False,
 ) -> None:
-    """Ingest experiment JSON files into DuckDB with bounded memory usage.
+    """Stage 1: filter, group, and extract experiment JSON files to intermediate parquet files.
 
-    Step records are streamed one at a time through a bounded queue. Workers block when the queue
-    is full, providing structural back-pressure that limits peak memory regardless of individual
-    file sizes. A single writer thread owns the DuckDB connection and flushes in batches of 100.
+    Each worker process extracts and writes parquet files independently — no shared queue, no
+    serialization point. If tmp_dir already exists at startup it is deleted (crash recovery).
     """
     ensure_schema(db_path)
 
@@ -124,23 +145,37 @@ def ingest_player_records(
         return
 
     grouped_paths = group_by_unique_experiment(sorted(player_record_paths))
-
-    with WriterThread(
-        db_path=db_path,
+    _prepare_tmp_dir(tmp_dir)
+    _extract_all_to_parquet(
+        grouped_paths,
+        tmp_dir=tmp_dir,
+        max_workers=max_workers,
+        batch_size=batch_size,
         progress=progress,
-        step_queue_size=step_queue_size,
-        writer_batch_size=writer_batch_size,
-        num_experiments=len(grouped_paths),
-    ) as writer:
-        with multiprocessing.Pool(
-            processes=max_workers,
-            initializer=_worker_init,
-            initargs=(writer.step_queue, writer.queue_depth),
-        ) as pool:
-            for _ in extract_all_data(grouped_paths, pool=pool, progress=progress):
-                writer.check()
+    )
 
-        if writer.error_event.is_set():
-            raise RuntimeError(
-                "Ingestion completed but the writer thread encountered errors — check logs"
-            )
+
+@with_default_progress()
+def merge_parquet_into_db(
+    *,
+    tmp_dir: Path,
+    db_path: Path,
+    keep_tmp_dir: bool = False,
+    progress: Progress = ProgressSentinel,
+) -> None:
+    """Stage 2: bulk-load all parquet files from tmp_dir into DuckDB.
+
+    Cleans up tmp_dir on completion unless keep_tmp_dir is True. Safe to call standalone
+    after a failed run — re-runs ensure_schema and orphan cleanup before merging.
+    """
+    ensure_schema(db_path)
+
+    with duckdb.connect(db_path) as con:
+        _cleanup_orphaned_step_records(con)
+
+    with contextlib.ExitStack() as stack:
+        if not keep_tmp_dir:
+            _ = stack.callback(shutil.rmtree, tmp_dir, ignore_errors=True)
+        merge_task = progress.add_task("Merging into DuckDB...", total=None)
+        _execute_parquet_merge(tmp_dir, db_path)
+        progress.update(merge_task, total=1, completed=1)
