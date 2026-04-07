@@ -1,3 +1,4 @@
+from collections import deque
 from dataclasses import dataclass, field
 from typing import Self
 
@@ -9,6 +10,27 @@ from gptnt.records.models import ExperimentRecord
 
 logger = structlog.get_logger()
 
+_DEFAULT_QUERY = "SELECT * FROM experiment_metadata LIMIT 10"
+
+
+@dataclass
+class QueryRecord:
+    """A single executed SQL query and its execution metadata."""
+
+    time: str
+    query: str
+    exec_time_ms: int
+    shape: tuple[int, int]
+
+
+@dataclass
+class SqlViewerState:
+    """State for the SQL Explorer page."""
+
+    current_query: str = _DEFAULT_QUERY
+    query_history: deque[QueryRecord] = field(default_factory=lambda: deque(maxlen=50))
+    page_size: int = 50
+
 
 @dataclass
 class AppState:
@@ -19,6 +41,7 @@ class AppState:
 
     # Subsystems
     loader: ExperimentLoader
+    sql_viewer: SqlViewerState = field(default_factory=SqlViewerState)
 
     # Loaded data
     loaded_experiment: ExperimentRecord | None = field(default=None, init=False)
