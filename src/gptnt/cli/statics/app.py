@@ -44,6 +44,12 @@ statics_app.lazy_add(
     "Expert OCR evaluation.",
 )
 statics_app.lazy_add(
+    "expert-ocr-with-text",
+    "gptnt.cli.statics.expert_ocr",
+    "run_expert_ocr_with_text_evaluation",
+    "Expert OCR evaluation with the image AND the text.",
+)
+statics_app.lazy_add(
     "expert-element-grounding",
     "gptnt.cli.statics.expert_element_grounding",
     "run_expert_grounding_evaluation",

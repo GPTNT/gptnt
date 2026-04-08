@@ -1,3 +1,4 @@
+import types
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -6,6 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from structlog import get_logger
 
 from gptnt.common.paths import Paths
+from gptnt.ktane.state.modules import KtaneComponent
 
 logger = get_logger()
 
@@ -37,6 +39,22 @@ MANUAL_PAGE_IDENTIFIER_STRING = "8/28/2020 KeepTalkingandNobodyExplodes-BombDefu
 There are probably better ways to do this, but for now, this is a good enough heuristic.
 """
 
+
+MODULE_TO_PAGE_NUM_MAP = types.MappingProxyType(
+    {
+        KtaneComponent.wires: (5,),
+        KtaneComponent.big_button: (6,),
+        KtaneComponent.keypad: (7,),
+        KtaneComponent.simon: (8,),
+        KtaneComponent.whos_on_first: (9, 10),
+        KtaneComponent.memory: (11,),
+        KtaneComponent.morse_code: (12,),
+        KtaneComponent.venn: (13,),
+        KtaneComponent.wire_sequence: (14,),
+        KtaneComponent.maze: (15,),
+        KtaneComponent.password: (16,),
+    }
+)
 
 type PageNumType = Annotated[int, Field(gt=0, le=MANUAL_NUM_PAGES, description="Page number")]
 

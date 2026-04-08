@@ -9,6 +9,8 @@ import weave
 from numpy.typing import NDArray
 from PIL import Image
 
+from gptnt.ktane.manual import MODULE_TO_PAGE_NUM_MAP
+from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.prompts.manual import KtaneManualLoader
 
 logger = structlog.get_logger()
@@ -132,11 +134,23 @@ def preprocess_defuser_vqa_mcq_instance(instance: dict[str, Any]) -> dict[str, A
     }
 
 
-def preprocess_expert_ocr_instance(instance: dict[str, Any]) -> dict[str, Any]:
+def preprocess_expert_ocr_instance(
+    instance: dict[str, Any], *, include_manual_text: bool = False
+) -> dict[str, Any]:
     """Convert the instance to rename the fields to match the model (manual OCR)."""
-    manual_image = load_image(instance["image"])
+    manual_content: list[str | Image.Image] = []
+    if include_manual_text:
+        module = KtaneComponent(instance["module"])
+        pages = MODULE_TO_PAGE_NUM_MAP[module]
+        manual_content.extend(ktane_manual_paths.load_text(page_num) for page_num in pages)
 
-    return {**instance, "model_input": [manual_image, instance["question"]], "image": manual_image}
+    manual_image = manual_content.append(load_image(instance["image"]))
+
+    return {
+        **instance,
+        "model_input": [*manual_content, instance["question"]],
+        "image": manual_image,
+    }
 
 
 @weave.op
