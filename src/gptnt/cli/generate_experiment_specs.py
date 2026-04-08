@@ -5,6 +5,7 @@ import typer
 from rich.progress import track
 from structlog import get_logger
 
+from gptnt.common.hydra import load_config
 from gptnt.common.paths import Paths
 
 logger = get_logger()
@@ -18,9 +19,7 @@ def generate_experiment_specs(
     ] = None,
 ) -> None:
     """Generate experiment spec JSON files using Hydra configuration."""
-    with hydra.initialize_config_dir(version_base="1.3", config_dir=str(paths.configs)):
-        cfg = hydra.compose(config_name="experiment_generator", overrides=overrides or [])
-
+    cfg = load_config(config_name="experiment_generator", overrides=overrides)
     instantiated = hydra.utils.instantiate(cfg)
 
     mission_generator = instantiated["mission_generator"]
