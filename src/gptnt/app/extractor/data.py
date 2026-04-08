@@ -8,6 +8,13 @@ from gptnt.records.db.connection import DuckDBConnection
 from gptnt.records.models import ExperimentMetadata, ExperimentStepRecord
 from gptnt.specification import PlayerRole
 
+# Columns excluded from the SELECT to avoid pulling large compressed blobs.
+# The model validator (optionally_skip_heavy_objects) already sets these to
+# None / [] when skip_heavy_field_loading=True, so they don't need to be fetched.
+_HEAVY_COLUMNS: frozenset[str] = frozenset(("observation", "input_messages", "new_messages"))
+
+_QUERY_BATCH_SIZE = 500
+
 
 def extract_values(obj: Any, path: str) -> list[Any]:  # noqa: WPS110
     """Traverse an object following a dot-notation path, collecting all leaf values.
@@ -66,7 +73,7 @@ def _recurse(current: Any, levels: list[str]) -> list[Any]:  # noqa: WPS212
 ExtractedGroupedResults = dict[ExperimentMetadata, dict[PlayerRole, dict[str, list[Any]]]]
 
 
-def extract_from_step_records_db(  # noqa: WPS210
+def extract_from_step_records_db(  # noqa: WPS210, WPS231
     *,
     connection: DuckDBConnection,
     experiments: list[ExperimentMetadata],
@@ -95,19 +102,31 @@ def extract_from_step_records_db(  # noqa: WPS210
 
     session_map: dict[str, ExperimentMetadata] = {str(exp.session_id): exp for exp in experiments}
 
-    # Single query for all sessions
-    placeholders = ", ".join("?" * len(experiments))
-    query = connection.execute(
-        f"SELECT * FROM {ExperimentStepRecord.table_name()} WHERE session_id IN ({placeholders})",  # noqa: S608
-        list(session_map.keys()),
+    col_select = ", ".join(
+        col
+        for col in ExperimentStepRecord.model_fields
+        if col not in _HEAVY_COLUMNS  # noqa: WPS110
     )
-    col_names = [desc[0] for desc in query.description]
+    table = ExperimentStepRecord.table_name()
 
-    # Pre-group raw rows by session_id before deserialisation
+    # Pre-group raw rows by session_id before deserialisation, querying in batches
+    # to avoid materialising a huge result set and to stay within parameter limits.
     rows_by_session: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for row in query.fetchall():
-        row_dict = dict(zip(col_names, row, strict=False))
-        rows_by_session[str(row_dict["session_id"])].append(row_dict)
+    session_ids = list(session_map.keys())
+    col_names: list[str] = []
+
+    for batch_start in range(0, len(session_ids), _QUERY_BATCH_SIZE):
+        batch = session_ids[batch_start : batch_start + _QUERY_BATCH_SIZE]
+        placeholders = ", ".join("?" * len(batch))
+        query = connection.execute(
+            f"SELECT {col_select} FROM {table} WHERE session_id IN ({placeholders})",  # noqa: S608
+            batch,
+        )
+        if not col_names:
+            col_names = [desc[0] for desc in query.description]
+        for row in query.fetchall():
+            row_dict = dict(zip(col_names, row, strict=False))
+            rows_by_session[str(row_dict["session_id"])].append(row_dict)
 
     grouped: ExtractedGroupedResults = {  # noqa: WPS426
         exp: defaultdict(lambda: defaultdict(list)) for exp in experiments
@@ -116,9 +135,8 @@ def extract_from_step_records_db(  # noqa: WPS210
     total = len(experiments)
     for idx, exp in enumerate(experiments):
         for row_dict in rows_by_session.get(str(exp.session_id), []):
-            # Skip observation/messages blobs
             step = ExperimentStepRecord.model_validate(
-                row_dict, context={"skip_heavy_field_loading": True}
+                row_dict, context={"skip_heavy_field_loading": True, "mode": "db"}
             )
             role = step.role
             for field_path in fields:
