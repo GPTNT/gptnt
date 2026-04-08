@@ -1199,7 +1199,6 @@ dependencies = [
     { name = "st-tailwind" },
     { name = "streamlit" },
     { name = "streamlit-code-editor" },
-    { name = "streamlit-concurrency" },
     { name = "structlog" },
     { name = "tiktoken" },
     { name = "typer" },
@@ -1276,7 +1275,6 @@ requires-dist = [
     { name = "st-tailwind", specifier = ">=1.3.0" },
     { name = "streamlit", specifier = ">=1.40.0" },
     { name = "streamlit-code-editor", specifier = ">=0.1.22" },
-    { name = "streamlit-concurrency", specifier = ">=0.1.2" },
     { name = "structlog", specifier = ">=25.1.0" },
     { name = "tiktoken", specifier = ">=0.9.0" },
     { name = "typer", specifier = ">=0.15.1" },
@@ -4081,18 +4079,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/67/6f/fc455957652d0f42124dbc3090fe58b8919ad5bcba575a36669499ded952/streamlit-code-editor-0.1.22.tar.gz", hash = "sha256:93e6ecb4060614bce99eaf758b4cb5c8ce2accc0eb5140cbbb23c05cb4e9d7f6", size = 3788010, upload-time = "2024-12-29T22:30:22.441Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/43/53/298050f856bfdd7dd47fbcd998af92ec47479a4c0fc1a89ff90c4f27a74a/streamlit_code_editor-0.1.22-py3-none-any.whl", hash = "sha256:31abe12a94abde64123f71049741c248cd52c9de7869decd32a8a5a96695fcf4", size = 4036058, upload-time = "2024-12-29T22:30:18.897Z" },
-]
-
-[[package]]
-name = "streamlit-concurrency"
-version = "0.1.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/80/32/5430a96e6a50d0e107295dd32505dfab4cfbfaa034b254e91f9f0801adff/streamlit_concurrency-0.1.2.tar.gz", hash = "sha256:e15dc8eda5ac7e16aca4a8bc5edfc1e5d7e5ee633b3c6ca1753eec310cc1b5b5", size = 18080, upload-time = "2025-07-18T14:46:18.646Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/60/82/7f14d4491aac8669329fa054aaae078e0096792dcb488d71b9db3ea4d21c/streamlit_concurrency-0.1.2-py3-none-any.whl", hash = "sha256:757f95572d325603bbd4b23c38821ce4e5edadfdc5a885a36ef45356c04aba61", size = 26859, upload-time = "2025-07-18T14:46:17.68Z" },
 ]
 
 [[package]]

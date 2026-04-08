@@ -47,7 +47,6 @@ dependencies = [
     "streamlit>=1.40.0",
     "st-tailwind>=1.3.0",
     "duckdb-engine>=0.17.0",
-    "streamlit-concurrency>=0.1.2",
     "ijson>=3.5.0",
     "zstandard>=0.25.0",
     "msgpack>=1.1.2",
