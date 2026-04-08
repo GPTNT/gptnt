@@ -13,7 +13,7 @@ class DuckDBConnection(BaseConnection[duckdb.DuckDBPyConnection]):
 
     def execute(self, query: str, params: list[Any] | None = None) -> duckdb.DuckDBPyConnection:
         """Execute a query against the underlying DuckDB connection."""
-        return self._instance.execute(query, params or [])
+        return self._instance.cursor().execute(query, params or [])
 
     @override
     def _connect(self, **kwargs: Any) -> duckdb.DuckDBPyConnection:
