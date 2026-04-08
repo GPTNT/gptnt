@@ -3,6 +3,7 @@ from collections.abc import Callable, Sequence
 from typing import Any
 
 import pandas as pd
+from pydantic_core import to_jsonable_python
 
 from gptnt.records.db.connection import DuckDBConnection
 from gptnt.records.models import ExperimentMetadata, ExperimentStepRecord
@@ -166,7 +167,9 @@ def results_to_dataframe(
         fields:         Ordered list of extracted field names, used as column headers.
     """
     rows = [
-        {**experiment.model_dump(mode="json", by_alias=True), "role": role, **field_values}
+        to_jsonable_python(
+            {**experiment.model_dump(mode="json", by_alias=True), "role": role, **field_values}
+        )
         for experiment, grouped in extracted_data.items()
         for role, field_values in grouped.items()
     ]
