@@ -8,7 +8,7 @@ REASONING_PROMPT = "Reason about your task before choosing an answer. Keep your 
 
 OPEN_ENDED_INSTRUCTION = "Answer the following question based on given context. Output only the one letter, word, short phrase, or number required to answer the question, nothing else."
 MCQ_INSTRUCTION = "Answer the following multiple choice question based on the given context. Output only the letter of the correct answer, nothing else."
-OCR_INSTRUCTION = "Follow the instruction given the context from the image. Output only the answer, nothing else."
+OCR_INSTRUCTION = "Follow the instruction given the context from the image. Output only the answer as unformatted text, nothing else."
 
 
 GROUNDING_HALLUCINATION_PROMPT = f'2. If multiple valid targets exist: "{GROUNDING_HALLUCINATION_TYPE_A_RESPONSE}".\n\n3. If no valid target exists: "{GROUNDING_HALLUCINATION_TYPE_B_RESPONSE}".'
