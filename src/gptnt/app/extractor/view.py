@@ -1,9 +1,12 @@
-from typing import cast
+import io
 
+import polars as pl
 import streamlit as st
+from pydantic_core import to_jsonable_python
+from whenever import Instant
 
 from gptnt.app.components.filters import Filters, apply_filters
-from gptnt.app.extractor.data import extract_from_step_records_db, results_to_dataframe
+from gptnt.app.extractor.data import extract_from_step_records_db
 from gptnt.app.extractor.path_validator import validate_path
 from gptnt.records.db.connection import DuckDBConnection
 
@@ -92,7 +95,7 @@ def render_extractor_view(connection: DuckDBConnection, filters: Filters) -> Non
 
         # 2c. Build DataFrame
         st.write("Building dataframe...")
-        df = results_to_dataframe(extracted_data)
+        df = pl.DataFrame(to_jsonable_python(extracted_data), infer_schema_length=None)
 
         status.update(
             label=f":material/grading: Extracted from {len(filtered_experiments)} experiments.",
@@ -103,12 +106,17 @@ def render_extractor_view(connection: DuckDBConnection, filters: Filters) -> Non
     # 3. Download + preview
     with st.container(horizontal=True, vertical_alignment="center"):
         _ = st.caption("Showing up to 50 rows. Use the download button to get everything.")
-        json_name = "__".join(fields)
+        buffer = io.BytesIO()
+        df.write_parquet(buffer)
+        _ = buffer.seek(0)
+
+        timestamp = Instant.now().format_common_iso().replace(":", "-")
+
         _ = st.download_button(
-            label="Download JSON",
-            data=cast("str", df.to_json(orient="records")),
-            file_name=f"{json_name}.json",
-            mime="application/json",
+            label="Download as Parquet",
+            data=buffer,
+            file_name=f"results_{timestamp}.parquet",
+            mime="application/octet-stream",
             type="primary",
         )
     _ = st.markdown("**Preview**")

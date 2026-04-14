@@ -2,12 +2,9 @@ from collections import defaultdict
 from collections.abc import Callable, Sequence
 from typing import Any
 
-import pandas as pd
-from pydantic_core import to_jsonable_python
-
+from gptnt.common.duckdb import EXPORT_CONTEXT_MARKER
 from gptnt.records.db.connection import DuckDBConnection
 from gptnt.records.models import ExperimentMetadata, ExperimentStepRecord
-from gptnt.specification import PlayerRole
 
 # Columns excluded from the SELECT to avoid pulling large compressed blobs.
 # The model validator (optionally_skip_heavy_objects) already sets these to
@@ -71,7 +68,8 @@ def _recurse(current: Any, levels: list[str]) -> list[Any]:  # noqa: WPS212
     return _recurse(field_value, remaining)
 
 
-ExtractedGroupedResults = dict[ExperimentMetadata, dict[PlayerRole, dict[str, list[Any]]]]
+# One dict per step: experiment metadata + role + extracted field values.
+StepRow = dict[str, Any]
 
 
 def extract_from_step_records_db(  # noqa: WPS210, WPS231
@@ -80,7 +78,7 @@ def extract_from_step_records_db(  # noqa: WPS210, WPS231
     experiments: list[ExperimentMetadata],
     fields: list[str],
     progress_callback: Callable[[int, int], None] | None = None,
-) -> ExtractedGroupedResults:
+) -> list[StepRow]:
     """Extract fields from ExperimentStepRecord rows in DuckDB.
 
     Fetches all relevant step records in a single query, then extracts the requested dot-notation
@@ -96,10 +94,10 @@ def extract_from_step_records_db(  # noqa: WPS210, WPS231
                            after each experiment's rows are processed.
 
     Returns:
-        experiment → role → field → [values], same shape as the old file-based output.
+        A flat list of row dicts, one per step, ready to be passed to `results_to_dataframe`.
     """
     if not experiments:
-        return {}
+        return []
 
     session_map: dict[str, ExperimentMetadata] = {str(exp.session_id): exp for exp in experiments}
 
@@ -129,48 +127,23 @@ def extract_from_step_records_db(  # noqa: WPS210, WPS231
             row_dict = dict(zip(col_names, row, strict=False))
             rows_by_session[str(row_dict["session_id"])].append(row_dict)
 
-    grouped: ExtractedGroupedResults = {  # noqa: WPS426
-        exp: defaultdict(lambda: defaultdict(list)) for exp in experiments
-    }
-
+    step_rows: list[StepRow] = []
     total = len(experiments)
     for idx, exp in enumerate(experiments):
+        exp_dict = exp.model_dump(mode="json", by_alias=True)
         for row_dict in rows_by_session.get(str(exp.session_id), []):
             step = ExperimentStepRecord.model_validate(
-                row_dict, context={"skip_heavy_field_loading": True, "mode": "db"}
+                row_dict, context={"skip_heavy_field_loading": True, "mode": EXPORT_CONTEXT_MARKER}
             )
-            role = step.role
-            for field_path in fields:
-                field_values = extract_values(step, field_path)
-                grouped[exp][role][field_path].extend(field_values)
+            step_rows.append(
+                {
+                    **exp_dict,
+                    "role": step.role,
+                    **{field: extract_values(step, field) for field in fields},
+                }
+            )
 
         if progress_callback is not None:
             progress_callback(idx + 1, total)
 
-    return {
-        exp_metadata: {role: dict(field_vals) for role, field_vals in group.items()}
-        for exp_metadata, group in grouped.items()
-    }
-
-
-def results_to_dataframe(
-    extracted_data: dict[ExperimentMetadata, dict[PlayerRole, dict[str, list[Any]]]],
-) -> pd.DataFrame:
-    """Convert extracted field data into a flat DataFrame.
-
-    Each row represents one (experiment, role) combination, with extracted
-    field values as additional columns alongside experiment metadata.
-
-    Args:
-        extracted_data: experiment → role → field → [values], as returned by
-                        ``extract_across_file_groups``.
-        fields:         Ordered list of extracted field names, used as column headers.
-    """
-    rows = [
-        to_jsonable_python(
-            {**experiment.model_dump(mode="json", by_alias=True), "role": role, **field_values}
-        )
-        for experiment, grouped in extracted_data.items()
-        for role, field_values in grouped.items()
-    ]
-    return pd.DataFrame(rows)
+    return step_rows
