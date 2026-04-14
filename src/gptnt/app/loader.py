@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import streamlit as st
 import structlog
 
+from gptnt.common.duckdb import EXPORT_CONTEXT_MARKER
 from gptnt.common.paths import Paths
 from gptnt.records.db.connection import DuckDBConnection
 from gptnt.records.models import (
@@ -65,7 +66,9 @@ class ExperimentLoader:
 
         steps_by_player: dict[UUID4, list[ExperimentStepRecord]] = {}
         for row in rows:
-            step = ExperimentStepRecord.model_validate(dict(zip(col_names, row, strict=False)))
+            step = ExperimentStepRecord.model_validate(
+                dict(zip(col_names, row, strict=False)), context={"mode": EXPORT_CONTEXT_MARKER}
+            )
             steps_by_player.setdefault(step.player_uuid, []).append(step)
 
         player_records = [
