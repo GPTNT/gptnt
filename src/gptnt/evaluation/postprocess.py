@@ -21,15 +21,15 @@ def default_postprocess(output: str) -> str:
 def expert_ocr_postprocess(output: str) -> str:
     """Postprocessing function for expert OCR outputs."""
     output = default_postprocess(output)
+    output = re.sub(r"<br\s*/?>", " ", output)  # strip <br>
     output = re.sub(r"\s+", " ", output)
-    allowed_chars = r"(what\s*\?|\d\.\d{3}|★|\*|[a-z0-9]|\s)"
-    adjacent_asterisks = r"(?<=\S)\*|\*(?=\S)"
+    allowed_chars = r"(what\s*\?|\d\.\d{3}|★|[a-z0-9]|\s)"
     # Keeps only alphanumeric characters and the following special patterns:
     # ? preceded by "what" (for Who's on First)
     # digit . 3 digits (for morse code)
-    # ★ or a * on its own (for complicated wires)
-    output = "".join(match.group(0) for match in re.finditer(allowed_chars, output))
-    return re.sub(adjacent_asterisks, "", output)
+    # ★ (for complicated wires)
+    # Strips: newlines, hyphens, bullets, commas, double quotes, <br> tags
+    return "".join(match.group(0) for match in re.finditer(allowed_chars, output))
 
 
 def convert_normalised_to_absolute(
