@@ -14,7 +14,7 @@ _HEAVY_COLUMNS: frozenset[str] = frozenset(("observation", "input_messages", "ne
 _QUERY_BATCH_SIZE = 500
 
 
-def extract_values(obj: Any, path: str) -> list[Any]:  # noqa: WPS110
+def extract_values(obj: Any, path: str) -> list[Any] | Any:  # noqa: WPS110
     """Traverse an object following a dot-notation path, collecting all leaf values.
 
     Path syntax:
@@ -31,10 +31,13 @@ def extract_values(obj: Any, path: str) -> list[Any]:  # noqa: WPS110
         path: Dot-separated path string.
 
     Returns:
-        A flat list of all matching leaf values.
+        All the leaf values, either a list or unwrapped if its a single value
     """
     levels = path.split(".")
-    return _recurse(obj, levels)
+    recursed_output = _recurse(obj, levels)
+    if len(recursed_output) == 1:
+        return recursed_output[0]
+    return recursed_output
 
 
 def _recurse(current: Any, levels: list[str]) -> list[Any]:  # noqa: WPS212
