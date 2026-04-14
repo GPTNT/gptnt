@@ -35,7 +35,7 @@ def extract_values(obj: Any, path: str) -> list[Any] | Any:  # noqa: WPS110
     """
     levels = path.split(".")
     recursed_output = _recurse(obj, levels)
-    if len(recursed_output) == 1 and not isinstance(recursed_output[0], dict):
+    if len(recursed_output) == 1:
         return recursed_output[0]
     return recursed_output
 
