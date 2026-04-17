@@ -161,7 +161,9 @@ def preprocess_expert_grounding_instance(instance: dict[str, Any]) -> dict[str, 
     return {**instance, "model_input": [image, instance["question"]], "image": image}
 
 
-def preprocess_expert_vqa_instance(instance: dict[str, Any]) -> dict[str, Any]:
+def preprocess_expert_vqa_instance(
+    instance: dict[str, Any], *, include_manual: bool = True
+) -> dict[str, Any]:
     """Convert the instance to rename the fields to match the model (expert VQA)."""
     manual_content: list[str | Image.Image] = []
 
@@ -170,13 +172,13 @@ def preprocess_expert_vqa_instance(instance: dict[str, Any]) -> dict[str, Any]:
         zip(instance["page_number"], instance["images"], instance["manual_texts"], strict=True),
         key=lambda group: group[0],
     )
+    if include_manual:
+        for _, image, text in manual_content_iterator:
+            loaded_image = load_image(image)
+            assert loaded_image is not None
 
-    for _, image, text in manual_content_iterator:
-        loaded_image = load_image(image)
-        assert loaded_image is not None
-
-        manual_content.append(text)
-        manual_content.append(loaded_image)
+            manual_content.append(text)
+            manual_content.append(loaded_image)
 
     return {
         **instance,

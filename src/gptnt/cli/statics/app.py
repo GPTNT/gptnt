@@ -38,6 +38,12 @@ statics_app.lazy_add(
     "Expert VQA evaluation.",
 )
 statics_app.lazy_add(
+    "expert-vqa-no-manual",
+    "gptnt.cli.statics.expert_vqa",
+    "run_expert_vqa_no_manual_evaluation",
+    "Expert VQA evaluation without manual.",
+)
+statics_app.lazy_add(
     "expert-ocr",
     "gptnt.cli.statics.expert_ocr",
     "run_expert_ocr_evaluation",
