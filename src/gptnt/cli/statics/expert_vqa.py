@@ -75,7 +75,7 @@ async def run_expert_vqa_no_manual_evaluation(
     )
     runner = RunHFDatasetEvaluation(
         hf_repo_id="GPTNT/expert-VQA",
-        task_name="expert-vqa",
+        task_name="expert-vqa-no-manual",
         weave_project="gptnt/expert-vqa-no-manual",
         preprocess_instance_func=partial(preprocess_expert_vqa_instance, include_manual=False),
         agent=config_loader.agent_fn(instructions=instruction),
