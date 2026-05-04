@@ -10,10 +10,6 @@ capabilities:
   usage_limits:
     input_tokens_limit: 126999
     output_tokens_limit: 1001
-  image_dimensions:
-    _target_: gptnt.common.image_ops.ImageDimensions
-    width: 504
-    height: 504
 
 action_predictor:
   agent:
@@ -24,9 +20,3 @@ action_predictor:
       _target_: pydantic_ai.models.openai.OpenAIChatModelSettings
       _convert_: all
       max_tokens: 1000
-
-observation_handler:
-  image_resizer:
-    _target_: gptnt.processors.image_resizer.ImageResizer
-    target_width: ${player.capabilities.image_dimensions.width}
-    target_height: ${player.capabilities.image_dimensions.height}
