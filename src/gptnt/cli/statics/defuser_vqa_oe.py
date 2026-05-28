@@ -41,7 +41,7 @@ async def run_defuser_oe_vqa_evaluation(
         preprocess_instance_func=preprocess_defuser_vqa_open_ended_instance,
         agent=config_loader.agent_fn(instructions=instruction),
         capabilities=config_loader.capabilities,
-        weave_scorers=create_scorers(StringBasedComparer(task_type="vqa")),
+        weave_scorers=create_scorers(StringBasedComparer(task_type="oe")),
         max_instances=limit_instances,
         image_resizer=config_loader.image_resizer,
     )

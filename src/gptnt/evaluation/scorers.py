@@ -110,7 +110,7 @@ class StringBasedComparer(BaseComparer[str | list[str], bool]):  # noqa: WPS338
     def __call__(
         self, output: PredictionOutput, ground_truth: str | list[str], *, module: str
     ) -> bool:
-        if module == "keypad" and self.task_type == "vqa":
+        if module == "keypad" and self.task_type == "oe":
             ground_truth_symbol = (
                 ground_truth[0] if isinstance(ground_truth, list) else ground_truth
             )
