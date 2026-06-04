@@ -1,36 +1,10 @@
-# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# SPDX-License-Identifier: MIT-0
-
-
-import atexit
-import os
+import argparse
 import platform
 import re
-import shlex
 import subprocess
-import sys
 import tempfile
 
-
-def pci_records():
-    records = []
-    command = shlex.split("lspci -vmm")
-    output = subprocess.check_output(command).decode()
-
-    for devices in output.strip().split("\n\n"):
-        record = {}
-        records.append(record)
-        for row in devices.split("\n"):
-            key, value = row.split("\t")
-            record[key.split(":")[0]] = value
-
-    return records
-
-
-def generate_xorg_conf(devices):
-    xorg_conf = []
-
-    device_section = """
+_DEVICE_SECTION = """
 Section "Device"
     Identifier     "Device{device_id}"
     Driver         "nvidia"
@@ -38,13 +12,8 @@ Section "Device"
     BusID          "{bus_id}"
 EndSection
 """
-    server_layout_section = """
-Section "ServerLayout"
-    Identifier     "Layout0"
-    {screen_records}
-EndSection
-"""
-    screen_section = """
+
+_SCREEN_SECTION = """
 Section "Screen"
     Identifier     "Screen{screen_id}"
     Device         "Device{device_id}"
@@ -56,54 +25,112 @@ Section "Screen"
     EndSubSection
 EndSection
 """
-    screen_records = []
-    for i, bus_id in enumerate(devices):
-        xorg_conf.append(device_section.format(device_id=i, bus_id=bus_id))
-        xorg_conf.append(screen_section.format(device_id=i, screen_id=i))
-        screen_records.append(f'Screen {i} "Screen{i}" 0 0')
 
-    xorg_conf.append(server_layout_section.format(screen_records="\n    ".join(screen_records)))
-
-    output = "\n".join(xorg_conf)
-    return output
+_LAYOUT_SECTION = """
+Section "ServerLayout"
+    Identifier     "Layout0"
+    {screen_records}
+EndSection
+"""
 
 
-def startx(display):
+def pci_records() -> list[dict[str, str]]:
+    """Return one dict per PCI device from `lspci -vmm`.
+
+    `lspci -vmm` prints device blocks separated by blank lines; each line is
+    'Key:\\tValue'. We strip the trailing colon from each key.
+    """
+    output = subprocess.check_output(["lspci", "-vmm"], text=True)
+    records = []
+    for block in output.strip().split("\n\n"):
+        record = {}
+        for line in block.splitlines():
+            key, _, value = line.partition("\t")
+            record[key.removesuffix(":")] = value
+        records.append(record)
+    return records
+
+
+def to_xorg_bus_id(slot: str) -> str:
+    """Convert an lspci slot like '65:00.0' to an Xorg BusID like 'PCI:101:0:0'.
+
+    lspci prints the slot in hex (bus:device.function); Xorg wants the same
+    numbers in decimal, colon-separated, prefixed with 'PCI:'.
+    """
+    parts = re.split(r"[:.]", slot)
+    return "PCI:" + ":".join(str(int(part, 16)) for part in parts)
+
+
+def nvidia_bus_ids() -> list[str]:
+    """Find the Xorg BusIDs of every NVIDIA display/3D device on the machine."""
+    graphics_classes = {"VGA compatible controller", "3D controller"}
+    bus_ids = []
+    for record in pci_records():
+        is_nvidia = record.get("Vendor") == "NVIDIA Corporation"
+        is_graphics = record.get("Class") in graphics_classes
+        if is_nvidia and is_graphics:
+            bus_ids.append(to_xorg_bus_id(record["Slot"]))
+    return bus_ids
+
+
+def generate_xorg_conf(bus_ids: list[str]) -> str:
+    """Build an xorg.conf with one Device+Screen per GPU and a single layout."""
+    sections = []
+    screen_entries = []
+    for index, bus_id in enumerate(bus_ids):
+        sections.append(_DEVICE_SECTION.format(device_id=index, bus_id=bus_id))
+        sections.append(_SCREEN_SECTION.format(device_id=index, screen_id=index))
+        screen_entries.append(f'Screen {index} "Screen{index}" 0 0')
+    sections.append(_LAYOUT_SECTION.format(screen_records="\n    ".join(screen_entries)))
+    return "\n".join(sections)
+
+
+def run_xorg(config_path: str, display: int) -> None:
+    """Run Xorg against the given config until it exits, killing it on interrupt."""
+    command = [
+        "Xorg",
+        "-noreset",
+        "+extension",
+        "GLX",
+        "+extension",
+        "RANDR",
+        "+extension",
+        "RENDER",
+        "-config",
+        config_path,
+        f":{display}",
+    ]
+    with subprocess.Popen(command) as proc:
+        try:
+            proc.wait()
+        except BaseException:
+            proc.kill()
+            raise
+
+
+def start_xorg(display: int = 0) -> None:
     if platform.system() != "Linux":
-        raise Exception("Can only run startx on linux")  # noqa: TRY002
+        raise RuntimeError("Xorg can only be started on Linux")
 
-    devices = []
-    for r in pci_records():
-        if r.get("Vendor", "") == "NVIDIA Corporation" and r["Class"] in [
-            "VGA compatible controller",
-            "3D controller",
-        ]:
-            bus_id = "PCI:" + ":".join(str(int(x, 16)) for x in re.split(r"[:\.]", r["Slot"]))
-            devices.append(bus_id)
+    bus_ids = nvidia_bus_ids()
+    if not bus_ids:
+        raise RuntimeError("No NVIDIA graphics devices found")
 
-    if not devices:
-        raise Exception("no nvidia cards found")  # noqa: TRY002
-
-    try:
-        fd, path = tempfile.mkstemp()
-        with open(path, "w") as f:  # noqa: PTH123
-            f.write(generate_xorg_conf(devices))
-        command = shlex.split(
-            f"Xorg -noreset +extension GLX +extension RANDR +extension RENDER -config {path} :{display}"
-        )
-        proc = subprocess.Popen(command)
-        atexit.register(lambda: proc.poll() is None and proc.kill())
-        proc.wait()
-    finally:
-        os.close(fd)
-        os.unlink(path)  # noqa: PTH108
+    with tempfile.NamedTemporaryFile("w", suffix="-xorg.conf") as config_file:
+        config_file.write(generate_xorg_conf(bus_ids))
+        config_file.flush()  # Xorg reads the path from another process
+        run_xorg(config_file.name, display)
 
 
-def main():
-    display = 0
-    if len(sys.argv) > 1:
-        display = int(sys.argv[1])
-    startx(display)
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Start a headless Xorg server bound to the machine's NVIDIA GPUs."
+    )
+    parser.add_argument(
+        "display", nargs="?", type=int, default=0, help="X display number to start (default: 0)"
+    )
+    args = parser.parse_args()
+    start_xorg(args.display)
 
 
 if __name__ == "__main__":
