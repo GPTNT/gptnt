@@ -37,8 +37,8 @@ EndSection
 def pci_records() -> list[dict[str, str]]:
     """Return one dict per PCI device from `lspci -vmm`.
 
-    `lspci -vmm` prints device blocks separated by blank lines; each line is
-    'Key:\\tValue'. We strip the trailing colon from each key.
+    `lspci -vmm` prints device blocks separated by blank lines; each line is 'Key:\\tValue'. We
+    strip the trailing colon from each key.
     """
     output = subprocess.check_output(["lspci", "-vmm"], text=True)
     records = []
@@ -54,8 +54,8 @@ def pci_records() -> list[dict[str, str]]:
 def to_xorg_bus_id(slot: str) -> str:
     """Convert an lspci slot like '65:00.0' to an Xorg BusID like 'PCI:101:0:0'.
 
-    lspci prints the slot in hex (bus:device.function); Xorg wants the same
-    numbers in decimal, colon-separated, prefixed with 'PCI:'.
+    lspci prints the slot in hex (bus:device.function); Xorg wants the same numbers in decimal,
+    colon-separated, prefixed with 'PCI:'.
     """
     parts = re.split(r"[:.]", slot)
     return "PCI:" + ":".join(str(int(part, 16)) for part in parts)
