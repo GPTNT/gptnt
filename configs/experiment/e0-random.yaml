@@ -14,5 +14,5 @@ players:
     - test-random
 
 experiment_generator:
-  _target_: gptnt.experiments.experiments.ExperimentGenerator
+  _target_: gptnt.core.experiments.experiments.ExperimentGenerator
   attempts_per_mission: 100

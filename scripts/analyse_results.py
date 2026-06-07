@@ -15,7 +15,7 @@ from polars.dataframe.frame import DataFrame
 from wandb.apis.public.runs import Runs
 from wandb.wandb_run import Run
 
-from gptnt.experiments.wandb import get_runs_from_wandb
+from gptnt.records.wandb_runs import get_runs_from_wandb
 
 # Initialize session state
 
@@ -1085,7 +1085,7 @@ def create_visualizations(
             except Exception as e:  # noqa: BLE001
                 st.warning(f"Could not create bar chart: {e}")
 
-        elif len(groupby_cols) == 2 and "mean" in ["mean"]:  # Always include mean
+        elif len(groupby_cols) == 2 and "mean" == "mean":  # Always include mean
             try:
                 pivot_data: pd.DataFrame = (
                     df.select([*groupby_cols, metric])

@@ -1,0 +1,28 @@
+[project]
+name = "gptnt-interactive"
+version = "1.0.0"
+description = "GPTNT interactive gameplay: distributed services, experiment manager, CLI."
+requires-python = ">=3.13, <3.14"
+dependencies = [
+    "gptnt-core",
+    "gptnt-records",
+    "coredis>=6.0.0",
+    "fastapi>=0.117.1",
+    "faststream[otel,redis]>=0.6.2",
+    "httpx>=0.28.1",
+    "hypercorn>=0.17.3",
+    "logfire[fastapi,httpx,redis,system-metrics]>=3.14.0",
+    "psutil>=7.0.0",
+]
+
+[project.optional-dependencies]
+# Optional: W&B logging + the wandb-backed `status`/`cleanup` commands. Games record to disk
+# without this. Pulls the matching records extra so the W&B recorder is available too.
+wandb = ["gptnt-records[wandb]", "wandb[media]>=0.19.9,<0.22.1"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gptnt"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

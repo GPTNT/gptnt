@@ -1,62 +1,3 @@
-[project]
-name = "gptnt"
-version = "1.0.0"
-description = "Add your description here"
-readme = "README.md"
-authors = [
-    {name = "Amit Parekh", email = "7276308+amitkparekh@users.noreply.github.com"},
-]
-requires-python = ">=3.13, <3.14"
-dependencies = [
-    "anyio>=4.9.0",
-    "color-contrast>=0.1.1",
-    "datasets>=3.6.0",
-    "deepdiff>=8.4.2",
-    "dill>=0.3.8",
-    "httpx>=0.28.1",
-    "hydra-core>=1.3.2",
-    "hypercorn>=0.17.3",
-    "logfire[fastapi,httpx,redis,system-metrics]>=3.14.0",
-    "more-itertools>=10.7.0",
-    "omegaconf>=2.3.0",
-    "opencv-python-headless>=4.11.0.86",
-    "pillow>=11.1.0",
-    "polars>=1.28.1",
-    "psutil>=7.0.0",
-    "pyarrow>=19.0.1",
-    "pydantic>=2.10.6",
-    "pydantic-ai>=1.67.0",
-    "rich>=13.9.4",
-    "scikit-image>=0.25.2",
-    "sentence-transformers>=4.1.0",
-    "structlog>=25.1.0",
-    "tiktoken>=0.9.0",
-    "typer>=0.15.1",
-    "unflatten>=0.2.0",
-    "wandb[media]>=0.19.9,<0.22.1",
-    "weave>=0.51.44",
-    "whenever>=0.7.3",
-    "fastapi>=0.117.1",
-    "json-repair>=0.52.0",
-    "faststream[otel,redis]>=0.6.2",
-    "orjson>=3.11.5",
-    "pybase64>=1.4.3",
-    "coredis>=6.0.0",
-    "htbuilder>=0.9.0",
-    "case-converter>=1.2.0",
-    "streamlit>=1.40.0",
-    "st-tailwind>=1.3.0",
-    "duckdb-engine>=0.17.0",
-    "ijson>=3.5.0",
-    "zstandard>=0.25.0",
-    "msgpack>=1.1.2",
-    "duckdb>=1.4.4",
-    "streamlit-code-editor>=0.1.22",
-]
-
-[project.scripts]
-gptnt = "gptnt:__main__.main"
-
 [dependency-groups]
 tests = [
     "hypothesis>=6.131.0",
@@ -70,11 +11,15 @@ tests = [
     "asgi-lifespan>=2.1.0",
     "respx>=0.22.0",
     "pytest-factoryboy>=2.8.1",
+    "deepdiff>=8.4.2",
+    "unflatten>=0.2.0",
+    "pytest-env>=1.6.0",
 ]
 lint = [
     "basedpyright>=1.29.2",
     "docformatter>=1.7.5",
     "flake8-pyproject>=1.2.3",
+    "import-linter>=2.0",
     "prek>=0.2.23",
     "ruff>=0.9.0",
     "toml-sort>=0.24.2",
@@ -83,6 +28,11 @@ lint = [
 visualisation = [
     "pymupdf>=1.26.6",
     "streamlit-drawable-canvas>=0.9.3",
+]
+# Dev/CI only: keeps W&B installed so the optional W&B modules type-check and run locally.
+# Runtime W&B support ships as the gptnt-records[wandb] / gptnt-interactive[wandb] extras.
+wandb = [
+    "wandb[media]>=0.19.9,<0.22.1",
 ]
 
 [tool.uv]
@@ -97,6 +47,15 @@ explicit = true
 torch = [
     {index = "pytorch-cpu"},
 ]
+gptnt-core = {workspace = true}
+gptnt-records = {workspace = true}
+gptnt-statics = {workspace = true}
+gptnt-interactive = {workspace = true}
+gptnt-app = {workspace = true}
+gptnt-cli = {workspace = true}
+
+[tool.uv.workspace]
+members = ["packages/*"]
 
 [tool.basedpyright]
 verboseOutput = true
@@ -123,10 +82,74 @@ reportPrivateUsage = false
 reportUnusedImport = false
 reportUnusedParameter = false
 reportUnusedVariable = false
+extraPaths = [
+    "packages/gptnt-core/src",
+    "packages/gptnt-records/src",
+    "packages/gptnt-statics/src",
+    "packages/gptnt-interactive/src",
+    "packages/gptnt-app/src",
+    "packages/gptnt-cli/src",
+]
 executionEnvironments = [
     {root = "tests", extraPaths = ["."], reportArgumentType = false},
 ]
-ignore = ["scripts", "storage", "wandb", "configs"]
+ignore = ["scripts", "scrap", "stats", "storage", "wandb", "configs"]
+
+[tool.codespell]
+# Ref: https://github.com/codespell-project/codespell#using-a-config-file
+skip = '.git*,*.svg,*.lock,*.css,*.yaml,*.json'
+check-hidden = true
+# Ignore "formatting" like **L**anguage
+ignore-regex = '\*\*[A-Z]\*\*[a-z]+\b'
+ignore-words-list = 'som'
+
+# https://coverage.readthedocs.io/en/latest/config.html#report
+[tool.coverage.report]
+skip_covered = true
+show_missing = true
+ignore_errors = true
+precision = 2
+exclude_lines = [
+    # `# pragma: no cover` is standard marker for code that's not covered, this will error if code is covered
+    'pragma: no cover',
+    # use `# pragma: lax no cover` if you want to ignore cases where (some of) the code is covered
+    'pragma: lax no cover',
+    'raise NotImplementedError',
+    'if TYPE_CHECKING:',
+    'if typing.TYPE_CHECKING:',
+    '@overload',
+    '@deprecated',
+    '@typing.overload',
+    '@abstractmethod',
+    '\(Protocol\):$',
+    'typing.assert_never',
+    '$\s*assert_never\(',
+    'if __name__ == .__main__.:',
+    'except ImportError as _import_error:',
+    '$\s*pass$',
+    'assert False',
+    '@pytest\.mark\.skip',
+    '@pytest\.mark\.xfail',
+]
+
+# https://coverage.readthedocs.io/en/latest/config.html#run
+[tool.coverage.run]
+patch = ["subprocess"]
+concurrency = ["multiprocessing", "thread"]
+# We use a subdirectory for coverage data to avoid noisy coverage data files.
+data_file = ".coverage/.coverage"
+# required to avoid warnings about files created by create_module fixture
+include = [
+    "packages/**/*.py",
+    "tests/**/*.py",
+]
+# Disable include-ignored warnings as --source is enabled automatically causing a self conflict as
+# per:
+# https://github.com/pytest-dev/pytest-cov/issues/532
+# https://github.com/pytest-dev/pytest-cov/issues/369
+# This prevents coverage being generated by pytest-cov which has direct editor support in VS Code,
+# making it super useful to check coverage while writing tests.
+disable_warnings = ["include-ignored"]
 
 [tool.flake8]
 extend-exclude = [".venv"]
@@ -155,17 +178,19 @@ extend-ignore = [
     "WPS347",
     # Module complexity doesnt seem to work consistently, so we can just disable it
     "WPS232",
+    # Ruff handles it with PLC0415
+    "WPS433",
 ]
 per-file-ignores = [
     "scripts/*:WPS",
     "tests/*:WPS110,WPS2,WPS118,WPS432,WPS435,WPS444,WPS476,WPS411",
-    "src/gptnt/cli/*:WPS211,WPS213,WPS238,WPS407",
-    "src/gptnt/__main__.py:WPS213",
-    "src/gptnt/ktane/state/*:WPS202,WPS226",
-    "src/gptnt/processors/*:WPS203",
-    "src/gptnt/dataset/*:WPS202,WPS204,WPS226",
-    "src/gptnt/common/duckdb.py:WPS110,WPS111,WPS430",
-    "src/gptnt/players/tokens.py:WPS402",
+    "packages/**/cli/*:WPS211,WPS213,WPS238,WPS407",
+    "packages/gptnt-interactive/src/gptnt/interactive/__main__.py:WPS213",
+    "packages/gptnt-core/src/gptnt/core/ktane/state/*:WPS202,WPS226",
+    "packages/gptnt-core/src/gptnt/core/processors/*:WPS203",
+    "packages/gptnt-statics/src/gptnt/statics/generation/*:WPS202,WPS204,WPS226",
+    "packages/gptnt-records/src/gptnt/records/duckdb.py:WPS110,WPS111,WPS430",
+    "packages/gptnt-core/src/gptnt/core/players/tokens.py:WPS402",
 ]
 select = ["WPS"]
 max-line-length = 99
@@ -192,6 +217,74 @@ max-awaits = 10
 # WPS204: Increase overused expression limit in a module
 max-module-expressions = 10
 
+[tool.importlinter]
+root_packages = [
+    "gptnt.core",
+    "gptnt.records",
+    "gptnt.statics",
+    "gptnt.app",
+    "gptnt.interactive",
+    "gptnt.cli",
+]
+
+[[tool.importlinter.contracts]]
+name = "core is the base layer (imports no other gptnt package)"
+type = "forbidden"
+source_modules = ["gptnt.core"]
+forbidden_modules = [
+    "gptnt.records",
+    "gptnt.statics",
+    "gptnt.app",
+    "gptnt.interactive",
+    "gptnt.cli",
+]
+
+[[tool.importlinter.contracts]]
+name = "records depends only on core"
+type = "forbidden"
+source_modules = ["gptnt.records"]
+forbidden_modules = ["gptnt.statics", "gptnt.app", "gptnt.interactive", "gptnt.cli"]
+
+[[tool.importlinter.contracts]]
+name = "statics evaluation only depends on core"
+type = "forbidden"
+source_modules = [
+    "gptnt.statics.evaluation",
+    "gptnt.statics.cli",
+    "gptnt.statics.__main__",
+]
+forbidden_modules = ["gptnt.records", "gptnt.app", "gptnt.interactive", "gptnt.cli"]
+
+[[tool.importlinter.contracts]]
+name = "statics generation only depends on core and records"
+type = "forbidden"
+source_modules = ["gptnt.statics.generation"]
+forbidden_modules = ["gptnt.app", "gptnt.interactive", "gptnt.cli"]
+
+[[tool.importlinter.contracts]]
+name = "app only depends on core and records"
+type = "forbidden"
+source_modules = ["gptnt.app"]
+forbidden_modules = ["gptnt.statics", "gptnt.interactive", "gptnt.cli"]
+
+[[tool.importlinter.contracts]]
+name = "interactive depends only on core and records"
+type = "forbidden"
+source_modules = ["gptnt.interactive"]
+forbidden_modules = ["gptnt.statics", "gptnt.app", "gptnt.cli"]
+
+[[tool.importlinter.contracts]]
+name = "nothing imports gptnt.cli (it is the top-level assembler)"
+type = "forbidden"
+source_modules = [
+    "gptnt.core",
+    "gptnt.records",
+    "gptnt.statics",
+    "gptnt.app",
+    "gptnt.interactive",
+]
+forbidden_modules = ["gptnt.cli"]
+
 [tool.logfire]
 pydantic_plugin_record = "failure"
 ignore_no_config = true
@@ -202,12 +295,35 @@ filterwarnings = [
     'ignore:Deprecated call to `pkg_resources.declare_namespace:DeprecationWarning',
 ]
 asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "integration: in-situ integration test (fake Redis + fake game; no external infra needed)",
+    "slow: slower test, kept out of the quick feedback loop",
+    "requires_game: needs the real KTANE binary + a display; skipped in CI",
+]
+
+[tool.pytest_env]
+HEARTBEAT_REPEAT_INTERVAL = "0.1"
+HEARTBEAT_CHECK_INTERVAL = "0.1"
+HEARTBEAT_EXPIRATION = "5"
+GAME_STATE_INTERVAL = "0.1"
+SESSION_STATE_WATCHER_INTERVAL = "0.1"
+UPDATE_METRICS_INTERVAL = "0.5"
+DEBUG = "true"
+WEAVE_DISABLED = "true"
+WANDB_MODE = "disabled"
 
 [tool.ruff]
 line-length = 99
 target-version = "py313"
 unsafe-fixes = true
-src = ["src"]
+src = [
+    "packages/gptnt-core/src",
+    "packages/gptnt-records/src",
+    "packages/gptnt-statics/src",
+    "packages/gptnt-interactive/src",
+    "packages/gptnt-app/src",
+    "packages/gptnt-cli/src",
+]
 force-exclude = true
 
 [tool.ruff.format]
@@ -303,8 +419,13 @@ max-complexity = 18
 "__init__.py" = ["D", "F401", "I002"]
 "**/tests/*" = ["D", "S101", "INP001", "PLR2004", "FBT001", "SLF001", "ANN001"]
 "scripts/*" = ["INP001", "D", "ANN", "PLR", "PD", "S"]
-"src/gptnt/dataset/defuser_vqa/*" = ["S311"] # Allow standard random for dataset generation
-"src/gptnt/players/tokens.py" = ["PLR2004"]
+"scrap/*" = ["T201"]
+"packages/gptnt-statics/src/gptnt/statics/generation/defuser_vqa/*" = ["S311"] # Allow standard random for dataset generation
+"packages/gptnt-core/src/gptnt/core/players/tokens.py" = ["PLR2004"]
+# CLI commands keep heavy deps inside functions to keep `--help` fast (PLC0415), and Typer needs
+# the command signature annotations available at runtime, so the option-type/Path imports can't be
+# hidden in a TYPE_CHECKING block (TC001/TC002/TC003).
+"packages/**/cli/*" = ["PLC0415", "TC001", "TC002", "TC003"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -326,7 +447,3 @@ overrides."project".first = [
     "requires-python",
 ]
 overrides."tool".first = ["uv"]
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"

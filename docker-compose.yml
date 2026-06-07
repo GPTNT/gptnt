@@ -1,10 +1,7 @@
 # YAML anchor for common otel-collector configuration
 x-otel-common: &otel-common
   image: otel/opentelemetry-collector-contrib:latest
-  ports:
-    - "4317:4317"
-    - "4318:4318"
-    - "13133:13133"
+  network_mode: host
   restart: unless-stopped
   healthcheck:
     test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133/"]
@@ -16,8 +13,7 @@ services:
   redis:
     image: redis:8
     container_name: redis
-    ports:
-      - "6379:6379"
+    network_mode: host
     volumes:
       - redis_data:/data
     command: redis-server
@@ -31,10 +27,10 @@ services:
   redis-commander:
     image: rediscommander/redis-commander:latest
     container_name: redis_commander
+    network_mode: host
     environment:
-      - REDIS_HOSTS=local:redis:6379
-    ports:
-      - "8081:8081"
+      # On host networking there is no docker DNS, so `redis` no longer resolves; use localhost.
+      - REDIS_HOSTS=local:localhost:6379
     depends_on:
       - redis
     restart: unless-stopped
@@ -66,7 +62,3 @@ services:
 
 volumes:
   redis_data:
-
-networks:
-  default:
-    name: gptnt_network

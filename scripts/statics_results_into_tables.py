@@ -481,7 +481,7 @@ def _find_target_column(df: pd.DataFrame, metric_key: str) -> str | None:
     if metric_key in df.columns:
         return metric_key
 
-    suffix = metric_key.split(".")[-1] if "." in metric_key else metric_key
+    suffix = metric_key.rsplit(".", maxsplit=1)[-1] if "." in metric_key else metric_key
     if "tokens" in suffix:
         for col in df.columns:
             if "output_tokens" in col:

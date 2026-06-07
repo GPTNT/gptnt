@@ -6,7 +6,7 @@ from rich.console import Console
 from rich.table import Table
 from structlog import get_logger
 
-from gptnt.common.logger import configure_logging
+from gptnt.core.common.logger import configure_logging
 
 _logger = get_logger()
 

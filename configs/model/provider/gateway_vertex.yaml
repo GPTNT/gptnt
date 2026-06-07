@@ -5,5 +5,5 @@ provider:
   _args_:
     - google-vertex
   http_client:
-    _target_: gptnt.common.base_client.cached_retrying_async_http_client
+    _target_: gptnt.core.common.base_client.cached_retrying_async_http_client
     provider: gateway/google-vertex

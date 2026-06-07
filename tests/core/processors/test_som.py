@@ -1,0 +1,84 @@
+from pathlib import Path
+
+import numpy as np
+from numpy.typing import NDArray
+from PIL.Image import Resampling
+from pytest_cases import fixture, param_fixture
+
+from gptnt.core.common.image_ops import load_observation_from_bytes
+from gptnt.core.processors.labels.drawing import draw_mask_on_image
+from gptnt.core.processors.set_of_marks import (
+    convert_colorful_segm_to_labeled,
+    get_region_properties,
+)
+
+segmentation_image_names = param_fixture(
+    "segmentation_image_names",
+    ["segmentation1.png", "segmentation2.png", "segmentation3.png", "segmentation4.png"],
+    scope="module",
+)
+
+
+@fixture(scope="module")
+def segmentation_image(fixture_path: Path, segmentation_image_names: str) -> NDArray[np.uint8]:
+    """Fixture to provide a segmentation screenshot as a numpy array."""
+    path = fixture_path.joinpath(segmentation_image_names)
+    assert path.exists()
+    image = load_observation_from_bytes(path.read_bytes())
+    # make the image smaller for testing
+    image = image.resize((512, 512), resample=Resampling.NEAREST)
+    return np.asarray(image)
+
+
+def test_convert_colorful_segm_to_labeled(segmentation_image: NDArray[np.uint8]) -> None:
+    labeled_image = convert_colorful_segm_to_labeled(segmentation_image)
+
+    assert labeled_image.shape == segmentation_image.shape[:2]
+    assert labeled_image.dtype == np.uint8
+
+    # verify unique colors have unique labels
+    unique_colors = np.unique(segmentation_image.reshape(-1, 3), axis=0)
+    assert len(unique_colors) == len(np.unique(labeled_image))
+
+    # pick a sample color and verify all pixels with that color have same label
+    sample_color = segmentation_image[0, 0]
+    sample_label = labeled_image[0, 0]
+    color_mask = (segmentation_image == sample_color).all(axis=2)
+    assert np.all(labeled_image[color_mask] == sample_label)
+
+
+def test_get_region_properties(segmentation_image: NDArray[np.uint8]) -> None:
+    labeled_image = convert_colorful_segm_to_labeled(segmentation_image)
+    regions = get_region_properties(labeled_image)
+
+    # basic checks
+    assert len(regions) > 0
+    assert len(regions) == len(np.unique(labeled_image)) - 1  # exclude background
+
+    for region in regions:
+        assert len(region.centroid) == 2
+
+
+def test_mask_outline_color(segmentation_image: NDArray[np.uint8]) -> None:
+    """Test that the mask outline is drawn in the requested colour."""
+    expected_mask_color = (0, 255, 0)  # Green in RGB
+
+    height, width = segmentation_image.shape[:2]
+    test_image = np.zeros((height, width, 3), dtype=np.uint8)
+
+    labeled_image = convert_colorful_segm_to_labeled(segmentation_image)
+    regions = get_region_properties(labeled_image)
+
+    # Draw masks on the test image (colour is a tuple of colours, one per region split).
+    for region in regions:
+        test_image, _ = draw_mask_on_image(
+            image=test_image,
+            coords=region.coords,
+            color=(expected_mask_color,),
+            thickness=2,
+            soft_mask_alpha=0.3,
+        )
+
+    # The full-colour outline should leave pixels exactly matching the requested colour.
+    outline_pixels = np.all(test_image == expected_mask_color, axis=-1)
+    assert outline_pixels.any(), "Expected the mask outline to be drawn in the requested colour"

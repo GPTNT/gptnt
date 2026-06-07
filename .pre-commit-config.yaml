@@ -125,3 +125,11 @@ repos:
         types_or: [python, pyi, jupyter]
         language: system
         priority: 20
+
+      - id: import-linter
+        name: import-linter
+        entry: uv run lint-imports
+        language: system
+        types: [python]
+        pass_filenames: false
+        priority: 20

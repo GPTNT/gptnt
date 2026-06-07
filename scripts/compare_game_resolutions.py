@@ -5,20 +5,20 @@ import anyio
 import structlog
 from PIL import Image
 
-from gptnt.common.async_ops import periodic
-from gptnt.common.paths import Paths
-from gptnt.common.servers import get_available_port
-from gptnt.ktane.actions import GameActionType, KtaneBaseAction
-from gptnt.ktane.client import KtaneClient
-from gptnt.ktane.executable import get_executable_path
-from gptnt.ktane.game_settings import KtaneSettings
-from gptnt.ktane.mission_spec import KtaneMissionConfig
-from gptnt.ktane.process_manager import GameProcessManager
-from gptnt.ktane.state.game import GameState
-from gptnt.ktane.state.modules import KtaneComponent
-from gptnt.players.observation_handler import ObservationHandler
-from gptnt.processors.labels.drawing import AnnotationBackgroundParams, AnnotationTextParams
-from gptnt.processors.set_of_marks import MaskDrawingParams, SetOfMarksHandler
+from gptnt.core.common.async_ops import periodic
+from gptnt.core.common.paths import Paths
+from gptnt.core.common.servers import get_available_port
+from gptnt.core.ktane.actions import GameActionType, KtaneBaseAction
+from gptnt.core.ktane.client import KtaneClient
+from gptnt.core.ktane.executable import get_executable_path
+from gptnt.core.ktane.game_settings import KtaneSettings
+from gptnt.core.ktane.mission_spec import KtaneMissionConfig
+from gptnt.core.ktane.process_manager import GameProcessManager
+from gptnt.core.ktane.state.game import GameState
+from gptnt.core.ktane.state.modules import KtaneComponent
+from gptnt.core.players.observation_handler import ObservationHandler
+from gptnt.core.processors.labels.drawing import AnnotationBackgroundParams, AnnotationTextParams
+from gptnt.core.processors.set_of_marks import MaskDrawingParams, SetOfMarksHandler
 
 logger = structlog.get_logger()
 

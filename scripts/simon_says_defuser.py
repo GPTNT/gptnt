@@ -10,22 +10,22 @@ import anyio
 import structlog
 import whenever
 
-from gptnt.common.async_ops import until
-from gptnt.common.logger import configure_logging
-from gptnt.common.paths import Paths
-from gptnt.common.servers import get_available_port
-from gptnt.ktane.actions import GameActionType, KtaneBaseAction
-from gptnt.ktane.client import KtaneClient
-from gptnt.ktane.executable import get_executable_path
-from gptnt.ktane.game_settings import KtaneSettings
-from gptnt.ktane.mission_spec import KtaneMissionConfig
-from gptnt.ktane.state.bomb import BombState
-from gptnt.ktane.state.game import GameState
-from gptnt.ktane.state.modules import KtaneComponent
-from gptnt.ktane.state.widget import SerialWidgetState
-from gptnt.processors.image_resizer import ImageResizer
-from gptnt.processors.labels.drawing import AnnotationBackgroundParams, AnnotationTextParams
-from gptnt.processors.set_of_marks import MaskDrawingParams, SetOfMarksHandler
+from gptnt.core.common.async_ops import until
+from gptnt.core.common.logger import configure_logging
+from gptnt.core.common.paths import Paths
+from gptnt.core.common.servers import get_available_port
+from gptnt.core.ktane.actions import GameActionType, KtaneBaseAction
+from gptnt.core.ktane.client import KtaneClient
+from gptnt.core.ktane.executable import get_executable_path
+from gptnt.core.ktane.game_settings import KtaneSettings
+from gptnt.core.ktane.mission_spec import KtaneMissionConfig
+from gptnt.core.ktane.state.bomb import BombState
+from gptnt.core.ktane.state.game import GameState
+from gptnt.core.ktane.state.modules import KtaneComponent
+from gptnt.core.ktane.state.widget import SerialWidgetState
+from gptnt.core.processors.image_resizer import ImageResizer
+from gptnt.core.processors.labels.drawing import AnnotationBackgroundParams, AnnotationTextParams
+from gptnt.core.processors.set_of_marks import MaskDrawingParams, SetOfMarksHandler
 
 if TYPE_CHECKING:
     from anyio.abc import Process

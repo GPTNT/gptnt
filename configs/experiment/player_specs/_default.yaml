@@ -1,5 +1,5 @@
 defaults:
   - _self_
 
-_target_: gptnt.specification.PlayerProtocol
+_target_: gptnt.core.specification.PlayerProtocol
 communication_style: ${communication_style}

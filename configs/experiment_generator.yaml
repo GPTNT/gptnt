@@ -34,20 +34,20 @@ expert_protocol: ???
 communication_style: ???
 
 mission_generator:
-  _target_: gptnt.experiments.missions.MissionGenerator
+  _target_: gptnt.core.experiments.missions.MissionGenerator
   seed: 10
   num_seeds_per_mission: ???
   config: ???
 
 experiment_generator:
-  _target_: gptnt.experiments.experiments.ExperimentGenerator
+  _target_: gptnt.core.experiments.experiments.ExperimentGenerator
   condition: ???
   defuser_protocol: ${defuser_protocol}
   expert_protocol: ${expert_protocol}
   attempts_per_mission: 1
 
 pairing_generator:
-  _target_: gptnt.experiments.pairing.PairingGenerator
+  _target_: gptnt.core.experiments.pairing.PairingGenerator
   pairing_type: ???
   best_model: null
   all_players: ${players.all}

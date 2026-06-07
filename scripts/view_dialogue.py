@@ -14,19 +14,19 @@ import wandb
 from wandb.apis.public.runs import Runs
 from wandb.wandb_run import Run
 
-from gptnt.common.image_ops import load_observation_from_bytes
-from gptnt.experiments.wandb import get_runs_from_wandb
-from gptnt.ktane.actions import RelativeCoordinate
-from gptnt.players.metrics.structures import (
+from gptnt.core.common.image_ops import load_observation_from_bytes
+from gptnt.core.ktane.actions import RelativeCoordinate
+from gptnt.core.players.metrics.structures import (
     ActionMetric,
     BombStateMetric,
     DoNothingMetric,
     MessageMetric,
     ObservationMetric,
 )
-from gptnt.players.observations import ObservationHandler
-from gptnt.processors.labels.drawing import AnnotationBackgroundParams, AnnotationTextParams
-from gptnt.processors.set_of_marks import MaskDrawingParams, SetOfMarksHandler
+from gptnt.core.players.observations import ObservationHandler
+from gptnt.core.processors.labels.drawing import AnnotationBackgroundParams, AnnotationTextParams
+from gptnt.core.processors.set_of_marks import MaskDrawingParams, SetOfMarksHandler
+from gptnt.records.wandb_runs import get_runs_from_wandb
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

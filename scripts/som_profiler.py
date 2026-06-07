@@ -4,9 +4,9 @@ import logfire
 import numpy as np
 from PIL import Image, ImageDraw
 
-from gptnt.common.image_ops import load_observation_from_bytes
-from gptnt.ktane.state.modules import KtaneComponent
-from gptnt.processors.set_of_marks import (
+from gptnt.core.common.image_ops import load_observation_from_bytes
+from gptnt.core.ktane.state.modules import KtaneComponent
+from gptnt.core.processors.set_of_marks import (
     AnnotationBackgroundParams,
     AnnotationTextParams,
     MaskDrawingParams,

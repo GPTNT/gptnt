@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 import structlog
 import wandb
 
-from gptnt.experiments.wandb import get_runs_from_wandb, mark_runs_as_old
+from gptnt.records.wandb_runs import get_runs_from_wandb, mark_runs_as_old
 
 WANDB_PATH = "gptnt/dont-stop-believin"
 logger = structlog.get_logger()
