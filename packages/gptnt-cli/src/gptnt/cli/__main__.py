@@ -6,7 +6,7 @@ from gptnt.records.cli.build_db import build_metadata_database
 from gptnt.records.cli.cleanup import cleanup_experiment_outputs
 from gptnt.records.cli.status import check_experiment_completion
 from gptnt.records.cli.timing import query_span_timings
-from gptnt.statics.cli.app import statics_app
+from gptnt.statics.__main__ import statics_app
 
 
 def main() -> None:
