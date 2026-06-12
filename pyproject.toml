@@ -246,19 +246,9 @@ source_modules = ["gptnt.records"]
 forbidden_modules = ["gptnt.statics", "gptnt.app", "gptnt.interactive", "gptnt.cli"]
 
 [[tool.importlinter.contracts]]
-name = "statics evaluation only depends on core"
-type = "forbidden"
-source_modules = [
-    "gptnt.statics.evaluation",
-    "gptnt.statics.cli",
-    "gptnt.statics.__main__",
-]
-forbidden_modules = ["gptnt.records", "gptnt.app", "gptnt.interactive", "gptnt.cli"]
-
-[[tool.importlinter.contracts]]
 name = "statics generation only depends on core and records"
 type = "forbidden"
-source_modules = ["gptnt.statics.generation"]
+source_modules = ["gptnt.statics"]
 forbidden_modules = ["gptnt.app", "gptnt.interactive", "gptnt.cli"]
 
 [[tool.importlinter.contracts]]

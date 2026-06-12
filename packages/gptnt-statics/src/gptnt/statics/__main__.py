@@ -12,6 +12,7 @@ from gptnt.statics.cli.expert_vqa import (
     run_expert_vqa_evaluation,
     run_expert_vqa_no_manual_evaluation,
 )
+from gptnt.statics.cli.how_do_you import run_how_do_you_evaluation
 
 statics_app = AsyncTyper(
     name="statics",
@@ -31,3 +32,4 @@ _ = statics_app.command("expert-vqa-no-manual", help="Expert VQA evaluation with
 _ = statics_app.command("expert-ocr")(run_expert_ocr_evaluation)
 _ = statics_app.command("expert-ocr-with-text")(run_expert_ocr_with_text_evaluation)
 _ = statics_app.command("expert-element-grounding")(run_expert_grounding_evaluation)
+_ = statics_app.command("how-do-you")(run_how_do_you_evaluation)
