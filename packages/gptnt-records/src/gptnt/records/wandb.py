@@ -1,3 +1,4 @@
+import os
 from contextlib import suppress
 from dataclasses import dataclass, field
 from functools import partial
@@ -80,8 +81,8 @@ class WandbExperimentPlayerRecorder(ExperimentPlayerRecorder):
     This class extends the base ExperimentTracker to add WandB-specific logging.
     """
 
-    wandb_entity: str
-    wandb_project: str
+    wandb_entity: str = field(default_factory=partial(os.getenv, "WANDB_ENTITY", "<MISSING>"))
+    wandb_project: str = field(default_factory=partial(os.getenv, "WANDB_PROJECT", "<MISSING>"))
 
     wandb_init_kwargs: dict[str, Any] = field(default_factory=dict)
     """Keyword arguments for initializing WandB."""

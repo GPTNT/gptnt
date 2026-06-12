@@ -38,7 +38,7 @@ player:
   # wandb extra (`uv sync --group wandb` / `pip install gptnt-interactive[wandb]`) and swap
   # _target_ to gptnt.records.wandb.WandbExperimentPlayerRecorder with wandb_entity/wandb_project.
   experiment_recorder:
-    _target_: gptnt.records.recorder.ExperimentPlayerRecorder
+    _target_: gptnt.records.recorder.WandbExperimentPlayerRecorder
     capabilities: ${player.capabilities}
 
   action_predictor:
