@@ -1,6 +1,7 @@
 # Created by https://www.toptal.com/developers/gitignore/api/python,unity,asdf,visualstudiocode,intellij+all,direnv,jupyternotebooks,database,monodevelop,csharp
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,unity,asdf,visualstudiocode,intellij+all,direnv,jupyternotebooks,database,monodevelop,csharp
 
+
 ### asdf ###
 /.tool-versions
 .mise.toml
@@ -814,3 +815,6 @@ storage/human_eval
 scrap/
 stats/
 output/
+
+
+**/.DS_Store
