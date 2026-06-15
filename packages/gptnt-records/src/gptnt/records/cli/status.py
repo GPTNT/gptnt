@@ -81,7 +81,7 @@ ExperimentsArgument = Annotated[
 # Experiment loading
 def _generate_experiments_to_tmpdir(tmpdir: Path, names: list[str] | None = None) -> list[str]:
     """Run generate_experiments as a subprocess, directing output to tmpdir."""
-    command = [sys.executable, "-m", "gptnt", "generate"]
+    command = [sys.executable, "-m", "gptnt.cli", "generate"]
 
     if names is None:
         names = sorted(DEFAULT_EXPERIMENT_LIST)
