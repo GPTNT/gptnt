@@ -1,6 +1,0 @@
-# @package _global_
-
-defaults:
-  - e7-n-self-async
-  - override /experiment/pairing: with_best_expert
-  - _self_

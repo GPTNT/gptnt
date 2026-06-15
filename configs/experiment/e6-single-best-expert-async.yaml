@@ -1,6 +1,0 @@
-# @package _global_
-
-defaults:
-  - e6-single-self-async
-  - override /experiment/pairing: with_best_expert
-  - _self_
