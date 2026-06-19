@@ -51,6 +51,7 @@ Docker only runs infra (Redis, its web UI, and the OpenTelemetry collector); the
   - Windows: `<name>.exe`
 
   If the binary is missing you'll get a `GameNotFoundError` naming `storage/ktane`.
+
 - **Linux only: an X display.** The game needs some X display. If you already have a desktop session
   (`$DISPLAY` set) it'll be used; on a headless box, start a GPU-backed Xorg with `scripts/startx.py`.
   **macOS and Windows don't need to do anything here.**
@@ -116,7 +117,7 @@ defaults:
   - _self_
 
 capabilities:
-  player_name: claude46          # MUST match the config's file name stem
+  player_name: claude46 # MUST match the config's file name stem
   thinking_method: thinking-out-loud
   interaction_location_method: set-of-marks
   usage_limits:
@@ -161,30 +162,29 @@ The roster that **experiment generation** draws from lives in `configs/experimen
 
 1. **Start infra** (Redis + its web UI + the OpenTelemetry collector — **not** the game):
 
-    ```bash
-    docker compose up -d
-    ```
+   ```bash
+   docker compose up -d
+   ```
 
-    The active compose profile defaults to `prod` (`COMPOSE_PROFILES=prod`, set in `mise.toml`).
+   The active compose profile defaults to `prod` (`COMPOSE_PROFILES=prod`, set in `mise.toml`).
 
 2. **Generate experiment specs** as JSON into `output/experiments/`:
 
-    ```bash
-    gptnt generate experiment=e0-async        # any preset in configs/experiment/*.yaml
-    ```
+   ```bash
+   gptnt generate experiment=e0-async        # any preset in configs/experiment/*.yaml
+   ```
 
 3. **Throw** the game rooms and AI players. This runs in the **foreground**. It spawns the experiment manager (`:8085`), the game rooms, and the players, then **waits**:
 
-    ```bash
-    gptnt throw 4 claude46:4 gemini-3:4
-    ```
+   ```bash
+   gptnt throw 4 claude46:4 gemini-3:4
+   ```
 
 4. **Submit** the specs — **in a separate terminal**. This is what actually starts the games (the EM sits idle until it receives them). `WANDB_ENTITY`/`WANDB_PROJECT` are picked up from your mise env:
 
-    ```bash
-    gptnt submit
-    ```
-
+   ```bash
+   gptnt submit
+   ```
 
 > [!IMPORTANT]
 > **Why does `throw` seem to hang?** It's waiting for `submit`. `throw` spawns the manager, rooms,
@@ -215,14 +215,14 @@ Each process emits OTLP spans to the otel-collector on `localhost:4318`, which (
 
 ## Troubleshooting
 
-| Symptom | Cause → Fix |
-| --- | --- |
-| `throw` sits there doing nothing | It's waiting for specs → run `gptnt submit` in another terminal. |
-| `GameNotFoundError` | No game build → place the KTANE build under `storage/ktane` (see Prerequisites). |
-| Connection refused on `:6379` | Redis isn't up → `docker compose up -d`. |
-| No X display (Linux) | `$DISPLAY` unset on a headless box → start one with `scripts/startx.py`. |
-| Auth/401 from a provider | Missing key → set it in `mise.local.toml` (e.g. `ANTHROPIC_API_KEY`). |
-| Stuck game/player processes | `gptnt kill` to force-kill them. |
+| Symptom                          | Cause → Fix                                                                      |
+| -------------------------------- | -------------------------------------------------------------------------------- |
+| `throw` sits there doing nothing | It's waiting for specs → run `gptnt submit` in another terminal.                 |
+| `GameNotFoundError`              | No game build → place the KTANE build under `storage/ktane` (see Prerequisites). |
+| Connection refused on `:6379`    | Redis isn't up → `docker compose up -d`.                                         |
+| No X display (Linux)             | `$DISPLAY` unset on a headless box → start one with `scripts/startx.py`.         |
+| Auth/401 from a provider         | Missing key → set it in `mise.local.toml` (e.g. `ANTHROPIC_API_KEY`).            |
+| Stuck game/player processes      | `gptnt kill` to force-kill them.                                                 |
 
 ## How to verify everything is working
 
