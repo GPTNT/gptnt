@@ -4,14 +4,15 @@ Traces, logs, and metrics all go through an OTEL collector, which forwards every
 
 The collector runs via Docker Compose (`otel-collector` service in `docker-compose.yml`). It listens on the standard OTLP ports (gRPC `4317`, HTTP `4318`) and also tails the KTANE Unity log file directly.
 
-## `--limit-observability`
+## `observability: limited`
 
-By default, `gptnt throw` runs with full instrumentation — FastAPI, FastStream, HTTPX, Redis, metrics, the lot. That's usually fine, but it can get noisy and adds overhead. You don't want this when you are running all the experiments because it can send 60M spans every 12 hours.
+By default, `gptnt run` launches its processes with full instrumentation — FastAPI, FastStream, HTTPX, Redis, metrics, the lot. That's usually fine, but it can get noisy and adds overhead. You don't want this when you are running all the experiments because it can send 60M spans every 12 hours.
 
-Pass `--limit-observability` to dial most of that back:
+Set `observability: limited` in your `run.yaml` to dial most of that back:
 
-```bash
-gptnt throw 4 claude45:8 --limit-observability
+```yaml
+# run.yaml
+observability: limited # full | limited | off
 ```
 
 What it does:
@@ -21,11 +22,11 @@ What it does:
 - Keeps pydantic-ai instrumentation on (in case we have any new errors)
 - Sets `sampling.aggressive=true` on the resource, so the collector enables tail sampling and sets a minimum level (and more)
 
-Under the hood it just injects a bunch of `OBSERVABILITY_*` env vars into the throw processes (see `_limit_observability_settings()` in [`src/gptnt/cli/throw.py`](../src/gptnt/cli/throw.py)). The env var definitions are in [`src/gptnt/common/instrumentation.py`](../src/gptnt/common/instrumentation.py).
+Under the hood it just injects a bunch of `OBSERVABILITY_*` env vars into the spawned processes (see `_limit_observability_settings()` in [`packages/gptnt-interactive/src/gptnt/interactive/cli/_observability.py`](../packages/gptnt-interactive/src/gptnt/interactive/cli/_observability.py)). The env var definitions are in [`packages/gptnt-core/src/gptnt/core/common/instrumentation.py`](../packages/gptnt-core/src/gptnt/core/common/instrumentation.py).
 
 ## Send details KTANE logs to Logfire
 
-The KTANE log tail sampling is controlled separately via `storage/otel-collector-config.yaml`. This is because the KTANE logs come from a file, so we can't just set them with the `OTEL_RESOURCE_ATTRIBUTES` env var like we do for the throw processes. Unfortunately/currently, if you want to change this, you have to edit the collector's config file.
+The KTANE log tail sampling is controlled separately via `storage/otel-collector-config.yaml`. This is because the KTANE logs come from a file, so we can't just set them with the `OTEL_RESOURCE_ATTRIBUTES` env var like we do for the spawned processes. Unfortunately/currently, if you want to change this, you have to edit the collector's config file.
 
 Find the following in `storage/otel-collector-config.yaml`:
 
