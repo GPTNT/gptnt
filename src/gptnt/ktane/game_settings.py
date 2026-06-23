@@ -2,6 +2,8 @@ import os
 import platform
 from datetime import UTC, datetime
 from pathlib import Path
+from string import Template
+from typing import Literal
 
 import logfire
 import structlog
@@ -12,7 +14,44 @@ from gptnt.common.image_ops import ImageDimensions
 
 logger = structlog.get_logger()
 
-DEFAULT_PLAYER_SETTINGS_XML = Path(__file__).parent.joinpath("playerSettings.xml").read_text()
+# The language codes KTANE ships, sourced from https://www.bombmanual.com/language.html
+# (English plus 26 translations; the region-tagged entries pt-BR, zh-CN, ... are
+# part of the set). Constraining to this closed set both rejects unsupported codes
+# loudly and keeps the rendered XML well-formed (every value is alphanumeric/hyphen,
+# never an XML metacharacter).
+KtaneLanguageCode = Literal[
+    "en",
+    "ar",
+    "cs",
+    "da",
+    "de",
+    "eo",
+    "es",
+    "fi",
+    "fr",
+    "he",
+    "hu",
+    "it",
+    "ja",
+    "ko",
+    "nb",
+    "nl",
+    "pl",
+    "pt-BR",
+    "pt-PT",
+    "ro",
+    "ru",
+    "sv",
+    "th",
+    "tr",
+    "uk",
+    "zh-CN",
+    "zh-TW",
+]
+
+PLAYER_SETTINGS_TEMPLATE = Template(
+    Path(__file__).parent.joinpath("playerSettings.xml").read_text()
+)
 DEFAULT_PROGRESSION_XML = Path(__file__).parent.joinpath("progression.xml").read_text()
 
 
@@ -59,10 +98,27 @@ class KtaneSettings(BaseSettings):
     )
     game_speed: int = Field(default=1, description="Multiplier for the game speed")
 
+    music_volume: int = Field(
+        default=0, ge=0, le=100, description="Background music volume (0-100)"
+    )
+    sfx_volume: int = Field(default=0, ge=0, le=100, description="Sound-effects volume (0-100)")
+    language_code: KtaneLanguageCode = Field(
+        default="en", description="In-game language code; one of the KTANE-supported codes"
+    )
+
     @property
     def image_dimensions(self) -> ImageDimensions:
         """Get the image dimensions for the game."""
         return ImageDimensions(width=self.game_width, height=self.game_height)
+
+    @property
+    def rendered_player_settings(self) -> str:
+        """Render playerSettings.xml with the configured audio and language values."""
+        return PLAYER_SETTINGS_TEMPLATE.substitute(
+            music_volume=self.music_volume,
+            sfx_volume=self.sfx_volume,
+            language_code=self.language_code,
+        )
 
     def update_environment_variables(self) -> None:
         """Set the environment variables for the game settings."""
@@ -115,7 +171,7 @@ class KtaneSettings(BaseSettings):
         """
         player_settings_path = path or self.get_dir().joinpath(self.player_settings_file_name)
         self.create_file(
-            file_path=player_settings_path, default_file_contents=DEFAULT_PLAYER_SETTINGS_XML
+            file_path=player_settings_path, default_file_contents=self.rendered_player_settings
         )
 
     def create_progression_file(self, *, path: Path | None = None) -> None:

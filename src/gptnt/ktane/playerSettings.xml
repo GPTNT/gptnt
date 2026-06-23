@@ -4,8 +4,8 @@
   <InvertTiltControls>false</InvertTiltControls>
   <TouchpadInvert>false</TouchpadInvert>
   <RumbleEnabled>true</RumbleEnabled>
-  <MusicVolume>0</MusicVolume>
-  <SFXVolume>0</SFXVolume>
+  <MusicVolume>$music_volume</MusicVolume>
+  <SFXVolume>$sfx_volume</SFXVolume>
   <AntiAliasing>2</AntiAliasing>
   <VRModeRequested>true</VRModeRequested>
   <SecondScreenMode>InteractiveManual</SecondScreenMode>
@@ -25,5 +25,5 @@
   <ShowLeaderBoards>true</ShowLeaderBoards>
   <ShowScanline>true</ShowScanline>
   <ShowRotationUI>true</ShowRotationUI>
-  <LanguageCode>en</LanguageCode>
+  <LanguageCode>$language_code</LanguageCode>
 </PlayerSettings>
