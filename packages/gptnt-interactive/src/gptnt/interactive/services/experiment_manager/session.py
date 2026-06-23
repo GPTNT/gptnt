@@ -9,8 +9,8 @@ from coredis import Redis
 from faststream.redis import RedisBroker
 from pydantic import UUID4
 
-from gptnt.core.experiments.experiment_descriptor import ExperimentDescriptor
-from gptnt.core.experiments.experiments import ExperimentSpec
+from gptnt.experiments.descriptor import ExperimentDescriptor
+from gptnt.experiments.spec import ExperimentSpec
 from gptnt.interactive.services.experiment_manager.experiment_runner import (
     AsyncExperimentRunner,
     ExperimentRunner,
@@ -102,7 +102,7 @@ class Session:
         return self._task_group is not None and getattr(self._task_group, "_exceptions", False)
 
     async def run(self) -> None:
-        """Run the experiment. Blocks until done or cancelled.
+        """Run the experiment and blocks until done or cancelled.
 
         Must be spawned in its own task (e.g. via `tg.start_soon`) so the cancel scope lives in
         that task, **not** in the caller's. `force_stop_experiment` can then safely cancel the

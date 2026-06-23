@@ -1,35 +1,64 @@
-from gptnt.core.common.typer import AsyncTyper
-from gptnt.statics.cli.defuser_grounding_coordinates import run_defuser_grounding_evaluation
-from gptnt.statics.cli.defuser_grounding_som import run_defuser_set_of_marks_evaluation
-from gptnt.statics.cli.defuser_vqa_mcq import run_defuser_mcq_vqa_evaluation
-from gptnt.statics.cli.defuser_vqa_oe import run_defuser_oe_vqa_evaluation
-from gptnt.statics.cli.expert_element_grounding import run_expert_grounding_evaluation
-from gptnt.statics.cli.expert_ocr import (
-    run_expert_ocr_evaluation,
-    run_expert_ocr_with_text_evaluation,
-)
-from gptnt.statics.cli.expert_vqa import (
-    run_expert_vqa_evaluation,
-    run_expert_vqa_no_manual_evaluation,
-)
-from gptnt.statics.cli.how_do_you import run_how_do_you_evaluation
+import anyio
+from cyclopts import App
 
-statics_app = AsyncTyper(
-    name="statics",
-    help="Run static evaluations against HuggingFace datasets.",
-    no_args_is_help=True,
-    rich_help_panel="Statics",
+statics_app = App(name="statics", help="Run static evaluations against HuggingFace datasets.")
+
+statics_app.command(
+    "gptnt.statics.cli.defuser_grounding_coordinates:run_defuser_grounding_evaluation",
+    name="defuser-grounding-coordinates",
+    help="Defuser grounding using absolute coordinates.",
+)
+statics_app.command(
+    "gptnt.statics.cli.defuser_grounding_som:run_defuser_set_of_marks_evaluation",
+    name="defuser-grounding-som",
+    help="Defuser grounding using Set of Marks.",
+)
+statics_app.command(
+    "gptnt.statics.cli.defuser_vqa_oe:run_defuser_oe_vqa_evaluation",
+    name="defuser-vqa-oe",
+    help="Defuser VQA open-ended questions.",
+)
+statics_app.command(
+    "gptnt.statics.cli.defuser_vqa_mcq:run_defuser_mcq_vqa_evaluation",
+    name="defuser-vqa-mcq",
+    help="Defuser VQA multiple choice questions.",
+)
+statics_app.command(
+    "gptnt.statics.cli.expert_vqa:run_expert_vqa_evaluation",
+    name="expert-vqa",
+    help="Expert VQA evaluation.",
+)
+statics_app.command(
+    "gptnt.statics.cli.expert_vqa:run_expert_vqa_no_manual_evaluation",
+    name="expert-vqa-no-manual",
+    help="Expert VQA evaluation without manual.",
+)
+statics_app.command(
+    "gptnt.statics.cli.expert_ocr:run_expert_ocr_evaluation",
+    name="expert-ocr",
+    help="Expert OCR evaluation.",
+)
+statics_app.command(
+    "gptnt.statics.cli.expert_ocr:run_expert_ocr_with_text_evaluation",
+    name="expert-ocr-with-text",
+    help="Expert OCR evaluation with the image AND the text.",
+)
+statics_app.command(
+    "gptnt.statics.cli.expert_element_grounding:run_expert_grounding_evaluation",
+    name="expert-element-grounding",
+    help="Expert element grounding evaluation.",
+)
+statics_app.command(
+    "gptnt.statics.cli.how_do_you:run_how_do_you_evaluation",
+    name="how-do-you",
+    help='Run the simple "How do you..." evaluation.',
 )
 
-_ = statics_app.command("defuser-grounding-coordinates")(run_defuser_grounding_evaluation)
-_ = statics_app.command("defuser-grounding-som")(run_defuser_set_of_marks_evaluation)
-_ = statics_app.command("defuser-vqa-oe")(run_defuser_oe_vqa_evaluation)
-_ = statics_app.command("defuser-vqa-mcq")(run_defuser_mcq_vqa_evaluation)
-_ = statics_app.command("expert-vqa")(run_expert_vqa_evaluation)
-_ = statics_app.command("expert-vqa-no-manual", help="Expert VQA evaluation without manual.")(
-    run_expert_vqa_no_manual_evaluation
-)
-_ = statics_app.command("expert-ocr")(run_expert_ocr_evaluation)
-_ = statics_app.command("expert-ocr-with-text")(run_expert_ocr_with_text_evaluation)
-_ = statics_app.command("expert-element-grounding")(run_expert_grounding_evaluation)
-_ = statics_app.command("how-do-you")(run_how_do_you_evaluation)
+
+def main() -> None:
+    """Entry point for the `gptnt statics` command."""
+    anyio.run(statics_app.run_async)
+
+
+if __name__ == "__main__":
+    main()

@@ -8,7 +8,7 @@ import structlog
 from fastapi import APIRouter, Depends, FastAPI, Request
 from pydantic import BaseModel
 
-from gptnt.core.experiments.experiments import ExperimentSpec
+from gptnt.experiments.spec import ExperimentSpec
 from gptnt.interactive.services.experiment_manager.experiment_manager import ExperimentManager
 
 if TYPE_CHECKING:
@@ -44,6 +44,13 @@ class Specs(BaseModel):
     specs: list[ExperimentSpec]
 
 
+class ActiveExperiments(BaseModel):
+    """The attempt names the EM is currently working on."""
+
+    running: list[str]
+    queued: list[str]
+
+
 @router.get("/health")
 async def health() -> bool:
     """Check if the experiment manager is healthy."""
@@ -56,3 +63,16 @@ async def add_experiment_specs(specs: Specs, experiment_manager: ExperimentManag
     logger.info("Adding new experiment specs", total_specs=len(specs.specs))
     experiment_manager.specs.update(specs.specs)
     logger.info("Experiment specs added", total_specs=len(experiment_manager.specs))
+
+
+@router.get("/active")
+async def active_experiments(experiment_manager: ExperimentManagerDep) -> ActiveExperiments:
+    """The attempt names currently in flight: running sessions plus queued-but-unmatched specs.
+
+    `status` overlays these onto the on-disk completion view so a benchmark run shows live progress
+    without W&B.
+    """
+    return ActiveExperiments(
+        running=[session.spec.attempt_name for session in experiment_manager.active_sessions],
+        queued=[spec.attempt_name for spec in experiment_manager.specs],
+    )

@@ -8,12 +8,12 @@ import structlog
 from fastapi import HTTPException
 from faststream.redis import RedisBroker
 
-from gptnt.core.common.span_timing import set_timing_identity
 from gptnt.core.ktane.actions import KtaneGameplayInput
 from gptnt.core.ktane.client import FrameBuffer
 from gptnt.core.ktane.mission_spec import KtaneMissionConfig
 from gptnt.core.ktane.state.bomb import BombState
 from gptnt.core.ktane.state.game import GameState
+from gptnt.core.observability.span_timing import set_timing_identity
 from gptnt.interactive.services.game.context import GameServiceContext
 from gptnt.interactive.services.heartbeat.base import ReadyState
 from gptnt.interactive.services.rpc import BaseRPCService

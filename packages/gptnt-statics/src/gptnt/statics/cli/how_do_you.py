@@ -1,16 +1,22 @@
 from collections import defaultdict
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
-import typer
+from cyclopts import Parameter
+from cyclopts.types import PositiveInt
 from pydantic_core import to_json
 from structlog import get_logger
 
 from gptnt.core.common.logger import create_progress
 from gptnt.core.common.paths import Paths
-from gptnt.statics.cli._fields import AllowThinkingOption, ModelOption
-
-if TYPE_CHECKING:
-    from gptnt.core.ktane.state.modules import KtaneComponent
+from gptnt.core.ktane.state.modules import KtaneComponent
+from gptnt.core.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
+from gptnt.core.players.reasoning_parser.react import ReactStyleReasoningParser
+from gptnt.statics.cli._config_loader import ConfigLoader
+from gptnt.statics.cli._fields import AllowThinkingOption, ModelOption, ProviderOption
+from gptnt.statics.evaluation.model import EvalModel
+from gptnt.statics.evaluation.prompts import format_instruction_with_reasoning
+from gptnt.statics.generation.defuser_vqa.constants import MODULE_NAMES
+from gptnt.statics.generation.filter_records import get_valid_modules
 
 logger = get_logger()
 paths = Paths()
@@ -18,11 +24,8 @@ paths = Paths()
 QUESTION = "How do you solve the {module} module in KTANE?"
 
 
-def create_prompts() -> dict["KtaneComponent", str]:
+def create_prompts() -> dict[KtaneComponent, str]:
     """Create prompts for each module."""
-    from gptnt.statics.generation.defuser_vqa.constants import MODULE_NAMES
-    from gptnt.statics.generation.filter_records import get_valid_modules
-
     valid_modules = get_valid_modules()
     prompts = {module: QUESTION.format(module=MODULE_NAMES[module]) for module in valid_modules}
     return prompts
@@ -31,20 +34,13 @@ def create_prompts() -> dict["KtaneComponent", str]:
 async def run_how_do_you_evaluation(  # noqa: WPS210
     *,
     model: ModelOption,
-    attempts: Annotated[
-        int, typer.Option(min=1, help="Number of attempts for each component.")
-    ] = 1,
+    provider: ProviderOption = None,
+    attempts: Annotated[PositiveInt, Parameter(help="Number of attempts for each component.")] = 1,
     allow_thinking: AllowThinkingOption = False,
     output_file_prefix: str | None = None,
 ) -> None:
     """Run the simple "How do you..." evaluation."""
-    from gptnt.core.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
-    from gptnt.core.players.reasoning_parser.react import ReactStyleReasoningParser
-    from gptnt.statics.cli._config_loader import ConfigLoader
-    from gptnt.statics.evaluation.model import EvalModel
-    from gptnt.statics.evaluation.prompts import format_instruction_with_reasoning
-
-    config_loader = ConfigLoader(player_spec=model, role="defuser")
+    config_loader = ConfigLoader(model=model, provider=provider, role="defuser")
     eval_model = EvalModel.from_agent(agent=config_loader.agent_fn())
     eval_model.update_reasoning_parser(
         InnerMonologueReasoningParser()

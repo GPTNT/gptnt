@@ -6,20 +6,20 @@ from uuid import uuid4
 import structlog
 from pydantic import UUID4
 
-from gptnt.core.experiments.experiment_descriptor import ExperimentDescriptor
 from gptnt.core.players.action_predictor import ActionPredictor
 from gptnt.core.players.feedback.nobf import NaughtyOutputBehaviourFeedbackGenerator
 from gptnt.core.players.history.message_history import MessageHistory
 from gptnt.core.players.input_builder import AgentInputBuilder
 from gptnt.core.players.observation_handler import ObservationHandler
 from gptnt.core.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.experiments.descriptor import ExperimentDescriptor
+from gptnt.experiments.recorder.local import ExperimentPlayerRecorder
 from gptnt.interactive.services.game.client import GameClient
 from gptnt.interactive.services.heartbeat.base import PlayerState
 from gptnt.interactive.services.heartbeat.broadcaster import HeartbeatBroadcaster
 from gptnt.interactive.services.heartbeat.player import PlayerHeartbeat
 from gptnt.interactive.services.player.action_dispatcher import ActionDispatcher
 from gptnt.interactive.services.player.message_handler import IncomingMessageHandler
-from gptnt.records.recorder import ExperimentPlayerRecorder
 
 
 @dataclass(kw_only=True)

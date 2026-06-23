@@ -5,15 +5,16 @@ description = "GPTNT unified command-line entrypoint: assembles every package's 
 requires-python = ">=3.13, <3.14"
 dependencies = [
     "gptnt-core",
-    "gptnt-records",
+    "gptnt-experiments",
     "gptnt-statics",
     "gptnt-app",
     "gptnt-interactive",
+    "pydantic-settings>=2.11.0",
 ]
 
 [project.optional-dependencies]
 # Surface the wandb-backed records/interactive commands when installed with the extra.
-wandb = ["gptnt-records[wandb]", "gptnt-interactive[wandb]"]
+wandb = ["gptnt-experiments[wandb]", "gptnt-interactive[wandb]"]
 
 [project.scripts]
 gptnt = "gptnt.cli.__main__:main"

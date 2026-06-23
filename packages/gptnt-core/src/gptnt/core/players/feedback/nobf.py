@@ -16,7 +16,8 @@ class NaughtyOutputBehaviourFeedbackGenerator:
 
     def __post_init__(self) -> None:
         """Setup the feedback handlers."""
-        # We don't handle the guardrail violations here, as those are an edge case of the AI response error (as triggered by the user).
+        # We don't handle the guardrail violations here, as those are an edge case of the AI
+        # response error (as triggered by the user).
         self._handlers = {
             # Critical errors that prevent action execution
             AIResponseErrorType.action_not_present: self._handle_action_not_present,

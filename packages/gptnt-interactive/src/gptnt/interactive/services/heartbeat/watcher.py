@@ -307,8 +307,10 @@ class GameStateWatcher(BaseServiceStateWatcher[GameState]):
 
     lights_are_off_event: Event = field(default_factory=Event, init=False)
     """Event to signal that the game is ready to begin, when the game is in a lights off state."""
+
     first_lights_on_event: Event = field(default_factory=Event, init=False)
     """Event to signal that the game has started (and lights are first on)."""
+
     good_game_over_event: Event = field(default_factory=Event, init=False)
     """Event to signal that the game finished without any errors or issues."""
 

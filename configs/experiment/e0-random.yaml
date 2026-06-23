@@ -9,10 +9,5 @@ defaults:
 
   - _self_
 
-players:
-  all:
-    - test-random
-
 experiment_generator:
-  _target_: gptnt.core.experiments.experiments.ExperimentGenerator
   attempts_per_mission: 100

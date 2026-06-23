@@ -5,9 +5,9 @@ from faststream.redis import RedisBroker
 from faststream.redis.subscriber.usecases import ChannelSubscriber
 from pydantic import UUID4
 
-from gptnt.core.experiments.experiment_descriptor import ExperimentDescriptor
 from gptnt.core.players.actions import NO_NEW_MESSAGES_SENTINEL
 from gptnt.core.specification import PlayerRole
+from gptnt.experiments.descriptor import ExperimentDescriptor
 
 logger = structlog.get_logger()
 
@@ -92,7 +92,8 @@ class IncomingMessageHandler:
     async def send_message(self, message: str) -> None:
         """Send a message to the other player.
 
-        This is non-blocking - it publishes to Redis and returns immediately without waiting for the other player to receive it.
+        This is non-blocking - it publishes to Redis and returns immediately without waiting for
+        the other player to receive it.
         """
         channel = self._get_other_channel()
 

@@ -4,7 +4,7 @@ This isolates the parts that MUST work for the benchmark to run at all — servi
 heartbeat registration, and matchmaking — by mocking `Session.run` so it does NOT drive the
 full game loop. That keeps the test robust and makes a stall easy to localise.
 
-Manual debugging (run without output capture so you can see where it stalls)::
+Manual debugging (run without output capture so you can see where it stalls):
 
     uv run pytest tests/integration/test_smoke.py -s -o addopts="" -p no:sugar --no-header
 
@@ -81,6 +81,7 @@ def _snapshot(session: object, game: object) -> str:
     )
 
 
+@pytest.mark.slow
 async def test_full_experiment_runs_to_completion(
     assembled: AssembledExperiment, fake_game: object
 ) -> None:
@@ -88,7 +89,6 @@ async def test_full_experiment_runs_to_completion(
 
     Prints a state trace each time the runner/game phase changes so a stall localises to a phase.
     """
-
     await assembled.wait_until_ready(timeout=8)
 
     spec = assembled.build_spec()

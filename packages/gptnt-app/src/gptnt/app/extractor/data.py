@@ -2,9 +2,9 @@ from collections import defaultdict
 from collections.abc import Callable, Sequence
 from typing import Any
 
-from gptnt.records.db.connection import DuckDBConnection
-from gptnt.records.duckdb import EXPORT_CONTEXT_MARKER
-from gptnt.records.models import ExperimentMetadata, ExperimentStepRecord
+from gptnt.experiments.db.connection import DuckDBConnection
+from gptnt.experiments.duckdb import EXPORT_CONTEXT_MARKER
+from gptnt.experiments.models import ExperimentMetadata, ExperimentStepRecord
 
 # Columns excluded from the SELECT to avoid pulling large compressed blobs.
 # The model validator (optionally_skip_heavy_objects) already sets these to

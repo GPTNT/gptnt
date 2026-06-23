@@ -741,7 +741,7 @@ class TestTruncation:
                 continue
             removable_tokens_per_turn.append(run.input_tokens + run.output_tokens)
 
-        # Count the cumulative tokens counts per run, but in reverse so we can see how many turns to remove
+        # Count cumulative token counts per run, but in reverse so we see how many turns to remove
         reverse_cumulative_token_count = list(
             reversed(list(accumulate(reversed(removable_tokens_per_turn))))
         )

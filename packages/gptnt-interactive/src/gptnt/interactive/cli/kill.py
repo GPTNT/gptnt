@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import suppress
 from typing import Any
 
+import psutil
 from rich.console import Console
 from rich.table import Table
 
@@ -48,8 +49,6 @@ def force_kill() -> None:
     Force clean up any leftover processes from a previous run, especially if they are stuck and not
     responding to normal termination.
     """
-    import psutil
-
     console.print("\n[bold yellow]🔍 Scanning for processes...[/bold yellow]")
 
     killed_processes: list[tuple[str, str]] = []

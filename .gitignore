@@ -8,6 +8,9 @@
 mise.local.toml
 *.local.toml
 # mise.toml
+# mise local config may hold API keys — never commit it
+mise.local.toml
+*.local.toml
 
 ### Csharp ###
 ## Ignore Visual Studio temporary files, build results, and

@@ -5,6 +5,7 @@ description = "GPTNT auxiliary static-task diagnostics: dataset generation + eva
 requires-python = ">=3.13, <3.14"
 dependencies = [
     "gptnt-core",
+    "cyclopts>=4.8",
     "datasets>=3.6.0",
     "more-itertools>=10.7.0",
     "polars>=1.28.1",
@@ -15,7 +16,7 @@ dependencies = [
 # Optional: upload predictions/metrics to Weave. Metrics are computed locally without this.
 weave = ["weave>=0.51.44"]
 # Optional: (re)generate the HuggingFace task datasets from raw recorded runs.
-generate = ["gptnt-records", "wandb[media]>=0.19.9,<0.22.1"]
+generate = ["gptnt-experiments", "wandb[media]>=0.19.9,<0.22.1"]
 
 [project.scripts]
 gptnt-statics = "gptnt.statics.__main__:main"

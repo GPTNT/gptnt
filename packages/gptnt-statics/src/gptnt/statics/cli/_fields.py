@@ -1,42 +1,46 @@
 from typing import Annotated
 
-import typer
-
-from gptnt.core.config import PlayerSpec
+from cyclopts import Parameter
 
 ModelOption = Annotated[
-    PlayerSpec,
-    typer.Option(
-        "--model",
-        help="Model as MODEL[@PROVIDER]. (see `gptnt models`)",
-        parser=PlayerSpec.from_cli_string,
-        rich_help_panel="Model",
+    str, Parameter(name="--model", help="Model config name (under configs/model/).", group="Model")
+]
+
+ProviderOption = Annotated[
+    str | None,
+    Parameter(
+        name="--provider",
+        help="Provider config override (under configs/model/provider/).",
+        group="Model",
     ),
 ]
 
 DownloadOption = Annotated[
     bool,
-    typer.Option(
-        "--download", help="Download the dataset up-front before running (mainly for debugging)."
+    Parameter(
+        name="--download",
+        help="Download the dataset up-front before running (mainly for debugging).",
     ),
 ]
 
-ThrowOption = Annotated[bool, typer.Option("--throw", help="Actually execute the evaluation.")]
+ThrowOption = Annotated[bool, Parameter(name="--throw", help="Actually execute the evaluation.")]
 
 UploadOption = Annotated[
-    bool, typer.Option("--upload", help="Upload the evaluation results to Weave.")
+    bool, Parameter(name="--upload", help="Upload the evaluation results to Weave.")
 ]
 
 LimitInstancesOption = Annotated[
     int | None,
-    typer.Option(
-        "--limit-instances", help="Limit the number of instances to evaluate (for debugging)."
+    Parameter(
+        name="--limit-instances", help="Limit the number of instances to evaluate (for debugging)."
     ),
 ]
 
 AllowThinkingOption = Annotated[
     bool,
-    typer.Option(
-        "--allow-thinking/--no-thinking", help="Enable reasoning/thinking mode for the model."
+    Parameter(
+        name="--allow-thinking",
+        negative="--no-thinking",
+        help="Enable reasoning/thinking mode for the model.",
     ),
 ]

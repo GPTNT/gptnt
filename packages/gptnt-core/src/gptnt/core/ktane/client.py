@@ -26,7 +26,6 @@ BOOL_BYTE_SIZE = 1
 HEADER_BYTE_SIZE = BOOL_BYTE_SIZE + 3 * INT_BYTE_SIZE
 COLOR_CHANNELS = 3
 
-
 PNGPixelBytes = Annotated[bytes, parse_base64_to_bytes, serialize_bytes_to_base64]
 """Pixel data for a PNG image.
 

@@ -36,9 +36,10 @@ player:
 
   # Records to disk by default (no Weights & Biases needed). To also log to W&B, install the
   # wandb extra (`uv sync --group wandb` / `pip install gptnt-interactive[wandb]`) and swap
-  # _target_ to gptnt.records.wandb.WandbExperimentPlayerRecorder with wandb_entity/wandb_project.
+  # _target_ to gptnt.experiments.recorder.wandb.WandbExperimentPlayerRecorder (it accepts the same
+  # capabilities, plus an optional wandb_init_kwargs); W&B target comes from the WANDB_* env.
   experiment_recorder:
-    _target_: gptnt.records.wandb.WandbExperimentPlayerRecorder
+    _target_: gptnt.experiments.recorder.local.ExperimentPlayerRecorder
     capabilities: ${player.capabilities}
 
   action_predictor:

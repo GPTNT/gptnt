@@ -76,21 +76,28 @@ class PlayerState(IntEnum):
     # Below are more fine-grained states so we can track the progress
     pulling_messages = 4
     """Player is pulling messages."""
+
     waiting_for_observation = 5
     """Player is waiting for an observation from the game client."""
+
     preparing_agent_input = 6
     """Player is preparing input for the AI."""
+
     waiting_for_action = 7
     """Player is waiting for the output from the AI."""
+
     performing_action = 8
     """Player is performing an action based on the AI's output."""
 
     # >9 are the ending states
     stopping = 9
     """Player told to stop."""
+
     reflecting = 10
     """Performing reflection."""
+
     uploading = 11
     """Uploading results."""
+
     cleanup = 12
     """Cleaning up after experiment."""

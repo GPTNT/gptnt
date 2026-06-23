@@ -7,7 +7,7 @@ import streamlit as st
 if TYPE_CHECKING:
     from streamlit.runtime.state import WidgetCallback
 
-    from gptnt.records.models import ExperimentMetadata
+    from gptnt.experiments.models import ExperimentMetadata
 
 
 STREAMLIT_RED = "#BD4043"

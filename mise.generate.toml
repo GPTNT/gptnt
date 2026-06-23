@@ -1,3 +1,0 @@
-[env]
-LOGFIRE_SEND_TO_LOGFIRE = "false"
-WANDB_PROJECT = "normal-name"

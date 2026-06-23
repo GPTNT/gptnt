@@ -22,7 +22,9 @@ logger = structlog.get_logger()
 paths = Paths()
 
 
-_exception_transformer = ExceptionDictTransformer(use_rich=False, show_locals=False)
+_exception_transformer = ExceptionDictTransformer(
+    use_rich=False, show_locals=False, locals_max_string=200, locals_max_length=10
+)
 
 
 class ModelOutput(TypedDict):

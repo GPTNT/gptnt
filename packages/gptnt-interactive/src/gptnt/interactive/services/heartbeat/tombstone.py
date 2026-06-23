@@ -32,8 +32,8 @@ class Tombstone(BaseEvent, frozen=True):
 class ServiceExpiredContext(BaseModel):
     """Diagnostic context gathered by the registry when a service expires.
 
-    This bundles all the Redis-probed information (tombstone, key state) into a single
-    object that gets passed to the EM's `_handle_expired_service` for rich logging.
+    This bundles all the Redis-probed information (tombstone, key state) into a single object that
+    gets passed to the EM's `_handle_expired_service` for rich logging.
     """
 
     service_uuid: UUID4

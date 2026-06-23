@@ -808,7 +808,8 @@ class ReactStyleReasoningParser[OutputT](ReasoningParser[str, OutputT]):
                     output=parsed.action, output_type=output_type
                 )
             except InvalidOutputFormatError as err:
-                # If the action content can't be structured/parsed, raise an error with action_parsing_failed
+                # If the action content can't be structured/parsed, raise an error with
+                # action_parsing_failed
                 raise ReasoningParsingError(
                     output=output.output,
                     expected_type=output_type,

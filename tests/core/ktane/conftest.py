@@ -26,16 +26,6 @@ def set_of_marks_handler(mark_type: type[SetOfMarksLocation]) -> SetOfMarksHandl
     return som_handler
 
 
-# @pytest_asyncio.fixture
-# async def client_with_som(
-#     client: KtaneClient, set_of_marks_handler: SetOfMarksHandler
-# ) -> AsyncGenerator[KtaneClient, None]:
-#     """Provides an instance of the Ktane Client with a SoM for testing."""
-#     client.set_of_marks_painter = set_of_marks_handler
-#     client.image_resizer = ImageResizer(target_width=100, target_height=100)
-#     yield client
-
-
 @fixture(scope="session")
 def bomb_state_json() -> dict[str, Any]:
     """Return a sample bomb state JSON."""

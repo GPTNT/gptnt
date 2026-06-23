@@ -3,7 +3,7 @@ from typing import NamedTuple
 
 import structlog
 
-from gptnt.core.experiments.experiments import ExperimentSpec
+from gptnt.experiments.spec import ExperimentSpec
 from gptnt.interactive.services.registry.manifest import PlayerServiceManifest
 
 logger = structlog.get_logger()

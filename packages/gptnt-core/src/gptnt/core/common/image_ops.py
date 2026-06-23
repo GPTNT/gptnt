@@ -57,3 +57,4 @@ serialize_bytes_to_base64 = PlainSerializer(
 
 
 PNGBytes = Annotated[bytes, parse_base64_to_bytes, serialize_bytes_to_base64]
+"""PNG image as bytes."""

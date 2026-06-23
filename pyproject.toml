@@ -1,7 +1,7 @@
 [dependency-groups]
 tests = [
     "hypothesis>=6.131.0",
-    "pytest>=8.3.4",
+    "pytest<9.1",
     "pytest-cases>=3.8.6",
     "pytest-cov>=6.1.0",
     "pytest-mock>=3.14.0",
@@ -30,7 +30,7 @@ visualisation = [
     "streamlit-drawable-canvas>=0.9.3",
 ]
 # Dev/CI only: keeps W&B installed so the optional W&B modules type-check and run locally.
-# Runtime W&B support ships as the gptnt-records[wandb] / gptnt-interactive[wandb] extras.
+# Runtime W&B support ships as the gptnt-experiments[wandb] / gptnt-interactive[wandb] extras.
 wandb = [
     "wandb[media]>=0.19.9,<0.22.1",
 ]
@@ -38,17 +38,9 @@ wandb = [
 [tool.uv]
 override-dependencies = ["streamlit>=1.40.0"]
 
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-explicit = true
-
 [tool.uv.sources]
-torch = [
-    {index = "pytorch-cpu"},
-]
 gptnt-core = {workspace = true}
-gptnt-records = {workspace = true}
+gptnt-experiments = {workspace = true}
 gptnt-statics = {workspace = true}
 gptnt-interactive = {workspace = true}
 gptnt-app = {workspace = true}
@@ -84,7 +76,7 @@ reportUnusedParameter = false
 reportUnusedVariable = false
 extraPaths = [
     "packages/gptnt-core/src",
-    "packages/gptnt-records/src",
+    "packages/gptnt-experiments/src",
     "packages/gptnt-statics/src",
     "packages/gptnt-interactive/src",
     "packages/gptnt-app/src",
@@ -183,13 +175,17 @@ extend-ignore = [
 ]
 per-file-ignores = [
     "scripts/*:WPS",
+    "scrap/*:WPS",
     "tests/*:WPS110,WPS2,WPS118,WPS432,WPS435,WPS444,WPS476,WPS411",
     "packages/**/cli/*:WPS211,WPS213,WPS238,WPS407",
     "packages/gptnt-interactive/src/gptnt/interactive/__main__.py:WPS213",
     "packages/gptnt-core/src/gptnt/core/ktane/state/*:WPS202,WPS226",
+    # doctor/checks.py is a registry of small check functions (many members) with one fix-hint
+    # string each (many literals)
+    "packages/gptnt-cli/src/gptnt/cli/doctor/checks.py:WPS202,WPS226",
     "packages/gptnt-core/src/gptnt/core/processors/*:WPS203",
     "packages/gptnt-statics/src/gptnt/statics/generation/*:WPS202,WPS204,WPS226",
-    "packages/gptnt-records/src/gptnt/records/duckdb.py:WPS110,WPS111,WPS430",
+    "packages/gptnt-experiments/src/gptnt/experiments/duckdb.py:WPS110,WPS111,WPS430",
     "packages/gptnt-core/src/gptnt/core/players/tokens.py:WPS402",
 ]
 select = ["WPS"]
@@ -216,11 +212,13 @@ max-local-variables = 10
 max-awaits = 10
 # WPS204: Increase overused expression limit in a module
 max-module-expressions = 10
+# WPS410: Allow __all__ to be defined in modules
+allowed-module-metadata = ["__all__"]
 
 [tool.importlinter]
 root_packages = [
     "gptnt.core",
-    "gptnt.records",
+    "gptnt.experiments",
     "gptnt.statics",
     "gptnt.app",
     "gptnt.interactive",
@@ -232,7 +230,7 @@ name = "core is the base layer (imports no other gptnt package)"
 type = "forbidden"
 source_modules = ["gptnt.core"]
 forbidden_modules = [
-    "gptnt.records",
+    "gptnt.experiments",
     "gptnt.statics",
     "gptnt.app",
     "gptnt.interactive",
@@ -240,25 +238,25 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
-name = "records depends only on core"
+name = "experiments depends only on core"
 type = "forbidden"
-source_modules = ["gptnt.records"]
+source_modules = ["gptnt.experiments"]
 forbidden_modules = ["gptnt.statics", "gptnt.app", "gptnt.interactive", "gptnt.cli"]
 
 [[tool.importlinter.contracts]]
-name = "statics generation only depends on core and records"
+name = "statics generation only depends on core and experiments"
 type = "forbidden"
 source_modules = ["gptnt.statics"]
 forbidden_modules = ["gptnt.app", "gptnt.interactive", "gptnt.cli"]
 
 [[tool.importlinter.contracts]]
-name = "app only depends on core and records"
+name = "app only depends on core and experiments"
 type = "forbidden"
 source_modules = ["gptnt.app"]
 forbidden_modules = ["gptnt.statics", "gptnt.interactive", "gptnt.cli"]
 
 [[tool.importlinter.contracts]]
-name = "interactive depends only on core and records"
+name = "interactive depends only on core and experiments"
 type = "forbidden"
 source_modules = ["gptnt.interactive"]
 forbidden_modules = ["gptnt.statics", "gptnt.app", "gptnt.cli"]
@@ -268,7 +266,7 @@ name = "nothing imports gptnt.cli (it is the top-level assembler)"
 type = "forbidden"
 source_modules = [
     "gptnt.core",
-    "gptnt.records",
+    "gptnt.experiments",
     "gptnt.statics",
     "gptnt.app",
     "gptnt.interactive",
@@ -308,7 +306,7 @@ target-version = "py313"
 unsafe-fixes = true
 src = [
     "packages/gptnt-core/src",
-    "packages/gptnt-records/src",
+    "packages/gptnt-experiments/src",
     "packages/gptnt-statics/src",
     "packages/gptnt-interactive/src",
     "packages/gptnt-app/src",
@@ -409,13 +407,15 @@ max-complexity = 18
 "__init__.py" = ["D", "F401", "I002"]
 "**/tests/*" = ["D", "S101", "INP001", "PLR2004", "FBT001", "SLF001", "ANN001"]
 "scripts/*" = ["INP001", "D", "ANN", "PLR", "PD", "S"]
-"scrap/*" = ["T201"]
+"scrap/*" = ["INP001", "D", "ANN", "PLR", "PD", "S", "T201"]
 "packages/gptnt-statics/src/gptnt/statics/generation/defuser_vqa/*" = ["S311"] # Allow standard random for dataset generation
 "packages/gptnt-core/src/gptnt/core/players/tokens.py" = ["PLR2004"]
-# CLI commands keep heavy deps inside functions to keep `--help` fast (PLC0415), and Typer needs
-# the command signature annotations available at runtime, so the option-type/Path imports can't be
-# hidden in a TYPE_CHECKING block (TC001/TC002/TC003).
-"packages/**/cli/*" = ["PLC0415", "TC001", "TC002", "TC003"]
+
+[tool.ruff.lint.pycodestyle]
+# Hard-error (W505) on docstring lines over the line length instead of auto-wrapping them; docstring
+# summaries are no longer wrapped by docformatter (--wrap-summaries=0), so over-long summaries must
+# be rewritten concisely rather than silently reflowed.
+max-doc-length = 99
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

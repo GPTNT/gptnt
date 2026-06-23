@@ -1,0 +1,52 @@
+# ============================================================================
+# GPTNT run manifest — the single source of truth for a run.
+# Consumed by `gptnt run <this-file>` and `gptnt doctor <this-file>`.
+# `players:` is the ONE roster: it drives BOTH spec generation AND throw,
+# so the two can't disagree (the old generate/throw mismatch trap).
+# Copy this file, rename it (e.g. runs/quickstart.yaml), fill it in.
+# ============================================================================
+
+# The version of the run manifest schema.
+spec_version: 1
+
+# What experiments to run. Each experiment is a preset name (shape only). The run will generate and throw all of them, and union the results.
+experiments:
+  - e1-single-pairwise
+  # - e2-...
+
+# Number of concurrent games to run in parallel.
+rooms: 2
+
+# OPTIONAL. X display numbers to spread the rooms across, round-robin (one display per GPU in a
+# headless multi-GPU setup, e.g. via scripts/startx.py). Omit to inherit the ambient $DISPLAY.
+# displays: [0, 1]   # rooms spawn on :0, :1, :0, ...
+
+# Models which will be spawned.
+players:
+  # Model config name: configs/model/<model>.yaml
+  # Optional provider override: configs/model/provider/<provider>.yaml (defaults to model)
+  # Optional explicit count: how many copies of this player to spawn (default 1).
+  - model: peekaboo
+    provider: vllm_box1
+    count: 2
+  - model: claude46
+
+anchors: # OPTIONAL. Reference models held fixed on one side of a pairing.
+  best_expert: gemini-3 #   used by with_best_expert (candidate=defuser, anchor=expert)
+  best_defuser: gemini-3 #   used by with_best_defuser (candidate=expert, anchor=defuser)
+  #   Repo defaults live in configs/anchors.yaml; this overrides them.
+  #   NOTE: an anchor used by a selected preset must resolve to a
+  #   player_name that is present in `players:` above, or doctor/run
+  #   fails the cross-check (it would otherwise silently stall).
+
+# Where results are recorded on disk: a fresh timestamped dir by default. To pin a specific
+# location (e.g. a shared mount across machines), set EXPERIMENT_RECORDER_OUTPUTS in the environment
+# before `gptnt run` — there is no manifest field for it.
+
+# Where the resume check reads completion from: `local` (on-disk outputs, needs no W&B) or `wandb`.
+# W&B logging itself is driven entirely by the ambient WANDB_* environment (set WANDB_ENTITY/
+# WANDB_PROJECT to log; leave unset or WANDB_MODE=disabled for disk-only) — it is NOT configured here.
+source: local
+
+# How much logging to do: full | limited | off. Default `limited` (cost-safe)
+observability: limited

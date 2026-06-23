@@ -25,9 +25,9 @@ if TYPE_CHECKING:
     from coredis import Redis
     from faststream.redis import RedisBroker
 
-    from gptnt.core.experiments.experiment_descriptor import ExperimentDescriptor
     from gptnt.core.ktane.state.bomb import BombState
     from gptnt.core.specification import PlayerRole
+    from gptnt.experiments.descriptor import ExperimentDescriptor
 
 logger = structlog.get_logger()
 timeouts = ServiceTimeouts()
@@ -50,8 +50,10 @@ class ExperimentRunner(abc.ABC):
     experiment: ExperimentDescriptor
     game_client: GameClient = field(init=False)
     """Game client to interact with the game service."""
+
     defuser_player_client: PlayerClient = field(init=False)
     """Player client to interact with the Defuser."""
+
     expert_player_client: PlayerClient | None = field(default=None, init=False, repr=False)
     """Player client to interact with the Expert."""
 
@@ -128,7 +130,10 @@ class ExperimentRunner(abc.ABC):
         4. Teardown: Send reflections and stop players
         5. Cleanup: Always cleanup resources regardless of outcome
 
-        To simplify the control flow, we use context managers to handle setup, teardown, and exception handling. This way, we can ensure that even if something goes wrong during the experiment, we still perform necessary cleanup and state updates without crashing the entire service.
+        To simplify the control flow, we use context managers to handle setup, teardown, and
+        exception handling. This way, we can ensure that even if something goes wrong during the
+        experiment, we still perform necessary cleanup and state updates without crashing the
+        entire service.
         """
         async with (
             self.setup_monitors(),

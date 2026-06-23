@@ -3,7 +3,7 @@ import typing
 from pydantic import BaseModel
 
 from gptnt.core.common.types import expand_union, get_list_inner, resolve_type
-from gptnt.records.models import ExperimentStepRecord
+from gptnt.experiments.models import ExperimentStepRecord
 
 
 def validate_path(path: str, model: type[BaseModel] = ExperimentStepRecord) -> None:  # noqa: WPS231

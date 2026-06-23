@@ -91,8 +91,8 @@ class TokenAccountant:
     def deduct_run(self, *, input_tokens: int, output_tokens: int) -> None:
         """Deduct a whole run's tokens from cumulative usage (truncation).
 
-        Both input and output count toward context length, so both are subtracted
-        from `usage.input_tokens`.  Result is clamped to zero.
+        Both input and output count toward context length, so both are subtracted from
+        `usage.input_tokens`.  Result is clamped to zero.
         """
         total = input_tokens + output_tokens
         if total <= 0:

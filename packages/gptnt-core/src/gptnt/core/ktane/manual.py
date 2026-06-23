@@ -39,7 +39,6 @@ MANUAL_PAGE_IDENTIFIER_STRING = "8/28/2020 KeepTalkingandNobodyExplodes-BombDefu
 There are probably better ways to do this, but for now, this is a good enough heuristic.
 """
 
-
 MODULE_TO_PAGE_NUM_MAP = types.MappingProxyType(
     {
         KtaneComponent.wires: (5,),

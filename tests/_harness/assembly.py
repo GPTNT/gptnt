@@ -1,8 +1,8 @@
 """Assemble the real interactive services in one process against a fake-Redis DSN.
 
-Mirrors the production entrypoints (`run_experiment_manager` builds the EM, `run_game_instance`
-/ `run_player` build the services) but colocates them and connects their *real* brokers to the
-in-process fake server, so cross-service RPC + matchmaking + the experiment runner all execute for
+Mirrors the production entrypoints (`run_experiment_manager` builds the EM, `run_game_instance` /
+`run_player` build the services) but colocates them and connects their *real* brokers to the in-
+process fake server, so cross-service RPC + matchmaking + the experiment runner all execute for
 real. The game binary is replaced by `FakeKtaneGame` (installed by the caller before assembly).
 """
 
@@ -15,10 +15,10 @@ from typing import TYPE_CHECKING
 import anyio
 from coredis import Redis
 
-from gptnt.core.experiments.experiments import Condition, ExperimentSpec
 from gptnt.core.ktane.mission_spec import KtaneMissionSpec
 from gptnt.core.ktane.state.modules import KtaneComponent
 from gptnt.core.specification import CommunicationStyle, PlayerProtocol
+from gptnt.experiments.spec import Condition, ExperimentSpec
 from gptnt.interactive.entrypoints.run_game_instance import main as build_game_app
 from gptnt.interactive.entrypoints.run_player import main as build_player_app
 from gptnt.interactive.services.broker import create_redis_broker
@@ -173,7 +173,7 @@ async def assembled_experiment(
         # group that this AsyncExitStack holds open. If one of those tasks raises during startup,
         # anyio's task-group teardown absorbs it and `@asynccontextmanager` reports the cryptic
         # `RuntimeError: generator didn't yield` with no clue as to why. Actively waiting for
-        # readiness here turns a failed/stuck startup into an actionable error at the assembly point;
+        # readiness here turns a failed/stuck startup into an actionable error at assembly time;
         # the real exception is logged by the offending service (see broadcaster / state_monitor).
         try:
             await experiment.wait_until_ready(timeout=_STARTUP_TIMEOUT)

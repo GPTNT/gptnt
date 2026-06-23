@@ -24,9 +24,9 @@ class ProtocolCases:
         )
 
     def case_solo_defuser(self) -> PlayerProtocol:
-        """Solo defuser with manual."""
+        """Solo defuser, playing alone, without manual."""
         return PlayerProtocol(
-            role="defuser", communication_style="sync", is_playing_alone=True, include_manual=True
+            role="defuser", communication_style="sync", is_playing_alone=True, include_manual=False
         )
 
     def case_expert(self) -> PlayerProtocol:

@@ -8,7 +8,7 @@ from whenever import Instant
 from gptnt.app.components.filters import Filters, apply_filters
 from gptnt.app.extractor.data import extract_from_step_records_db
 from gptnt.app.extractor.path_validator import validate_path
-from gptnt.records.db.connection import DuckDBConnection
+from gptnt.experiments.db.connection import DuckDBConnection
 
 
 def _parse_fields(raw: str) -> list[str]:

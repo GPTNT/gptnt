@@ -1,5 +1,5 @@
-from gptnt.core.experiments.missions import MissionGeneratorConfig
 from gptnt.core.ktane.state.modules import KtaneComponent
+from gptnt.experiments.generation.missions import MissionGeneratorConfig
 
 
 class MissionGeneratorConfigCases:

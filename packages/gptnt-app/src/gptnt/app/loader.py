@@ -7,9 +7,9 @@ import streamlit as st
 import structlog
 
 from gptnt.core.common.paths import Paths
-from gptnt.records.db.connection import DuckDBConnection
-from gptnt.records.duckdb import EXPORT_CONTEXT_MARKER
-from gptnt.records.models import (
+from gptnt.experiments.db.connection import DuckDBConnection
+from gptnt.experiments.duckdb import EXPORT_CONTEXT_MARKER
+from gptnt.experiments.models import (
     ExperimentMetadata,
     ExperimentPlayerRecord,
     ExperimentRecord,

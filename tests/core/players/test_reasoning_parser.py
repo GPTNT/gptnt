@@ -341,7 +341,7 @@ class BadReactOutputCases:
         )
 
     def case_text_outside_tags(self) -> ParsedOutputCase:
-        """Valid tags but with unexpected text outside them - reasoning mixed with untagged content."""
+        """Valid tags but with unexpected text outside them - reasoning mixed with untagged."""
         output = f"Random text\n<{REACT_REASONING_TAG}>Thinking.</{REACT_REASONING_TAG}>\nMore random text\n<{REACT_ACT_TAG}>{self.action.text_part_dump()}</{REACT_ACT_TAG}>"
         return ParsedOutputCase(
             action=self.action,
@@ -352,7 +352,7 @@ class BadReactOutputCases:
         )
 
     def case_action_with_text_before_and_after(self) -> ParsedOutputCase:
-        """Text before and after valid action tag - reasoning contaminated and content after action."""
+        """Text before and after valid action tag - reasoning contaminated, content after."""
         before_text = "Some preamble"
         after_text = "Some conclusion"
         output = f"{before_text}\n<{REACT_ACT_TAG}>{self.action.text_part_dump()}</{REACT_ACT_TAG}>\n{after_text}"
@@ -368,7 +368,7 @@ class BadReactOutputCases:
         )
 
     def case_multiple_unclosed_reasoning_with_valid_action(self) -> ParsedOutputCase:
-        """Multiple unclosed reasoning tags but valid action - both structural and fragmentation issues."""
+        """Multiple unclosed reasoning tags but valid action - structural + fragmentation."""
         first_thinking = "First"
         second_thinking = "Second"
         output = f"<{REACT_REASONING_TAG}>{first_thinking}\n<{REACT_REASONING_TAG}>{second_thinking}\n<{REACT_ACT_TAG}>{self.action.text_part_dump()}</{REACT_ACT_TAG}>"
@@ -398,7 +398,7 @@ class BadReactOutputCases:
         )
 
     def case_reasoning_around_action(self) -> ParsedOutputCase:
-        """Reasoning tag wraps around action - action generated before reasoning complete and reasoning fragmented."""
+        """Reasoning tag wraps around action - action generated before reasoning done."""
         output = f"<{REACT_REASONING_TAG}>Thinking.\n<{REACT_ACT_TAG}>{self.action.text_part_dump()}</{REACT_ACT_TAG}>\nMore thinking.</{REACT_REASONING_TAG}>"
         return ParsedOutputCase(
             action=self.action,

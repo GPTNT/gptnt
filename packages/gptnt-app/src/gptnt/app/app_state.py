@@ -6,7 +6,7 @@ import streamlit as st
 import structlog
 
 from gptnt.app.loader import ExperimentLoader
-from gptnt.records.models import ExperimentRecord
+from gptnt.experiments.models import ExperimentRecord
 
 logger = structlog.get_logger()
 

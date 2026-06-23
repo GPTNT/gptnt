@@ -4,10 +4,10 @@ from typing import Any, override
 import logfire
 import structlog
 
-from gptnt.core.experiments.experiment_descriptor import ExperimentDescriptor
 from gptnt.core.ktane.actions import KtaneGameplayInput
 from gptnt.core.players.base_action_dispatcher import BaseActionDispatcher
 from gptnt.core.specification import PlayerProtocol
+from gptnt.experiments.descriptor import ExperimentDescriptor
 from gptnt.interactive.services.game.client import GameClient
 from gptnt.interactive.services.player.message_handler import IncomingMessageHandler
 

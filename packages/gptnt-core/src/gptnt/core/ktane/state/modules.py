@@ -296,7 +296,8 @@ class MazeCoordinate(NamedTuple):
 class MazeModuleState(InteractiveModuleState):
     """State of the Maze module.
 
-    Note: Coordinates start with (0,0) at the top-left corner, and (num_rows-1, num_columns-1) at the bottom-right corner.
+    Note: Coordinates start with (0,0) at the top-left corner, and (num_rows-1, num_columns-1)
+    at the bottom-right corner.
     (The `-1` is because the coordinates are 0-indexed.)
     """
 

@@ -6,7 +6,7 @@ from htbuilder.units import rem
 
 from gptnt.core.players.actions import SendMessageAction
 from gptnt.core.specification import PlayerProtocol
-from gptnt.records.models import ExperimentRecord, ExperimentStepRecord
+from gptnt.experiments.models import ExperimentRecord, ExperimentStepRecord
 
 
 def render_player_card(

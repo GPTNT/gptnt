@@ -1,0 +1,134 @@
+"""Tests for the `gptnt doctor <run.yaml>` run-plan cross-check.
+
+The cross-check itself (`run_plan.check_run_plan`) is the focus: given a config-name → player_name
+mapping (built here exactly as `check_models` hands one back) it dry-runs real, offline experiment
+generation and reports coverage / count / resume findings. Generation runs through Hydra (offline,
+deterministic — the same path the golden gate pins), so these tests exercise the genuine
+config→player_name resolution. The test player configs deliberately use a config name that differs
+from its player_name (`test_defuser` → `test-defuser`), which is exactly the mismatch the cross-
+check exists to resolve.
+
+WandB is never contacted: the manifests default to `source: local`, so the resume row reads
+completion from disk (an empty output dir here) and reports everything as still-to-run.
+"""
+
+from __future__ import annotations
+
+import re
+from typing import TYPE_CHECKING
+
+import pytest
+
+from gptnt.cli.doctor.run_plan import check_run_plan
+from gptnt.cli.run.manifest import RunManifest
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from gptnt.cli.doctor.checks import CheckResult
+
+
+@pytest.fixture(autouse=True)
+def empty_recorder_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Point the local resume scan at a guaranteed-empty dir so 'nothing done yet' is hermetic."""
+    monkeypatch.setenv("EXPERIMENT_RECORDER_OUTPUTS", str(tmp_path / "__no_outputs__"))
+
+
+def _manifest(**overrides: object) -> RunManifest:
+    """A minimal valid manifest (wandb off) with per-test overrides merged in."""
+    payload: dict[str, object] = {
+        "experiments": ["e1-single-pairwise"],
+        "rooms": 2,
+        "players": [{"model": "test_defuser"}, {"model": "test_expert"}],
+    }
+    payload.update(overrides)
+    return RunManifest.model_validate(payload)
+
+
+def _row(findings: list[CheckResult], name: str) -> CheckResult | None:
+    return next((finding for finding in findings if finding.name == name), None)
+
+
+def _coverage_spec_count(findings: list[CheckResult]) -> int:
+    row = _row(findings, "Roster coverage")
+    assert row is not None
+    assert row.status == "pass", "expected a passing coverage summary"
+    match = re.search(r"cover (\d+) spec", row.detail)
+    assert match is not None
+    return int(match.group(1))
+
+
+def test_clean_roster_resolves_config_to_player_name_and_passes() -> None:
+    """`test_defuser`/`test_expert` configs resolve to `test-defuser`/`test-expert`; pairwise
+    covers."""
+    manifest = _manifest()
+    config_to_player = {"test_defuser": "test-defuser", "test_expert": "test-expert"}
+
+    findings = check_run_plan(manifest, config_to_player)
+
+    assert not any(finding.status == "fail" for finding in findings)
+    assert _coverage_spec_count(findings) > 0
+    resume = _row(findings, "Resume")
+    assert resume is not None
+    assert resume.status == "pass"  # local source, empty output dir → nothing done yet
+    assert "(local)" in resume.detail
+    assert resume.detail.startswith("0 of ")
+
+
+def test_anchor_not_in_roster_is_a_fatal_cross_check() -> None:
+    """A `with_best_expert` preset whose anchor isn't spawned would stall — that must be a ✗."""
+    manifest = _manifest(
+        experiments=["e4-rep2-best-expert"],
+        players=[{"model": "test_defuser"}],
+        anchors={"best_expert": "test_expert"},  # resolves to test-expert, NOT in the roster
+    )
+    config_to_player = {"test_defuser": "test-defuser"}
+
+    findings = check_run_plan(manifest, config_to_player)
+
+    offender = _row(findings, "Player test-expert")
+    assert offender is not None
+    assert offender.status == "fail"
+    assert "best_expert" in offender.hint
+
+
+def test_explicit_count_is_not_second_guessed() -> None:
+    """`count` is the user's explicit choice, so a low count is reported in the plan, not
+    failed."""
+    manifest = _manifest(players=[{"model": "test_defuser", "count": 1}, {"model": "test_expert"}])
+    config_to_player = {"test_defuser": "test-defuser", "test_expert": "test-expert"}
+
+    findings = check_run_plan(manifest, config_to_player)
+
+    assert not any(finding.status == "fail" for finding in findings)
+    assert _row(findings, "Count test_defuser") is None  # no insufficient-count check anymore
+    coverage = _row(findings, "Roster coverage")
+    assert coverage is not None
+    assert "test_defuser=1" in coverage.detail  # the declared count appears in the spawn plan
+
+
+def test_unresolved_roster_model_is_flagged_and_generation_continues() -> None:
+    """A roster entry that didn't resolve to a player_name is ✗; the rest still cross-checks."""
+    manifest = _manifest(
+        rooms=1, players=[{"model": "test_defuser"}, {"model": "nonexistent_xyz"}]
+    )
+    config_to_player = {"test_defuser": "test-defuser", "nonexistent_xyz": None}
+
+    findings = check_run_plan(manifest, config_to_player)
+
+    unresolved = _row(findings, "Roster: nonexistent_xyz")
+    assert unresolved is not None
+    assert unresolved.status == "fail"
+
+
+def test_multiple_experiments_union_grows_the_spec_count() -> None:
+    """`experiments:` is a list: generation iterates per preset and unions, so more presets ⇒ more
+    specs."""
+    config_to_player = {"test_defuser": "test-defuser", "test_expert": "test-expert"}
+
+    one = check_run_plan(_manifest(experiments=["e1-single-pairwise"]), config_to_player)
+    two = check_run_plan(
+        _manifest(experiments=["e1-single-pairwise", "e2-single-solo-defuser"]), config_to_player
+    )
+
+    assert _coverage_spec_count(two) > _coverage_spec_count(one)

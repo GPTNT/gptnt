@@ -6,7 +6,7 @@ import logfire
 from opentelemetry.metrics import Counter, _Gauge as Gauge
 
 from gptnt.core.common.async_ops import periodic
-from gptnt.core.common.instrumentation import ObservabilitySettings
+from gptnt.core.observability.settings import ObservabilitySettings
 from gptnt.interactive.services.timeouts import ServiceTimeouts
 
 service_timeouts = ServiceTimeouts()

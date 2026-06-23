@@ -5,29 +5,23 @@ import hydra
 from omegaconf import DictConfig
 from pydantic_ai import Agent
 
-from gptnt.core.common.paths import Paths
-from gptnt.core.config import PlayerSpec
+from gptnt.core.common.hydra import compose_player_config
 from gptnt.core.processors.image_resizer import ImageResizer
 from gptnt.core.specification import PlayerCapabilities, PlayerRole
-
-paths = Paths()
 
 
 @dataclass(kw_only=True)
 class ConfigLoader:
     """Load and instantiate player config components for a given model + role."""
 
-    player_spec: PlayerSpec
+    model: str
+    provider: str | None
     role: PlayerRole
 
     @property
     def config(self) -> DictConfig:
         """Compose the Hydra player config for this model."""
-        overrides = [f"model={self.player_spec.model_name}"]
-        if self.player_spec.provider is not None:
-            overrides.append(f"model/provider={self.player_spec.provider}")
-        with hydra.initialize_config_dir(version_base="1.3", config_dir=str(paths.configs)):
-            return hydra.compose(config_name="player", overrides=overrides)
+        return compose_player_config(self.model, self.provider)
 
     @property
     def capabilities(self) -> PlayerCapabilities:

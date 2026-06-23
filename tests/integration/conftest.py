@@ -1,8 +1,5 @@
 """Fixtures for in-situ interactive integration tests (fake Redis + fake game, real services).
 
-The fixtures are deliberately small and composable so they can be driven step-by-step in a REPL
-or under `pytest -s` while debugging:
-
 - `fake_redis_dsn` — an in-process fake Redis (sync; starts before anything connects)
 - `fake_game`      — patches the game process manager + mocks the KTANE HTTP endpoints
 - `assembled`      — the live EM + game + 2 player services on the fake Redis
@@ -61,5 +58,6 @@ async def assembled(
     fake_game: FakeKtaneGame,  # noqa: ARG001
 ) -> AsyncIterator[AssembledExperiment]:
     """A live Defuser+Expert system (EM + game + 2 players) on the fake Redis, ready to run."""
+
     async with assembled_experiment(fake_redis_dsn) as experiment:
         yield experiment

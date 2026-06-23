@@ -19,23 +19,22 @@ class Paths(BaseSettings):
 
     configs: Path = root.joinpath("configs")
     storage: Path = root.joinpath("storage")
-    artifacts: Path = root.joinpath("artifacts")
 
-    generated: Path = root.joinpath("output")
-    output: Path = generated.joinpath("outputs")
-    logs: Path = generated.joinpath("logs")
+    output: Path = root.joinpath("output")
+    logs: Path = output.joinpath("logs")
 
     output_observations: Path = output.joinpath("observations")
-    experiment_recorder: Path = output.joinpath("experiment_recorder_outputs")
+    experiments_db: Path = output.joinpath("experiments.duckdb")
+
+    experiment_specs: Path = Field(
+        default=output.joinpath("experiment_specs"), alias="EXPERIMENT_SPECS_DIR"
+    )
+    """Where generated experiment-spec JSON files live (one subdir per manifest)."""
+
     experiment_recorder_outputs: Path | None = Field(
         default=None, alias="EXPERIMENT_RECORDER_OUTPUTS"
     )
-    experiments_db: Path = output.joinpath("experiments.duckdb")
-
-    experiments: Path = generated.joinpath("experiments")
-    test_experiments: Path = storage.joinpath("test_experiments")
-    vqa_and_grounding: Path = storage.joinpath("statics-data")
-    expert_vqa: Path = storage.joinpath("expert_vqa")
+    """Pin the recorder output dir; unset means a fresh timestamped dir under the recorder base."""
 
     ktane: Path = storage.joinpath("ktane")
     """Path to the where we store the game."""
@@ -43,21 +42,28 @@ class Paths(BaseSettings):
     prompts: Path = storage.joinpath("prompts")
     """Path to the where we store the prompts pieces."""
 
+    statics_data: Path = storage.joinpath("statics_data")
+    """Path to the statics VQA/grounding dataset source records."""
+
+    @property
+    def experiment_recorder_dir(self) -> Path:
+        """The base directory under which each run's timestamped output dir is created."""
+        return self.output.joinpath("experiment_recorder_outputs")
+
     @property
     def experiment_outputs(self) -> Path:
-        """Get path for experiment recorder outputs with a timestamp."""
+        """The recorder output dir for one run: the pinned dir if set, else a fresh timestamp."""
         if self.experiment_recorder_outputs is not None:
             return self.experiment_recorder_outputs
 
         timestamp = Instant.now().format_iso().replace("/", "-").replace(":", "-")
-        path = self.experiment_recorder.joinpath(f"{timestamp}/")
-        return path
+        return self.experiment_recorder_dir.joinpath(f"{timestamp}/")
 
     @property
     def span_timings_dir(self) -> Path:
         """Directory for per-process span-timing JSONL files (benchmark overhead capture).
 
-        Sits alongside the experiment JSON records for the same run so the two can be joined
-        on `session_id` at analysis time.
+        Sits alongside the experiment JSON records for the same run so the two can be joined on
+        `session_id` at analysis time.
         """
         return self.experiment_outputs.joinpath("span_timings")

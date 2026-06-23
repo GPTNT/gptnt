@@ -12,10 +12,9 @@ from faststream.redis import RedisBroker
 from pydantic import BaseModel
 
 from gptnt.core.common.paths import Paths
-from gptnt.core.common.span_timing import set_timing_identity
-from gptnt.core.experiments.experiment_descriptor import ExperimentDescriptor
 from gptnt.core.ktane.actions import KtaneGameplayInput
 from gptnt.core.ktane.manual import KtaneManualPaths
+from gptnt.core.observability.span_timing import set_timing_identity
 from gptnt.core.players.actions import PlayerOutputType
 from gptnt.core.players.history.message_history import MessageHistory
 from gptnt.core.players.input_builder import AgentInputBuilder
@@ -23,6 +22,7 @@ from gptnt.core.players.result import AgentCallResult
 from gptnt.core.prompts.manual import load_manual_as_prompt
 from gptnt.core.prompts.prompt_cache import PromptCache
 from gptnt.core.specification import PlayerProtocol
+from gptnt.experiments.descriptor import ExperimentDescriptor
 from gptnt.interactive.services.game.client import BombIsDetonatedError
 from gptnt.interactive.services.heartbeat.base import PlayerState
 from gptnt.interactive.services.player.agent import PlayerAgent

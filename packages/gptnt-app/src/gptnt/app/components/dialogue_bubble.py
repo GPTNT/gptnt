@@ -23,7 +23,7 @@ from gptnt.core.players.actions import (
 )
 from gptnt.core.players.exceptions import AIResponseErrorType
 from gptnt.core.players.observation_handler import Observation
-from gptnt.records.models import ExperimentStepRecord
+from gptnt.experiments.models import ExperimentStepRecord
 
 EXEC_FEEDBACK_RE = re.compile(r"<execution-feedback>(.*?)</execution-feedback>", re.DOTALL)
 

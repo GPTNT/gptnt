@@ -7,10 +7,10 @@ from pydantic import RedisDsn
 from structlog import get_logger
 
 from gptnt.core.common.hydra import get_hydra_overrides
-from gptnt.core.common.instrumentation import ObservabilitySettings
 from gptnt.core.common.logger import configure_logging, create_faststream_logger
 from gptnt.core.common.paths import Paths, remove_empty_experiment_recorder_outputs
 from gptnt.core.ktane.manual import KtaneManualPaths
+from gptnt.core.observability.settings import ObservabilitySettings
 from gptnt.interactive.services.broker import create_redis_broker
 from gptnt.interactive.services.game.client import GameClient
 from gptnt.interactive.services.player.message_handler import IncomingMessageHandler
@@ -65,15 +65,9 @@ def main(
 
 
 if __name__ == "__main__":
-    _ = logfire.configure(
-        service_name="player",
-        scrubbing=False,
-        send_to_logfire=False,
-        additional_span_processors=observability_settings.span_processors("player"),
-    )
-    observability_settings.instrument_all()
+    observability_settings.configure("player")
 
     configure_logging()
-    remove_empty_experiment_recorder_outputs(paths.experiment_recorder)
+    remove_empty_experiment_recorder_outputs(paths.experiment_recorder_dir)
     application = main()
     anyio.run(application.run, backend="asyncio")

@@ -13,12 +13,12 @@ import orjson
 import pytest
 from pydantic_ai.result import RunUsage
 
-from gptnt.core.experiments.experiment_descriptor import ExperimentDescriptor, PlayerContent
-from gptnt.core.experiments.experiments import ExperimentSpec
 from gptnt.core.ktane.mission_spec import KtaneMissionSpec
 from gptnt.core.players.actions import DoNothingAction
 from gptnt.core.specification import PlayerCapabilities, PlayerProtocol
-from gptnt.records.models import ExperimentPlayerRecord, ExperimentRecord, ExperimentStepRecord
+from gptnt.experiments.descriptor import ExperimentDescriptor, PlayerContent
+from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentRecord, ExperimentStepRecord
+from gptnt.experiments.spec import ExperimentSpec
 
 if TYPE_CHECKING:
     from pathlib import Path

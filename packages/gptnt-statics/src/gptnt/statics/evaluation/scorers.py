@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import abc
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -28,7 +26,6 @@ type GroundTruthType = str | list[str] | NDArray[np.uint8]
 
 Can be a string, list of strings, or a numpy array for binary masks.
 """
-
 
 trick_question_categories = ["hallucination_type=type_a", "hallucination_type=type_b"]
 """Any trick categories that should be skipped during scoring.

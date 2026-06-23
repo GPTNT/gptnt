@@ -9,13 +9,9 @@ defaults:
 
   - _self_
 
-players:
-  all:
-    - test-oracle
-
 mission_generator:
   config:
-    _target_: gptnt.core.experiments.missions.MissionGeneratorConfig
+    _target_: gptnt.experiments.generation.missions.MissionGeneratorConfig
     time_limit: 60
     allow_back_placement: false
 

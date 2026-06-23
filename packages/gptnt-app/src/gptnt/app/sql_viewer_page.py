@@ -12,7 +12,7 @@ from gptnt.app.components.pagination import get_pagination_state, render_paginat
 from gptnt.app.components.schema_browser import render_schema_browser
 
 if TYPE_CHECKING:
-    from gptnt.records.db.connection import DuckDBConnection
+    from gptnt.experiments.db.connection import DuckDBConnection
 
 _SQL_PAGE_SESSION_KEY = "sql_results_page"
 _ALLOWED_PREFIXES = ("SELECT", "SHOW", "DESCRIBE")

@@ -7,38 +7,47 @@ class AIResponseErrorType(Enum):
     # Critical errors that prevent action execution
     action_not_present = "action_not_present"
     """No action was generated or found."""
+
     action_parsing_failed = "action_parsing_failed"
     """Action was attempted but couldn't be parsed (malformed/wrong format)."""
+
     multiple_actions_present = "multiple_actions_present"
     """Multiple actions when only one was expected."""
 
     # Action content errors - the action was parsed but had invalid content
     invalid_som_location = "invalid_som_location"
     """Set-of-marks location is invalid (e.g., negative integer, out of range letter)."""
+
     out_of_bounds_coordinate = "out_of_bounds_coordinate"
     """Absolute coordinate is out of image boundary."""
 
     # Reasoning quality errors - non-blocking but problematic
     reasoning_absent = "reasoning_absent"
     """There is no reasoning content (missing, empty, whitespace)."""
+
     reasoning_split_across_blocks = "reasoning_split_across_blocks"
     """Reasoning split across multiple separate tags or locations."""
+
     reasoning_mixed_with_untagged_text = "reasoning_mixed_with_untagged_text"
     """Reasoning mixed with non-reasoning text outside of reasoning tags."""
 
     # Structural/ordering errors
     action_placed_before_reasoning = "action_placed_before_reasoning"
     """Action tag appears before reasoning is complete."""
+
     content_after_action_complete = "content_after_action_complete"
     """Content (text, tags, reasoning) appears after action tag is closed."""
+
     malformed_tag_structure = "malformed_tag_structure"
     """Tags are malformed (e.g., missing closing tag, overlapping/nested)."""
 
     # Infra/external errors
     max_output_tokens_exceeded = "max_output_tokens_exceeded"
     """Model exceeded max output tokens."""
+
     server_error = "server_error"
     """Server-side error from the AI provider."""
+
     guardrail_violation = "guardrail_violation"
     """Content policy or guardrail violation triggered."""
 
@@ -112,5 +121,5 @@ class ReasoningParsingError(InvalidOutputFormatError):
         self.output = output
         self.expected_type = expected_type
         # We do this to tell the typechecker that we are definitely going to have a response error
-        # when the reasoning parser fails since we are override whatever got sent to the superclass.
+        # when the reasoning parser fails since we override whatever got sent to the superclass.
         self.response_error = response_error

@@ -8,15 +8,6 @@ defaults:
   - override /experiment/player_specs@expert_protocol: expert
   - _self_
 
-players:
-  all:
-    - test-defuser
-    - test-expert
-
-pairing_generator:
-  pairing_type: with_best_defuser
-  best_model: test-defuser
-
 mission_generator:
   config:
     time_limit: 60

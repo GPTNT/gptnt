@@ -1,10 +1,11 @@
-"""Guard the CLI's fast `--help`: command modules must defer heavy imports.
+"""Guard the CLI's fast `--help`: assembling the command surface must not import command modules.
 
-Every `gptnt` subcommand registers its function at the top of an assembly module
-(`gptnt.cli.__main__` / `gptnt.interactive.__main__`), so importing those modules runs
-every command module's top level. To keep `gptnt --help` fast, each command must import its
-heavy dependencies *inside* its function body, not at module top level. This test fails if a new
-or changed command pulls one of those heavy deps at import time.
+Every `gptnt` (sub)command is registered by lazy import-path string on an assembly module
+(`gptnt.cli.__main__` / `gptnt.interactive.__main__` / `gptnt.statics.__main__`), so cyclopts
+imports a command's module only when that command is invoked or when its own `--help` is shown —
+never when the assembly module is imported or when the parent `--help` is rendered. This test fails
+if an assembly module pulls one of the heavy deps at import time (e.g. a stray eager import slipped
+back in, or a command was registered with a direct function reference instead of a lazy string).
 """
 
 import subprocess
@@ -32,7 +33,7 @@ FORBIDDEN_AT_IMPORT = (
     "fastapi",
 )
 
-ASSEMBLY_MODULES = ("gptnt.cli.__main__", "gptnt.interactive.__main__")
+ASSEMBLY_MODULES = ("gptnt.cli.__main__", "gptnt.interactive.__main__", "gptnt.statics.__main__")
 
 
 @pytest.mark.parametrize("assembly_module", ASSEMBLY_MODULES)

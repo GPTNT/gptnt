@@ -134,7 +134,9 @@ def configure_logging(root_log_level: int = logging.INFO, *, enable_logfire: boo
             structlog.stdlib.ProcessorFormatter.remove_processors_meta,
             structlog.dev.ConsoleRenderer(
                 level_styles=log_level_colors,
-                exception_formatter=structlog.dev.RichTracebackFormatter(show_locals=False),
+                exception_formatter=structlog.dev.RichTracebackFormatter(
+                    show_locals=False, locals_max_string=200, locals_max_length=10, max_frames=20
+                ),
             ),
         ],
     )
@@ -179,7 +181,8 @@ def configure_logging(root_log_level: int = logging.INFO, *, enable_logfire: boo
     #         sys.__excepthook__(exc_type, exc_value, exc_traceback)
     #         return
 
-    #     root_logger.exception("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+    #     root_logger.exception("Uncaught exception",
+    #         exc_info=(exc_type, exc_value, exc_traceback))
 
     # sys.excepthook = handle_exception
 

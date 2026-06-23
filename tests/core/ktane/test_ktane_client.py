@@ -112,7 +112,7 @@ def test_ktane_coordinate_action_correctly_converts_to_query_params(
 # @respx.mock
 # @pytest.mark.anyio
 # @pytest.mark.skip(reason="Needs updating to phase3")
-# async def test_get_observation_frames_resizes_image(client: KtaneClient, screenshot: str) -> None:
+# async def test_get_observation_frames_resizes_image(client, screenshot: str) -> None:
 #     """Test that the KtaneClient correctly resizes the image."""
 #     # Mock the get_observation_frames method to return the image and segmentation bytes
 #     _ = respx.get(f"{client.client.base_url}/buffer").mock(
@@ -201,5 +201,5 @@ def test_ktane_coordinate_action_correctly_converts_to_query_params(
 #             == client_with_som.set_of_marks_painter._mark_to_coordinate[som_location]
 #         )
 #     else:
-#         # If the action does not require a location, we should not call the mark_to_coordinate method
+#         # If the action requires no location, we should not call the mark_to_coordinate method
 #         assert spy.called is False

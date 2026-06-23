@@ -15,7 +15,7 @@ from pydantic_ai import (
     UserPromptPart,
 )
 
-from gptnt.records.models import ExperimentStepRecord
+from gptnt.experiments.models import ExperimentStepRecord
 
 
 def render_image_gallery(

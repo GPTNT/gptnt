@@ -8,12 +8,12 @@ import structlog
 from faststream.redis import RedisBroker
 from pydantic import UUID4
 
-from gptnt.core.experiments.time_limits import SECONDS_PER_ACTION
 from gptnt.core.ktane.actions import KtaneGameplayInput
 from gptnt.core.ktane.client import FrameBuffer
 from gptnt.core.ktane.mission_spec import KtaneMissionConfig, KtaneMissionSpec
 from gptnt.core.ktane.state.bomb import BombState
 from gptnt.core.ktane.state.game import GameState
+from gptnt.core.ktane.time_limits import SECONDS_PER_ACTION
 from gptnt.interactive.services.rpc import BaseRPCClient
 from gptnt.interactive.services.timeouts import ServiceTimeouts
 

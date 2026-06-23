@@ -7,9 +7,9 @@ from coredis import Redis
 from faststream import FastStream
 from pydantic import RedisDsn
 
-from gptnt.core.common.instrumentation import ObservabilitySettings
 from gptnt.core.common.logger import configure_logging, create_faststream_logger
 from gptnt.core.ktane.game_settings import KtaneSettings
+from gptnt.core.observability.settings import ObservabilitySettings
 from gptnt.interactive.services.broker import create_redis_broker
 from gptnt.interactive.services.game.service import GameService
 
@@ -45,13 +45,7 @@ def main(*, redis_dsn: str | RedisDsn = "redis://localhost:6379") -> FastStream:
 
 
 if __name__ == "__main__":
-    _ = logfire.configure(
-        service_name="game",
-        scrubbing=False,
-        send_to_logfire=False,
-        additional_span_processors=observability_settings.span_processors("game"),
-    )
-    observability_settings.instrument_all()
+    observability_settings.configure("game")
 
     configure_logging()
     application = main()

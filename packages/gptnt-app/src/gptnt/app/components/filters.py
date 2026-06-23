@@ -1,6 +1,5 @@
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any, Literal, Self, get_args, override
 
 import streamlit as st
@@ -8,11 +7,12 @@ import yaml
 from caseconverter import titlecase
 from more_itertools import flatten
 
-from gptnt.core.experiments.experiments import Condition
+from gptnt.core.config import MODEL_CONFIG_DIR
 from gptnt.core.ktane.state.modules import KtaneComponent
 from gptnt.core.specification import CommunicationStyle
-from gptnt.records.db.connection import DuckDBConnection
-from gptnt.records.models import ExperimentMetadata
+from gptnt.experiments.db.connection import DuckDBConnection
+from gptnt.experiments.models import ExperimentMetadata
+from gptnt.experiments.spec import Condition
 
 type ModuleFilterType = Literal["Include All", "Include Any"]
 type OutcomeType = Literal["Solved", "Strike Out", "Timeout"]
@@ -20,9 +20,8 @@ type OutcomeType = Literal["Solved", "Strike Out", "Timeout"]
 
 @st.cache_data()
 def _load_available_players() -> list[str]:
-    model_dir = Path("configs/models")
     player_names = []
-    for model_file in model_dir.glob("*.yaml"):
+    for model_file in MODEL_CONFIG_DIR.glob("*.yaml"):
         loaded = yaml.safe_load(model_file.read_bytes())
         player_name = loaded["capabilities"]["player_name"]
         player_names.append(player_name)

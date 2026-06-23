@@ -133,7 +133,8 @@ def relabel_regions_in_reading_order(
     Args:
         labeled_image: The labeled image array
         regions: List of RegionProperties objects from the original labeled image
-        zoomed_in_component: Do not consider overlapping wires as being on the same row if component is wire_sequence
+        zoomed_in_component: Do not consider overlapping wires as being on the same row if
+            component is wire_sequence
 
     Returns:
         Tuple containing:

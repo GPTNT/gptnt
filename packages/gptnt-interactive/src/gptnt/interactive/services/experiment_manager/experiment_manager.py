@@ -11,7 +11,7 @@ from faststream.redis import RedisBroker
 from pydantic import UUID4
 
 from gptnt.core.common.async_ops import periodic
-from gptnt.core.experiments.experiments import ExperimentSpec
+from gptnt.experiments.spec import ExperimentSpec
 from gptnt.interactive.services.experiment_manager.experiment_runner import ExperimentState
 from gptnt.interactive.services.experiment_manager.matchmaking import get_playable_pairings
 from gptnt.interactive.services.experiment_manager.session import Session

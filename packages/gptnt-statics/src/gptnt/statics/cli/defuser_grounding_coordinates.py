@@ -1,63 +1,52 @@
 from functools import partial
 
-from structlog import get_logger
-
+from gptnt.core.specification import PlayerCapabilities
+from gptnt.statics.cli._evaluation import create_and_run_evaluation
 from gptnt.statics.cli._fields import (
     AllowThinkingOption,
     DownloadOption,
     LimitInstancesOption,
     ModelOption,
+    ProviderOption,
     ThrowOption,
     UploadOption,
 )
+from gptnt.statics.evaluation.postprocess import (
+    convert_normalised_to_absolute,
+    default_postprocess,
+)
+from gptnt.statics.evaluation.preprocess import preprocess_grounding_coordinates_instance
+from gptnt.statics.evaluation.prompts import (
+    GROUNDING_COORDINATES_PROMPT,
+    format_instruction_with_reasoning,
+)
+from gptnt.statics.evaluation.scorers import (
+    CoordinateAbsoluteDistanceComparer,
+    CoordinateEuclideanDistanceComparer,
+    CoordinateInRegionComparer,
+    CoordinateValidator,
+    Scorer,
+    create_scorers,
+)
 
-logger = get_logger()
 
-
-async def run_defuser_grounding_evaluation(
-    *,
-    model: ModelOption,
-    should_download: DownloadOption = False,
-    should_throw: ThrowOption = False,
-    should_upload: UploadOption = False,
-    limit_instances: LimitInstancesOption = None,
-    allow_thinking: AllowThinkingOption = True,
-) -> None:
-    """Defuser grounding using absolute coordinates."""
-    from gptnt.statics.cli._config_loader import ConfigLoader
-    from gptnt.statics.evaluation.postprocess import (
-        convert_normalised_to_absolute,
-        default_postprocess,
-    )
-    from gptnt.statics.evaluation.preprocess import preprocess_grounding_coordinates_instance
-    from gptnt.statics.evaluation.prompts import (
-        GROUNDING_COORDINATES_PROMPT,
-        format_instruction_with_reasoning,
-    )
-    from gptnt.statics.evaluation.run import RunHFDatasetEvaluation
-    from gptnt.statics.evaluation.scorers import (
-        CoordinateAbsoluteDistanceComparer,
-        CoordinateEuclideanDistanceComparer,
-        CoordinateInRegionComparer,
-        CoordinateValidator,
-        create_scorers,
-    )
-
-    config_loader = ConfigLoader(player_spec=model, role="defuser")
+def _build_coordinate_instruction(
+    capabilities: PlayerCapabilities, *, allow_thinking: bool
+) -> str:
     instruction = GROUNDING_COORDINATES_PROMPT.replace(
-        "{IMAGE_WIDTH}", str(config_loader.capabilities.image_dimensions.width)
-    ).replace("{IMAGE_HEIGHT}", str(config_loader.capabilities.image_dimensions.height))
-    instruction = format_instruction_with_reasoning(
-        instruction,
-        allow_thinking=allow_thinking,
-        thinking_method=config_loader.capabilities.thinking_method,
+        "{IMAGE_WIDTH}", str(capabilities.image_dimensions.width)
+    ).replace("{IMAGE_HEIGHT}", str(capabilities.image_dimensions.height))
+    return format_instruction_with_reasoning(
+        instruction, allow_thinking=allow_thinking, thinking_method=capabilities.thinking_method
     )
 
-    if config_loader.capabilities.coordinate_mode == "normalised":
+
+def _build_coordinate_scorers(capabilities: PlayerCapabilities) -> list[Scorer]:  # noqa: WPS210
+    if capabilities.coordinate_mode == "normalised":
         post_process_func = partial(
             convert_normalised_to_absolute,
-            image_width=config_loader.capabilities.image_dimensions.width,
-            image_height=config_loader.capabilities.image_dimensions.height,
+            image_width=capabilities.image_dimensions.width,
+            image_height=capabilities.image_dimensions.height,
         )
     else:
         post_process_func = default_postprocess
@@ -73,16 +62,16 @@ async def run_defuser_grounding_evaluation(
     euclidean_distance_scorers = create_scorers(
         CoordinateEuclideanDistanceComparer(
             task_type="grounding",
-            image_height=config_loader.capabilities.image_dimensions.height,
-            image_width=config_loader.capabilities.image_dimensions.width,
+            image_height=capabilities.image_dimensions.height,
+            image_width=capabilities.image_dimensions.width,
             postprocess_output_func=post_process_func,
         )
     )
     absolute_distance_scorers = create_scorers(
         CoordinateAbsoluteDistanceComparer(
             task_type="grounding",
-            image_height=config_loader.capabilities.image_dimensions.height,
-            image_width=config_loader.capabilities.image_dimensions.width,
+            image_height=capabilities.image_dimensions.height,
+            image_width=capabilities.image_dimensions.width,
             postprocess_output_func=post_process_func,
         )
     )
@@ -93,29 +82,38 @@ async def run_defuser_grounding_evaluation(
     for scorer in absolute_distance_scorers:
         scorer.name = f"{scorer.name}_absolute_distance"
 
-    runner = RunHFDatasetEvaluation(
+    return [
+        *coordinate_validator_scorers,
+        *exact_match_scorers,
+        *euclidean_distance_scorers,
+        *absolute_distance_scorers,
+    ]
+
+
+async def run_defuser_grounding_evaluation(
+    *,
+    model: ModelOption,
+    provider: ProviderOption = None,
+    should_download: DownloadOption = False,
+    should_throw: ThrowOption = False,
+    should_upload: UploadOption = False,
+    limit_instances: LimitInstancesOption = None,
+    allow_thinking: AllowThinkingOption = True,
+) -> None:
+    """Defuser grounding using absolute coordinates."""
+    await create_and_run_evaluation(
+        model=model,
+        provider=provider,
+        role="defuser",
         hf_repo_id="GPTNT/defuser-grounding-dataset",
         dataset_split="test_coordinates",
         task_name="defuser-grounding-coordinates",
         weave_project="gptnt/defuser-grounding-coordinates",
         preprocess_instance_func=preprocess_grounding_coordinates_instance,
-        agent=config_loader.agent_fn(instructions=instruction),
-        capabilities=config_loader.capabilities,
-        scorers=[
-            *coordinate_validator_scorers,
-            *exact_match_scorers,
-            *euclidean_distance_scorers,
-            *absolute_distance_scorers,
-        ],
-        max_instances=limit_instances,
-        image_resizer=config_loader.image_resizer,
+        build_instruction=partial(_build_coordinate_instruction, allow_thinking=allow_thinking),
+        build_scorers=_build_coordinate_scorers,
+        should_download=should_download,
+        should_throw=should_throw,
+        should_upload=should_upload,
+        limit_instances=limit_instances,
     )
-    if should_download:
-        logger.info("Downloading dataset before running evaluation")
-        _ = runner.load_dataset()
-    logger.info("Running evaluation", agent=runner.agent)
-    if should_throw:
-        await runner.throw()
-    if should_upload:
-        await runner.upload()
-    logger.info("Evaluation completed successfully", agent=runner.agent)

@@ -4,11 +4,9 @@ from pydantic_ai import PromptedOutput
 from pydantic_ai._output import OutputSchema, PromptedOutputSchema
 
 PROMPTED_OUTPUT_TEMPLATE = dedent(
-    """
-    Always respond with a JSON object that's compatible with this schema:
+    """Always respond with a JSON object that's compatible with this schema:
 
     {schema}
-
     """
 )
 

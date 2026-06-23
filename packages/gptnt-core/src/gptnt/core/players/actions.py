@@ -72,7 +72,6 @@ type GameInteractionActionType = (
 )
 """Action types representing only game interaction actions."""
 
-
 type PlayerOutputType = (
     DoNothingAction
     | SendMessageAction

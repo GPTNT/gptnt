@@ -1,6 +1,6 @@
 import streamlit as st
 
-from gptnt.records.db.connection import DuckDBConnection
+from gptnt.experiments.db.connection import DuckDBConnection
 
 
 def render_schema_browser(conn: DuckDBConnection) -> None:

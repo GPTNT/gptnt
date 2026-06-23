@@ -5,7 +5,7 @@ description = "GPTNT interactive gameplay: distributed services, experiment mana
 requires-python = ">=3.13, <3.14"
 dependencies = [
     "gptnt-core",
-    "gptnt-records",
+    "gptnt-experiments",
     "coredis>=6.0.0",
     "fastapi>=0.117.1",
     "faststream[otel,redis]>=0.6.2",
@@ -18,7 +18,7 @@ dependencies = [
 [project.optional-dependencies]
 # Optional: W&B logging + the wandb-backed `status`/`cleanup` commands. Games record to disk
 # without this. Pulls the matching records extra so the W&B recorder is available too.
-wandb = ["gptnt-records[wandb]", "wandb[media]>=0.19.9,<0.22.1"]
+wandb = ["gptnt-experiments[wandb]", "wandb[media]>=0.19.9,<0.22.1"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/gptnt"]

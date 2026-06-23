@@ -1,0 +1,30 @@
+# A `run.yaml` manifest: the single, declarative source of truth for one run.
+#
+# It names the experiment preset(s), how many rooms to play, and which models take part. Validate it
+# (structure + config-name cross-checks) with:
+#
+#     gptnt doctor runs/quickstart.yaml
+#
+# then generate its specs and run them:
+#
+#     gptnt generate runs/quickstart.yaml
+#     gptnt run runs/quickstart.yaml
+
+spec_version: 1
+experiments:
+  - e1-single-pairwise
+rooms: 2
+
+players:
+  - model: claude46
+  - model: gemini-3
+
+anchors:
+  best_expert: gemini-3
+  best_defuser: gemini-3
+
+# Where the resume check reads completion from: `local` (on-disk outputs, needs no W&B) or `wandb`.
+# W&B logging itself is driven by the ambient WANDB_* environment, not configured here.
+source: local
+
+observability: limited

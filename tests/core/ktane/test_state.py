@@ -5,7 +5,6 @@ from gptnt.core.ktane.state.modules import ComplicatedWire, WireSequenceWire, Wi
 
 def test_accept_snake_case() -> None:
     """Test that the snake_case is accepted."""
-
     assert ComplicatedWire.model_validate(
         {"is_cut": True, "color": "red", "position": 1, "is_led_on": True, "has_star": False}
     )
@@ -17,7 +16,6 @@ def test_accept_snake_case() -> None:
 
 def test_accept_camel_case() -> None:
     """Test that camelCase is accepted."""
-
     assert ComplicatedWire.model_validate(
         {"isCut": True, "color": "red", "position": 1, "isLedOn": True, "hasStar": False}
     )

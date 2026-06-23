@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from pytest_factoryboy import register
 
+from gptnt.core.common.logger import configure_logging
 from gptnt.core.common.paths import Paths
 from gptnt.core.common.servers import get_available_port
 from gptnt.core.ktane.client import KtaneClient
@@ -12,6 +13,8 @@ from gptnt.core.ktane.manual import KtaneManualPaths
 from gptnt.core.prompts.prompt_cache import PromptCache
 
 from tests._factories.players import PlayerProtocolFactory
+
+configure_logging(enable_logfire=False)
 
 
 @pytest.fixture(autouse=True)

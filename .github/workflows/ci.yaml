@@ -31,8 +31,10 @@ jobs:
       ci: ${{steps.filter.outputs.ci}}
       python: ${{steps.filter.outputs.python}}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
         id: filter
         with:
           filters: |
@@ -58,14 +60,16 @@ jobs:
       pull-requests: write
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
         with:
           enable-cache: true
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Load cached prek environment
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: prek-cache
         with:
           path: ~/.cache/prek
@@ -85,13 +89,13 @@ jobs:
       - name: Annotate any changes using reviewdog
         if: ${{ failure() }}
         id: reviewdog-suggester
-        uses: reviewdog/action-suggester@v1
+        uses: reviewdog/action-suggester@2558ba17e65a9039e73764a73009fc05fef28a46 # v1.24.3
         with:
           tool_name: prek
 
       - name: Save prek cache
         if: ${{ always() }}
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.cache/prek
           key: ${{ runner.os }}-prek-${{ hashFiles('**/.pre-commit-config.yaml') }}
@@ -108,22 +112,24 @@ jobs:
       pull-requests: write
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
         with:
           enable-cache: true
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install deps
-        run: uv sync --group tests
+        run: uv sync --all-groups
 
       - name: Run tests
         run: |
-          uv run pytest -k "not requires_game" --junitxml=pytest.xml --cov-report "xml:coverage.xml" --cov=src -n 2
+          uv run pytest -k "not requires_game and not slow" --junitxml=pytest.xml --cov-report "xml:coverage.xml" --cov=src -n auto
 
       - name: Comment coverage
         if: ${{ github.event_name == 'pull_request' }}
-        uses: MishaKav/pytest-coverage-comment@v1
+        uses: MishaKav/pytest-coverage-comment@dd5b80bde6d16941f336518e92929e89069d8451 # v1.7.2
         with:
           pytest-xml-coverage-path: ./coverage.xml
           junitxml-path: ./pytest.xml

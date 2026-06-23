@@ -1,0 +1,4 @@
+# @package players
+
+best_expert: gemini-3
+best_defuser: gemini-3
