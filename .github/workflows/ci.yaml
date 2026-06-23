@@ -34,6 +34,10 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
+          # Full history so paths-filter can diff against the push `before` SHA
+          # locally instead of an authenticated fetch (which fails under
+          # persist-credentials: false on push-to-main).
+          fetch-depth: 0
       - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
         id: filter
         with:
