@@ -6,7 +6,7 @@ import pytest
 from pydantic_ai.retries import AsyncTenacityTransport, RetryConfig
 from tenacity import retry_if_exception_type, stop_after_attempt, wait_none
 
-from gptnt.core.common.base_client import (
+from gptnt.common.base_client import (
     MAX_RETRYING_CLIENT_ATTEMPTS,
     _cached_retrying_async_http_client,
     _should_retry_status,

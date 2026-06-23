@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from gptnt.core.ktane.mission_spec import KtaneMissionSpec
-from gptnt.core.specification import PlayerProtocol
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.experiments.specs_store import load_specs_from_dir, write_specs_to_dir
+from gptnt.ktane.mission_spec import KtaneMissionSpec
+from gptnt.specification import PlayerProtocol
 
 if TYPE_CHECKING:
     from pathlib import Path

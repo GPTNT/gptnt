@@ -1,8 +1,8 @@
 from pytest_cases import param_fixture
 
-from gptnt.core.ktane.actions import GameActionType, RelativeCoordinate
-from gptnt.core.players.actions import DoNothingAction, InteractGameAction, SendMessageAction
-from gptnt.core.players.locations import PixelLocation, ScaledLocation, SingleAlphabetLetter
+from gptnt.ktane.actions import GameActionType, RelativeCoordinate
+from gptnt.players.actions import DoNothingAction, InteractGameAction, SendMessageAction
+from gptnt.players.locations import PixelLocation, ScaledLocation, SingleAlphabetLetter
 
 game_command = param_fixture(
     "game_command", list(GameActionType), ids=[action.value for action in GameActionType]

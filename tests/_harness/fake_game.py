@@ -23,8 +23,8 @@ from typing import TYPE_CHECKING, Any, Literal
 import httpx
 from PIL import Image
 
-from gptnt.core.ktane import process_manager
-from gptnt.core.ktane.state.game import GameState
+from gptnt.ktane import process_manager
+from gptnt.ktane.state.game import GameState
 
 if TYPE_CHECKING:
     import pytest

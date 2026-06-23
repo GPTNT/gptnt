@@ -13,10 +13,10 @@ from uuid import uuid4
 
 import orjson
 
-from gptnt.core.ktane.state.bomb import BombState
 from gptnt.experiments.ledger.base import Source
 from gptnt.experiments.ledger.local import LocalLedger
 from gptnt.experiments.ledger.resolve import resolve_ledger
+from gptnt.ktane.state.bomb import BombState
 
 if TYPE_CHECKING:
     from pathlib import Path

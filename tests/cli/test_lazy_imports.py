@@ -1,7 +1,7 @@
 """Guard the CLI's fast `--help`: assembling the command surface must not import command modules.
 
 Every `gptnt` (sub)command is registered by lazy import-path string on an assembly module
-(`gptnt.cli.__main__` / `gptnt.interactive.__main__` / `gptnt.statics.__main__`), so cyclopts
+(`gptnt.cli.__main__` / `gptnt.interactive.__main__` / `gptnt.cli.statics.__main__`), so cyclopts
 imports a command's module only when that command is invoked or when its own `--help` is shown —
 never when the assembly module is imported or when the parent `--help` is rendered. This test fails
 if an assembly module pulls one of the heavy deps at import time (e.g. a stray eager import slipped
@@ -14,10 +14,10 @@ import sys
 import pytest
 
 # Heavy third-party deps that no command may import at module top level — they must be imported
-# inside the command function body instead (see any module under packages/**/cli/).
+# inside the command function body instead (see any command module under src/gptnt/cli/).
 #
 # httpx / logfire / psutil / pydantic_ai are intentionally NOT listed: they load unavoidably via
-# the shared option-type aliases (`gptnt.core.config` -> pydantic -> logfire) and the structlog
+# the shared option-type aliases (`gptnt.specification` -> pydantic -> logfire) and the structlog
 # setup, not from any single command, so they are part of the fixed baseline rather than a leak.
 FORBIDDEN_AT_IMPORT = (
     "polars",
@@ -33,7 +33,7 @@ FORBIDDEN_AT_IMPORT = (
     "fastapi",
 )
 
-ASSEMBLY_MODULES = ("gptnt.cli.__main__", "gptnt.interactive.__main__", "gptnt.statics.__main__")
+ASSEMBLY_MODULES = ("gptnt.cli.__main__", "gptnt.cli.statics.__main__")
 
 
 @pytest.mark.parametrize("assembly_module", ASSEMBLY_MODULES)

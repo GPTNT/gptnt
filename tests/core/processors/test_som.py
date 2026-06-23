@@ -5,12 +5,9 @@ from numpy.typing import NDArray
 from PIL.Image import Resampling
 from pytest_cases import fixture, param_fixture
 
-from gptnt.core.common.image_ops import load_observation_from_bytes
-from gptnt.core.processors.labels.drawing import draw_mask_on_image
-from gptnt.core.processors.set_of_marks import (
-    convert_colorful_segm_to_labeled,
-    get_region_properties,
-)
+from gptnt.common.image_ops import load_observation_from_bytes
+from gptnt.processors.labels.drawing import draw_mask_on_image
+from gptnt.processors.set_of_marks import convert_colorful_segm_to_labeled, get_region_properties
 
 segmentation_image_names = param_fixture(
     "segmentation_image_names",

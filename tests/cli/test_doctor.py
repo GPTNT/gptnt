@@ -17,7 +17,7 @@ from rich.console import Console
 
 from gptnt.cli.__main__ import build_app
 from gptnt.cli.doctor import checks, command, render
-from gptnt.core.model_validation import ModelValidationResult
+from gptnt.cli.doctor.validation import ModelValidationResult
 
 from tests._cli_runner import invoke_cli
 

@@ -1,12 +1,8 @@
 from pytest_cases import parametrize
 
-from gptnt.core.common.image_ops import ImageDimensions
-from gptnt.core.ktane.manual import (
-    APPENDIX_PAGES,
-    EXPLAINER_PAGES_TO_REMOVE,
-    NEEDY_MODULE_PAGE_NUMS,
-)
-from gptnt.core.prompts.manual import load_manual_as_prompt
+from gptnt.common.image_ops import ImageDimensions
+from gptnt.ktane.manual import APPENDIX_PAGES, EXPLAINER_PAGES_TO_REMOVE, NEEDY_MODULE_PAGE_NUMS
+from gptnt.prompts.manual import load_manual_as_prompt
 
 
 @parametrize(("width", "height"), [(800, 600), (640, 480), (480, 640), (100, 100)])

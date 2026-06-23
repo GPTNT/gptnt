@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any, override
 
 from fakeredis import TcpFakeServer
 
-from gptnt.core.common.servers import block_until_listening, get_available_port
+from gptnt.common.servers import block_until_listening, get_available_port
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

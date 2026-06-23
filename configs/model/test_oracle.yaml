@@ -14,4 +14,4 @@ action_predictor:
   agent:
     retries: 0
     model:
-      _target_: gptnt.core.players.dummy_models.MagicDefuserModel
+      _target_: gptnt.players.dummy_models.MagicDefuserModel

@@ -5,7 +5,7 @@ from hypothesis import given, strategies as st
 from PIL import Image
 from pytest_cases import param_fixture
 
-from gptnt.core.processors.image_resizer import ImageResizer
+from gptnt.processors.image_resizer import ImageResizer
 
 test_image_names = param_fixture(
     "test_image_names", ["screenshot.png", "screenshot1.png"], scope="session"

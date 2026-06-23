@@ -15,10 +15,10 @@ from rich.console import Console
 
 from gptnt.cli.__main__ import build_app
 from gptnt.cli.doctor import checks, render
+from gptnt.cli.doctor.validation import validate_model_config
 from gptnt.cli.model.new import _validate_name
 from gptnt.cli.model.templates import MODEL_TEMPLATE, PROVIDER_TEMPLATE
-from gptnt.core.common.paths import Paths
-from gptnt.core.model_validation import validate_model_config
+from gptnt.common.paths import Paths
 
 from tests._cli_runner import invoke_cli
 

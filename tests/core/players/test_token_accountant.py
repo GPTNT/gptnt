@@ -1,8 +1,8 @@
 from pydantic_ai import RunUsage, UsageLimits
 from pytest_cases import fixture, parametrize, parametrize_with_cases
 
-from gptnt.core.players.history.token_accountant import TokenAccountant
-from gptnt.core.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.players.history.token_accountant import TokenAccountant
+from gptnt.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cases.protocol import ProtocolCases
 

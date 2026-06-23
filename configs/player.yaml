@@ -20,10 +20,10 @@ player:
     _recursive_: false
 
   nobf_generator:
-    _target_: gptnt.core.players.feedback.nobf.NaughtyOutputBehaviourFeedbackGenerator
+    _target_: gptnt.players.feedback.nobf.NaughtyOutputBehaviourFeedbackGenerator
 
   capabilities:
-    _target_: gptnt.core.specification.PlayerCapabilities
+    _target_: gptnt.specification.PlayerCapabilities
     player_type: ai
     player_name: ???
     structured_output_mode: ???
@@ -43,7 +43,7 @@ player:
     capabilities: ${player.capabilities}
 
   action_predictor:
-    _target_: gptnt.core.players.action_predictor.ActionPredictor
+    _target_: gptnt.players.action_predictor.ActionPredictor
     capabilities: ${player.capabilities}
     agent:
       _target_: pydantic_ai.Agent
@@ -59,30 +59,30 @@ player:
         temperature: 0.6
 
   observation_handler:
-    _target_: gptnt.core.players.observation_handler.ObservationHandler
+    _target_: gptnt.players.observation_handler.ObservationHandler
     interaction_location_method: ${player.capabilities.interaction_location_method}
 
     image_resizer:
-      _target_: gptnt.core.processors.image_resizer.ImageResizer
+      _target_: gptnt.processors.image_resizer.ImageResizer
       target_width: ${oc.decode:${oc.env:KTANE_GAME_WIDTH,"640"}}
       target_height: ${oc.decode:${oc.env:KTANE_GAME_HEIGHT,"480"}}
     set_of_marks_painter:
-      _target_: gptnt.core.processors.set_of_marks.SetOfMarksHandler
+      _target_: gptnt.processors.set_of_marks.SetOfMarksHandler
       add_labels: true
       add_mask_outline: true
       mark_type: alphabet
       annotation_text_params:
-        _target_: gptnt.core.processors.labels.drawing.AnnotationTextParams
+        _target_: gptnt.processors.labels.drawing.AnnotationTextParams
         font: 2
         font_scale: 0.7
         thickness: 1
         space_between_boxes: 2
       annotation_background_params:
-        _target_: gptnt.core.processors.labels.drawing.AnnotationBackgroundParams
+        _target_: gptnt.processors.labels.drawing.AnnotationBackgroundParams
         padding: 3
         alpha: 1
       mask_drawing_params:
-        _target_: gptnt.core.processors.set_of_marks.MaskDrawingParams
+        _target_: gptnt.processors.set_of_marks.MaskDrawingParams
         mask_thickness: 1
         soft_mask_alpha: 0.1
         bw_outside_mask: False

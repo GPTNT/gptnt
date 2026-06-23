@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from gptnt.core.common.paths import Paths
+from gptnt.common.paths import Paths
 
 
 def test_paths_work_as_expected_with_env_vars(monkeypatch: pytest.MonkeyPatch) -> None:

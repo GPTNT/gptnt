@@ -6,11 +6,11 @@ import pytest
 import respx
 from pytest_cases import fixture
 
-from gptnt.core.ktane.actions import GameActionType, KtaneBaseAction, RelativeCoordinate
-from gptnt.core.ktane.client import KtaneClient
-from gptnt.core.ktane.mission_spec import KtaneMissionConfig, KtaneMissionSpec
-from gptnt.core.ktane.state.game import GameState
-from gptnt.core.ktane.state.modules import KtaneComponent
+from gptnt.ktane.actions import GameActionType, KtaneBaseAction, RelativeCoordinate
+from gptnt.ktane.client import KtaneClient
+from gptnt.ktane.mission_spec import KtaneMissionConfig, KtaneMissionSpec
+from gptnt.ktane.state.game import GameState
+from gptnt.ktane.state.modules import KtaneComponent
 
 
 @fixture

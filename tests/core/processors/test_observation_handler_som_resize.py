@@ -3,16 +3,16 @@ from pathlib import Path
 import numpy as np
 from pytest_cases import fixture, param_fixture
 
-from gptnt.core.common.image_ops import load_observation_from_bytes
-from gptnt.core.ktane.actions import RelativeCoordinate
-from gptnt.core.ktane.client import FrameBuffer
-from gptnt.core.ktane.state.bomb import BombState
-from gptnt.core.players.actions import InteractGameAction
-from gptnt.core.players.locations import SetOfMarksLocation
-from gptnt.core.players.observation_handler import ObservationHandler
-from gptnt.core.processors.image_resizer import ImageResizer
-from gptnt.core.processors.labels.drawing import AnnotationBackgroundParams, AnnotationTextParams
-from gptnt.core.processors.set_of_marks import MaskDrawingParams, SetOfMarksHandler
+from gptnt.common.image_ops import load_observation_from_bytes
+from gptnt.ktane.actions import RelativeCoordinate
+from gptnt.ktane.client import FrameBuffer
+from gptnt.ktane.state.bomb import BombState
+from gptnt.players.actions import InteractGameAction
+from gptnt.players.locations import SetOfMarksLocation
+from gptnt.players.observation_handler import ObservationHandler
+from gptnt.processors.image_resizer import ImageResizer
+from gptnt.processors.labels.drawing import AnnotationBackgroundParams, AnnotationTextParams
+from gptnt.processors.set_of_marks import MaskDrawingParams, SetOfMarksHandler
 
 image_dimensions = param_fixture(
     "image_dimensions",

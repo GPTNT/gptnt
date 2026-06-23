@@ -4,12 +4,12 @@ from typing import get_args
 import pytest
 from pytest_cases import fixture, param_fixture, parametrize_with_cases
 
-from gptnt.core.ktane.mission_spec import KtaneMissionSpec
-from gptnt.core.ktane.state.modules import KtaneComponent
-from gptnt.core.specification import PlayerProtocol
 from gptnt.experiments.generation.experiments import ExperimentGenerator
 from gptnt.experiments.generation.missions import MissionGenerator, MissionGeneratorConfig
 from gptnt.experiments.generation.pairing import Pairing, PairingGenerator, PairingType
+from gptnt.ktane.mission_spec import KtaneMissionSpec
+from gptnt.ktane.state.modules import KtaneComponent
+from gptnt.specification import PlayerProtocol
 
 from tests._cases.mission_generator_config import MissionGeneratorConfigCases
 

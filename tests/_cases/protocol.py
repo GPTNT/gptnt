@@ -1,8 +1,8 @@
 import pytest
 from pytest_cases import fixture
 
-from gptnt.core.players.actions import InteractGameAction, PlayerOutputType, SendMessageAction
-from gptnt.core.specification import PlayerProtocol
+from gptnt.players.actions import InteractGameAction, PlayerOutputType, SendMessageAction
+from gptnt.specification import PlayerProtocol
 
 
 class ProtocolCases:

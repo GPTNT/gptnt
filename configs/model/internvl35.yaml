@@ -11,7 +11,7 @@ capabilities:
     input_tokens_limit: 39959
     output_tokens_limit: 1001
   image_dimensions:
-    _target_: gptnt.core.common.image_ops.ImageDimensions
+    _target_: gptnt.common.image_ops.ImageDimensions
     width: 448
     height: 448
 
@@ -30,6 +30,6 @@ action_predictor:
 
 observation_handler:
   image_resizer:
-    _target_: gptnt.core.processors.image_resizer.ImageResizer
+    _target_: gptnt.processors.image_resizer.ImageResizer
     target_width: ${player.capabilities.image_dimensions.width}
     target_height: ${player.capabilities.image_dimensions.height}

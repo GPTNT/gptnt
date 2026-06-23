@@ -26,7 +26,7 @@ from gptnt.cli.doctor.command import DiagnoseResult
 from gptnt.cli.doctor.run_plan import RunPlanResult
 from gptnt.cli.run import pipeline
 from gptnt.cli.run.manifest import RunManifest
-from gptnt.core.config import PlayerSpec
+from gptnt.specification import PlayerSpec
 
 from tests._cli_runner import invoke_cli
 
@@ -332,7 +332,7 @@ async def test_spawn_submit_monitor_tears_down_on_submit_failure(
     monkeypatch.setattr("gptnt.cli.run.pipeline.handle_signals", _fake_signals)
     monkeypatch.setattr("gptnt.cli.run.pipeline.send_experiments", _boom)
     monkeypatch.setattr(
-        "gptnt.core.common.paths.remove_empty_experiment_recorder_outputs", lambda _path: None
+        "gptnt.common.paths.remove_empty_experiment_recorder_outputs", lambda _path: None
     )
 
     with pytest.raises(RuntimeError):

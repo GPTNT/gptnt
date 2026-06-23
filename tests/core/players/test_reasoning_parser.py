@@ -6,16 +6,16 @@ from pydantic_ai import Agent
 from pydantic_ai.models.test import TestModel
 from pytest_cases import param_fixture, parametrize_with_cases
 
-from gptnt.core.players.actions import PlayerOutputType, SendMessageAction
-from gptnt.core.players.deps import PlayerDeps
-from gptnt.core.players.exceptions import AIResponseErrorType, ReasoningParsingError
-from gptnt.core.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
-from gptnt.core.players.reasoning_parser.react import (
+from gptnt.players.actions import PlayerOutputType, SendMessageAction
+from gptnt.players.deps import PlayerDeps
+from gptnt.players.exceptions import AIResponseErrorType, ReasoningParsingError
+from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
+from gptnt.players.reasoning_parser.react import (
     REACT_ACT_TAG,
     REACT_REASONING_TAG,
     ReactStyleReasoningParser,
 )
-from gptnt.core.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cases.capabilities import CapabilitiesCases
 from tests._cases.outputs import PredictedActionCases

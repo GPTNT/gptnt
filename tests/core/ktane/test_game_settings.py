@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from pytest_cases import param_fixture, parametrize
 
-from gptnt.core.ktane.game_settings import (
+from gptnt.ktane.game_settings import (
     DEFAULT_PLAYER_SETTINGS_XML,
     DEFAULT_PROGRESSION_XML,
     KtaneSettings,

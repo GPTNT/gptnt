@@ -1,6 +1,6 @@
 from typing import Any
 
-from gptnt.core.ktane.state.modules import ComplicatedWire, WireSequenceWire, WireSetWire
+from gptnt.ktane.state.modules import ComplicatedWire, WireSequenceWire, WireSetWire
 
 
 def test_accept_snake_case() -> None:

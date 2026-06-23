@@ -11,8 +11,8 @@ from pydantic_ai import (
 from pydantic_ai.models import Model
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
-from gptnt.core.players.actions import PlayerOutputType
-from gptnt.core.players.reasoning_parser.react import REACT_ACT_TAG, REACT_REASONING_TAG
+from gptnt.players.actions import PlayerOutputType
+from gptnt.players.reasoning_parser.react import REACT_ACT_TAG, REACT_REASONING_TAG
 
 
 class ContentFilteringErrorModel(FunctionModel):

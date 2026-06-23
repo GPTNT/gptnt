@@ -7,48 +7,7 @@ resolution-markers = [
 ]
 
 [manifest]
-members = [
-    "gptnt-app",
-    "gptnt-cli",
-    "gptnt-core",
-    "gptnt-experiments",
-    "gptnt-interactive",
-    "gptnt-statics",
-]
 overrides = [{ name = "streamlit", specifier = ">=1.40.0" }]
-
-[manifest.dependency-groups]
-lint = [
-    { name = "basedpyright", specifier = ">=1.29.2" },
-    { name = "docformatter", specifier = ">=1.7.5" },
-    { name = "flake8-pyproject", specifier = ">=1.2.3" },
-    { name = "import-linter", specifier = ">=2.0" },
-    { name = "prek", specifier = ">=0.2.23" },
-    { name = "ruff", specifier = ">=0.9.0" },
-    { name = "toml-sort", specifier = ">=0.24.2" },
-    { name = "wemake-python-styleguide", specifier = ">=1.0.0" },
-]
-tests = [
-    { name = "asgi-lifespan", specifier = ">=2.1.0" },
-    { name = "deepdiff", specifier = ">=8.4.2" },
-    { name = "fakeredis", specifier = ">=2.30.1" },
-    { name = "hypothesis", specifier = ">=6.131.0" },
-    { name = "pytest", specifier = "<9.1" },
-    { name = "pytest-cases", specifier = ">=3.8.6" },
-    { name = "pytest-cov", specifier = ">=6.1.0" },
-    { name = "pytest-env", specifier = ">=1.6.0" },
-    { name = "pytest-factoryboy", specifier = ">=2.8.1" },
-    { name = "pytest-mock", specifier = ">=3.14.0" },
-    { name = "pytest-sugar", specifier = ">=1.0.0" },
-    { name = "pytest-xdist", specifier = ">=3.6.1" },
-    { name = "respx", specifier = ">=0.22.0" },
-    { name = "unflatten", specifier = ">=0.2.0" },
-]
-visualisation = [
-    { name = "pymupdf", specifier = ">=1.26.6" },
-    { name = "streamlit-drawable-canvas", specifier = ">=0.9.3" },
-]
-wandb = [{ name = "wandb", extras = ["media"], specifier = ">=0.19.9,<0.22.1" }]
 
 [[package]]
 name = "abnf"
@@ -1266,232 +1225,176 @@ wheels = [
 ]
 
 [[package]]
-name = "gptnt-app"
+name = "gptnt"
 version = "1.0.0"
-source = { editable = "packages/gptnt-app" }
-dependencies = [
-    { name = "case-converter" },
-    { name = "duckdb-engine" },
-    { name = "gptnt-core" },
-    { name = "gptnt-experiments" },
-    { name = "htbuilder" },
-    { name = "more-itertools" },
-    { name = "polars" },
-    { name = "st-tailwind" },
-    { name = "streamlit" },
-    { name = "streamlit-code-editor" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "case-converter", specifier = ">=1.2.0" },
-    { name = "duckdb-engine", specifier = ">=0.17.0" },
-    { name = "gptnt-core", editable = "packages/gptnt-core" },
-    { name = "gptnt-experiments", editable = "packages/gptnt-experiments" },
-    { name = "htbuilder", specifier = ">=0.9.0" },
-    { name = "more-itertools", specifier = ">=10.7.0" },
-    { name = "polars", specifier = ">=1.28.1" },
-    { name = "st-tailwind", specifier = ">=1.3.0" },
-    { name = "streamlit", specifier = ">=1.40.0" },
-    { name = "streamlit-code-editor", specifier = ">=0.1.22" },
-]
-
-[[package]]
-name = "gptnt-cli"
-version = "1.0.0"
-source = { editable = "packages/gptnt-cli" }
-dependencies = [
-    { name = "gptnt-app" },
-    { name = "gptnt-core" },
-    { name = "gptnt-experiments" },
-    { name = "gptnt-interactive" },
-    { name = "gptnt-statics" },
-    { name = "pydantic-settings" },
-]
-
-[package.optional-dependencies]
-wandb = [
-    { name = "gptnt-experiments", extra = ["wandb"] },
-    { name = "gptnt-interactive", extra = ["wandb"] },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "gptnt-app", editable = "packages/gptnt-app" },
-    { name = "gptnt-core", editable = "packages/gptnt-core" },
-    { name = "gptnt-experiments", editable = "packages/gptnt-experiments" },
-    { name = "gptnt-experiments", extras = ["wandb"], marker = "extra == 'wandb'", editable = "packages/gptnt-experiments" },
-    { name = "gptnt-interactive", editable = "packages/gptnt-interactive" },
-    { name = "gptnt-interactive", extras = ["wandb"], marker = "extra == 'wandb'", editable = "packages/gptnt-interactive" },
-    { name = "gptnt-statics", editable = "packages/gptnt-statics" },
-    { name = "pydantic-settings", specifier = ">=2.11.0" },
-]
-provides-extras = ["wandb"]
-
-[[package]]
-name = "gptnt-core"
-version = "1.0.0"
-source = { editable = "packages/gptnt-core" }
+source = { editable = "." }
 dependencies = [
     { name = "anyio" },
+    { name = "case-converter" },
     { name = "color-contrast" },
+    { name = "coredis" },
     { name = "cyclopts" },
+    { name = "datasets" },
+    { name = "dill" },
+    { name = "duckdb" },
+    { name = "duckdb-engine" },
+    { name = "fastapi" },
+    { name = "faststream", extra = ["otel", "redis"] },
+    { name = "htbuilder" },
     { name = "httpx" },
     { name = "hydra-core" },
+    { name = "hypercorn" },
+    { name = "ijson" },
     { name = "json-repair" },
-    { name = "logfire" },
+    { name = "logfire", extra = ["fastapi", "httpx", "redis", "system-metrics"] },
+    { name = "more-itertools" },
+    { name = "msgpack" },
     { name = "omegaconf" },
     { name = "opencv-python-headless" },
     { name = "orjson" },
     { name = "pillow" },
+    { name = "polars" },
+    { name = "psutil" },
+    { name = "pyarrow" },
     { name = "pybase64" },
     { name = "pydantic" },
     { name = "pydantic-ai" },
     { name = "pydantic-settings" },
     { name = "rich" },
     { name = "scikit-image" },
+    { name = "sentence-transformers" },
+    { name = "st-tailwind" },
+    { name = "streamlit" },
+    { name = "streamlit-code-editor" },
     { name = "structlog" },
     { name = "tiktoken" },
     { name = "unflatten" },
     { name = "whenever" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "anyio", specifier = ">=4.9.0" },
-    { name = "color-contrast", specifier = ">=0.1.1" },
-    { name = "cyclopts", specifier = ">=4.8" },
-    { name = "httpx", specifier = ">=0.28.1" },
-    { name = "hydra-core", specifier = ">=1.3.2" },
-    { name = "json-repair", specifier = ">=0.52.0" },
-    { name = "logfire", specifier = ">=3.14.0" },
-    { name = "omegaconf", specifier = ">=2.3.0" },
-    { name = "opencv-python-headless", specifier = ">=4.11.0.86" },
-    { name = "orjson", specifier = ">=3.11.5" },
-    { name = "pillow", specifier = ">=11.1.0" },
-    { name = "pybase64", specifier = ">=1.4.3" },
-    { name = "pydantic", specifier = ">=2.10.6" },
-    { name = "pydantic-ai", specifier = ">=1.67.0" },
-    { name = "pydantic-settings", specifier = ">=2.11.0" },
-    { name = "rich", specifier = ">=13.9.4" },
-    { name = "scikit-image", specifier = ">=0.25.2" },
-    { name = "structlog", specifier = ">=25.1.0" },
-    { name = "tiktoken", specifier = ">=0.9.0" },
-    { name = "unflatten", specifier = ">=0.2.0" },
-    { name = "whenever", specifier = ">=0.7.3" },
-]
-
-[[package]]
-name = "gptnt-experiments"
-version = "1.0.0"
-source = { editable = "packages/gptnt-experiments" }
-dependencies = [
-    { name = "case-converter" },
-    { name = "cyclopts" },
-    { name = "dill" },
-    { name = "duckdb" },
-    { name = "duckdb-engine" },
-    { name = "gptnt-core" },
-    { name = "ijson" },
-    { name = "msgpack" },
-    { name = "pyarrow" },
     { name = "zstandard" },
 ]
 
 [package.optional-dependencies]
 wandb = [
     { name = "wandb", extra = ["media"] },
+    { name = "weave" },
+]
+
+[package.dev-dependencies]
+lint = [
+    { name = "basedpyright" },
+    { name = "docformatter" },
+    { name = "flake8-pyproject" },
+    { name = "import-linter" },
+    { name = "prek" },
+    { name = "ruff" },
+    { name = "toml-sort" },
+    { name = "wemake-python-styleguide" },
+]
+tests = [
+    { name = "asgi-lifespan" },
+    { name = "deepdiff" },
+    { name = "fakeredis" },
+    { name = "hypothesis" },
+    { name = "pytest" },
+    { name = "pytest-cases" },
+    { name = "pytest-cov" },
+    { name = "pytest-env" },
+    { name = "pytest-factoryboy" },
+    { name = "pytest-mock" },
+    { name = "pytest-sugar" },
+    { name = "pytest-xdist" },
+    { name = "respx" },
+    { name = "unflatten" },
+]
+visualisation = [
+    { name = "pymupdf" },
+    { name = "streamlit-drawable-canvas" },
+]
+wandb = [
+    { name = "wandb", extra = ["media"] },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "anyio", specifier = ">=4.9.0" },
     { name = "case-converter", specifier = ">=1.2.0" },
+    { name = "color-contrast", specifier = ">=0.1.1" },
+    { name = "coredis", specifier = ">=6.0.0" },
     { name = "cyclopts", specifier = ">=4.8" },
+    { name = "datasets", specifier = ">=3.6.0" },
     { name = "dill", specifier = ">=0.3.8" },
     { name = "duckdb", specifier = ">=1.4.4" },
     { name = "duckdb-engine", specifier = ">=0.17.0" },
-    { name = "gptnt-core", editable = "packages/gptnt-core" },
+    { name = "fastapi", specifier = ">=0.117.1" },
+    { name = "faststream", extras = ["otel", "redis"], specifier = ">=0.6.2" },
+    { name = "htbuilder", specifier = ">=0.9.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "hydra-core", specifier = ">=1.3.2" },
+    { name = "hypercorn", specifier = ">=0.17.3" },
     { name = "ijson", specifier = ">=3.5.0" },
+    { name = "json-repair", specifier = ">=0.52.0" },
+    { name = "logfire", extras = ["fastapi", "httpx", "redis", "system-metrics"], specifier = ">=3.14.0" },
+    { name = "more-itertools", specifier = ">=10.7.0" },
     { name = "msgpack", specifier = ">=1.1.2" },
+    { name = "omegaconf", specifier = ">=2.3.0" },
+    { name = "opencv-python-headless", specifier = ">=4.11.0.86" },
+    { name = "orjson", specifier = ">=3.11.5" },
+    { name = "pillow", specifier = ">=11.1.0" },
+    { name = "polars", specifier = ">=1.28.1" },
+    { name = "psutil", specifier = ">=7.0.0" },
     { name = "pyarrow", specifier = ">=19.0.1" },
+    { name = "pybase64", specifier = ">=1.4.3" },
+    { name = "pydantic", specifier = ">=2.10.6" },
+    { name = "pydantic-ai", specifier = ">=1.67.0" },
+    { name = "pydantic-settings", specifier = ">=2.11.0" },
+    { name = "rich", specifier = ">=13.9.4" },
+    { name = "scikit-image", specifier = ">=0.25.2" },
+    { name = "sentence-transformers", specifier = ">=4.1.0" },
+    { name = "st-tailwind", specifier = ">=1.3.0" },
+    { name = "streamlit", specifier = ">=1.40.0" },
+    { name = "streamlit-code-editor", specifier = ">=0.1.22" },
+    { name = "structlog", specifier = ">=25.1.0" },
+    { name = "tiktoken", specifier = ">=0.9.0" },
+    { name = "unflatten", specifier = ">=0.2.0" },
     { name = "wandb", extras = ["media"], marker = "extra == 'wandb'", specifier = ">=0.19.9,<0.22.1" },
+    { name = "weave", marker = "extra == 'wandb'", specifier = ">=0.51.44" },
+    { name = "whenever", specifier = ">=0.7.3" },
     { name = "zstandard", specifier = ">=0.25.0" },
 ]
 provides-extras = ["wandb"]
 
-[[package]]
-name = "gptnt-interactive"
-version = "1.0.0"
-source = { editable = "packages/gptnt-interactive" }
-dependencies = [
-    { name = "coredis" },
-    { name = "fastapi" },
-    { name = "faststream", extra = ["otel", "redis"] },
-    { name = "gptnt-core" },
-    { name = "gptnt-experiments" },
-    { name = "httpx" },
-    { name = "hypercorn" },
-    { name = "logfire", extra = ["fastapi", "httpx", "redis", "system-metrics"] },
-    { name = "psutil" },
+[package.metadata.requires-dev]
+lint = [
+    { name = "basedpyright", specifier = ">=1.29.2" },
+    { name = "docformatter", specifier = ">=1.7.5" },
+    { name = "flake8-pyproject", specifier = ">=1.2.3" },
+    { name = "import-linter", specifier = ">=2.0" },
+    { name = "prek", specifier = ">=0.2.23" },
+    { name = "ruff", specifier = ">=0.9.0" },
+    { name = "toml-sort", specifier = ">=0.24.2" },
+    { name = "wemake-python-styleguide", specifier = ">=1.0.0" },
 ]
-
-[package.optional-dependencies]
-wandb = [
-    { name = "gptnt-experiments", extra = ["wandb"] },
-    { name = "wandb", extra = ["media"] },
+tests = [
+    { name = "asgi-lifespan", specifier = ">=2.1.0" },
+    { name = "deepdiff", specifier = ">=8.4.2" },
+    { name = "fakeredis", specifier = ">=2.30.1" },
+    { name = "hypothesis", specifier = ">=6.131.0" },
+    { name = "pytest", specifier = "<9.1" },
+    { name = "pytest-cases", specifier = ">=3.8.6" },
+    { name = "pytest-cov", specifier = ">=6.1.0" },
+    { name = "pytest-env", specifier = ">=1.6.0" },
+    { name = "pytest-factoryboy", specifier = ">=2.8.1" },
+    { name = "pytest-mock", specifier = ">=3.14.0" },
+    { name = "pytest-sugar", specifier = ">=1.0.0" },
+    { name = "pytest-xdist", specifier = ">=3.6.1" },
+    { name = "respx", specifier = ">=0.22.0" },
+    { name = "unflatten", specifier = ">=0.2.0" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "coredis", specifier = ">=6.0.0" },
-    { name = "fastapi", specifier = ">=0.117.1" },
-    { name = "faststream", extras = ["otel", "redis"], specifier = ">=0.6.2" },
-    { name = "gptnt-core", editable = "packages/gptnt-core" },
-    { name = "gptnt-experiments", editable = "packages/gptnt-experiments" },
-    { name = "gptnt-experiments", extras = ["wandb"], marker = "extra == 'wandb'", editable = "packages/gptnt-experiments" },
-    { name = "httpx", specifier = ">=0.28.1" },
-    { name = "hypercorn", specifier = ">=0.17.3" },
-    { name = "logfire", extras = ["fastapi", "httpx", "redis", "system-metrics"], specifier = ">=3.14.0" },
-    { name = "psutil", specifier = ">=7.0.0" },
-    { name = "wandb", extras = ["media"], marker = "extra == 'wandb'", specifier = ">=0.19.9,<0.22.1" },
+visualisation = [
+    { name = "pymupdf", specifier = ">=1.26.6" },
+    { name = "streamlit-drawable-canvas", specifier = ">=0.9.3" },
 ]
-provides-extras = ["wandb"]
-
-[[package]]
-name = "gptnt-statics"
-version = "1.0.0"
-source = { editable = "packages/gptnt-statics" }
-dependencies = [
-    { name = "cyclopts" },
-    { name = "datasets" },
-    { name = "gptnt-core" },
-    { name = "more-itertools" },
-    { name = "polars" },
-    { name = "sentence-transformers" },
-]
-
-[package.optional-dependencies]
-generate = [
-    { name = "gptnt-experiments" },
-    { name = "wandb", extra = ["media"] },
-]
-weave = [
-    { name = "weave" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "cyclopts", specifier = ">=4.8" },
-    { name = "datasets", specifier = ">=3.6.0" },
-    { name = "gptnt-core", editable = "packages/gptnt-core" },
-    { name = "gptnt-experiments", marker = "extra == 'generate'", editable = "packages/gptnt-experiments" },
-    { name = "more-itertools", specifier = ">=10.7.0" },
-    { name = "polars", specifier = ">=1.28.1" },
-    { name = "sentence-transformers", specifier = ">=4.1.0" },
-    { name = "wandb", extras = ["media"], marker = "extra == 'generate'", specifier = ">=0.19.9,<0.22.1" },
-    { name = "weave", marker = "extra == 'weave'", specifier = ">=0.51.44" },
-]
-provides-extras = ["weave", "generate"]
+wandb = [{ name = "wandb", extras = ["media"], specifier = ">=0.19.9,<0.22.1" }]
 
 [[package]]
 name = "gql"

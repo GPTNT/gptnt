@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from gptnt.core.ktane.mission_spec import KtaneMissionSpec
-from gptnt.core.ktane.state.modules import KtaneComponent
-from gptnt.core.specification import PlayerProtocol
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.interactive.services.experiment_manager.matchmaking import get_playable_pairings
 from gptnt.interactive.services.heartbeat.base import PlayerState, ReadyState
 from gptnt.interactive.services.heartbeat.player import PlayerHeartbeat
 from gptnt.interactive.services.registry.manifest import PlayerServiceManifest, ServiceManifest
+from gptnt.ktane.mission_spec import KtaneMissionSpec
+from gptnt.ktane.state.modules import KtaneComponent
+from gptnt.specification import PlayerProtocol
 
 from tests._factories.players import PlayerCapabilitiesFactory
 

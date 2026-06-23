@@ -15,15 +15,15 @@ from typing import TYPE_CHECKING
 import anyio
 from coredis import Redis
 
-from gptnt.core.ktane.mission_spec import KtaneMissionSpec
-from gptnt.core.ktane.state.modules import KtaneComponent
-from gptnt.core.specification import CommunicationStyle, PlayerProtocol
 from gptnt.experiments.spec import Condition, ExperimentSpec
 from gptnt.interactive.entrypoints.run_game_instance import main as build_game_app
 from gptnt.interactive.entrypoints.run_player import main as build_player_app
 from gptnt.interactive.services.broker import create_redis_broker
 from gptnt.interactive.services.experiment_manager.experiment_manager import ExperimentManager
 from gptnt.interactive.services.experiment_manager.experiment_runner import ExperimentState
+from gptnt.ktane.mission_spec import KtaneMissionSpec
+from gptnt.ktane.state.modules import KtaneComponent
+from gptnt.specification import CommunicationStyle, PlayerProtocol
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator

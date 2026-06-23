@@ -4,46 +4,18 @@ LOGFIRE_PYDANTIC_PLUGIN_EXCLUDE = "google.genai.+"
 OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:4318/"
 COMPOSE_PROFILES = "prod"
 
-[tasks.defuser]
-description = "Run the defuser"
-run = "uv run python src/gptnt/entrypoints/run_player.py model=test_defuser"
-
-[tasks.em]
-description = "Run the experiment-manager"
-run = "uv run python src/gptnt/entrypoints/run_experiment_manager.py"
-
-[tasks.expert]
-description = "Run the expert"
-run = "uv run python src/gptnt/entrypoints/run_player.py model=test_expert"
-
 [tasks.format]
 description = "Format/lint all files in one go"
 run = "uv run prek run -a"
-
-[tasks.game]
-description = "Run the game"
-run = "uv run python src/gptnt/entrypoints/run_game_instance.py"
 
 [tasks.install]
 description = "Install dependencies"
 alias = "i"
 run = "uv sync --all-groups"
 
-[tasks.kill-all]
-description = "Kill all the GPTNT processes"
-run = """
-#!/usr/bin/env bash
-ps -ax | grep python | grep gptnt/entrypoints | awk '{print $1}' | xargs kill -9
-ps -ax | grep ktane | awk '{print $1}' | xargs kill -9
-"""
-
 [tasks.tests]
 description = "Run all tests"
 run = "uv run pytest"
-
-[tasks.throw-experiments]
-description = "Throw all the experiments at the EM"
-run = "uv run python src/gptnt/entrypoints/throw_experiments.py --delete-unneeded"
 
 [tools]
 python = "3.13"

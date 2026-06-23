@@ -6,12 +6,12 @@ from typing import Any
 from unittest.mock import MagicMock
 from uuid import uuid4
 
-from gptnt.core.ktane.state.game import GameState
 from gptnt.interactive.services.heartbeat.base import PlayerState, ReadyState
 from gptnt.interactive.services.heartbeat.game import GameHeartbeat
 from gptnt.interactive.services.heartbeat.player import PlayerHeartbeat
 from gptnt.interactive.services.registry.manifest import ServiceManifest, ServiceState
 from gptnt.interactive.services.registry.registry import ServiceRegistry
+from gptnt.ktane.state.game import GameState
 
 from tests._factories.players import PlayerCapabilitiesFactory
 
