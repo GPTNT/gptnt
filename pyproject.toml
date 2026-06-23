@@ -277,7 +277,7 @@ layers = [
     "experiments",
     "players : processors : prompts : specification",
     "ktane",
-    "common : observability"
+    "common : observability",
 ]
 
 [tool.logfire]
