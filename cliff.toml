@@ -1,0 +1,52 @@
+# git-cliff configuration — https://git-cliff.org
+#
+# This renders CHANGELOG.md from Conventional Commits. It does NOT decide version numbers:
+# gptnt uses a 4-segment `EDITION.MAJOR.MINOR.PATCH` scheme (see CONTRIBUTING.md) that git-cliff's
+# SemVer-based bump logic cannot parse. `scripts/release.py` computes the next version and passes
+# it to git-cliff via `--tag`; git-cliff only groups and formats the commits.
+
+[changelog]
+header = """
+# Changelog
+
+All notable changes to gptnt. Versions are `EDITION.MAJOR.MINOR.PATCH`. A change to the leading
+EDITION means results are **not comparable** with prior editions (re-run required). See
+CONTRIBUTING.md.\n
+"""
+body = """
+{% if version %}\
+## [{{ version | trim_start_matches(pat="v") }}]{% if timestamp %} — {{ timestamp | date(format="%Y-%m-%d") }}{% endif %}
+{% else %}\
+## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | upper_first }}
+{% for commit in commits %}\
+- {{ commit.message | upper_first }}{% if commit.breaking %} **(breaking)**{% endif %}
+{% endfor %}\
+{% endfor %}\n
+"""
+trim = true
+footer = ""
+
+[git]
+conventional_commits = true
+filter_unconventional = false
+split_commits = false
+# Only tags matching the gptnt scheme count as releases — this excludes legacy tags like
+# `before-rabbit` that would otherwise crash git-cliff's version parser.
+tag_pattern = "v[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+"
+filter_commits = false
+topo_order = false
+sort_commits = "newest"
+commit_parsers = [
+    {message = "^feat", group = "Features"},
+    {message = "^fix", group = "Fixes"},
+    {message = "^perf", group = "Performance"},
+    {message = "^refactor", group = "Refactor"},
+    {message = "^docs", group = "Documentation"},
+    {message = "^test", group = "Testing"},
+    {message = "^revert", group = "Reverts"},
+    {message = "^chore|^build|^ci|^style", skip = true},
+    {message = ".*", group = "Other"},
+]

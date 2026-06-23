@@ -1,6 +1,6 @@
 [project]
 name = "gptnt"
-version = "1.0.0"
+dynamic = ["version"]
 description = "GPTNT: KTANE LLM-agent benchmark — domain, experiments, services, dashboard, CLI."
 requires-python = ">=3.13, <3.14"
 dependencies = [
@@ -259,6 +259,11 @@ max-module-expressions = 10
 # WPS410: Allow __all__ to be defined in modules
 allowed-module-metadata = ["__all__"]
 
+[tool.hatch]
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
 # `gptnt` is a single regular package now (it carries an __init__.py), so the graph is built from
 # the one top-level root; the contracts below enforce the flattened-base DAG between its subpackages.
 [tool.importlinter]
@@ -481,6 +486,11 @@ overrides."project".first = [
 ]
 overrides."tool".first = ["uv"]
 
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+bump = true
+
 [build-system]
 build-backend = "hatchling.build"
-requires = ["hatchling"]
+requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]

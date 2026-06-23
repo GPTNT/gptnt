@@ -241,6 +241,11 @@ class ExperimentPlayerRecord(StepRecordsMetricsMixin):
     step_records: SortedStepRecords
     is_hard_crash: bool = False
 
+    # Provenance
+    gptnt_version: str = "unknown"
+    gptnt_edition: int = 0
+    git_sha: str | None = None
+
     @property
     def role(self) -> PlayerRole:
         """Get the role of the player in this record."""

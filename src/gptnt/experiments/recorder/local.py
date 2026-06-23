@@ -12,6 +12,7 @@ from whenever import Instant
 
 from gptnt.common.paths import Paths
 from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStepRecord
+from gptnt.experiments.provenance import git_sha, gptnt_edition, gptnt_version
 from gptnt.players.observation_handler import Observation
 
 if TYPE_CHECKING:
@@ -181,6 +182,9 @@ class ExperimentPlayerRecorder:
             player_content=player_content,
             step_records=self.step_records,
             is_hard_crash=is_hard_crash,
+            gptnt_version=gptnt_version(),
+            gptnt_edition=gptnt_edition(),
+            git_sha=git_sha(),
         )
 
     async def save_player_record_to_disk(self, *, player_record: ExperimentPlayerRecord) -> None:
