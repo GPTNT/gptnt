@@ -264,72 +264,21 @@ allowed-module-metadata = ["__all__"]
 [tool.hatch.version]
 source = "uv-dynamic-versioning"
 
-# `gptnt` is a single regular package now (it carries an __init__.py), so the graph is built from
-# the one top-level root; the contracts below enforce the flattened-base DAG between its subpackages.
 [tool.importlinter]
 root_package = "gptnt"
 
 [[tool.importlinter.contracts]]
-name = "base layer imports no feature package"
-type = "forbidden"
-source_modules = [
-    "gptnt.common",
-    "gptnt.ktane",
-    "gptnt.players",
-    "gptnt.processors",
-    "gptnt.prompts",
-    "gptnt.observability",
-    "gptnt.specification",
+name = "layered architecture"
+type = "layers"
+containers = ["gptnt"]
+layers = [
+    "cli",
+    "statics | app | interactive",
+    "experiments",
+    "players : processors : prompts : specification",
+    "ktane",
+    "common : observability"
 ]
-forbidden_modules = [
-    "gptnt.experiments",
-    "gptnt.statics",
-    "gptnt.app",
-    "gptnt.interactive",
-    "gptnt.cli",
-]
-
-[[tool.importlinter.contracts]]
-name = "experiments depends only on base"
-type = "forbidden"
-source_modules = ["gptnt.experiments"]
-forbidden_modules = ["gptnt.statics", "gptnt.app", "gptnt.interactive", "gptnt.cli"]
-
-[[tool.importlinter.contracts]]
-name = "statics generation only depends on base and experiments"
-type = "forbidden"
-source_modules = ["gptnt.statics"]
-forbidden_modules = ["gptnt.app", "gptnt.interactive", "gptnt.cli"]
-
-[[tool.importlinter.contracts]]
-name = "app only depends on base and experiments"
-type = "forbidden"
-source_modules = ["gptnt.app"]
-forbidden_modules = ["gptnt.statics", "gptnt.interactive", "gptnt.cli"]
-
-[[tool.importlinter.contracts]]
-name = "interactive depends only on base and experiments"
-type = "forbidden"
-source_modules = ["gptnt.interactive"]
-forbidden_modules = ["gptnt.statics", "gptnt.app", "gptnt.cli"]
-
-[[tool.importlinter.contracts]]
-name = "nothing imports gptnt.cli (it is the top-level assembler)"
-type = "forbidden"
-source_modules = [
-    "gptnt.common",
-    "gptnt.ktane",
-    "gptnt.players",
-    "gptnt.processors",
-    "gptnt.prompts",
-    "gptnt.observability",
-    "gptnt.specification",
-    "gptnt.experiments",
-    "gptnt.statics",
-    "gptnt.app",
-    "gptnt.interactive",
-]
-forbidden_modules = ["gptnt.cli"]
 
 [tool.logfire]
 pydantic_plugin_record = "failure"
