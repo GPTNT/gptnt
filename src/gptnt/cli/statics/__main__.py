@@ -24,6 +24,11 @@ statics_app.command(
     help="Defuser VQA multiple choice questions.",
 )
 statics_app.command(
+    "gptnt.cli.statics.defuser_vqa_mcq:run_defuser_state_recognition_vqa_evaluation",
+    name="defuser-state-recognition-vqa-mcq",
+    help="Defuser VQA multiple-choice state-recognition questions.",
+)
+statics_app.command(
     "gptnt.cli.statics.expert_vqa:run_expert_vqa_evaluation",
     name="expert-vqa",
     help="Expert VQA evaluation.",

@@ -44,3 +44,11 @@ AllowThinkingOption = Annotated[
         help="Enable reasoning/thinking mode for the model.",
     ),
 ]
+
+StateRecognitionSplitOption = Annotated[
+    str,
+    Parameter(
+        name="--state-split",
+        help="State-recognition split to evaluate: state-change, solved, or strikes.",
+    ),
+]
