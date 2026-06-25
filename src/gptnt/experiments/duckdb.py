@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any, cast, get_args, get_origin, get_type_hints
 from uuid import UUID
 
+import duckdb
 import msgpack
 import zstandard as zstd
 from caseconverter import snakecase
@@ -22,7 +23,7 @@ from pydantic_core import PydanticUndefined, core_schema, from_json, to_json, to
 from gptnt.common.types import UNION_ORIGINS, is_nullable
 
 if TYPE_CHECKING:
-    from duckdb import DuckDBPyConnection
+    import pyarrow as pa
 
 EXPORT_CONTEXT_MARKER = "db"
 
@@ -272,6 +273,21 @@ def generate_duckdb_schema(model: type[DuckDBSchemaMixin]) -> str:  # noqa: WPS2
     return f"CREATE TABLE IF NOT EXISTS {table_name} (\n{',\n'.join(lines)}\n);"
 
 
+def arrow_schema_for(model: type[DuckDBSchemaMixin]) -> pa.Schema:
+    """Derive the parquet-writer arrow schema from the model's DuckDB schema.
+
+    DuckDB is the single source of truth for column types: we create the table in an in-memory
+    connection and read back the Arrow schema it produces, so the parquet columns line up
+    name-for-name (and type-for-type) with the real table. `arrow_large_buffer_size` makes
+    `BLOB → large_binary` (and strings → large_string), dodging the 32-bit offset limit on the big
+    observation/message blobs.
+    """
+    with duckdb.connect(":memory:") as con:
+        _ = con.execute("SET arrow_large_buffer_size = true")
+        _ = con.execute(model.generate_duckdb_schema())
+        return con.execute(f"SELECT * FROM {model.table_name()}").arrow().schema  # noqa: S608
+
+
 class DuckDBSchemaMixin(BaseModel):
     """Mix into any BaseModel to get .create_table_sql()."""
 
@@ -288,7 +304,7 @@ class DuckDBSchemaMixin(BaseModel):
         return generate_duckdb_schema(cls)
 
     @classmethod
-    def create_table(cls, conn: DuckDBPyConnection) -> None:
+    def create_table(cls, conn: duckdb.DuckDBPyConnection) -> None:
         """Execute the schema against an open DuckDB connection."""
         _ = conn.execute(cls.generate_duckdb_schema())
 

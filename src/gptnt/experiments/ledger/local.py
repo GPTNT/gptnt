@@ -4,25 +4,27 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, override
 
-from gptnt.experiments.db._extract import compute_experiment_validity
+from gptnt.experiments.db._extract import validity_from_footers
 from gptnt.experiments.ledger.base import CompletionLedger, ExperimentStatus
+from gptnt.experiments.recorder.parquet import read_record_footer
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
 
-_UUID_LENGTH = 36
-_PREFIX = "experiment-"
+    from gptnt.experiments.recorder.parquet import RecordFooter
+
+_RECORD_GLOB = "experiment-*.parquet"
 
 
 @dataclass(kw_only=True)
 class LocalLedger(CompletionLedger):
-    """Completion ledger backed by the recorder's on-disk JSON outputs.
+    """Completion ledger backed by the recorder's on-disk parquet outputs.
 
     Reads completion straight from the recorded outputs — the same `attempt_name` key W&B uses, so
     a local lookup is a drop-in for the W&B query. Needs no DB build: it groups the
-    `experiment-*.json` files by attempt name and reuses the DB layer's mmap tail-scan + validity
-    check.
+    `experiment-*.parquet` files by the attempt name in their footer (canonical, independent of the
+    filename) and reuses the DB layer's footer-based validity check.
     """
 
     output_dir: Path
@@ -40,20 +42,20 @@ class LocalLedger(CompletionLedger):
         return {name for name, status in statuses.items() if status == "done"}
 
     def _scan(self) -> dict[str, ExperimentStatus]:
-        """Group every output file by attempt name and classify each group via disk validity."""
+        """Group every output footer by its attempt name and classify each group by validity.
+
+        Reads each file's footer once and keys off `descriptor.name` — robust to whatever the
+        filename happens to be — then reuses the same footer-based validity the DB ingestion uses.
+        """
         if not self.output_dir.exists():
             return {}
 
-        grouped: dict[str, list[Path]] = defaultdict(list)
-        for path in self.output_dir.rglob(f"{_PREFIX}*.json"):
-            grouped[_attempt_name_from_path(path)].append(path)
+        grouped: dict[str, list[RecordFooter]] = defaultdict(list)
+        for path in self.output_dir.rglob(_RECORD_GLOB):
+            footer = read_record_footer(path)
+            grouped[footer.descriptor.name].append(footer)
 
         return {
-            attempt_name: ("done" if compute_experiment_validity(paths) else "failed")
-            for attempt_name, paths in grouped.items()
+            attempt_name: ("done" if validity_from_footers(footers) else "failed")
+            for attempt_name, footers in grouped.items()
         }
-
-
-def _attempt_name_from_path(path: Path) -> str:
-    """Recover the attempt name from an `experiment-{attempt_name}-{uuid}.json` filename."""
-    return path.stem[len(_PREFIX) : -(_UUID_LENGTH + 1)]

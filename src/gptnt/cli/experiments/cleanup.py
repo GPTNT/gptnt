@@ -74,11 +74,11 @@ def cleanup_experiment_outputs(
 def _cleanup_local_outputs(directory: Path, *, dry_run: bool) -> None:
     """Delete output files for experiments that crashed or never reached a valid ending.
 
-    Disk-only and always available: groups `experiment-*.json` files by experiment, dropping any
+    Disk-only and always available: groups `experiment-*.parquet` files by experiment, dropping any
     group that is not a valid, completed experiment (the same validity the DB ingestion stamps).
     """
     console.rule("[bold]Local Experiment Cleanup[/bold]")
-    files = list(directory.rglob("experiment-*.json"))
+    files = list(directory.rglob("experiment-*.parquet"))
     if not files:
         console.print("[yellow]No experiment output files found. Nothing to do.[/yellow]")
         return

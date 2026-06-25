@@ -24,8 +24,10 @@ from pydantic_ai import ModelMessage, ModelMessagesTypeAdapter, RunUsage
 from gptnt.common.logger import monkey_patch_binary_content_repr
 from gptnt.experiments.descriptor import ExperimentDescriptor, PlayerContent
 from gptnt.experiments.duckdb import AsBlob, AsJSON, AsVarchar, DuckDBSchemaMixin
+from gptnt.experiments.provenance import ProvenanceMixin
 from gptnt.experiments.spec import Condition
 from gptnt.ktane.actions import KtaneBaseAction, KtaneGameplayInput
+from gptnt.ktane.mission_spec import compute_mission_key
 from gptnt.ktane.state.bomb import BombState
 from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.players.actions import DoNothingAction, PlayerOutputType, SendMessageAction
@@ -44,7 +46,7 @@ ModelMessagesList = Annotated[
 ]
 
 
-class ExperimentStepRecord(DuckDBSchemaMixin):
+class ExperimentStep(DuckDBSchemaMixin):
     """Record of a single step in the experiment."""
 
     step: int
@@ -114,7 +116,7 @@ class ExperimentStepRecord(DuckDBSchemaMixin):
 
 
 SortedStepRecords = Annotated[
-    list[ExperimentStepRecord],
+    list[ExperimentStep],
     AfterValidator(lambda records: sorted(records, key=attrgetter("timestamp"))),
 ]
 
@@ -170,7 +172,6 @@ class StepRecordsMetricsMixin(BaseModel):
                     error_counts[error] = error_counts.get(error, 0) + 1
         return error_counts
 
-    @computed_field
     @property
     def is_solved(self) -> bool | None:
         """Check if the bomb was solved in the experiment."""
@@ -179,7 +180,6 @@ class StepRecordsMetricsMixin(BaseModel):
                 return record.bomb_state.is_solved
         return None
 
-    @computed_field
     @property
     def is_strike_out(self) -> bool | None:
         """Check if the bomb was strike out in the experiment."""
@@ -188,7 +188,6 @@ class StepRecordsMetricsMixin(BaseModel):
                 return record.bomb_state.is_strike_out
         return None
 
-    @computed_field
     @property
     def is_timed_out(self) -> bool | None:
         """Check if the bomb was timed out in the experiment."""
@@ -197,7 +196,6 @@ class StepRecordsMetricsMixin(BaseModel):
                 return record.bomb_state.is_timed_out
         return None
 
-    @computed_field
     @property
     def time_remaining(self) -> float | None:
         """Get the time remaining on the bomb at the end of the experiment."""
@@ -206,7 +204,6 @@ class StepRecordsMetricsMixin(BaseModel):
                 return record.bomb_state.timer_module.seconds_remaining
         return None
 
-    @computed_field
     @property
     def total_modules_solved(self) -> int | None:
         """Get the total number of modules solved by the end of the experiment."""
@@ -215,7 +212,6 @@ class StepRecordsMetricsMixin(BaseModel):
                 return sum(1 for module in record.bomb_state.modules if module.is_solved)
         return None
 
-    @computed_field
     @property
     def total_strikes(self) -> int | None:
         """Get the total number of strikes by the end of the experiment."""
@@ -233,18 +229,13 @@ class StepRecordsMetricsMixin(BaseModel):
         return None
 
 
-class ExperimentPlayerRecord(StepRecordsMetricsMixin):
+class ExperimentPlayerRecord(ProvenanceMixin, StepRecordsMetricsMixin):
     """Records for a single player in an experiment."""
 
     experiment_descriptor: ExperimentDescriptor
     player_content: PlayerContent
     step_records: SortedStepRecords
     is_hard_crash: bool = False
-
-    # Provenance
-    gptnt_version: str = "unknown"
-    gptnt_edition: int = 0
-    git_sha: str | None = None
 
     @property
     def role(self) -> PlayerRole:
@@ -255,7 +246,7 @@ class ExperimentPlayerRecord(StepRecordsMetricsMixin):
         """Rebuild the record by loading all observations from disk."""
         loaded_records = []
 
-        async def _load(record: ExperimentStepRecord) -> None:  # noqa: WPS430
+        async def _load(record: ExperimentStep) -> None:  # noqa: WPS430
             loaded_record = await record.load_observation()
             loaded_records.append(loaded_record)
 
@@ -267,8 +258,8 @@ class ExperimentPlayerRecord(StepRecordsMetricsMixin):
         return self.model_copy(update={"step_records": sorted_records})
 
     @classmethod
-    def from_metadata_and_steps(
-        cls, metadata: "ExperimentMetadata", step_records: list[ExperimentStepRecord]
+    def from_summary_and_steps(
+        cls, summary: "ExperimentSummary", step_records: list[ExperimentStep]
     ) -> Self:
         """Reconstruct a player record from DuckDB-sourced data.
 
@@ -278,29 +269,58 @@ class ExperimentPlayerRecord(StepRecordsMetricsMixin):
             raise ValueError("Cannot construct ExperimentPlayerRecord with no step records.")
 
         role = step_records[0].role
-        player_content = metadata.experiment_descriptor.get_player_content_by_role(role)
+        player_content = summary.experiment_descriptor.get_player_content_by_role(role)
 
         return cls(
-            experiment_descriptor=metadata.experiment_descriptor,
+            experiment_descriptor=summary.experiment_descriptor,
             player_content=player_content,
             step_records=step_records,
-            is_hard_crash=metadata.is_valid is False,  # ← see note below
+            is_hard_crash=summary.is_hard_crash,
         )
 
 
-class ExperimentMetadata(DuckDBSchemaMixin):
-    """Experiment-level metadata — one row per experiment."""
+class ExperimentOutcome(BaseModel):
+    """The canonical, single-source view of how an experiment ended.
+
+    Derived once from the final [BombState] (plus the run's hard-crash flag) and reused by every
+    surface that reports an outcome — the DuckDB `experiment_summary` row and the W&B `run.summary`
+    — so the field names and values are identical whichever source a consumer reads. Every field
+    reads straight off a `BombState` property: no re-derivation, no magic numbers.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    is_solved: bool
+    is_detonated: bool
+    is_timed_out: bool
+    is_strike_out: bool
+    is_hard_crash: bool
+    seconds_remaining: float
+    strike_count: int
+    num_modules_solved: int
+
+    @classmethod
+    def from_bomb_state(cls, bomb_state: BombState, *, is_hard_crash: bool) -> Self:
+        """Build the outcome from a final bomb state and the run's hard-crash flag."""
+        return cls(
+            is_solved=bomb_state.is_solved,
+            is_detonated=bomb_state.is_detonated,
+            is_timed_out=bomb_state.is_timed_out,
+            is_strike_out=bomb_state.is_strike_out,
+            is_hard_crash=is_hard_crash,
+            seconds_remaining=bomb_state.seconds_remaining,
+            strike_count=bomb_state.current_strikes,
+            num_modules_solved=bomb_state.num_modules_solved,
+        )
+
+
+class ExperimentSummary(ProvenanceMixin, DuckDBSchemaMixin):
+    """Experiment-level summary — one per experiment."""
 
     model_config = ConfigDict(populate_by_name=True)
 
     attempt_name: Annotated[str, Field(alias="name")]
     session_id: UUID4
-
-    file_paths: list[Path]
-
-    player_uuids: list[UUID4]
-
-    is_valid: bool | None = None
 
     condition: Condition
     seed: int
@@ -314,9 +334,12 @@ class ExperimentMetadata(DuckDBSchemaMixin):
 
     is_solved: bool
     is_detonated: bool
+    is_timed_out: bool
+    is_strike_out: bool
     seconds_remaining: Annotated[float, Field(alias="timer_seconds")]
     strike_count: int
     num_modules_solved: int
+    is_hard_crash: bool
 
     experiment_descriptor: Annotated[ExperimentDescriptor, AsJSON]
 
@@ -332,11 +355,14 @@ class ExperimentMetadata(DuckDBSchemaMixin):
         *,
         descriptor: ExperimentDescriptor,
         final_bomb_state: BombState,
-        file_paths: list[Path],
-        is_valid: bool,
+        is_hard_crash: bool,
+        gptnt_version: str = "unknown",
+        gptnt_edition: int = 0,
+        git_sha: str | None = None,
     ) -> Self:
-        """Construct ExperimentMetadata from an ExperimentDescriptor and final BombState."""
+        """Construct ExperimentSummary from an ExperimentDescriptor and final BombState."""
         spec = descriptor.experiment_spec
+        outcome = ExperimentOutcome.from_bomb_state(final_bomb_state, is_hard_crash=is_hard_crash)
         return cls(
             attempt_name=spec.attempt_name,
             session_id=descriptor.session_id,
@@ -347,42 +373,40 @@ class ExperimentMetadata(DuckDBSchemaMixin):
             defuser_name=spec.defuser_name,
             expert_name=spec.expert_name,
             attempt=spec.attempt,
-            player_uuids=descriptor.player_uuids,
             seed=spec.mission_spec.seed,
-            is_solved=final_bomb_state.is_solved,
-            is_detonated=final_bomb_state.is_detonated,
-            seconds_remaining=final_bomb_state.seconds_remaining,
-            strike_count=final_bomb_state.current_strikes,
-            num_modules_solved=final_bomb_state.num_modules_solved,
-            file_paths=file_paths,
-            is_valid=is_valid,
+            is_solved=outcome.is_solved,
+            is_detonated=outcome.is_detonated,
+            is_timed_out=outcome.is_timed_out,
+            is_strike_out=outcome.is_strike_out,
+            seconds_remaining=outcome.seconds_remaining,
+            strike_count=outcome.strike_count,
+            num_modules_solved=outcome.num_modules_solved,
+            is_hard_crash=outcome.is_hard_crash,
             experiment_descriptor=descriptor,
             defuser_capabilities=descriptor.defuser_capabilities,
             expert_capabilities=descriptor.expert_capabilities,
+            gptnt_version=gptnt_version,
+            gptnt_edition=gptnt_edition,
+            git_sha=git_sha,
         )
 
     @override
     def __hash__(self) -> int:
-        """Hash based on the unique attempt name."""
-        return hash((self.attempt_name, self.session_id, tuple(self.player_uuids)))
+        """Hash on the experiment's full identity: attempt, session, and its player uuids.
+
+        The player uuids matter — same attempt+session but different players are distinct
+        experiments — so identity must include them (read off the descriptor, the SSOT for who
+        played).
+        """
+        return hash(
+            (self.attempt_name, self.session_id, tuple(self.experiment_descriptor.player_uuids))
+        )
 
     @computed_field
     @property
     def defuser_has_manual(self) -> bool:
         """True when the defuser player was given the physical manual."""
         return "+manual" in (self.pairing or "")
-
-    @computed_field
-    @property
-    def is_strike_out(self) -> bool:
-        """True if the experiment ended with a strikeout (3 strikes and detonation)."""
-        return self.strike_count > 2 and not self.is_solved  # noqa: PLR2004
-
-    @computed_field
-    @property
-    def is_timeout(self) -> bool:
-        """True if the experiment ended with a timeout (0 seconds remaining and not solved)."""
-        return self.seconds_remaining <= 0 and not self.is_solved
 
     @property
     def modules_str(self) -> list[str]:
@@ -391,9 +415,9 @@ class ExperimentMetadata(DuckDBSchemaMixin):
 
     @computed_field
     @property
-    def file_names(self) -> list[str]:
-        """Compute the list of file names associated with this experiment."""
-        return [f"experiment-{self.attempt_name}-{uuid}.json" for uuid in self.player_uuids]
+    def mission_key(self) -> str:
+        """Stable identity of this experiment's mission (modules + seed), for grouping/seeding."""
+        return compute_mission_key(self.modules, self.seed)
 
 
 class ExperimentRecord(StepRecordsMetricsMixin):
@@ -426,15 +450,27 @@ class ExperimentRecord(StepRecordsMetricsMixin):
         return self
 
 
+def is_valid_outcome(
+    *, is_solved: bool, is_timed_out: bool, is_strike_out: bool, is_hard_crash: bool
+) -> bool:
+    """Whether an experiment outcome counts as a valid, completed run.
+
+    Valid means no hard crash and a clean ending: either solved (without also timing/striking out)
+    or a real failure (timed out or struck out). This is the single definition every completion
+    check shares — the local footer-based ledger and the W&B run-based ledger both decide validity
+    here, so "already done" can never depend on which source you read. It reads only the four flags
+    that decide validity, so neither ledger has to reconstruct a full [ExperimentOutcome] to ask.
+    """
+    is_good_solved = is_solved and not is_timed_out and not is_strike_out
+    is_good_failed = not is_solved and (is_timed_out or is_strike_out)
+    return not is_hard_crash and (is_good_solved or is_good_failed)
+
+
 def is_valid_experiment(*, is_hard_crash: bool, final_bomb_state: BombState) -> bool:
     """Determine if the experiment is valid (i.e. no hard crashes and good ending)."""
-    is_good_solved = (
-        final_bomb_state.is_solved is True
-        and final_bomb_state.is_timed_out is False
-        and final_bomb_state.is_strike_out is False
+    return is_valid_outcome(
+        is_solved=final_bomb_state.is_solved,
+        is_timed_out=final_bomb_state.is_timed_out,
+        is_strike_out=final_bomb_state.is_strike_out,
+        is_hard_crash=is_hard_crash,
     )
-    is_good_failed = final_bomb_state.is_solved is False and (
-        final_bomb_state.is_timed_out is True or final_bomb_state.is_strike_out is True
-    )
-
-    return not is_hard_crash and (is_good_solved or is_good_failed)

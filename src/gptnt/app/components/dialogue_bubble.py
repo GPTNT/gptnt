@@ -12,7 +12,7 @@ from gptnt.app.components.model_messages import (
     render_small_html_text,
     render_thoughts,
 )
-from gptnt.experiments.models import ExperimentStepRecord
+from gptnt.experiments.models import ExperimentStep
 from gptnt.ktane.actions import RelativeCoordinate
 from gptnt.players.actions import (
     DoNothingAction,
@@ -50,7 +50,7 @@ def _flatten_user_prompt_part(part: UserPromptPart) -> str:
     return "\n".join(all_text)
 
 
-def extract_nobf_feedback(step: ExperimentStepRecord) -> list[str]:
+def extract_nobf_feedback(step: ExperimentStep) -> list[str]:
     """Pull all the NOBF from the step."""
     feedback: list[str] = []
     for msg in step.new_messages:
@@ -68,7 +68,7 @@ def extract_nobf_feedback(step: ExperimentStepRecord) -> list[str]:
     return feedback
 
 
-def extract_binary_content(step: ExperimentStepRecord) -> list[BinaryContent]:  # noqa: WPS231
+def extract_binary_content(step: ExperimentStep) -> list[BinaryContent]:  # noqa: WPS231
     """Extract all BinaryContent (images) from the step's new messages.
 
     These are the actual images sent to the model in this step.
@@ -97,7 +97,7 @@ def get_action_icon(output_type: type[PlayerOutputType]) -> str:
     return output_handler
 
 
-def get_step_label(step: ExperimentStepRecord, idx: int) -> str:
+def get_step_label(step: ExperimentStep, idx: int) -> str:
     """Build the display label for a step."""
     icon = get_action_icon(cast("type[PlayerOutputType]", type(step.output)))
     parts = [f"Step {idx}: {step.player_name} {icon}"]
@@ -108,7 +108,7 @@ def get_step_label(step: ExperimentStepRecord, idx: int) -> str:
     return " ".join(parts)
 
 
-def get_usage_summary(step: ExperimentStepRecord) -> str:
+def get_usage_summary(step: ExperimentStep) -> str:
     """Format token usage as a display string."""
     return (
         f":material/arrow_upward_alt: {step.usage.input_tokens:,} "
@@ -116,7 +116,7 @@ def get_usage_summary(step: ExperimentStepRecord) -> str:
     )
 
 
-def render_action_output(step: ExperimentStepRecord, *, render_as_raw: bool) -> None:  # noqa: WPS231
+def render_action_output(step: ExperimentStep, *, render_as_raw: bool) -> None:  # noqa: WPS231
     """Render the action output for a step."""
     # Show raw output if requested (which does include the thoughts)
     if render_as_raw:
@@ -146,7 +146,7 @@ def render_action_output(step: ExperimentStepRecord, *, render_as_raw: bool) -> 
         _ = st.code(str(step.output), language=None)
 
 
-def render_popover_for_click_location(step: ExperimentStepRecord) -> None:
+def render_popover_for_click_location(step: ExperimentStep) -> None:
     """Conditionally, render a popover showing the click location."""
     if (
         isinstance(step.output, InteractGameAction)
@@ -198,7 +198,7 @@ def render_response_errors(errors: list[AIResponseErrorType] | None) -> None:
 
 
 def render_dialogue_bubble(
-    step: ExperimentStepRecord, idx: int, *, render_as_raw: bool, force_collapsed: bool
+    step: ExperimentStep, idx: int, *, render_as_raw: bool, force_collapsed: bool
 ) -> None:
     """Render a single dialogue bubble for a step."""
     if step.role == "defuser":

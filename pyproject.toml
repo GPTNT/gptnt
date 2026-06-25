@@ -205,7 +205,7 @@ extend-ignore = [
 per-file-ignores = [
     "scripts/*:WPS",
     "scrap/*:WPS",
-    "tests/*:WPS110,WPS2,WPS118,WPS432,WPS435,WPS444,WPS476,WPS411",
+    "tests/*:WPS110,WPS2,WPS118,WPS407,WPS432,WPS435,WPS444,WPS476,WPS411",
     # Relocated command modules keep their command-shaped ignores (many args/expressions, the
     # cyclopts default-tuple pattern). One entry per area now that they live under cli/<area>/.
     "src/gptnt/cli/experiments/*:WPS211,WPS213,WPS238,WPS407",

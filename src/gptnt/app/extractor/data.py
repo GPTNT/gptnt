@@ -4,7 +4,7 @@ from typing import Any
 
 from gptnt.experiments.db.connection import DuckDBConnection
 from gptnt.experiments.duckdb import EXPORT_CONTEXT_MARKER
-from gptnt.experiments.models import ExperimentMetadata, ExperimentStepRecord
+from gptnt.experiments.models import ExperimentStep, ExperimentSummary
 
 # Columns excluded from the SELECT to avoid pulling large compressed blobs.
 # The model validator (optionally_skip_heavy_objects) already sets these to
@@ -27,7 +27,7 @@ def extract_values(obj: Any, path: str) -> list[Any]:  # noqa: WPS110
         "bomb_state.modules[].wires[].color"
 
     Args:
-        obj:  The root object to traverse (e.g. an ExperimentStepRecord).
+        obj:  The root object to traverse (e.g. an ExperimentStep).
         path: Dot-separated path string.
 
     Returns:
@@ -75,11 +75,11 @@ StepRow = dict[str, Any]
 def extract_from_step_records_db(  # noqa: WPS210, WPS231
     *,
     connection: DuckDBConnection,
-    experiments: list[ExperimentMetadata],
+    experiments: list[ExperimentSummary],
     fields: list[str],
     progress_callback: Callable[[int, int], None] | None = None,
 ) -> list[StepRow]:
-    """Extract fields from ExperimentStepRecord rows in DuckDB.
+    """Extract fields from ExperimentStep rows in DuckDB.
 
     Fetches all relevant step records in a single query, then extracts the requested dot-notation
     field paths from each deserialized record.
@@ -99,14 +99,14 @@ def extract_from_step_records_db(  # noqa: WPS210, WPS231
     if not experiments:
         return []
 
-    session_map: dict[str, ExperimentMetadata] = {str(exp.session_id): exp for exp in experiments}
+    session_map: dict[str, ExperimentSummary] = {str(exp.session_id): exp for exp in experiments}
 
     col_select = ", ".join(
         col
-        for col in ExperimentStepRecord.model_fields
+        for col in ExperimentStep.model_fields
         if col not in _HEAVY_COLUMNS  # noqa: WPS110
     )
-    table = ExperimentStepRecord.table_name()
+    table = ExperimentStep.table_name()
 
     # Pre-group raw rows by session_id before deserialisation, querying in batches
     # to avoid materialising a huge result set and to stay within parameter limits.
@@ -132,7 +132,7 @@ def extract_from_step_records_db(  # noqa: WPS210, WPS231
     for idx, exp in enumerate(experiments):
         exp_dict = exp.model_dump(mode="json", by_alias=True)
         for row_dict in rows_by_session.get(str(exp.session_id), []):
-            step = ExperimentStepRecord.model_validate(
+            step = ExperimentStep.model_validate(
                 row_dict, context={"skip_heavy_field_loading": True, "mode": EXPORT_CONTEXT_MARKER}
             )
             step_rows.append(

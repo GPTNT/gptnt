@@ -2,7 +2,7 @@ from pathlib import Path
 
 import duckdb
 
-from gptnt.experiments.models import ExperimentMetadata, ExperimentStepRecord
+from gptnt.experiments.models import ExperimentStep, ExperimentSummary
 
 
 def ensure_schema(db_path: Path) -> None:
@@ -11,5 +11,5 @@ def ensure_schema(db_path: Path) -> None:
     Safe to call repeatedly — all statements use IF NOT EXISTS.
     """
     with duckdb.connect(db_path) as con:
-        ExperimentMetadata.create_table(con)
-        ExperimentStepRecord.create_table(con)
+        ExperimentSummary.create_table(con)
+        ExperimentStep.create_table(con)

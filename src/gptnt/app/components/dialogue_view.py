@@ -6,7 +6,7 @@ import streamlit as st
 
 from gptnt.app.components.dialogue_bubble import render_dialogue_bubble
 from gptnt.app.components.pagination import get_pagination_state, render_pagination_controls
-from gptnt.experiments.models import ExperimentStepRecord
+from gptnt.experiments.models import ExperimentStep
 
 DIALOGUE_STATE_SESSION_KEY = "dialogue_state"
 DIALOGUE_PAGE_SESSION_KEY = "dialogue_page"  # owned by get_pagination_state
@@ -71,7 +71,7 @@ def render_display_controls(
     return output_format or "Pretty", message_display or "Expanded", page_size or state.page_size
 
 
-def render_dialogue_view(step_records: list[ExperimentStepRecord]) -> None:
+def render_dialogue_view(step_records: list[ExperimentStep]) -> None:
     """Render the full dialogue view with display controls and pagination."""
     # 1. Get or create state
     state = DialogueState.get_or_create()

@@ -10,51 +10,48 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-import orjson
-
 from gptnt.cli.__main__ import build_app
 from gptnt.experiments.ledger.base import Source
 from gptnt.experiments.ledger.resolve import filter_experiments
-from gptnt.experiments.spec import ExperimentSpec
-from gptnt.ktane.mission_spec import KtaneMissionSpec
+from gptnt.experiments.recorder.parquet import (
+    RecordFooter,
+    build_footer,
+    write_player_record_parquet,
+)
 from gptnt.ktane.state.bomb import BombState
-from gptnt.specification import PlayerProtocol
 
 from tests._cli_runner import invoke_cli
+from tests._factories.experiments import make_experiment_descriptor, make_experiment_spec
 
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from gptnt.experiments.spec import ExperimentSpec
 
-def _spec(seed: int) -> ExperimentSpec:
-    """A real single-player ExperimentSpec; the seed makes each attempt_name distinct."""
-    return ExperimentSpec(
-        mission_spec=KtaneMissionSpec(
-            seed=seed,
-            time_limit=300,
-            num_strikes_allowed=3,
-            components=["Wires"],
-            optional_widgets=1,
-            needy_time=60,
-        ),
-        condition="single_module",
-        defuser_protocol=PlayerProtocol(
-            role="defuser",
-            communication_style="sync",
-            is_playing_alone=True,
-            include_manual=False,
-            receive_feedback_after_action=False,
-            allow_magic_actions=False,
-        ),
-        defuser_name="test-defuser",
-        expert_protocol=None,
-        expert_name=None,
+
+def _write_record(
+    output_dir: Path, spec: ExperimentSpec, *, final_bomb_state: BombState | None, crash: bool
+) -> Path:
+    """Write a parquet record whose footer carries the spec's outcome the ledger/cleanup read.
+
+    The attempt name lives only in the footer descriptor (built from `spec`), not the filename, so
+    these exercises prove the ledger/cleanup key off the footer.
+    """
+    footer_model = RecordFooter(
+        descriptor=make_experiment_descriptor(spec),
+        final_bomb_state=final_bomb_state,
+        is_hard_crash=crash,
+        role="defuser",
     )
+    footer = build_footer(footer_model, player_uuid=str(uuid4()))
+    path = output_dir / f"experiment-{uuid4()}.parquet"
+    write_player_record_parquet(blobbed_steps=[], footer=footer, output_path=path)
+    return path
 
 
-def _write_completed_output(output_dir: Path, attempt_name: str) -> None:
-    """Write a recorded output that reached a valid, completed bomb state."""
-    bomb_state = BombState.model_validate(
+def _completed_bomb_state() -> BombState:
+    """A bomb whose modules are all solved (a valid, completed ending)."""
+    return BombState.model_validate(
         {
             "seed": 1,
             "maxStrikes": 3,
@@ -73,17 +70,16 @@ def _write_completed_output(output_dir: Path, attempt_name: str) -> None:
             "modules": [],
         }
     )
-    payload = {
-        "is_hard_crash": False,
-        "step_records": [{"bomb_state": bomb_state.model_dump(mode="json", by_alias=True)}],
-    }
-    path = output_dir / f"experiment-{attempt_name}-{uuid4()}.json"
-    _ = path.write_bytes(orjson.dumps(payload))
+
+
+def _write_completed_output(output_dir: Path, spec: ExperimentSpec) -> Path:
+    """Write a recorded output that reached a valid, completed bomb state."""
+    return _write_record(output_dir, spec, final_bomb_state=_completed_bomb_state(), crash=False)
 
 
 def test_filter_experiments_drops_only_the_done_ones(tmp_path: Path) -> None:
-    done, todo = _spec(1), _spec(2)
-    _write_completed_output(tmp_path, done.attempt_name)
+    done, todo = make_experiment_spec(seed=1), make_experiment_spec(seed=2)
+    _ = _write_completed_output(tmp_path, done)
 
     remaining = filter_experiments([done, todo], source=Source.local, output_dir=tmp_path)
 
@@ -93,12 +89,13 @@ def test_filter_experiments_drops_only_the_done_ones(tmp_path: Path) -> None:
 def test_status_reports_disk_completion(tmp_path: Path) -> None:
     output_dir = tmp_path / "outputs"
     output_dir.mkdir()
-    _write_completed_output(output_dir, "done-exp")
+    done = make_experiment_spec(seed=1)
+    _ = _write_completed_output(output_dir, done)
 
     # The status command reads its "expected" names from a dir of `<attempt_name>.json` files.
     expected_dir = tmp_path / "expected"
     expected_dir.mkdir()
-    for name in ("done-exp", "todo-exp"):
+    for name in (done.attempt_name, "todo-exp"):
         _ = (expected_dir / f"{name}.json").write_text("{}")
 
     result = invoke_cli(
@@ -106,20 +103,21 @@ def test_status_reports_disk_completion(tmp_path: Path) -> None:
     )
 
     assert result.exit_code == 0, result.output
-    assert "done-exp" in result.output
+    # The full attempt name is long and the status table truncates it, so assert on a stable
+    # fragment plus the counts (which prove the done output was matched by name).
+    assert "defuser=test-defuser" in result.output
     assert "1 done" in result.output
     assert "1 not attempted" in result.output
 
 
 def test_cleanup_local_prunes_invalid_outputs(tmp_path: Path) -> None:
-    _write_completed_output(tmp_path, "keep-exp")
-    crashed = tmp_path / f"experiment-drop-exp-{uuid4()}.json"
-    _ = crashed.write_bytes(
-        orjson.dumps({"is_hard_crash": True, "step_records": [{"bomb_state": None}]})
+    kept = _write_completed_output(tmp_path, make_experiment_spec(seed=1))
+    crashed = _write_record(
+        tmp_path, make_experiment_spec(seed=2), final_bomb_state=None, crash=True
     )
 
     result = invoke_cli(build_app(), ["cleanup-outputs", str(tmp_path)])
 
     assert result.exit_code == 0, result.output
     assert not crashed.exists()
-    assert list(tmp_path.glob("experiment-keep-exp-*.json"))
+    assert kept.exists()

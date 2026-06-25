@@ -1,7 +1,7 @@
 from pathlib import Path
 from uuid import uuid4
 
-import anyio
+import duckdb
 import orjson
 import pytest
 from pydantic_ai import BinaryContent, ModelMessage, ModelRequest, ModelResponse, TextPart
@@ -10,8 +10,19 @@ from pydantic_ai.result import RunUsage
 from pytest_cases import fixture
 from whenever import Instant
 
+from gptnt.experiments.db.ingest import ingest_player_records
 from gptnt.experiments.descriptor import ExperimentDescriptor, PlayerContent
-from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStepRecord
+from gptnt.experiments.duckdb import arrow_schema_for, generate_duckdb_schema
+from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep, ExperimentSummary
+from gptnt.experiments.recorder.local import ExperimentPlayerRecorder
+from gptnt.experiments.recorder.parquet import (
+    KEY_FORMAT_VERSION,
+    blob_step,
+    footer_from_player_record,
+    load_player_record_from_parquet,
+    read_record_footer,
+    write_player_record_parquet,
+)
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
@@ -149,9 +160,9 @@ def step_record(
     simple_model_messages: list[ModelMessage],
     bomb_state: BombState,
     observation: Observation,
-) -> ExperimentStepRecord:
+) -> ExperimentStep:
     """Create a minimal step record with inline observation."""
-    return ExperimentStepRecord(
+    return ExperimentStep(
         step=1,
         timestamp=1.0,
         role="defuser",
@@ -173,7 +184,7 @@ def step_record(
 
 
 @pytest.mark.anyio
-async def test_step_record_serialization(step_record: ExperimentStepRecord) -> None:
+async def test_step_record_serialization(step_record: ExperimentStep) -> None:
     """Test that a single step record can be serialized to JSON."""
     dumped = step_record.model_dump(mode="json")
     assert isinstance(dumped, dict)
@@ -191,7 +202,7 @@ async def test_step_record_serialization(step_record: ExperimentStepRecord) -> N
 async def test_player_record_serialization(
     experiment_descriptor: ExperimentDescriptor,
     player_content: PlayerContent,
-    step_record: ExperimentStepRecord,
+    step_record: ExperimentStep,
 ) -> None:
     """Test that a player record with multiple steps can be serialized."""
     step2 = step_record.model_copy(update={"step": 2, "timestamp": 2.0, "thoughts": "Second step"})
@@ -215,102 +226,157 @@ async def test_player_record_serialization(
     assert len(loaded_dict["step_records"]) == 2
 
 
-@pytest.mark.anyio
-async def test_save_player_record_to_file(
-    tmp_path: Path,
-    experiment_descriptor: ExperimentDescriptor,
-    player_content: PlayerContent,
-    step_record: ExperimentStepRecord,
-) -> None:
-    """Test saving a player record to disk creates a non-empty valid JSON file."""
-    step2 = step_record.model_copy(update={"step": 2, "timestamp": 2.0})
+def test_arrow_schema_derives_from_duckdb() -> None:
+    """`arrow_schema_for` is derived from the DuckDB table, so its columns match name-for-name.
 
-    player_record = ExperimentPlayerRecord(
-        experiment_descriptor=experiment_descriptor,
-        player_content=player_content,
-        step_records=[step_record, step2],
+    Smoke-tests the in-memory derivation (and that every model column survives the round-trip).
+    """
+    for model in (ExperimentStep, ExperimentSummary):
+        arrow_names = [field.name for field in arrow_schema_for(model)]
+        # Column names from the generated CREATE TABLE, in declared order.
+        ddl_lines = generate_duckdb_schema(model).splitlines()[1:-1]
+        duckdb_names = [line.strip().split(" ", 1)[0] for line in ddl_lines]
+        assert arrow_names == duckdb_names
+
+
+def _build_player_record(
+    descriptor: ExperimentDescriptor, content: PlayerContent, step: ExperimentStep
+) -> ExperimentPlayerRecord:
+    # The recorder stamps every step with the player's own uuid; mirror that so the footer's
+    # player_uuid matches the step rows (the basis for ingest idempotency).
+    step1 = step.model_copy(update={"player_uuid": content.uuid})
+    step2 = step1.model_copy(update={"step": 2, "timestamp": 2.0, "thoughts": "Second step"})
+    return ExperimentPlayerRecord(
+        experiment_descriptor=descriptor,
+        player_content=content,
+        step_records=[step1, step2],
         is_hard_crash=False,
     )
 
-    output_path = tmp_path / f"experiment-{experiment_descriptor.name}-{player_content.uuid}.json"
-
-    dumped = player_record.model_dump(mode="json")
-    json_bytes = orjson.dumps(dumped)
-    _ = output_path.write_bytes(json_bytes)
-
-    assert output_path.exists()
-    assert output_path.stat().st_size > 100
-
-    loaded_bytes = output_path.read_bytes()
-    loaded_dict = orjson.loads(loaded_bytes)
-    assert len(loaded_dict["step_records"]) == 2
-    assert loaded_dict["num_steps"] == 2
-
-    reconstructed = ExperimentPlayerRecord.model_validate(loaded_dict)
-    assert len(reconstructed.step_records) == 2
-    assert reconstructed.num_steps == 2
-
 
 @pytest.mark.anyio
-async def test_save_with_rebuild_observations(
+async def test_recorder_saves_parquet_roundtrips(
     tmp_path: Path,
     experiment_descriptor: ExperimentDescriptor,
     player_content: PlayerContent,
-    step_record: ExperimentStepRecord,
+    step_record: ExperimentStep,
 ) -> None:
-    """Test saving when observations need to be rebuilt."""
-    player_record = ExperimentPlayerRecord(
-        experiment_descriptor=experiment_descriptor,
-        player_content=player_content,
-        step_records=[step_record],
-        is_hard_crash=False,
+    """The real recorder method writes a parquet file that round-trips back to the same record."""
+    player_record = _build_player_record(experiment_descriptor, player_content, step_record)
+
+    recorder = ExperimentPlayerRecorder(
+        capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai")
     )
+    recorder.output_dir = tmp_path
+    await recorder.save_player_record_to_disk(player_record=player_record)
 
-    rebuilt_record = await player_record.rebuild_with_observations()
-
-    dumped = rebuilt_record.model_dump(mode="json")
-    json_bytes = orjson.dumps(dumped)
-    assert len(json_bytes) > 100
-
-    output_path = tmp_path / f"test-record-{uuid4()}.json"
-    _ = output_path.write_bytes(json_bytes)
-
+    output_path = (
+        tmp_path / f"experiment-{experiment_descriptor.name}-{player_content.uuid}.parquet"
+    )
     assert output_path.exists()
-    assert output_path.stat().st_size > 100
+
+    loaded = load_player_record_from_parquet(output_path)
+    assert len(loaded.step_records) == 2
+    assert loaded.num_steps == 2
+    assert [step.step for step in loaded.step_records] == [1, 2]
+
+    first = loaded.step_records[0]
+    assert isinstance(first.output, DoNothingAction)
+    assert isinstance(first.observation, Observation)
+    assert isinstance(step_record.observation, Observation)
+    assert first.observation.frames == step_record.observation.frames
+    assert first.usage.input_tokens == step_record.usage.input_tokens
+    assert first.bomb_state is not None
+    assert len(first.input_messages) == len(step_record.input_messages)
+
+    # Footer outcome + provenance survive the trip.
+    footer = read_record_footer(output_path)
+    assert footer.final_bomb_state is not None
+    assert footer.is_hard_crash is False
+    assert loaded.gptnt_version == player_record.gptnt_version
+    assert loaded.git_sha == player_record.git_sha
 
 
-@pytest.mark.anyio
-async def test_save_with_anyio_file_operations(
+def test_record_footer_rejects_unknown_format_version(
     tmp_path: Path,
     experiment_descriptor: ExperimentDescriptor,
     player_content: PlayerContent,
-    step_record: ExperimentStepRecord,
+    step_record: ExperimentStep,
 ) -> None:
-    """Test saving using anyio async file operations."""
-    step2 = step_record.model_copy(update={"step": 2, "timestamp": 2.0})
+    """An unknown footer format_version fails loudly rather than silently mis-parsing."""
+    record = _build_player_record(experiment_descriptor, player_content, step_record)
+    footer = footer_from_player_record(record)
+    footer[KEY_FORMAT_VERSION] = b"this-is-not-a-known-version"
 
-    player_record = ExperimentPlayerRecord(
-        experiment_descriptor=experiment_descriptor,
-        player_content=player_content,
-        step_records=[step_record, step2],
-        is_hard_crash=False,
+    path = tmp_path / "bad-version.parquet"
+    write_player_record_parquet(
+        blobbed_steps=[blob_step(step) for step in record.step_records],
+        footer=footer,
+        output_path=path,
     )
 
-    output_path = tmp_path / f"experiment-{experiment_descriptor.name}-{player_content.uuid}.json"
+    with pytest.raises(ValueError, match="format_version"):
+        _ = read_record_footer(path)
 
-    async with await anyio.open_file(output_path, "wb") as output_file:
-        output_data = orjson.dumps(player_record.model_dump(mode="json"))
-        assert output_data
-        _ = await output_file.write(output_data)
 
-    assert output_path.exists()
-    assert output_path.stat().st_size > 100
+@pytest.mark.anyio
+async def test_recorder_skips_empty_record(
+    tmp_path: Path, experiment_descriptor: ExperimentDescriptor, player_content: PlayerContent
+) -> None:
+    """A record with no steps writes nothing (no empty parquet file)."""
+    empty_record = ExperimentPlayerRecord(
+        experiment_descriptor=experiment_descriptor,
+        player_content=player_content,
+        step_records=[],
+        is_hard_crash=False,
+    )
+    recorder = ExperimentPlayerRecorder(
+        capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai")
+    )
+    recorder.output_dir = tmp_path
+    await recorder.save_player_record_to_disk(player_record=empty_record)
 
-    loaded_bytes = output_path.read_bytes()
-    loaded_dict = orjson.loads(loaded_bytes)
-    assert len(loaded_dict["step_records"]) == 2
-    assert loaded_dict["num_steps"] == 2
+    # Synchronous glob in a test assertion — not a hot path, anyio.Path is unwarranted here.
+    assert list(tmp_path.glob("*.parquet")) == []  # noqa: ASYNC240
 
-    reconstructed = ExperimentPlayerRecord.model_validate(loaded_dict)
-    assert len(reconstructed.step_records) == 2
-    assert reconstructed.num_steps == 2
+
+def _write_record_parquet(record: ExperimentPlayerRecord, path: Path) -> None:
+    write_player_record_parquet(
+        blobbed_steps=[blob_step(step) for step in record.step_records],
+        footer=footer_from_player_record(record),
+        output_path=path,
+    )
+
+
+def test_ingest_recorder_parquet_into_duckdb(
+    tmp_path: Path, experiment_descriptor: ExperimentDescriptor, step_record: ExperimentStep
+) -> None:
+    """Recorder parquet merges straight into DuckDB; metadata comes from the footer; idempotent."""
+    # Derive the player from the descriptor (as the recorder does) so identity keys line up.
+    content = experiment_descriptor.get_player_content_by_role("defuser")
+    record = _build_player_record(experiment_descriptor, content, step_record)
+    record_path = tmp_path / f"experiment-{experiment_descriptor.name}-{content.uuid}.parquet"
+    _write_record_parquet(record, record_path)
+
+    db_path = tmp_path / "test.duckdb"
+    ingest_kwargs = {"player_record_paths": [record_path], "db_path": db_path, "max_workers": 1}
+    ingest_player_records(**ingest_kwargs)
+
+    with duckdb.connect(db_path) as con:
+        step_count = con.execute("SELECT COUNT(*) FROM experiment_step").fetchone()
+        meta = con.execute(
+            "SELECT session_id, gptnt_version, num_modules_solved FROM experiment_summary"
+        ).fetchall()
+
+    assert step_count is not None
+    assert step_count[0] == 2
+    assert len(meta) == 1
+    assert str(meta[0][0]) == str(experiment_descriptor.session_id)
+    assert meta[0][1] == record.gptnt_version
+
+    # Idempotent: a second ingest of the same file adds nothing.
+    ingest_player_records(**ingest_kwargs)
+    with duckdb.connect(db_path) as con:
+        again = con.execute("SELECT COUNT(*) FROM experiment_step").fetchone()
+    assert again is not None
+    assert again[0] == 2

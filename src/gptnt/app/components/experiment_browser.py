@@ -3,13 +3,13 @@ import streamlit as st
 from gptnt.app.app_state import get_state
 from gptnt.app.components.experiment_card import render_experiment_card
 from gptnt.app.components.pagination import get_pagination_state
-from gptnt.experiments.models import ExperimentMetadata
+from gptnt.experiments.models import ExperimentSummary
 
 BROWSER_PAGE_SIZE = 50
 BROWSER_PAGINATION_STATE_KEY = "exp_selector_page"
 
 
-def _select_callback(experiment: ExperimentMetadata) -> None:
+def _select_callback(experiment: ExperimentSummary) -> None:
     state = get_state()
     state.loader.selected_experiment = experiment
     if state.loaded_experiment:
@@ -19,14 +19,14 @@ def _select_callback(experiment: ExperimentMetadata) -> None:
 
 @st.cache_data
 def _sort_and_index_experiments(
-    experiments: list[ExperimentMetadata],
-) -> list[tuple[int, ExperimentMetadata]]:
+    experiments: list[ExperimentSummary],
+) -> list[tuple[int, ExperimentSummary]]:
     """Sort experiments by name and index them."""
     sorted_experiments = sorted(experiments, key=lambda exp: exp.attempt_name)
     return list(enumerate(sorted_experiments))
 
 
-def render_experiment_browser(experiments_to_render: list[ExperimentMetadata]) -> None:
+def render_experiment_browser(experiments_to_render: list[ExperimentSummary]) -> None:
     """Render the experiment selection browser."""
     if not experiments_to_render:
         _ = st.info("No experiments to show.")

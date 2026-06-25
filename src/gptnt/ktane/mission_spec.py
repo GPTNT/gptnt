@@ -8,6 +8,17 @@ from gptnt.ktane.state.modules import NEEDS_MULTIPLE_IMAGES, KtaneComponent
 MAX_COMPONENTS = 11
 
 
+def compute_mission_key(components: list[KtaneComponent], seed: int) -> str:
+    """Stable, human-readable identity for a *mission* (its modules + seed).
+
+    Just `"{seed}|{sorted module names}"` — order-independent, collision-free, and readable (you
+    can see which mission a row is at a glance), so experiments of the same mission group together
+    for querying/seeding. e.g. `"12345|BigButton,Wires"`.
+    """
+    sorted_modules = ",".join(sorted(component.value for component in components))
+    return f"{seed}|{sorted_modules}"
+
+
 class KtaneMissionSpec(BaseModel):
     """Configuration for a mission in KTANE."""
 
@@ -68,6 +79,11 @@ class KtaneMissionSpec(BaseModel):
         serialization_alias="timeStepSize",
         description="Used to detremine how long the time should advance for when using the command for it.",
     )
+
+    @property
+    def mission_key(self) -> str:
+        """Stable identity for this mission (modules + seed)."""
+        return compute_mission_key(self.components, self.seed)
 
     @property
     def requires_multiple_images_per_observation(self) -> bool:

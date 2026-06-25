@@ -1,6 +1,6 @@
 """Tests for the `gptnt doctor <run.yaml>` run-plan cross-check.
 
-The cross-check itself (`run_plan.check_run_plan`) is the focus: given a config-name → player_name
+The cross-check (`run_plan.analyze_run_plan`) is the focus: given a config-name → player_name
 mapping (built here exactly as `check_models` hands one back) it dry-runs real, offline experiment
 generation and reports coverage / count / resume findings. Generation runs through Hydra (offline,
 deterministic — the same path the golden gate pins), so these tests exercise the genuine
@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from gptnt.cli.doctor.run_plan import check_run_plan
+from gptnt.cli.doctor.run_plan import analyze_run_plan
 from gptnt.cli.run.manifest import RunManifest
 
 if TYPE_CHECKING:
@@ -64,7 +64,7 @@ def test_clean_roster_resolves_config_to_player_name_and_passes() -> None:
     manifest = _manifest()
     config_to_player = {"test_defuser": "test-defuser", "test_expert": "test-expert"}
 
-    findings = check_run_plan(manifest, config_to_player)
+    findings = analyze_run_plan(manifest, config_to_player).findings
 
     assert not any(finding.status == "fail" for finding in findings)
     assert _coverage_spec_count(findings) > 0
@@ -84,7 +84,7 @@ def test_anchor_not_in_roster_is_a_fatal_cross_check() -> None:
     )
     config_to_player = {"test_defuser": "test-defuser"}
 
-    findings = check_run_plan(manifest, config_to_player)
+    findings = analyze_run_plan(manifest, config_to_player).findings
 
     offender = _row(findings, "Player test-expert")
     assert offender is not None
@@ -98,7 +98,7 @@ def test_explicit_count_is_not_second_guessed() -> None:
     manifest = _manifest(players=[{"model": "test_defuser", "count": 1}, {"model": "test_expert"}])
     config_to_player = {"test_defuser": "test-defuser", "test_expert": "test-expert"}
 
-    findings = check_run_plan(manifest, config_to_player)
+    findings = analyze_run_plan(manifest, config_to_player).findings
 
     assert not any(finding.status == "fail" for finding in findings)
     assert _row(findings, "Count test_defuser") is None  # no insufficient-count check anymore
@@ -114,7 +114,7 @@ def test_unresolved_roster_model_is_flagged_and_generation_continues() -> None:
     )
     config_to_player = {"test_defuser": "test-defuser", "nonexistent_xyz": None}
 
-    findings = check_run_plan(manifest, config_to_player)
+    findings = analyze_run_plan(manifest, config_to_player).findings
 
     unresolved = _row(findings, "Roster: nonexistent_xyz")
     assert unresolved is not None
@@ -126,9 +126,11 @@ def test_multiple_experiments_union_grows_the_spec_count() -> None:
     specs."""
     config_to_player = {"test_defuser": "test-defuser", "test_expert": "test-expert"}
 
-    one = check_run_plan(_manifest(experiments=["e1-single-pairwise"]), config_to_player)
-    two = check_run_plan(
+    one = analyze_run_plan(
+        _manifest(experiments=["e1-single-pairwise"]), config_to_player
+    ).findings
+    two = analyze_run_plan(
         _manifest(experiments=["e1-single-pairwise", "e2-single-solo-defuser"]), config_to_player
-    )
+    ).findings
 
     assert _coverage_spec_count(two) > _coverage_spec_count(one)

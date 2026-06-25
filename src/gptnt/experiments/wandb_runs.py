@@ -10,11 +10,17 @@ from rich.progress import Progress, track
 from wandb.apis.public import Run, Runs
 
 from gptnt.common.logger import ProgressSentinel, with_default_progress
+from gptnt.experiments.models import is_valid_outcome
+from gptnt.experiments.recorder.parquet import read_record_footer
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 logger = structlog.get_logger()
+
+# The four flags that decide validity; their names never drifted, so old and new runs both carry
+# them. Required (alongside `finished` state) for a defuser run to be classifiable.
+_VALIDITY_KEYS = ("is_solved", "is_timed_out", "is_strike_out", "is_hard_crash")
 
 type CollatedRuns = dict[str, dict[UUID4, list[Run]]]
 
@@ -37,14 +43,7 @@ def get_runs_from_wandb(
     api = wandb.Api(timeout=timeout)
     runs = api.runs(
         wandb_path,
-        filters={
-            "$and": [
-                {"state": {"$in": states}},
-                # {"summary_metrics.is_hard_crash": False},
-                # {"summary_metrics.step": {"$gt": 1}},
-                *additional_filters,
-            ]
-        },
+        filters={"$and": [{"state": {"$in": states}}, *additional_filters]},
         per_page=per_page,
     )
     logger.info(
@@ -98,15 +97,23 @@ def has_run_falsely_finished(run: Run) -> bool:
 
 
 def is_run_valid(run: Run) -> bool:
-    """Check if a run is valid."""
-    return (
-        # If the key is not in the summary, the its not valid
-        "is_hard_crash" in run.summary
-        # Make sure it's not false
-        and run.summary.get("is_hard_crash", True) is False
-        # make sure the run is finished
-        and run.state == "finished"
-        and not has_run_falsely_finished(run)
+    """Whether a finished W&B run is valid, decided by the shared `is_valid_outcome`.
+
+    Transport guard first: the run must be `finished`. Only the defuser observes the bomb, so only
+    a defuser run carries an outcome to validate; an expert run is valid as long as it finished
+    without a hard crash (its experiment's real outcome lives on the paired defuser run).
+    """
+    if run.state != "finished" or "is_hard_crash" not in run.summary:
+        return False
+    if run.config.get("role") != "defuser":
+        return run.summary["is_hard_crash"] is False
+    if not all(key in run.summary for key in _VALIDITY_KEYS):
+        return False
+    return is_valid_outcome(
+        is_solved=run.summary["is_solved"],
+        is_timed_out=run.summary["is_timed_out"],
+        is_strike_out=run.summary["is_strike_out"],
+        is_hard_crash=run.summary["is_hard_crash"],
     )
 
 
@@ -135,7 +142,13 @@ def mark_mismatched_player_games_as_old(
     counter = 0
     task = progress.add_task("Flagging mismatched runs", total=len(collated_runs), extra="")
     for attempt_name, runs_per_game in collated_runs.items():
-        expected_num_players = 1 if "expert=None" in attempt_name else 2
+        # Expected player count comes from the structured `expert_name` in the run config (None ⇒ a
+        # solo defuser), not from string-matching the encoded attempt name.
+        sample_run = next((run for runs in runs_per_game.values() for run in runs), None)
+        if sample_run is None:
+            progress.update(task, advance=1)
+            continue
+        expected_num_players = 1 if sample_run.config.get("expert_name") in {None, "None"} else 2
         mismatched_games = [
             run
             for runs in runs_per_game.values()
@@ -219,16 +232,21 @@ def mark_falsely_finished_as_old(
 
 @with_default_progress()
 def parse_experiment_outputs_from_directory(
-    directory: Path, *, progress: Progress = ProgressSentinel, _uuid_length: int = 36
+    directory: Path, *, progress: Progress = ProgressSentinel
 ) -> set[tuple[str, str, Path]]:
-    """Scan for experiment output files and extract (attempt_name, player_uuid, path) tuples."""
+    """Scan for experiment output files and extract (attempt_name, player_uuid, path) tuples.
+
+    Identity comes from each file's footer (`descriptor.name` + the role's player uuid), the same
+    footer-based identity the rest of the system uses — independent of the filename, so a renamed
+    file still matches its W&B run. The footer is parsed once per file and both values read off it.
+    """
     experiments_to_check: set[tuple[str, str, Path]] = set()
     for path in progress.track(
-        list(directory.rglob("experiment-*.json")), description="Scanning output files"
+        list(directory.rglob("experiment-*.parquet")), description="Scanning output files"
     ):
-        clean_file_name = path.stem.replace("experiment-", "")
-        attempt_name = clean_file_name[: -_uuid_length - 1]  # remove trailing -{uuid}
-        player_uuid = clean_file_name[-_uuid_length:]
+        footer = read_record_footer(path)
+        attempt_name = footer.descriptor.name
+        player_uuid = str(footer.descriptor.get_player_content_by_role(footer.role).uuid)
         experiments_to_check.add((attempt_name, player_uuid, path))
     return experiments_to_check
 

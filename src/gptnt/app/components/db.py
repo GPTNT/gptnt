@@ -17,9 +17,9 @@ def render_db_status(loader: ExperimentLoader) -> None:
         st.stop()
 
     skip_invalid_runs = st.toggle(
-        ":small[Hide invalid runs]",
+        ":small[Hide crashed runs]",
         value=loader.skip_invalid_runs,
-        help="This will exclude all the old or failed or invalid runs from WandB.",
+        help="Exclude experiments that ended in a hard crash.",
     )
 
     count = loader.count_experiments(skip_invalid=skip_invalid_runs)

@@ -4,13 +4,13 @@ from caseconverter import titlecase
 from htbuilder import div, styles
 from htbuilder.units import rem
 
-from gptnt.experiments.models import ExperimentRecord, ExperimentStepRecord
+from gptnt.experiments.models import ExperimentRecord, ExperimentStep
 from gptnt.players.actions import SendMessageAction
 from gptnt.specification import PlayerProtocol
 
 
 def render_player_card(
-    name: str, protocol: PlayerProtocol, role: str, reflection: ExperimentStepRecord | None = None
+    name: str, protocol: PlayerProtocol, role: str, reflection: ExperimentStep | None = None
 ) -> None:
     """Render a single player info card."""
     icon = (

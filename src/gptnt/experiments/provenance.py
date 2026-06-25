@@ -12,6 +12,8 @@ from functools import lru_cache
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
+from pydantic import BaseModel, Field
+
 # Used when the package metadata or git state can't be resolved (e.g. an exotic install layout).
 UNKNOWN_VERSION = "0.0.0.0"  # noqa: S104 — a 4-segment version fallback
 _MODULE_DIR = Path(__file__).resolve().parent
@@ -61,3 +63,11 @@ def git_sha() -> str | None:
         return None
     is_dirty = bool(_run_git("status", "--porcelain"))
     return f"{sha}-dirty" if is_dirty else sha
+
+
+class ProvenanceMixin(BaseModel):
+    """Single source of truth for run provenance fields, mixed into the records that carry it."""
+
+    gptnt_version: str = Field(default_factory=gptnt_version)
+    gptnt_edition: int = Field(default_factory=gptnt_edition)
+    git_sha: str | None = Field(default_factory=git_sha)

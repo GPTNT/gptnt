@@ -10,7 +10,7 @@ from gptnt.experiments.models import ExperimentRecord
 
 logger = structlog.get_logger()
 
-_DEFAULT_QUERY = "SELECT * FROM experiment_metadata LIMIT 10"
+_DEFAULT_QUERY = "SELECT * FROM experiment_summary LIMIT 10"
 
 
 @dataclass

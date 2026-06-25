@@ -12,6 +12,7 @@ import wandb
 from anyio.to_thread import run_sync as run_sync_in_thread
 
 from gptnt.common.image_ops import load_observation_from_bytes
+from gptnt.experiments.models import ExperimentOutcome
 from gptnt.experiments.recorder.local import ExperimentPlayerRecorder
 from gptnt.players.observation_handler import Observation
 
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
     from pydantic_ai import ModelMessage
 
     from gptnt.experiments.descriptor import ExperimentDescriptor
-    from gptnt.experiments.models import ExperimentStepRecord
+    from gptnt.experiments.models import ExperimentStep
     from gptnt.ktane.actions import KtaneGameplayInput
     from gptnt.players.actions import PlayerOutputType
     from gptnt.players.result import AgentCallResult
@@ -46,8 +47,8 @@ def serialise_observation_for_wandb(obs: Observation) -> dict[str, Any]:  # noqa
     return {"frames": frames, "segm_mask": segm_mask, "som_image": som_image}
 
 
-def convert_records_to_wandb_table(step_records: list[ExperimentStepRecord]) -> wandb.Table:
-    """Convert a list of ExperimentStepRecord to a WandB Table.
+def convert_records_to_wandb_table(step_records: list[ExperimentStep]) -> wandb.Table:
+    """Convert a list of ExperimentStep to a WandB Table.
 
     Importantly, the records sent to wandb are not the same as those stored on disk because we will
     likely run out of storage on wandb. We do not include the input/new messages in full.
@@ -173,14 +174,25 @@ class WandbExperimentPlayerRecorder(ExperimentPlayerRecorder):
         logger.debug("WandB run finished")
 
     def _compute_data_to_send(self) -> dict[str, Any]:
-        """Compute the data to send to WandB."""
+        """Compute the data to send to WandB.
+
+        The outcome subset is logged under the canonical [ExperimentOutcome] names — shared with
+        the DuckDB `experiment_summary` row — so the two sources stay interchangeable. The rest are
+        the player's process metrics + provenance. The outcome is logged only when a final bomb
+        state exists (the defuser); an expert run that never observed the bomb has no outcome.
+        """
         player_record = self.build_player_record()
-        player_record_json = player_record.model_dump(
+        data_to_send = player_record.model_dump(
             mode="json", exclude={"step_records", "experiment_descriptor", "player_content"}
         )
 
-        data_to_send = {**player_record_json}
-        # Remove None values
-        data_to_send = {key: metric for key, metric in data_to_send.items() if metric is not None}
+        final_bomb_state = player_record.final_bomb_state
+        if final_bomb_state is not None:
+            data_to_send.update(
+                ExperimentOutcome.from_bomb_state(
+                    final_bomb_state, is_hard_crash=player_record.is_hard_crash
+                ).model_dump(mode="json")
+            )
 
-        return data_to_send
+        # Remove None values (e.g. an expert run that never observed a bomb state).
+        return {key: metric for key, metric in data_to_send.items() if metric is not None}

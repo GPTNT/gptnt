@@ -15,7 +15,7 @@ from pydantic_ai import (
     UserPromptPart,
 )
 
-from gptnt.experiments.models import ExperimentStepRecord
+from gptnt.experiments.models import ExperimentStep
 
 
 def render_image_gallery(
@@ -140,7 +140,7 @@ def render_thoughts(thoughts: str) -> None:
 
 
 @st.dialog("Messages for this step", width="medium")
-def render_messages_modal(step: ExperimentStepRecord) -> None:
+def render_messages_modal(step: ExperimentStep) -> None:
     """Render a dialog showing input and new messages for this step."""
     all_messages = list(itertools.chain(step.input_messages, step.new_messages))
 

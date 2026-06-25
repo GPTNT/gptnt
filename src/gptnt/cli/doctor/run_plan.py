@@ -87,13 +87,6 @@ def analyze_run_plan(
     return RunPlanResult(findings, specs, roster.config_to_player, remaining_specs=remaining)
 
 
-def check_run_plan(
-    manifest: RunManifest, config_to_player: dict[str, str | None]
-) -> list[CheckResult]:
-    """Findings-only view of the run-plan cross-check (what the doctor command renders)."""
-    return analyze_run_plan(manifest, config_to_player).findings
-
-
 def _resolve_roster(
     manifest: RunManifest, config_to_player: dict[str, str | None], findings: list[CheckResult]
 ) -> _Roster:

@@ -1,23 +1,26 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import anyio
 import dill
 import logfire
-import orjson
 import structlog
+from anyio.to_thread import run_sync as run_sync_in_thread
 from whenever import Instant
 
 from gptnt.common.paths import Paths
-from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStepRecord
-from gptnt.experiments.provenance import git_sha, gptnt_edition, gptnt_version
+from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep
+from gptnt.experiments.recorder.parquet import (
+    blob_step,
+    footer_from_player_record,
+    write_player_record_parquet,
+)
 from gptnt.players.observation_handler import Observation
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from pydantic import UUID4
     from pydantic_ai import ModelMessage
 
@@ -44,7 +47,7 @@ class ExperimentPlayerRecorder:
 
     start_time: Instant = field(init=False, repr=False)
 
-    step_records: list[ExperimentStepRecord] = field(default_factory=list, init=False)
+    step_records: list[ExperimentStep] = field(default_factory=list, init=False)
     num_steps: int = field(default=0, init=False)
 
     output_dir: Path = field(init=False, repr=False, default=Paths().experiment_outputs)
@@ -122,7 +125,7 @@ class ExperimentPlayerRecorder:
 
         self.num_steps += 1
 
-        record = ExperimentStepRecord(
+        record = ExperimentStep(
             timestamp=self._seconds_since_start,
             role=self.protocol.role,
             session_id=self.experiment_descriptor.session_id,
@@ -182,13 +185,10 @@ class ExperimentPlayerRecorder:
             player_content=player_content,
             step_records=self.step_records,
             is_hard_crash=is_hard_crash,
-            gptnt_version=gptnt_version(),
-            gptnt_edition=gptnt_edition(),
-            git_sha=git_sha(),
         )
 
     async def save_player_record_to_disk(self, *, player_record: ExperimentPlayerRecord) -> None:
-        """Save the given player record to disk."""
+        """Save the given player record to disk as a parquet file."""
         if not player_record.step_records:
             logger.warning(
                 "No step records to save for player record, skipping disk write.",
@@ -196,19 +196,20 @@ class ExperimentPlayerRecorder:
             )
             return
 
-        player_record = await player_record.rebuild_with_observations()
+        # Observations must be inline before blobbing (a bare Path would serialise as a string, not
+        # the image). Skip the reload when the caller already rebuilt (e.g. the W&B recorder).
+        if any(isinstance(step.observation, Path) for step in player_record.step_records):
+            player_record = await player_record.rebuild_with_observations()
 
-        output_path = anyio.Path(
-            self.output_dir.joinpath(
-                f"experiment-{player_record.experiment_descriptor.name}-{player_record.player_content.uuid}.json"
-            )
+        output_path = self.output_dir.joinpath(
+            f"experiment-{player_record.experiment_descriptor.name}"
+            f"-{player_record.player_content.uuid}.parquet"
         )
-        # Make sure the folder exists and file is created before
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        await output_path.touch(exist_ok=True)
 
-        output_data = orjson.dumps(player_record.model_dump(mode="json"))
-        _ = await output_path.write_bytes(output_data)
+        # Blobbing (zstd level 19) + the parquet write are CPU-bound and synchronous — run them off
+        # the event loop in a worker thread.
+        await run_sync_in_thread(_write_player_record_sync, player_record, output_path)
 
     def add_final_bomb_state(self, *, final_bomb_state: BombState) -> None:
         """Add the final bomb state to the last step record."""
@@ -221,3 +222,15 @@ class ExperimentPlayerRecorder:
     def _seconds_since_start(self) -> float:
         """Get the time delta since the start of the experiment in seconds."""
         return (Instant.now() - self.start_time).in_seconds()
+
+
+def _write_player_record_sync(player_record: ExperimentPlayerRecord, output_path: Path) -> None:
+    """Blob the steps and write the parquet file.
+
+    Synchronous — call via a worker thread.
+    """
+    write_player_record_parquet(
+        blobbed_steps=(blob_step(step) for step in player_record.step_records),
+        footer=footer_from_player_record(player_record),
+        output_path=output_path,
+    )

@@ -30,5 +30,11 @@ class CompletionLedger(Protocol):
         ...
 
     def completed(self, attempt_names: Iterable[str]) -> set[str]:
-        """The subset of attempt names that are done and valid (safe to skip re-running)."""
+        """The subset of attempt names that are done and valid (safe to skip re-running).
+
+        Implementations MAY prune stale state while answering (the W&B ledger marks invalid remote
+        runs `old` so a run left in a bad state doesn't block a re-run); the local ledger is a pure
+        read. Both decide "done & valid" through the same `is_valid_outcome`, so the answer itself
+        never depends on the source.
+        """
         ...

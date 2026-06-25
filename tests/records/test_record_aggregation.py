@@ -14,7 +14,7 @@ import pytest
 from pydantic_ai.result import RunUsage
 
 from gptnt.experiments.descriptor import ExperimentDescriptor, PlayerContent
-from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentRecord, ExperimentStepRecord
+from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentRecord, ExperimentStep
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.actions import DoNothingAction
@@ -56,8 +56,8 @@ def _descriptor() -> ExperimentDescriptor:
 
 def _step(
     *, step: int, timestamp: float, role: str, player_uuid: UUID, session_id: UUID
-) -> ExperimentStepRecord:
-    return ExperimentStepRecord(
+) -> ExperimentStep:
+    return ExperimentStep(
         step=step,
         timestamp=timestamp,
         role=role,

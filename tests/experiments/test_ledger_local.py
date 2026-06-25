@@ -1,22 +1,19 @@
-"""The on-disk completion ledger, exercised against real recorded outputs.
-
-The local ledger is what makes the benchmark runnable without W&B, so these tests pin the actual
-disk → status mapping: a solved or cleanly-lost experiment is `done`, a crashed or abandoned one is
-`failed`, and an experiment with no output is `not_attempted`. Real `BombState` objects drive the
-validity check (the same one the DB ingestion uses), not stubs.
-"""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-import orjson
-
 from gptnt.experiments.ledger.base import Source
 from gptnt.experiments.ledger.local import LocalLedger
 from gptnt.experiments.ledger.resolve import resolve_ledger
+from gptnt.experiments.recorder.parquet import (
+    RecordFooter,
+    build_footer,
+    write_player_record_parquet,
+)
 from gptnt.ktane.state.bomb import BombState
+
+from tests._factories.experiments import make_experiment_descriptor, make_experiment_spec
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -45,61 +42,72 @@ def _completed_bomb_state() -> BombState:
     )
 
 
-def _write_completed(output_dir: Path, attempt_name: str, *, is_hard_crash: bool = False) -> None:
-    """Write a recorded output that reached a final (completed) bomb state."""
-    payload = {
-        "is_hard_crash": is_hard_crash,
-        "step_records": [
-            {"bomb_state": _completed_bomb_state().model_dump(mode="json", by_alias=True)}
-        ],
-    }
-    _write(output_dir, attempt_name, payload)
+def _write_completed(output_dir: Path, *, seed: int, is_hard_crash: bool = False) -> str:
+    """Write a recorded output that reached a final (completed) bomb state.
 
-
-def _write_never_completed(output_dir: Path, attempt_name: str) -> None:
-    """Write a recorded output that never reached a bomb state (crashed before the first step)."""
-    _write(
-        output_dir, attempt_name, {"is_hard_crash": False, "step_records": [{"bomb_state": None}]}
+    Returns the attempt name the ledger will key off (read from the footer's descriptor).
+    """
+    return _write(
+        output_dir, seed=seed, final_bomb_state=_completed_bomb_state(), crash=is_hard_crash
     )
 
 
-def _write(output_dir: Path, attempt_name: str, payload: dict[str, object]) -> None:
-    path = output_dir / f"experiment-{attempt_name}-{uuid4()}.json"
-    _ = path.write_bytes(orjson.dumps(payload))
+def _write_never_completed(output_dir: Path, *, seed: int) -> str:
+    """Write a recorded output that never reached a bomb state (crashed before the first step)."""
+    return _write(output_dir, seed=seed, final_bomb_state=None, crash=False)
+
+
+def _write(output_dir: Path, *, seed: int, final_bomb_state: BombState | None, crash: bool) -> str:
+    """Write a parquet record whose footer carries the attempt name and outcome the ledger reads.
+
+    The seed makes each descriptor's `attempt_name` distinct; the filename intentionally does *not*
+    encode it, so these tests prove the ledger keys off the footer, not the filename.
+    """
+    descriptor = make_experiment_descriptor(make_experiment_spec(seed=seed))
+    footer_model = RecordFooter(
+        descriptor=descriptor,
+        final_bomb_state=final_bomb_state,
+        is_hard_crash=crash,
+        role="defuser",
+    )
+    footer = build_footer(footer_model, player_uuid=str(uuid4()))
+    path = output_dir / f"experiment-{uuid4()}.parquet"
+    write_player_record_parquet(blobbed_steps=[], footer=footer, output_path=path)
+    return descriptor.name
 
 
 def test_status_for_classifies_each_outcome(tmp_path: Path) -> None:
-    _write_completed(tmp_path, "done-exp")
-    _write_completed(tmp_path, "crashed-exp", is_hard_crash=True)
-    _write_never_completed(tmp_path, "incomplete-exp")
+    done = _write_completed(tmp_path, seed=1)
+    crashed = _write_completed(tmp_path, seed=2, is_hard_crash=True)
+    incomplete = _write_never_completed(tmp_path, seed=3)
 
     ledger = LocalLedger(output_dir=tmp_path)
-    statuses = ledger.status_for(["done-exp", "crashed-exp", "incomplete-exp", "never-run-exp"])
+    statuses = ledger.status_for([done, crashed, incomplete, "never-run-exp"])
 
     assert statuses == {
-        "done-exp": "done",
-        "crashed-exp": "failed",  # a hard crash is never valid, even with a final bomb state
-        "incomplete-exp": "failed",  # never reached a final bomb state
+        done: "done",
+        crashed: "failed",  # a hard crash is never valid, even with a final bomb state
+        incomplete: "failed",  # never reached a final bomb state
         "never-run-exp": "not_attempted",
     }
 
 
 def test_completed_is_only_the_valid_ones(tmp_path: Path) -> None:
-    _write_completed(tmp_path, "done-exp")
-    _write_completed(tmp_path, "crashed-exp", is_hard_crash=True)
+    done = _write_completed(tmp_path, seed=1)
+    crashed = _write_completed(tmp_path, seed=2, is_hard_crash=True)
 
     ledger = LocalLedger(output_dir=tmp_path)
 
-    assert ledger.completed(["done-exp", "crashed-exp", "never-run-exp"]) == {"done-exp"}
+    assert ledger.completed([done, crashed, "never-run-exp"]) == {done}
 
 
 def test_resolve_ledger_defaults_to_local(tmp_path: Path) -> None:
-    _write_completed(tmp_path, "done-exp")
+    done = _write_completed(tmp_path, seed=1)
 
     ledger = resolve_ledger(Source.local, output_dir=tmp_path)
 
     assert isinstance(ledger, LocalLedger)
-    assert ledger.completed(["done-exp"]) == {"done-exp"}
+    assert ledger.completed([done]) == {done}
 
 
 def test_missing_output_dir_is_all_not_attempted(tmp_path: Path) -> None:

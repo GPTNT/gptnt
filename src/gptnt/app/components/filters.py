@@ -9,7 +9,7 @@ from more_itertools import flatten
 
 from gptnt.common.paths import Paths
 from gptnt.experiments.db.connection import DuckDBConnection
-from gptnt.experiments.models import ExperimentMetadata
+from gptnt.experiments.models import ExperimentSummary
 from gptnt.experiments.spec import Condition
 from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.specification import CommunicationStyle
@@ -75,7 +75,7 @@ class Filters:
         )
 
     @classmethod
-    def from_experiments(cls, experiments: list[ExperimentMetadata]) -> Self:
+    def from_experiments(cls, experiments: list[ExperimentSummary]) -> Self:
         """Derive available filter options from a list of scanned experiments.
 
         Uses the full set of valid conditions, communication styles, and modules from the type
@@ -229,7 +229,7 @@ def distinct[OutT](conn: DuckDBConnection, col: str) -> list[OutT]:
     return [
         row[0]
         for row in conn.execute(
-            f"SELECT DISTINCT {col} FROM experiment_metadata ORDER BY {col}"  # noqa: S608
+            f"SELECT DISTINCT {col} FROM experiment_summary ORDER BY {col}"  # noqa: S608
         ).fetchall()
     ]
 
@@ -239,7 +239,7 @@ def distinct_unnested[OutT](conn: DuckDBConnection, col: str) -> list[OutT]:
     return [
         row[0]
         for row in conn.execute(
-            f"SELECT DISTINCT unnest({col}) AS val FROM experiment_metadata ORDER BY val"  # noqa: S608
+            f"SELECT DISTINCT unnest({col}) AS val FROM experiment_summary ORDER BY val"  # noqa: S608
         ).fetchall()
     ]
 
@@ -260,8 +260,8 @@ def load_options_for_filters(connection: DuckDBConnection) -> Filters:
 
 OUTCOME_SQL: dict[OutcomeType, str] = {  # noqa: WPS407
     "Solved": "is_solved = true",
-    "Strike Out": "(strike_count > 2 AND NOT is_solved)",
-    "Timeout": "(seconds_remaining <= 0 AND NOT is_solved)",
+    "Strike Out": "is_strike_out = true",
+    "Timeout": "is_timed_out = true",
 }
 
 
@@ -328,13 +328,13 @@ def _build_sql_filters(filters: Filters) -> tuple[str, list[Any]]:  # noqa: PLR0
     return where, params
 
 
-def apply_filters(connection: DuckDBConnection, filters: Filters) -> list[ExperimentMetadata]:
+def apply_filters(connection: DuckDBConnection, filters: Filters) -> list[ExperimentSummary]:
     """Fetch experiments from DuckDB with all filters applied server-side."""
     where, params = _build_sql_filters(filters)
-    output = connection.execute(f"SELECT * FROM {ExperimentMetadata.table_name()} {where}", params)  # noqa: S608
+    output = connection.execute(f"SELECT * FROM {ExperimentSummary.table_name()} {where}", params)  # noqa: S608
 
     col_names = [desc[0] for desc in output.description]
     return [
-        ExperimentMetadata.model_validate(dict(zip(col_names, row, strict=False)))
+        ExperimentSummary.model_validate(dict(zip(col_names, row, strict=False)))
         for row in output.fetchall()
     ]
