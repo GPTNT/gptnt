@@ -153,6 +153,6 @@ repos:
         name: creosote
         entry: uv run creosote
         pass_filenames: false
-        files: \.(py|toml|txt|in|lock)$
+        files: \.(py|toml|txt|in|lock|ipynb)$
         language: system
         priority: 20
