@@ -99,6 +99,12 @@ def build_app() -> App:
         group=analysis,
         help="Summarise LLM inference time vs framework overhead for an experiment run.",
     )
+    app.command(
+        "gptnt.cli.experiments.results:show_results",
+        name="results",
+        group=analysis,
+        help="List completed experiment outcomes from the DuckDB results.",
+    )
 
     # Statics evaluation (gptnt-statics) — nested group.
     app.command(

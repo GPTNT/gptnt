@@ -413,6 +413,16 @@ class ExperimentSummary(ProvenanceMixin, DuckDBSchemaMixin):
         """Comma-separated string of module names for easy display."""
         return [module.name for module in self.modules]
 
+    @property
+    def is_valid(self) -> bool:
+        """Whether this is a valid, completed run, decided by the shared `is_valid_outcome`."""
+        return is_valid_outcome(
+            is_solved=self.is_solved,
+            is_timed_out=self.is_timed_out,
+            is_strike_out=self.is_strike_out,
+            is_hard_crash=self.is_hard_crash,
+        )
+
     @computed_field
     @property
     def mission_key(self) -> str:
