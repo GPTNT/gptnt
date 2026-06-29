@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import TYPE_CHECKING, override
 
-from gptnt.statics.evaluation.scorers import (
+from gptnt.statics.scorers import (
     BaseComparer,
     CategoryPrefixScorer,
     ModuleScorer,
@@ -18,7 +18,7 @@ from gptnt.statics.evaluation.scorers import (
 )
 
 if TYPE_CHECKING:
-    from gptnt.statics.evaluation.scorers import PredictionOutput
+    from gptnt.statics.scorers import PredictionOutput
 
 
 @dataclass(kw_only=True)

@@ -8,12 +8,9 @@ from gptnt.cli.statics._fields import (
     ThrowOption,
     UploadOption,
 )
-from gptnt.statics.evaluation.preprocess import preprocess_defuser_vqa_open_ended_instance
-from gptnt.statics.evaluation.prompts import (
-    OPEN_ENDED_INSTRUCTION,
-    format_instruction_with_reasoning,
-)
-from gptnt.statics.evaluation.scorers import StringBasedComparer, create_scorers
+from gptnt.statics.preprocess import preprocess_defuser_vqa_open_ended_instance
+from gptnt.statics.prompts import OPEN_ENDED_INSTRUCTION, format_instruction_with_reasoning
+from gptnt.statics.scorers import StringBasedComparer, create_scorers
 
 
 async def run_defuser_oe_vqa_evaluation(

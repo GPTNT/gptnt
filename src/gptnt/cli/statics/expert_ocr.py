@@ -10,10 +10,10 @@ from gptnt.cli.statics._fields import (
     ThrowOption,
     UploadOption,
 )
-from gptnt.statics.evaluation.postprocess import expert_ocr_postprocess
-from gptnt.statics.evaluation.preprocess import preprocess_expert_ocr_instance
-from gptnt.statics.evaluation.prompts import OCR_INSTRUCTION, format_instruction_with_reasoning
-from gptnt.statics.evaluation.scorers import StringBasedComparer, create_scorers
+from gptnt.statics.postprocess import expert_ocr_postprocess
+from gptnt.statics.preprocess import preprocess_expert_ocr_instance
+from gptnt.statics.prompts import OCR_INSTRUCTION, format_instruction_with_reasoning
+from gptnt.statics.scorers import StringBasedComparer, create_scorers
 
 
 async def run_expert_ocr_evaluation(

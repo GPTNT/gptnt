@@ -11,16 +11,10 @@ from gptnt.cli.statics._fields import (
     UploadOption,
 )
 from gptnt.specification import PlayerCapabilities
-from gptnt.statics.evaluation.postprocess import (
-    convert_normalised_to_absolute,
-    default_postprocess,
-)
-from gptnt.statics.evaluation.preprocess import preprocess_grounding_coordinates_instance
-from gptnt.statics.evaluation.prompts import (
-    GROUNDING_COORDINATES_PROMPT,
-    format_instruction_with_reasoning,
-)
-from gptnt.statics.evaluation.scorers import (
+from gptnt.statics.postprocess import convert_normalised_to_absolute, default_postprocess
+from gptnt.statics.preprocess import preprocess_grounding_coordinates_instance
+from gptnt.statics.prompts import GROUNDING_COORDINATES_PROMPT, format_instruction_with_reasoning
+from gptnt.statics.scorers import (
     CoordinateAbsoluteDistanceComparer,
     CoordinateEuclideanDistanceComparer,
     CoordinateInRegionComparer,

@@ -10,9 +10,9 @@ from gptnt.cli.statics._fields import (
     ThrowOption,
     UploadOption,
 )
-from gptnt.statics.evaluation.preprocess import preprocess_expert_vqa_instance
-from gptnt.statics.evaluation.prompts import MCQ_INSTRUCTION, format_instruction_with_reasoning
-from gptnt.statics.evaluation.scorers import StringBasedComparer, create_scorers
+from gptnt.statics.preprocess import preprocess_expert_vqa_instance
+from gptnt.statics.prompts import MCQ_INSTRUCTION, format_instruction_with_reasoning
+from gptnt.statics.scorers import StringBasedComparer, create_scorers
 
 
 async def run_expert_vqa_evaluation(

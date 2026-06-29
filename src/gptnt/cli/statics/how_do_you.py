@@ -13,9 +13,9 @@ from gptnt.common.paths import Paths
 from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
 from gptnt.players.reasoning_parser.react import ReactStyleReasoningParser
-from gptnt.statics.evaluation.constants import MODULE_NAMES, get_valid_modules
-from gptnt.statics.evaluation.model import EvalModel
-from gptnt.statics.evaluation.prompts import format_instruction_with_reasoning
+from gptnt.statics.constants import MODULE_NAMES, get_valid_modules
+from gptnt.statics.model import EvalModel
+from gptnt.statics.prompts import format_instruction_with_reasoning
 
 logger = get_logger()
 paths = Paths()

@@ -9,9 +9,9 @@ from gptnt.cli.statics._fields import (
     ThrowOption,
     UploadOption,
 )
-from gptnt.statics.evaluation.preprocess import preprocess_defuser_vqa_mcq_instance
-from gptnt.statics.evaluation.prompts import MCQ_INSTRUCTION, format_instruction_with_reasoning
-from gptnt.statics.evaluation.scorers import StringBasedComparer, create_scorers
+from gptnt.statics.preprocess import preprocess_defuser_vqa_mcq_instance
+from gptnt.statics.prompts import MCQ_INSTRUCTION, format_instruction_with_reasoning
+from gptnt.statics.scorers import StringBasedComparer, create_scorers
 
 STATE_RECOGNITION_SPLITS = {
     "state-change": "test_state_change",

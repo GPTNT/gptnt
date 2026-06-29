@@ -8,12 +8,9 @@ from gptnt.cli.statics._fields import (
     ThrowOption,
     UploadOption,
 )
-from gptnt.statics.evaluation.preprocess import preprocess_grounding_set_of_marks_instance
-from gptnt.statics.evaluation.prompts import (
-    GROUNDING_SOM_PROMPT,
-    format_instruction_with_reasoning,
-)
-from gptnt.statics.evaluation.scorers import StringBasedComparer, create_scorers
+from gptnt.statics.preprocess import preprocess_grounding_set_of_marks_instance
+from gptnt.statics.prompts import GROUNDING_SOM_PROMPT, format_instruction_with_reasoning
+from gptnt.statics.scorers import StringBasedComparer, create_scorers
 
 
 async def run_defuser_set_of_marks_evaluation(

@@ -4,9 +4,9 @@ from structlog import get_logger
 
 from gptnt.cli.statics._config_loader import ConfigLoader
 from gptnt.specification import PlayerCapabilities, PlayerRole
-from gptnt.statics.evaluation.preprocess import PostprocessInputsFunc
-from gptnt.statics.evaluation.run import RunHFDatasetEvaluation
-from gptnt.statics.evaluation.scorers import Scorer
+from gptnt.statics.preprocess import PostprocessInputsFunc
+from gptnt.statics.run import RunHFDatasetEvaluation
+from gptnt.statics.scorers import Scorer
 
 logger = get_logger()
 

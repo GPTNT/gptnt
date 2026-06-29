@@ -19,15 +19,9 @@ from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoni
 from gptnt.players.reasoning_parser.react import ReactStyleReasoningParser
 from gptnt.processors.image_resizer import ImageResizer
 from gptnt.specification import PlayerCapabilities
-from gptnt.statics.evaluation.model import EvalModel, ModelOutput
-from gptnt.statics.evaluation.preprocess import PostprocessInputsFunc
-from gptnt.statics.evaluation.scorers import (
-    Instances,
-    Metrics,
-    Predictions,
-    Scorer,
-    score_predictions,
-)
+from gptnt.statics.model import EvalModel, ModelOutput
+from gptnt.statics.preprocess import PostprocessInputsFunc
+from gptnt.statics.scorers import Instances, Metrics, Predictions, Scorer, score_predictions
 
 logger = structlog.get_logger()
 paths = Paths()
