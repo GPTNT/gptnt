@@ -31,8 +31,8 @@ def cleanup_experiment_outputs(
 
     Disk-only. Groups `experiment-*.parquet` files by experiment and drops any group that is not a
     valid, completed experiment (the validity the DB ingestion stamps). Also removes orphaned
-    `experiment-*.parquet.tmp` files left by writes that crashed before the atomic rename.
-    Previews by default; pass `--execute` to delete.
+    `experiment-*.parquet.tmp` files left by writes that crashed before the atomic rename. Previews
+    by default; pass `--execute` to delete.
     """
     console.rule("[bold]Local Experiment Cleanup[/bold]")
 
