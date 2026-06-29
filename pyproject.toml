@@ -46,7 +46,7 @@ dependencies = [
 ]
 
 # Single opt-in: W&B run-logging recorder + wandb-backed status/cleanup/records commands, Weave
-# upload for statics, and dataset (re)generation. Everything records to disk without it; the
+# upload for statics. Everything records to disk without it; the
 # W&B/Weave imports are guarded.
 [project.optional-dependencies]
 wandb = [
@@ -234,7 +234,6 @@ per-file-ignores = [
     # string each (many literals)
     "src/gptnt/cli/doctor/checks.py:WPS202,WPS226",
     "src/gptnt/processors/*:WPS203",
-    "src/gptnt/statics/generation/*:WPS202,WPS204,WPS226",
     "src/gptnt/experiments/duckdb.py:WPS110,WPS111,WPS430",
     "src/gptnt/players/tokens.py:WPS402",
 ]
@@ -414,7 +413,6 @@ max-complexity = 18
 "**/tests/*" = ["D", "S101", "INP001", "PLR2004", "FBT001", "SLF001", "ANN001"]
 "scripts/*" = ["INP001", "D", "ANN", "PLR", "PD", "S"]
 "scrap/*" = ["INP001", "D", "ANN", "PLR", "PD", "S", "T201"]
-"src/gptnt/statics/generation/defuser_vqa/*" = ["S311"] # Allow standard random for dataset generation
 "src/gptnt/players/tokens.py" = ["PLR2004"]
 
 [tool.ruff.lint.pycodestyle]

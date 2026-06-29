@@ -189,7 +189,6 @@ nothing.
 
 | consumer             | reads                                                                       | via                                                 |
 | -------------------- | --------------------------------------------------------------------------- | --------------------------------------------------- |
-| **statics**          | full record (steps: `bomb_state` + `observation`)                           | `load_player_record_from_parquet` (parquet, direct) |
 | **ledger / cleanup** | footers only (outcome + crash flag)                                         | no DB needed                                        |
 | **Streamlit app**    | `experiment_summary` to browse, then `experiment_step` for the selected one | DuckDB                                              |
 | **seeder (future)**  | `experiment_summary` filtered by `mission_key`, then its steps              | DuckDB                                              |

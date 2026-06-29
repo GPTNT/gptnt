@@ -7,12 +7,12 @@ import numpy as np
 from numpy.typing import NDArray
 from pytest_cases import parametrize_with_cases
 
-from gptnt.statics.evaluation.postprocess import convert_normalised_to_absolute
-from gptnt.statics.evaluation.scorers import CoordinateValidator, CoordinateValidatorResult
-from gptnt.statics.generation.defuser_vqa.constants import (
+from gptnt.statics.evaluation.constants import (
     GROUNDING_HALLUCINATION_TYPE_A_RESPONSE,
     GROUNDING_HALLUCINATION_TYPE_B_RESPONSE,
 )
+from gptnt.statics.evaluation.postprocess import convert_normalised_to_absolute
+from gptnt.statics.evaluation.scorers import CoordinateValidator, CoordinateValidatorResult
 
 
 def create_binary_mask(

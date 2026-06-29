@@ -11,13 +11,13 @@ from pydantic import BaseModel, ValidationError
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import cos_sim as cosine_similarity
 
-from gptnt.statics.evaluation.postprocess import PostProcessModelOutputsFunc, default_postprocess
-from gptnt.statics.generation.defuser_vqa.constants import (
+from gptnt.statics.evaluation.constants import (
     GROUNDING_HALLUCINATION_TYPE_A_RESPONSE,
     GROUNDING_HALLUCINATION_TYPE_B_RESPONSE,
     KEYPAD_SYMBOL_DESCRIPTIONS,
     TaskType,
 )
+from gptnt.statics.evaluation.postprocess import PostProcessModelOutputsFunc, default_postprocess
 
 type PredictionOutput = dict[Literal["output"], str]
 

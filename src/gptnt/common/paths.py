@@ -42,9 +42,6 @@ class Paths(BaseSettings):
     prompts: Path = storage.joinpath("prompts")
     """Path to the where we store the prompts pieces."""
 
-    statics_data: Path = storage.joinpath("statics_data")
-    """Path to the statics VQA/grounding dataset source records."""
-
     @property
     def model_configs(self) -> Path:
         """Directory of model configs (`configs/model/`)."""
