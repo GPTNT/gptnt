@@ -7,12 +7,9 @@ from cyclopts.types import ExistingDirectory
 from rich.console import Console
 from rich.progress import Progress
 
-from gptnt.cli.experiments.cleanup import cleanup_experiment_outputs
-from gptnt.cli.experiments.models import SourceOption
 from gptnt.common.logger import create_progress
 from gptnt.common.paths import Paths
 from gptnt.experiments.db.ingest import ingest_player_records
-from gptnt.experiments.ledger import Source
 
 console = Console()
 
@@ -56,13 +53,6 @@ def build_metadata_database(
             help="Parallel worker processes for reading the parquet record footers.",
         ),
     ] = None,
-    cleanup: Annotated[
-        bool,
-        Parameter(
-            name="--cleanup",
-            help="Before building, delete invalid/crashed record files (and, with --source wandb, clean up W&B runs). Off by default so no records are removed unless asked.",
-        ),
-    ] = False,
     skip_filtering: Annotated[
         bool,
         Parameter(
@@ -77,7 +67,6 @@ def build_metadata_database(
             help="If the output DuckDB file already exists, delete it before building the new one",
         ),
     ] = False,
-    source: SourceOption = Source.local,
 ) -> None:
     """Build the local DuckDB experiment database from experiment parquet record files.
 
@@ -91,12 +80,6 @@ def build_metadata_database(
         console.print(f"[red]Deleting existing database at {output_db}[/red]")
         output_db.unlink(missing_ok=True)
         output_db.with_name(f"{output_db.stem}.duckdb.wal").unlink(missing_ok=True)
-
-    if cleanup:
-        console.print(
-            "[yellow]First, cleaning up invalid/crashed record files before building the db.[/yellow]"
-        )
-        cleanup_experiment_outputs(directory=directory, source=source)
 
     console.rule("[bold]Build Experiment Summary DB[/bold]")
 

@@ -77,7 +77,13 @@ def build_app() -> App:
         "gptnt.cli.experiments.cleanup:cleanup_experiment_outputs",
         name="cleanup-outputs",
         group=interactive,
-        help="Consolidate and clean up experiment outputs (and, with --source wandb, W&B runs).",
+        help="Delete local experiment outputs that crashed or never completed, plus orphaned .tmp writes. Previews by default; pass --execute to delete.",
+    )
+    app.command(
+        "gptnt.cli.experiments.cleanup_wandb:reconcile_wandb_runs",
+        name="reconcile-wandb",
+        group=interactive,
+        help="Reconcile local outputs against W&B: tags invalid/duplicate/orphaned remote W&B runs as 'old' and deletes local files lacking a valid run. Mutates remote W&B state. Previews by default; pass --execute to apply.",
     )
 
     # Analysis (gptnt-experiments + gptnt-app).

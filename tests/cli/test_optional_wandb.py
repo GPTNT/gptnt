@@ -22,6 +22,7 @@ NON_WANDB_MODULES = (
     "gptnt.cli.run.command",
     "gptnt.cli.generate_specs",
     "gptnt.cli.experiments.cleanup",
+    "gptnt.cli.experiments.cleanup_wandb",
 )
 
 # The wandb integration modules: importing either runs `import wandb`, so non-wandb paths must not.
