@@ -48,7 +48,6 @@ DEFAULT_EXPERIMENT_LIST = (
     "e1-single-pairwise",
     "e2-single-solo-defuser",
     "e3-single-solo-player",
-    "e4-rep2-self",
     "e5-n-self",
     "e6-single-self-async",
     "e7-n-self-async",
