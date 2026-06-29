@@ -2,7 +2,8 @@
 
 These pin the user-visible behaviour that makes the benchmark runnable without a W&B account:
 `status` reports completion from disk, `submit` skips already-done specs from disk, and
-`cleanup-outputs` prunes invalid local files. They run with no W&B configured.
+`cleanup-outputs` prunes invalid local files and orphaned `.tmp` writes (preview by default,
+deleting only with `--execute`). They run with no W&B configured.
 """
 
 from __future__ import annotations
@@ -116,8 +117,39 @@ def test_cleanup_local_prunes_invalid_outputs(tmp_path: Path) -> None:
         tmp_path, make_experiment_spec(seed=2), final_bomb_state=None, crash=True
     )
 
-    result = invoke_cli(build_app(), ["cleanup-outputs", str(tmp_path)])
+    result = invoke_cli(build_app(), ["cleanup-outputs", str(tmp_path), "--execute"])
 
     assert result.exit_code == 0, result.output
     assert not crashed.exists()
     assert kept.exists()
+
+
+def test_cleanup_local_previews_by_default(tmp_path: Path) -> None:
+    kept = _write_completed_output(tmp_path, make_experiment_spec(seed=1))
+    crashed = _write_record(
+        tmp_path, make_experiment_spec(seed=2), final_bomb_state=None, crash=True
+    )
+
+    result = invoke_cli(build_app(), ["cleanup-outputs", str(tmp_path)])
+
+    assert result.exit_code == 0, result.output
+    # Default is a dry run: nothing is deleted and the crashed file is named as a delete candidate.
+    assert crashed.exists()
+    assert kept.exists()
+    # The summary verb stays conditional ("would delete") and each candidate is marked. Paths wrap
+    # across lines in the rendered output, so assert on the stable markers, not the full path.
+    assert "[To Delete]" in result.output
+    assert "would delete 1 invalid" in result.output
+
+
+def test_cleanup_local_removes_orphaned_tmp(tmp_path: Path) -> None:
+    orphan_tmp = tmp_path / "experiment-orphan.parquet.tmp"
+    _ = orphan_tmp.write_bytes(b"partial write from a crashed process")
+
+    preview = invoke_cli(build_app(), ["cleanup-outputs", str(tmp_path)])
+    assert preview.exit_code == 0, preview.output
+    assert orphan_tmp.exists()  # preview keeps it
+
+    executed = invoke_cli(build_app(), ["cleanup-outputs", str(tmp_path), "--execute"])
+    assert executed.exit_code == 0, executed.output
+    assert not orphan_tmp.exists()
