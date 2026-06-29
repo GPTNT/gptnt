@@ -41,7 +41,7 @@ def make_spec(*, defuser_name: str, expert_name: str | None = None) -> Experimen
             components=[KtaneComponent.big_button],
             optional_widgets=1,
         ),
-        condition="single_module",
+        mission_set="single_module",
         defuser_protocol=PlayerProtocol(
             role="defuser",
             communication_style="sync",

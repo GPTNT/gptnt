@@ -21,7 +21,7 @@ from gptnt.specification import PlayerSpec
 if TYPE_CHECKING:
     from pathlib import Path
 
-_SUPPORTED_SPEC_VERSION = 1
+_SUPPORTED_SPEC_VERSION = 2
 
 
 class Anchors(BaseModel):
@@ -41,9 +41,9 @@ class RunManifest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    spec_version: int = 1
-    experiments: list[str] = Field(min_length=1)
-    """One or more experiment preset names (`configs/experiment/<preset>.yaml`)."""
+    spec_version: int = 2
+    suites: list[str] = Field(min_length=1)
+    """One or more suite ids (`configs/suites/<id>.yaml`)."""
 
     rooms: int = Field(ge=1)
     displays: list[Annotated[int, Field(ge=0)]] | None = Field(default=None, min_length=1)

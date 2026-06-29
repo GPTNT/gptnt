@@ -93,7 +93,7 @@ def test_experiment_generation_does_not_crash(
         role="expert", communication_style="async", is_playing_alone=False, include_manual=True
     )
     generator = ExperimentGenerator(
-        condition="single_module",
+        mission_set="single_module",
         defuser_protocol=PlayerProtocol(
             role="defuser",
             communication_style="async",

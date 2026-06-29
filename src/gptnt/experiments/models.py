@@ -25,7 +25,6 @@ from gptnt.common.logger import monkey_patch_binary_content_repr
 from gptnt.experiments.descriptor import ExperimentDescriptor, PlayerContent
 from gptnt.experiments.duckdb import AsBlob, AsJSON, AsVarchar, DuckDBSchemaMixin
 from gptnt.experiments.provenance import ProvenanceMixin
-from gptnt.experiments.spec import Condition
 from gptnt.ktane.actions import KtaneBaseAction, KtaneGameplayInput
 from gptnt.ktane.mission_spec import compute_mission_key
 from gptnt.ktane.state.bomb import BombState
@@ -322,7 +321,7 @@ class ExperimentSummary(ProvenanceMixin, DuckDBSchemaMixin):
     attempt_name: Annotated[str, Field(alias="name")]
     session_id: UUID4
 
-    condition: Condition
+    mission_set: str
     seed: int
     pairing: str
     defuser_name: Annotated[str, Field(alias="defuser")]
@@ -366,7 +365,7 @@ class ExperimentSummary(ProvenanceMixin, DuckDBSchemaMixin):
         return cls(
             attempt_name=spec.attempt_name,
             session_id=descriptor.session_id,
-            condition=spec.condition,
+            mission_set=spec.mission_set,
             communication_style=spec.communication_style,
             modules=spec.mission_spec.components,
             pairing=spec.pairing,

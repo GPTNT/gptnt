@@ -24,7 +24,7 @@ def _spec(seed: int) -> ExperimentSpec:
             optional_widgets=1,
             needy_time=60,
         ),
-        condition="single_module",
+        mission_set="single_module",
         defuser_protocol=PlayerProtocol(
             role="defuser",
             communication_style="sync",

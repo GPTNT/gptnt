@@ -1,0 +1,107 @@
+from pathlib import Path
+
+import pytest
+from pydantic import ValidationError
+
+from gptnt.experiments.suite import Suite, SuiteMatchup
+from gptnt.specification import PlayerCapabilities, PlayerProtocol
+
+_DEFUSER = PlayerProtocol(
+    role="defuser", communication_style="sync", is_playing_alone=False, include_manual=False
+)
+_EXPERT = PlayerProtocol(
+    role="expert", communication_style="sync", is_playing_alone=False, include_manual=True
+)
+
+
+def _suite(**overrides: object) -> Suite:
+    """Build a baseline valid suite, overriding individual fields per test."""
+    fields: dict[str, object] = {
+        "id": "multi-self-sync",
+        "revision": 1,
+        "modality": ("vision", "language"),
+        "missions_path": Path("configs/missions/multiple_module_n"),
+        "defuser_protocol": _DEFUSER,
+        "expert_protocol": _EXPERT,
+        "matchup": SuiteMatchup(pairing_type="with_self"),
+    }
+    fields.update(overrides)
+    return Suite.model_validate(fields)
+
+
+def test_content_hash_ignores_identity() -> None:
+    """A different id or revision over identical content yields the same content_hash."""
+    assert _suite().content_hash == _suite(id="renamed", revision=9).content_hash
+
+
+def test_content_hash_tracks_missions_path() -> None:
+    """Pointing at a different mission set changes the measured content."""
+    assert (
+        _suite().content_hash
+        != _suite(missions_path=Path("configs/missions/single_module")).content_hash
+    )
+
+
+def test_content_hash_tracks_matchup() -> None:
+    """Changing who plays whom changes the measured content."""
+    assert (
+        _suite().content_hash != _suite(matchup=SuiteMatchup(pairing_type="pairwise")).content_hash
+    )
+
+
+def test_content_hash_tracks_capability_policy() -> None:
+    """Widening the capability policy changes the measured content."""
+    assert _suite().content_hash != _suite(capability_policy=("thinking_method",)).content_hash
+
+
+def test_mission_set_derives_from_missions_path() -> None:
+    """The grouping label is the mission-set directory name, not a separate field."""
+    assert _suite().mission_set == "multiple_module_n"
+
+
+def test_modality_is_canonicalised() -> None:
+    """Listed modality order and duplicates never reach the hash."""
+    assert _suite(modality=("language", "vision", "language")).modality == ("language", "vision")
+
+
+def test_capability_fingerprint_ignores_unlisted_fields() -> None:
+    """A field outside the policy (the player's name) does not split the bucket."""
+    suite = _suite()
+    base = PlayerCapabilities(player_name="a", player_type="ai")
+    renamed = PlayerCapabilities(player_name="b", player_type="ai")
+    assert suite.capability_fingerprint(base) == suite.capability_fingerprint(renamed)
+
+
+def test_capability_fingerprint_tracks_listed_fields() -> None:
+    """A policy-named field (max observations) splits the bucket."""
+    suite = _suite()
+    base = PlayerCapabilities(player_name="a", player_type="ai")
+    bumped = PlayerCapabilities(player_name="a", player_type="ai", max_observations_per_request=4)
+    assert suite.capability_fingerprint(base) != suite.capability_fingerprint(bumped)
+
+
+def test_unknown_capability_policy_field_is_rejected() -> None:
+    """A policy entry that names no real capability fails loudly."""
+    with pytest.raises(ValidationError, match="unknown PlayerCapabilities fields"):
+        _ = _suite(capability_policy=("not_a_field",))
+
+
+def test_absolute_missions_path_is_rejected() -> None:
+    """An absolute set path would make content_hash machine-dependent, so it is rejected."""
+    with pytest.raises(ValidationError, match="missions_path"):
+        _ = _suite(missions_path=Path("/abs/missions"))
+
+
+def test_solo_defuser_cannot_have_expert() -> None:
+    """A solo defuser paired with an expert fails loudly."""
+    solo = PlayerProtocol(
+        role="defuser", communication_style="sync", is_playing_alone=True, include_manual=False
+    )
+    with pytest.raises(ValidationError, match="solo defuser cannot have an expert"):
+        _ = _suite(defuser_protocol=solo, expert_protocol=_EXPERT)
+
+
+def test_defuser_slot_must_hold_a_defuser() -> None:
+    """The defuser slot rejects an expert-roled protocol."""
+    with pytest.raises(ValidationError, match="defuser_protocol"):
+        _ = _suite(defuser_protocol=_EXPERT)

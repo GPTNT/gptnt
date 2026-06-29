@@ -44,13 +44,13 @@ STATUS_SORT_ORDER: dict[ExperimentStatus, int] = {
     "running": 3,
 }
 
-DEFAULT_EXPERIMENT_LIST = (
-    "e1-single-pairwise",
-    "e2-single-solo-defuser",
-    "e3-single-solo-player",
-    "e5-n-self",
-    "e6-single-self-async",
-    "e7-n-self-async",
+DEFAULT_SUITES = (
+    "single-pairwise-sync",
+    "single-solo-defuser-sync",
+    "single-solo-player-sync",
+    "single-self-async",
+    "multi-self-sync",
+    "multi-self-async",
 )
 
 
@@ -61,18 +61,18 @@ ExperimentsArgument = Annotated[
             "Zero or more experiment sources."
             "Pass nothing to generate all; "
             "pass a directory path to load from disk; "
-            "pass experiment name(s) (e.g. e1-single-pairwise) to generate only those."
+            "pass suite id(s) (e.g. single-pairwise-sync) to generate only those."
         )
     ),
 ]
 
 
-def _attempt_names_for_presets(names: list[str]) -> list[str]:
-    """Generate (in-process) the expected attempt names for the given experiment preset names."""
+def _attempt_names_for_suites(suite_ids: list[str]) -> list[str]:
+    """Generate (in-process) the expected attempt names for the given suite ids."""
     attempt_names: list[str] = []
-    for experiment in names:
-        console.print(f"  Adding experiment variant: [cyan]{experiment}[/cyan]")
-        specs = generate_specs([f"experiment={experiment}"])
+    for suite_id in suite_ids:
+        console.print(f"  Adding suite: [cyan]{suite_id}[/cyan]")
+        specs = generate_specs([f"suites={suite_id}"])
         attempt_names.extend(spec.attempt_name for spec in specs)
     return attempt_names
 
@@ -86,18 +86,18 @@ def _resolve_experiments(sources: list[ExperimentsSource]) -> list[str]:
     """Load or generate the expected attempt names based on parsed CLI sources."""
     if not sources:
         console.print("[dim]Generating all experiments...[/dim]")
-        return _attempt_names_for_presets(sorted(DEFAULT_EXPERIMENT_LIST))
+        return _attempt_names_for_suites(sorted(DEFAULT_SUITES))
 
     if any(src.kind == "dir" for src in sources):
         if len(sources) > 1:
-            raise ValueError("Cannot mix a directory path with experiment names.")
+            raise ValueError("Cannot mix a directory path with suite ids.")
         directory = Path(sources[0].raw)
         console.print(f"[dim]Loading experiments from {directory}[/dim]")
         return _load_attempt_names_from_dir(directory)
 
     names = [src.raw for src in sources]
     console.print(f"[dim]Generating experiments for: {', '.join(names)}[/dim]")
-    return _attempt_names_for_presets(names)
+    return _attempt_names_for_suites(names)
 
 
 def _live_running() -> set[str]:

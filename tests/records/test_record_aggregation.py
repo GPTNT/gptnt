@@ -35,7 +35,7 @@ def _descriptor() -> ExperimentDescriptor:
         mission_spec=KtaneMissionSpec(
             seed=7, time_limit=300, num_strikes_allowed=3, components=["Wires"], optional_widgets=1
         ),
-        condition="single_module",
+        mission_set="single_module",
         defuser_protocol=protocol,
         defuser_name="test-defuser",
         expert_protocol=PlayerProtocol(

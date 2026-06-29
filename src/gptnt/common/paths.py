@@ -48,9 +48,9 @@ class Paths(BaseSettings):
         return self.configs / "model"
 
     @property
-    def experiment_configs(self) -> Path:
-        """Directory of experiment-preset configs (`configs/experiment/`)."""
-        return self.configs / "experiment"
+    def suite_configs(self) -> Path:
+        """Directory of suite configs (`configs/suites/`)."""
+        return self.configs / "suites"
 
     @property
     def missions_library(self) -> Path:

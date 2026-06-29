@@ -1,6 +1,0 @@
-# @package _global_
-
-missions_path: ${hydra:runtime.cwd}/configs/missions/single_module
-
-experiment_generator:
-  condition: single_module

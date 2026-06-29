@@ -1,18 +1,9 @@
-from typing import Literal, Self, override
+from typing import Self, override
 
 from pydantic import BaseModel, model_validator
 
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.specification import CommunicationStyle, PlayerProtocol, PlayerRole
-
-type Condition = Literal[
-    "single_module",
-    "repeated_modules_2",
-    "repeated_modules_4",
-    "multiple_modules_2",
-    "multiple_modules_2_front",
-    "multiple_modules_n",
-]
 
 
 class ExperimentSpec(BaseModel, frozen=True):
@@ -22,7 +13,9 @@ class ExperimentSpec(BaseModel, frozen=True):
     """
 
     mission_spec: KtaneMissionSpec
-    condition: Condition
+    mission_set: str
+    """The mission set this came from (the `missions_path` basename), e.g. `single_module`."""
+
     attempt: int = 1
 
     defuser_protocol: PlayerProtocol
@@ -73,7 +66,7 @@ class ExperimentSpec(BaseModel, frozen=True):
         module_names = "-".join(
             sorted({component.value for component in self.mission_spec.components})
         )
-        return f"{self.condition}_{self.communication_style}_{module_names}_{self.mission_spec.seed}_({self.pairing})"
+        return f"{self.mission_set}_{self.communication_style}_{module_names}_{self.mission_spec.seed}_({self.pairing})"
 
     @property
     def attempt_name(self) -> str:
@@ -95,7 +88,7 @@ class ExperimentSpec(BaseModel, frozen=True):
             (
                 self.mission_spec,
                 self.pairing,
-                self.condition,
+                self.mission_set,
                 self.communication_style,
                 self.attempt,
             )

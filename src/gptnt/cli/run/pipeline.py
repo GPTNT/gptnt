@@ -158,7 +158,7 @@ def _print_summary(
     table = Table(show_header=False, box=None, padding=(0, 1))
     table.add_column(no_wrap=True)
     table.add_column(highlight=True)
-    table.add_row("Experiments:", ", ".join(manifest.experiments))
+    table.add_row("Suites:", ", ".join(manifest.suites))
     table.add_row("Rooms:", str(manifest.rooms))
 
     if manifest.displays is not None:

@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 def _manifest(**overrides: object) -> RunManifest:
     """Build the smallest valid manifest, allowing per-test field overrides."""
     payload: dict[str, object] = {
-        "experiments": ["e1-single-pairwise"],
+        "suites": ["single-pairwise-sync"],
         "rooms": 1,
         "players": [PlayerSpec(model="claude46")],
     }

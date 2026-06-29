@@ -1,9 +1,0 @@
-# @package _global_
-
-defaults:
-  - override /experiment/mission_condition: multiple_modules_n
-  - override /experiment/communication_style: sync
-  - override /experiment/pairing: no_expert
-  - override /experiment/player_specs@defuser_protocol: solo_player
-  - override /experiment/player_specs@expert_protocol: none
-  - _self_

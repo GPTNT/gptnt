@@ -10,7 +10,6 @@ from more_itertools import flatten
 from gptnt.common.paths import Paths
 from gptnt.experiments.db.connection import DuckDBConnection
 from gptnt.experiments.models import ExperimentSummary
-from gptnt.experiments.spec import Condition
 from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.specification import CommunicationStyle
 
@@ -29,7 +28,6 @@ def _load_available_players() -> list[str]:
     return sorted(set(player_names))
 
 
-ALL_CONDITIONS = list(get_args(Condition.__value__))
 ALL_COMMUNICATION_STYLES = list(get_args(CommunicationStyle.__value__))
 ALL_MODULES = sorted({component.value for component in KtaneComponent})
 ALL_PLAYERS = _load_available_players()
@@ -39,7 +37,7 @@ ALL_PLAYERS = _load_available_players()
 class Filters:
     """Filters for experiments."""
 
-    condition: Sequence[str] = field(default_factory=list)
+    mission_set: Sequence[str] = field(default_factory=list)
     communication_style: Sequence[str] = field(default_factory=list)
     modules: Sequence[str] = field(default_factory=list)
     defuser: Sequence[str] = field(default_factory=list)
@@ -58,7 +56,7 @@ class Filters:
         """Custom hash implementation to allow caching with mutable default fields."""
         return hash(
             (
-                tuple(self.condition),
+                tuple(self.mission_set),
                 tuple(self.communication_style),
                 tuple(self.modules),
                 tuple(self.defuser),
@@ -78,19 +76,21 @@ class Filters:
     def from_experiments(cls, experiments: list[ExperimentSummary]) -> Self:
         """Derive available filter options from a list of scanned experiments.
 
-        Uses the full set of valid conditions, communication styles, and modules from the type
-        definitions, and derives defusers, experts, and seeds from the actual scanned data.
+        Uses the full set of communication styles and modules from the type definitions, and
+        derives mission sets, defusers, experts, and seeds from the actual scanned data.
         """
         if experiments:
+            mission_set = sorted({exp.mission_set for exp in experiments if exp.mission_set})
             defuser = sorted({exp.defuser_name for exp in experiments if exp.defuser_name})
             expert = sorted({exp.expert_name for exp in experiments if exp.expert_name})
             seed = sorted({exp.seed for exp in experiments if exp.seed})
         else:
+            mission_set = []
             defuser = ALL_PLAYERS
             expert = [*ALL_PLAYERS, "None"]
             seed = []
         return cls(
-            condition=ALL_CONDITIONS,
+            mission_set=mission_set,
             communication_style=ALL_COMMUNICATION_STYLES,
             modules=ALL_MODULES,
             defuser=defuser,
@@ -117,11 +117,11 @@ def render_filter_pills(options: Filters, *, default: Filters) -> Filters:
     """
     filters = default
 
-    filters.condition = st.pills(
-        "**Conditions**",
-        options=sorted(options.condition),
+    filters.mission_set = st.pills(
+        "**Mission Sets**",
+        options=sorted(options.mission_set),
         selection_mode="multi",
-        default=default.condition or None,
+        default=default.mission_set or None,
         format_func=titlecase,
     )
     with st.container(horizontal=True, width="content", gap="medium"):
@@ -247,7 +247,7 @@ def distinct_unnested[OutT](conn: DuckDBConnection, col: str) -> list[OutT]:
 def load_options_for_filters(connection: DuckDBConnection) -> Filters:
     """Load the options for the filters from the database."""
     return Filters(
-        condition=distinct(connection, "condition"),
+        mission_set=distinct(connection, "mission_set"),
         communication_style=distinct(connection, "communication_style"),
         modules=distinct_unnested(connection, "modules"),
         defuser=distinct(connection, "defuser_name"),
@@ -271,7 +271,7 @@ def _build_sql_filters(filters: Filters) -> tuple[str, list[Any]]:  # noqa: PLR0
     params: list[Any] = []
 
     for col, col_values in (
-        ("condition", filters.condition),
+        ("mission_set", filters.mission_set),
         ("communication_style", filters.communication_style),
         ("defuser_name", filters.defuser),
         ("seed", filters.seed),

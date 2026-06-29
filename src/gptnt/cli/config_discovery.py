@@ -14,11 +14,11 @@ def discover_models() -> list[str]:
 
 
 @lru_cache
-def discover_experiments() -> list[str]:
-    """Return sorted list of available experiment preset names from configs/experiment/*.yaml."""
-    if not paths.experiment_configs.is_dir():
+def discover_suites() -> list[str]:
+    """Return sorted list of available suite ids from configs/suites/*.yaml."""
+    if not paths.suite_configs.is_dir():
         return []
-    return sorted(path.stem for path in paths.experiment_configs.glob("*.yaml"))
+    return sorted(path.stem for path in paths.suite_configs.glob("*.yaml"))
 
 
 @lru_cache
