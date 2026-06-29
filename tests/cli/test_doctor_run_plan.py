@@ -3,7 +3,7 @@
 The cross-check (`run_plan.analyze_run_plan`) is the focus: given a config-name → player_name
 mapping (built here exactly as `check_models` hands one back) it dry-runs real, offline experiment
 generation and reports coverage / count / resume findings. Generation runs through Hydra (offline,
-deterministic — the same path the golden gate pins), so these tests exercise the genuine
+deterministic), so these tests exercise the genuine
 config→player_name resolution. The test player configs deliberately use a config name that differs
 from its player_name (`test_defuser` → `test-defuser`), which is exactly the mismatch the cross-
 check exists to resolve.

@@ -12,7 +12,7 @@ defaults:
 
 task_name: generate_specs
 
-# Placeholder roster. The real players come from the run.yaml; the gate and ad-hoc generation
+# Placeholder roster. The real players come from the run.yaml. The gate and ad-hoc generation
 # override players.all. Anchors (players.best_*) come from configs/anchors.yaml.
 players:
   all:
