@@ -1,1 +1,11 @@
-{"seed":798,"timeLimit":90,"numStrikes":3,"components":["Keypad"],"optWidgets":2,"needyTime":60,"isFront":true,"timeScale":1.0,"timeStepSize":3000}
+{
+	"seed": 798,
+	"timeLimit": 90,
+	"numStrikes": 3,
+	"components": ["Keypad"],
+	"optWidgets": 2,
+	"needyTime": 60,
+	"isFront": true,
+	"timeScale": 1.0,
+	"timeStepSize": 3000
+}
