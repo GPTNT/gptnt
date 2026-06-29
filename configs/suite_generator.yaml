@@ -10,7 +10,7 @@ defaults:
   - override hydra/job_logging: none
   - override hydra/hydra_logging: none
 
-task_name: generate_experiments
+task_name: generate_specs
 
 # Placeholder roster. The real players come from the run.yaml; the gate and ad-hoc generation
 # override players.all. Anchors (players.best_*) come from configs/anchors.yaml.
@@ -20,5 +20,5 @@ players:
     - gemini-3
 
 # Sampling depth, not measured content: attempts per (mission, pairing). Never part of a suite's
-# content_hash, so running more attempts of a cell keeps results comparable.
+# digest, so running more attempts of a suite keeps results comparable.
 attempts_per_mission: 1

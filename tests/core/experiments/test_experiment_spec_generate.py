@@ -1,12 +1,19 @@
 from collections.abc import Iterator
+from pathlib import Path
 from typing import get_args
 
 import pytest
+from omegaconf import OmegaConf
 from pytest_cases import fixture, param_fixture, parametrize_with_cases
 
 from gptnt.experiments.generation.experiments import ExperimentGenerator
-from gptnt.experiments.generation.missions import MissionGenerator, MissionGeneratorConfig
+from gptnt.experiments.generation.missions import (
+    MissionGenerator,
+    MissionGeneratorConfig,
+    load_missions,
+)
 from gptnt.experiments.generation.pairing import Pairing, PairingGenerator, PairingType
+from gptnt.experiments.generation.pipeline import _best_model_for
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.specification import PlayerProtocol
@@ -14,6 +21,20 @@ from gptnt.specification import PlayerProtocol
 from tests._cases.mission_generator_config import MissionGeneratorConfigCases
 
 pairing_type = param_fixture("pairing_type", list(get_args(PairingType.__value__)))
+
+
+def test_load_missions_raises_on_an_empty_set(tmp_path: Path) -> None:
+    """Loading a set directory with no mission files fails loudly, not silently on nothing."""
+    with pytest.raises(FileNotFoundError, match="No mission specs"):
+        _ = load_missions(tmp_path)
+
+
+def test_best_model_for_resolves_the_anchor_named_by_the_pairing() -> None:
+    """A `with_best_*` pairing pulls its anchor from the roster; the others need none."""
+    players = OmegaConf.create({"best_defuser": "anchor-d", "best_expert": "anchor-e"})
+    assert _best_model_for("with_best_defuser", players) == "anchor-d"
+    assert _best_model_for("with_best_expert", players) == "anchor-e"
+    assert _best_model_for("with_self", players) is None
 
 
 @parametrize_with_cases("config", cases=MissionGeneratorConfigCases)
@@ -94,6 +115,8 @@ def test_experiment_generation_does_not_crash(
     )
     generator = ExperimentGenerator(
         mission_set="single_module",
+        suite_id="single-test",
+        suite_revision=1,
         defuser_protocol=PlayerProtocol(
             role="defuser",
             communication_style="async",

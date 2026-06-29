@@ -1,48 +1,24 @@
 """The `Suite`.
 
 A suite is one self-contained, frozen definition of what is measured: its mission set, the per-role
-interaction protocol, the matchup that pairs players, the required modalities, the capability
-policy, and a revision. Two results are comparable only when the suite's `id` and `revision` and a
-run's `capability_fingerprint` all match. `content_hash` detects when the measured content has
-changed so the `revision` can be bumped.
+interaction protocol, the matchup that pairs players, the required modalities, and a revision.
+`suite_digest` fingerprints the config and the mission files together, so a change without a
+`revision` bump is caught.
 """
 
-import hashlib
-import json
 from pathlib import Path
-from typing import Annotated, Literal, Self, override
+from typing import Annotated, Literal, Self
 
 from annotated_types import Predicate
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, computed_field, model_validator
 
+from gptnt.common.hashing import stable_digest
+from gptnt.common.paths import Paths
+from gptnt.experiments.generation.missions import load_missions
 from gptnt.experiments.generation.pairing import PairingType
-from gptnt.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.specification import PlayerProtocol
 
 type Modality = Literal["vision", "language", "audio"]
-
-
-DEFAULT_CAPABILITY_POLICY: tuple[str, ...] = (
-    "image_dimensions",
-    "max_observations_per_request",
-    "thinking_method",
-    "interaction_location_method",
-    "coordinate_mode",
-)
-"""Default `PlayerCapabilities` fields to compare; changing any one makes results incomparable."""
-
-
-def _error_if_unknown_capabilities(policy: tuple[str, ...]) -> tuple[str, ...]:
-    """Raise if any entry names a non-existent `PlayerCapabilities` field."""
-    unknown = sorted(set(policy) - set(PlayerCapabilities.model_fields))
-    if unknown:
-        raise ValueError(f"capability_policy names unknown PlayerCapabilities fields: {unknown}")
-    return tuple(sorted(set(policy)))
-
-
-def _digest(payload: object) -> str:
-    """Short, order-stable hex digest of a JSON-able payload."""
-    canonical = json.dumps(payload, sort_keys=True).encode()
-    return hashlib.blake2b(canonical, digest_size=16).hexdigest()
 
 
 class SuiteMatchup(BaseModel):
@@ -82,10 +58,6 @@ class Suite(BaseModel):
 
     matchup: SuiteMatchup
 
-    capability_policy: Annotated[
-        tuple[str, ...], AfterValidator(_error_if_unknown_capabilities)
-    ] = DEFAULT_CAPABILITY_POLICY
-
     @model_validator(mode="after")
     def validate_roles(self) -> Self:
         """Role tags must match their slots, and a solo defuser admits no expert."""
@@ -100,26 +72,26 @@ class Suite(BaseModel):
 
     @computed_field
     @property
-    def content_hash(self) -> str:
-        """Stable digest of the measured content; changes when a score-determining field does.
+    def config_digest(self) -> str:
+        """A stable digest of the suite's config itself."""
+        payload = self.model_dump(mode="json", exclude={"id", "revision", "config_digest"})
+        return stable_digest(payload)
 
-        Identity fields (`id`, `revision`) and the hash itself are excluded, so the digest is a
-        pure fingerprint of what is measured, including the `missions_path` reference. The contents
-        of that set are pinned separately by the per-suite golden gate. When this digest changes,
-        the content changed and `revision` should be bumped.
+    @property
+    def missions_digest(self) -> str:
+        """A stable digest of the resolved mission file contents.
+
+        Reads the files from disk, so it changes when a mission in the set is edited even if the
+        suite config is untouched.
         """
-        payload = self.model_dump(mode="json", exclude={"id", "revision", "content_hash"})
-        return _digest(payload)
+        missions = load_missions(Paths().root / self.missions_path)
+        return stable_digest(sorted(mission.model_dump_json() for mission in missions))
 
-    def capability_fingerprint(self, capabilities: PlayerCapabilities) -> str:
-        """Digest of only the capability fields this suite's policy names.
+    @property
+    def suite_digest(self) -> str:
+        """A stable digest of the whole suite: its `config_digest` and `missions_digest` combined.
 
-        Restricting to `capability_policy` keeps legitimate per-model differences (a model's name,
-        its structured-output mode) from splitting otherwise-comparable results into buckets.
+        The full fingerprint of what the suite measures. `test_frozen_suites.py` pins it per
+        revision, so changing the config or any mission file requires bumping `revision`.
         """
-        included = capabilities.model_dump(mode="json", include=set(self.capability_policy))
-        return _digest(included)
-
-    @override
-    def __hash__(self) -> int:
-        return hash(self.content_hash)
+        return stable_digest([self.config_digest, self.missions_digest])

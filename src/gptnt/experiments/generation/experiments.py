@@ -14,6 +14,8 @@ class ExperimentGenerator(BaseModel):
     """Generate experiments from the given missions and pairings."""
 
     mission_set: str
+    suite_id: str
+    suite_revision: int
     defuser_protocol: PlayerProtocol
     expert_protocol: Annotated[
         PlayerProtocol | None, BeforeValidator(lambda expert: expert or None)
@@ -33,6 +35,8 @@ class ExperimentGenerator(BaseModel):
                 experiment = ExperimentSpec(
                     mission_spec=mission,
                     mission_set=self.mission_set,
+                    suite_id=self.suite_id,
+                    suite_revision=self.suite_revision,
                     defuser_protocol=self.defuser_protocol,
                     defuser_name=pairing.defuser,
                     expert_protocol=self.expert_protocol,

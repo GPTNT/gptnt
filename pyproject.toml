@@ -61,6 +61,7 @@ gptnt-statics = "gptnt.cli.statics.__main__:main"
 [dependency-groups]
 tests = [
     "hypothesis>=6.131.0",
+    "inline-snapshot>=0.34.2",
     "pytest<9.1",
     "pytest-cases>=3.8.6",
     "pytest-cov>=6.1.0",

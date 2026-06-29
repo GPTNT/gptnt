@@ -6,6 +6,7 @@ from pydantic.functional_validators import model_validator
 from pydantic_ai.output import StructuredOutputMode
 from pydantic_ai.usage import UsageLimits
 
+from gptnt.common.hashing import stable_digest
 from gptnt.common.image_ops import ImageDimensions
 from gptnt.ktane.game_settings import KtaneSettings
 from gptnt.players.locations import (
@@ -122,6 +123,11 @@ class PlayerCapabilities(BaseModel):
                 return SingleAlphabetLetter  # pyright: ignore[reportReturnType]
             case "coordinates":
                 return coordinate_flavour
+
+    @property
+    def fingerprint(self) -> str:
+        """A stable digest of this exact model setup."""
+        return stable_digest(self.model_dump(mode="json"))
 
     @override
     def __hash__(self) -> int:

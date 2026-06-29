@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
+from gptnt.cli.config_discovery import discover_suites
 from gptnt.cli.experiments.models import ExperimentsSource, SourceOption
 from gptnt.common.paths import Paths
 from gptnt.common.runtime_settings import RuntimeSettings
@@ -44,16 +45,6 @@ STATUS_SORT_ORDER: dict[ExperimentStatus, int] = {
     "running": 3,
 }
 
-DEFAULT_SUITES = (
-    "single-pairwise-sync",
-    "single-solo-defuser-sync",
-    "single-solo-player-sync",
-    "single-self-async",
-    "multi-self-sync",
-    "multi-self-async",
-)
-
-
 ExperimentsArgument = Annotated[
     list[str] | None,
     Parameter(
@@ -85,8 +76,8 @@ def _load_attempt_names_from_dir(directory: Path) -> list[str]:
 def _resolve_experiments(sources: list[ExperimentsSource]) -> list[str]:
     """Load or generate the expected attempt names based on parsed CLI sources."""
     if not sources:
-        console.print("[dim]Generating all experiments...[/dim]")
-        return _attempt_names_for_suites(sorted(DEFAULT_SUITES))
+        console.print("[dim]Generating experiments for all suites...[/dim]")
+        return _attempt_names_for_suites(discover_suites())
 
     if any(src.kind == "dir" for src in sources):
         if len(sources) > 1:

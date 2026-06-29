@@ -132,7 +132,7 @@ def test_multiple_suites_union_grows_the_spec_count() -> None:
 
     one = analyze_run_plan(_manifest(suites=["single-pairwise-sync"]), config_to_player).findings
     two = analyze_run_plan(
-        _manifest(suites=["single-pairwise-sync", "single-solo-defuser-sync"]), config_to_player
+        _manifest(suites=["single-pairwise-sync", "single-parametric-sync"]), config_to_player
     ).findings
 
     assert _coverage_spec_count(two) > _coverage_spec_count(one)

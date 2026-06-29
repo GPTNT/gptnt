@@ -322,6 +322,9 @@ class ExperimentSummary(ProvenanceMixin, DuckDBSchemaMixin):
     session_id: UUID4
 
     mission_set: str
+    suite_id: str = "unknown"
+    suite_revision: int = 0
+
     seed: int
     pairing: str
     defuser_name: Annotated[str, Field(alias="defuser")]
@@ -348,6 +351,20 @@ class ExperimentSummary(ProvenanceMixin, DuckDBSchemaMixin):
     # Any custom tags to describe the experiment
     tags: list[str] = Field(default_factory=list)
 
+    @computed_field
+    @property
+    def defuser_capability_fingerprint(self) -> str:
+        """Fingerprint of the defuser's capabilities."""
+        return self.defuser_capabilities.fingerprint
+
+    @computed_field
+    @property
+    def expert_capability_fingerprint(self) -> str:
+        """Fingerprint of the expert's capabilities, or empty when there is no expert."""
+        if self.expert_capabilities is None:
+            return ""
+        return self.expert_capabilities.fingerprint
+
     @classmethod
     def from_descriptor_and_bomb_state(
         cls,
@@ -366,6 +383,8 @@ class ExperimentSummary(ProvenanceMixin, DuckDBSchemaMixin):
             attempt_name=spec.attempt_name,
             session_id=descriptor.session_id,
             mission_set=spec.mission_set,
+            suite_id=spec.suite_id,
+            suite_revision=spec.suite_revision,
             communication_style=spec.communication_style,
             modules=spec.mission_spec.components,
             pairing=spec.pairing,

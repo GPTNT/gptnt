@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from gptnt.experiments.suite import Suite, SuiteMatchup
-from gptnt.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.specification import PlayerProtocol
 
 _DEFUSER = PlayerProtocol(
     role="defuser", communication_style="sync", is_playing_alone=False, include_manual=False
@@ -29,29 +29,25 @@ def _suite(**overrides: object) -> Suite:
     return Suite.model_validate(fields)
 
 
-def test_content_hash_ignores_identity() -> None:
-    """A different id or revision over identical content yields the same content_hash."""
-    assert _suite().content_hash == _suite(id="renamed", revision=9).content_hash
+def test_config_digest_ignores_identity() -> None:
+    """A different id or revision over identical config yields the same config_digest."""
+    assert _suite().config_digest == _suite(id="renamed", revision=9).config_digest
 
 
-def test_content_hash_tracks_missions_path() -> None:
-    """Pointing at a different mission set changes the measured content."""
+def test_config_digest_tracks_missions_path() -> None:
+    """Pointing at a different mission set changes the config_digest."""
     assert (
-        _suite().content_hash
-        != _suite(missions_path=Path("configs/missions/single_module")).content_hash
+        _suite().config_digest
+        != _suite(missions_path=Path("configs/missions/single_module")).config_digest
     )
 
 
-def test_content_hash_tracks_matchup() -> None:
-    """Changing who plays whom changes the measured content."""
+def test_config_digest_tracks_matchup() -> None:
+    """Changing who plays whom changes the config_digest."""
     assert (
-        _suite().content_hash != _suite(matchup=SuiteMatchup(pairing_type="pairwise")).content_hash
+        _suite().config_digest
+        != _suite(matchup=SuiteMatchup(pairing_type="pairwise")).config_digest
     )
-
-
-def test_content_hash_tracks_capability_policy() -> None:
-    """Widening the capability policy changes the measured content."""
-    assert _suite().content_hash != _suite(capability_policy=("thinking_method",)).content_hash
 
 
 def test_mission_set_derives_from_missions_path() -> None:
@@ -64,30 +60,8 @@ def test_modality_is_canonicalised() -> None:
     assert _suite(modality=("language", "vision", "language")).modality == ("language", "vision")
 
 
-def test_capability_fingerprint_ignores_unlisted_fields() -> None:
-    """A field outside the policy (the player's name) does not split the bucket."""
-    suite = _suite()
-    base = PlayerCapabilities(player_name="a", player_type="ai")
-    renamed = PlayerCapabilities(player_name="b", player_type="ai")
-    assert suite.capability_fingerprint(base) == suite.capability_fingerprint(renamed)
-
-
-def test_capability_fingerprint_tracks_listed_fields() -> None:
-    """A policy-named field (max observations) splits the bucket."""
-    suite = _suite()
-    base = PlayerCapabilities(player_name="a", player_type="ai")
-    bumped = PlayerCapabilities(player_name="a", player_type="ai", max_observations_per_request=4)
-    assert suite.capability_fingerprint(base) != suite.capability_fingerprint(bumped)
-
-
-def test_unknown_capability_policy_field_is_rejected() -> None:
-    """A policy entry that names no real capability fails loudly."""
-    with pytest.raises(ValidationError, match="unknown PlayerCapabilities fields"):
-        _ = _suite(capability_policy=("not_a_field",))
-
-
 def test_absolute_missions_path_is_rejected() -> None:
-    """An absolute set path would make content_hash machine-dependent, so it is rejected."""
+    """An absolute set path would make config_digest machine-dependent, so it is rejected."""
     with pytest.raises(ValidationError, match="missions_path"):
         _ = _suite(missions_path=Path("/abs/missions"))
 
