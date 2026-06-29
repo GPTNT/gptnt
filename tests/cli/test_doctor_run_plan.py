@@ -76,11 +76,11 @@ def test_clean_roster_resolves_config_to_player_name_and_passes() -> None:
 
 
 def test_anchor_not_in_roster_is_a_fatal_cross_check() -> None:
-    """A `with_best_expert` preset whose anchor isn't spawned would stall — that must be a ✗."""
+    """A `with_best_defuser` preset whose anchor isn't spawned would stall — that must be a ✗."""
     manifest = _manifest(
-        experiments=["e4-rep2-best-expert"],
+        experiments=["e0"],
         players=[{"model": "test_defuser"}],
-        anchors={"best_expert": "test_expert"},  # resolves to test-expert, NOT in the roster
+        anchors={"best_defuser": "test_expert"},  # resolves to test-expert, NOT in the roster
     )
     config_to_player = {"test_defuser": "test-defuser"}
 
@@ -89,7 +89,7 @@ def test_anchor_not_in_roster_is_a_fatal_cross_check() -> None:
     offender = _row(findings, "Player test-expert")
     assert offender is not None
     assert offender.status == "fail"
-    assert "best_expert" in offender.hint
+    assert "best_defuser" in offender.hint
 
 
 def test_explicit_count_is_not_second_guessed() -> None:
