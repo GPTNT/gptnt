@@ -7,7 +7,3 @@ defaults:
   - override /experiment/player_specs@defuser_protocol: defuser
   - override /experiment/player_specs@expert_protocol: expert
   - _self_
-
-mission_generator:
-  config:
-    time_limit: null

@@ -42,12 +42,6 @@ class MissionGeneratorConfig(BaseModel):
         }
     )
 
-    mission_specs_dir: Path | None = None
-    """Directory to save mission specs to.
-
-    If not None, the mission specs will not be generated, but will default to the given directory.
-    """
-
     @property
     def available_modules(self) -> list[KtaneComponent]:
         """Get a list of available modules."""
@@ -62,10 +56,13 @@ class MissionGeneratorConfig(BaseModel):
             return 1
         return len(self.available_modules)
 
-    @property
-    def should_load_mission_specs(self) -> bool:
-        """Check if mission specs should be loaded from the directory."""
-        return self.mission_specs_dir is not None
+
+def load_missions(missions_path: Path) -> list[KtaneMissionSpec]:
+    """Load every materialised mission spec from a set directory, sorted by file name."""
+    mission_files = sorted(missions_path.glob("*.json"))
+    if not mission_files:
+        raise FileNotFoundError(f"No mission specs found in {missions_path}")
+    return [KtaneMissionSpec.model_validate_json(path.read_text()) for path in mission_files]
 
 
 class MissionGenerator:
@@ -86,18 +83,14 @@ class MissionGenerator:
         )
 
     def generate(self) -> Iterator[KtaneMissionSpec]:
-        """Generate mission specs based on the experiment condition."""
-        if self.spec.should_load_mission_specs and self.spec.mission_specs_dir:
-            mission_files = list(self.spec.mission_specs_dir.glob("*.json"))
-            if not mission_files:
-                raise FileNotFoundError(f"No mission specs found in {self.spec.mission_specs_dir}")
+        """Generate fresh mission specs from the configured seeds.
 
-            for mission_file in self.spec.mission_specs_dir.glob("*.json"):
-                yield self._load_mission_specs(mission_file=mission_file)
-        else:
-            for seed in self.seeds:
-                self._reset_rng(seed)
-                yield from self._generate_for_seed(seed)
+        This is the authoring path that materialises a mission set. The run path never generates.
+        It loads the materialised files with `load_missions`.
+        """
+        for seed in self.seeds:
+            self._reset_rng(seed)
+            yield from self._generate_for_seed(seed)
 
     def _generate_for_seed(self, seed: int) -> Iterator[KtaneMissionSpec]:
         """Generate mission specs for a specific seed."""
@@ -157,10 +150,6 @@ class MissionGenerator:
             return self._sample_from_all_modules(n_components)
 
         return [KtaneComponent(module) for module in sampled_modules]
-
-    def _load_mission_specs(self, mission_file: Path) -> KtaneMissionSpec:
-        """Load mission specs from a JSON file."""
-        return KtaneMissionSpec.model_validate_json(mission_file.read_text())
 
     def _reset_rng(self, seed: int) -> None:
         """Reset the random number generator with a specific seed."""

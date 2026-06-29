@@ -32,11 +32,8 @@ defuser_protocol: ???
 expert_protocol: ???
 communication_style: ???
 
-mission_generator:
-  _target_: gptnt.experiments.generation.missions.MissionGenerator
-  seed: 10
-  num_seeds_per_mission: ???
-  config: ???
+# Directory of materialised mission specs to load. Set by the chosen mission_condition.
+missions_path: ???
 
 experiment_generator:
   _target_: gptnt.experiments.generation.experiments.ExperimentGenerator

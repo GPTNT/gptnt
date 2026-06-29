@@ -48,6 +48,12 @@ def build_app() -> App:
         help="Generate experiment specs from a run.yaml.",
     )
     app.command(
+        "gptnt.cli.generate_missions:generate_missions",
+        name="generate-missions",
+        group=onboarding,
+        help="Materialise a mission set into configs/missions/ from the seed-based generator.",
+    )
+    app.command(
         "gptnt.cli.run.command:run",
         name="run",
         group=onboarding,

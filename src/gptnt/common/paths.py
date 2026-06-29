@@ -53,6 +53,11 @@ class Paths(BaseSettings):
         return self.configs / "experiment"
 
     @property
+    def missions_library(self) -> Path:
+        """Directory of materialised mission sets (`configs/missions/`)."""
+        return self.configs / "missions"
+
+    @property
     def experiment_recorder_dir(self) -> Path:
         """The base directory under which each run's timestamped output dir is created."""
         return self.output.joinpath("experiment_recorder_outputs")
