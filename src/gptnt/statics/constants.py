@@ -1,7 +1,7 @@
 """Shared scoring constants for static evaluation.
 
-Module names, grounding/keypad answer keys, and the task-type alias used by the
-evaluation scorers, prompts, and CLI. Self-contained domain data (no generation deps).
+Module names, grounding/keypad answer keys, and the task-type alias used by the evaluation scorers,
+prompts, and CLI. Self-contained domain data (no generation deps).
 """
 
 from types import MappingProxyType

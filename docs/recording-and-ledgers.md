@@ -187,11 +187,11 @@ nothing.
 
 ## Who reads what
 
-| consumer             | reads                                                                       | via                                                 |
-| -------------------- | --------------------------------------------------------------------------- | --------------------------------------------------- |
-| **ledger / cleanup** | footers only (outcome + crash flag)                                         | no DB needed                                        |
-| **Streamlit app**    | `experiment_summary` to browse, then `experiment_step` for the selected one | DuckDB                                              |
-| **seeder (future)**  | `experiment_summary` filtered by `mission_key`, then its steps              | DuckDB                                              |
+| consumer             | reads                                                                       | via          |
+| -------------------- | --------------------------------------------------------------------------- | ------------ |
+| **ledger / cleanup** | footers only (outcome + crash flag)                                         | no DB needed |
+| **Streamlit app**    | `experiment_summary` to browse, then `experiment_step` for the selected one | DuckDB       |
+| **seeder (future)**  | `experiment_summary` filtered by `mission_key`, then its steps              | DuckDB       |
 
 ---
 
