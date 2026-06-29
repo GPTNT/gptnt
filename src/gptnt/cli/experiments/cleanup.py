@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from cyclopts import Parameter
 from cyclopts.types import ExistingDirectory
@@ -8,22 +8,15 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress
 from rich.table import Table
-from wandb.apis.public import Runs
 
 from gptnt.cli.experiments.models import SourceOption
 from gptnt.common.logger import create_progress
 from gptnt.common.paths import Paths, remove_empty_experiment_recorder_outputs
 from gptnt.experiments.db._extract import compute_experiment_validity, group_by_unique_experiment
 from gptnt.experiments.ledger import Source
-from gptnt.experiments.ledger.wandb import resolve_wandb_path
-from gptnt.experiments.wandb_runs import (
-    cleanup_wandb_runs,
-    collate_runs_per_experiment_per_game,
-    delete_old_experiment_outputs,
-    get_runs_from_wandb,
-    mark_runs_without_output_files_as_old,
-    parse_experiment_outputs_from_directory,
-)
+
+if TYPE_CHECKING:
+    from wandb.apis.public import Runs  # type annotation only; needs the wandb extra at runtime
 
 console = Console()
 paths = Paths()
@@ -116,6 +109,9 @@ def _cleanup_against_wandb(  # noqa: WPS210
     do_not_old_if_no_output_file: bool,
 ) -> None:
     """Mark invalid W&B runs as old and delete local files lacking a valid run (opt-in)."""
+    # Imported here, not at module top, so `--source local` works without the wandb extra.
+    from gptnt.experiments.ledger.wandb import resolve_wandb_path  # noqa: PLC0415
+
     wandb_path = resolve_wandb_path()
     console.rule("[bold]Experiment Cleanup (wandb)[/bold]")
     _print_run_config(dry_run=dry_run, wandb_path=wandb_path, directory=directory)
@@ -146,6 +142,15 @@ def _run_wandb_cleanup(  # noqa: WPS210
     progress: Progress,
 ) -> None:
     """Run the wandb cleanup steps; raises `_NothingToDo` on a clean early exit."""
+    # Imported here, not at module top, so `--source local` works without the wandb extra.
+    from gptnt.experiments.wandb_runs import (  # noqa: PLC0415
+        cleanup_wandb_runs,
+        collate_runs_per_experiment_per_game,
+        delete_old_experiment_outputs,
+        mark_runs_without_output_files_as_old,
+        parse_experiment_outputs_from_directory,
+    )
+
     all_runs = _require_runs(
         wandb_path=wandb_path, include_dummy_runs=include_dummy_runs, progress=progress
     )
@@ -191,8 +196,11 @@ def _print_run_config(*, dry_run: bool, wandb_path: str, directory: Path | None)
     console.print(Panel.fit(table, title="[bold]Run Config[/bold]", border_style="blue"))
 
 
-def _require_runs(*, wandb_path: str, include_dummy_runs: bool, progress: Progress) -> Runs:
+def _require_runs(*, wandb_path: str, include_dummy_runs: bool, progress: Progress) -> "Runs":
     """Fetch all WandB runs, exiting cleanly when none are found."""
+    # Imported here, not at module top, so `--source local` works without the wandb extra.
+    from gptnt.experiments.wandb_runs import get_runs_from_wandb  # noqa: PLC0415
+
     task = progress.add_task("Fetching runs from WandB", total=None)
     filters_for_dummies = (
         []
