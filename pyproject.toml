@@ -77,6 +77,7 @@ tests = [
 ]
 lint = [
     "basedpyright>=1.29.2",
+    "commitizen>=4.0",
     "creosote>=5.2.0",
     "docformatter>=1.7.5",
     "flake8-pyproject>=1.2.3",
@@ -135,6 +136,16 @@ skip = '.git*,*.svg,*.lock,*.css,*.yaml,*.json'
 check-hidden = true
 ignore-regex = '\*\*[A-Z]\*\*[a-z]+\b'
 ignore-words-list = 'som'
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "v$version"
+# Read the version from git tags (pairs with uv-dynamic-versioning); cz only creates the tag.
+version_provider = "scm"
+version_scheme = "semver"
+# Pre-v1: keep everything in 0.x. A breaking change bumps the middle segment, not to 1.0.0.
+major_version_zero = true
+update_changelog_on_bump = true
 
 [tool.coverage.report]
 skip_covered = true

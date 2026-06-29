@@ -9,8 +9,8 @@ description = "Format/lint all files in one go"
 run = "uv run prek run -a"
 
 [tasks.release]
-description = "Cut a release: auto-bump MAJOR.MINOR.PATCH from commits (see CONTRIBUTING.md). Dry-run by default; pass -- --apply"
-run = "uv run python scripts/release.py"
+description = "Cut a release: cz bump derives the next SemVer from commits, tags, and updates CHANGELOG.md. Preview with `mise run release -- --dry-run`."
+run = "uv run cz bump"
 
 [tasks.sync]
 description = "Install dependencies"
@@ -23,4 +23,3 @@ run = "uv run pytest"
 [tools]
 python = "3.13"
 uv = "latest"
-git-cliff = "latest"

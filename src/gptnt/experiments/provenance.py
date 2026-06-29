@@ -1,10 +1,3 @@
-"""Provenance for recorded eval runs: the gptnt version, edition, and git commit.
-
-These are stamped into every recorded experiment (see [ExperimentPlayerRecord]) so results are
-self-describing: comparability is judged on the EDITION (same edition ⇒ comparable) and exact
-reproduction on the full version + git SHA. See CONTRIBUTING.md for the scheme.
-"""
-
 from __future__ import annotations
 
 import subprocess
@@ -15,13 +8,13 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 
 # Used when the package metadata or git state can't be resolved (e.g. an exotic install layout).
-UNKNOWN_VERSION = "0.0.0.0"  # noqa: S104 — a 4-segment version fallback
+UNKNOWN_VERSION = "0.0.0"
 _MODULE_DIR = Path(__file__).resolve().parent
 
 
 @lru_cache(maxsize=1)
 def gptnt_version() -> str:
-    """Resolved gptnt version, e.g. `1.4.2.0` or `1.4.2.0.dev3+g<sha>` between releases."""
+    """Resolved gptnt version, e.g. `0.13.2` or `0.13.2.dev3+g<sha>` between releases."""
     try:
         return version("gptnt")
     except PackageNotFoundError:
@@ -30,7 +23,7 @@ def gptnt_version() -> str:
 
 @lru_cache(maxsize=1)
 def gptnt_edition() -> int:
-    """Leading EDITION segment — the result-comparability generation (0 if unresolved)."""
+    """Leading SemVer MAJOR — the comparability generation (0 pre-v1 or if unresolved)."""
     head = gptnt_version().split(".", 1)[0]
     return int(head) if head.isdigit() else 0
 
