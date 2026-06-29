@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 
 from gptnt.experiments.ledger.base import CompletionLedger, Source
 from gptnt.experiments.ledger.local import LocalLedger
-from gptnt.experiments.ledger.wandb import WandbLedger, resolve_wandb_path
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -13,9 +12,12 @@ if TYPE_CHECKING:
 
 
 def resolve_ledger(source: Source, *, output_dir: Path) -> CompletionLedger:
-    """Build the ledger for the chosen source (local by default; W&B only when asked)."""
+    """Build the ledger for the chosen source (local by default)."""
     if source is Source.local:
         return LocalLedger(output_dir=output_dir)
+
+    # Imported here, not at module top, so the local source works without the wandb extra.
+    from gptnt.experiments.ledger.wandb import WandbLedger, resolve_wandb_path  # noqa: PLC0415
 
     return WandbLedger(wandb_path=resolve_wandb_path())
 
