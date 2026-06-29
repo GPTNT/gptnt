@@ -1,7 +1,7 @@
+from pathlib import Path
 from typing import Annotated
 
 from cyclopts import Parameter
-from cyclopts.types import ExistingDirectory
 from rich.console import Console
 
 from gptnt.common.paths import Paths, remove_empty_experiment_recorder_outputs
@@ -13,7 +13,7 @@ paths = Paths()
 
 def cleanup_experiment_outputs(
     target: Annotated[
-        ExistingDirectory,
+        Path,
         Parameter(
             help="Directory of experiment outputs to clean. Defaults to the recorder output dir."
         ),
