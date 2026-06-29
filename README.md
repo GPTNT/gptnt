@@ -450,7 +450,7 @@ The roster that **experiment generation** draws from lives in `configs/experimen
 Other useful commands: `gptnt status` (check run progress on WandB), `gptnt kill` (force-kill stuck game/player processes), `gptnt cleanup-outputs` (prune invalid/crashed local outputs and orphaned `.tmp` writes), `gptnt reconcile-wandb` (tag invalid remote WandB runs and delete local files lacking a valid run). `gptnt generate` and `gptnt submit` remain available for manual/advanced workflows.
 
 > [!WARNING]
-> Many commands have a `dry-run` mode (`--dry-run`) that prints what would happen without actually doing it. Use it liberally otherwise you will risk deleting data.
+> Destructive commands (`cleanup-outputs`, `reconcile-wandb`) preview by default and only act when you pass `--execute`. Run them without `--execute` first to see what would happen, otherwise you will risk deleting data.
 
 ## Analyse results
 
