@@ -67,12 +67,26 @@ class ExperimentSpec(BaseModel, frozen=True):
         return f"{self._defuser_name}--{self._expert_name}"
 
     @property
+    def suite_version(self) -> str:
+        """Get the suite version for the experiment."""
+        return f"{self.suite_id}[rev{self.suite_revision}]"
+
+    @property
     def experiment_name(self) -> str:
         """Get the name for the experiment."""
         module_names = "-".join(
             sorted({component.value for component in self.mission_spec.components})
         )
-        return f"{self.mission_set}_{self.communication_style}_{module_names}_{self.mission_spec.seed}_({self.pairing})"
+        return "_".join(
+            [
+                self.suite_version,
+                self.mission_set,
+                self.communication_style,
+                module_names,
+                str(self.mission_spec.seed),
+                f"({self.pairing})",
+            ]
+        )
 
     @property
     def attempt_name(self) -> str:
