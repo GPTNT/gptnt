@@ -16,12 +16,8 @@ suites:
 rooms: 2
 
 players:
-  - model: claude46
-  - model: gemini-3
-
-anchors:
-  best_expert: gemini-3
-  best_defuser: gemini-3
+  - model: test_defuser
+  - model: test_expert
 
 # Where the resume check reads completion from: `local` (on-disk outputs, needs no W&B) or `wandb`.
 # W&B logging itself is driven by the ambient WANDB_* environment, not configured here.
