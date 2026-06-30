@@ -103,7 +103,7 @@ cd gptnt
 mise install
 
 # 3. Install dependencies (runs `uv sync --all-groups`)
-mise run install   # alias: mise i
+mise run sync   # alias: mise i
 
 # 4. Set your keys the mise way (see Preconditions §4) — e.g. edit mise.local.toml
 
@@ -288,7 +288,7 @@ We've tried to keep system/external dependencies to a minimum to facilitate _ItJ
 - Python 3.13
 - (recommended) [mise-en-place](https://mise.jdx.dev/getting-started.html) to install/pin the toolchain and manage env vars.
 
-With mise, `mise install` provisions the pinned toolchain (python 3.13, uv) and `mise run install` (alias `mise i`) installs dependencies via `uv sync --all-groups`.
+With mise, `mise install` provisions the pinned toolchain (python 3.13, uv) and `mise run sync` (alias `mise i`) installs dependencies via `uv sync --all-groups`.
 
 - **[uv](https://docs.astral.sh/uv/)** and **Python ≥ 3.13** (we pin `>=3.13, <3.14`). We recommend [mise](https://mise.jdx.dev) to pin the tools and manage secrets. `mise install` reads the versions from `mise.toml`'s `[tools]`.
 - **Docker** (for `docker compose up -d`).
