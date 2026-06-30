@@ -18,11 +18,8 @@ class ExperimentSpec(BaseModel, frozen=True):
 
     attempt: int = 1
 
-    suite_id: str = "unknown"
-    """The suite this spec was generated for."""
-
-    suite_revision: int = 0
-    """The suite revision at generation time."""
+    suite_id: str
+    suite_revision: int
 
     defuser_protocol: PlayerProtocol
     defuser_name: str
