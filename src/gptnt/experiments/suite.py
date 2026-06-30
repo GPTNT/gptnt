@@ -85,7 +85,9 @@ class Suite(BaseModel):
         suite config is untouched.
         """
         missions = load_missions(Paths().root / self.missions_path)
-        return stable_digest(sorted(mission.model_dump_json() for mission in missions))
+        # sort the payloads using the digest so that the ordering is stable too.
+        payloads = sorted([mission.model_dump_json() for mission in missions], key=stable_digest)
+        return stable_digest(payloads)
 
     @property
     def suite_digest(self) -> str:
