@@ -1,4 +1,8 @@
-## Unreleased
+## v0.14.0 (2026-06-30)
+
+### Feat
+
+- **experiment-specs**: change experiment spec presets into `Suite`s (#3)
 
 ### Fix
 
