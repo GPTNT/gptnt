@@ -147,6 +147,9 @@ version_scheme = "semver"
 # Pre-v1: keep everything in 0.x. A breaking change bumps the middle segment, not to 1.0.0.
 major_version_zero = true
 update_changelog_on_bump = true
+# Sign the tag with the version as its message. Git's tag.gpgsign already forces a signed annotated
+# tag, which needs a message; without this cz omits one and git blocks on an editor.
+gpg_sign = true
 
 [tool.coverage.report]
 skip_covered = true
