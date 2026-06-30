@@ -134,7 +134,9 @@ def experiment_descriptor(player_protocol: PlayerProtocol) -> ExperimentDescript
     )
     experiment_spec = ExperimentSpec(
         mission_spec=mission_spec,
-        condition="single_module",
+        mission_set="single_module",
+        suite_name="test-suite",
+        suite_revision=1,
         defuser_protocol=player_protocol,
         defuser_name="test-defuser",
         expert_protocol=None,

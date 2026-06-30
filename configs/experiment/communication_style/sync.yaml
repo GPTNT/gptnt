@@ -1,7 +1,0 @@
-# @package _global_
-
-communication_style: sync
-
-mission_generator:
-  config:
-    time_limit: null

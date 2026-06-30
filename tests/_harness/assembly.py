@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 import anyio
 from coredis import Redis
 
-from gptnt.experiments.spec import Condition, ExperimentSpec
+from gptnt.experiments.spec import ExperimentSpec
 from gptnt.interactive.entrypoints.run_game_instance import main as build_game_app
 from gptnt.interactive.entrypoints.run_player import main as build_player_app
 from gptnt.interactive.services.broker import create_redis_broker
@@ -65,7 +65,7 @@ class AssembledExperiment:
         time_limit: int = 300,
         num_strikes_allowed: int = 3,
         communication_style: CommunicationStyle = "sync",
-        condition: Condition = "single_module",
+        mission_set: str = "single_module",
     ) -> ExperimentSpec:
         """Build a spec whose player names match the assembled services (so matchmaking pairs)."""
         is_solo = self.expert is None
@@ -87,7 +87,9 @@ class AssembledExperiment:
                 components=[component],
                 optional_widgets=1,
             ),
-            condition=condition,
+            mission_set=mission_set,
+            suite_name="test-suite",
+            suite_revision=1,
             defuser_protocol=PlayerProtocol(
                 role="defuser",
                 communication_style=communication_style,

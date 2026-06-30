@@ -1,0 +1,22 @@
+# @package _global_
+
+# Recipe that materialises the single_module mission set into configs/missions/single_module/.
+# Run `gptnt generate-missions single_module` to regenerate those files. The materialised files
+# are the source of truth. This recipe records how they were produced.
+
+generator:
+  _target_: gptnt.experiments.generation.missions.MissionGenerator
+  seed: 10
+  num_seeds_per_mission: 10
+  config:
+    _target_: gptnt.experiments.generation.missions.MissionGeneratorConfig
+    time_limit: null
+    allow_back_placement: false
+
+    n_modules_min: 1
+    n_modules_max: 1
+    sample_from_modules: false
+    allow_repeat_module: false
+
+    min_optional_widgets: 1
+    max_optional_widgets: 5

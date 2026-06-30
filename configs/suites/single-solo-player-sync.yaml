@@ -1,0 +1,18 @@
+# @package _global_
+
+suite:
+  _target_: gptnt.experiments.suite.Suite
+  name: single-solo-player-sync
+  revision: 1
+  modality: [vision, language]
+  missions_path: configs/missions/single_module
+  defuser_protocol:
+    _target_: gptnt.specification.PlayerProtocol
+    role: defuser
+    communication_style: sync
+    is_playing_alone: true
+    include_manual: true
+  expert_protocol: null
+  matchup:
+    _target_: gptnt.experiments.suite.SuiteMatchup
+    pairing_type: no_expert

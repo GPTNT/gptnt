@@ -1,0 +1,23 @@
+# The headline suites: one model plays both roles across the multi-module set, sync and async.
+#
+#     gptnt doctor runs/headline.yaml      # validate structure + config names
+#     gptnt generate runs/headline.yaml    # write specs
+#     gptnt run runs/headline.yaml         # play and record
+#
+# Set `players` to the models you want to benchmark.
+
+spec_version: 2
+suites:
+  - multi-self-sync
+  - multi-self-async
+rooms: 2
+
+players:
+  - model: claude46
+  - model: gemini-3
+  - model: gpt52
+  - model: internvl35
+  - model: qwen3vl
+
+source: local
+observability: limited

@@ -1,0 +1,11 @@
+{
+	"seed": 337,
+	"timeLimit": 105,
+	"numStrikes": 3,
+	"components": ["Memory"],
+	"optWidgets": 2,
+	"needyTime": 60,
+	"isFront": true,
+	"timeScale": 1.0,
+	"timeStepSize": 3000
+}

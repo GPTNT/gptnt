@@ -25,7 +25,6 @@ from gptnt.common.logger import monkey_patch_binary_content_repr
 from gptnt.experiments.descriptor import ExperimentDescriptor, PlayerContent
 from gptnt.experiments.duckdb import AsBlob, AsJSON, AsVarchar, DuckDBSchemaMixin
 from gptnt.experiments.provenance import ProvenanceMixin
-from gptnt.experiments.spec import Condition
 from gptnt.ktane.actions import KtaneBaseAction, KtaneGameplayInput
 from gptnt.ktane.mission_spec import compute_mission_key
 from gptnt.ktane.state.bomb import BombState
@@ -322,7 +321,10 @@ class ExperimentSummary(ProvenanceMixin, DuckDBSchemaMixin):
     attempt_name: Annotated[str, Field(alias="name")]
     session_id: UUID4
 
-    condition: Condition
+    mission_set: str
+    suite_name: str = "unknown"
+    suite_revision: int = 0
+
     seed: int
     pairing: str
     defuser_name: Annotated[str, Field(alias="defuser")]
@@ -349,6 +351,20 @@ class ExperimentSummary(ProvenanceMixin, DuckDBSchemaMixin):
     # Any custom tags to describe the experiment
     tags: list[str] = Field(default_factory=list)
 
+    @computed_field
+    @property
+    def defuser_capability_fingerprint(self) -> str:
+        """Fingerprint of the defuser's capabilities."""
+        return self.defuser_capabilities.fingerprint
+
+    @computed_field
+    @property
+    def expert_capability_fingerprint(self) -> str:
+        """Fingerprint of the expert's capabilities, or empty when there is no expert."""
+        if self.expert_capabilities is None:
+            return ""
+        return self.expert_capabilities.fingerprint
+
     @classmethod
     def from_descriptor_and_bomb_state(
         cls,
@@ -366,7 +382,9 @@ class ExperimentSummary(ProvenanceMixin, DuckDBSchemaMixin):
         return cls(
             attempt_name=spec.attempt_name,
             session_id=descriptor.session_id,
-            condition=spec.condition,
+            mission_set=spec.mission_set,
+            suite_name=spec.suite_name,
+            suite_revision=spec.suite_revision,
             communication_style=spec.communication_style,
             modules=spec.mission_spec.components,
             pairing=spec.pairing,

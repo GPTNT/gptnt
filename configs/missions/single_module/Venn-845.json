@@ -1,0 +1,11 @@
+{
+	"seed": 845,
+	"timeLimit": 126,
+	"numStrikes": 3,
+	"components": ["Venn"],
+	"optWidgets": 1,
+	"needyTime": 60,
+	"isFront": true,
+	"timeScale": 1.0,
+	"timeStepSize": 3000
+}

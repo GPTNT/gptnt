@@ -1,0 +1,11 @@
+{
+	"seed": 813,
+	"timeLimit": 135,
+	"numStrikes": 3,
+	"components": ["Simon"],
+	"optWidgets": 3,
+	"needyTime": 60,
+	"isFront": true,
+	"timeScale": 1.0,
+	"timeStepSize": 3000
+}

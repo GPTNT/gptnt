@@ -25,7 +25,7 @@ _QUICKSTART = _REPO_ROOT / "runs" / "quickstart.yaml"
 def _minimal_manifest() -> dict[str, object]:
     """Return the smallest valid manifest payload (everything else defaults)."""
     return {
-        "experiments": ["e1-single-pairwise"],
+        "suites": ["single-pairwise-sync"],
         "rooms": 2,
         "players": [{"model": "claude46"}, {"model": "gemini-3"}],
     }
@@ -55,8 +55,8 @@ def test_default_models_do_not_share_mutable_state() -> None:
 
 def test_loads_manifest_from_yaml_file(tmp_path: Path) -> None:
     spec = """
-        spec_version: 1
-        experiments: [e1-single-pairwise]
+        spec_version: 2
+        suites: [single-pairwise-sync]
         rooms: 3
         players:
           - model: claude46
@@ -78,8 +78,8 @@ def test_committed_quickstart_manifest_loads_cleanly() -> None:
 
     manifest = RunManifest.from_path(_QUICKSTART)
 
-    assert manifest.spec_version == 1
-    assert manifest.experiments == ["e1-single-pairwise"]
+    assert manifest.spec_version == 2
+    assert manifest.suites == ["single-pairwise-sync"]
     assert manifest.rooms == 2
     assert [player.model for player in manifest.players] == ["claude46", "gemini-3"]
     assert manifest.anchors.best_expert == "gemini-3"
@@ -104,15 +104,15 @@ def test_unknown_nested_player_key_is_rejected(tmp_path: Path) -> None:
 
 def test_unsupported_spec_version_is_rejected(tmp_path: Path) -> None:
     payload = _minimal_manifest()
-    payload["spec_version"] = 2
+    payload["spec_version"] = 1  # the superseded schema
 
     with pytest.raises(ValidationError):
         _ = _load_payload(tmp_path, payload)
 
 
-def test_empty_experiments_is_rejected(tmp_path: Path) -> None:
+def test_empty_suites_is_rejected(tmp_path: Path) -> None:
     payload = _minimal_manifest()
-    payload["experiments"] = []
+    payload["suites"] = []
 
     with pytest.raises(ValidationError):
         _ = _load_payload(tmp_path, payload)

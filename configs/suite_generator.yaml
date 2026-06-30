@@ -1,0 +1,24 @@
+# @package _global_
+
+defaults:
+  - _self_
+  - anchors
+  - hydra: default
+
+  - suites: ???
+
+  - override hydra/job_logging: none
+  - override hydra/hydra_logging: none
+
+task_name: generate_specs
+
+# Placeholder roster. The real players come from the run.yaml. The gate and ad-hoc generation
+# override players.all. Anchors (players.best_*) come from configs/anchors.yaml.
+players:
+  all:
+    - claude46
+    - gemini-3
+
+# Sampling depth, not measured content: attempts per (mission, pairing). Never part of a suite's
+# digest, so running more attempts of a suite keeps results comparable.
+attempts_per_mission: 1

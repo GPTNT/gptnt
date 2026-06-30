@@ -1,7 +1,0 @@
-defaults:
-  - _default
-  - _self_
-
-role: "expert"
-is_playing_alone: false
-include_manual: true

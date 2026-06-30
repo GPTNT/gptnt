@@ -104,9 +104,9 @@ def test_status_reports_disk_completion(tmp_path: Path) -> None:
     )
 
     assert result.exit_code == 0, result.output
-    # The full attempt name is long and the status table truncates it, so assert on a stable
-    # fragment plus the counts (which prove the done output was matched by name).
-    assert "defuser=test-defuser" in result.output
+    # The full attempt name is long and the status table truncates the tail, so assert on the
+    # front of the name (the suite it belongs to) plus the counts that prove it matched by name.
+    assert "single-parametric-sync" in result.output
     assert "1 done" in result.output
     assert "1 not attempted" in result.output
 

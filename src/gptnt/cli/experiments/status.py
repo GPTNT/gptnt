@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
+from gptnt.cli.config_discovery import discover_suites
 from gptnt.cli.experiments.models import ExperimentsSource, SourceOption
 from gptnt.common.paths import Paths
 from gptnt.common.runtime_settings import RuntimeSettings
@@ -44,16 +45,6 @@ STATUS_SORT_ORDER: dict[ExperimentStatus, int] = {
     "running": 3,
 }
 
-DEFAULT_EXPERIMENT_LIST = (
-    "e1-single-pairwise",
-    "e2-single-solo-defuser",
-    "e3-single-solo-player",
-    "e5-n-self",
-    "e6-single-self-async",
-    "e7-n-self-async",
-)
-
-
 ExperimentsArgument = Annotated[
     list[str] | None,
     Parameter(
@@ -61,18 +52,18 @@ ExperimentsArgument = Annotated[
             "Zero or more experiment sources."
             "Pass nothing to generate all; "
             "pass a directory path to load from disk; "
-            "pass experiment name(s) (e.g. e1-single-pairwise) to generate only those."
+            "pass suite id(s) (e.g. single-pairwise-sync) to generate only those."
         )
     ),
 ]
 
 
-def _attempt_names_for_presets(names: list[str]) -> list[str]:
-    """Generate (in-process) the expected attempt names for the given experiment preset names."""
+def _attempt_names_for_suites(suite_names: list[str]) -> list[str]:
+    """Generate (in-process) the expected attempt names for the given suite names."""
     attempt_names: list[str] = []
-    for experiment in names:
-        console.print(f"  Adding experiment variant: [cyan]{experiment}[/cyan]")
-        specs = generate_specs([f"experiment={experiment}"])
+    for suite_name in suite_names:
+        console.print(f"  Adding suite: [cyan]{suite_name}[/cyan]")
+        specs = generate_specs([f"suites={suite_name}"])
         attempt_names.extend(spec.attempt_name for spec in specs)
     return attempt_names
 
@@ -85,19 +76,19 @@ def _load_attempt_names_from_dir(directory: Path) -> list[str]:
 def _resolve_experiments(sources: list[ExperimentsSource]) -> list[str]:
     """Load or generate the expected attempt names based on parsed CLI sources."""
     if not sources:
-        console.print("[dim]Generating all experiments...[/dim]")
-        return _attempt_names_for_presets(sorted(DEFAULT_EXPERIMENT_LIST))
+        console.print("[dim]Generating experiments for all suites...[/dim]")
+        return _attempt_names_for_suites(discover_suites())
 
     if any(src.kind == "dir" for src in sources):
         if len(sources) > 1:
-            raise ValueError("Cannot mix a directory path with experiment names.")
+            raise ValueError("Cannot mix a directory path with suite ids.")
         directory = Path(sources[0].raw)
         console.print(f"[dim]Loading experiments from {directory}[/dim]")
         return _load_attempt_names_from_dir(directory)
 
     names = [src.raw for src in sources]
     console.print(f"[dim]Generating experiments for: {', '.join(names)}[/dim]")
-    return _attempt_names_for_presets(names)
+    return _attempt_names_for_suites(names)
 
 
 def _live_running() -> set[str]:

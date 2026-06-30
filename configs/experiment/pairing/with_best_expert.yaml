@@ -1,4 +1,0 @@
-# @package pairing_generator
-
-pairing_type: with_best_expert
-best_model: ${players.best_expert}

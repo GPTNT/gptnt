@@ -2,17 +2,18 @@
 # GPTNT run manifest — the single source of truth for a run.
 # Consumed by `gptnt run <this-file>` and `gptnt doctor <this-file>`.
 # `players:` is the ONE roster: it drives BOTH spec generation AND throw,
-# so the two can't disagree (the old generate/throw mismatch trap).
+# so the two can't disagree.
 # Copy this file, rename it (e.g. runs/quickstart.yaml), fill it in.
 # ============================================================================
 
 # The version of the run manifest schema.
-spec_version: 1
+spec_version: 2
 
-# What experiments to run. Each experiment is a preset name (shape only). The run will generate and throw all of them, and union the results.
-experiments:
-  - e1-single-pairwise
-  # - e2-...
+# Which suites to run. Each is a suite id from configs/suites/. The run generates and throws all of
+# them, and unions the results.
+suites:
+  - single-pairwise-sync
+  # - multi-self-sync
 
 # Number of concurrent games to run in parallel.
 rooms: 2
@@ -35,7 +36,7 @@ anchors: # OPTIONAL. Reference models held fixed on one side of a pairing.
   best_expert: gemini-3 #   used by with_best_expert (candidate=defuser, anchor=expert)
   best_defuser: gemini-3 #   used by with_best_defuser (candidate=expert, anchor=defuser)
   #   Repo defaults live in configs/anchors.yaml; this overrides them.
-  #   NOTE: an anchor used by a selected preset must resolve to a
+  #   NOTE: an anchor used by a selected suite must resolve to a
   #   player_name that is present in `players:` above, or doctor/run
   #   fails the cross-check (it would otherwise silently stall).
 

@@ -16,7 +16,6 @@ from gptnt.specification import PlayerCapabilities, PlayerProtocol
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from gptnt.experiments.spec import Condition
     from gptnt.specification import CommunicationStyle
 
 
@@ -31,7 +30,9 @@ def make_experiment_spec(seed: int = 12345) -> ExperimentSpec:
             optional_widgets=1,
             needy_time=60,
         ),
-        condition="single_module",
+        mission_set="single_module",
+        suite_name="single-parametric-sync",
+        suite_revision=1,
         defuser_protocol=PlayerProtocol(
             role="defuser",
             communication_style="sync",
@@ -73,15 +74,15 @@ def make_experiment_summary(
     strike_count: int = 0,
     seconds_remaining: float = 60.0,
     communication_style: CommunicationStyle = "sync",
-    condition: Condition = "multiple_modules_2",
+    mission_set: str = "multiple_modules_2",
     seed: int = 12345,
 ) -> ExperimentSummary:
     """A real ExperimentSummary; defaults to a valid, fully-solved multi-module mission."""
     descriptor = make_experiment_descriptor()
     return ExperimentSummary(
-        attempt_name=f"{condition}_{defuser_name}_{seed}",
+        attempt_name=f"{mission_set}_{defuser_name}_{seed}",
         session_id=descriptor.session_id,
-        condition=condition,
+        mission_set=mission_set,
         seed=seed,
         pairing=f"(defuser={defuser_name})",
         defuser_name=defuser_name,

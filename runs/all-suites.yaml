@@ -1,0 +1,25 @@
+# Run everything that we ran in the paper.
+#
+#     gptnt doctor runs/all-suites.yaml
+#     gptnt generate runs/all-suites.yaml
+#     gptnt run runs/all-suites.yaml
+
+spec_version: 2
+suites:
+  - multi-self-sync
+  - multi-self-async
+  - single-self-async
+  - single-parametric-sync
+  - single-solo-player-sync
+  - single-pairwise-sync
+rooms: 2
+
+players:
+  - model: claude46
+  - model: gemini-3
+  - model: gpt52
+  - model: internvl35
+  - model: qwen3vl
+
+source: local
+observability: limited

@@ -176,29 +176,29 @@ def _generate_union(
     anchors: dict[str, str],
     findings: list[CheckResult],
 ) -> list[ExperimentSpec]:
-    """Generate specs for each preset with the roster/anchors injected, deduped into one union.
+    """Generate specs for each suite with the roster/anchors injected, deduped into one union.
 
-    `generate_specs` composes ONE `experiment=` preset per call, so we iterate the manifest's
-    `experiments:` list and union the results (deduped by `attempt_name`). A bad preset or override
-    becomes a ✗ row naming the preset rather than aborting the whole report.
+    `generate_specs` composes ONE `suites=` suite per call, so we iterate the manifest's `suites:`
+    list and union the results (deduped by `attempt_name`). A bad suite id or override becomes a ✗
+    row naming the suite rather than aborting the whole report.
     """
     roster_override = f"players.all=[{','.join(sorted(roster_player_names))}]"
     anchor_overrides = [
         f"players.{field_name}={player_name}" for field_name, player_name in anchors.items()
     ]
     union: dict[str, ExperimentSpec] = {}
-    for preset in manifest.experiments:
-        overrides = [f"experiment={preset}", roster_override, *anchor_overrides]
+    for suite_name in manifest.suites:
+        overrides = [f"suites={suite_name}", roster_override, *anchor_overrides]
         try:
             specs = generate_specs(overrides)
-        except Exception as exc:  # noqa: BLE001 — surface a bad preset/override as a ✗ row
+        except Exception as exc:  # noqa: BLE001 — surface a bad suite/override as a ✗ row
             findings.append(
                 CheckResult(
-                    f"Generate: {preset}",
+                    f"Generate: {suite_name}",
                     "fail",
                     f"generation failed: {exc}",
-                    "check the preset name (run `gptnt list experiments`); "
-                    "with_best_* presets need a matching anchor in `anchors:`",
+                    "check the suite name (run `gptnt list suites`); "
+                    "with_best_* matchups need a matching anchor in `anchors:`",
                 )
             )
             continue

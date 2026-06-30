@@ -1,13 +1,11 @@
 from cyclopts import App
 from rich.console import Console
 
-from gptnt.cli.config_discovery import discover_experiments, discover_models, discover_providers
+from gptnt.cli.config_discovery import discover_models, discover_providers, discover_suites
 
 console = Console()
 
-list_app = App(
-    name="list", help="List the experiment presets and model configs a run.yaml can use."
-)
+list_app = App(name="list", help="List the suites and model configs a run.yaml can use.")
 
 
 def _print_names(title: str, names: list[str], *, empty_hint: str) -> None:
@@ -20,14 +18,10 @@ def _print_names(title: str, names: list[str], *, empty_hint: str) -> None:
         console.print(f"  {name}")
 
 
-@list_app.command(name="experiments")
-def list_experiments() -> None:
-    """List the experiment presets under `configs/experiment/` (the `experiments:` field)."""
-    _print_names(
-        "Experiment presets",
-        discover_experiments(),
-        empty_hint="No experiment presets found under configs/experiment/.",
-    )
+@list_app.command(name="suites")
+def list_suites() -> None:
+    """List the suites under `configs/suites/` (the `suites:` field)."""
+    _print_names("Suites", discover_suites(), empty_hint="No suites found under configs/suites/.")
 
 
 @list_app.command(name="models")

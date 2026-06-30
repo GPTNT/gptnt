@@ -1,6 +1,6 @@
 # A `run.yaml` manifest: the single, declarative source of truth for one run.
 #
-# It names the experiment preset(s), how many rooms to play, and which models take part. Validate it
+# It names the suite(s), how many rooms to play, and which models take part. Validate it
 # (structure + config-name cross-checks) with:
 #
 #     gptnt doctor runs/quickstart.yaml
@@ -10,9 +10,9 @@
 #     gptnt generate runs/quickstart.yaml
 #     gptnt run runs/quickstart.yaml
 
-spec_version: 1
-experiments:
-  - e1-single-pairwise
+spec_version: 2
+suites:
+  - single-pairwise-sync
 rooms: 2
 
 players:

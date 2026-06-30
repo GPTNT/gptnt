@@ -1,18 +1,9 @@
-from typing import Literal, Self, override
+from typing import Self, override
 
 from pydantic import BaseModel, model_validator
 
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.specification import CommunicationStyle, PlayerProtocol, PlayerRole
-
-type Condition = Literal[
-    "single_module",
-    "repeated_modules_2",
-    "repeated_modules_4",
-    "multiple_modules_2",
-    "multiple_modules_2_front",
-    "multiple_modules_n",
-]
 
 
 class ExperimentSpec(BaseModel, frozen=True):
@@ -22,8 +13,13 @@ class ExperimentSpec(BaseModel, frozen=True):
     """
 
     mission_spec: KtaneMissionSpec
-    condition: Condition
+    mission_set: str
+    """The mission set this came from (the `missions_path` basename), e.g. `single_module`."""
+
     attempt: int = 1
+
+    suite_name: str
+    suite_revision: int
 
     defuser_protocol: PlayerProtocol
     defuser_name: str
@@ -68,12 +64,26 @@ class ExperimentSpec(BaseModel, frozen=True):
         return f"{self._defuser_name}--{self._expert_name}"
 
     @property
+    def suite_version(self) -> str:
+        """Get the suite version for the experiment."""
+        return f"{self.suite_name}[rev{self.suite_revision}]"
+
+    @property
     def experiment_name(self) -> str:
         """Get the name for the experiment."""
         module_names = "-".join(
             sorted({component.value for component in self.mission_spec.components})
         )
-        return f"{self.condition}_{self.communication_style}_{module_names}_{self.mission_spec.seed}_({self.pairing})"
+        return "_".join(
+            [
+                self.suite_version,
+                self.mission_set,
+                self.communication_style,
+                module_names,
+                str(self.mission_spec.seed),
+                f"({self.pairing})",
+            ]
+        )
 
     @property
     def attempt_name(self) -> str:
@@ -95,7 +105,7 @@ class ExperimentSpec(BaseModel, frozen=True):
             (
                 self.mission_spec,
                 self.pairing,
-                self.condition,
+                self.mission_set,
                 self.communication_style,
                 self.attempt,
             )
