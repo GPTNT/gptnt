@@ -36,6 +36,8 @@ def _descriptor() -> ExperimentDescriptor:
             seed=7, time_limit=300, num_strikes_allowed=3, components=["Wires"], optional_widgets=1
         ),
         mission_set="single_module",
+        suite_name="test-suite",
+        suite_revision=1,
         defuser_protocol=protocol,
         defuser_name="test-defuser",
         expert_protocol=PlayerProtocol(
