@@ -99,7 +99,7 @@ We've started you off with a `runs/quickstart.yaml` manifest that declares a sim
 mise install
 
 # 2. Install dependencies (runs `uv sync --all-groups`)
-mise run install
+mise run sync
 
 # 3. Start INFRA ONLY (redis + redis UI + otel-collector).
 docker compose up -d
