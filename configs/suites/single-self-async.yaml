@@ -2,7 +2,7 @@
 
 suite:
   _target_: gptnt.experiments.suite.Suite
-  id: single-self-async
+  name: single-self-async
   revision: 1
   modality: [vision, language]
   missions_path: configs/missions/single_module

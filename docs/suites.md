@@ -1,6 +1,6 @@
 # Suites
 
-The committed suites and their revisions. Each is `configs/suites/<id>.yaml`.
+The committed suites and their revisions. Each is `configs/suites/<name>.yaml`.
 `tests/experiments/test_frozen_suites.py` pins each suite's content and missions, so a
 score-determining change requires a `revision` bump recorded here. See `docs/comparability.md` for
 what a suite is.

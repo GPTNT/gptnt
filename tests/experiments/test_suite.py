@@ -17,7 +17,7 @@ _EXPERT = PlayerProtocol(
 def _suite(**overrides: object) -> Suite:
     """Build a baseline valid suite, overriding individual fields per test."""
     fields: dict[str, object] = {
-        "id": "multi-self-sync",
+        "name": "multi-self-sync",
         "revision": 1,
         "modality": ("vision", "language"),
         "missions_path": Path("configs/missions/multiple_module_n"),
@@ -30,8 +30,8 @@ def _suite(**overrides: object) -> Suite:
 
 
 def test_config_digest_ignores_identity() -> None:
-    """A different id or revision over identical config yields the same config_digest."""
-    assert _suite().config_digest == _suite(id="renamed", revision=9).config_digest
+    """A different name or revision over identical config yields the same config_digest."""
+    assert _suite().config_digest == _suite(name="renamed", revision=9).config_digest
 
 
 def test_config_digest_tracks_missions_path() -> None:

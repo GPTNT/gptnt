@@ -187,17 +187,17 @@ def _generate_union(
         f"players.{field_name}={player_name}" for field_name, player_name in anchors.items()
     ]
     union: dict[str, ExperimentSpec] = {}
-    for suite_id in manifest.suites:
-        overrides = [f"suites={suite_id}", roster_override, *anchor_overrides]
+    for suite_name in manifest.suites:
+        overrides = [f"suites={suite_name}", roster_override, *anchor_overrides]
         try:
             specs = generate_specs(overrides)
         except Exception as exc:  # noqa: BLE001 — surface a bad suite/override as a ✗ row
             findings.append(
                 CheckResult(
-                    f"Generate: {suite_id}",
+                    f"Generate: {suite_name}",
                     "fail",
                     f"generation failed: {exc}",
-                    "check the suite id (run `gptnt list suites`); "
+                    "check the suite name (run `gptnt list suites`); "
                     "with_best_* matchups need a matching anchor in `anchors:`",
                 )
             )

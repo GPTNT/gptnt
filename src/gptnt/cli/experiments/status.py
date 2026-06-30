@@ -58,12 +58,12 @@ ExperimentsArgument = Annotated[
 ]
 
 
-def _attempt_names_for_suites(suite_ids: list[str]) -> list[str]:
-    """Generate (in-process) the expected attempt names for the given suite ids."""
+def _attempt_names_for_suites(suite_names: list[str]) -> list[str]:
+    """Generate (in-process) the expected attempt names for the given suite names."""
     attempt_names: list[str] = []
-    for suite_id in suite_ids:
-        console.print(f"  Adding suite: [cyan]{suite_id}[/cyan]")
-        specs = generate_specs([f"suites={suite_id}"])
+    for suite_name in suite_names:
+        console.print(f"  Adding suite: [cyan]{suite_name}[/cyan]")
+        specs = generate_specs([f"suites={suite_name}"])
         attempt_names.extend(spec.attempt_name for spec in specs)
     return attempt_names
 

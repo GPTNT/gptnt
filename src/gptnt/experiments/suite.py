@@ -34,7 +34,7 @@ class Suite(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    id: str
+    name: str
     revision: int = Field(ge=1)
 
     modality: Annotated[
@@ -74,7 +74,7 @@ class Suite(BaseModel):
     @property
     def config_digest(self) -> str:
         """A stable digest of the suite's config itself."""
-        payload = self.model_dump(mode="json", exclude={"id", "revision", "config_digest"})
+        payload = self.model_dump(mode="json", exclude={"name", "revision", "config_digest"})
         return stable_digest(payload)
 
     @property

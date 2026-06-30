@@ -115,7 +115,7 @@ def test_experiment_generation_does_not_crash(
     )
     generator = ExperimentGenerator(
         mission_set="single_module",
-        suite_id="single-test",
+        suite_name="single-test",
         suite_revision=1,
         defuser_protocol=PlayerProtocol(
             role="defuser",

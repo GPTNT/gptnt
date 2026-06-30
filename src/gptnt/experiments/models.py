@@ -322,7 +322,7 @@ class ExperimentSummary(ProvenanceMixin, DuckDBSchemaMixin):
     session_id: UUID4
 
     mission_set: str
-    suite_id: str = "unknown"
+    suite_name: str = "unknown"
     suite_revision: int = 0
 
     seed: int
@@ -383,7 +383,7 @@ class ExperimentSummary(ProvenanceMixin, DuckDBSchemaMixin):
             attempt_name=spec.attempt_name,
             session_id=descriptor.session_id,
             mission_set=spec.mission_set,
-            suite_id=spec.suite_id,
+            suite_name=spec.suite_name,
             suite_revision=spec.suite_revision,
             communication_style=spec.communication_style,
             modules=spec.mission_spec.components,

@@ -1,6 +1,6 @@
 """The comparability fields `ExperimentSummary` derives from a descriptor.
 
-`suite_id`/`suite_revision` come straight off the spec; each side's `capability_fingerprint` is a
+`suite_name`/`suite_revision` come straight off the spec; each side's `capability_fingerprint` is a
 digest of that player's full capabilities, so any setup change shifts its fingerprint.
 """
 
@@ -61,7 +61,7 @@ def _paired_descriptor() -> ExperimentDescriptor:
             seed=1, time_limit=300, num_strikes_allowed=3, components=["Wires"], optional_widgets=1
         ),
         mission_set="single_module",
-        suite_id="single-pairwise-sync",
+        suite_name="single-pairwise-sync",
         suite_revision=2,
         defuser_protocol=PlayerProtocol(
             role="defuser",
@@ -94,9 +94,9 @@ def _summary() -> ExperimentSummary:
 
 
 def test_suite_identity_is_carried_from_the_spec() -> None:
-    """`suite_id`/`suite_revision` reach the summary unchanged."""
+    """`suite_name`/`suite_revision` reach the summary unchanged."""
     summary = _summary()
-    assert (summary.suite_id, summary.suite_revision) == ("single-pairwise-sync", 2)
+    assert (summary.suite_name, summary.suite_revision) == ("single-pairwise-sync", 2)
 
 
 def test_each_side_fingerprints_its_own_full_capabilities() -> None:

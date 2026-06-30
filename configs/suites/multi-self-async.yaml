@@ -2,7 +2,7 @@
 
 suite:
   _target_: gptnt.experiments.suite.Suite
-  id: multi-self-async
+  name: multi-self-async
   revision: 1
   modality: [vision, language]
   missions_path: configs/missions/multiple_module_n

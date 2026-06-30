@@ -50,7 +50,7 @@ def generate_specs(overrides: list[str] | None = None) -> list[ExperimentSpec]:
     )
     generator = ExperimentGenerator(
         mission_set=suite.mission_set,
-        suite_id=suite.id,
+        suite_name=suite.name,
         suite_revision=suite.revision,
         defuser_protocol=suite.defuser_protocol,
         expert_protocol=suite.expert_protocol,

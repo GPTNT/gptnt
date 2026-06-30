@@ -18,7 +18,7 @@ class ExperimentSpec(BaseModel, frozen=True):
 
     attempt: int = 1
 
-    suite_id: str
+    suite_name: str
     suite_revision: int
 
     defuser_protocol: PlayerProtocol
@@ -66,7 +66,7 @@ class ExperimentSpec(BaseModel, frozen=True):
     @property
     def suite_version(self) -> str:
         """Get the suite version for the experiment."""
-        return f"{self.suite_id}[rev{self.suite_revision}]"
+        return f"{self.suite_name}[rev{self.suite_revision}]"
 
     @property
     def experiment_name(self) -> str:
