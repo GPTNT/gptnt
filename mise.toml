@@ -4,6 +4,14 @@ LOGFIRE_PYDANTIC_PLUGIN_EXCLUDE = "google.genai.+"
 OTEL_EXPORTER_OTLP_ENDPOINT = "http://localhost:4318/"
 COMPOSE_PROFILES = "prod"
 
+[tasks.docs]
+description = "Build the documentation site into site/"
+run = "uv run zensical build --clean"
+
+[tasks.docs-serve]
+description = "Build and serve the documentation with live reload"
+run = "uv run zensical serve"
+
 [tasks.format]
 description = "Format/lint all files in one go"
 run = "uv run prek run -a"

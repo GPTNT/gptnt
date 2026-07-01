@@ -99,6 +99,7 @@ wandb = [
 ]
 docs = [
     "zensical>=0.0.46",
+    "mkdocstrings-python>=1.11.0",
 ]
 
 [tool.uv]

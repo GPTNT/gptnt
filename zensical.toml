@@ -1,7 +1,8 @@
 [project]
 site_name = "GPTNT Documentation"
-site_description = "A new project generated from the default template project."
+site_description = "Documentation for GPTNT, an AI benchmark built on KTANE."
 site_author = "GPTNT"
+site_url = "https://gptnt.github.io/docs/"
 # The copyright notice appears in the page footer and can contain an HTML
 # fragment.
 #
@@ -31,7 +32,7 @@ nav = [
 ]
 
 [project.extra]
-homepage = "/get-started/"
+homepage = "/docs/get-started/"
 
 # ----------------------------------------------------------------------------
 # The "extra" section contains miscellaneous settings.
@@ -90,7 +91,7 @@ pygments_lang_class = true
 
 [project.markdown_extensions.pymdownx.snippets]
 auto_append = ["includes/abbreviations.md"]
-base_path = ["docs"]
+base_path = ["docs", "."]
 
 [project.markdown_extensions.pymdownx.superfences]
 custom_fences = [
@@ -108,6 +109,23 @@ custom_checkbox = true
 
 [project.markdown_extensions.toc]
 permalink = true
+
+# ----------------------------------------------------------------------------
+# The mkdocstrings handler renders API reference from the package's docstrings.
+# "paths" is resolved relative to the project root, so the docs build must run
+# where "src/" is present. Reference an object in a page with, e.g.,
+# ::: gptnt.specification.PlayerCapabilities
+#
+# Read more: https://zensical.org/docs/setup/extensions/mkdocstrings/
+# ----------------------------------------------------------------------------
+[project.plugins.mkdocstrings.handlers.python]
+inventories = ["https://docs.python.org/3/objects.inv"]
+paths = ["src"]
+
+[project.plugins.mkdocstrings.handlers.python.options]
+docstring_style = "google"
+inherited_members = true
+show_source = false
 
 # ----------------------------------------------------------------------------
 # Section for configuring theme options
