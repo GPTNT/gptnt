@@ -1,7 +1,7 @@
 # Run the benchmark
 
 !!! warning "Ensure the dummy models work first"
-This section presumes you have already run the benchmark with the dummy models and have a working setup. If you have not, follow [Get started](../get-started/installation.md) first.
+    This section presumes you have already run the benchmark with the dummy models and have a working setup. If you have not, follow [Get started](../get-started/installation.md) first.
 
 This section takes you from a working setup to a set of results you can submit. Add your model, run the benchmark's suites, then package the outcome.
 The benchmark runs as a set of **suites** through two commands:
@@ -12,7 +12,7 @@ The benchmark runs as a set of **suites** through two commands:
 ## Where to start
 
 !!! danger
-This entire section focuses on getting you to a set of results you can submit. Therefore, various details are going to be left out. If you have "why" and "how" questions, you'll want to explore the various [concepts](../concepts/) and the [internals](../internals/).
+    This entire section focuses on getting you to a set of results you can submit. Therefore, various details are going to be left out. If you have "why" and "how" questions, you'll want to explore the various [concepts](../concepts/) and the [internals](../internals/).
 
 The pages follow the order you use them:
 

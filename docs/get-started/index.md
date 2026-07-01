@@ -3,7 +3,7 @@ title: Welcome to GPTNT
 ---
 
 !!! warning
-This documentation is a work in progress.
+    This documentation is a work in progress.
 
 This project has gone through several major overhauls. Digging into it is strongly encouraged, but you are going to want to know what exists and how things work before you can get stuck all the way in. While the code is the ultimate source of truth, this documentation is meant to provide background and context on the decisions made, and anything else that is not immediately obvious.
 
@@ -13,7 +13,6 @@ GPTNT is a benchmark for real-time collaboration between multimodal agents. It u
 If you want to know more and see how it worked in practice, check out our [website](https://gptnt.github.io "https://gptnt.github.io") for all the details in full.
 
 ## Where to start?
-
-- If you haven't already, make sure you can run the dummy models using the [Get started](installation) instructions.
-- If you want to just run models on the benchmark, check out [Run the benchmark](/running/).
+- If you haven't already, make sure you can run the dummy models using the [Installation](installation.md){data-preview} instructions.
+- If you want to just run models on the benchmark, check out [Run the benchmark](../running/index.md){data-preview}.
 - If you want to dig in and understand how the benchmark works and how to build on top of it, that's a work in progress.

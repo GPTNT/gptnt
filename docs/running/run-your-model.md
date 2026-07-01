@@ -11,12 +11,12 @@ A `run.yaml` manifest names the suites, how many rooms to play at once, and the 
 ```yaml
 spec_version: 2
 suites:
-    - single-pairwise-sync
+  - single-pairwise-sync
 rooms: 2
 
 players:
-    - model: <model-name>
-    - model: test_expert
+  - model: <model-name>
+  - model: test_expert
 
 source: local
 observability: limited
@@ -34,7 +34,7 @@ observability: limited
 `gptnt list suites` shows the suite ids, and `gptnt list models` the model configs a roster can name.
 
 ??? note "Anchors and displays"
-`anchors` names a `best_expert` or `best_defuser` model for matchups that pair against a reference player. `displays` lists X display numbers to spread rooms across on a headless Linux host (see [Installation](../get-started/installation.md)).
+    `anchors` names a `best_expert` or `best_defuser` model for matchups that pair against a reference player. `displays` lists X display numbers to spread rooms across on a headless Linux host (see [Installation](../get-started/installation.md)).
 
 ### Validate it
 
@@ -53,7 +53,7 @@ gptnt generate runs/<name>.yaml
 This writes one experiment spec per mission, pairing, and attempt under `output/experiment_specs/<name>/`.
 
 ??? question "Why is this separate from running?"
-Generation is offline and deterministic; running spawns the game and spends tokens. Keeping them apart lets you inspect the specs, and lets a run resume by regenerating the same set and skipping what is already done. See [Tracking experiments](../concepts/tracking-experiments.md).
+    Generation is offline and deterministic; running spawns the game and spends tokens. Keeping them apart lets you inspect the specs, and lets a run resume by regenerating the same set and skipping what is already done. See [Tracking experiments](../concepts/tracking-experiments.md).
 
 ### Play
 
@@ -88,4 +88,4 @@ gptnt statics expert-vqa-no-manual --model <model-name> --throw
 `--throw` runs the evaluation; without it the command does a dry run. `--limit-instances N` caps the instance count while you test.
 
 ??? note "Other statics tasks"
-`gptnt statics` also has tasks like `defuser-vqa-mcq`, `defuser-grounding-som`, and `expert-ocr`. They check a model's vision and reading before you spend compute on interactive play, and are not part of the benchmark. Run `gptnt statics --help` for the full list.
+    `gptnt statics` also has tasks like `defuser-vqa-mcq`, `defuser-grounding-som`, and `expert-ocr`. They check a model's vision and reading before you spend compute on interactive play, and are not part of the benchmark. Run `gptnt statics --help` for the full list.

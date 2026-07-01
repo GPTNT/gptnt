@@ -3,14 +3,11 @@
 One of the first things you'll want to do is add your own model. Under the hood, we use Hydra for all of our configuration. Because we understand that Hydra can be a bit overwhelming, we have a simple CLI wrapper around it to simplify the process _a little_. Unfortunately, editing the YAML file for your model cannot be avoided entirely.
 
 !!! tip
-For your ease, we have already provided various configurations beyond what we ran in the leaderboard, in case anyone wants to have a go and see what happens! We still recommend reading this page, especially the section on [providers](#providers) to ensure you can connect to your preferred supplier.
+    For your ease, we have already provided various configurations beyond what we ran in the leaderboard, in case anyone wants to have a go and see what happens! We still recommend reading this page, especially the section on [providers](#providers) to ensure you can connect to your preferred supplier.
 
 ## How it works
 
 We have offloaded all responsibility for running models to [Pydantic AI](https://ai.pydantic.dev/ "https://ai.pydantic.dev/"). Pydantic AI is an excellent library for dealing with the many variations that come with different models and providers. We started using it when it was on v0.0.10 at the very beginning of this project and you should use it. It's brilliant.
-
-!!! warning
-We do not (currently) support Pydantic AI v2. There shouldn't be any major issues, but we haven't tested it yet. If you want to use v2, please let us know and we can prioritise that more.
 
 We instantiate everything using dependency inversion through Hydra to keep the `__init__`'s simple and the codebase compositional. This means that the configs in `configs/model` contain everything you need to implement and configure access to your models. There are three main parts to configure:
 
@@ -27,7 +24,7 @@ gptnt new model <model-name>
 ```
 
 ??? question "Does it matter what it's called?"
-No, it does not matter what you call the model. It matters that _you_ know what it is, because you'll need to use that name over and over and over again.
+    No, it does not matter what you call the model. It matters that _you_ know what it is, because you'll need to use that name over and over and over again.
 
 ### Configuring model settings
 
@@ -35,17 +32,17 @@ If you look at one of the existing models configs, you'll see that the "model" p
 
 ```yaml linenums="1" hl_lines="4 5"
 action_predictor:
-    agent:
-        model:
-            _target_: pydantic_ai.models.anthropic.AnthropicModel # (1)!
-            model_name: claude-sonnet-4-6 # (2)!
+  agent:
+    model:
+      _target_: pydantic_ai.models.anthropic.AnthropicModel # (1)!
+      model_name: claude-sonnet-4-6 # (2)!
 
-        model_settings:
-            _target_: pydantic_ai.models.anthropic.AnthropicModelSettings # (3)!
-            _convert_: all
-            anthropic_effort: low
-            anthropic_thinking:
-                type: disabled
+    model_settings:
+      _target_: pydantic_ai.models.anthropic.AnthropicModelSettings # (3)!
+      _convert_: all
+      anthropic_effort: low
+      anthropic_thinking:
+        type: disabled
 ```
 
 1. Class for the model from Pydantic AI's models.
@@ -59,24 +56,24 @@ Each model has a way of disabling its thinking. For now, we need to do things th
 1. Find your model in [Pydantic AI's models & providers docs](https://ai.pydantic.dev/models/overview) and update the `_target_` and `model_name` fields accordingly.
     ```yaml linenums="3"
     model:
-        _target_: pydantic_ai.models.<provider>.<ModelClass>
-        model_name: <model-name>
+      _target_: pydantic_ai.models.<provider>.<ModelClass>
+      model_name: <model-name>
     ```
 2. Find the settings class for your model and update the `_target_` field accordingly.
 
     ```yaml linenums="7"
     model_settings:
-        _target_: pydantic_ai.models.<provider>.<ModelSettingsClass>
-        _convert_: all
+      _target_: pydantic_ai.models.<provider>.<ModelSettingsClass>
+      _convert_: all
     ```
 
     !!! warning "You must set `_convert_: all`."
-    If you don't, you'll get a `ValidationError` when you try to run your model.
+        If you don't, you'll get a `ValidationError` when you try to run your model.
 
 ## Setting the Capabilities
 
 !!! danger "These are not Pydantic AI's Capabilities"
-We made this benchmark before Pydantic AI had a capabilities system, so we rolled our own. This means that the capabilities you set here are _not_ the same as Pydantic AI's capabilities. We use these to determine what your model can and cannot do, and to shape the prompts and parse the outputs accordingly. This will likely change in the future, but for now, this is how it works.
+    We made this benchmark before Pydantic AI had a capabilities system, so we rolled our own. This means that the capabilities you set here are _not_ the same as Pydantic AI's capabilities. We use these to determine what your model can and cannot do, and to shape the prompts and parse the outputs accordingly. This will likely change in the future, but for now, this is how it works.
 
 Models are "players" of the game. Each player has capabilities—things they can and can't support.
 
@@ -97,12 +94,12 @@ The `capabilities` block at the top of your config is where you tell us what you
 The rest have sensible defaults, so leave them be unless you have a reason not to.
 
 !!! warning "Thinking out loud and structured output don't mix"
-If `thinking_method` is `thinking-out-loud`, `structured_output_mode` must be `null`—the reasoning is the output, so there's nowhere to hang a schema. And if you do use `prompted`, then `include_schema_in_instructions` has to be `true`, or the model never sees the schema it's meant to follow. Both are enforced, so you'll hear about it if you get it wrong.
+    If `thinking_method` is `thinking-out-loud`, `structured_output_mode` must be `null`—the reasoning is the output, so there's nowhere to hang a schema. And if you do use `prompted`, then `include_schema_in_instructions` has to be `true`, or the model never sees the schema it's meant to follow. Both are enforced, so you'll hear about it if you get it wrong.
 
 ## Providers
 
 !!! abstract "How are you accessing your model"
-There are several ways of accessing models. For instance, you could use Microsoft Foundry, Google Cloud, Google Vertex, OpenRouter, or even vLLM.
+    There are several ways of accessing models. For instance, you could use Microsoft Foundry, Google Cloud, Google Vertex, OpenRouter, or even vLLM.
 
 It comes down to two cases.
 
@@ -118,12 +115,12 @@ Fill in the `base_url` and the key in `configs/model/provider/<name>.yaml`, then
 
 ```yaml
 players:
-    - model: <model-name>
-      provider: <name>
+  - model: <model-name>
+    provider: <name>
 ```
 
 !!! tip
-Don't paste the key into the YAML. Reference an environment variable instead—the scaffolded provider shows you how.
+    Don't paste the key into the YAML. Reference an environment variable instead—the scaffolded provider shows you how.
 
 ## Validating you set it up correctly
 

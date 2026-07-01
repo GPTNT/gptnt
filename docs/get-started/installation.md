@@ -9,9 +9,7 @@ There are some things we cannot provide for you through Python dependencies so y
 ### Bring your own game
 
 !!! warning
-We do **not** distribute or provide the game. You must supply it yourself.
-
-You can purchase it from the [Humble Bundle store](https://humblebundle.com/store/keep-talking-and-nobody-explodes).
+    We do **not** distribute or provide the game—you must supply it yourself. You can purchase it from the [Humble Bundle store](https://humblebundle.com/store/keep-talking-and-nobody-explodes).
 
 Copy-paste your platform's KTANE build under `storage/ktane`.[^1] It is discovered by `src/gptnt/ktane/executable.py` (`get_executable_path`), which raises `GameNotFoundError` if it cannot find one.
 
@@ -29,13 +27,13 @@ If you are using VSCode, it may show the `*.app` bundle as a folder. This is nor
 ### Run the infrastructure (with Docker Compose)
 
 !!! info
-Docker is only used to run Redis and the OpenTelemetry collector. The game itself is **not** run in Docker.
+    Docker is only used to run Redis and the OpenTelemetry collector. The game itself is **not** run in Docker.
 
 We use Redis as a message bus between the various services and the players.
 
 <!-- You can find out more about why we use Redis in the [why-redis.md](why-redis.md) document. -->
 
-In addition, we also use an OpenTelemetry collector to collect traces from the various services and send them to [Logfire](https://logfire.pydantic.dev/) (or another backend). This is important for debugging and understanding what is happening in the system—more in [Observability](concepts/observability).
+In addition, we also use an OpenTelemetry collector to collect traces from the various services and send them to [Logfire](https://logfire.pydantic.dev/) (or another backend). This is important for debugging and understanding what is happening in the system—more in [Observability]("Coming soon").
 
 Run the following command to start Redis and the OpenTelemetry collector:
 
@@ -44,13 +42,13 @@ docker compose up -d
 ```
 
 ??? question "What if you don't have Docker?"
-If you don't have Docker, you can just run Redis yourself. The default configuration is to listen on `localhost:6379` with no password. Check the `docker-compose.yml` file for the exact configuration to copy from.
+    If you don't have Docker, you can just run Redis yourself. The default configuration is to listen on `localhost:6379` with no password. Check the `docker-compose.yml` file for the exact configuration to copy from.
 
 ??? question "Why no password for Redis?"
-We don't use a password for Redis because it is only accessible from the local machine. If you want to run Redis on a remote machine, **you should set a password and configure the services to use it.**
+    We don't use a password for Redis because it is only accessible from the local machine. If you want to run Redis on a remote machine, **you should set a password and configure the services to use it.**
 
 ??? question "What if you don't want to use OpenTelemetry?"
-There are a couple of choices to do to disable it. Feel free to mix and match.
+    There are a couple of choices to do to disable it. Feel free to mix and match.
 
     1. Set the `OTEL_SDK_DISABLED` environment variable to `true`. This _should_ prevent the services from sending traces and the OpenTelemetry collector from starting.
     2. Don't run the OpenTelemetry collector at all. The services will still run, but you won't get any traces.
@@ -69,7 +67,7 @@ We have validated the following cases:
 - **Linux, headless:** start a GPU-backed Xorg with `scripts/startx.py`, then either export `$DISPLAY` for the run to inherit, or name the display(s) in the run manifest (`displays: [N]`, one per GPU to spread rooms across GPUs).
 
 ??? tip "How to run a headless X display on Linux"
-If you need to use sudo and you still want to use uv/similar, you can use `sudo -E` to preserve the environment variables. For instance, to run an X display on display 3, you can run:
+    If you need to use sudo and you still want to use uv/similar, you can use `sudo -E` to preserve the environment variables. For instance, to run an X display on display 3, you can run:
 
     ```bash
     sudo -E .venv/bin/python scripts/startx.py 3
@@ -80,7 +78,7 @@ If you need to use sudo and you still want to use uv/similar, you can use `sudo 
 To make sure that you can run the game and the benchmark, we have "dummy models" that you can run. They don't do anything useful, but they will make sure that the game and the benchmark are working end-to-end.
 
 ??? tip "What is `mise`?"
-During development, we use [mise-en-place](https://mise.jdx.dev) to manage the toolchain and secrets. It simplifies the installation of python versions, uv versions, and other tool dependencies. It also manages environment variables and secrets for you. You can use it if you want, but it is not required.
+    During development, we use [mise-en-place](https://mise.jdx.dev) to manage the toolchain and secrets. It simplifies the installation of python versions, uv versions, and other tool dependencies. It also manages environment variables and secrets for you. You can use it if you want, but it is not required.
 
 === "With `mise` (recommended)"
 
