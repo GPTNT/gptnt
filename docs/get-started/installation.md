@@ -83,7 +83,7 @@ We have validated the following cases:
     ```
 
 
-## Run the benchmark
+## Run the benchmark (using dummy models)
 
 To make sure that you can run the game and the benchmark, we have "dummy models" that you can run. They don't do anything useful, but they will make sure that the game and the benchmark are working end-to-end.
 
