@@ -1,8 +1,9 @@
 from typing import Union, cast
 
 from pydantic import BaseModel
-from pydantic_ai import ModelProfile, NativeOutput, PromptedOutput, RunContext, ToolOutput
+from pydantic_ai import NativeOutput, PromptedOutput, RunContext, ToolOutput
 from pydantic_ai.output import OutputSpec
+from pydantic_ai.profiles import DEFAULT_PROMPTED_OUTPUT_TEMPLATE
 
 from gptnt.players.actions import (
     DoNothingAction,
@@ -19,7 +20,7 @@ from gptnt.prompts.output_schema import (
 )
 from gptnt.specification import PlayerCapabilities, PlayerProtocol
 
-_default_template = ModelProfile().prompted_output_template
+_default_template = DEFAULT_PROMPTED_OUTPUT_TEMPLATE
 
 
 class PlayerDeps(BaseModel, frozen=True):

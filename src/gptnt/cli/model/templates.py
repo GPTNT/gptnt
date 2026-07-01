@@ -64,14 +64,21 @@ action_predictor:
     #   _target_: pydantic_ai.models.openai.OpenAIChatModel
     #   model_name: <your-served-model-name>
 
-    # Option 3 (full control): model-specific settings. The _target_ must match the
-    # model class above (e.g. AnthropicModelSettings for AnthropicModel).
+    # Option 3 (model settings): `thinking` controls the model's own reasoning, unified across
+    # providers. GPTNT scores ReAct-style reasoning in the message, so this defaults it off.
+    #   false                                  -> disable (omitted for models already off by default)
+    #   'minimal'/'low'/'medium'/'high'/'xhigh' -> enable at that effort
+    # An always-on reasoning model (e.g. gpt-5.x, gemini-3) ignores false; floor it with 'minimal'.
     # model_settings:
-    #   _target_: pydantic_ai.models.anthropic.AnthropicModelSettings
+    #   thinking: false
+    #
+    # Provider-only fields (e.g. Google safety settings) need that provider's settings class, with
+    # `thinking` set on it instead of the provider-specific reasoning field:
+    # model_settings:
+    #   _target_: pydantic_ai.models.google.GoogleModelSettings
     #   _convert_: all
-    #   anthropic_effort: low
-    #   anthropic_thinking:
-    #     type: disabled
+    #   thinking: false
+    #   google_safety_settings: [...]
 """
 
 

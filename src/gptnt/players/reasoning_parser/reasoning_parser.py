@@ -91,7 +91,7 @@ class NoOpReasoningParser[OutputT](ReasoningParser[OutputT, OutputT]):
         return AgentCallResult(
             output=output.output,
             thoughts=output.response.thinking,
-            usage=output.usage(),
+            usage=output.usage,
             new_messages=output.new_messages(),
             ai_response_error=[],
             raw_output=output.response.text,

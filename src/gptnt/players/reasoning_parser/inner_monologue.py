@@ -54,7 +54,7 @@ class InnerMonologueReasoningParser[OutputT](ReasoningParser[OutputT, OutputT]):
         return AgentCallResult(
             output=output.output,
             thoughts=thoughts,
-            usage=output.usage(),
+            usage=output.usage,
             new_messages=output.new_messages(),
             ai_response_error=[],
             raw_output=None,

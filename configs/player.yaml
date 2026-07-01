@@ -50,6 +50,10 @@ player:
 
       retries: 0
 
+      # Keep v1 behaviour: a function tool requested alongside a successful output tool is skipped,
+      # not run. pydantic-ai v2 defaults this to "graceful" (run it); we score the output only.
+      end_strategy: early
+
       model: ???
 
       model_settings:
