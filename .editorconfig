@@ -39,7 +39,7 @@ trim_trailing_whitespace = unset
 
 [*md]
 indent_style = space
-indent_size = unset
+indent_size = 4
 
 [*.sh]
 indent_size = unset

@@ -1,0 +1,29 @@
+%% Single source for the GPTNT pipeline diagram.
+%% This is the canonical copy: it is also embedded in README.md ("How it fits together")
+%% and is intended to be rendered in-terminal by `gptnt doctor` (a later phase).
+%% Keep this file and the README block in sync.
+flowchart TD
+  subgraph Pre["Preconditions (user-supplied, NOT docker)"]
+    GB["KTANE binary in paths.ktane<br/>(per-OS)"]
+    XD["X display :N<br/>(LINUX ONLY; macOS: not needed)"]
+    KEYS["API keys + WANDB creds<br/>(via mise env)"]
+  end
+  subgraph Docker["docker compose (infra: redis + redis UI + otel-collector)"]
+    R[("redis :6379")]
+    OTEL["otel-collector :4318<br/>prod→Logfire / dev→nop"]
+  end
+  RUN["gptnt run (run.yaml)"] -->|spawns| EM["Experiment Manager :8085"]
+  RUN -->|spawns| ROOMS["game rooms → KTANE binary"]
+  RUN -->|spawns| PLAYERS["player processes"]
+  RUN -->|generates + submits specs in-process| SPECS[/"spec JSONs on disk"/]
+  ROOMS -. needs .-> GB
+  ROOMS -. needs (linux) .-> XD
+  PLAYERS -. needs .-> KEYS
+  EM <--> R
+  ROOMS <--> R
+  PLAYERS <--> R
+  EM -. OTLP spans .-> OTEL
+  PLAYERS -. OTLP spans .-> OTEL
+  OTEL -->|exports| LF["Logfire (LOGFIRE_TOKEN)"]
+  SPECS -->|POST /add-specs| EM
+  EM -->|assigns work| ROOMS
