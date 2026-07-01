@@ -30,7 +30,7 @@ gptnt new model <model-name>
 
 If you look at one of the existing models configs, you'll see that the "model" part (that says what model we will be using) looks like this:
 
-```yaml linenums="1" hl_lines="4 5"
+```yaml linenums="1" hl_lines="7 8"
 action_predictor:
   agent:
     model:
@@ -38,20 +38,19 @@ action_predictor:
       model_name: claude-sonnet-4-6 # (2)!
 
     model_settings:
-      _target_: pydantic_ai.models.anthropic.AnthropicModelSettings # (3)!
-      _convert_: all
-      anthropic_effort: low
-      anthropic_thinking:
-        type: disabled
+      thinking: false # (3)!
 ```
 
-1. Class for the model from Pydantic AI's models.
+1. The model class, from Pydantic AI's models.
 2. The name of the model to use.
-3. The settings for the model, which are specific to that implementation.
-4. Minimising the thinking capabilities of the model. This is important because we don't want the model to "think" about what it is doing using reasoning tokens since we use ReAct.
+3. Turn the model's own reasoning off. `thinking` is one setting that works across every provider—we score ReAct-style reasoning in the message, so we don't want the model spending reasoning tokens on top of it.
 
-For the model, we don't just use the simple `provider:model-name` format that Pydantic AI supports because we need to _also_ be able to disable the thinking capabilities of models. (Yes, I know that Pydantic AI v2 makes this easier, but we haven't tested it yet and we don't want to break things for now.)
-Each model has a way of disabling its thinking. For now, we need to do things the slightly more difficult way.
+`thinking` controls the model's own reasoning, and it reads the same for every provider: `false` turns it off, and `'minimal'`, `'low'`, `'medium'`, `'high'`, or `'xhigh'` turn it on at that effort.
+
+!!! note "Always-on reasoning models"
+    Some models (e.g. GPT-5.x, Gemini 3) always reason and ignore `false`. Set `thinking: 'minimal'` to keep it as low as it goes.
+
+To point the config at your own model:
 
 1. Find your model in [Pydantic AI's models & providers docs](https://ai.pydantic.dev/models/overview) and update the `_target_` and `model_name` fields accordingly.
     ```yaml linenums="3"
@@ -59,12 +58,13 @@ Each model has a way of disabling its thinking. For now, we need to do things th
       _target_: pydantic_ai.models.<provider>.<ModelClass>
       model_name: <model-name>
     ```
-2. Find the settings class for your model and update the `_target_` field accordingly.
+2. Leave `model_settings` as `thinking: false`—it's the same for every provider. You only need a provider-specific settings class for fields that have no unified form (Google's safety settings, say). For those, point `_target_` at that class and keep `thinking` on it:
 
     ```yaml linenums="7"
     model_settings:
       _target_: pydantic_ai.models.<provider>.<ModelSettingsClass>
       _convert_: all
+      thinking: false
     ```
 
     !!! warning "You must set `_convert_: all`."
@@ -87,9 +87,9 @@ The `capabilities` block at the top of your config is where you tell us what you
 | `include_schema_in_instructions` | Whether we paste the output schema into the instructions.                                                                      |
 | `interaction_location_method`    | How the model points at things: `set-of-marks` (elements labelled A, B, C…) or `coordinates`.                                  |
 | `usage_limits`                   | The per-request input and output token budgets. Set these to your model's real limits.                                         |
-| `image_dimensions`               | The size of the images we send. Defaults to the [KTANE settings] override it if your model expects a fixed resolution.         |
+| `image_dimensions`               | The size of the images we send. Defaults to the KTANE settings override it if your model expects a fixed resolution.         |
 
-[KTANE settings]: ../concepts/ktane.md#resolution
+
 
 The rest have sensible defaults, so leave them be unless you have a reason not to.
 
@@ -113,14 +113,6 @@ gptnt new provider <name>
 
 Fill in the `base_url` and the key in `configs/model/provider/<name>.yaml`, then point your model at it from the roster in your `run.yaml`:
 
-```yaml
-players:
-  - model: <model-name>
-    provider: <name>
-```
-
-!!! tip
-    Don't paste the key into the YAML. Reference an environment variable instead—the scaffolded provider shows you how.
 
 ## Validating you set it up correctly
 
