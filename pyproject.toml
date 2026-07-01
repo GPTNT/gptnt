@@ -97,6 +97,9 @@ visualisation = [
 wandb = [
     "wandb[media]>=0.19.9,<0.22.1",
 ]
+docs = [
+    "zensical>=0.0.46",
+]
 
 [tool.uv]
 override-dependencies = ["streamlit>=1.40.0"]
