@@ -55,7 +55,7 @@ Widest to narrowest:
 </dl>
 
 The word "experiment" sits at two grains. <code>experiment_name</code> names the cell, and
-<code>attempt_name</code> names one try of it. But most <code>Experiment*</code> types live at the
+<code>attempt_name</code> names one try of it. But most <code>Experiment\*</code> types live at the
 attempt grain despite the name — an <code>ExperimentSpec</code> carries the <code>attempt</code> index,
 and an <code>ExperimentSummary</code> is keyed by <code>attempt_name</code> — so "experiment" in code
 usually means one attempt.
@@ -127,11 +127,11 @@ recipe.yaml ──(gptnt generate-missions)──▶ mission set: configs/missio
   `image_dimensions` (image size), `max_observations_per_request` (the observation budget), the
   structured-output mode, and the thinking and location facets below. Its `fingerprint` is a stable
   digest of the exact setup.
-  - `thinking_method` (`ThinkingMethod`) — a capability facet: `inner-monologue` keeps reasoning in a
-    separate `<think>` section, `thinking-out-loud` folds it into the message flow (and forbids
-    structured output).
-  - `interaction_location_method` (`InteractionLocationMethod`) — a capability facet: whether the
-    player points at modules by `set-of-marks` labels or by `coordinates`.
+    - `thinking_method` (`ThinkingMethod`) — a capability facet: `inner-monologue` keeps reasoning in a
+      separate `<think>` section, `thinking-out-loud` folds it into the message flow (and forbids
+      structured output).
+    - `interaction_location_method` (`InteractionLocationMethod`) — a capability facet: whether the
+      player points at modules by `set-of-marks` labels or by `coordinates`.
 
 ## Generation — config plus roster become specs
 

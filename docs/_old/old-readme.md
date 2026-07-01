@@ -1,12 +1,11 @@
-
 ## Check your setup (`gptnt doctor`)
 
 Before a run, `gptnt doctor` turns the silent failures above into a loud ✓/✗ report — each ✗ comes with the exact fix. It checks:
 
 - **Models** — a per-model table with three independent boxes for every `configs/model/*.yaml`:
-  - **Exists** — the config is found and the YAML composes.
-  - **Instantiates** — it builds into a working `pydantic_ai.Agent`. A model whose provider key is unset shows ⚠ here with the env var to set (pydantic-ai names it; doctor never reads the value) — this is also the credential check, so there's no separate "secrets" list to keep in sync.
-  - **Live** — a real request actually answered. Only run under `--live` (⊘ otherwise); a live failure is fatal.
+    - **Exists** — the config is found and the YAML composes.
+    - **Instantiates** — it builds into a working `pydantic_ai.Agent`. A model whose provider key is unset shows ⚠ here with the env var to set (pydantic-ai names it; doctor never reads the value) — this is also the credential check, so there's no separate "secrets" list to keep in sync.
+    - **Live** — a real request actually answered. Only run under `--live` (⊘ otherwise); a live failure is fatal.
 - **Redis** — a Redis endpoint is reachable at the configured DSN (`REDIS_DSN`, default `redis://localhost:6379`). Docker is just one easy way to provide it — point `REDIS_DSN` at your own if you prefer.
 - **Game binary** — the per-OS KTANE build resolves under `paths.ktane` (it reports the path it found).
 - **Mod files** — the `Gptnt Plays` mod is present under `paths.ktane/mods`.
@@ -38,21 +37,21 @@ needs:
 ```yaml
 spec_version: 1
 experiments:
-  - e1-single-pairwise # any preset in configs/experiment/*.yaml
+    - e1-single-pairwise # any preset in configs/experiment/*.yaml
 rooms: 2 # game rooms to spawn (each launches the KTANE binary)
 players:
-  - model: claude46 # a config in configs/model/*.yaml
-  - model: gemini-3
-    provider: vllm_box1 # optional override from configs/model/provider/*.yaml
+    - model: claude46 # a config in configs/model/*.yaml
+    - model: gemini-3
+      provider: vllm_box1 # optional override from configs/model/provider/*.yaml
 anchors:
-  best_expert: gemini-3
-  best_defuser: gemini-3
+    best_expert: gemini-3
+    best_defuser: gemini-3
 recording:
-  output_dir: null # null → default output dir
-  wandb: auto # reads WANDB_ENTITY / WANDB_PROJECT from the env
+    output_dir: null # null → default output dir
+    wandb: auto # reads WANDB_ENTITY / WANDB_PROJECT from the env
 observability: limited # full | limited | off — `limited` cuts span volume
 advanced:
-  hydra_overrides: []
+    hydra_overrides: []
 ```
 
 Each `players` entry is a mapping (`model`, optional `provider`, optional `count`). Provider
@@ -101,8 +100,8 @@ uv run gptnt doctor --model peekaboo --live   # SPENDS MONEY: one plain-text req
 
 ```yaml
 players:
-  - model: peekaboo
-    provider: vllm_box
+    - model: peekaboo
+      provider: vllm_box
 ```
 
 ## Observability
@@ -119,6 +118,7 @@ Each process emits OTLP spans to the OTEL collector at `localhost:4318`. The col
 - **A non-Logfire backend:** processes only ever emit OTLP _to the collector_, so you don't touch the app to retarget. Point the collector's exporters in `storage/otel-collector-config.yaml` at any OTLP destination and restart the collector.
 
 For operational detail (the `observability: limited` internals, KTANE log tail sampling, etc.) see
+
 <!-- [`docs/how-to-observability.md`](docs/how-to-observability.md). -->
 
 ## Troubleshooting
@@ -126,10 +126,10 @@ For operational detail (the `observability: limited` internals, KTANE log tail s
 | Symptom                                 | What's actually wrong (often silent)                              | Fix                                                                                             |
 | --------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | `gptnt run` aborts before starting      | `doctor` gate failed (missing key/binary/Redis, roster mismatch). | Read the ✗ and its fix; run `gptnt doctor` to see the full report.                              |
-| `GameNotFoundError`                     | No KTANE binary found under `paths.ktane`.                        | Put your platform's build under `storage/ktane` .          |
+| `GameNotFoundError`                     | No KTANE binary found under `paths.ktane`.                        | Put your platform's build under `storage/ktane` .                                               |
 | Game won't start / no X display (Linux) | No display for the game to render into.                           | Use an existing session (`$DISPLAY` set), or run `scripts/startx.py` if headless.               |
 | `connection refused` on `:6379`         | Redis isn't running.                                              | `docker compose up -d`.                                                                         |
-| Auth / 401 errors from a provider       | Provider API key not set in the mise env.                         | Add the key to `mise.local.toml [env]` or your shell.     |
+| Auth / 401 errors from a provider       | Provider API key not set in the mise env.                         | Add the key to `mise.local.toml [env]` or your shell.                                           |
 | Experiments skipped / "nothing new"     | WandB dedup — already-run specs are filtered out by `submit`.     | Use `gptnt submit --skip-wandb` to bypass the check, or expect already-run specs to be dropped. |
 
 ---
@@ -138,7 +138,6 @@ For operational detail (the `observability: limited` internals, KTANE log tail s
 
 > [!NOTE]
 > We've tried hard to make this _ItJustWorks™_—tests, formatters, linters, and CI all guard the codebase. If something doesn't work, please open an issue.
-
 
 ### Prerequisites
 
@@ -153,11 +152,11 @@ With mise, `mise install` provisions the pinned toolchain (python 3.13, uv) and 
 - **[uv](https://docs.astral.sh/uv/)** and **Python ≥ 3.13** (we pin `>=3.13, <3.14`). We recommend [mise](https://mise.jdx.dev) to pin the tools and manage secrets. `mise install` reads the versions from `mise.toml`'s `[tools]`.
 - **Docker** (for `docker compose up -d`).
 - **The KTANE game build**, placed under `storage/ktane`. We **do not distribute it**. You can purchase it from the [Humble Bundle store](https://humblebundle.com/store/keep-talking-and-nobody-explodes). The per-OS layout is:
-  - Linux: `<name>.x86_64` next to a `<name>_Data/` directory
-  - macOS: `<name>.app/Contents/MacOS/<exe>`
-  - Windows: `<name>.exe`
+    - Linux: `<name>.x86_64` next to a `<name>_Data/` directory
+    - macOS: `<name>.app/Contents/MacOS/<exe>`
+    - Windows: `<name>.exe`
 
-  If the binary is missing you'll get a `GameNotFoundError` naming `storage/ktane`.
+    If the binary is missing you'll get a `GameNotFoundError` naming `storage/ktane`.
 
 - **Linux only: an X display.** The game needs some X display. If you already have a desktop session
   (`$DISPLAY` set) it'll be used; on a headless box, start a GPU-backed Xorg with `scripts/startx.py`.
@@ -183,6 +182,7 @@ uv sync --all-groups
 ### How to warm up a model
 
 Before throwing real experiments at a new model, you can warm it up (and sanity-check its config) — see
+
 <!-- [`docs/how-to-warmup-box.md`](docs/how-to-warmup-box.md). -->
 
 ### How to verify that everything is working
@@ -239,21 +239,21 @@ A "model" is a small Hydra config under `configs/model/<name>.yaml`. The fastest
 ```yaml
 # @package player
 defaults:
-  - _self_
+    - _self_
 
 capabilities:
-  player_name: claude46 # MUST match the config's file name stem
-  thinking_method: thinking-out-loud
-  interaction_location_method: set-of-marks
-  usage_limits:
-    input_tokens_limit: 200000
-    output_tokens_limit: 64000
+    player_name: claude46 # MUST match the config's file name stem
+    thinking_method: thinking-out-loud
+    interaction_location_method: set-of-marks
+    usage_limits:
+        input_tokens_limit: 200000
+        output_tokens_limit: 64000
 
 action_predictor:
-  agent:
-    model:
-      _target_: pydantic_ai.models.anthropic.AnthropicModel
-      model_name: claude-sonnet-4-6
+    agent:
+        model:
+            _target_: pydantic_ai.models.anthropic.AnthropicModel
+            model_name: claude-sonnet-4-6
 ```
 
 The `capabilities:` block describes how the player behaves (vision/set-of-marks, thinking method, token limits).
@@ -267,8 +267,8 @@ A **provider** override (`configs/model/provider/<name>.yaml`) points a model at
 ```yaml
 # @package player.action_predictor.agent.model
 provider:
-  _target_: pydantic_ai.providers.openai.OpenAIProvider
-  base_url: https://box1.gptnt.space/v1
+    _target_: pydantic_ai.providers.openai.OpenAIProvider
+    base_url: https://box1.gptnt.space/v1
 ```
 
 You attach a provider to a model from a `run.yaml` `players` entry. Each entry is a mapping:
@@ -286,11 +286,11 @@ The roster that **experiment generation** draws from lives in `configs/experimen
 
 1. **Start infra** (Redis + its web UI + the OpenTelemetry collector — **not** the game):
 
-   ```bash
-   docker compose up -d
-   ```
+    ```bash
+    docker compose up -d
+    ```
 
-   The active compose profile defaults to `prod` (`COMPOSE_PROFILES=prod`, set in `mise.toml`).
+    The active compose profile defaults to `prod` (`COMPOSE_PROFILES=prod`, set in `mise.toml`).
 
 2. **Write (or edit) a `run.yaml`** — copy `runs/_template.yaml` (or start from `runs/quickstart.yaml`)
    and set the experiments, rooms, players, anchors, and recording for your run.
@@ -299,9 +299,9 @@ The roster that **experiment generation** draws from lives in `configs/experimen
    and the players, then generates the specs and submits them in-process — all in one foreground
    command. `WANDB_ENTITY`/`WANDB_PROJECT` are picked up from your mise env (`recording.wandb: auto`):
 
-   ```bash
-   gptnt run runs/quickstart.yaml
-   ```
+    ```bash
+    gptnt run runs/quickstart.yaml
+    ```
 
 > [!IMPORTANT]
 > **No separate `submit` step, no silent hang.** `gptnt run` submits the specs itself, so the old
@@ -325,11 +325,13 @@ gptnt analyse
 ## Static evaluations (no game needed)
 
 `gptnt statics` runs model evaluations against HuggingFace datasets (VQA, grounding, OCR, …). These need only model configs + API keys: no Redis, game binary, or display. See
+
 <!-- [docs/how-to-run-statics.md](docs/how-to-run-statics.md). -->
 
 ## Observability
 
 Each process emits OTLP spans to the otel-collector on `localhost:4318`, which (under the `prod` profile) exports them to [Logfire](https://logfire.pydantic.dev/) using `LOGFIRE_TOKEN`. Set `observability: limited` in your `run.yaml` to cut span volume. To send traces to a non-Logfire backend, point the collector's exporters in `storage/otel-collector-config.yaml` at any OTLP destination. See
+
 <!-- [docs/how-to-observability.md](docs/how-to-observability.md). -->
 
 ## Troubleshooting
@@ -369,9 +371,9 @@ It is possible to run all the tools from the command line. There's a few but her
 
 - **pre-commit**
 
-  ```bash
-  uv run pre-commit run -a
-  ```
+    ```bash
+    uv run pre-commit run -a
+    ```
 
 </details>
 
@@ -386,4 +388,3 @@ You can find the recommended extensions in the `.vscode/extensions.json` file. Y
 Copy the settings from that file into your `.vscode/settings.json` file, and that will automatically enable all the things. Ensure that you have installed the recommended extensions too. Importantly, if you are using basedpyright too, ensure you have disabled the Pylance extension.
 
 </details>
-
