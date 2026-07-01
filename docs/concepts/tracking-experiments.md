@@ -1,4 +1,7 @@
-# How experiments are recorded (and how "already done?" is answered)
+# Tracking experiments
+
+!!! danger
+A lot of this was drafted by the magic box and is not in it's final form. It needs to be redone basically.
 
 This explains what happens when an experiment runs: what gets written, where, and how the system
 later answers two questions — _"what was the outcome?"_ and _"which experiments are already done so I

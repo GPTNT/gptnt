@@ -1,17 +1,22 @@
-# How to observability
+# Observability
 
 Traces, logs, and metrics all go through an OTEL collector, which forwards everything to [Logfire](https://logfire.pydantic.dev/).
 
 The collector runs via Docker Compose (`otel-collector` service in `docker-compose.yml`). It listens on the standard OTLP ports (gRPC `4317`, HTTP `4318`) and also tails the KTANE Unity log file directly.
 
-## `observability: limited`
+## Why not send to Logfire directly?
+
+TODO.
+
+## Controlling the level of observability
 
 By default, `gptnt run` launches its processes with full instrumentation — FastAPI, FastStream, HTTPX, Redis, metrics, the lot. That's usually fine, but it can get noisy and adds overhead. You don't want this when you are running all the experiments because it can send 60M spans every 12 hours.
 
+## `observability: limited`
+
 Set `observability: limited` in your `run.yaml` to dial most of that back:
 
-```yaml
-# run.yaml
+```yaml title="run.yaml"
 observability: limited # full | limited | off
 ```
 
@@ -32,8 +37,8 @@ Find the following in `storage/otel-collector-config.yaml`:
 
 ```yaml
 resource:
-  service.name: "ktane"
-  sampling.aggressive: "true"
+    service.name: "ktane"
+    sampling.aggressive: "true"
 ```
 
 `sampling.aggressive: "true"` drops the noisy stuff and only keeps the important signals. Set it to `"false"` to get everything. **You'll need to restart the collector after changing this.**
