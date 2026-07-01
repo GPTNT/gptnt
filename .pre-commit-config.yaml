@@ -100,7 +100,10 @@ repos:
     hooks:
       - id: prettier
         types_or: [html, javascript, yaml, json, markdown]
-        exclude: storage/prompts/
+        exclude:
+          glob:
+            - "storage/prompts/**"
+            - "docs/**"
 
   - repo: local
     hooks:
