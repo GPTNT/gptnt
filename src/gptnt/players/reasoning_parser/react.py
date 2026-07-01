@@ -822,7 +822,7 @@ class ReactStyleReasoningParser[OutputT](ReasoningParser[str, OutputT]):
         return AgentCallResult(
             output=structured_action,
             thoughts=parsed.thoughts,
-            usage=output.usage(),
+            usage=output.usage,
             new_messages=output.new_messages(),
             ai_response_error=parsed.response_error_type,
             raw_output=output.output,

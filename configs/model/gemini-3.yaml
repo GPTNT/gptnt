@@ -21,12 +21,13 @@ action_predictor:
       _target_: pydantic_ai.models.google.GoogleModel
       model_name: gemini-3-flash-preview
 
+    # GoogleModelSettings stays for the Google-only safety and video-resolution fields, which have no
+    # unified equivalent. `thinking: false` floors gemini-3 to thinking_level=MINIMAL (it always
+    # reasons, so it cannot be turned off) without asking for thought summaries.
     model_settings:
       _target_: pydantic_ai.models.google.GoogleModelSettings
       _convert_: all
-      google_thinking_config:
-        _target_: pydantic_ai.models.google.ThinkingConfigDict
-        thinking_level: minimal
+      thinking: false
       google_video_resolution: "MEDIA_RESOLUTION_MEDIUM"
       google_safety_settings:
         - category: HARM_CATEGORY_HARASSMENT

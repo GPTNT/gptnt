@@ -19,9 +19,7 @@ action_predictor:
       _target_: pydantic_ai.models.anthropic.AnthropicModel
       model_name: claude-sonnet-4-6
 
+    # Disable the model's own reasoning. GPTNT scores ReAct-style reasoning in the message. `false`
+    # is omitted for Anthropic, which leaves claude-sonnet-4-6 at its default (no thinking).
     model_settings:
-      _target_: pydantic_ai.models.anthropic.AnthropicModelSettings
-      _convert_: all
-      anthropic_effort: low
-      anthropic_thinking:
-        type: disabled
+      thinking: false
