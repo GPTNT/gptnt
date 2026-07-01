@@ -19,7 +19,7 @@ players:
   - model: gemini-3
   - model: gpt52
   - model: internvl35
-  - model: qwen3vl
+  - model: qwen35
 
 source: local
 observability: limited
