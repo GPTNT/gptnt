@@ -49,7 +49,7 @@ def new_model(name: NameArgument) -> None:
     """Scaffold a new model config at `configs/model/<name>.yaml`."""
     target = paths.configs / "model" / f"{name}.yaml"
     _write_template(target, MODEL_TEMPLATE.replace("<NAME>", name))
-    console.print(f"Next: validate it with [bold]gptnt doctor --model {name}[/bold].")
+    console.print("Next: validate with [bold]gptnt doctor[/bold] (checks every model config).")
 
 
 @new_app.command(name="provider")
