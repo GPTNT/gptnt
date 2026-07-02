@@ -94,7 +94,7 @@ class CheckResult:
 
 
 @dataclass(frozen=True)
-class ModelReport:
+class PlayerReport:
     """One model across three independent boxes: exists → instantiates → live.
 
     The boxes are hierarchical (a box can't pass if its predecessor failed), so a failed box leaves
@@ -162,7 +162,7 @@ async def _http_responds(url: str) -> bool:
 
 
 @dataclass(frozen=True)
-class ModelDetail:
+class PlayerDetail:
     """One model's full validation result: the ✓/✗ boxes plus the underlying data.
 
     `static` carries every resolved field so the detailed rows can be rendered; `live` is the real-
@@ -170,13 +170,13 @@ class ModelDetail:
     drive the failed/exit decision.
     """
 
-    report: ModelReport
+    report: PlayerReport
     static: ModelValidationResult
     live: LiveCheckResult | None = None
 
 
 @dataclass(frozen=True)
-class ModelMatrix:
+class PlayerMatrix:
     """Every model's detail plus the config-name → player_name mapping.
 
     The mapping comes from the SAME `validate_model_config` pass that builds the detail, so the
@@ -185,16 +185,16 @@ class ModelMatrix:
     instantiate far enough to yield a `capabilities.player_name`.
     """
 
-    details: list[ModelDetail]
+    details: list[PlayerDetail]
     config_to_player: dict[str, str | None]
 
     @property
-    def reports(self) -> list[ModelReport]:
+    def reports(self) -> list[PlayerReport]:
         """The matrix-compatible ✓/✗ boxes, one per model."""
         return [detail.report for detail in self.details]
 
 
-async def check_models(targets: Sequence[tuple[str, str | None]], *, live: bool) -> ModelMatrix:
+async def check_players(targets: Sequence[tuple[str, str | None]], *, live: bool) -> PlayerMatrix:
     """Validate each model into its full detail (boxes + every resolved field + optional live).
 
     Also returns a `config name → player_name` mapping derived from the same validation, so the
@@ -204,44 +204,44 @@ async def check_models(targets: Sequence[tuple[str, str | None]], *, live: bool)
     Runs sequentially on purpose: `validate_model_config` clears the global Hydra singleton on
     every call, so concurrent composition would race.
     """
-    details: list[ModelDetail] = []
+    details: list[PlayerDetail] = []
     config_to_player: dict[str, str | None] = {}
     for model_name, provider in targets:
         label = model_name if provider is None else f"{model_name}@{provider}"
         try:
             # Sequential await is required: validate_model_config clears the global Hydra
             # singleton on each call, so models cannot be composed concurrently.
-            detail = await _model_detail(label, model_name, provider, live=live)  # noqa: WPS476
+            detail = await _player_detail(label, model_name, provider, live=live)  # noqa: WPS476
         except Exception as exc:  # noqa: BLE001 — isolate one bad config from the rest of the run
             crashed = ModelValidationResult(model_name, provider, ok=False, error=str(exc))
-            detail = ModelDetail(
-                ModelReport(label, "fail", "skip", "skip", f"check crashed: {exc}"), crashed
+            detail = PlayerDetail(
+                PlayerReport(label, "fail", "skip", "skip", f"check crashed: {exc}"), crashed
             )
         details.append(detail)
         capabilities = detail.static.capabilities
         config_to_player[model_name] = capabilities.player_name if capabilities else None
-    return ModelMatrix(details, config_to_player)
+    return PlayerMatrix(details, config_to_player)
 
 
-async def _model_detail(
+async def _player_detail(
     label: str, model_name: str, provider: str | None, *, live: bool
-) -> ModelDetail:
+) -> PlayerDetail:
     """Validate one model into its full detail (boxes + resolved fields + optional live result)."""
     static = validate_model_config(model_name, provider)
     exists, instantiates, note = _static_boxes(static)
     # Live only runs when requested AND the model instantiated with its credential present (a ⚠
     # instantiate means the key is unset, so there is nothing to call).
     if not (live and exists == "pass" and instantiates == "pass"):
-        return ModelDetail(ModelReport(label, exists, instantiates, "skip", note), static)
+        return PlayerDetail(PlayerReport(label, exists, instantiates, "skip", note), static)
 
     outcome = await live_check_model_config(model_name, provider)
     if outcome.ok:
-        report = ModelReport(
+        report = PlayerReport(
             label, exists, instantiates, "pass", f"answered in {outcome.latency_seconds:.2f}s"
         )
     else:
-        report = ModelReport(label, exists, instantiates, "fail", outcome.error or "")
-    return ModelDetail(report, static, outcome)
+        report = PlayerReport(label, exists, instantiates, "fail", outcome.error or "")
+    return PlayerDetail(report, static, outcome)
 
 
 def _static_boxes(outcome: ModelValidationResult) -> tuple[CheckStatus, CheckStatus, str]:

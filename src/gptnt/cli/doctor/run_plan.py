@@ -53,7 +53,7 @@ def analyze_run_plan(
     """Cross-check the manifest roster against what generation requires, then report resume state.
 
     `config_to_player` maps each roster *config* name to its resolved `player_name` (or `None` when
-    it failed to compose/instantiate). It comes from the SAME `check_models` validation the doctor
+    it failed to compose/instantiate). It comes from the SAME `check_players` validation the doctor
     command renders as the matrix, so the matrix and this cross-check can never disagree.
 
     `specs`, when given, is a pre-generated spec set loaded from disk (the `gptnt run` path): the
@@ -94,19 +94,19 @@ def _resolve_roster(
     resolved: dict[str, str] = {}
     player_to_configs: dict[str, list[str]] = defaultdict(list)
     for entry in manifest.players:
-        player_name = config_to_player.get(entry.model)
+        player_name = config_to_player.get(entry.player)
         if player_name is None:
             findings.append(
                 CheckResult(
-                    f"Roster: {entry.model}",
+                    f"Roster: {entry.player}",
                     "fail",
                     "config does not resolve to a player_name (it failed to compose/instantiate)",
-                    "fix the ✗ for this model in the Models table above",
+                    "fix the ✗ for this config in the Models table above",
                 )
             )
             continue
-        resolved[entry.model] = player_name
-        player_to_configs[player_name].append(entry.model)
+        resolved[entry.player] = player_name
+        player_to_configs[player_name].append(entry.player)
 
     for player_name, configs in player_to_configs.items():
         if len(configs) > 1:
@@ -146,8 +146,8 @@ def _resolve_anchors(
                 CheckResult(
                     f"Anchor {field_name}",
                     "fail",
-                    f"'{config_name}' is not a usable model config",
-                    "no model config of that name exists under configs/model/",
+                    f"'{config_name}' is not a usable player config",
+                    "no player config of that name exists under configs/player/",
                 )
             )
             continue
@@ -265,9 +265,9 @@ def _coverage_ok(
     """The ✓ summary row, naming the declared spawn count per player the run actually uses."""
     appearing = set(appearances)
     spawning = ", ".join(
-        f"{entry.model}={entry.count}"
+        f"{entry.player}={entry.count}"
         for entry in manifest.players
-        if roster.config_to_player.get(entry.model) in appearing
+        if roster.config_to_player.get(entry.player) in appearing
     )
     detail = f"{len(roster.player_names)} player(s) cover {total_specs} spec(s)"
     if spawning:

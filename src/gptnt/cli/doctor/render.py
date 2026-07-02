@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
     from rich.console import Console, RenderableType
 
-    from gptnt.cli.doctor.checks import CheckResult, CheckStatus, ModelDetail, ModelReport
+    from gptnt.cli.doctor.checks import CheckResult, CheckStatus, PlayerDetail, PlayerReport
 
 _GLYPHS: dict[str, tuple[str, str]] = {
     "pass": ("✓", "green"),
@@ -47,7 +47,7 @@ def _worst(findings: list[CheckResult]) -> int:
     return max((_SEVERITY[finding.status] for finding in findings), default=0)
 
 
-def render_models(console: Console, details: list[ModelDetail]) -> None:
+def render_players(console: Console, details: list[PlayerDetail]) -> None:
     """Print one row per model: the exists/instantiates/live boxes plus every resolved field.
 
     This is the one model presentation for `gptnt doctor`; `--model` only narrows the set, so the
@@ -56,9 +56,9 @@ def render_models(console: Console, details: list[ModelDetail]) -> None:
     if not details:
         console.print(
             Panel(
-                "[bold red]No model configs found[/bold red] under configs/model/ — scaffold one "
-                "with [bold]gptnt new model <name>[/bold].",
-                title="[bold]Models[/bold]",
+                "[bold red]No player configs found[/bold red] under configs/player/ — scaffold one "
+                "with [bold]gptnt new player <name>[/bold].",
+                title="[bold]Players[/bold]",
                 border_style="red",
                 padding=(0, 1),
             )
@@ -69,7 +69,7 @@ def render_models(console: Console, details: list[ModelDetail]) -> None:
     has_notes = any(notes)
 
     table = Table(box=box.SIMPLE_HEAD, padding=(0, 1))
-    table.add_column("Model", style="bold", no_wrap=True)
+    table.add_column("Config", style="bold", no_wrap=True)
     table.add_column("Exists", justify="center", no_wrap=True)
     table.add_column("Inst.", justify="center", no_wrap=True)
     table.add_column("Live", justify="center", no_wrap=True)
@@ -82,14 +82,14 @@ def render_models(console: Console, details: list[ModelDetail]) -> None:
         table.add_column("Notes", overflow="fold", style="dim")
 
     for detail, note in zip(details, notes, strict=True):
-        cells = _model_row(detail)
+        cells = _player_row(detail)
         if has_notes:
             cells.append(note)
         table.add_row(*cells)
     console.print(
         Panel(
             table,
-            title="[bold]Models[/bold]",
+            title="[bold]Players[/bold]",
             title_align="left",
             border_style="dim",
             padding=(0, 1),
@@ -97,7 +97,7 @@ def render_models(console: Console, details: list[ModelDetail]) -> None:
     )
 
 
-def _model_row(detail: ModelDetail) -> list[RenderableType]:
+def _player_row(detail: PlayerDetail) -> list[RenderableType]:
     """One model's cells: label, the three boxes, and the resolved fields (no Notes cell)."""
     report = detail.report
     caps = detail.static.capabilities
@@ -121,7 +121,7 @@ def _model_row(detail: ModelDetail) -> list[RenderableType]:
     ]
 
 
-def _row_note(report: ModelReport) -> str:
+def _row_note(report: PlayerReport) -> str:
     """The Notes cell: blank for a clean pass, else the box message (error / cred / latency)."""
     clean = report.exists == "pass" and report.instantiates == "pass" and report.live == "skip"
     return "" if clean else _short(report.note)

@@ -6,11 +6,11 @@ paths = Paths()
 
 
 @lru_cache
-def discover_models() -> list[str]:
-    """Return sorted list of available model names from configs/model/*.yaml."""
-    if not paths.model_configs.is_dir():
+def discover_players() -> list[str]:
+    """Return sorted list of available player names from configs/player/*.yaml."""
+    if not paths.player_configs.is_dir():
         return []
-    return sorted(path.stem for path in paths.model_configs.glob("*.yaml"))
+    return sorted(path.stem for path in paths.player_configs.glob("*.yaml"))
 
 
 @lru_cache
@@ -23,8 +23,8 @@ def discover_suites() -> list[str]:
 
 @lru_cache
 def discover_providers() -> list[str]:
-    """Return sorted list of available provider names from configs/model/provider/*.yaml."""
-    provider_config_dir = paths.model_configs / "provider"
+    """Return sorted list of available provider names from configs/player/provider/*.yaml."""
+    provider_config_dir = paths.player_configs / "provider"
     if not provider_config_dir.is_dir():
         return []
     return sorted(path.stem for path in provider_config_dir.glob("*.yaml"))

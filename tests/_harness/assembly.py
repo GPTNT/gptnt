@@ -118,7 +118,7 @@ class AssembledExperiment:
 
 @asynccontextmanager
 async def assembled_experiment(
-    dsn: str, *, defuser_model: str = "test_defuser", expert_model: str | None = "test_expert"
+    dsn: str, *, defuser_model: str = "test-defuser", expert_model: str | None = "test-expert"
 ) -> AsyncIterator[AssembledExperiment]:
     """Build EM + game + player services against `dsn` and run all their lifespans."""
     experiment_manager = ExperimentManager(
@@ -133,7 +133,7 @@ async def assembled_experiment(
         "The app must inject context at construction time — check run_game_instance.main()."
     )
 
-    defuser_app = build_player_app(redis_dsn=dsn, hydra_overrides=[f"model={defuser_model}"])
+    defuser_app = build_player_app(redis_dsn=dsn, hydra_overrides=[f"player={defuser_model}"])
     defuser_service = defuser_app.context.get("player_service")
     assert defuser_service is not None, (
         "FastStream context injection returned None for 'player_service' (defuser). "
@@ -142,7 +142,7 @@ async def assembled_experiment(
 
     expert_service = None
     if expert_model is not None:
-        expert_app = build_player_app(redis_dsn=dsn, hydra_overrides=[f"model={expert_model}"])
+        expert_app = build_player_app(redis_dsn=dsn, hydra_overrides=[f"player={expert_model}"])
         expert_service = expert_app.context.get("player_service")
         assert expert_service is not None, (
             "FastStream context injection returned None for 'player_service' (expert). "

@@ -39,13 +39,13 @@ def _manifest(**overrides: object) -> RunManifest:
     payload: dict[str, object] = {
         "suites": ["single-pairwise-sync"],
         "rooms": 1,
-        "players": [PlayerSpec(model="claude46")],
+        "players": [PlayerSpec(player="claude-sonnet-4-6")],
     }
     payload.update(overrides)
     return RunManifest.model_validate(payload)
 
 
-def _spec(defuser: str = "claude46", expert: str | None = None) -> types.SimpleNamespace:
+def _spec(defuser: str = "claude-sonnet-4-6", expert: str | None = None) -> types.SimpleNamespace:
     """A stand-in spec: the pipeline only reads `.defuser_name` / `.expert_name`."""
     return types.SimpleNamespace(
         defuser_name=defuser, expert_name=expert, attempt_name="exp_attempt1"
@@ -172,15 +172,15 @@ def test_observability_env_off_disables_everything() -> None:
 
 
 def test_assert_roster_covers_specs_passes_when_all_players_present() -> None:
-    specs = [_spec(defuser="claude46", expert="gemini3")]
-    config_to_player = {"claude46": "claude46", "gemini-3": "gemini3"}
+    specs = [_spec(defuser="claude-sonnet-4-6", expert="gemini3")]
+    config_to_player = {"claude-sonnet-4-6": "claude-sonnet-4-6", "gemini-3": "gemini3"}
     # Every referenced player is in config_to_player.values() — must not raise.
     pipeline._assert_roster_covers_specs(specs, config_to_player)
 
 
 def test_assert_roster_covers_specs_raises_on_missing_player() -> None:
-    specs = [_spec(defuser="claude46", expert="ghost")]
-    config_to_player = {"claude46": "claude46"}  # no entry resolves to "ghost"
+    specs = [_spec(defuser="claude-sonnet-4-6", expert="ghost")]
+    config_to_player = {"claude-sonnet-4-6": "claude-sonnet-4-6"}  # no entry resolves to "ghost"
     with pytest.raises(RuntimeError):
         pipeline._assert_roster_covers_specs(specs, config_to_player)
 
@@ -197,9 +197,11 @@ async def test_run_pipeline_gate_blocks_when_failed_without_force(
     specs: Sequence[object] = [_spec()]
     result = DiagnoseResult(
         failed=True,
-        model_reports=[],
+        player_reports=[],
         run_plan=RunPlanResult(
-            findings=[], specs=list(specs), config_to_player={"claude46": "claude46"}
+            findings=[],
+            specs=list(specs),
+            config_to_player={"claude-sonnet-4-6": "claude-sonnet-4-6"},
         ),
     )
     _patch_diagnose(monkeypatch, result)
@@ -219,9 +221,9 @@ async def test_run_pipeline_force_proceeds_despite_failure(
     specs = [_spec()]
     result = DiagnoseResult(
         failed=True,
-        model_reports=[],
+        player_reports=[],
         run_plan=RunPlanResult(
-            findings=[], specs=specs, config_to_player={"claude46": "claude46"}
+            findings=[], specs=specs, config_to_player={"claude-sonnet-4-6": "claude-sonnet-4-6"}
         ),
     )
     _patch_diagnose(monkeypatch, result)
@@ -235,7 +237,7 @@ async def test_run_pipeline_force_proceeds_despite_failure(
 
 @pytest.mark.anyio
 async def test_run_pipeline_aborts_when_run_plan_missing(monkeypatch: pytest.MonkeyPatch) -> None:
-    result = DiagnoseResult(failed=False, model_reports=[], run_plan=None)
+    result = DiagnoseResult(failed=False, player_reports=[], run_plan=None)
     _patch_diagnose(monkeypatch, result)
     _patch_load_specs(monkeypatch, [_spec()])
     calls = _patch_spawn(monkeypatch)
@@ -268,9 +270,12 @@ async def test_run_pipeline_exits_cleanly_when_everything_already_done(
     # Resume filtering dropped everything → remaining_specs is empty → return without spawning.
     result = DiagnoseResult(
         failed=False,
-        model_reports=[],
+        player_reports=[],
         run_plan=RunPlanResult(
-            findings=[], specs=specs, config_to_player={"claude46": "claude46"}, remaining_specs=[]
+            findings=[],
+            specs=specs,
+            config_to_player={"claude-sonnet-4-6": "claude-sonnet-4-6"},
+            remaining_specs=[],
         ),
     )
     _patch_diagnose(monkeypatch, result)
@@ -286,16 +291,16 @@ async def test_run_pipeline_exits_cleanly_when_everything_already_done(
 async def test_run_pipeline_happy_path_spawns_with_resolved_specs(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    spec_a = _spec(defuser="claude46")
-    spec_b = _spec(defuser="claude46", expert="claude46")
+    spec_a = _spec(defuser="claude-sonnet-4-6")
+    spec_b = _spec(defuser="claude-sonnet-4-6", expert="claude-sonnet-4-6")
     specs = [spec_a, spec_b]
     result = DiagnoseResult(
         failed=False,
-        model_reports=[],
+        player_reports=[],
         run_plan=RunPlanResult(
             findings=[],
             specs=specs,
-            config_to_player={"claude46": "claude46"},
+            config_to_player={"claude-sonnet-4-6": "claude-sonnet-4-6"},
             remaining_specs=[spec_a],  # only the first remains after resume filtering
         ),
     )

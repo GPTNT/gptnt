@@ -211,7 +211,7 @@ async def test_send_request_returns_do_nothing_when_structuring_fails(
     # For prompted mode, we need to test when the model returns a string that can't be parsed
     # Create a modified capabilities that expects structured output but model returns bad string
     capabilities_expecting_structure = PlayerCapabilities(
-        player_name="test_player",
+        player_name="test-player",
         player_type="ai",
         structured_output_mode="prompted",
         max_observations_per_request=16,

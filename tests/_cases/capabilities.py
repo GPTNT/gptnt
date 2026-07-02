@@ -15,7 +15,7 @@ interaction_location_method = param_fixture(
 def capabilities(interaction_location_method: str) -> PlayerCapabilities:
     """Fixture for PlayerCapabilities with varying interaction location methods."""
     return PlayerCapabilities(
-        player_name="test_player",
+        player_name="test-player",
         player_type="ai",
         structured_output_mode="prompted",
         max_observations_per_request=16,
@@ -26,7 +26,7 @@ def capabilities(interaction_location_method: str) -> PlayerCapabilities:
 class CapabilitiesCases:
     def case_prompted_set_of_marks(self) -> PlayerCapabilities:
         return PlayerCapabilities(
-            player_name="test_player",
+            player_name="test-player",
             player_type="ai",
             structured_output_mode="prompted",
             interaction_location_method="set-of-marks",
@@ -35,7 +35,7 @@ class CapabilitiesCases:
 
     def case_prompted_absolute_coordinates(self) -> PlayerCapabilities:
         return PlayerCapabilities(
-            player_name="test_player",
+            player_name="test-player",
             player_type="ai",
             structured_output_mode="prompted",
             interaction_location_method="coordinates",
@@ -45,7 +45,7 @@ class CapabilitiesCases:
 
     def case_prompted_normalised_coordinates(self) -> PlayerCapabilities:
         return PlayerCapabilities(
-            player_name="test_player",
+            player_name="test-player",
             player_type="ai",
             structured_output_mode="prompted",
             interaction_location_method="coordinates",
@@ -55,7 +55,7 @@ class CapabilitiesCases:
 
     def case_react_set_of_marks(self) -> PlayerCapabilities:
         return PlayerCapabilities(
-            player_name="test_player",
+            player_name="test-player",
             player_type="ai",
             structured_output_mode=None,
             interaction_location_method="set-of-marks",
@@ -64,7 +64,7 @@ class CapabilitiesCases:
 
     def case_react_absolute_coordinates(self) -> PlayerCapabilities:
         return PlayerCapabilities(
-            player_name="test_player",
+            player_name="test-player",
             player_type="ai",
             structured_output_mode=None,
             interaction_location_method="coordinates",
@@ -74,7 +74,7 @@ class CapabilitiesCases:
 
     def case_react_normalised_coordinates(self) -> PlayerCapabilities:
         return PlayerCapabilities(
-            player_name="test_player",
+            player_name="test-player",
             player_type="ai",
             structured_output_mode=None,
             interaction_location_method="coordinates",

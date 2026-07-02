@@ -22,19 +22,19 @@ rooms: 2
 # headless multi-GPU setup, e.g. via scripts/startx.py). Omit to inherit the ambient $DISPLAY.
 # displays: [0, 1]   # rooms spawn on :0, :1, :0, ...
 
-# Models which will be spawned.
+# Players which will be spawned.
 players:
-  # Model config name: configs/model/<model>.yaml
-  # Optional provider override: configs/model/provider/<provider>.yaml (defaults to model)
+  # Player config name: configs/player/<player>.yaml
+  # Optional provider override: configs/player/provider/<provider>.yaml (defaults to player)
   # Optional explicit count: how many copies of this player to spawn (default 1).
-  - model: peekaboo
+  - player: peekaboo
     provider: vllm_box1
     count: 2
-  - model: claude46
+  - player: claude-sonnet-4-6
 
-anchors: # OPTIONAL. Reference models held fixed on one side of a pairing.
-  best_expert: gemini-3 #   used by with_best_expert (candidate=defuser, anchor=expert)
-  best_defuser: gemini-3 #   used by with_best_defuser (candidate=expert, anchor=defuser)
+anchors: # OPTIONAL. Reference players held fixed on one side of a pairing.
+  best_expert: gemini-3-flash-preview #   used by with_best_expert (candidate=defuser, anchor=expert)
+  best_defuser: gemini-3-flash-preview #   used by with_best_defuser (candidate=expert, anchor=defuser)
   #   Repo defaults live in configs/anchors.yaml; this overrides them.
   #   NOTE: an anchor used by a selected suite must resolve to a
   #   player_name that is present in `players:` above, or doctor/run

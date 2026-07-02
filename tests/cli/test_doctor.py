@@ -63,9 +63,9 @@ def test_static_boxes_missing_credential_is_instantiate_warn() -> None:
 
 
 def test_model_report_failed_only_on_fail_box() -> None:
-    assert checks.ModelReport("m", "pass", "fail", "skip").failed is True
-    assert checks.ModelReport("m", "pass", "warn", "skip").failed is False
-    assert checks.ModelReport("m", "pass", "pass", "skip").failed is False
+    assert checks.PlayerReport("m", "pass", "fail", "skip").failed is True
+    assert checks.PlayerReport("m", "pass", "warn", "skip").failed is False
+    assert checks.PlayerReport("m", "pass", "pass", "skip").failed is False
 
 
 def test_display_skipped_off_linux(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -104,31 +104,31 @@ def test_render_report_runs_for_every_status() -> None:
     render.render_report(_quiet_console(), sections)  # does not raise
 
 
-def test_render_models_runs() -> None:
+def test_render_players_runs() -> None:
     details = [
-        checks.ModelDetail(
-            checks.ModelReport("good", "pass", "pass", "skip", "resolves to x"),
+        checks.PlayerDetail(
+            checks.PlayerReport("good", "pass", "pass", "skip", "resolves to x"),
             ModelValidationResult("good", None, ok=True, resolved_model_name="x"),
         ),
-        checks.ModelDetail(
-            checks.ModelReport("bad", "fail", "skip", "skip", "no yaml"),
+        checks.PlayerDetail(
+            checks.PlayerReport("bad", "fail", "skip", "skip", "no yaml"),
             ModelValidationResult("bad", None, ok=False, error_stage="compose", error="no yaml"),
         ),
     ]
-    render.render_models(_quiet_console(), details)  # does not raise
+    render.render_players(_quiet_console(), details)  # does not raise
 
 
 @pytest.mark.anyio
-async def test_check_models_dummy_model_passes() -> None:
+async def test_check_players_dummy_passes() -> None:
     """A dummy model needs no credential: exists + instantiates pass; live is ⊘ without --live."""
-    matrix = await checks.check_models([("test_random", None)], live=False)
+    matrix = await checks.check_players([("test-random", None)], live=False)
     assert len(matrix.reports) == 1
     report = matrix.reports[0]
-    assert report.label == "test_random"
+    assert report.label == "test-random"
     assert (report.exists, report.instantiates, report.live) == ("pass", "pass", "skip")
     assert report.failed is False
     # The config→player_name mapping comes from the SAME validation, keyed by the config name.
-    assert "test_random" in matrix.config_to_player
+    assert "test-random" in matrix.config_to_player
 
 
 @pytest.mark.anyio

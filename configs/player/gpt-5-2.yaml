@@ -4,7 +4,7 @@ defaults:
   - _self_
 
 capabilities:
-  player_name: gpt5
+  player_name: gpt-5-2
   structured_output_mode: null
   thinking_method: thinking-out-loud
   include_schema_in_instructions: true

@@ -12,16 +12,16 @@ from gptnt.specification import PlayerCapabilities, PlayerRole
 
 @dataclass(kw_only=True)
 class ConfigLoader:
-    """Load and instantiate player config components for a given model + role."""
+    """Load and instantiate player config components for a given player + role."""
 
-    model: str
+    player: str
     provider: str | None
     role: PlayerRole
 
     @property
     def config(self) -> DictConfig:
-        """Compose the Hydra player config for this model."""
-        return compose_player_config(self.model, self.provider)
+        """Compose the Hydra player config for this player."""
+        return compose_player_config(self.player, self.provider)
 
     @property
     def capabilities(self) -> PlayerCapabilities:

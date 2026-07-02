@@ -7,7 +7,7 @@ from pydantic_core import to_json
 from structlog import get_logger
 
 from gptnt.cli.statics._config_loader import ConfigLoader
-from gptnt.cli.statics._fields import AllowThinkingOption, ModelOption, ProviderOption
+from gptnt.cli.statics._fields import AllowThinkingOption, PlayerOption, ProviderOption
 from gptnt.common.logger import create_progress
 from gptnt.common.paths import Paths
 from gptnt.ktane.state.modules import KtaneComponent
@@ -32,14 +32,14 @@ def create_prompts() -> dict[KtaneComponent, str]:
 
 async def run_how_do_you_evaluation(  # noqa: WPS210
     *,
-    model: ModelOption,
+    player: PlayerOption,
     provider: ProviderOption = None,
     attempts: Annotated[PositiveInt, Parameter(help="Number of attempts for each component.")] = 1,
     allow_thinking: AllowThinkingOption = False,
     output_file_prefix: str | None = None,
 ) -> None:
     """Run the simple "How do you..." evaluation."""
-    config_loader = ConfigLoader(model=model, provider=provider, role="defuser")
+    config_loader = ConfigLoader(player=player, provider=provider, role="defuser")
     eval_model = EvalModel.from_agent(agent=config_loader.agent_fn())
     eval_model.update_reasoning_parser(
         InnerMonologueReasoningParser()

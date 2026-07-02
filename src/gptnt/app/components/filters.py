@@ -20,8 +20,8 @@ type OutcomeType = Literal["Solved", "Strike Out", "Timeout"]
 @st.cache_data()
 def _load_available_players() -> list[str]:
     player_names = []
-    for model_file in Paths().model_configs.glob("*.yaml"):
-        loaded = yaml.safe_load(model_file.read_bytes())
+    for player_file in Paths().player_configs.glob("*.yaml"):
+        loaded = yaml.safe_load(player_file.read_bytes())
         player_name = loaded["capabilities"]["player_name"]
         player_names.append(player_name)
 

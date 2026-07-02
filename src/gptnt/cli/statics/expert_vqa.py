@@ -5,7 +5,7 @@ from gptnt.cli.statics._fields import (
     AllowThinkingOption,
     DownloadOption,
     LimitInstancesOption,
-    ModelOption,
+    PlayerOption,
     ProviderOption,
     ThrowOption,
     UploadOption,
@@ -17,7 +17,7 @@ from gptnt.statics.scorers import StringBasedComparer, create_scorers
 
 async def run_expert_vqa_evaluation(
     *,
-    model: ModelOption,
+    player: PlayerOption,
     provider: ProviderOption = None,
     should_download: DownloadOption = False,
     should_throw: ThrowOption = False,
@@ -27,7 +27,7 @@ async def run_expert_vqa_evaluation(
 ) -> None:
     """Expert VQA evaluation."""
     await create_and_run_evaluation(
-        model=model,
+        player=player,
         provider=provider,
         role="expert",
         hf_repo_id="GPTNT/expert-VQA",
@@ -49,7 +49,7 @@ async def run_expert_vqa_evaluation(
 
 async def run_expert_vqa_no_manual_evaluation(
     *,
-    model: ModelOption,
+    player: PlayerOption,
     provider: ProviderOption = None,
     should_download: DownloadOption = False,
     should_throw: ThrowOption = False,
@@ -59,7 +59,7 @@ async def run_expert_vqa_no_manual_evaluation(
 ) -> None:
     """Expert VQA evaluation."""
     await create_and_run_evaluation(
-        model=model,
+        player=player,
         provider=provider,
         role="expert",
         hf_repo_id="GPTNT/expert-VQA",

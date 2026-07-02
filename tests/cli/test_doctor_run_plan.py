@@ -1,12 +1,10 @@
 """Tests for the `gptnt doctor <run.yaml>` run-plan cross-check.
 
 The cross-check (`run_plan.analyze_run_plan`) is the focus: given a config-name → player_name
-mapping (built here exactly as `check_models` hands one back) it dry-runs real, offline experiment
+mapping (built here exactly as `check_players` hands one back) it dry-runs real, offline experiment
 generation and reports coverage / count / resume findings. Generation runs through Hydra (offline,
-deterministic), so these tests exercise the genuine
-config→player_name resolution. The test player configs deliberately use a config name that differs
-from its player_name (`test_defuser` → `test-defuser`), which is exactly the mismatch the cross-
-check exists to resolve.
+deterministic), so these tests exercise the genuine config→player_name resolution and the roster
+cross-check.
 
 WandB is never contacted: the manifests default to `source: local`, so the resume row reads
 completion from disk (an empty output dir here) and reports everything as still-to-run.
@@ -39,7 +37,7 @@ def _manifest(**overrides: object) -> RunManifest:
     payload: dict[str, object] = {
         "suites": ["single-pairwise-sync"],
         "rooms": 2,
-        "players": [{"model": "test_defuser"}, {"model": "test_expert"}],
+        "players": [{"player": "test-defuser"}, {"player": "test-expert"}],
     }
     payload.update(overrides)
     return RunManifest.model_validate(payload)
@@ -59,10 +57,9 @@ def _coverage_spec_count(findings: list[CheckResult]) -> int:
 
 
 def test_clean_roster_resolves_config_to_player_name_and_passes() -> None:
-    """`test_defuser`/`test_expert` configs resolve to `test-defuser`/`test-expert`; pairwise
-    covers."""
+    """A clean pairwise roster resolves and covers."""
     manifest = _manifest()
-    config_to_player = {"test_defuser": "test-defuser", "test_expert": "test-expert"}
+    config_to_player = {"test-defuser": "test-defuser", "test-expert": "test-expert"}
 
     findings = analyze_run_plan(manifest, config_to_player).findings
 
@@ -83,10 +80,10 @@ def test_anchor_not_in_roster_is_a_fatal_cross_check() -> None:
     """A `with_best_defuser` suite whose anchor isn't spawned would stall — that must be a ✗."""
     manifest = _manifest(
         suites=["single-best-defuser-sync"],
-        players=[{"model": "test_defuser"}],
-        anchors={"best_defuser": "test_expert"},  # resolves to test-expert, NOT in the roster
+        players=[{"player": "test-defuser"}],
+        anchors={"best_defuser": "test-expert"},  # resolves to test-expert, NOT in the roster
     )
-    config_to_player = {"test_defuser": "test-defuser"}
+    config_to_player = {"test-defuser": "test-defuser"}
 
     findings = analyze_run_plan(manifest, config_to_player).findings
 
@@ -99,24 +96,26 @@ def test_anchor_not_in_roster_is_a_fatal_cross_check() -> None:
 def test_explicit_count_is_not_second_guessed() -> None:
     """`count` is the user's explicit choice, so a low count is reported in the plan, not
     failed."""
-    manifest = _manifest(players=[{"model": "test_defuser", "count": 1}, {"model": "test_expert"}])
-    config_to_player = {"test_defuser": "test-defuser", "test_expert": "test-expert"}
+    manifest = _manifest(
+        players=[{"player": "test-defuser", "count": 1}, {"player": "test-expert"}]
+    )
+    config_to_player = {"test-defuser": "test-defuser", "test-expert": "test-expert"}
 
     findings = analyze_run_plan(manifest, config_to_player).findings
 
     assert not any(finding.status == "fail" for finding in findings)
-    assert _row(findings, "Count test_defuser") is None  # no insufficient-count check anymore
+    assert _row(findings, "Count test-defuser") is None  # no insufficient-count check anymore
     coverage = _row(findings, "Roster coverage")
     assert coverage is not None
-    assert "test_defuser=1" in coverage.detail  # the declared count appears in the spawn plan
+    assert "test-defuser=1" in coverage.detail  # the declared count appears in the spawn plan
 
 
 def test_unresolved_roster_model_is_flagged_and_generation_continues() -> None:
     """A roster entry that didn't resolve to a player_name is ✗; the rest still cross-checks."""
     manifest = _manifest(
-        rooms=1, players=[{"model": "test_defuser"}, {"model": "nonexistent_xyz"}]
+        rooms=1, players=[{"player": "test-defuser"}, {"player": "nonexistent_xyz"}]
     )
-    config_to_player = {"test_defuser": "test-defuser", "nonexistent_xyz": None}
+    config_to_player = {"test-defuser": "test-defuser", "nonexistent_xyz": None}
 
     findings = analyze_run_plan(manifest, config_to_player).findings
 
@@ -128,7 +127,7 @@ def test_unresolved_roster_model_is_flagged_and_generation_continues() -> None:
 def test_multiple_suites_union_grows_the_spec_count() -> None:
     """`suites:` is a list: generation iterates per suite and unions, so more suites ⇒ more
     specs."""
-    config_to_player = {"test_defuser": "test-defuser", "test_expert": "test-expert"}
+    config_to_player = {"test-defuser": "test-defuser", "test-expert": "test-expert"}
 
     one = analyze_run_plan(_manifest(suites=["single-pairwise-sync"]), config_to_player).findings
     two = analyze_run_plan(

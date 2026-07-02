@@ -128,7 +128,7 @@ def tool_call_response_sequence(tool_call_response: ModelResponse) -> list[Model
 def capabilities(preserve_last_frame_for_n_turns: int) -> PlayerCapabilities:
     """PlayerCapabilities."""
     return PlayerCapabilities(
-        player_name="test_player",
+        player_name="test-player",
         player_type="ai",
         structured_output_mode="prompted",
         interaction_location_method="coordinates",

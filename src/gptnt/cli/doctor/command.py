@@ -7,7 +7,7 @@ from cyclopts import Parameter
 from cyclopts.types import ExistingFile
 from rich.console import Console
 
-from gptnt.cli.config_discovery import discover_models
+from gptnt.cli.config_discovery import discover_players
 from gptnt.cli.doctor import checks, render
 from gptnt.cli.doctor.run_plan import RunPlanResult, analyze_run_plan
 from gptnt.cli.run.manifest import RunManifest
@@ -45,7 +45,7 @@ class DiagnoseResult:
     """
 
     failed: bool
-    model_reports: list[checks.ModelReport]
+    player_reports: list[checks.PlayerReport]
     run_plan: RunPlanResult | None
 
 
@@ -83,8 +83,8 @@ async def diagnose(
 
     `include_infra=False` skips the redis/game/display/machine checks.
     """
-    matrix = await checks.check_models(_doctor_targets(run), live=live)
-    render.render_models(console, matrix.details)
+    matrix = await checks.check_players(_doctor_targets(run), live=live)
+    render.render_players(console, matrix.details)
     failed = not matrix.details or any(report.failed for report in matrix.reports)
 
     system_failed, run_plan_result = await _render_system_checks(
@@ -96,17 +96,17 @@ async def diagnose(
     )
     failed = system_failed or failed
 
-    return DiagnoseResult(failed=failed, model_reports=matrix.reports, run_plan=run_plan_result)
+    return DiagnoseResult(failed=failed, player_reports=matrix.reports, run_plan=run_plan_result)
 
 
 def _doctor_targets(run: RunManifest | None) -> list[tuple[str, str | None]]:
-    """The (model, provider) pairs to validate.
+    """The (player, provider) pairs to validate.
 
-    The manifest roster, else every discovered model.
+    The manifest roster, else every discovered player.
     """
     if run is None:
-        return [(name, None) for name in discover_models()]
-    return [(entry.model, entry.provider) for entry in run.players]
+        return [(name, None) for name in discover_players()]
+    return [(entry.player, entry.provider) for entry in run.players]
 
 
 async def _render_system_checks(

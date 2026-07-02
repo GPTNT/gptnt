@@ -27,7 +27,7 @@ def _minimal_manifest() -> dict[str, object]:
     return {
         "suites": ["single-pairwise-sync"],
         "rooms": 2,
-        "players": [{"model": "claude46"}, {"model": "gemini-3"}],
+        "players": [{"player": "claude-sonnet-4-6"}, {"player": "gemini-3-flash-preview"}],
     }
 
 
@@ -47,9 +47,9 @@ def test_default_models_do_not_share_mutable_state() -> None:
     first = RunManifest.model_validate(_minimal_manifest())
     second = RunManifest.model_validate(_minimal_manifest())
 
-    first.anchors.best_expert = "claude46"
+    first.anchors.best_expert = "claude-sonnet-4-6"
 
-    assert first.anchors.best_expert == "claude46"
+    assert first.anchors.best_expert == "claude-sonnet-4-6"
     assert second.anchors.best_expert is None
 
 
@@ -59,9 +59,9 @@ def test_loads_manifest_from_yaml_file(tmp_path: Path) -> None:
         suites: [single-pairwise-sync]
         rooms: 3
         players:
-          - model: claude46
+          - player: claude-sonnet-4-6
         anchors:
-          best_expert: claude46
+          best_expert: claude-sonnet-4-6
         """
     manifest_file = tmp_path / "run.yaml"
     _ = manifest_file.write_text(dedent(spec), encoding="utf-8")
@@ -69,8 +69,8 @@ def test_loads_manifest_from_yaml_file(tmp_path: Path) -> None:
     manifest = RunManifest.from_path(manifest_file)
 
     assert manifest.rooms == 3
-    assert manifest.players[0].model == "claude46"
-    assert manifest.anchors.best_expert == "claude46"
+    assert manifest.players[0].player == "claude-sonnet-4-6"
+    assert manifest.anchors.best_expert == "claude-sonnet-4-6"
 
 
 def test_committed_quickstart_manifest_loads_cleanly() -> None:
@@ -81,7 +81,7 @@ def test_committed_quickstart_manifest_loads_cleanly() -> None:
     assert manifest.spec_version == 2
     assert manifest.suites == ["single-pairwise-sync"]
     assert manifest.rooms == 2
-    assert [player.model for player in manifest.players] == ["test_defuser", "test_expert"]
+    assert [player.player for player in manifest.players] == ["test-defuser", "test-expert"]
     assert manifest.anchors.best_expert is None
     assert manifest.source is Source.local
 
@@ -96,7 +96,7 @@ def test_unknown_top_level_key_is_rejected(tmp_path: Path) -> None:
 
 def test_unknown_nested_player_key_is_rejected(tmp_path: Path) -> None:
     payload = _minimal_manifest()
-    payload["players"] = [{"model": "claude46", "kount": 2}]  # typo'd `count`
+    payload["players"] = [{"player": "claude-sonnet-4-6", "kount": 2}]  # typo'd `count`
 
     with pytest.raises(ValidationError):
         _ = _load_payload(tmp_path, payload)

@@ -2,16 +2,17 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-ModelOption = Annotated[
-    str, Parameter(name="--model", help="Model config name (under configs/model/).", group="Model")
+PlayerOption = Annotated[
+    str,
+    Parameter(name="--player", help="Player config name (under configs/player/).", group="Player"),
 ]
 
 ProviderOption = Annotated[
     str | None,
     Parameter(
         name="--provider",
-        help="Provider config override (under configs/model/provider/).",
-        group="Model",
+        help="Provider config override (under configs/player/provider/).",
+        group="Player",
     ),
 ]
 

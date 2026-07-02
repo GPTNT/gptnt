@@ -3,7 +3,7 @@ from gptnt.cli.statics._fields import (
     AllowThinkingOption,
     DownloadOption,
     LimitInstancesOption,
-    ModelOption,
+    PlayerOption,
     ProviderOption,
     StateRecognitionSplitOption,
     ThrowOption,
@@ -22,7 +22,7 @@ STATE_RECOGNITION_SPLITS = {
 
 async def run_defuser_mcq_vqa_evaluation(
     *,
-    model: ModelOption,
+    player: PlayerOption,
     provider: ProviderOption = None,
     should_download: DownloadOption = False,
     should_throw: ThrowOption = False,
@@ -32,7 +32,7 @@ async def run_defuser_mcq_vqa_evaluation(
 ) -> None:
     """Defuser VQA multiple choice questions."""
     await create_and_run_evaluation(
-        model=model,
+        player=player,
         provider=provider,
         role="defuser",
         hf_repo_id="GPTNT/defuser-vqa-mc-dataset",
@@ -55,7 +55,7 @@ async def run_defuser_mcq_vqa_evaluation(
 
 async def run_defuser_state_recognition_vqa_evaluation(
     *,
-    model: ModelOption,
+    player: PlayerOption,
     provider: ProviderOption = None,
     state_split: StateRecognitionSplitOption = "state-change",
     should_download: DownloadOption = False,
@@ -72,7 +72,7 @@ async def run_defuser_state_recognition_vqa_evaluation(
         )
 
     await create_and_run_evaluation(
-        model=model,
+        player=player,
         provider=provider,
         role="defuser",
         hf_repo_id="GPTNT/defuser-state-recognition-vqa-mc-dataset",

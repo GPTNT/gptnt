@@ -3,9 +3,9 @@
 Render with `TEMPLATE.replace("<NAME>", name)`.
 """
 
-MODEL_TEMPLATE = """# @package player
+PLAYER_TEMPLATE = """# @package player
 #
-# Model profile for "<NAME>".
+# Player profile for "<NAME>".
 # Every field is documented inline; uncomment and edit as needed.
 
 defaults:
@@ -58,7 +58,7 @@ action_predictor:
 
     # Option 2 (custom endpoint/self-hosted/vLLM): a bare string can't carry a
     # base_url, so use the explicit form below AND attach an endpoint with
-    # `gptnt new provider <name>`, then set `provider: <name>` on this model's
+    # `gptnt new provider <name>`, then set `provider: <name>` on this player's
     # entry in your run.yaml `players:` list. Comment out the Option 1 line above.
     # model:
     #   _target_: pydantic_ai.models.openai.OpenAIChatModel
@@ -88,9 +88,9 @@ PROVIDER_TEMPLATE = """# @package player.action_predictor.agent.model
 # Used to attach a custom provider (base_url + key) to whichever model selects it. Also used for
 # self-hosted/vLLM/OpenAI-compatible proxies.
 #
-# Attach it via the `provider:` field on a model's run.yaml players entry, e.g.:
-#   players: [{model: <model>, provider: <NAME>}]
-# The model config it attaches to should use the explicit (Option 2) `_target_` form.
+# Attach it via the `provider:` field on a player's run.yaml players entry, e.g.:
+#   players: [{player: <player>, provider: <NAME>}]
+# The player config it attaches to should use the explicit (Option 2) `_target_` form.
 
 provider:
   # OpenAI-compatible provider is the common case (vLLM, LM Studio, many proxies).
