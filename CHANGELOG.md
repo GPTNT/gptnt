@@ -1,3 +1,19 @@
+## v0.15.0 (2026-07-02)
+
+### Feat
+
+- **versioning**: remove `gptnt_edition` (#8)
+
+### Fix
+
+- quickstart manifest test (#5)
+- **hydra**: clear GlobalHydra on every load_config exit
+
+### Refactor
+
+- **players**: standardise player naming (#9)
+- migrate to pydantic ai v2 (#6)
+
 ## v0.14.0 (2026-06-30)
 
 ### Feat
