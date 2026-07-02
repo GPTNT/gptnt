@@ -16,8 +16,8 @@ task_name: generate_specs
 # override players.all. Anchors (players.best_*) come from configs/anchors.yaml.
 players:
   all:
-    - claude46
-    - gemini-3
+    - claude-sonnet-4-6
+    - gemini-3-flash-preview
 
 # Sampling depth, not measured content: attempts per (mission, pairing). Never part of a suite's
 # digest, so running more attempts of a suite keeps results comparable.

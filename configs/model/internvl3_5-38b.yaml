@@ -1,7 +1,7 @@
 # @package player
 
 capabilities:
-  player_name: internvl35
+  player_name: internvl3_5-38b
   structured_output_mode: null
   thinking_method: thinking-out-loud
   include_schema_in_instructions: true

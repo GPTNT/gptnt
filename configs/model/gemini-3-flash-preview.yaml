@@ -5,7 +5,7 @@ defaults:
   - provider: google
 
 capabilities:
-  player_name: gemini-3
+  player_name: gemini-3-flash-preview
   structured_output_mode: null
   thinking_method: thinking-out-loud
   include_schema_in_instructions: true

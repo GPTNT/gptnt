@@ -15,11 +15,11 @@ suites:
 rooms: 2
 
 players:
-  - model: claude46
-  - model: gemini-3
-  - model: gpt52
-  - model: internvl35
-  - model: qwen35
+  - model: claude-sonnet-4-6
+  - model: gemini-3-flash-preview
+  - model: gpt-5-2
+  - model: internvl3_5-38b
+  - model: qwen3-5-27b
 
 source: local
 observability: limited

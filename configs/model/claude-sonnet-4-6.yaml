@@ -4,7 +4,7 @@ defaults:
   - _self_
 
 capabilities:
-  player_name: claude46
+  player_name: claude-sonnet-4-6
   structured_output_mode: null
   thinking_method: thinking-out-loud
   include_schema_in_instructions: true

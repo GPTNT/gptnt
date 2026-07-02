@@ -12,7 +12,7 @@ def estimate_tokens_for_image_per_model(model: str, *, long_side: int, short_sid
     This needs to be improved to support more models and be more accurate.
     """
     model = model.lower()
-    if "claude46" in model:
+    if "claude" in model:
         assert long_side == 640
         assert short_side == 480
         return 424
@@ -20,15 +20,15 @@ def estimate_tokens_for_image_per_model(model: str, *, long_side: int, short_sid
         assert long_side == 640
         assert short_side == 480
         return 541
-    if "gpt5" in model or "gpt-5" in model:
+    if "gpt-5" in model:
         assert long_side == 640
         assert short_side == 480
         return 383
-    if "qwen3vl" in model or "qwen35" in model:
+    if "qwen" in model:
         assert long_side == 504
         assert short_side == 504
         return 266
-    if "internvl35" in model:
+    if "internvl" in model:
         assert long_side == 448
         assert short_side == 448
         return 267

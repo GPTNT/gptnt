@@ -35,7 +35,7 @@ class PlayerCapabilitiesFactory(factory.Factory[PlayerCapabilities]):
     class Meta:  # pyright: ignore[reportIncompatibleVariableOverride]
         model = PlayerCapabilities
 
-    player_name = "gpt5"
+    player_name = "gpt-5.2"
     player_type = "ai"
     thinking_method = "inner-monologue"
     structured_output_mode = "prompted"
