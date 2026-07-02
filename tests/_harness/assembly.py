@@ -118,7 +118,7 @@ class AssembledExperiment:
 
 @asynccontextmanager
 async def assembled_experiment(
-    dsn: str, *, defuser_model: str = "test_defuser", expert_model: str | None = "test_expert"
+    dsn: str, *, defuser_model: str = "test-defuser", expert_model: str | None = "test-expert"
 ) -> AsyncIterator[AssembledExperiment]:
     """Build EM + game + player services against `dsn` and run all their lifespans."""
     experiment_manager = ExperimentManager(

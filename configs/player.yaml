@@ -4,7 +4,7 @@ defaults:
   - _self_
   - hydra: default
 
-  - player: test_defuser
+  - player: test-defuser
   - player/provider: null
 
   - override hydra/job_logging: none

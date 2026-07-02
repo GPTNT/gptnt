@@ -81,7 +81,7 @@ def test_committed_quickstart_manifest_loads_cleanly() -> None:
     assert manifest.spec_version == 2
     assert manifest.suites == ["single-pairwise-sync"]
     assert manifest.rooms == 2
-    assert [player.player for player in manifest.players] == ["test_defuser", "test_expert"]
+    assert [player.player for player in manifest.players] == ["test-defuser", "test-expert"]
     assert manifest.anchors.best_expert is None
     assert manifest.source is Source.local
 

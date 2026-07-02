@@ -112,8 +112,8 @@ def test_new_model_rejects_traversal_through_cli(evil_name: str) -> None:
 
 @pytest.mark.anyio
 async def test_doctor_player_detailed_view_for_a_real_config() -> None:
-    """`doctor` renders a credential-free config (test_random) as a passing detail row."""
-    matrix = await checks.check_players([("test_random", None)], live=False)
+    """`doctor` renders a credential-free config (test-random) as a passing detail row."""
+    matrix = await checks.check_players([("test-random", None)], live=False)
     detail = matrix.details[0]
     assert detail.static.ok
     assert detail.report.exists == "pass"
@@ -122,5 +122,5 @@ async def test_doctor_player_detailed_view_for_a_real_config() -> None:
     out = io.StringIO()
     render.render_players(Console(file=out, width=160), matrix.details)
     rendered = out.getvalue()
-    assert "test_random" in rendered
+    assert "test-random" in rendered
     assert "Player" in rendered  # the resolved-field columns are present

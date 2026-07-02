@@ -18,7 +18,7 @@ players:
   - player: claude-sonnet-4-6
   - player: gemini-3-flash-preview
   - player: gpt-5-2
-  - player: internvl3_5-38b
+  - player: internvl3-5-38b
   - player: qwen3-5-27b
 
 source: local

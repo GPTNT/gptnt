@@ -16,8 +16,8 @@ suites:
 rooms: 2
 
 players:
-  - player: test_defuser
-  - player: test_expert
+  - player: test-defuser
+  - player: test-expert
 
 # Where the resume check reads completion from: `local` (on-disk outputs, needs no W&B) or `wandb`.
 # W&B logging itself is driven by the ambient WANDB_* environment, not configured here.

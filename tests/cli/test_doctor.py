@@ -121,14 +121,14 @@ def test_render_players_runs() -> None:
 @pytest.mark.anyio
 async def test_check_players_dummy_passes() -> None:
     """A dummy model needs no credential: exists + instantiates pass; live is ⊘ without --live."""
-    matrix = await checks.check_players([("test_random", None)], live=False)
+    matrix = await checks.check_players([("test-random", None)], live=False)
     assert len(matrix.reports) == 1
     report = matrix.reports[0]
-    assert report.label == "test_random"
+    assert report.label == "test-random"
     assert (report.exists, report.instantiates, report.live) == ("pass", "pass", "skip")
     assert report.failed is False
     # The config→player_name mapping comes from the SAME validation, keyed by the config name.
-    assert "test_random" in matrix.config_to_player
+    assert "test-random" in matrix.config_to_player
 
 
 @pytest.mark.anyio
