@@ -10,11 +10,14 @@ import datasets
 import numpy as np
 import polars as pl
 import structlog
+from huggingface_hub import HfApi
 from PIL import Image
 from pydantic_ai import Agent
 from tqdm import tqdm
+from whenever import Instant
 
 from gptnt.common.paths import Paths
+from gptnt.experiments.provenance import git_sha, gptnt_version
 from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
 from gptnt.players.reasoning_parser.react import ReactStyleReasoningParser
 from gptnt.processors.image_resizer import ImageResizer
@@ -220,13 +223,64 @@ class RunHFDatasetEvaluation(RunEvaluation):
 
     dataset_split: str | None = None
 
+    revision: str | None = None
+    """Dataset revision to pin (a branch, tag, or commit sha); `None` loads the default branch."""
+
     preprocess_instance_func: PostprocessInputsFunc
     """The function to preprocess the instance before loading into the WeaveDataset."""
+
+    def dataset_identity(self) -> dict[str, str | None]:
+        """What was measured: the repo, split, requested revision, and resolved commit sha.
+
+        The resolved sha pins "what was measured" the way a suite's digest does. Resolving it needs
+        the Hub, so it is best-effort — an offline or private repo records a null resolved sha.
+        """
+        resolved: str | None = None
+        try:
+            resolved = HfApi().dataset_info(self.hf_repo_id, revision=self.revision).sha
+        except Exception as exc:  # noqa: BLE001 — provenance is best-effort; never fail a run over it
+            logger.warning(
+                "Could not resolve dataset revision", repo=self.hf_repo_id, error=str(exc)
+            )
+        return {
+            "hf_repo_id": self.hf_repo_id,
+            "dataset_split": self.dataset_split,
+            "requested_revision": self.revision,
+            "resolved_revision": resolved,
+        }
+
+    def run_metadata(self) -> dict[str, Any]:
+        """Everything a submission needs beyond the predictions: task, dataset, capabilities, code.
+
+        Stamped beside the metrics so the statics outputs are self-describing — `gptnt submission
+        new` reads it rather than re-composing configs.
+        """
+        return {
+            "task_name": self.task_name,
+            "model_name": self.model_name,
+            "run_date": Instant.now().format_iso(),
+            "dataset": self.dataset_identity(),
+            "capabilities": self.capabilities.model_dump(mode="json"),
+            "provenance": {"gptnt_version": gptnt_version(), "git_sha": git_sha()},
+        }
+
+    def write_run_metadata(self) -> None:
+        """Stamp `run_meta.json` beside the metrics."""
+        metadata_file = self.output_dir.joinpath("run_meta.json")
+        _ = metadata_file.write_text(json.dumps(self.run_metadata(), indent=2))
+
+    @override
+    async def throw(self) -> None:
+        """Run predictions and metrics, then stamp the run metadata beside them."""
+        await super().throw()
+        self.write_run_metadata()
 
     @override
     def load_dataset(self) -> list[dict[str, Any]]:
         """Load and preprocess the HuggingFace dataset into a list of instances."""
-        dataset = datasets.load_dataset(self.hf_repo_id, split=self.dataset_split)
+        dataset = datasets.load_dataset(
+            self.hf_repo_id, split=self.dataset_split, revision=self.revision
+        )
 
         assert isinstance(dataset, (datasets.Dataset, datasets.DatasetDict))
         instances = convert_hf_dataset_to_instances(dataset)
