@@ -1,8 +1,8 @@
 """Tests for the `gptnt new` scaffolding and the doctor model-validation rendering.
 
 Pure-function coverage (templates, name validation) plus an integration test of the scaffold ->
-validate loop against the real configs dir (with guaranteed cleanup): `gptnt new player <name>` then
-`gptnt doctor` (which folds in the old standalone `validate`).
+validate loop against the real configs dir (with guaranteed cleanup): `gptnt new player <name>`
+then `gptnt doctor` (which folds in the old standalone `validate`).
 """
 
 from __future__ import annotations
@@ -41,7 +41,9 @@ def test_validate_name_rejects_unsafe_names(bad_name: str) -> None:
 
 @pytest.mark.parametrize("good_name", ["peekaboo", "vllm_box1", "my-model"])
 def test_validate_name_accepts_safe_names(good_name: str) -> None:
-    assert _validate_name(str, good_name) is None  # the cyclopts validator returns None on success
+    assert (
+        _validate_name(str, good_name) is None
+    )  # the cyclopts validator returns None on success
 
 
 def test_new_model_success_through_cli() -> None:
