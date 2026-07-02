@@ -41,9 +41,7 @@ def test_validate_name_rejects_unsafe_names(bad_name: str) -> None:
 
 @pytest.mark.parametrize("good_name", ["peekaboo", "vllm_box1", "my-model"])
 def test_validate_name_accepts_safe_names(good_name: str) -> None:
-    assert (
-        _validate_name(str, good_name) is None
-    )  # the cyclopts validator returns None on success
+    assert _validate_name(str, good_name) is None  # the cyclopts validator returns None on success
 
 
 def test_new_model_success_through_cli() -> None:
