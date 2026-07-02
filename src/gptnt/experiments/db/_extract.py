@@ -77,7 +77,6 @@ def extract_metadata_from_paths(paths: list[Path]) -> DumpedExperimentMetadata:
         final_bomb_state=final_bomb_state,
         is_hard_crash=any(footer.is_hard_crash for footer in footers),
         gptnt_version=canonical.gptnt_version,
-        gptnt_edition=canonical.gptnt_edition,
         git_sha=canonical.git_sha,
     ).model_dump(context={"mode": EXPORT_CONTEXT_MARKER})
 

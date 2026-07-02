@@ -21,13 +21,6 @@ def gptnt_version() -> str:
         return UNKNOWN_VERSION
 
 
-@lru_cache(maxsize=1)
-def gptnt_edition() -> int:
-    """Leading SemVer MAJOR — the comparability generation (0 pre-v1 or if unresolved)."""
-    head = gptnt_version().split(".", 1)[0]
-    return int(head) if head.isdigit() else 0
-
-
 def _run_git(*args: str, git_timeout: float = 2) -> str | None:
     try:
         # `git` is resolved via PATH and only runs our own fixed subcommands (no shell, no input).
@@ -62,5 +55,4 @@ class ProvenanceMixin(BaseModel):
     """Single source of truth for run provenance fields, mixed into the records that carry it."""
 
     gptnt_version: str = Field(default_factory=gptnt_version)
-    gptnt_edition: int = Field(default_factory=gptnt_edition)
     git_sha: str | None = Field(default_factory=git_sha)

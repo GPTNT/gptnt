@@ -48,7 +48,7 @@ experiment-{name}-{defuser_uuid}.parquet     experiment-{name}-{expert_uuid}.par
 │                                                                                │
 │  FOOTER = one validated `RecordFooter` (JSON) + a few flat scalar keys         │
 │           RecordFooter = { descriptor, final_bomb_state, is_hard_crash, role,  │
-│                            provenance (version/edition/git_sha) }              │
+│                            provenance (version/git_sha) }                      │
 │           flat keys: session_id · player_uuid · format_version                 │
 └────────────────────────────────────────────────────────────────────────────────┘
 ```
