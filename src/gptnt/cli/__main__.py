@@ -30,16 +30,16 @@ def build_app() -> App:
         help="Check that this machine is ready to run the benchmark, and print fixes for what isn't.",
     )
     app.command(
-        "gptnt.cli.model.new:new_app",
+        "gptnt.cli.player.new:new_app",
         name="new",
         group=onboarding,
-        help="Scaffold new model/provider configs.",
+        help="Scaffold new player/provider configs.",
     )
     app.command(
         "gptnt.cli.list_configs:list_app",
         name="list",
         group=onboarding,
-        help="List the experiment presets and model configs a run.yaml can reference.",
+        help="List the experiment presets and player configs a run.yaml can reference.",
     )
     app.command(
         "gptnt.cli.generate_specs:generate",

@@ -17,7 +17,7 @@ logger = get_logger()
 
 async def create_and_run_evaluation(
     *,
-    model: str,
+    player: str,
     provider: str | None,
     role: PlayerRole,
     hf_repo_id: str,
@@ -40,7 +40,7 @@ async def create_and_run_evaluation(
     capability-dependent instructions/scorers can be derived.
 
     Args:
-        model: Model config name selecting the player.
+        player: Player config name selecting the player.
         provider: Optional provider config override.
         role: Player role (`defuser`/`expert`) used to resize observation images.
         hf_repo_id: HuggingFace dataset repo identifier.
@@ -55,7 +55,7 @@ async def create_and_run_evaluation(
         should_upload: Whether to upload the evaluation results to Weave.
         limit_instances: Optional cap on the number of instances to evaluate.
     """
-    config_loader = ConfigLoader(model=model, provider=provider, role=role)
+    config_loader = ConfigLoader(player=player, provider=provider, role=role)
     capabilities = config_loader.capabilities
     runner = RunHFDatasetEvaluation(
         hf_repo_id=hf_repo_id,

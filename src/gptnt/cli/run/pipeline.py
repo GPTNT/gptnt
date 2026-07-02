@@ -166,7 +166,7 @@ def _print_summary(
 
     for player in manifest.players:
         suffix = f"@{player.provider}" if player.provider else ""
-        table.add_row(f"Player ({player.model}{suffix}):", str(player.count))
+        table.add_row(f"Player ({player.player}{suffix}):", str(player.count))
 
     table.add_row("Total processes:", str(1 + manifest.rooms + total_players))
     table.add_row("Observability:", manifest.observability)

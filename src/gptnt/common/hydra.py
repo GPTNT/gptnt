@@ -27,8 +27,8 @@ def _strip_hydra_metadata(full_cfg: DictConfig) -> DictConfig:
     return OmegaConf.masked_copy(full_cfg, app_keys)
 
 
-def compose_player_config(model: str, provider: str | None = None) -> DictConfig:
-    """Compose the `player` Hydra config for a model (and optional provider).
+def compose_player_config(player: str, provider: str | None = None) -> DictConfig:
+    """Compose the `player` Hydra config for a player (and optional provider).
 
     The single shared player-config composition seam: both `gptnt-core`'s model
     validation and `gptnt-statics`'s `ConfigLoader` go through here so they cannot
@@ -38,15 +38,15 @@ def compose_player_config(model: str, provider: str | None = None) -> DictConfig
     subtrees and `OmegaConf.select` directly off it.
 
     Args:
-        model: The model config name to compose (`model=<model>`).
-        provider: Optional provider config name (`model/provider=<provider>`).
+        player: The player config name to compose (`player=<player>`).
+        provider: Optional provider config name (`player/provider=<provider>`).
 
     Returns:
         The composed (un-resolved) `player` config.
     """
-    overrides = [f"model={model}"]
+    overrides = [f"player={player}"]
     if provider is not None:
-        overrides.append(f"model/provider={provider}")
+        overrides.append(f"player/provider={provider}")
     # Clear any leftover global Hydra state so the context-managed init below cannot raise "already
     # initialized" if a prior caller left the singleton dirty.
     GlobalHydra.instance().clear()

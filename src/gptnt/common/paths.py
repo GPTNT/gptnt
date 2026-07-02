@@ -43,9 +43,9 @@ class Paths(BaseSettings):
     """Path to the where we store the prompts pieces."""
 
     @property
-    def model_configs(self) -> Path:
-        """Directory of model configs (`configs/model/`)."""
-        return self.configs / "model"
+    def player_configs(self) -> Path:
+        """Directory of player configs (`configs/player/`)."""
+        return self.configs / "player"
 
     @property
     def suite_configs(self) -> Path:

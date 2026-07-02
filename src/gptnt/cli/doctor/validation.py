@@ -1,7 +1,7 @@
 """Validate a model config — used by the `validate` and `doctor` CLI commands.
 
-- :func:`validate_model_config` (static): compose `player.yaml` + `model=<name>`
-  (+ `model/provider=<provider>`) and instantiate it — i.e. prove the YAML is correct.
+- :func:`validate_model_config` (static): compose `player.yaml` + `player=<name>`
+  (+ `player/provider=<provider>`) and instantiate it — i.e. prove the YAML is correct.
   Credential-tolerant: an unset provider key is reported as `missing_credential` (with
   pydantic-ai's own "set the X environment variable" message retained in `error`), not a
   failure. Instantiation *is* the credential check — there is no separate hardcoded
@@ -78,7 +78,7 @@ def _provider_pairing_error(cfg: DictConfig, model_name: str, provider: str | No
         return (
             f"Model '{model_name}' uses the tier-1 string form (`model: <provider>:<name>`), which "
             f"cannot take a '@{provider}' provider override. Switch to the explicit `_target_` model "
-            "form (tier-2 in the `gptnt new model` scaffold) to attach a custom endpoint."
+            "form (tier-2 in the `gptnt new player` scaffold) to attach a custom endpoint."
         )
     return None
 

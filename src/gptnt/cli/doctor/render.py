@@ -56,8 +56,8 @@ def render_models(console: Console, details: list[ModelDetail]) -> None:
     if not details:
         console.print(
             Panel(
-                "[bold red]No model configs found[/bold red] under configs/model/ — scaffold one "
-                "with [bold]gptnt new model <name>[/bold].",
+                "[bold red]No player configs found[/bold red] under configs/player/ — scaffold one "
+                "with [bold]gptnt new player <name>[/bold].",
                 title="[bold]Models[/bold]",
                 border_style="red",
                 padding=(0, 1),

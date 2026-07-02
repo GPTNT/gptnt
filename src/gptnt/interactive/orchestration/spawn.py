@@ -117,10 +117,10 @@ def _build_player_command(player: PlayerSpec) -> list[str]:
         "-u",
         "-m",
         "gptnt.interactive.entrypoints.run_player",
-        f"model={player.model}",
+        f"player={player.player}",
     ]
     if player.provider:
-        command.append(f"model/provider={player.provider}")
+        command.append(f"player/provider={player.provider}")
     return command
 
 
@@ -136,10 +136,10 @@ async def spawn_players(
             if orch.shutdown_event.is_set():
                 break
 
-            idx = player_counters.get(player.model, 0)
-            player_counters[player.model] += 1
+            idx = player_counters.get(player.player, 0)
+            player_counters[player.player] += 1
             _ = await orch.spawn(  # noqa: WPS476
-                f"{player.model}__{idx}",
+                f"{player.player}__{idx}",
                 _build_player_command(player),
                 extra_env={"EXPERIMENT_RECORDER_OUTPUTS": str(output_dir)},
             )

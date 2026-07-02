@@ -3,7 +3,7 @@ from gptnt.cli.statics._fields import (
     AllowThinkingOption,
     DownloadOption,
     LimitInstancesOption,
-    ModelOption,
+    PlayerOption,
     ProviderOption,
     ThrowOption,
     UploadOption,
@@ -15,7 +15,7 @@ from gptnt.statics.scorers import StringBasedComparer, create_scorers
 
 async def run_defuser_set_of_marks_evaluation(
     *,
-    model: ModelOption,
+    player: PlayerOption,
     provider: ProviderOption = None,
     should_download: DownloadOption = False,
     should_throw: ThrowOption = False,
@@ -25,7 +25,7 @@ async def run_defuser_set_of_marks_evaluation(
 ) -> None:
     """Defuser grounding using Set of Marks."""
     await create_and_run_evaluation(
-        model=model,
+        player=player,
         provider=provider,
         role="defuser",
         hf_repo_id="GPTNT/defuser-grounding-dataset",

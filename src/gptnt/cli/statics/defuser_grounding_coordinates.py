@@ -5,7 +5,7 @@ from gptnt.cli.statics._fields import (
     AllowThinkingOption,
     DownloadOption,
     LimitInstancesOption,
-    ModelOption,
+    PlayerOption,
     ProviderOption,
     ThrowOption,
     UploadOption,
@@ -86,7 +86,7 @@ def _build_coordinate_scorers(capabilities: PlayerCapabilities) -> list[Scorer]:
 
 async def run_defuser_grounding_evaluation(
     *,
-    model: ModelOption,
+    player: PlayerOption,
     provider: ProviderOption = None,
     should_download: DownloadOption = False,
     should_throw: ThrowOption = False,
@@ -96,7 +96,7 @@ async def run_defuser_grounding_evaluation(
 ) -> None:
     """Defuser grounding using absolute coordinates."""
     await create_and_run_evaluation(
-        model=model,
+        player=player,
         provider=provider,
         role="defuser",
         hf_repo_id="GPTNT/defuser-grounding-dataset",

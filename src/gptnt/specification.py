@@ -195,15 +195,15 @@ class PlayerProtocol(BaseModel, frozen=True):
 
 
 class PlayerSpec(BaseModel):
-    """One player in a roster: a model config, an optional provider override, and a count."""
+    """One player in a roster: a player config, an optional provider override, and a count."""
 
     model_config = ConfigDict(extra="forbid")
 
-    model: str
-    """A `configs/model/<model>.yaml` config name."""
+    player: str
+    """A `configs/player/<player>.yaml` config name."""
 
     provider: str | None = None
-    """A `configs/model/provider/<provider>.yaml` config name, or `None` to use the default."""
+    """A `configs/player/provider/<provider>.yaml` config name, or `None` to use the default."""
 
     count: int = Field(default=1, ge=1)
     """How many copies of this player to spawn."""

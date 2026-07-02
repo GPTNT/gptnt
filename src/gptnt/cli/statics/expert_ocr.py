@@ -5,7 +5,7 @@ from gptnt.cli.statics._fields import (
     AllowThinkingOption,
     DownloadOption,
     LimitInstancesOption,
-    ModelOption,
+    PlayerOption,
     ProviderOption,
     ThrowOption,
     UploadOption,
@@ -18,7 +18,7 @@ from gptnt.statics.scorers import StringBasedComparer, create_scorers
 
 async def run_expert_ocr_evaluation(
     *,
-    model: ModelOption,
+    player: PlayerOption,
     provider: ProviderOption = None,
     should_download: DownloadOption = False,
     should_throw: ThrowOption = False,
@@ -28,7 +28,7 @@ async def run_expert_ocr_evaluation(
 ) -> None:
     """Expert OCR evaluation."""
     await create_and_run_evaluation(
-        model=model,
+        player=player,
         provider=provider,
         role="expert",
         hf_repo_id="GPTNT/expert-element-ocr",
@@ -52,7 +52,7 @@ async def run_expert_ocr_evaluation(
 
 async def run_expert_ocr_with_text_evaluation(
     *,
-    model: ModelOption,
+    player: PlayerOption,
     provider: ProviderOption = None,
     should_download: DownloadOption = False,
     should_throw: ThrowOption = False,
@@ -62,7 +62,7 @@ async def run_expert_ocr_with_text_evaluation(
 ) -> None:
     """Expert OCR evaluation with the image AND the text."""
     await create_and_run_evaluation(
-        model=model,
+        player=player,
         provider=provider,
         role="expert",
         hf_repo_id="GPTNT/expert-element-ocr",

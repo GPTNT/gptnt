@@ -5,13 +5,13 @@ from typing import Annotated
 from cyclopts import App, Parameter
 from rich.console import Console
 
-from gptnt.cli.model.templates import MODEL_TEMPLATE, PROVIDER_TEMPLATE
+from gptnt.cli.player.templates import PLAYER_TEMPLATE, PROVIDER_TEMPLATE
 from gptnt.common.paths import Paths
 
 console = Console()
 paths = Paths()
 
-new_app = App(name="new", help="Scaffold new model/provider configs.")
+new_app = App(name="new", help="Scaffold new player/provider configs.")
 
 
 def _validate_name(type_: type, name: str) -> None:  # noqa: ARG001
@@ -44,16 +44,18 @@ def _write_template(target: Path, template: str) -> None:
     console.print(f"[bold green]Created config:[/bold green] {rel}")
 
 
-@new_app.command(name="model")
-def new_model(name: NameArgument) -> None:
-    """Scaffold a new model config at `configs/model/<name>.yaml`."""
-    target = paths.configs / "model" / f"{name}.yaml"
-    _write_template(target, MODEL_TEMPLATE.replace("<NAME>", name))
-    console.print(f"Next: validate it with [bold]gptnt doctor --model {name}[/bold].")
+@new_app.command(name="player")
+def new_player(name: NameArgument) -> None:
+    """Scaffold a new player config at `configs/player/<name>.yaml`."""
+    target = paths.configs / "player" / f"{name}.yaml"
+    _write_template(target, PLAYER_TEMPLATE.replace("<NAME>", name))
+    console.print(
+        f"Next: validate it with [bold]gptnt doctor[/bold] ({name} is now discoverable)."
+    )
 
 
 @new_app.command(name="provider")
 def new_provider(name: NameArgument) -> None:
-    """Scaffold a new provider config at `configs/model/provider/<name>.yaml`."""
-    target = paths.configs / "model" / "provider" / f"{name}.yaml"
+    """Scaffold a new provider config at `configs/player/provider/<name>.yaml`."""
+    target = paths.configs / "player" / "provider" / f"{name}.yaml"
     _write_template(target, PROVIDER_TEMPLATE.replace("<NAME>", name))

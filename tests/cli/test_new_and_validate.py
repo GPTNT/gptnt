@@ -1,7 +1,7 @@
 """Tests for the `gptnt new` scaffolding and the doctor model-validation rendering.
 
 Pure-function coverage (templates, name validation) plus an integration test of the scaffold ->
-validate loop against the real configs dir (with guaranteed cleanup): `gptnt new model <name>` then
+validate loop against the real configs dir (with guaranteed cleanup): `gptnt new player <name>` then
 `gptnt doctor` (which folds in the old standalone `validate`).
 """
 
@@ -16,8 +16,8 @@ from rich.console import Console
 from gptnt.cli.__main__ import build_app
 from gptnt.cli.doctor import checks, render
 from gptnt.cli.doctor.validation import validate_model_config
-from gptnt.cli.model.new import _validate_name
-from gptnt.cli.model.templates import MODEL_TEMPLATE, PROVIDER_TEMPLATE
+from gptnt.cli.player.new import _validate_name
+from gptnt.cli.player.templates import PLAYER_TEMPLATE, PROVIDER_TEMPLATE
 from gptnt.common.paths import Paths
 
 from tests._cli_runner import invoke_cli
@@ -25,7 +25,7 @@ from tests._cli_runner import invoke_cli
 _SCAFFOLD_NAME = "_pytest_scaffold_model"
 
 
-@pytest.mark.parametrize("template", [MODEL_TEMPLATE, PROVIDER_TEMPLATE])
+@pytest.mark.parametrize("template", [PLAYER_TEMPLATE, PROVIDER_TEMPLATE])
 def test_templates_render_without_placeholder_and_parse(template: str) -> None:
     rendered = template.replace("<NAME>", "peekaboo")
     assert "<NAME>" not in rendered
@@ -45,10 +45,10 @@ def test_validate_name_accepts_safe_names(good_name: str) -> None:
 
 
 def test_new_model_success_through_cli() -> None:
-    """`gptnt new model <name>` writes the config and points at `gptnt doctor`."""
-    target = Paths().configs / "model" / f"{_SCAFFOLD_NAME}.yaml"
+    """`gptnt new player <name>` writes the config and points at `gptnt doctor`."""
+    target = Paths().configs / "player" / f"{_SCAFFOLD_NAME}.yaml"
     try:  # noqa: WPS501
-        result = invoke_cli(build_app(), ["new", "model", _SCAFFOLD_NAME])
+        result = invoke_cli(build_app(), ["new", "player", _SCAFFOLD_NAME])
         assert result.exit_code == 0, result.output
         assert target.exists()
         assert "Created config" in result.output
@@ -58,8 +58,8 @@ def test_new_model_success_through_cli() -> None:
 
 
 def test_new_provider_success_through_cli() -> None:
-    """`gptnt new provider <name>` writes the provider config under `model/provider/`."""
-    target = Paths().configs / "model" / "provider" / f"{_SCAFFOLD_NAME}.yaml"
+    """`gptnt new provider <name>` writes the provider config under `player/provider/`."""
+    target = Paths().configs / "player" / "provider" / f"{_SCAFFOLD_NAME}.yaml"
     try:  # noqa: WPS501
         result = invoke_cli(build_app(), ["new", "provider", _SCAFFOLD_NAME])
         assert result.exit_code == 0, result.output
@@ -70,10 +70,10 @@ def test_new_provider_success_through_cli() -> None:
 
 
 def test_scaffold_then_validate_loop() -> None:
-    """`new model <name>` produces a config that statically validates (the happy path)."""
-    target = Paths().configs / "model" / f"{_SCAFFOLD_NAME}.yaml"
+    """`new player <name>` produces a config that statically validates (the happy path)."""
+    target = Paths().configs / "player" / f"{_SCAFFOLD_NAME}.yaml"
     try:  # noqa: WPS501
-        result = invoke_cli(build_app(), ["new", "model", _SCAFFOLD_NAME])
+        result = invoke_cli(build_app(), ["new", "player", _SCAFFOLD_NAME])
         assert result.exit_code == 0, result.output
         assert target.exists()
 
@@ -87,12 +87,12 @@ def test_scaffold_then_validate_loop() -> None:
 
 def test_new_model_refuses_overwrite_through_cli() -> None:
     """A second scaffold of the same name fails (raises) instead of overwriting."""
-    target = Paths().configs / "model" / f"{_SCAFFOLD_NAME}.yaml"
+    target = Paths().configs / "player" / f"{_SCAFFOLD_NAME}.yaml"
     try:  # noqa: WPS501
-        assert invoke_cli(build_app(), ["new", "model", _SCAFFOLD_NAME]).exit_code == 0
+        assert invoke_cli(build_app(), ["new", "player", _SCAFFOLD_NAME]).exit_code == 0
         # The "already exists" guard raises a real exception that propagates (no exit machinery).
         with pytest.raises(FileExistsError, match="already exists"):
-            _ = invoke_cli(build_app(), ["new", "model", _SCAFFOLD_NAME])
+            _ = invoke_cli(build_app(), ["new", "player", _SCAFFOLD_NAME])
     finally:
         target.unlink(missing_ok=True)
 
@@ -101,11 +101,11 @@ def test_new_model_refuses_overwrite_through_cli() -> None:
 def test_new_model_rejects_traversal_through_cli(evil_name: str) -> None:
     """The `_validate_name` callback fires on the CLI parse path and rejects unsafe names.
 
-    This is the latent hole: a direct `new_model("../evil")` call skips the callback entirely, so
+    This is the latent hole: a direct `new_player("../evil")` call skips the callback entirely, so
     only the `CliRunner` path actually exercises the guard.
     """
-    target = Paths().configs / "model" / f"{evil_name}.yaml"
-    result = invoke_cli(build_app(), ["new", "model", evil_name])
+    target = Paths().configs / "player" / f"{evil_name}.yaml"
+    result = invoke_cli(build_app(), ["new", "player", evil_name])
     assert result.exit_code != 0
     assert not target.exists()  # nothing was written outside the configs dir
 

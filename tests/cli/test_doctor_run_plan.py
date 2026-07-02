@@ -39,7 +39,7 @@ def _manifest(**overrides: object) -> RunManifest:
     payload: dict[str, object] = {
         "suites": ["single-pairwise-sync"],
         "rooms": 2,
-        "players": [{"model": "test_defuser"}, {"model": "test_expert"}],
+        "players": [{"player": "test_defuser"}, {"player": "test_expert"}],
     }
     payload.update(overrides)
     return RunManifest.model_validate(payload)
@@ -83,7 +83,7 @@ def test_anchor_not_in_roster_is_a_fatal_cross_check() -> None:
     """A `with_best_defuser` suite whose anchor isn't spawned would stall — that must be a ✗."""
     manifest = _manifest(
         suites=["single-best-defuser-sync"],
-        players=[{"model": "test_defuser"}],
+        players=[{"player": "test_defuser"}],
         anchors={"best_defuser": "test_expert"},  # resolves to test-expert, NOT in the roster
     )
     config_to_player = {"test_defuser": "test-defuser"}
@@ -99,7 +99,9 @@ def test_anchor_not_in_roster_is_a_fatal_cross_check() -> None:
 def test_explicit_count_is_not_second_guessed() -> None:
     """`count` is the user's explicit choice, so a low count is reported in the plan, not
     failed."""
-    manifest = _manifest(players=[{"model": "test_defuser", "count": 1}, {"model": "test_expert"}])
+    manifest = _manifest(
+        players=[{"player": "test_defuser", "count": 1}, {"player": "test_expert"}]
+    )
     config_to_player = {"test_defuser": "test-defuser", "test_expert": "test-expert"}
 
     findings = analyze_run_plan(manifest, config_to_player).findings
@@ -114,7 +116,7 @@ def test_explicit_count_is_not_second_guessed() -> None:
 def test_unresolved_roster_model_is_flagged_and_generation_continues() -> None:
     """A roster entry that didn't resolve to a player_name is ✗; the rest still cross-checks."""
     manifest = _manifest(
-        rooms=1, players=[{"model": "test_defuser"}, {"model": "nonexistent_xyz"}]
+        rooms=1, players=[{"player": "test_defuser"}, {"player": "nonexistent_xyz"}]
     )
     config_to_player = {"test_defuser": "test-defuser", "nonexistent_xyz": None}
 

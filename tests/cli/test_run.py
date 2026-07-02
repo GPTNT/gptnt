@@ -39,7 +39,7 @@ def _manifest(**overrides: object) -> RunManifest:
     payload: dict[str, object] = {
         "suites": ["single-pairwise-sync"],
         "rooms": 1,
-        "players": [PlayerSpec(model="claude-sonnet-4-6")],
+        "players": [PlayerSpec(player="claude-sonnet-4-6")],
     }
     payload.update(overrides)
     return RunManifest.model_validate(payload)

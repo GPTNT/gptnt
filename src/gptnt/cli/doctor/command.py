@@ -7,7 +7,7 @@ from cyclopts import Parameter
 from cyclopts.types import ExistingFile
 from rich.console import Console
 
-from gptnt.cli.config_discovery import discover_models
+from gptnt.cli.config_discovery import discover_players
 from gptnt.cli.doctor import checks, render
 from gptnt.cli.doctor.run_plan import RunPlanResult, analyze_run_plan
 from gptnt.cli.run.manifest import RunManifest
@@ -100,13 +100,13 @@ async def diagnose(
 
 
 def _doctor_targets(run: RunManifest | None) -> list[tuple[str, str | None]]:
-    """The (model, provider) pairs to validate.
+    """The (player, provider) pairs to validate.
 
-    The manifest roster, else every discovered model.
+    The manifest roster, else every discovered player.
     """
     if run is None:
-        return [(name, None) for name in discover_models()]
-    return [(entry.model, entry.provider) for entry in run.players]
+        return [(name, None) for name in discover_players()]
+    return [(entry.player, entry.provider) for entry in run.players]
 
 
 async def _render_system_checks(
