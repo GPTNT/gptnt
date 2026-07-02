@@ -53,7 +53,7 @@ def analyze_run_plan(
     """Cross-check the manifest roster against what generation requires, then report resume state.
 
     `config_to_player` maps each roster *config* name to its resolved `player_name` (or `None` when
-    it failed to compose/instantiate). It comes from the SAME `check_models` validation the doctor
+    it failed to compose/instantiate). It comes from the SAME `check_players` validation the doctor
     command renders as the matrix, so the matrix and this cross-check can never disagree.
 
     `specs`, when given, is a pre-generated spec set loaded from disk (the `gptnt run` path): the

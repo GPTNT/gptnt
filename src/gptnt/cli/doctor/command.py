@@ -45,7 +45,7 @@ class DiagnoseResult:
     """
 
     failed: bool
-    model_reports: list[checks.ModelReport]
+    player_reports: list[checks.PlayerReport]
     run_plan: RunPlanResult | None
 
 
@@ -83,8 +83,8 @@ async def diagnose(
 
     `include_infra=False` skips the redis/game/display/machine checks.
     """
-    matrix = await checks.check_models(_doctor_targets(run), live=live)
-    render.render_models(console, matrix.details)
+    matrix = await checks.check_players(_doctor_targets(run), live=live)
+    render.render_players(console, matrix.details)
     failed = not matrix.details or any(report.failed for report in matrix.reports)
 
     system_failed, run_plan_result = await _render_system_checks(
@@ -96,7 +96,7 @@ async def diagnose(
     )
     failed = system_failed or failed
 
-    return DiagnoseResult(failed=failed, model_reports=matrix.reports, run_plan=run_plan_result)
+    return DiagnoseResult(failed=failed, player_reports=matrix.reports, run_plan=run_plan_result)
 
 
 def _doctor_targets(run: RunManifest | None) -> list[tuple[str, str | None]]:

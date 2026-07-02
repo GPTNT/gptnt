@@ -197,7 +197,7 @@ async def test_run_pipeline_gate_blocks_when_failed_without_force(
     specs: Sequence[object] = [_spec()]
     result = DiagnoseResult(
         failed=True,
-        model_reports=[],
+        player_reports=[],
         run_plan=RunPlanResult(
             findings=[],
             specs=list(specs),
@@ -221,7 +221,7 @@ async def test_run_pipeline_force_proceeds_despite_failure(
     specs = [_spec()]
     result = DiagnoseResult(
         failed=True,
-        model_reports=[],
+        player_reports=[],
         run_plan=RunPlanResult(
             findings=[], specs=specs, config_to_player={"claude-sonnet-4-6": "claude-sonnet-4-6"}
         ),
@@ -237,7 +237,7 @@ async def test_run_pipeline_force_proceeds_despite_failure(
 
 @pytest.mark.anyio
 async def test_run_pipeline_aborts_when_run_plan_missing(monkeypatch: pytest.MonkeyPatch) -> None:
-    result = DiagnoseResult(failed=False, model_reports=[], run_plan=None)
+    result = DiagnoseResult(failed=False, player_reports=[], run_plan=None)
     _patch_diagnose(monkeypatch, result)
     _patch_load_specs(monkeypatch, [_spec()])
     calls = _patch_spawn(monkeypatch)
@@ -270,7 +270,7 @@ async def test_run_pipeline_exits_cleanly_when_everything_already_done(
     # Resume filtering dropped everything → remaining_specs is empty → return without spawning.
     result = DiagnoseResult(
         failed=False,
-        model_reports=[],
+        player_reports=[],
         run_plan=RunPlanResult(
             findings=[],
             specs=specs,
@@ -296,7 +296,7 @@ async def test_run_pipeline_happy_path_spawns_with_resolved_specs(
     specs = [spec_a, spec_b]
     result = DiagnoseResult(
         failed=False,
-        model_reports=[],
+        player_reports=[],
         run_plan=RunPlanResult(
             findings=[],
             specs=specs,

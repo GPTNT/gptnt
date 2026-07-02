@@ -1,7 +1,7 @@
 """Tests for the `gptnt doctor <run.yaml>` run-plan cross-check.
 
 The cross-check (`run_plan.analyze_run_plan`) is the focus: given a config-name → player_name
-mapping (built here exactly as `check_models` hands one back) it dry-runs real, offline experiment
+mapping (built here exactly as `check_players` hands one back) it dry-runs real, offline experiment
 generation and reports coverage / count / resume findings. Generation runs through Hydra (offline,
 deterministic), so these tests exercise the genuine
 config→player_name resolution. The test player configs deliberately use a config name that differs
