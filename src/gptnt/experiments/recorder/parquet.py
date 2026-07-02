@@ -9,16 +9,17 @@ validated `RecordFooter` model. A few flat scalar keys (`session_id`, `player_uu
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 
 import pyarrow as pa
 from pyarrow import parquet as pq
-from pydantic import ConfigDict
+from pydantic import BaseModel, ConfigDict
+from pydantic_ai import RunUsage
 
 # These three are RecordFooter field types — pydantic needs them at runtime to build the model,
 # so they can't move into TYPE_CHECKING despite only appearing in annotations.
 from gptnt.experiments.descriptor import ExperimentDescriptor  # noqa: TC001
-from gptnt.experiments.duckdb import EXPORT_CONTEXT_MARKER, arrow_schema_for
+from gptnt.experiments.duckdb import EXPORT_CONTEXT_MARKER, AsBlob, arrow_schema_for
 from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep
 from gptnt.experiments.provenance import ProvenanceMixin
 from gptnt.ktane.state.bomb import BombState  # noqa: TC001
@@ -136,6 +137,25 @@ def read_session_id_from_parquet(path: Path) -> str:
     id, so it must not pay a full `RecordFooter` parse per file.
     """
     return read_footer_kv(path)[KEY_SESSION_ID].decode()
+
+
+class _UsageColumn(BaseModel):
+    """One `usage` cell, decoded through the same `AsBlob` codec the step records use."""
+
+    usage: Annotated[RunUsage, AsBlob]
+
+
+def read_run_usage(path: Path) -> RunUsage:
+    """Sum the per-step usage from a player record, reading only the compressed `usage` column.
+
+    Parquet is columnar, so this skips the large `input_messages` / `observation` blobs entirely —
+    the usage total is all a submission needs, and re-reading the whole record just to sum it would
+    pull megabytes of image bytes per step.
+    """
+    usage_cells = pq.read_table(path, columns=["usage"]).column("usage").to_pylist()
+    return sum(
+        (_UsageColumn.model_validate({"usage": cell}).usage for cell in usage_cells), RunUsage()
+    )
 
 
 def load_player_record_from_parquet(path: Path) -> ExperimentPlayerRecord:
