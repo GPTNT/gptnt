@@ -75,7 +75,6 @@ def footer_from_player_record(record: ExperimentPlayerRecord) -> dict[bytes, byt
         is_hard_crash=record.is_hard_crash,
         role=record.role,
         gptnt_version=record.gptnt_version,
-        gptnt_edition=record.gptnt_edition,
         git_sha=record.git_sha,
     )
     return build_footer(footer, player_uuid=str(record.player_content.uuid))
@@ -158,6 +157,5 @@ def load_player_record_from_parquet(path: Path) -> ExperimentPlayerRecord:
         step_records=steps,
         is_hard_crash=footer.is_hard_crash,
         gptnt_version=footer.gptnt_version,
-        gptnt_edition=footer.gptnt_edition,
         git_sha=footer.git_sha,
     )

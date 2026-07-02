@@ -373,7 +373,6 @@ class ExperimentSummary(ProvenanceMixin, DuckDBSchemaMixin):
         final_bomb_state: BombState,
         is_hard_crash: bool,
         gptnt_version: str = "unknown",
-        gptnt_edition: int = 0,
         git_sha: str | None = None,
     ) -> Self:
         """Construct ExperimentSummary from an ExperimentDescriptor and final BombState."""
@@ -404,7 +403,6 @@ class ExperimentSummary(ProvenanceMixin, DuckDBSchemaMixin):
             defuser_capabilities=descriptor.defuser_capabilities,
             expert_capabilities=descriptor.expert_capabilities,
             gptnt_version=gptnt_version,
-            gptnt_edition=gptnt_edition,
             git_sha=git_sha,
         )
 

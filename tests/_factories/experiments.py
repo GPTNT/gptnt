@@ -102,6 +102,5 @@ def make_experiment_summary(
         defuser_capabilities=descriptor.defuser_capabilities,
         expert_capabilities=None,
         gptnt_version="test",
-        gptnt_edition=0,
         git_sha=None,
     )
