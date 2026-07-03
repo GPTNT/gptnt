@@ -15,8 +15,8 @@ def _resolve_commit_sha(*, hf_repo_id: str, revision: str | None) -> str | None:
     """Resolve the requested revision to a commit sha, best-effort.
 
     I apologise for the blanket exception. An offline or private repo must not fail a completed
-    run, so any Hub error records a null sha instead of propagating. The Hub can throw a variety
-    of exceptions and we don't really care _why_ it failed, we just want to record that it did.
+    run, so any Hub error records a null sha instead of propagating. The Hub can throw a variety of
+    exceptions and we don't really care _why_ it failed, we just want to record that it did.
     """
     try:
         resolved = HfApi().dataset_info(hf_repo_id, revision=revision).sha
