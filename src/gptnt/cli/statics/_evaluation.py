@@ -27,6 +27,7 @@ async def create_and_run_evaluation(
     build_instruction: Callable[[PlayerCapabilities], str],
     build_scorers: Callable[[PlayerCapabilities], list[Scorer]],
     dataset_split: str | None = None,
+    dataset_revision: str | None = None,
     should_download: bool,
     should_throw: bool,
     should_upload: bool,
@@ -50,6 +51,7 @@ async def create_and_run_evaluation(
         build_instruction: Callback building the system instruction from capabilities.
         build_scorers: Callback building the scorer list from capabilities.
         dataset_split: Optional HuggingFace dataset split to load.
+        dataset_revision: Optional dataset revision (branch, tag, or commit sha) to pin.
         should_download: Whether to download the dataset up-front before running.
         should_throw: Whether to actually execute the evaluation.
         should_upload: Whether to upload the evaluation results to Weave.
@@ -60,6 +62,7 @@ async def create_and_run_evaluation(
     runner = RunHFDatasetEvaluation(
         hf_repo_id=hf_repo_id,
         dataset_split=dataset_split,
+        revision=dataset_revision,
         task_name=task_name,
         weave_project=weave_project,
         preprocess_instance_func=preprocess_instance_func,
