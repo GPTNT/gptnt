@@ -37,6 +37,14 @@ LimitInstancesOption = Annotated[
     ),
 ]
 
+DatasetRevisionOption = Annotated[
+    str | None,
+    Parameter(
+        name="--dataset-revision",
+        help="Pin the HuggingFace dataset revision (branch, tag, or commit sha).",
+    ),
+]
+
 AllowThinkingOption = Annotated[
     bool,
     Parameter(

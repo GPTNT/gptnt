@@ -1,6 +1,7 @@
 from gptnt.cli.statics._evaluation import create_and_run_evaluation
 from gptnt.cli.statics._fields import (
     AllowThinkingOption,
+    DatasetRevisionOption,
     DownloadOption,
     LimitInstancesOption,
     PlayerOption,
@@ -21,6 +22,7 @@ async def run_defuser_oe_vqa_evaluation(
     should_throw: ThrowOption = False,
     should_upload: UploadOption = False,
     limit_instances: LimitInstancesOption = None,
+    dataset_revision: DatasetRevisionOption = None,
     allow_thinking: AllowThinkingOption = True,
 ) -> None:
     """Defuser VQA open-ended questions."""
@@ -43,4 +45,5 @@ async def run_defuser_oe_vqa_evaluation(
         should_throw=should_throw,
         should_upload=should_upload,
         limit_instances=limit_instances,
+        dataset_revision=dataset_revision,
     )

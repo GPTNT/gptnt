@@ -3,6 +3,7 @@ from functools import partial
 from gptnt.cli.statics._evaluation import create_and_run_evaluation
 from gptnt.cli.statics._fields import (
     AllowThinkingOption,
+    DatasetRevisionOption,
     DownloadOption,
     LimitInstancesOption,
     PlayerOption,
@@ -24,6 +25,7 @@ async def run_expert_ocr_evaluation(
     should_throw: ThrowOption = False,
     should_upload: UploadOption = False,
     limit_instances: LimitInstancesOption = None,
+    dataset_revision: DatasetRevisionOption = None,
     allow_thinking: AllowThinkingOption = True,
 ) -> None:
     """Expert OCR evaluation."""
@@ -47,6 +49,7 @@ async def run_expert_ocr_evaluation(
         should_throw=should_throw,
         should_upload=should_upload,
         limit_instances=limit_instances,
+        dataset_revision=dataset_revision,
     )
 
 
@@ -58,6 +61,7 @@ async def run_expert_ocr_with_text_evaluation(
     should_throw: ThrowOption = False,
     should_upload: UploadOption = False,
     limit_instances: LimitInstancesOption = None,
+    dataset_revision: DatasetRevisionOption = None,
     allow_thinking: AllowThinkingOption = True,
 ) -> None:
     """Expert OCR evaluation with the image AND the text."""
@@ -81,4 +85,5 @@ async def run_expert_ocr_with_text_evaluation(
         should_throw=should_throw,
         should_upload=should_upload,
         limit_instances=limit_instances,
+        dataset_revision=dataset_revision,
     )
