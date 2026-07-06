@@ -1,5 +1,11 @@
 # @package player
 
+identity:
+  display_name: InternVL3.5 (38B)
+  organisation: OpenGVLab
+  is_os_model: true
+  url: https://huggingface.co/OpenGVLab/InternVL3_5-38B
+
 capabilities:
   player_name: internvl3-5-38b
   structured_output_mode: null

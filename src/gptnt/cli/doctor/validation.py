@@ -32,7 +32,7 @@ from gptnt.common.hydra import compose_player_config
 if TYPE_CHECKING:
     from gptnt.players.specification import PlayerCapabilities
 
-_ErrorStage = Literal["compose", "capabilities", "agent"]
+_ErrorStage = Literal["compose", "capabilities", "identity", "agent"]
 
 
 @dataclass(frozen=True)
@@ -136,9 +136,21 @@ def validate_model_config(model_name: str, provider: str | None = None) -> Model
 
     try:
         capabilities = instantiate(cfg.player.capabilities)
-    except InstantiationException as exc:
+    except (InstantiationException, OmegaConfBaseException) as exc:
         return ModelValidationResult(
             model_name, provider, ok=False, error_stage="capabilities", error=str(exc)
+        )
+
+    try:
+        instantiate(cfg.player.identity)
+    except (InstantiationException, OmegaConfBaseException) as exc:
+        return ModelValidationResult(
+            model_name,
+            provider,
+            ok=False,
+            capabilities=capabilities,
+            error_stage="identity",
+            error=str(exc),
         )
 
     pairing_error = _provider_pairing_error(cfg, model_name, provider)

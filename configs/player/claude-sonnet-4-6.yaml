@@ -3,6 +3,12 @@
 defaults:
   - _self_
 
+identity:
+  display_name: Claude Sonnet 4.6
+  organisation: Anthropic
+  is_os_model: false
+  url: https://www.anthropic.com/claude/sonnet
+
 capabilities:
   player_name: claude-sonnet-4-6
   structured_output_mode: null

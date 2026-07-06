@@ -47,6 +47,14 @@ capabilities:
   #   width: 640
   #   height: 480
 
+# --- Identity ---------------------------------------------------------------
+# Leaderboard metadata.
+identity:
+  display_name: ???
+  organisation: ???
+  is_os_model: false
+  url: null
+
 # --- Model ------------------------------------------------------------------
 action_predictor:
   agent:

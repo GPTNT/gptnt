@@ -34,6 +34,14 @@ player:
     usage_limits:
       _target_: pydantic_ai.usage.UsageLimits
 
+  # Leaderboard metadata for this player.
+  identity:
+    _target_: gptnt.players.specification.PlayerIdentity
+    display_name: ???
+    organisation: ???
+    is_os_model: ???
+    url: ???
+
   # Records to disk by default (no Weights & Biases needed). To also log to W&B, install the
   # wandb extra (`uv sync --group wandb` / `pip install gptnt-interactive[wandb]`) and swap
   # _target_ to gptnt.experiments.recorder.wandb.WandbExperimentPlayerRecorder (it accepts the same

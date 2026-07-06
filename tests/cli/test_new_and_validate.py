@@ -70,13 +70,24 @@ def test_new_provider_success_through_cli() -> None:
 
 
 def test_scaffold_then_validate_loop() -> None:
-    """`new player <name>` produces a config that statically validates (the happy path)."""
+    """`new player <name>` scaffolds a config that validates once its identity is filled in.
+
+    The template leaves the identity's `display_name` and `organisation` as `???` on purpose, so a
+    fresh scaffold fails at the identity stage (cleanly, not with a traceback) until the user
+    fills them.
+    """
     target = Paths().configs / "player" / f"{_SCAFFOLD_NAME}.yaml"
     try:  # noqa: WPS501
         result = invoke_cli(build_app(), ["new", "player", _SCAFFOLD_NAME])
         assert result.exit_code == 0, result.output
         assert target.exists()
 
+        fresh = validate_model_config(_SCAFFOLD_NAME)
+        assert not fresh.ok
+        assert fresh.error_stage == "identity"
+
+        filled = target.read_text().replace("display_name: ???", "display_name: Scaffold")
+        _ = target.write_text(filled.replace("organisation: ???", "organisation: Test"))
         outcome = validate_model_config(_SCAFFOLD_NAME)
         assert outcome.ok
         assert outcome.capabilities is not None

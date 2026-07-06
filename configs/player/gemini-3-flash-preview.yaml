@@ -4,6 +4,12 @@ defaults:
   - _self_
   - provider: google
 
+identity:
+  display_name: Gemini 3 Flash (Preview)
+  organisation: Google
+  is_os_model: false
+  url: https://deepmind.google/models/gemini/flash/
+
 capabilities:
   player_name: gemini-3-flash-preview
   structured_output_mode: null
