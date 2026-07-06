@@ -10,6 +10,12 @@ capabilities:
   interaction_location_method: set-of-marks
   thinking_method: inner-monologue
 
+identity:
+  display_name: Test Oracle
+  organisation: GPTNT
+  is_os_model: false
+  url: null
+
 action_predictor:
   agent:
     retries: 0

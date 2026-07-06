@@ -19,7 +19,7 @@ from gptnt.players.feedback.nobf import NaughtyOutputBehaviourFeedbackGenerator
 from gptnt.players.history.message_history import MessageHistory
 from gptnt.players.input_builder import AgentInputBuilder
 from gptnt.players.observation_handler import ObservationHandler
-from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.players.specification import PlayerCapabilities, PlayerIdentity, PlayerProtocol
 
 
 @dataclass(kw_only=True)
@@ -38,6 +38,7 @@ class PlayerAgent(HeartbeatBroadcaster):
     uuid: UUID4 = field(default_factory=uuid4)
 
     capabilities: PlayerCapabilities
+    identity: PlayerIdentity
     service_name: str = field(init=False)
     observation_handler: ObservationHandler
     action_predictor: ActionPredictor

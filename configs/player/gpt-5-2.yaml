@@ -3,6 +3,12 @@
 defaults:
   - _self_
 
+identity:
+  display_name: GPT-5.2
+  organisation: OpenAI
+  is_os_model: false
+  url: https://platform.openai.com/docs/models/gpt-5.2
+
 capabilities:
   player_name: gpt-5-2
   structured_output_mode: null

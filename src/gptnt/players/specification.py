@@ -30,6 +30,24 @@ type ThinkingMethod = Literal["inner-monologue", "thinking-out-loud"]
 """
 
 
+class PlayerIdentity(BaseModel):
+    """Presentation metadata for a model/player."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    display_name: str
+    """Name used on the leaderboard."""
+
+    organisation: str
+    """The organisation that develops the player."""
+
+    is_os_model: bool
+    """Whether the player is an open-source model."""
+
+    url: str | None
+    """Link to the player's model page, or `None` if there is none."""
+
+
 class PlayerCapabilities(BaseModel):
     """The capabilities of a player, that is set once on instantiation.
 
