@@ -15,7 +15,7 @@ import pyarrow as pa
 from pyarrow import parquet as pq
 from pydantic import ConfigDict
 
-from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER, AsBlob, arrow_schema_for
+from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER, arrow_schema_for
 from gptnt.experiments.descriptor import ExperimentDescriptor  # noqa: TC001
 from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep
 from gptnt.experiments.provenance import ProvenanceMixin
