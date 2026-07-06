@@ -1,10 +1,8 @@
-"""Round-trip tests for the on-disk spec store shared by `generate`, `run` and `submit`."""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from gptnt.experiments.specs_store import load_specs_from_dir, write_specs_to_dir
+from gptnt.experiments.spec import load_specs_from_dir, write_specs_to_dir
 
 from tests._factories.experiments import make_experiment_spec
 
