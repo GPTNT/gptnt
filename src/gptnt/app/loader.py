@@ -8,7 +8,7 @@ import structlog
 
 from gptnt.common.paths import Paths
 from gptnt.experiments.db.connection import DuckDBConnection
-from gptnt.experiments.duckdb import EXPORT_CONTEXT_MARKER
+from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER
 from gptnt.experiments.models import (
     ExperimentPlayerRecord,
     ExperimentRecord,

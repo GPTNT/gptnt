@@ -4,7 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, override
 
-from gptnt.experiments.db._extract import validity_from_footers
+from gptnt.experiments.db.extract import validity_from_footers
 from gptnt.experiments.ledger.base import CompletionLedger, ExperimentStatus
 from gptnt.experiments.recorder.parquet import read_record_footer
 

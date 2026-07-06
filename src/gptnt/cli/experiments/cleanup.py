@@ -5,7 +5,7 @@ from cyclopts import Parameter
 from rich.console import Console
 
 from gptnt.common.paths import Paths, remove_empty_experiment_recorder_outputs
-from gptnt.experiments.db._extract import compute_experiment_validity, group_by_unique_experiment
+from gptnt.experiments.db.extract import compute_experiment_validity, group_by_unique_experiment
 
 console = Console()
 paths = Paths()

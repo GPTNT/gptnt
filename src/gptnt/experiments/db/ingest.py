@@ -8,12 +8,12 @@ import pyarrow as pa
 import structlog
 
 from gptnt.common.logger import ProgressSentinel, with_default_progress
-from gptnt.experiments.db._extract import (
+from gptnt.experiments.db.extract import (
     extract_metadata_from_paths,
     filter_existing_experiments,
     group_by_unique_experiment,
 )
-from gptnt.experiments.db._schema import ensure_schema
+from gptnt.experiments.models import ExperimentStep, ExperimentSummary
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -87,6 +87,16 @@ def _execute_merge(
         finally:
             _ = con.unregister("new_step_records")
             _ = con.unregister("new_summaries")
+
+
+def ensure_schema(db_path: Path) -> None:
+    """Create all tables in the database if they do not already exist.
+
+    Safe to call repeatedly — all statements use IF NOT EXISTS.
+    """
+    with duckdb.connect(db_path) as con:
+        ExperimentSummary.create_table(con)
+        ExperimentStep.create_table(con)
 
 
 @with_default_progress()

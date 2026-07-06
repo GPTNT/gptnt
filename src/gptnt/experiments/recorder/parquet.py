@@ -15,10 +15,8 @@ import pyarrow as pa
 from pyarrow import parquet as pq
 from pydantic import ConfigDict
 
-# These three are RecordFooter field types — pydantic needs them at runtime to build the model,
-# so they can't move into TYPE_CHECKING despite only appearing in annotations.
+from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER, AsBlob, arrow_schema_for
 from gptnt.experiments.descriptor import ExperimentDescriptor  # noqa: TC001
-from gptnt.experiments.duckdb import EXPORT_CONTEXT_MARKER, arrow_schema_for
 from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep
 from gptnt.experiments.provenance import ProvenanceMixin
 from gptnt.ktane.state.bomb import BombState  # noqa: TC001
