@@ -128,9 +128,9 @@ class PlayerCapabilities(BaseModel):
     def fingerprint(self) -> str:
         """A stable digest of this exact model setup.
 
-        Note that we exclude usage limits from the fingerprint since they are not really about the
-        models capabilities, and slight changes to this can make completely different fingerprints,
-        which is not what we want.
+        We exclude `usage_limits` from the fingerprint since they don't describe the model's
+        capabilities. Including them would cause small limit tweaks to produce unrelated
+        fingerprint changes.
         """
         return stable_digest(self.model_dump(mode="json", exclude={"usage_limits"}))
 
