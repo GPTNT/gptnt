@@ -126,8 +126,13 @@ class PlayerCapabilities(BaseModel):
 
     @property
     def fingerprint(self) -> str:
-        """A stable digest of this exact model setup."""
-        return stable_digest(self.model_dump(mode="json"))
+        """A stable digest of this exact model setup.
+
+        Note that we exclude usage limits from the fingerprint since they are not really about the
+        models capabilities, and slight changes to this can make completely different fingerprints,
+        which is not what we want.
+        """
+        return stable_digest(self.model_dump(mode="json", exclude={"usage_limits"}))
 
     @override
     def __hash__(self) -> int:
