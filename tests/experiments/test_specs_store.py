@@ -1,10 +1,8 @@
-"""Round-trip tests for the on-disk spec store shared by `generate`, `run` and `submit`."""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from gptnt.experiments.specs_store import load_specs_from_dir, write_specs_to_dir
+from gptnt.experiments.spec import load_specs_from_dir, write_specs_to_dir
 
 from tests._factories.experiments import make_experiment_spec
 
@@ -13,7 +11,7 @@ if TYPE_CHECKING:
 
 
 def test_write_then_load_round_trips_specs(tmp_path: Path) -> None:
-    """Specs written to a dir load back identically, one JSON file per spec by attempt_name."""
+    """Specs written to a dir load back identically (order doesn't matter), one JSON file each."""
     specs = [
         make_experiment_spec(seed=1),
         make_experiment_spec(seed=2),
@@ -26,7 +24,10 @@ def test_write_then_load_round_trips_specs(tmp_path: Path) -> None:
     assert len(written) == 3
     assert {path.name for path in written} == {f"{spec.attempt_name}.json" for spec in specs}
     loaded = load_specs_from_dir(out)
-    assert loaded == specs
+    # Loading is unordered (dir glob), which is fine — compare by attempt_name.
+    assert {spec.attempt_name: spec for spec in loaded} == {
+        spec.attempt_name: spec for spec in specs
+    }
 
 
 def test_load_from_missing_dir_is_empty(tmp_path: Path) -> None:

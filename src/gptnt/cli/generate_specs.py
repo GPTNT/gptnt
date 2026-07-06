@@ -8,7 +8,7 @@ from rich.console import Console
 from gptnt.cli.doctor.command import diagnose
 from gptnt.cli.run.manifest import RunManifest
 from gptnt.common.paths import Paths
-from gptnt.experiments.specs_store import write_specs_to_dir
+from gptnt.experiments.spec import write_specs_to_dir
 
 console = Console()
 

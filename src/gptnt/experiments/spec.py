@@ -1,3 +1,5 @@
+from collections.abc import Iterable
+from pathlib import Path
 from typing import Self, override
 
 from pydantic import BaseModel, model_validator
@@ -135,3 +137,21 @@ class ExperimentSpec(BaseModel, frozen=True):
         if self.expert_name is None or self.expert_protocol is None:
             return "expert=None"
         return f"expert={self.expert_name}"
+
+
+def write_specs_to_dir(specs: Iterable[ExperimentSpec], directory: Path) -> list[Path]:
+    """Write one JSON per spec into the directory."""
+    directory.mkdir(parents=True, exist_ok=True)
+    written: list[Path] = []
+    for spec in specs:
+        path = directory.joinpath(spec.attempt_name).with_suffix(".json")
+        _ = path.write_text(spec.model_dump_json())
+        written.append(path)
+    return written
+
+
+def load_specs_from_dir(directory: Path) -> list[ExperimentSpec]:
+    """Load every `*.json` spec under the directory (recursively)."""
+    return [
+        ExperimentSpec.model_validate_json(path.read_bytes()) for path in directory.rglob("*.json")
+    ]
