@@ -11,8 +11,8 @@ from pytest_cases import fixture
 from whenever import Instant
 
 from gptnt.experiments.db.ingest import ingest_player_records
+from gptnt.experiments.db.schema import arrow_schema_for, generate_duckdb_schema
 from gptnt.experiments.descriptor import ExperimentDescriptor, PlayerContent
-from gptnt.experiments.duckdb import arrow_schema_for, generate_duckdb_schema
 from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep, ExperimentSummary
 from gptnt.experiments.recorder.local import ExperimentPlayerRecorder
 from gptnt.experiments.recorder.parquet import (

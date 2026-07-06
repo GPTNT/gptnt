@@ -3,7 +3,7 @@ from collections.abc import Callable, Sequence
 from typing import Any
 
 from gptnt.experiments.db.connection import DuckDBConnection
-from gptnt.experiments.duckdb import EXPORT_CONTEXT_MARKER
+from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER
 from gptnt.experiments.models import ExperimentStep, ExperimentSummary
 
 # Columns excluded from the SELECT to avoid pulling large compressed blobs.

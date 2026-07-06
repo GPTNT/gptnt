@@ -22,8 +22,8 @@ from pydantic import (
 from pydantic_ai import ModelMessage, ModelMessagesTypeAdapter, RunUsage
 
 from gptnt.common.logger import monkey_patch_binary_content_repr
+from gptnt.experiments.db.schema import AsBlob, AsJSON, AsVarchar, DuckDBSchemaMixin
 from gptnt.experiments.descriptor import ExperimentDescriptor, PlayerContent
-from gptnt.experiments.duckdb import AsBlob, AsJSON, AsVarchar, DuckDBSchemaMixin
 from gptnt.experiments.provenance import ProvenanceMixin
 from gptnt.ktane.actions import KtaneBaseAction, KtaneGameplayInput
 from gptnt.ktane.mission_spec import compute_mission_key

@@ -10,8 +10,8 @@ import pytest
 
 from gptnt.cli.__main__ import build_app
 from gptnt.cli.experiments.results import show_results
-from gptnt.experiments.db._schema import ensure_schema
-from gptnt.experiments.duckdb import EXPORT_CONTEXT_MARKER
+from gptnt.experiments.db.ingest import ensure_schema
+from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER
 
 from tests._cli_runner import invoke_cli
 from tests._factories.experiments import make_experiment_summary

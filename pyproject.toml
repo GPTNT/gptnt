@@ -227,29 +227,19 @@ per-file-ignores = [
     "scripts/*:WPS",
     "scrap/*:WPS",
     "tests/*:WPS110,WPS2,WPS118,WPS407,WPS432,WPS435,WPS444,WPS476,WPS411",
-    # Relocated command modules keep their command-shaped ignores (many args/expressions, the
-    # cyclopts default-tuple pattern). One entry per area now that they live under cli/<area>/.
-    "src/gptnt/cli/experiments/*:WPS211,WPS213,WPS238,WPS407",
-    "src/gptnt/cli/interactive/*:WPS211,WPS213,WPS238,WPS407",
-    "src/gptnt/cli/analysis/*:WPS211,WPS213,WPS238,WPS407",
-    "src/gptnt/cli/statics/*:WPS211,WPS213,WPS238,WPS407",
+    "src/gptnt/cli/*:WPS211,WPS213,WPS238,WPS407",
     # interactive/orchestration/{orchestrator,spawn}.py are the run-supervisor engine;
     # engine-shaped bodies (many expressions/args for the lifecycle + spawn commands).
     "src/gptnt/interactive/orchestration/*:WPS211,WPS213,WPS238,WPS407",
     # cli/__main__.py is the root command-assembly module: one flat list of `app.command(...)`
     # registrations, so it trips the "too many expressions" check (same shape as interactive's).
     "src/gptnt/cli/__main__.py:WPS213",
-    # cli/run is the run command pipeline — command-shaped bodies (many expressions/args).
-    "src/gptnt/cli/run/*:WPS211,WPS213,WPS238,WPS407",
-    # doctor/render.py is the doctor presentation: constant glyph/severity/border lookup tables
-    # (WPS407 mutable module constant) and a wide render function (WPS213 too many expressions).
-    "src/gptnt/cli/doctor/render.py:WPS213,WPS407",
     "src/gptnt/ktane/state/*:WPS202,WPS226",
     # doctor/checks.py is a registry of small check functions (many members) with one fix-hint
     # string each (many literals)
     "src/gptnt/cli/doctor/checks.py:WPS202,WPS226",
     "src/gptnt/processors/*:WPS203",
-    "src/gptnt/experiments/duckdb.py:WPS110,WPS111,WPS430",
+    "src/gptnt/experiments/db/schema.py:WPS110,WPS111,WPS430",
     "src/gptnt/players/tokens.py:WPS402",
 ]
 select = ["WPS"]

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 import structlog
 
 from gptnt.common.logger import ProgressSentinel, with_default_progress
-from gptnt.experiments.duckdb import EXPORT_CONTEXT_MARKER
+from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER
 from gptnt.experiments.models import ExperimentSummary, is_valid_experiment
 from gptnt.experiments.recorder.parquet import (
     KEY_PLAYER_UUID,
