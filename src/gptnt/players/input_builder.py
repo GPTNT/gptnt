@@ -8,7 +8,7 @@ from gptnt.ktane.client import FrameBuffer
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.players.recording import StepContextRecorder
-from gptnt.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 logger = structlog.get_logger()
 

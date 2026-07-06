@@ -24,9 +24,9 @@ from gptnt.players.actions import (
 from gptnt.players.exceptions import AIResponseErrorType
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.players.result import AgentCallResult
+from gptnt.players.specification import PlayerProtocol
 from gptnt.processors.image_resizer import CoordinateOutOfBoundsError
 from gptnt.processors.set_of_marks import InvalidMarkLocationError
-from gptnt.specification import PlayerProtocol
 
 logger = structlog.get_logger()
 

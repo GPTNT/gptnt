@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from whenever import Instant
 
 from gptnt.experiments.provenance import ProvenanceMixin
-from gptnt.specification import PlayerCapabilities
+from gptnt.players.specification import PlayerCapabilities
 
 logger = structlog.get_logger()
 

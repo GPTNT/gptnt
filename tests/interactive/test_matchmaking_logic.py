@@ -11,7 +11,7 @@ from gptnt.interactive.services.heartbeat.player import PlayerHeartbeat
 from gptnt.interactive.services.registry.manifest import PlayerServiceManifest, ServiceManifest
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.modules import KtaneComponent
-from gptnt.specification import PlayerProtocol
+from gptnt.players.specification import PlayerProtocol
 
 from tests._factories.players import PlayerCapabilitiesFactory
 

@@ -7,7 +7,7 @@ from pydantic import BaseModel, BeforeValidator
 from gptnt.experiments.generation.pairing import Pairing
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
-from gptnt.specification import PlayerProtocol
+from gptnt.players.specification import PlayerProtocol
 
 
 class ExperimentGenerator(BaseModel):

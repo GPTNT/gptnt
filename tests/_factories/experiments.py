@@ -11,12 +11,12 @@ from gptnt.experiments.descriptor import ExperimentDescriptor
 from gptnt.experiments.models import ExperimentSummary
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
-from gptnt.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from gptnt.specification import CommunicationStyle
+    from gptnt.players.specification import CommunicationStyle
 
 
 def make_experiment_spec(seed: int = 12345) -> ExperimentSpec:

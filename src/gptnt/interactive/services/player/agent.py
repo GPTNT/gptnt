@@ -19,7 +19,7 @@ from gptnt.players.feedback.nobf import NaughtyOutputBehaviourFeedbackGenerator
 from gptnt.players.history.message_history import MessageHistory
 from gptnt.players.input_builder import AgentInputBuilder
 from gptnt.players.observation_handler import ObservationHandler
-from gptnt.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 
 @dataclass(kw_only=True)

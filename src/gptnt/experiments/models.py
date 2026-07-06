@@ -32,7 +32,7 @@ from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.players.actions import DoNothingAction, PlayerOutputType, SendMessageAction
 from gptnt.players.exceptions import AIResponseErrorType
 from gptnt.players.observation_handler import Observation
-from gptnt.specification import CommunicationStyle, PlayerCapabilities, PlayerRole
+from gptnt.players.specification import CommunicationStyle, PlayerCapabilities, PlayerRole
 
 logger = structlog.get_logger()
 

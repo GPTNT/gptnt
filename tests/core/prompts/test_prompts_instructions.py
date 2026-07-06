@@ -2,8 +2,8 @@ from hypothesis import given, strategies as st
 from pydantic import TypeAdapter, ValidationError
 
 from gptnt.players.deps import PlayerDeps
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.prompts.instructions import load_instructions
-from gptnt.specification import PlayerCapabilities, PlayerProtocol
 
 
 @st.composite

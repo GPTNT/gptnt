@@ -11,7 +11,7 @@ from gptnt.cli.statics._fields import (
     ThrowOption,
     UploadOption,
 )
-from gptnt.specification import PlayerCapabilities
+from gptnt.players.specification import PlayerCapabilities
 from gptnt.statics.postprocess import convert_normalised_to_absolute, default_postprocess
 from gptnt.statics.preprocess import preprocess_grounding_coordinates_instance
 from gptnt.statics.prompts import GROUNDING_COORDINATES_PROMPT, format_instruction_with_reasoning

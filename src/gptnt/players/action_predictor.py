@@ -16,8 +16,8 @@ from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoni
 from gptnt.players.reasoning_parser.react import ReactStyleReasoningParser
 from gptnt.players.reasoning_parser.reasoning_parser import ReasoningParser
 from gptnt.players.result import AgentCallResult
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.prompts.reflection import load_reflection_prompt
-from gptnt.specification import PlayerCapabilities, PlayerProtocol
 
 logger = structlog.get_logger()
 

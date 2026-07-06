@@ -12,9 +12,9 @@ from gptnt.players.history.observation_window_manager import ObservationWindowMa
 from gptnt.players.history.single_run import SingleRun
 from gptnt.players.history.token_accountant import TokenAccountant
 from gptnt.players.history.truncation_policy import TruncationPolicy
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.players.tokens import count_tokens_from_text
 from gptnt.prompts.manual import load_manual_as_prompt
-from gptnt.specification import PlayerCapabilities, PlayerProtocol
 
 logger = structlog.get_logger()
 

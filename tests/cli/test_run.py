@@ -26,7 +26,7 @@ from gptnt.cli.doctor.command import DiagnoseResult
 from gptnt.cli.doctor.run_plan import RunPlanResult
 from gptnt.cli.run import pipeline
 from gptnt.cli.run.manifest import RunManifest
-from gptnt.specification import PlayerSpec
+from gptnt.players.specification import PlayerSpec
 
 from tests._cli_runner import invoke_cli
 

@@ -18,7 +18,7 @@ from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentRecord, E
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.actions import DoNothingAction
-from gptnt.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 if TYPE_CHECKING:
     from pathlib import Path

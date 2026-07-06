@@ -15,7 +15,7 @@ from gptnt.players.reasoning_parser.react import (
     REACT_REASONING_TAG,
     ReactStyleReasoningParser,
 )
-from gptnt.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cases.capabilities import CapabilitiesCases
 from tests._cases.outputs import PredictedActionCases

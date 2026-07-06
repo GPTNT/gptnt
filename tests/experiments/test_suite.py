@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from gptnt.experiments.suite import Suite, SuiteMatchup
-from gptnt.specification import PlayerProtocol
+from gptnt.players.specification import PlayerProtocol
 
 _DEFUSER = PlayerProtocol(
     role="defuser", communication_style="sync", is_playing_alone=False, include_manual=False

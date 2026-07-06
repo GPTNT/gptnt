@@ -20,8 +20,8 @@ from gptnt.interactive.services.heartbeat.watcher import GameStateWatcher, Playe
 from gptnt.interactive.services.player.client import PlayerClient
 from gptnt.interactive.services.timeouts import ServiceTimeouts
 from gptnt.ktane.state.bomb import BombState
+from gptnt.players.specification import PlayerRole
 from gptnt.prompts.reflection import convert_bomb_state_to_reflection
-from gptnt.specification import PlayerRole
 
 logger = structlog.get_logger()
 timeouts = ServiceTimeouts()

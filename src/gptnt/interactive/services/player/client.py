@@ -12,7 +12,7 @@ from gptnt.interactive.services.player.commands import PlayerMessage, StopPlayer
 from gptnt.interactive.services.rpc import BaseRPCClient
 from gptnt.interactive.services.timeouts import ServiceTimeouts
 from gptnt.ktane.state.bomb import BombState
-from gptnt.specification import PlayerProtocol
+from gptnt.players.specification import PlayerProtocol
 
 logger = structlog.get_logger()
 

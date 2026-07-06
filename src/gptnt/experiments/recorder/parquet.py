@@ -22,7 +22,7 @@ from gptnt.experiments.duckdb import EXPORT_CONTEXT_MARKER, arrow_schema_for
 from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep
 from gptnt.experiments.provenance import ProvenanceMixin
 from gptnt.ktane.state.bomb import BombState  # noqa: TC001
-from gptnt.specification import PlayerRole  # noqa: TC001
+from gptnt.players.specification import PlayerRole  # noqa: TC001
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

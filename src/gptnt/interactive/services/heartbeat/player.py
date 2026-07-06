@@ -4,7 +4,7 @@ from typing import Annotated, override
 from pydantic import BeforeValidator, PlainSerializer
 
 from gptnt.interactive.services.heartbeat.base import BaseHeartbeat, PlayerState
-from gptnt.specification import PlayerCapabilities
+from gptnt.players.specification import PlayerCapabilities
 
 
 class PlayerHeartbeat(BaseHeartbeat, frozen=True):

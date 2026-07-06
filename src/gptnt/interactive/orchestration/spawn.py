@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
     from pathlib import Path
 
-    from gptnt.specification import PlayerSpec
+    from gptnt.players.specification import PlayerSpec
 
 
 logger = structlog.get_logger()

@@ -1,4 +1,4 @@
-from gptnt.specification import ThinkingMethod
+from gptnt.players.specification import ThinkingMethod
 from gptnt.statics.constants import (
     GROUNDING_HALLUCINATION_TYPE_A_RESPONSE,
     GROUNDING_HALLUCINATION_TYPE_B_RESPONSE,

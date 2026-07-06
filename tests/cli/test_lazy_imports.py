@@ -17,8 +17,9 @@ import pytest
 # inside the command function body instead (see any command module under src/gptnt/cli/).
 #
 # httpx / logfire / psutil / pydantic_ai are intentionally NOT listed: they load unavoidably via
-# the shared option-type aliases (`gptnt.specification` -> pydantic -> logfire) and the structlog
-# setup, not from any single command, so they are part of the fixed baseline rather than a leak.
+# the shared option-type aliases (`gptnt.players.specification` -> pydantic -> logfire) and the
+# structlog setup, not from any single command, so they are part of the fixed baseline rather than
+# a leak.
 FORBIDDEN_AT_IMPORT = (
     "polars",
     "duckdb",

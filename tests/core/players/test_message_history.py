@@ -26,7 +26,7 @@ from gptnt.players.history.message_transformer import (
     remove_binary_content_from_model_request,
 )
 from gptnt.players.history.single_run import SingleRun
-from gptnt.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cases.messages import ModelMessageCases
 from tests._cases.protocol import ProtocolCases

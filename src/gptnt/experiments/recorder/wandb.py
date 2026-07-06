@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from gptnt.ktane.actions import KtaneGameplayInput
     from gptnt.players.actions import PlayerOutputType
     from gptnt.players.result import AgentCallResult
-    from gptnt.specification import PlayerProtocol
+    from gptnt.players.specification import PlayerProtocol
 
 logger = structlog.get_logger()
 
