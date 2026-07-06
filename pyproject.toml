@@ -295,7 +295,7 @@ layers = [
     "cli",
     "statics | app | interactive",
     "experiments",
-    "players : processors : prompts : specification",
+    "players : processors : prompts",
     "ktane",
     "common : observability",
 ]

@@ -28,7 +28,7 @@ from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import DoNothingAction
 from gptnt.players.observation_handler import Observation
-from gptnt.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 
 @fixture

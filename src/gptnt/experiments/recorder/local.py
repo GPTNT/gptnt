@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from gptnt.ktane.state.bomb import BombState
     from gptnt.players.actions import PlayerOutputType
     from gptnt.players.result import AgentCallResult
-    from gptnt.specification import PlayerCapabilities, PlayerProtocol
+    from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 logger = structlog.get_logger()
 

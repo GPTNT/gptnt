@@ -17,8 +17,8 @@ from tqdm import tqdm
 from gptnt.common.paths import Paths
 from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
 from gptnt.players.reasoning_parser.react import ReactStyleReasoningParser
+from gptnt.players.specification import PlayerCapabilities
 from gptnt.processors.image_resizer import ImageResizer
-from gptnt.specification import PlayerCapabilities
 from gptnt.statics.model import EvalModel, ModelOutput
 from gptnt.statics.preprocess import PostprocessInputsFunc
 from gptnt.statics.run_metadata import StaticsRunMetadata

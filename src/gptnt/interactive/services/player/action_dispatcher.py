@@ -9,7 +9,7 @@ from gptnt.interactive.services.game.client import GameClient
 from gptnt.interactive.services.player.message_handler import IncomingMessageHandler
 from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.players.base_action_dispatcher import BaseActionDispatcher
-from gptnt.specification import PlayerProtocol
+from gptnt.players.specification import PlayerProtocol
 
 logger = structlog.get_logger()
 

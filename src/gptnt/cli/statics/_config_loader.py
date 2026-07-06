@@ -6,8 +6,8 @@ from omegaconf import DictConfig
 from pydantic_ai import Agent
 
 from gptnt.common.hydra import compose_player_config
+from gptnt.players.specification import PlayerCapabilities, PlayerRole
 from gptnt.processors.image_resizer import ImageResizer
-from gptnt.specification import PlayerCapabilities, PlayerRole
 
 
 @dataclass(kw_only=True)

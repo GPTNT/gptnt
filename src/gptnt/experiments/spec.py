@@ -3,7 +3,7 @@ from typing import Self, override
 from pydantic import BaseModel, model_validator
 
 from gptnt.ktane.mission_spec import KtaneMissionSpec
-from gptnt.specification import CommunicationStyle, PlayerProtocol, PlayerRole
+from gptnt.players.specification import CommunicationStyle, PlayerProtocol, PlayerRole
 
 
 class ExperimentSpec(BaseModel, frozen=True):

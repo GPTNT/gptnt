@@ -11,7 +11,7 @@ from gptnt.common.paths import Paths
 from gptnt.experiments.db.connection import DuckDBConnection
 from gptnt.experiments.models import ExperimentSummary
 from gptnt.ktane.state.modules import KtaneComponent
-from gptnt.specification import CommunicationStyle
+from gptnt.players.specification import CommunicationStyle
 
 type ModuleFilterType = Literal["Include All", "Include Any"]
 type OutcomeType = Literal["Solved", "Strike Out", "Timeout"]

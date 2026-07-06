@@ -7,7 +7,7 @@ from pydantic import UUID4
 
 from gptnt.experiments.descriptor import ExperimentDescriptor
 from gptnt.players.actions import NO_NEW_MESSAGES_SENTINEL
-from gptnt.specification import PlayerRole
+from gptnt.players.specification import PlayerRole
 
 logger = structlog.get_logger()
 

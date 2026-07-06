@@ -30,7 +30,7 @@ from pydantic_ai.exceptions import AgentRunError, UserError
 from gptnt.common.hydra import compose_player_config
 
 if TYPE_CHECKING:
-    from gptnt.specification import PlayerCapabilities
+    from gptnt.players.specification import PlayerCapabilities
 
 _ErrorStage = Literal["compose", "capabilities", "agent"]
 

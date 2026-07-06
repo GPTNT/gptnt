@@ -15,7 +15,7 @@ from gptnt.players.actions import (
 )
 from gptnt.players.exceptions import AIResponseErrorType
 from gptnt.players.history.message_history import MessageHistory
-from gptnt.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cases.capabilities import CapabilitiesCases
 from tests._cases.outputs import PredictedActionCases, ReflectionOutputCases

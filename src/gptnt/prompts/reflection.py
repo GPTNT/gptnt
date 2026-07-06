@@ -3,8 +3,8 @@ from functools import lru_cache
 
 from gptnt.common.paths import Paths
 from gptnt.ktane.state.bomb import BombState
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.prompts.prompt_cache import PromptCache
-from gptnt.specification import PlayerCapabilities, PlayerProtocol
 
 paths = Paths()
 """Reflection messages for the player to receive when reflecting on the bomb state."""

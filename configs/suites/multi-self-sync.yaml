@@ -7,13 +7,13 @@ suite:
   modality: [vision, language]
   missions_path: configs/missions/multiple_module_n
   defuser_protocol:
-    _target_: gptnt.specification.PlayerProtocol
+    _target_: gptnt.players.specification.PlayerProtocol
     role: defuser
     communication_style: sync
     is_playing_alone: false
     include_manual: false
   expert_protocol:
-    _target_: gptnt.specification.PlayerProtocol
+    _target_: gptnt.players.specification.PlayerProtocol
     role: expert
     communication_style: sync
     is_playing_alone: false

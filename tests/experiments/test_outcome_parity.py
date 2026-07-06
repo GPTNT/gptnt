@@ -25,7 +25,7 @@ from gptnt.experiments.recorder.wandb import WandbExperimentPlayerRecorder
 from gptnt.experiments.wandb_runs import is_run_valid
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import DoNothingAction
-from gptnt.specification import PlayerCapabilities
+from gptnt.players.specification import PlayerCapabilities
 
 from tests._factories.experiments import make_experiment_descriptor
 

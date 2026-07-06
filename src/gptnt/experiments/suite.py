@@ -16,7 +16,7 @@ from gptnt.common.hashing import stable_digest
 from gptnt.common.paths import Paths
 from gptnt.experiments.generation.missions import load_missions
 from gptnt.experiments.generation.pairing import PairingType
-from gptnt.specification import PlayerProtocol
+from gptnt.players.specification import PlayerProtocol
 
 type Modality = Literal["vision", "language", "audio"]
 

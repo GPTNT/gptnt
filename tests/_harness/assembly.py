@@ -23,7 +23,7 @@ from gptnt.interactive.services.experiment_manager.experiment_manager import Exp
 from gptnt.interactive.services.experiment_manager.experiment_runner import ExperimentState
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.modules import KtaneComponent
-from gptnt.specification import CommunicationStyle, PlayerProtocol
+from gptnt.players.specification import CommunicationStyle, PlayerProtocol
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator

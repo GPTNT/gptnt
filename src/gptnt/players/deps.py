@@ -13,12 +13,12 @@ from gptnt.players.actions import (
     PlayerOutputType,
     SendMessageAction,
 )
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.prompts.instructions import load_instructions
 from gptnt.prompts.output_schema import (
     PROMPTED_OUTPUT_TEMPLATE,
     create_output_schema_for_instructions,
 )
-from gptnt.specification import PlayerCapabilities, PlayerProtocol
 
 _default_template = DEFAULT_PROMPTED_OUTPUT_TEMPLATE
 

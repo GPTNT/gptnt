@@ -3,8 +3,8 @@ from dataclasses import dataclass, field
 import structlog
 from pydantic_ai import RunUsage, UsageLimits
 
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.players.tokens import count_tokens_from_text, estimate_tokens_for_image_per_model
-from gptnt.specification import PlayerCapabilities, PlayerProtocol
 
 logger = structlog.get_logger()
 

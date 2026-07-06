@@ -23,7 +23,7 @@ player:
     _target_: gptnt.players.feedback.nobf.NaughtyOutputBehaviourFeedbackGenerator
 
   capabilities:
-    _target_: gptnt.specification.PlayerCapabilities
+    _target_: gptnt.players.specification.PlayerCapabilities
     player_type: ai
     player_name: ???
     structured_output_mode: ???

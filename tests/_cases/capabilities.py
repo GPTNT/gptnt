@@ -4,7 +4,7 @@ from pytest_cases import param_fixture
 from gptnt.ktane.actions import GameActionType
 from gptnt.players.actions import InteractGameAction, PlayerOutputType
 from gptnt.players.locations import PixelLocation, ScaledLocation
-from gptnt.specification import PlayerCapabilities
+from gptnt.players.specification import PlayerCapabilities
 
 interaction_location_method = param_fixture(
     "interaction_location_method", ["set-of-marks", "coordinates"]

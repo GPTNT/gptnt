@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from gptnt.specification import PlayerCapabilities
+from gptnt.players.specification import PlayerCapabilities
 from gptnt.statics import run_metadata
 
 if TYPE_CHECKING:

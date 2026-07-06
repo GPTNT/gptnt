@@ -16,7 +16,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from gptnt.experiments.ledger.base import Source
-from gptnt.specification import PlayerSpec
+from gptnt.players.specification import PlayerSpec
 
 if TYPE_CHECKING:
     from pathlib import Path
