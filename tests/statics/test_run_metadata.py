@@ -63,17 +63,17 @@ def test_dataset_identity_records_resolved_sha(monkeypatch: pytest.MonkeyPatch) 
     )
 
 
-def test_run_metadata_build_stamps_provenance_and_round_trips(
+def test_run_metadata_stamps_provenance_and_round_trips(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _patch_hub(monkeypatch, sha="notyourrun")
     capabilities = PlayerCapabilities(player_name="test-player", player_type="ai")
-    metadata = run_metadata.StaticsRunMetadata.build(
+    metadata = run_metadata.StaticsRunMetadata(
         task_name="expert_vqa",
         model_name="test-model",
-        hf_repo_id="org/ds",
-        dataset_split="test",
-        revision="v1.0",
+        dataset=run_metadata.DatasetIdentity.resolve(
+            hf_repo_id="org/ds", dataset_split="test", revision="v1.0"
+        ),
         capabilities=capabilities,
     )
     assert metadata.dataset.resolved_revision == "notyourrun"
