@@ -9,6 +9,7 @@ from gptnt.experiments.provenance import ProvenanceMixin
 from gptnt.players.specification import PlayerCapabilities
 
 logger = structlog.get_logger()
+_UNPINNED = "unpinned"
 
 
 def _resolve_commit_sha(*, hf_repo_id: str, revision: str | None) -> str | None:
@@ -56,6 +57,15 @@ class DatasetIdentity(BaseModel, frozen=True):
             requested_revision=revision,
             resolved_revision=_resolve_commit_sha(hf_repo_id=hf_repo_id, revision=revision),
         )
+
+    @property
+    def revision_label(self) -> str:
+        """A short label for the dataset revision.
+
+        If it's not available, return a mark for an unpinned dataset.
+        """
+        reference = self.resolved_revision or self.requested_revision
+        return reference[:8] if reference else _UNPINNED
 
 
 class StaticsRunMetadata(BaseModel, frozen=True):
