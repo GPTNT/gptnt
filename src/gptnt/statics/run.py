@@ -21,7 +21,7 @@ from gptnt.players.specification import PlayerCapabilities
 from gptnt.processors.image_resizer import ImageResizer
 from gptnt.statics.model import EvalModel, ModelOutput
 from gptnt.statics.preprocess import PostprocessInputsFunc
-from gptnt.statics.run_metadata import StaticsRunMetadata
+from gptnt.statics.run_metadata import DatasetIdentity, StaticsRunMetadata
 from gptnt.statics.scorers import Instances, Metrics, Predictions, Scorer, score_predictions
 
 logger = structlog.get_logger()
@@ -229,12 +229,14 @@ class RunHFDatasetEvaluation(RunEvaluation):
 
     def write_run_metadata(self) -> None:
         """Stamp `run_meta.json` beside the metrics so the outputs are self-describing."""
-        metadata = StaticsRunMetadata.build(
+        metadata = StaticsRunMetadata(
             task_name=self.task_name,
             model_name=self.model_name,
-            hf_repo_id=self.hf_repo_id,
-            dataset_split=self.dataset_split,
-            revision=self.revision,
+            dataset=DatasetIdentity.resolve(
+                hf_repo_id=self.hf_repo_id,
+                dataset_split=self.dataset_split,
+                revision=self.revision,
+            ),
             capabilities=self.capabilities,
         )
         metadata_file = self.output_dir.joinpath("run_meta.json")
