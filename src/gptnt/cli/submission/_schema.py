@@ -1,6 +1,7 @@
 from typing import Annotated, Self
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
+from pydantic_ai import RunUsage
 from whenever import Instant
 
 from gptnt.experiments.db.schema import AsJSON
@@ -38,11 +39,11 @@ class SubmissionExperiment(ExperimentSummary):
     """
 
     final_bomb_state: Annotated[BombState, AsJSON]
-    usage: Annotated[dict[str, int], AsJSON]
+    usage: Annotated[RunUsage, AsJSON]
 
     @classmethod
     def from_summary(
-        cls, *, summary: ExperimentSummary, final_bomb_state: BombState, usage: dict[str, int]
+        cls, *, summary: ExperimentSummary, final_bomb_state: BombState, usage: RunUsage
     ) -> Self:
         """Extend an `ExperimentSummary` with its final bomb state and usage total."""
         return cls.model_validate(
@@ -109,7 +110,7 @@ class SubmissionBase(BaseModel):
 
     submitter: Submitter
 
-    players: Annotated[list[SubmissionPlayer], Field(default_factory=list)]
+    players: Annotated[list[SubmissionPlayer], Field(default_factory=list, min_length=1)]
     """Role-tagged model entries, defuser first."""
 
     provenance: ProvenanceMixin
@@ -124,9 +125,9 @@ class SubmissionBase(BaseModel):
     @classmethod
     def _only_one_defuser_player(cls, players: list[SubmissionPlayer]) -> list[SubmissionPlayer]:
         """There should only be one defuser player in a submission."""
-        defusers = {player.role for player in players if player.role == "defuser"}
-        if len(defusers) != 1:
-            raise ValueError(f"Expected exactly one defuser, got {len(defusers)}")
+        defuser_count = sum(player.role == "defuser" for player in players)
+        if defuser_count != 1:
+            raise ValueError(f"Expected exactly one defuser, got {defuser_count}")
         return players
 
     @field_validator("players", mode="after")
