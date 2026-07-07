@@ -103,7 +103,7 @@ def _write_manifest(bundle_dir: Path, manifest: SubmissionBase) -> None:
 
     # Write the manifest
     _ = manifest_path.write_text(
-        yaml.safe_dump(manifest, sort_keys=False, default_flow_style=False)
+        yaml.safe_dump(manifest.model_dump(mode="json"), sort_keys=False, default_flow_style=False)
     )
 
 
