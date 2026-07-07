@@ -107,15 +107,15 @@ def _write_manifest(bundle_dir: Path, manifest: SubmissionBase) -> None:
     )
 
 
-def write_bundle[PayloadT](
+def write_bundle_to_dir[PayloadT](
+    *,
     output_path: Path,
-    name: BundleName,
-    manifest: SubmissionBase,
+    bundle_name: BundleName,
+    submission_manifest: SubmissionBase,
     write_payload_fn: Callable[[Path], PayloadT],
-) -> Path:
+) -> None:
     """Create the bundle dir, write its payload and the manifest."""
-    bundle_dir = output_path / name.relative_dir
+    bundle_dir = output_path / bundle_name.relative_dir
     bundle_dir.mkdir(parents=True, exist_ok=True)
     _ = write_payload_fn(bundle_dir)
-    _write_manifest(bundle_dir, manifest)
-    return bundle_dir
+    _write_manifest(bundle_dir, submission_manifest)

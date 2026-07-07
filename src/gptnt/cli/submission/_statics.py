@@ -1,17 +1,23 @@
 from pathlib import Path
 
-from gptnt.cli.submission._bundle import BundleName, create_submission_player_entry, write_bundle
+from gptnt.cli.submission._bundle import (
+    BundleName,
+    create_submission_player_entry,
+    write_bundle_to_dir,
+)
 from gptnt.cli.submission._schema import StaticsSubmission, Submitter
 from gptnt.statics.run_metadata import StaticsRunMetadata
 
 
-def build_statics_submission(outputs_dir: Path, task: str, into: Path) -> Path:
+def build_statics_submission(
+    statics_output_dir: Path, task: str, submission_output_dir: Path
+) -> None:
     """Build one statics submission bundle (submission.yaml + metrics.json) and return its dir."""
-    meta_path = outputs_dir / "run_meta.json"
-    metrics_path = outputs_dir / "metrics.json"
+    meta_path = statics_output_dir / "run_meta.json"
+    metrics_path = statics_output_dir / "metrics.json"
     if not meta_path.exists() or not metrics_path.exists():
         raise RuntimeError(
-            f"{outputs_dir} is not a statics outputs dir (needs run_meta.json and metrics.json); "
+            f"{statics_output_dir} is not a statics outputs dir (needs run_meta.json and metrics.json); "
             "run `gptnt statics <task> --throw --dataset-revision <ref>` first."
         )
 
@@ -34,9 +40,11 @@ def build_statics_submission(outputs_dir: Path, task: str, into: Path) -> Path:
         run_date=bundle_name.run_date,
     )
 
-    return write_bundle(
-        into,
-        bundle_name,
-        manifest,
-        lambda bundle_dir: (bundle_dir / "metrics.json").write_text(metrics_path.read_text()),
+    write_bundle_to_dir(
+        output_path=submission_output_dir,
+        bundle_name=bundle_name,
+        submission_manifest=manifest,
+        write_payload_fn=lambda bundle_dir: (bundle_dir / "metrics.json").write_text(
+            metrics_path.read_text()
+        ),
     )
