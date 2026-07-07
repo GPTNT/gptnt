@@ -2,7 +2,7 @@ from typing import Self
 
 import structlog
 from huggingface_hub import HfApi
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from whenever import Instant
 
 from gptnt.experiments.provenance import ProvenanceMixin
@@ -63,30 +63,7 @@ class StaticsRunMetadata(BaseModel, frozen=True):
 
     task_name: str
     model_name: str
-    run_date: str
+    run_date: Instant = Field(default_factory=Instant.now)
     dataset: DatasetIdentity
     capabilities: PlayerCapabilities
-    provenance: ProvenanceMixin
-
-    @classmethod
-    def build(
-        cls,
-        *,
-        task_name: str,
-        model_name: str,
-        hf_repo_id: str,
-        dataset_split: str | None,
-        revision: str | None,
-        capabilities: PlayerCapabilities,
-    ) -> Self:
-        """Assemble a completed run's metadata, resolving the dataset identity from the Hub."""
-        return cls(
-            task_name=task_name,
-            model_name=model_name,
-            run_date=Instant.now().format_iso(),
-            dataset=DatasetIdentity.resolve(
-                hf_repo_id=hf_repo_id, dataset_split=dataset_split, revision=revision
-            ),
-            capabilities=capabilities,
-            provenance=ProvenanceMixin(),
-        )
+    provenance: ProvenanceMixin = Field(default_factory=ProvenanceMixin)
