@@ -10,7 +10,7 @@ from rich.table import Table
 from rich.text import Text
 
 from gptnt.common.paths import Paths
-from gptnt.experiments.db.read import load_summaries
+from gptnt.experiments.db.read import load_experiment_summaries
 from gptnt.experiments.models import ExperimentSummary
 
 console = Console()
@@ -85,7 +85,7 @@ def show_results(
         )
         raise RuntimeError(f"No experiments database at {db_path}.")
 
-    summaries = load_summaries(db_path)
+    summaries = load_experiment_summaries(db_path)
     if not summaries:
         console.print(f"[dim]No completed experiments in {db_path}.[/dim]")
         return
