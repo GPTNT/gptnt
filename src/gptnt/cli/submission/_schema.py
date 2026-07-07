@@ -35,19 +35,29 @@ class SubmissionExperiment(ExperimentSummary):
     """One experiment in a submission.
 
     This is one row in the output bundle and made of the whole `ExperimentSummary` plus outcome
-    truth and usage.
+    truth and per-player usage.
     """
 
     final_bomb_state: Annotated[BombState, AsJSON]
-    usage: Annotated[RunUsage, AsJSON]
+    defuser_usage: Annotated[RunUsage, AsJSON]
+    expert_usage: Annotated[RunUsage | None, AsJSON]
 
     @classmethod
     def from_summary(
-        cls, *, summary: ExperimentSummary, final_bomb_state: BombState, usage: RunUsage
+        cls,
+        *,
+        summary: ExperimentSummary,
+        final_bomb_state: BombState,
+        usage_by_role: dict[PlayerRole, RunUsage],
     ) -> Self:
-        """Extend an `ExperimentSummary` with its final bomb state and usage total."""
+        """Extend an `ExperimentSummary` with its final bomb state and each player's usage."""
         return cls.model_validate(
-            summary.model_dump() | {"final_bomb_state": final_bomb_state, "usage": usage}
+            summary.model_dump()
+            | {
+                "final_bomb_state": final_bomb_state,
+                "defuser_usage": usage_by_role["defuser"],
+                "expert_usage": usage_by_role.get("expert"),
+            }
         )
 
 

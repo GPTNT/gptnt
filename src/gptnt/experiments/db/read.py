@@ -18,6 +18,8 @@ if TYPE_CHECKING:
     from pathlib import Path
     from uuid import UUID
 
+    from gptnt.players.specification import PlayerRole
+
 
 def load_experiment_summaries(
     db_path: Path,
@@ -59,19 +61,24 @@ def load_experiment_summaries(
 
 type _BombStateCells = list[str | None]
 type _UsageCells = list[bytes]
+type _UsageCellsByRole = dict[PlayerRole, _UsageCells]
 
 _USAGE_LIST_ADAPTER = TypeAdapter(list[RunUsage])
 
 
 def _group_cells_by_session(
-    rows: list[tuple[UUID, str | None, bytes]],
-) -> tuple[dict[UUID, _BombStateCells], dict[UUID, _UsageCells]]:
-    """Split step-ordered `(session_id, bomb_state, usage)` rows into per-session columns."""
+    rows: list[tuple[UUID, PlayerRole, str | None, bytes]],
+) -> tuple[dict[UUID, _BombStateCells], dict[UUID, _UsageCellsByRole]]:
+    """Split step-ordered `(session_id, role, bomb_state, usage)` rows into per-session columns.
+
+    Bomb states are per session (only the defuser's steps carry one); usage cells are further
+    split by player role, because a two-player session interleaves both players' steps.
+    """
     bomb_states: dict[UUID, _BombStateCells] = defaultdict(list)
-    usage_cells: dict[UUID, _UsageCells] = defaultdict(list)
-    for session_id, bomb_state, usage in rows:
+    usage_cells: dict[UUID, _UsageCellsByRole] = defaultdict(dict)
+    for session_id, role, bomb_state, usage in rows:
         bomb_states[session_id].append(bomb_state)
-        usage_cells[session_id].append(usage)
+        usage_cells[session_id].setdefault(role, []).append(usage)
     return bomb_states, usage_cells
 
 
@@ -86,19 +93,24 @@ def _get_final_bomb_state(bomb_states: _BombStateCells) -> BombState:
 
 
 def _sum_usage(usage_cells: _UsageCells) -> RunUsage:
-    """Sum the usage from one experiment's blobbed usage cells."""
+    """Sum the usage from one player's blobbed usage cells."""
     decoded = _USAGE_LIST_ADAPTER.validate_python([AsBlob.from_blob(cell) for cell in usage_cells])
     return sum(decoded, RunUsage())
 
 
+def _sum_usage_per_role(usage_cells: _UsageCellsByRole) -> dict[PlayerRole, RunUsage]:
+    """Sum each player's blobbed usage cells into one `RunUsage` per role."""
+    return {role: _sum_usage(cells) for role, cells in usage_cells.items()}
+
+
 def load_final_states_and_usage(
     db_path: Path, session_ids: Iterable[UUID]
-) -> dict[UUID, tuple[BombState, RunUsage]]:
-    """Per experiment: the final bomb state and the summed usage, from the step table.
+) -> dict[UUID, tuple[BombState, dict[PlayerRole, RunUsage]]]:
+    """Per experiment: the final bomb state and each player's summed usage, keyed by role.
 
-    Only the `bomb_state` (JSON) and `usage` (compressed BLOB) columns are read — never the large
-    image/message blobs. The final bomb state is the last non-null one by step (it lives only on
-    the defuser's steps); an experiment that never reached one is an error, not a skip.
+    Only the `role`, `bomb_state` (JSON), and `usage` (compressed BLOB) columns are read. The final
+    bomb state is the last non-null one by step (it lives only on the defuser's steps). Usage is
+    summed per player role.
     """
     ids = [str(session_id) for session_id in session_ids]
     if not ids:
@@ -107,7 +119,7 @@ def load_final_states_and_usage(
     placeholders = ", ".join("?" * len(ids))
     with duckdb.connect(str(db_path), read_only=True) as con:
         rows = con.execute(
-            f"SELECT session_id, bomb_state, usage FROM {ExperimentStep.table_name()} "  # noqa: S608
+            f"SELECT session_id, role, bomb_state, usage FROM {ExperimentStep.table_name()} "  # noqa: S608
             f"WHERE session_id IN ({placeholders}) ORDER BY session_id, step",
             ids,
         ).fetchall()
@@ -116,7 +128,7 @@ def load_final_states_and_usage(
     return {
         session_id: (
             _get_final_bomb_state(bomb_states[session_id]),
-            _sum_usage(usage_cells[session_id]),
+            _sum_usage_per_role(usage_cells[session_id]),
         )
         for session_id in bomb_states
     }
