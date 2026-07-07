@@ -1,6 +1,6 @@
 from typing import Annotated, Self
 
-from pydantic import BaseModel, ConfigDict, computed_field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
 from whenever import Instant
 
 from gptnt.experiments.db.schema import AsJSON
@@ -108,10 +108,38 @@ class SubmissionBase(BaseModel):
     submission_id: str
 
     submitter: Submitter
-    capabilities: list[SubmissionPlayer]
+
+    players: Annotated[list[SubmissionPlayer], Field(default_factory=list)]
+    """Role-tagged model entries, defuser first."""
 
     provenance: ProvenanceMixin
     run_date: Instant
+
+    @property
+    def player(self) -> SubmissionPlayer:
+        """The defuser player entry."""
+        return self.players[0]
+
+    @field_validator("players", mode="after")
+    @classmethod
+    def _only_one_defuser_player(cls, players: list[SubmissionPlayer]) -> list[SubmissionPlayer]:
+        """There should only be one defuser player in a submission."""
+        defusers = {player.role for player in players if player.role == "defuser"}
+        if len(defusers) != 1:
+            raise ValueError(f"Expected exactly one defuser, got {len(defusers)}")
+        return players
+
+    @field_validator("players", mode="after")
+    @classmethod
+    def _ensure_defuser_first(cls, players: list[SubmissionPlayer]) -> list[SubmissionPlayer]:
+        """Ensure the defuser player is first in the list for consistency."""
+        defuser_index = next(
+            (idx for idx, player in enumerate(players) if player.role == "defuser"), None
+        )
+        if defuser_index is None:
+            raise ValueError("Expected exactly one defuser, got 0")
+        players.insert(0, players.pop(defuser_index))
+        return players
 
 
 class InteractiveSubmission(SubmissionBase):
