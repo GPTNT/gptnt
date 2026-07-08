@@ -5,25 +5,14 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import TYPE_CHECKING
 
-import hydra
-
 from gptnt.cli.submission._schema import SubmissionExperiment
-from gptnt.common.hydra import load_config
 from gptnt.experiments.db.read import load_experiment_summaries, load_final_states_and_usage
-from gptnt.experiments.generation.pipeline import CONFIG_NAME
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
 
     from gptnt.experiments.suite import Suite
-
-
-def load_suite(suite_name: str) -> Suite:
-    """Compose and instantiate one suite exactly as generation and `test_frozen_suites` do."""
-    return hydra.utils.instantiate(
-        load_config(config_name=CONFIG_NAME, overrides=[f"suites={suite_name}"]).suite
-    )
 
 
 def gather_experiments_for_suite(
