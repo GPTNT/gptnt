@@ -102,8 +102,10 @@ def bundle_copy(valid_bundle_root: Path, tmp_path: Path) -> Path:
 
 
 def _assert_validate_fails(path: Path) -> None:
-    with pytest.raises(RuntimeError, match="Validation found problems"):
+    """A failing validation exits non-zero (the command `sys.exit(1)`s on any failed check)."""
+    with pytest.raises(SystemExit) as exit_info:
         validate_submission(path)
+    assert exit_info.value.code == 1
 
 
 def _unwrap_output(capsys: pytest.CaptureFixture[str]) -> str:

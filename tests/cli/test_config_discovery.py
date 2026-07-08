@@ -47,21 +47,21 @@ def configs_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Pat
 
 def test_resolves_a_configured_identity(configs_dir: Path) -> None:
     _write_config(configs_dir, "good", player_name="good-model", identity=_VALID_IDENTITY)
-    identity = config_discovery.player_identity("good-model")
-    assert identity is not None
-    assert identity.organisation == "GPTNT"
+    assert config_discovery.player_identity("good-model").organisation == "GPTNT"
 
 
-def test_returns_none_when_no_config_matches(configs_dir: Path) -> None:
+def test_raises_when_no_config_matches(configs_dir: Path) -> None:
     _write_config(configs_dir, "good", player_name="good-model", identity=_VALID_IDENTITY)
-    assert config_discovery.player_identity("absent-model") is None
+    # A submission must be attributable, so an unknown player is a hard error, not a blank.
+    with pytest.raises(ValueError, match="absent-model"):
+        _ = config_discovery.player_identity("absent-model")
 
 
 def test_a_malformed_unrelated_config_does_not_block_a_good_lookup(configs_dir: Path) -> None:
     _write_config(configs_dir, "good", player_name="good-model", identity=_VALID_IDENTITY)
     # Missing display_name/is_os_model/url — invalid, but for a model we are not resolving.
     _write_config(configs_dir, "bad", player_name="bad-model", identity={"organisation": "X"})
-    assert config_discovery.player_identity("good-model") is not None
+    assert config_discovery.player_identity("good-model").organisation == "GPTNT"
 
 
 def test_a_malformed_identity_on_the_requested_model_names_the_file(configs_dir: Path) -> None:
