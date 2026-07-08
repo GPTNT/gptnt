@@ -97,7 +97,7 @@ def valid_bundle_root(tmp_path_factory: pytest.TempPathFactory, suite: Suite) ->
 def bundle_copy(valid_bundle_root: Path, tmp_path: Path) -> Path:
     """A fresh mutable copy of the valid bundle tree; returns the bundle dir itself."""
     root = tmp_path / "submissions"
-    shutil.copytree(valid_bundle_root, root)
+    _ = shutil.copytree(valid_bundle_root, root)
     return next(root.rglob("submission.yaml")).parent
 
 
@@ -195,7 +195,7 @@ def test_tampered_written_fingerprint_fails(bundle_copy: Path) -> None:
 def test_renamed_model_dir_fails(bundle_copy: Path) -> None:
     model_dir = bundle_copy.parent
     renamed = model_dir.with_name("test-defuser_00000000")
-    model_dir.rename(renamed)
+    _ = model_dir.rename(renamed)
 
     _assert_validate_fails(renamed / bundle_copy.name)
 
@@ -220,7 +220,7 @@ def test_sweep_reports_every_bundle(bundle_copy: Path, capsys: pytest.CaptureFix
     """A root with one good and one broken bundle fails overall but renders both."""
     root = bundle_copy.parent.parent
     broken = root / "broken" / bundle_copy.name
-    shutil.copytree(bundle_copy, broken)  # the copy's dir no longer matches its manifest
+    _ = shutil.copytree(bundle_copy, broken)  # the copy's dir no longer matches its manifest
 
     _assert_validate_fails(root)
     assert "1 ok, 1 failed" in _unwrap_output(capsys)
