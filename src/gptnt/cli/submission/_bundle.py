@@ -20,29 +20,26 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, Self, override
 
-import pyarrow as pa
 import yaml
-from pyarrow import parquet as pq
 
-from gptnt.cli.config_discovery import player_identities
 from gptnt.cli.submission._schema import (
     InteractiveSubmission,
     StaticsSubmission,
     SubmissionExperiment,
     SubmissionPlayer,
     Submitter,
-    SuiteIdentity,
     parse_submission_manifest,
 )
-from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER
+from gptnt.experiments.db.typed_parquet import read_typed_parquet, write_typed_parquet
 from gptnt.experiments.provenance import ProvenanceMixin
+from gptnt.experiments.suite import SuiteIdentity
 from gptnt.statics.run_metadata import StaticsRunMetadata
 
 if TYPE_CHECKING:
     from whenever import Instant
 
     from gptnt.experiments.suite import Suite
-    from gptnt.players.specification import PlayerCapabilities, PlayerRole
+    from gptnt.players.specification import PlayerCapabilities
 
 _SHORT_FINGERPRINT_LENGTH = 8
 
@@ -128,35 +125,34 @@ class InteractiveBundle(SubmissionBundle[InteractiveSubmission]):
         """Bundle one model's experiments for one frozen suite (`submitter` left for a human)."""
         canonical = experiments[0]
         measured = SuiteIdentity.from_suite(suite)
+        run_date = min(experiment.experiment_descriptor.start_time for experiment in experiments)
         name = BundleName(
             player_name=canonical.defuser_capabilities.player_name,
             target=measured.target,
             fingerprint=canonical.defuser_capabilities.fingerprint,
-            run_date=min(
-                experiment.experiment_descriptor.start_time for experiment in experiments
-            ),
+            run_date=run_date,
         )
         manifest = InteractiveSubmission(
             submission_id=name.submission_id,
             measured=measured,
             submitter=Submitter(),
             players=[
-                create_submission_player_entry("defuser", canonical.defuser_capabilities),
+                SubmissionPlayer.for_role("defuser", canonical.defuser_capabilities),
                 *(
-                    create_submission_player_entry("expert", capabilities)
+                    SubmissionPlayer.for_role("expert", capabilities)
                     for capabilities in _collect_distinct_experts(experiments)
                 ),
             ],
             provenance=ProvenanceMixin(
                 gptnt_version=canonical.gptnt_version, git_sha=canonical.git_sha
             ),
-            run_date=name.run_date,
+            run_date=run_date,
         )
         return cls(manifest=manifest, experiments=experiments)
 
     @override
     def _write_payload(self, bundle_dir: Path) -> None:
-        write_experiments_payload(self.experiments, file_path=bundle_dir / self.payload_filename)
+        write_typed_parquet(self.experiments, file_path=bundle_dir / self.payload_filename)
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -168,21 +164,19 @@ class StaticsBundle(SubmissionBundle[StaticsSubmission]):
     payload_filename: ClassVar[str] = "metrics.json"
 
     @classmethod
-    def from_run_dir(cls, statics_output_dir: Path) -> Self:
+    def from_run_dir(
+        cls, statics_output_dir: Path, *, metadata: StaticsRunMetadata | None = None
+    ) -> Self:
         """Bundle one statics run from its outputs dir (`submitter` stays blank for a human).
 
         The task is read off the stamped `run_meta.json`, not the directory name — the run's own
-        metadata is the source of truth for what was measured.
+        metadata is the source of truth for what was measured. Pass `metadata` to reuse a
+        `run_meta.json` already parsed by the caller (the build path parses it once, to filter).
         """
-        meta_path = statics_output_dir / "run_meta.json"
-        metrics_path = statics_output_dir / "metrics.json"
-        if not meta_path.exists() or not metrics_path.exists():
-            raise RuntimeError(
-                f"{statics_output_dir} is not a statics outputs dir (needs run_meta.json and "
-                "metrics.json); run `gptnt statics <task> --throw --dataset-revision <ref>` first."
+        if metadata is None:
+            metadata = StaticsRunMetadata.model_validate_json(
+                (statics_output_dir / "run_meta.json").read_text()
             )
-
-        metadata = StaticsRunMetadata.model_validate_json(meta_path.read_text())
         name = BundleName(
             player_name=metadata.capabilities.player_name,
             target=metadata.statics.target,
@@ -193,11 +187,13 @@ class StaticsBundle(SubmissionBundle[StaticsSubmission]):
             submission_id=name.submission_id,
             measured=metadata.statics,
             submitter=Submitter(),
-            players=[create_submission_player_entry("defuser", metadata.capabilities)],
+            players=[SubmissionPlayer.for_role("defuser", metadata.capabilities)],
             provenance=metadata.provenance,
-            run_date=name.run_date,
+            run_date=metadata.run_date,
         )
-        return cls(manifest=manifest, metrics_text=metrics_path.read_text())
+        return cls(
+            manifest=manifest, metrics_text=(statics_output_dir / "metrics.json").read_text()
+        )
 
     @override
     def _write_payload(self, bundle_dir: Path) -> None:
@@ -211,7 +207,9 @@ def load_submission_bundle(bundle_dir: Path) -> InteractiveBundle | StaticsBundl
     """
     manifest = load_submission_manifest(bundle_dir)
     if isinstance(manifest, InteractiveSubmission):
-        payload = read_experiments_payload(bundle_dir / InteractiveBundle.payload_filename)
+        payload = read_typed_parquet(
+            SubmissionExperiment, bundle_dir / InteractiveBundle.payload_filename
+        )
         return InteractiveBundle(manifest=manifest, experiments=payload)
     metrics_text = (bundle_dir / StaticsBundle.payload_filename).read_text()
     return StaticsBundle(manifest=manifest, metrics_text=metrics_text)
@@ -225,41 +223,7 @@ def load_submission_manifest(bundle_dir: Path) -> InteractiveSubmission | Static
     return parse_submission_manifest(raw)
 
 
-def write_experiments_payload(experiments: list[SubmissionExperiment], *, file_path: Path) -> None:
-    """Write experiments to `experiments.parquet` using the model's `db`-context serialization."""
-    parquet_rows = [
-        experiment.model_dump(context={"mode": EXPORT_CONTEXT_MARKER})
-        for experiment in experiments
-    ]
-    _ = pq.write_table(pa.Table.from_pylist(parquet_rows), file_path)
-
-
-def read_experiments_payload(file_path: Path) -> list[SubmissionExperiment]:
-    """Read `experiments.parquet` back into typed experiments (JSON columns parse on input)."""
-    table = pq.read_table(file_path)
-    return [SubmissionExperiment.model_validate(parquet_row) for parquet_row in table.to_pylist()]
-
-
-def create_submission_player_entry(
-    role: PlayerRole, capabilities: PlayerCapabilities
-) -> SubmissionPlayer:
-    """Create a player entry for the submission.
-
-    `identity` is the model's leaderboard attribution from `configs/player/*.yaml`. A submission
-    must be attributable, so a model with no `identity` block is a hard error, not a blank entry.
-    """
-    identity = player_identities().get(capabilities.player_name)
-    if identity is None:
-        raise ValueError(
-            f"No PlayerIdentity for {capabilities.player_name!r}: add an `identity` block to its "
-            "configs/player/*.yaml before submitting."
-        )
-    return SubmissionPlayer(role=role, capabilities=capabilities, identity=identity)
-
-
-def _collect_distinct_experts(
-    experiments: list[SubmissionExperiment],
-) -> list[PlayerCapabilities]:
+def _collect_distinct_experts(experiments: list[SubmissionExperiment]) -> list[PlayerCapabilities]:
     """Every distinct expert (by capability fingerprint) paired with the defuser, name-sorted."""
     experts: dict[str, PlayerCapabilities] = {}
     for experiment in experiments:
