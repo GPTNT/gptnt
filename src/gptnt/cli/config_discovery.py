@@ -1,6 +1,7 @@
 from functools import lru_cache
 
 import yaml
+from pydantic import ValidationError
 
 from gptnt.common.paths import Paths
 from gptnt.players.specification import PlayerIdentity
@@ -34,18 +35,16 @@ def discover_providers() -> list[str]:
 
 
 @lru_cache
-def player_identities() -> dict[str, PlayerIdentity]:
-    """Map each configured `player_name` to its `PlayerIdentity` (leaderboard attribution).
-
-    Read straight from `configs/player/*.yaml`.
-    """
-    identities: dict[str, PlayerIdentity] = {}
-
+def player_identity(player_name: str) -> PlayerIdentity:  # noqa: WPS231
+    """Map a configured `player_name` to its `PlayerIdentity`."""
     for path in paths.player_configs.glob("*.yaml"):
         config = yaml.safe_load(path.read_text()) or {}
-        player_name = (config.get("capabilities") or {}).get("player_name")
-        identity = config.get("identity")
-        if player_name and identity:
-            identities[player_name] = PlayerIdentity.model_validate(identity)
+        if (config.get("capabilities") or {}).get("player_name") != player_name:
+            continue
 
-    return identities
+        try:
+            return PlayerIdentity.model_validate(config.get("identity"))
+        except ValidationError as error:
+            raise ValueError(f"Invalid `identity` block in {path}") from error
+
+    raise ValueError(f"Identity for player not found: {player_name}")
