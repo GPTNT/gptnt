@@ -8,7 +8,11 @@ submission_app.command(
     name="new",
     help="Build submission bundles from the experiments DuckDB and statics outputs.",
 )
-# `validate` (and its GitHub Action gate in gptnt-submissions) is a follow-up; not wired yet.
+submission_app.command(
+    "gptnt.cli.submission.validate:validate_submission",
+    name="validate",
+    help="Validate submission bundle(s) against the local gptnt checkout.",
+)
 
 
 def main() -> None:
