@@ -71,8 +71,8 @@ def _group_cells_by_session(
 ) -> tuple[dict[UUID, _BombStateCells], dict[UUID, _UsageCellsByRole]]:
     """Split step-ordered `(session_id, role, bomb_state, usage)` rows into per-session columns.
 
-    Bomb states are per session (only the defuser's steps carry one); usage cells are further
-    split by player role, because a two-player session interleaves both players' steps.
+    Bomb states are per session (only the defuser's steps carry one); usage cells are further split
+    by player role, because a two-player session interleaves both players' steps.
     """
     bomb_states: dict[UUID, _BombStateCells] = defaultdict(list)
     usage_cells: dict[UUID, _UsageCellsByRole] = defaultdict(dict)
