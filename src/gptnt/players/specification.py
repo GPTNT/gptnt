@@ -35,10 +35,10 @@ class PlayerIdentity(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    display_name: str
+    display_name: str = Field(min_length=1)
     """Name used on the leaderboard."""
 
-    organisation: str
+    organisation: str = Field(min_length=1)
     """The organisation that develops the player."""
 
     is_os_model: bool
