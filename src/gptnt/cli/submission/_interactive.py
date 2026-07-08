@@ -59,6 +59,12 @@ def _write_experiments_to_file(
     _ = pq.write_table(pa.Table.from_pylist(rows), file_path)
 
 
+def read_experiments_from_file(file_path: Path) -> list[SubmissionExperiment]:
+    """Read `experiments.parquet` back into typed rows (the JSON columns parse back on input)."""
+    table = pq.read_table(file_path)
+    return [SubmissionExperiment.model_validate(row) for row in table.to_pylist()]
+
+
 def gather_experiments_for_suite(
     db_path: Path, suite: Suite, model_names: Iterable[str] | None = None
 ) -> list[SubmissionExperiment]:
