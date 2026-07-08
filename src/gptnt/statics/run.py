@@ -13,8 +13,10 @@ import structlog
 from PIL import Image
 from pydantic_ai import Agent
 from tqdm import tqdm
+from whenever import Instant
 
 from gptnt.common.paths import Paths
+from gptnt.experiments.provenance import ProvenanceMixin
 from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
 from gptnt.players.reasoning_parser.react import ReactStyleReasoningParser
 from gptnt.players.specification import PlayerCapabilities
@@ -231,6 +233,7 @@ class RunHFDatasetEvaluation(RunEvaluation):
         """Stamp `run_meta.json` beside the metrics so the outputs are self-describing."""
         metadata = StaticsRunMetadata(
             model_name=self.model_name,
+            run_date=Instant.now(),
             statics=StaticsIdentity.resolve(
                 task_name=self.task_name,
                 hf_repo_id=self.hf_repo_id,
@@ -238,6 +241,7 @@ class RunHFDatasetEvaluation(RunEvaluation):
                 revision=self.revision,
             ),
             capabilities=self.capabilities,
+            provenance=ProvenanceMixin(),
         )
         metadata_file = self.output_dir.joinpath("run_meta.json")
         _ = metadata_file.write_text(metadata.model_dump_json(indent=2))
