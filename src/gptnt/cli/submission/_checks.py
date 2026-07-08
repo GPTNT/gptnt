@@ -27,20 +27,20 @@ from gptnt.cli.submission._bundle import (
     InteractiveBundle,
     StaticsBundle,
     load_submission_manifest,
-    read_experiments_payload,
 )
-from gptnt.cli.submission._schema import InteractiveSubmission, StaticsSubmission
-from gptnt.common.paths import Paths
-from gptnt.experiments.generation.missions import load_missions
-from gptnt.experiments.provenance import UNKNOWN_VERSION
+from gptnt.cli.submission._schema import (
+    InteractiveSubmission,
+    StaticsSubmission,
+    SubmissionExperiment,
+)
+from gptnt.experiments.db.typed_parquet import read_typed_parquet
+from gptnt.experiments.provenance import UNKNOWN_VERSION, is_dirty_sha
 
 if TYPE_CHECKING:
-    from gptnt.cli.submission._schema import SubmissionExperiment
     from gptnt.experiments.suite import Suite
     from gptnt.statics.run_metadata import StaticsIdentity
 
 REBUILD_HINT = "Rebuild with `gptnt submission new`."
-_UNPINNED = "unpinned"
 
 # Everything a malformed submission.yaml can raise on the way through yaml + pydantic parsing.
 _MANIFEST_ERRORS = (yaml.YAMLError, ValidationError, ValueError, TypeError)
@@ -76,65 +76,6 @@ class LoadedBundle:
             hint = "Fill in the `submitter` block in submission.yaml."
             return [CheckResult.failed("submitter", f"blank: {', '.join(blank)}", hint=hint)]
         return [CheckResult.passed("submitter", f"{submitter.name} ({submitter.contact})")]
-
-    def check_suite(self, suite: Suite | None, *, load_error: str = "") -> list[CheckResult]:
-        """The declared suite is real in this checkout and unchanged since the bundle was built."""
-        if not isinstance(self.bundle, InteractiveBundle):
-            return []
-        declared = self.bundle.manifest.measured
-        if declared.suite_name not in discover_suites():
-            hint = "Check configs/suites/ or update the checkout."
-            detail = f"{declared.suite_name!r} is not a suite in this checkout"
-            return [CheckResult.failed("suite", detail, hint=hint)]
-        if suite is None:
-            return [
-                CheckResult.failed(
-                    "suite", f"{declared.suite_name!r} did not compose: {load_error}"
-                )
-            ]
-        return [
-            CheckResult.passed("suite", declared.suite_name),
-            _check_suite_revision(declared.suite_revision, suite),
-            _check_suite_digest(declared.suite_digest, suite),
-        ]
-
-    def check_mission_coverage(self, suite: Suite) -> list[CheckResult]:
-        """Every mission in the suite's set has exactly one, valid run — no more, no fewer.
-
-        `gptnt submission new` bundles every recorded experiment for the (suite, model) group, so
-        a retried mission shows up here as a duplicate: the fix is curation, not a rebuild.
-        """
-        if not isinstance(self.bundle, InteractiveBundle):
-            return []
-        experiments = self.bundle.experiments
-        membership = _check_experiments_belong_to_suite(suite, experiments)
-        try:
-            missions = load_missions(Paths().root / suite.missions_path)
-        except (OSError, ValidationError) as error:
-            broken = CheckResult.failed("missions", f"could not load the mission set: {error}")
-            return [membership, broken]
-        return [
-            membership,
-            *_check_one_run_per_mission(
-                {mission.mission_key for mission in missions}, experiments
-            ),
-            _check_experiment_outcomes(experiments),
-        ]
-
-    def check_players(self) -> list[CheckResult]:
-        """The payload was played by exactly the players the manifest declares.
-
-        Deliberately bundle-internal (nothing here reads configs/player/); the manifest's own
-        shape — identities, fingerprints, one-defuser-first — is already schema-enforced.
-        """
-        if not isinstance(self.bundle, InteractiveBundle):
-            return []
-        manifest = self.bundle.manifest
-        experiments = self.bundle.experiments
-        return [
-            _check_defuser_matches_manifest(manifest, experiments),
-            _check_experts_match_manifest(manifest, experiments),
-        ]
 
     def check_provenance(self) -> list[CheckResult]:
         """Provenance is present; hygiene issues (dirty tree, unpinned dataset) only warn."""
@@ -175,6 +116,54 @@ class LoadedBundle:
             return None
         detail = f"expected {expected}, manifest says {self.manifest.submission_id}"
         return CheckResult.failed("submission_id", detail, hint=REBUILD_HINT)
+
+
+def check_suite(
+    bundle: InteractiveBundle, suite: Suite | None, *, load_error: str = ""
+) -> list[CheckResult]:
+    """The declared suite is real in this checkout and unchanged since the bundle was built."""
+    declared = bundle.manifest.measured
+    if declared.suite_name not in discover_suites():
+        hint = "Check configs/suites/ or update the checkout."
+        detail = f"{declared.suite_name!r} is not a suite in this checkout"
+        return [CheckResult.failed("suite", detail, hint=hint)]
+    if suite is None:
+        return [
+            CheckResult.failed("suite", f"{declared.suite_name!r} did not compose: {load_error}")
+        ]
+    return [
+        CheckResult.passed("suite", declared.suite_name),
+        _check_suite_revision(declared.suite_revision, suite),
+        _check_suite_digest(declared.suite_digest, suite),
+    ]
+
+
+def check_mission_coverage(bundle: InteractiveBundle, suite: Suite) -> list[CheckResult]:
+    """Every mission in the suite's set has exactly one, valid run — no more, no fewer.
+
+    `gptnt submission new` bundles every recorded experiment for the (suite, model) group, so
+    a retried mission shows up here as a duplicate: the fix is curation, not a rebuild.
+    """
+    experiments = bundle.experiments
+    return [
+        _check_experiments_belong_to_suite(suite, experiments),
+        *_check_one_run_per_mission(suite.mission_keys, experiments),
+        _check_experiment_outcomes(experiments),
+    ]
+
+
+def check_players(bundle: InteractiveBundle) -> list[CheckResult]:
+    """The payload was played by exactly the players the manifest declares.
+
+    Deliberately bundle-internal (nothing here reads configs/player/); the manifest's own shape —
+    identities, fingerprints, one-defuser-first — is already schema-enforced.
+    """
+    manifest = bundle.manifest
+    experiments = bundle.experiments
+    return [
+        _check_defuser_matches_manifest(manifest, experiments),
+        _check_experts_match_manifest(manifest, experiments),
+    ]
 
 
 def load_bundle(bundle_dir: Path) -> tuple[LoadedBundle | None, list[CheckResult]]:
@@ -238,7 +227,7 @@ def _load_interactive_payload(
             "payload", "experiments.parquet not found", hint=REBUILD_HINT
         )
     try:
-        experiments = read_experiments_payload(payload_path)
+        experiments = read_typed_parquet(SubmissionExperiment, payload_path)
     except Exception as error:  # noqa: BLE001 — pyarrow/pydantic raise many kinds; all mean a broken payload
         return None, CheckResult.failed(
             "payload", f"experiments.parquet did not read back: {error}"
@@ -296,7 +285,7 @@ def _check_experiments_belong_to_suite(
 
 
 def _check_one_run_per_mission(
-    expected: set[str], experiments: list[SubmissionExperiment]
+    expected: frozenset[str], experiments: list[SubmissionExperiment]
 ) -> list[CheckResult]:
     """Exactly-one-run-per-mission, reported as missing / duplicates / unknown."""
     actual = Counter(experiment.mission_key for experiment in experiments)
@@ -390,7 +379,7 @@ def _check_gptnt_version(version: str) -> CheckResult:
 def _check_git_sha(git_sha: str | None) -> CheckResult:
     if git_sha is None:
         return CheckResult.warned("git_sha", "not recorded (git unavailable at run time)")
-    if git_sha.endswith("-dirty"):
+    if is_dirty_sha(git_sha):
         return CheckResult.warned(
             "git_sha", f"{git_sha} — the tree had uncommitted changes at run time"
         )
@@ -398,11 +387,10 @@ def _check_git_sha(git_sha: str | None) -> CheckResult:
 
 
 def _check_dataset_pin(statics: StaticsIdentity) -> CheckResult:
-    label = statics.revision_label
-    if label == _UNPINNED:
+    if not statics.is_pinned:
         return CheckResult.warned(
             "dataset pin",
             f"{statics.hf_repo_id} has no pinned revision",
             hint="Re-run with `--dataset-revision <ref>` for a reproducible submission.",
         )
-    return CheckResult.passed("dataset pin", f"{statics.hf_repo_id}@{label}")
+    return CheckResult.passed("dataset pin", f"{statics.hf_repo_id}@{statics.revision_label}")
