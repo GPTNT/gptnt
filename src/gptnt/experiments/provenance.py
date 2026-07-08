@@ -9,6 +9,8 @@ from pydantic import BaseModel, Field
 
 # Used when the package metadata or git state can't be resolved (e.g. an exotic install layout).
 UNKNOWN_VERSION = "0.0.0"
+# Marker appended to a recorded sha when the working tree had uncommitted changes.
+DIRTY_SUFFIX = "-dirty"
 _MODULE_DIR = Path(__file__).resolve().parent
 
 
@@ -25,7 +27,7 @@ def _run_git(*args: str, git_timeout: float = 2) -> str | None:
     try:
         # `git` is resolved via PATH and only runs our own fixed subcommands (no shell, no input).
         completed = subprocess.run(  # noqa: S603
-            ["git", *args],  # noqa: S607
+            ["git", *args],
             cwd=_MODULE_DIR,
             capture_output=True,
             text=True,
@@ -48,7 +50,12 @@ def git_sha() -> str | None:
     if sha is None:
         return None
     is_dirty = bool(_run_git("status", "--porcelain"))
-    return f"{sha}-dirty" if is_dirty else sha
+    return f"{sha}{DIRTY_SUFFIX}" if is_dirty else sha
+
+
+def is_dirty_sha(sha: str) -> bool:
+    """Whether a recorded git sha carries the dirty-tree marker."""
+    return sha.endswith(DIRTY_SUFFIX)
 
 
 class ProvenanceMixin(BaseModel):
@@ -56,3 +63,8 @@ class ProvenanceMixin(BaseModel):
 
     gptnt_version: str = Field(default_factory=gptnt_version)
     git_sha: str | None = Field(default_factory=git_sha)
+
+    @property
+    def is_dirty(self) -> bool:
+        """Whether the recorded git sha carries the dirty-tree marker."""
+        return self.git_sha is not None and is_dirty_sha(self.git_sha)
