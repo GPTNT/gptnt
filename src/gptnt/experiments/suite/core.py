@@ -87,7 +87,17 @@ class Suite(BaseModel):
         payload = self.model_dump(mode="json", exclude={"name", "revision", "config_digest"})
         return stable_digest(payload)
 
-    @property
+    @cached_property
+    def loaded_missions(self) -> list[KtaneMissionSpec]:
+        """The resolved mission specs for this suite, read from disk once and cached."""
+        return load_missions(Paths().root / self.missions_path)
+
+    @cached_property
+    def mission_keys(self) -> frozenset[str]:
+        """The set of mission keys in this suite's resolved mission set."""
+        return frozenset(mission.mission_key for mission in self.loaded_missions)
+
+    @cached_property
     def missions_digest(self) -> str:
         """A stable digest of the resolved mission file contents.
 
@@ -100,7 +110,7 @@ class Suite(BaseModel):
         )
         return stable_digest(payloads)
 
-    @property
+    @cached_property
     def suite_digest(self) -> str:
         """A stable digest of the whole suite: its `config_digest` and `missions_digest` combined.
 
@@ -108,3 +118,25 @@ class Suite(BaseModel):
         revision, so changing the config or any mission file requires bumping `revision`.
         """
         return stable_digest([self.config_digest, self.missions_digest])
+
+
+class SuiteIdentity(BaseModel):
+    """The frozen suite the interactive results were measured against."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    suite_name: str
+    suite_revision: int
+    suite_digest: str
+
+    @classmethod
+    def from_suite(cls, suite: Suite) -> Self:
+        """Snapshot a `Suite`'s identity: its name, revision, and digest."""
+        return cls(
+            suite_name=suite.name, suite_revision=suite.revision, suite_digest=suite.suite_digest
+        )
+
+    @property
+    def target(self) -> str:
+        """What was measured, with its pin — the bundle dir's leaf name."""
+        return f"{self.suite_name}@{self.suite_revision}"
