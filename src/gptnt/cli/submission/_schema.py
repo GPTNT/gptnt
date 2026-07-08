@@ -1,6 +1,14 @@
-from typing import Annotated, Self
+from typing import Annotated, Any, Self
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ModelWrapValidatorHandler,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 from pydantic_ai import RunUsage
 from whenever import Instant
 
@@ -10,7 +18,7 @@ from gptnt.experiments.provenance import ProvenanceMixin
 from gptnt.experiments.suite import Suite
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.specification import PlayerCapabilities, PlayerIdentity, PlayerRole
-from gptnt.statics.run_metadata import DatasetIdentity
+from gptnt.statics.run_metadata import StaticsIdentity
 
 SCHEMA_VERSION = 1
 
@@ -102,26 +110,48 @@ class SubmissionPlayer(BaseModel):
         """The capability fingerprint, serialised alongside the entry."""
         return self.capabilities.fingerprint
 
-    @model_validator(mode="before")
+    @model_validator(mode="wrap")
     @classmethod
-    def _drop_serialised_fingerprint(cls, data: object) -> object:
-        """Ignore a serialised `fingerprint` on input so a dumped manifest round-trips cleanly.
+    def _verify_serialised_fingerprint(
+        cls,
+        data: Any,
+        handler: ModelWrapValidatorHandler[Self],  # noqa: WPS110
+    ) -> Self:
+        """Check a serialised `fingerprint` still matches its capabilities, then drop it.
 
-        Localised here, at the submission boundary that actually exports it — the core
-        `PlayerCapabilities` stays a clean recorded model with no such machinery.
+        The written value is a computed field (display only), so a round-trip must discard it —
+        but a manifest whose written fingerprint disagrees with its own `capabilities` has been
+        tampered with (or built by different code) and must not parse. Localised here, at the
+        submission boundary that actually exports it — the core `PlayerCapabilities` stays a clean
+        recorded model with no such machinery.
         """
+        written = None
         if isinstance(data, dict) and "fingerprint" in data:
-            return {key: value for key, value in data.items() if key != "fingerprint"}  # noqa: WPS110
-        return data
+            written = data["fingerprint"]
+            data = {key: value for key, value in data.items() if key != "fingerprint"}  # noqa: WPS110
+        player = handler(data)
+        if written is not None and written != player.capabilities.fingerprint:
+            raise ValueError(
+                f"serialised fingerprint {written!r} does not match the one recomputed from "
+                f"{player.capabilities.player_name!r}'s capabilities"
+            )
+        return player
 
 
-class SubmissionBase(BaseModel):
-    """Fields shared by every `submission.yaml`."""
+class Submission[IdentityT: SuiteIdentity | StaticsIdentity](BaseModel):
+    """One `submission.yaml`, parameterised by the identity of what was measured.
+
+    The `measured` block is the discriminator: a `SuiteIdentity` makes it an interactive
+    submission, a `StaticsIdentity` a statics one. Everything else is shared.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     schema_version: int = SCHEMA_VERSION
     submission_id: str
+
+    measured: IdentityT
+    """What was measured: a frozen suite, or a statics task with its dataset pin."""
 
     submitter: Submitter
 
@@ -135,6 +165,21 @@ class SubmissionBase(BaseModel):
     def player(self) -> SubmissionPlayer:
         """The defuser player entry."""
         return self.players[0]
+
+    @property
+    def target(self) -> str:
+        """What was measured, with its pin — the bundle dir's leaf name."""
+        return self.measured.target
+
+    @field_validator("schema_version")
+    @classmethod
+    def _supported_schema_version(cls, version: int) -> int:
+        """A manifest written by a different schema can't be reasoned about here."""
+        if version != SCHEMA_VERSION:
+            raise ValueError(
+                f"schema_version {version} is not supported (this checkout is v{SCHEMA_VERSION})"
+            )
+        return version
 
     @field_validator("players", mode="after")
     @classmethod
@@ -158,13 +203,22 @@ class SubmissionBase(BaseModel):
         return players
 
 
-class InteractiveSubmission(SubmissionBase):
+class InteractiveSubmission(Submission[SuiteIdentity]):
     """`submission.yaml` for an interactive suite."""
 
-    suite: SuiteIdentity
 
-
-class StaticsSubmission(SubmissionBase):
+class StaticsSubmission(Submission[StaticsIdentity]):
     """`submission.yaml` for a statics evaluation task."""
 
-    dataset: DatasetIdentity
+
+def parse_submission_manifest(raw: dict[str, Any]) -> InteractiveSubmission | StaticsSubmission:
+    """Validate a raw manifest, discriminated on what its `measured` block describes."""
+    measured = raw.get("measured")
+    keys = set(measured) if isinstance(measured, dict) else set()
+    if ("suite_name" in keys) == ("task_name" in keys):
+        raise ValueError(
+            "`measured` must describe exactly one of a suite (suite_name/…) "
+            "or a statics task (task_name/…)"
+        )
+    model_class = InteractiveSubmission if "suite_name" in keys else StaticsSubmission
+    return model_class.model_validate(raw)
