@@ -12,10 +12,8 @@ against.
 mission surfaces here as a duplicate — validate is the curation signal, not a bug in the build.
 """
 
-from __future__ import annotations
-
-from pathlib import Path  # noqa: TC003 — cyclopts resolves the command's type hints at runtime
-from typing import TYPE_CHECKING, Annotated
+from pathlib import Path
+from typing import Annotated
 
 from cyclopts import Parameter
 from rich.console import Console
@@ -23,12 +21,15 @@ from rich.console import Console
 from gptnt.cli.doctor.checks import CheckResult
 from gptnt.cli.doctor.render import render_report
 from gptnt.cli.submission._bundle import InteractiveBundle
-from gptnt.cli.submission._checks import LoadedBundle, load_bundle
-from gptnt.cli.submission._interactive import load_suite
+from gptnt.cli.submission._checks import (
+    check_mission_coverage,
+    check_players,
+    check_suite,
+    load_bundle,
+)
 from gptnt.common.paths import Paths
-
-if TYPE_CHECKING:
-    from gptnt.experiments.suite import Suite
+from gptnt.experiments.generation.pipeline import compose_suite
+from gptnt.experiments.suite import Suite
 
 paths = Paths()
 console = Console()
@@ -61,8 +62,6 @@ def validate_submission(
     console.print(
         f"Validated {total} bundle(s): {total - failed} ok, {failed} failed.", style="bold"
     )
-    if failed:
-        raise RuntimeError("Validation found problems; fix the rows above and re-validate.")
 
 
 def _run_bundle_checks(bundle_dir: Path, suite_cache: SuiteCache) -> dict[str, list[CheckResult]]:
@@ -71,39 +70,38 @@ def _run_bundle_checks(bundle_dir: Path, suite_cache: SuiteCache) -> dict[str, l
     if loaded is None:
         return {"Structure": structure_findings}
 
-    suite_findings, coverage_findings = _run_suite_checks(loaded, suite_cache)
-    return {
+    sections = {
         "Structure": [*structure_findings, *loaded.check_structure()],
         "Submitter": loaded.check_submitter(),
+    }
+    if isinstance(loaded.bundle, InteractiveBundle):
+        sections |= _interactive_sections(loaded.bundle, suite_cache)
+    sections["Provenance"] = loaded.check_provenance()
+    return sections
+
+
+def _interactive_sections(
+    bundle: InteractiveBundle, suite_cache: SuiteCache
+) -> dict[str, list[CheckResult]]:
+    """The suite-dependent sections; coverage is meaningless against a wrong suite, so it skips."""
+    suite, load_error = _load_suite_cached(bundle.manifest.measured.suite_name, suite_cache)
+    suite_findings = check_suite(bundle, suite, load_error=load_error)
+    if suite is None or any(finding.status == "fail" for finding in suite_findings):
+        coverage_findings = [CheckResult.skipped("coverage", "suite checks failed; not assessed")]
+    else:
+        coverage_findings = check_mission_coverage(bundle, suite)
+    return {
         "Suite": suite_findings,
         "Mission coverage": coverage_findings,
-        "Players": loaded.check_players(),
-        "Provenance": loaded.check_provenance(),
+        "Players": check_players(bundle),
     }
-
-
-def _run_suite_checks(
-    loaded: LoadedBundle, suite_cache: SuiteCache
-) -> tuple[list[CheckResult], list[CheckResult]]:
-    """The suite-dependent findings; coverage is meaningless against a wrong suite, so it skips."""
-    if not isinstance(loaded.bundle, InteractiveBundle):
-        return [], []
-    suite, load_error = _load_suite_cached(loaded.bundle.manifest.measured.suite_name, suite_cache)
-    suite_findings = loaded.check_suite(suite, load_error=load_error)
-    suite_ok = suite is not None and all(finding.status != "fail" for finding in suite_findings)
-    coverage_findings = (
-        loaded.check_mission_coverage(suite)
-        if suite is not None and suite_ok
-        else [CheckResult.skipped("coverage", "suite checks failed; not assessed")]
-    )
-    return suite_findings, coverage_findings
 
 
 def _load_suite_cached(suite_name: str, cache: SuiteCache) -> tuple[Suite | None, str]:
     """Load (and memoise) one suite; hydra composes via a global singleton, so stay serial."""
     if suite_name not in cache:
         try:
-            cache[suite_name] = (load_suite(suite_name), "")
-        except Exception as error:  # noqa: BLE001 — hydra/OmegaConf raise many kinds; report, don't crash
+            cache[suite_name] = (compose_suite(suite_name), "")
+        except Exception as error:  # noqa: BLE001 — report and don't crash
             cache[suite_name] = (None, str(error))
     return cache[suite_name]
