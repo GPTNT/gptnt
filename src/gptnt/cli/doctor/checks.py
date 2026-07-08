@@ -23,7 +23,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, Self
 from urllib.parse import urlsplit
 
 import anyio
@@ -82,15 +82,37 @@ _REDIS_PROBE_ERRORS = (OSError, TimeoutError, anyio.EndOfStream, anyio.BrokenRes
 
 @dataclass(frozen=True)
 class CheckResult:
-    """The outcome of one doctor check.
+    """The outcome of one check (doctor and `submission validate` share it).
 
-    `detail` is what was found (shown always). `hint` is the fix and is shown on ✗/⚠.
+    `detail` is what was found (shown always). `hint` is the fix and is shown on ✗/⚠. The
+    per-status constructors are the preferred spelling — `CheckResult.failed("digest", …)` reads
+    as the finding it is.
     """
 
     name: str
     status: CheckStatus
     detail: str = ""
     hint: str = ""
+
+    @classmethod
+    def passed(cls, name: str, detail: str = "") -> Self:
+        """The check held."""
+        return cls(name, "pass", detail=detail)
+
+    @classmethod
+    def failed(cls, name: str, detail: str = "", hint: str = "") -> Self:
+        """The check found a real problem; the run fails."""
+        return cls(name, "fail", detail=detail, hint=hint)
+
+    @classmethod
+    def warned(cls, name: str, detail: str = "", hint: str = "") -> Self:
+        """Worth flagging, but never fails the run."""
+        return cls(name, "warn", detail=detail, hint=hint)
+
+    @classmethod
+    def skipped(cls, name: str, detail: str = "") -> Self:
+        """Not applicable here."""
+        return cls(name, "skip", detail=detail)
 
 
 @dataclass(frozen=True)
