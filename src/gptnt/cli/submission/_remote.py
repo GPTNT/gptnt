@@ -54,6 +54,14 @@ def _clone(clone_url: str, local_dir: Path, token: str) -> pygit2.Repository:
     return pygit2.clone_repository(clone_url, str(local_dir), callbacks=_remote_callbacks(token))
 
 
+def _get_author_signature(gh: Github) -> pygit2.Signature:
+    user = gh.get_user()
+    name = user.name or user.login  # name can be None if not set
+    # GitHub's no-reply format for users with private email
+    email = user.email or f"{user.id}+{user.login}@users.noreply.github.com"
+    return pygit2.Signature(name, email)
+
+
 def _fork_and_clone(
     source: GhRepository,
     local_dir: Path,
@@ -62,9 +70,13 @@ def _fork_and_clone(
     *,
     num_attempts_to_get_fork: int = 10,
 ) -> tuple[pygit2.Repository, str]:
-    """Fork source, clone the fork into local_dir. Returns (pygit2 repo, login)."""
+    """Fork source, clone the fork into local_dir.
+
+    Returns (pygit2 repo, login).
+    """
     user = gh.get_user()
     assert isinstance(user, AuthenticatedUser)
+    # If a fork already exists, this will do nothing
     fork = user.create_fork(source)
 
     # GitHub creates forks asynchronously — poll until refs are visible
@@ -76,7 +88,13 @@ def _fork_and_clone(
         else:
             break
 
-    return _clone(fork.clone_url, local_dir, token), user.login
+    # Clone upstream (always current), NOT the fork
+    local_repo = _clone(source.clone_url, local_dir, token)
+
+    # Rewire origin so pushes go to the fork
+    local_repo.remotes.set_url("origin", fork.clone_url)
+
+    return local_repo, user.login
 
 
 def _create_and_checkout_branch(repo: pygit2.Repository, branch_name: str) -> None:
@@ -85,21 +103,19 @@ def _create_and_checkout_branch(repo: pygit2.Repository, branch_name: str) -> No
 
 
 def _stage_and_commit(
-    repo: pygit2.Repository,
-    rel_paths: list[str],
-    message: str,
-    author_name: str = "gptnt",
-    author_email: str = "submissions@gptnt.com",
+    repo: pygit2.Repository, rel_paths: list[str], message: str, signature: pygit2.Signature
 ) -> None:
-    # stage the commits
+    # stage the files
     index = repo.index
     index.read()
     for path in rel_paths:
         index.add(path)
     index.write()
 
-    sig = pygit2.Signature(author_name, author_email)
-    _ = repo.create_commit("HEAD", sig, sig, message, index.write_tree(), [repo.head.target])
+    # Make the commit
+    _ = repo.create_commit(
+        "HEAD", signature, signature, message, index.write_tree(), [repo.head.target]
+    )
 
 
 def _force_push(repo: pygit2.Repository, branch_name: str, token: str) -> None:
@@ -174,8 +190,8 @@ def create_submission(  # noqa: WPS210
 ) -> SubmissionResult:
     """Copy submission_dir/submissions/* into a clone/fork of slug and open a PR.
 
-    Uses GITHUB_TOKEN env var if set, otherwise falls back to `gh auth token`.
-    PyGitHub handles all GitHub API operations; pygit2 handles local git.
+    Uses GITHUB_TOKEN env var if set, otherwise falls back to `gh auth token`. PyGitHub handles all
+    GitHub API operations; pygit2 handles local git.
     """
     token = _get_token()
     gh = Github(auth=Auth.Token(token))
@@ -197,7 +213,7 @@ def create_submission(  # noqa: WPS210
         _create_and_checkout_branch(local_repo, branch_name)
 
         rel_paths = _copy_submission(submission_dir, clone_dir_path)
-        _stage_and_commit(local_repo, rel_paths, pr_title)
+        _stage_and_commit(local_repo, rel_paths, pr_title, signature=_get_author_signature(gh))
         _force_push(local_repo, branch_name, token)
 
         pr_url = _open_or_find_pr(source_repo=source_repo, head=head, title=pr_title, body=pr_body)
