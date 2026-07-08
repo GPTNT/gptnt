@@ -54,6 +54,10 @@ wandb = [
     "wandb[media]>=0.19.9,<0.22.1",
     "weave>=0.51.44",
 ]
+submission = [
+    "pygit2>=1.19.3",
+    "pygithub>=2.9.1"
+]
 
 [project.scripts]
 gptnt = "gptnt.cli.__main__:main"
@@ -374,6 +378,8 @@ ignore = [
     "TRY003",
     # we are not doing cryptography here
     "S311",
+    # it's hard to enforce having a full exec path since everyone's machines works differently
+    "S607",
     # Things to ignore because ruff's formatter says so
     # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
     "D206",

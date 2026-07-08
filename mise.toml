@@ -13,8 +13,8 @@ description = "Cut a release: cz bump derives the next SemVer from commits, tags
 run = "uv run cz bump"
 
 [tasks.sync]
-description = "Install dependencies"
-run = "uv sync --all-groups"
+description = "Install all the dependencies"
+run = "uv sync --all-groups --all-extras"
 
 [tasks.tests]
 description = "Run all tests"
@@ -23,3 +23,4 @@ run = "uv run pytest"
 [tools]
 python = "3.13"
 uv = "latest"
+gh = "latest"
