@@ -56,7 +56,7 @@ wandb = [
 ]
 submission = [
     "pygit2>=1.19.3",
-    "pygithub>=2.9.1"
+    "pygithub>=2.9.1",
 ]
 
 [project.scripts]
