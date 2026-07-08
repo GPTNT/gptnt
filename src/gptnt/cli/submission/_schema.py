@@ -12,10 +12,11 @@ from pydantic import (
 from pydantic_ai import RunUsage
 from whenever import Instant
 
+from gptnt.cli.config_discovery import player_identity
 from gptnt.experiments.db.schema import AsJSON
 from gptnt.experiments.models import ExperimentSummary
 from gptnt.experiments.provenance import ProvenanceMixin
-from gptnt.experiments.suite import Suite
+from gptnt.experiments.suite import SuiteIdentity
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.specification import PlayerCapabilities, PlayerIdentity, PlayerRole
 from gptnt.statics.run_metadata import StaticsIdentity
@@ -69,28 +70,6 @@ class SubmissionExperiment(ExperimentSummary):
         )
 
 
-class SuiteIdentity(BaseModel):
-    """The frozen suite the interactive results were measured against."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    suite_name: str
-    suite_revision: int
-    suite_digest: str
-
-    @classmethod
-    def from_suite(cls, suite: Suite) -> Self:
-        """Snapshot a `Suite`'s identity: its name, revision, and digest."""
-        return cls(
-            suite_name=suite.name, suite_revision=suite.revision, suite_digest=suite.suite_digest
-        )
-
-    @property
-    def target(self) -> str:
-        """What was measured, with its pin — the bundle dir's leaf name."""
-        return f"{self.suite_name}@{self.suite_revision}"
-
-
 class SubmissionPlayer(BaseModel):
     """One player in a submission: its role, full capabilities, fingerprint, and attribution.
 
@@ -103,6 +82,15 @@ class SubmissionPlayer(BaseModel):
     role: PlayerRole
     capabilities: PlayerCapabilities
     identity: PlayerIdentity
+
+    @classmethod
+    def for_role(cls, role: PlayerRole, capabilities: PlayerCapabilities) -> Self:
+        """Build a role-tagged entry, resolving the model's leaderboard `identity` from its config.
+
+        A submission must be attributable, so a model with no `identity` block is a hard error.
+        """
+        identity = player_identity(capabilities.player_name)
+        return cls(role=role, capabilities=capabilities, identity=identity)
 
     @computed_field
     @property
@@ -183,23 +171,12 @@ class Submission[IdentityT: SuiteIdentity | StaticsIdentity](BaseModel):
 
     @field_validator("players", mode="after")
     @classmethod
-    def _only_one_defuser_player(cls, players: list[SubmissionPlayer]) -> list[SubmissionPlayer]:
-        """There should only be one defuser player in a submission."""
-        defuser_count = sum(player.role == "defuser" for player in players)
-        if defuser_count != 1:
-            raise ValueError(f"Expected exactly one defuser, got {defuser_count}")
-        return players
-
-    @field_validator("players", mode="after")
-    @classmethod
-    def _ensure_defuser_first(cls, players: list[SubmissionPlayer]) -> list[SubmissionPlayer]:
-        """Ensure the defuser player is first in the list for consistency."""
-        defuser_index = next(
-            (idx for idx, player in enumerate(players) if player.role == "defuser"), None
-        )
-        if defuser_index is None:
-            raise ValueError("Expected exactly one defuser, got 0")
-        players.insert(0, players.pop(defuser_index))
+    def _exactly_one_defuser_first(cls, players: list[SubmissionPlayer]) -> list[SubmissionPlayer]:
+        """A submission has exactly one defuser, and it is moved to the front for consistency."""
+        defuser_indices = [idx for idx, player in enumerate(players) if player.role == "defuser"]
+        if len(defuser_indices) != 1:
+            raise ValueError(f"Expected exactly one defuser, got {len(defuser_indices)}")
+        players.insert(0, players.pop(defuser_indices[0]))
         return players
 
 
