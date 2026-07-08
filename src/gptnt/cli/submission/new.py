@@ -11,13 +11,12 @@ from typing import Annotated
 from cyclopts import Parameter
 from rich.console import Console
 
+from gptnt.cli.submission._bundle import InteractiveBundle, StaticsBundle
 from gptnt.cli.submission._interactive import (
     gather_experiments_for_suite,
     group_experiments_by_model,
     load_suite,
-    write_interactive_bundle,
 )
-from gptnt.cli.submission._statics import build_statics_submission
 from gptnt.common.paths import Paths
 
 paths = Paths()
@@ -70,11 +69,11 @@ def build_submission(
         suite = load_suite(suite_name)
         experiments = gather_experiments_for_suite(experiments_db, suite, model)
         for _model_name, rows in group_experiments_by_model(experiments):
-            write_interactive_bundle(rows, suite, output_dir)
+            _ = InteractiveBundle.from_experiments(rows, suite).save(output_dir)
             built += 1
     for task, run_dir in _statics_runs(statics, statics_output_dir, model or []):
         console.print(f"[bold]statics {task}[/bold]")
-        build_statics_submission(run_dir, task, output_dir)
+        _ = StaticsBundle.from_run_dir(run_dir).save(output_dir)
         built += 1
 
     console.print(f"Built {built} bundle(s) under {output_dir}.", style="bold")

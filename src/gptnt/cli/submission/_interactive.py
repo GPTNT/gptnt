@@ -1,35 +1,22 @@
+"""Gathering interactive experiments for a submission: the suite and its DuckDB rows."""
+
 from __future__ import annotations
 
 from collections import defaultdict
 from typing import TYPE_CHECKING
 
 import hydra
-import pyarrow as pa
-from pyarrow import parquet as pq
 
-from gptnt.cli.submission._bundle import (
-    BundleName,
-    create_submission_player_entry,
-    write_bundle_to_dir,
-)
-from gptnt.cli.submission._schema import (
-    InteractiveSubmission,
-    SubmissionExperiment,
-    Submitter,
-    SuiteIdentity,
-)
+from gptnt.cli.submission._schema import SubmissionExperiment
 from gptnt.common.hydra import load_config
 from gptnt.experiments.db.read import load_experiment_summaries, load_final_states_and_usage
-from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER
 from gptnt.experiments.generation.pipeline import CONFIG_NAME
-from gptnt.experiments.provenance import ProvenanceMixin
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
 
     from gptnt.experiments.suite import Suite
-    from gptnt.players.specification import PlayerCapabilities
 
 
 def load_suite(suite_name: str) -> Suite:
@@ -37,32 +24,6 @@ def load_suite(suite_name: str) -> Suite:
     return hydra.utils.instantiate(
         load_config(config_name=CONFIG_NAME, overrides=[f"suites={suite_name}"]).suite
     )
-
-
-def _get_distinct_experts(rows: list[SubmissionExperiment]) -> list[PlayerCapabilities]:
-    """Every distinct expert (by capability fingerprint) paired with the defuser, name-sorted."""
-    experts: dict[str, PlayerCapabilities] = {}
-    for row in rows:
-        if row.expert_capabilities is not None:
-            experts[row.expert_capabilities.fingerprint] = row.expert_capabilities
-    return sorted(experts.values(), key=lambda caps: caps.player_name)
-
-
-def _write_experiments_to_file(
-    experiments: list[SubmissionExperiment], *, file_path: Path
-) -> None:
-    """Write the rows to `experiments.parquet` using the model's `db`-context serialization."""
-    rows = [
-        experiment.model_dump(context={"mode": EXPORT_CONTEXT_MARKER})
-        for experiment in experiments
-    ]
-    _ = pq.write_table(pa.Table.from_pylist(rows), file_path)
-
-
-def read_experiments_from_file(file_path: Path) -> list[SubmissionExperiment]:
-    """Read `experiments.parquet` back into typed rows (the JSON columns parse back on input)."""
-    table = pq.read_table(file_path)
-    return [SubmissionExperiment.model_validate(row) for row in table.to_pylist()]
 
 
 def gather_experiments_for_suite(
@@ -105,45 +66,4 @@ def group_experiments_by_model(
     return sorted(
         ((rows[0].defuser_capabilities.player_name, rows) for rows in groups.values()),
         key=lambda group: group[0],
-    )
-
-
-def write_interactive_bundle(
-    experiments: list[SubmissionExperiment], suite: Suite, output_dir: Path
-) -> None:
-    """Write one per-model bundle (experiments.parquet + manifest)."""
-    canonical = experiments[0]
-    defuser_capabilities = canonical.defuser_capabilities
-
-    name = BundleName(
-        player_name=defuser_capabilities.player_name,
-        target=f"{suite.name}@{suite.revision}",
-        fingerprint=defuser_capabilities.fingerprint,
-        run_date=min(row.experiment_descriptor.start_time for row in experiments),
-    )
-
-    manifest = InteractiveSubmission(
-        submission_id=name.submission_id,
-        submitter=Submitter(),
-        players=[
-            create_submission_player_entry("defuser", canonical.defuser_capabilities),
-            *(
-                create_submission_player_entry("expert", caps)
-                for caps in _get_distinct_experts(experiments)
-            ),
-        ],
-        suite=SuiteIdentity.from_suite(suite),
-        provenance=ProvenanceMixin(
-            gptnt_version=canonical.gptnt_version, git_sha=canonical.git_sha
-        ),
-        run_date=name.run_date,
-    )
-
-    write_bundle_to_dir(
-        output_path=output_dir,
-        bundle_name=name,
-        submission_manifest=manifest,
-        write_payload_fn=lambda bundle_dir: _write_experiments_to_file(
-            experiments, file_path=bundle_dir / "experiments.parquet"
-        ),
     )
