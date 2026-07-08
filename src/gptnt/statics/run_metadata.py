@@ -2,7 +2,7 @@ from typing import Self
 
 import structlog
 from huggingface_hub import HfApi
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from whenever import Instant
 
 from gptnt.experiments.provenance import ProvenanceMixin
@@ -63,13 +63,19 @@ class StaticsIdentity(BaseModel, frozen=True):
         )
 
     @property
-    def revision_label(self) -> str:
-        """A short label for the dataset revision.
+    def is_pinned(self) -> bool:
+        """Whether the dataset is pinned to a concrete commit (a resolved sha exists)."""
+        return self.resolved_revision is not None
 
-        If it's not available, return a mark for an unpinned dataset.
+    @property
+    def revision_label(self) -> str:
+        """A short label for the dataset revision — always the resolved commit sha.
+
+        A HuggingFace dataset is only reproducibly pinned by its commit sha; a requested tag or
+        branch can move, so it never forms the label. With no resolved sha (offline/private repo),
+        return the unpinned mark.
         """
-        reference = self.resolved_revision or self.requested_revision
-        return reference[:8] if reference else _UNPINNED
+        return self.resolved_revision[:8] if self.resolved_revision else _UNPINNED
 
     @property
     def target(self) -> str:
@@ -81,7 +87,7 @@ class StaticsRunMetadata(BaseModel, frozen=True):
     """Everything a submission needs beyond the predictions."""
 
     model_name: str
-    run_date: Instant = Field(default_factory=Instant.now)
+    run_date: Instant
     statics: StaticsIdentity
     capabilities: PlayerCapabilities
-    provenance: ProvenanceMixin = Field(default_factory=ProvenanceMixin)
+    provenance: ProvenanceMixin
