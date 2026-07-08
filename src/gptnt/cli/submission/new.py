@@ -70,11 +70,11 @@ def build_submission(
         suite = load_suite(suite_name)
         experiments = gather_experiments_for_suite(experiments_db, suite, model)
         for _model_name, rows in group_experiments_by_model(experiments):
-            console.print(f"  wrote {write_interactive_bundle(rows, suite, output_dir)}")
+            write_interactive_bundle(rows, suite, output_dir)
             built += 1
     for task, run_dir in _statics_runs(statics, statics_output_dir, model or []):
         console.print(f"[bold]statics {task}[/bold]")
-        console.print(f"  wrote {build_statics_submission(run_dir, task, output_dir)}")
+        build_statics_submission(run_dir, task, output_dir)
         built += 1
 
     console.print(f"Built {built} bundle(s) under {output_dir}.", style="bold")

@@ -12,7 +12,7 @@ from gptnt.statics.run_metadata import StaticsRunMetadata
 def build_statics_submission(
     statics_output_dir: Path, task: str, submission_output_dir: Path
 ) -> None:
-    """Build one statics submission bundle (submission.yaml + metrics.json) and return its dir."""
+    """Build one statics submission bundle (submission.yaml + metrics.json)."""
     meta_path = statics_output_dir / "run_meta.json"
     metrics_path = statics_output_dir / "metrics.json"
     if not meta_path.exists() or not metrics_path.exists():
