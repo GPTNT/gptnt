@@ -12,6 +12,7 @@ against.
 mission surfaces here as a duplicate — validate is the curation signal, not a bug in the build.
 """
 
+import sys
 from pathlib import Path
 from typing import Annotated
 
@@ -62,6 +63,8 @@ def validate_submission(
     console.print(
         f"Validated {total} bundle(s): {total - failed} ok, {failed} failed.", style="bold"
     )
+    if failed:
+        sys.exit(1)
 
 
 def _run_bundle_checks(bundle_dir: Path, suite_cache: SuiteCache) -> dict[str, list[CheckResult]]:
@@ -102,6 +105,6 @@ def _load_suite_cached(suite_name: str, cache: SuiteCache) -> tuple[Suite | None
     if suite_name not in cache:
         try:
             cache[suite_name] = (compose_suite(suite_name), "")
-        except Exception as error:  # noqa: BLE001 — report and don't crash
+        except Exception as error:  # noqa: BLE001 — report don't crash
             cache[suite_name] = (None, str(error))
     return cache[suite_name]
