@@ -15,8 +15,9 @@ import yaml
 from pydantic_ai import RunUsage
 
 from gptnt.cli.__main__ import build_app
-from gptnt.cli.submission._bundle import read_experiments_payload
+from gptnt.cli.submission._schema import SubmissionExperiment
 from gptnt.experiments.db.ingest import ingest_player_records
+from gptnt.experiments.db.typed_parquet import read_typed_parquet
 from gptnt.experiments.descriptor import ExperimentDescriptor
 from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep
 from gptnt.experiments.recorder.parquet import (
@@ -24,12 +25,12 @@ from gptnt.experiments.recorder.parquet import (
     footer_from_player_record,
     write_player_record_parquet,
 )
-from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import DoNothingAction
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
-from tests._cli_runner import invoke_cli
-from tests._factories.experiments import make_experiment_spec
+from tests._cli_runner import CliResult, invoke_cli
+from tests._factories.experiments import make_experiment_spec, make_solved_bomb
+from tests._factories.statics import write_statics_run
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -39,29 +40,6 @@ if TYPE_CHECKING:
 SUITE = "single-parametric-sync"
 DEFUSER_STEP_INPUT_TOKENS = 100
 EXPERT_STEP_INPUT_TOKENS = 7
-
-
-def _solved_bomb() -> BombState:
-    """A solved bomb (empty modules; the is-solved validator marks an empty bomb solved)."""
-    return BombState.model_validate(
-        {
-            "seed": 1,
-            "maxStrikes": 3,
-            "strikes": None,
-            "isDetonated": False,
-            "isSolved": True,
-            "isLightOn": True,
-            "bombSide": "front",
-            "timerModule": {
-                "name": "Timer",
-                "onFront": True,
-                "index": 0,
-                "secondsRemaining": 100.0,
-            },
-            "widgets": [],
-            "modules": [],
-        }
-    )
 
 
 def _descriptor(*, seed: int, model: str, expert: str | None = None) -> ExperimentDescriptor:
@@ -112,7 +90,7 @@ def _steps(descriptor: ExperimentDescriptor, player: PlayerContent) -> list[Expe
         player_name=player.name,
         output=DoNothingAction(),
         raw_output="DoNothing",
-        bomb_state=_solved_bomb() if is_defuser else None,
+        bomb_state=make_solved_bomb() if is_defuser else None,
         observation=None,
         usage=RunUsage(
             requests=1,
@@ -188,7 +166,7 @@ def test_new_writes_a_bundle_with_blank_human_fields(tmp_path: Path) -> None:
     _run_new(db_path, tmp_path / "submissions")
     bundle_dir = next((tmp_path / "submissions").rglob("submission.yaml")).parent
 
-    rows = read_experiments_payload(bundle_dir / "experiments.parquet")
+    rows = read_typed_parquet(SubmissionExperiment, bundle_dir / "experiments.parquet")
     assert len(rows) == 3
     assert all(row.final_bomb_state.is_solved for row in rows)
     assert all(row.defuser_usage.input_tokens == DEFUSER_STEP_INPUT_TOKENS * 2 for row in rows)
@@ -218,7 +196,7 @@ def test_two_player_usage_is_split_per_role(tmp_path: Path) -> None:
     _run_new(db_path, tmp_path / "submissions")
     bundle_dir = next((tmp_path / "submissions").rglob("submission.yaml")).parent
 
-    row = read_experiments_payload(bundle_dir / "experiments.parquet")[0]
+    row = read_typed_parquet(SubmissionExperiment, bundle_dir / "experiments.parquet")[0]
     # each player's steps are summed separately, not lumped into one session total
     assert row.defuser_usage.input_tokens == DEFUSER_STEP_INPUT_TOKENS * 2
     assert row.expert_usage is not None
@@ -267,38 +245,9 @@ def test_model_filter_selects_one_model(tmp_path: Path) -> None:
     assert not any(name.startswith("test-defuser") for name in models)
 
 
-def _write_statics_outputs(root: Path) -> None:
-    """A statics outputs dir with aggregated metrics and a stamped run_meta.json."""
-    out = root / "expert-ocr_predictions" / "gpt-5-2"
-    out.mkdir(parents=True)
-    # player_name matches configs/player/gpt-5-2.yaml so its PlayerIdentity resolves.
-    capabilities = PlayerCapabilities(player_name="gpt-5-2", player_type="ai")
-    _ = (out / "run_meta.json").write_text(
-        json.dumps(
-            {
-                "model_name": "gpt-5-2",
-                "run_date": "2026-07-02T10:00:00Z",
-                "statics": {
-                    "task_name": "expert-ocr",
-                    "hf_repo_id": "GPTNT/expert-element-ocr",
-                    "dataset_split": None,
-                    "requested_revision": "v1",
-                    "resolved_revision": "a1b2c3d4e5f6",
-                },
-                "capabilities": capabilities.model_dump(mode="json"),
-                "provenance": {"gptnt_version": "0.15.0", "git_sha": "a1b2c3d4"},
-            }
-        )
-    )
-    _ = (out / "metrics.json").write_text(json.dumps({"module": {"total": 0.87}}))
-
-
-def test_statics_bundle_from_filesystem(tmp_path: Path) -> None:
-    root = tmp_path / "statics"
-    _write_statics_outputs(root)
-    into = tmp_path / "submissions"
-
-    result = invoke_cli(
+def _run_statics_new(root: Path, into: Path, *extra: str) -> CliResult:
+    """Invoke `submission new` for a statics-only build against `root`."""
+    return invoke_cli(
         build_app(),
         [
             "submission",
@@ -310,8 +259,17 @@ def test_statics_bundle_from_filesystem(tmp_path: Path) -> None:
             "expert-ocr",
             "--output-dir",
             str(into),
+            *extra,
         ],
     )
+
+
+def test_statics_bundle_from_filesystem(tmp_path: Path) -> None:
+    root = tmp_path / "statics"
+    _ = write_statics_run(root)
+    into = tmp_path / "submissions"
+
+    result = _run_statics_new(root, into)
     assert result.exit_code == 0, result.output
 
     bundle_dir = next(into.rglob("submission.yaml")).parent
@@ -326,3 +284,36 @@ def test_statics_bundle_from_filesystem(tmp_path: Path) -> None:
     assert manifest["measured"]["hf_repo_id"] == "GPTNT/expert-element-ocr"
     assert "metrics" not in manifest
     assert manifest["submitter"] == {"name": "", "contact": "", "affiliation": None}
+
+
+def test_statics_model_filter_matches_player_name_not_dir(tmp_path: Path) -> None:
+    """`--model` filters on the run's `player_name`, even when the run dir is the model string."""
+    root = tmp_path / "statics"
+    # The run dir is the resolved model string; the leaderboard player_name differs.
+    _ = write_statics_run(root, model_dir="gpt-5-mini-2026", player_name="gpt-5-2")
+    into = tmp_path / "submissions"
+
+    result = _run_statics_new(root, into, "--model", "gpt-5-2")
+    assert result.exit_code == 0, result.output
+
+    bundle_dir = next(into.rglob("submission.yaml")).parent
+    assert _read_manifest(bundle_dir)["players"][0]["capabilities"]["player_name"] == "gpt-5-2"
+
+
+def test_statics_unparsable_run_meta_is_skipped_not_fatal(tmp_path: Path) -> None:
+    """A broken run_meta.json is skipped with a warning; a valid sibling run still builds."""
+    root = tmp_path / "statics"
+    _ = write_statics_run(root, model_dir="good", player_name="gpt-5-2")
+    broken = root / "expert-ocr_predictions" / "broken"
+    broken.mkdir(parents=True)
+    _ = (broken / "run_meta.json").write_text("{ not valid json")
+    _ = (broken / "metrics.json").write_text(json.dumps({"module": {"total": 0.1}}))
+    into = tmp_path / "submissions"
+
+    result = _run_statics_new(root, into)
+    assert result.exit_code == 0, result.output
+    # Only the good run produced a bundle; the broken one was skipped.
+    bundles = list(into.rglob("submission.yaml"))
+    assert len(bundles) == 1
+    manifest = _read_manifest(bundles[0].parent)
+    assert manifest["players"][0]["capabilities"]["player_name"] == "gpt-5-2"

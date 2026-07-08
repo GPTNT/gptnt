@@ -8,7 +8,6 @@ go through the CLI; failure paths call the command directly and assert the raise
 
 from __future__ import annotations
 
-import json
 import shutil
 from typing import TYPE_CHECKING, Any
 
@@ -17,24 +16,22 @@ import yaml
 from pydantic_ai import RunUsage
 
 from gptnt.cli.__main__ import build_app
-from gptnt.cli.submission._bundle import (
-    InteractiveBundle,
-    StaticsBundle,
-    load_submission_bundle,
-    read_experiments_payload,
-    write_experiments_payload,
-)
-from gptnt.cli.submission._interactive import load_suite
+from gptnt.cli.submission._bundle import InteractiveBundle, StaticsBundle, load_submission_bundle
 from gptnt.cli.submission._schema import SubmissionExperiment
 from gptnt.cli.submission.validate import validate_submission
 from gptnt.common.paths import Paths
+from gptnt.experiments.db.typed_parquet import read_typed_parquet, write_typed_parquet
 from gptnt.experiments.generation.missions import load_missions
+from gptnt.experiments.generation.pipeline import compose_suite
 from gptnt.experiments.models import ExperimentSummary
-from gptnt.ktane.state.bomb import BombState
-from gptnt.players.specification import PlayerCapabilities
 
 from tests._cli_runner import invoke_cli
-from tests._factories.experiments import make_experiment_descriptor, make_experiment_spec
+from tests._factories.experiments import (
+    make_experiment_descriptor,
+    make_experiment_spec,
+    make_solved_bomb,
+)
+from tests._factories.statics import write_statics_run
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -43,29 +40,6 @@ if TYPE_CHECKING:
     from gptnt.ktane.mission_spec import KtaneMissionSpec
 
 SUITE = "single-parametric-sync"
-
-
-def _solved_bomb() -> BombState:
-    """A solved bomb (empty modules; the is-solved validator marks an empty bomb solved)."""
-    return BombState.model_validate(
-        {
-            "seed": 1,
-            "maxStrikes": 3,
-            "strikes": None,
-            "isDetonated": False,
-            "isSolved": True,
-            "isLightOn": True,
-            "bombSide": "front",
-            "timerModule": {
-                "name": "Timer",
-                "onFront": True,
-                "index": 0,
-                "secondsRemaining": 100.0,
-            },
-            "widgets": [],
-            "modules": [],
-        }
-    )
 
 
 def _make_experiment(mission: KtaneMissionSpec, suite: Suite) -> SubmissionExperiment:
@@ -80,13 +54,13 @@ def _make_experiment(mission: KtaneMissionSpec, suite: Suite) -> SubmissionExper
     )
     summary = ExperimentSummary.from_descriptor_and_bomb_state(
         descriptor=make_experiment_descriptor(spec),
-        final_bomb_state=_solved_bomb(),
+        final_bomb_state=make_solved_bomb(),
         is_hard_crash=False,
         gptnt_version="0.15.0",
         git_sha="a1b2c3d4",
     )
     return SubmissionExperiment.from_summary(
-        summary=summary, final_bomb_state=_solved_bomb(), usage_by_role={"defuser": RunUsage()}
+        summary=summary, final_bomb_state=make_solved_bomb(), usage_by_role={"defuser": RunUsage()}
     )
 
 
@@ -106,7 +80,7 @@ def _fill_submitter(bundle_dir: Path) -> None:
 
 @pytest.fixture(scope="module")
 def suite() -> Suite:
-    return load_suite(SUITE)
+    return compose_suite(SUITE)
 
 
 @pytest.fixture(scope="module")
@@ -142,7 +116,7 @@ def test_bundle_round_trips_through_save_and_load(bundle_copy: Path) -> None:
     assert isinstance(loaded, InteractiveBundle)
     assert loaded.manifest.target == bundle_copy.name
     assert len(loaded.experiments) == len(
-        read_experiments_payload(bundle_copy / "experiments.parquet")
+        read_typed_parquet(SubmissionExperiment, bundle_copy / "experiments.parquet")
     )
     # Saving what was loaded reproduces the same directory (submitter edits survive the merge).
     assert loaded.save(bundle_copy.parent.parent) == bundle_copy
@@ -157,16 +131,16 @@ def test_valid_bundle_passes(bundle_copy: Path) -> None:
 
 
 def test_missing_mission_fails(bundle_copy: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    experiments = read_experiments_payload(bundle_copy / "experiments.parquet")
-    write_experiments_payload(experiments[1:], file_path=bundle_copy / "experiments.parquet")
+    experiments = read_typed_parquet(SubmissionExperiment, bundle_copy / "experiments.parquet")
+    write_typed_parquet(experiments[1:], file_path=bundle_copy / "experiments.parquet")
 
     _assert_validate_fails(bundle_copy)
     assert "✗ missing" in _unwrap_output(capsys)
 
 
 def test_duplicate_mission_fails(bundle_copy: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    experiments = read_experiments_payload(bundle_copy / "experiments.parquet")
-    write_experiments_payload(
+    experiments = read_typed_parquet(SubmissionExperiment, bundle_copy / "experiments.parquet")
+    write_typed_parquet(
         [*experiments, experiments[0]], file_path=bundle_copy / "experiments.parquet"
     )
 
@@ -175,22 +149,18 @@ def test_duplicate_mission_fails(bundle_copy: Path, capsys: pytest.CaptureFixtur
 
 
 def test_unknown_mission_fails(bundle_copy: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    experiments = read_experiments_payload(bundle_copy / "experiments.parquet")
+    experiments = read_typed_parquet(SubmissionExperiment, bundle_copy / "experiments.parquet")
     foreign = experiments[0].model_copy(update={"seed": 999_999_999})
-    write_experiments_payload(
-        [*experiments[1:], foreign], file_path=bundle_copy / "experiments.parquet"
-    )
+    write_typed_parquet([*experiments[1:], foreign], file_path=bundle_copy / "experiments.parquet")
 
     _assert_validate_fails(bundle_copy)
     assert "✗ unknown" in _unwrap_output(capsys)
 
 
 def test_invalid_run_fails(bundle_copy: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    experiments = read_experiments_payload(bundle_copy / "experiments.parquet")
+    experiments = read_typed_parquet(SubmissionExperiment, bundle_copy / "experiments.parquet")
     crashed = experiments[0].model_copy(update={"is_hard_crash": True})
-    write_experiments_payload(
-        [crashed, *experiments[1:]], file_path=bundle_copy / "experiments.parquet"
-    )
+    write_typed_parquet([crashed, *experiments[1:]], file_path=bundle_copy / "experiments.parquet")
 
     _assert_validate_fails(bundle_copy)
     assert "✗ outcomes" in _unwrap_output(capsys)
@@ -254,42 +224,13 @@ def test_sweep_reports_every_bundle(bundle_copy: Path, capsys: pytest.CaptureFix
     assert "1 ok, 1 failed" in _unwrap_output(capsys)
 
 
-def _write_statics_outputs(
-    root: Path, *, requested_revision: str | None, resolved_revision: str | None
-) -> Path:
-    """A statics outputs dir with aggregated metrics and a stamped run_meta.json."""
-    out = root / "expert-ocr_predictions" / "gpt-5-2"
-    out.mkdir(parents=True)
-    # player_name matches configs/player/gpt-5-2.yaml so its PlayerIdentity resolves.
-    capabilities = PlayerCapabilities(player_name="gpt-5-2", player_type="ai")
-    _ = (out / "run_meta.json").write_text(
-        json.dumps(
-            {
-                "model_name": "gpt-5-2",
-                "run_date": "2026-07-02T10:00:00Z",
-                "statics": {
-                    "task_name": "expert-ocr",
-                    "hf_repo_id": "GPTNT/expert-element-ocr",
-                    "dataset_split": None,
-                    "requested_revision": requested_revision,
-                    "resolved_revision": resolved_revision,
-                },
-                "capabilities": capabilities.model_dump(mode="json"),
-                "provenance": {"gptnt_version": "0.15.0", "git_sha": "a1b2c3d4"},
-            }
-        )
-    )
-    _ = (out / "metrics.json").write_text(json.dumps({"module": {"total": 0.87}}))
-    return out
-
-
 def _build_statics_bundle(
     tmp_path: Path,
     *,
     requested_revision: str | None = "v1",
     resolved_revision: str | None = "a1b2c3d4e5f6",
 ) -> Path:
-    run_dir = _write_statics_outputs(
+    run_dir = write_statics_run(
         tmp_path / "statics",
         requested_revision=requested_revision,
         resolved_revision=resolved_revision,
