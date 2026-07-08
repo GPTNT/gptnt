@@ -1,23 +1,28 @@
 """`gptnt submission new` — build every leaderboard bundle from the DuckDB.
 
 Everything derivable is stamped: identity + capabilities from the records, attribution from each
-model's `PlayerIdentity`. Only the `submitter` block is written blank for the submitter to fill in,
-and CI in the gptnt-submissions repo is the gate that checks it.
+model's `PlayerIdentity`. Only the `submitter` block is written blank for the submitter to fill in.
 """
 
+import itertools
 from pathlib import Path
 from typing import Annotated
 
+import structlog
 from cyclopts import Parameter
+from pydantic import ValidationError
 from rich.console import Console
 
 from gptnt.cli.submission._bundle import InteractiveBundle, StaticsBundle
 from gptnt.cli.submission._interactive import (
     gather_experiments_for_suite,
     group_experiments_by_model,
-    load_suite,
 )
 from gptnt.common.paths import Paths
+from gptnt.experiments.generation.pipeline import compose_suite
+from gptnt.statics.run_metadata import StaticsRunMetadata
+
+logger = structlog.get_logger()
 
 paths = Paths()
 console = Console()
@@ -27,16 +32,34 @@ LEADERBOARD_SUITES: list[str] = ["multi-self-async", "multi-self-sync", "single-
 LEADERBOARD_STATICS: list[str] = []
 
 
+def _load_run_metadata_for_static(run_dir: Path) -> StaticsRunMetadata | None:
+    """Return parsed metadata for run_dir, or None (with a warning) on any failure."""
+    try:
+        return StaticsRunMetadata.model_validate_json((run_dir / "run_meta.json").read_text())
+    except (FileNotFoundError, ValidationError) as exc:
+        logger.warning(f"Skipping {run_dir}", reason=str(exc), exc_info=exc)
+        return None
+
+
 def _statics_runs(
-    statics: list[str], statics_output_dir: Path, model: list[str]
-) -> list[tuple[str, Path]]:
-    """Every `(task, <task>_predictions/<model>/)` with run metadata passing the model filter."""
-    return [
-        (task, run_dir)
-        for task in statics
-        for run_dir in sorted((statics_output_dir / f"{task}_predictions").glob("*"))
-        if (run_dir / "run_meta.json").exists() and (not model or run_dir.name in model)
+    *, statics: list[str], statics_output_dir: Path, model_filter: set[str]
+) -> list[tuple[Path, StaticsRunMetadata]]:
+    """Every `(run_dir, metadata)` with a parseable `run_meta.json` passing the model filter.
+
+    Matches on `capabilities.player_name`. Runs whose `run_meta.json` is missing or unparsable are
+    skipped.
+    """
+    all_run_dirs = itertools.chain.from_iterable(
+        statics_output_dir.glob(f"{task}_predictions/*") for task in statics
+    )
+
+    runs: list[tuple[Path, StaticsRunMetadata]] = [
+        (run_dir, meta)
+        for run_dir in all_run_dirs
+        if (meta := _load_run_metadata_for_static(run_dir)) is not None
+        and (not model_filter or meta.capabilities.player_name in model_filter)
     ]
+    return runs
 
 
 def build_submission(
@@ -62,18 +85,22 @@ def build_submission(
         Parameter(name="--model", help="Only build these models (default: every model present)."),
     ] = None,
 ) -> None:
-    """Build every leaderboard bundle from the DuckDB; humans fill the blank fields afterwards."""
+    """Build every submission bundle from the DuckDB."""
     built = 0
+
     for suite_name in suites:
         console.print(f"[bold]suite {suite_name}[/bold]")
-        suite = load_suite(suite_name)
+        suite = compose_suite(suite_name)
         experiments = gather_experiments_for_suite(experiments_db, suite, model)
-        for _model_name, model_experiments in group_experiments_by_model(experiments):
+        for _, model_experiments in group_experiments_by_model(experiments):
             _ = InteractiveBundle.from_experiments(model_experiments, suite).save(output_dir)
             built += 1
-    for task, run_dir in _statics_runs(statics, statics_output_dir, model or []):
-        console.print(f"[bold]statics {task}[/bold]")
-        _ = StaticsBundle.from_run_dir(run_dir).save(output_dir)
+
+    for run_dir, metadata in _statics_runs(
+        statics=statics, statics_output_dir=statics_output_dir, model_filter=set(model or [])
+    ):
+        console.print(f"[bold]statics {metadata.statics.task_name}[/bold]")
+        _ = StaticsBundle.from_run_dir(run_dir, metadata=metadata).save(output_dir)
         built += 1
 
     console.print(f"Built {built} bundle(s) under {output_dir}.", style="bold")
