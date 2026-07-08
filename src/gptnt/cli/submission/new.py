@@ -68,8 +68,8 @@ def build_submission(
         console.print(f"[bold]suite {suite_name}[/bold]")
         suite = load_suite(suite_name)
         experiments = gather_experiments_for_suite(experiments_db, suite, model)
-        for _model_name, rows in group_experiments_by_model(experiments):
-            _ = InteractiveBundle.from_experiments(rows, suite).save(output_dir)
+        for _model_name, model_experiments in group_experiments_by_model(experiments):
+            _ = InteractiveBundle.from_experiments(model_experiments, suite).save(output_dir)
             built += 1
     for task, run_dir in _statics_runs(statics, statics_output_dir, model or []):
         console.print(f"[bold]statics {task}[/bold]")

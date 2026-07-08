@@ -236,9 +236,10 @@ per-file-ignores = [
     # registrations, so it trips the "too many expressions" check (same shape as interactive's).
     "src/gptnt/cli/__main__.py:WPS213",
     "src/gptnt/ktane/state/*:WPS202,WPS226",
-    # doctor/checks.py is a registry of small check functions (many members) with one fix-hint
-    # string each (many literals)
+    # doctor/checks.py and submission/_checks.py are registries of small check functions (many
+    # members) with one fix-hint string each (many literals)
     "src/gptnt/cli/doctor/checks.py:WPS202,WPS226",
+    "src/gptnt/cli/submission/_checks.py:WPS202,WPS226",
     "src/gptnt/processors/*:WPS203",
     "src/gptnt/experiments/db/schema.py:WPS110,WPS111,WPS430",
     "src/gptnt/players/tokens.py:WPS402",

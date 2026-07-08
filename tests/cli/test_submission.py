@@ -12,11 +12,10 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 import yaml
-from pyarrow import parquet as pq
 from pydantic_ai import RunUsage
 
 from gptnt.cli.__main__ import build_app
-from gptnt.cli.submission._schema import SubmissionExperiment
+from gptnt.cli.submission._bundle import read_experiments_payload
 from gptnt.experiments.db.ingest import ingest_player_records
 from gptnt.experiments.descriptor import ExperimentDescriptor
 from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep
@@ -183,19 +182,13 @@ def _read_manifest(bundle_dir: Path) -> dict[str, Any]:
     return yaml.safe_load((bundle_dir / "submission.yaml").read_text())
 
 
-def _rows(bundle_dir: Path) -> list[SubmissionExperiment]:
-    """Read `experiments.parquet` back into typed rows (JSON columns auto-parse)."""
-    table = pq.read_table(bundle_dir / "experiments.parquet")
-    return [SubmissionExperiment.model_validate(row) for row in table.to_pylist()]
-
-
 def test_new_writes_a_bundle_with_blank_human_fields(tmp_path: Path) -> None:
     db_path = _build_db(tmp_path, [(1, "test-defuser"), (2, "test-defuser"), (3, "test-defuser")])
 
     _run_new(db_path, tmp_path / "submissions")
     bundle_dir = next((tmp_path / "submissions").rglob("submission.yaml")).parent
 
-    rows = _rows(bundle_dir)
+    rows = read_experiments_payload(bundle_dir / "experiments.parquet")
     assert len(rows) == 3
     assert all(row.final_bomb_state.is_solved for row in rows)
     assert all(row.defuser_usage.input_tokens == DEFUSER_STEP_INPUT_TOKENS * 2 for row in rows)
@@ -209,7 +202,7 @@ def test_new_writes_a_bundle_with_blank_human_fields(tmp_path: Path) -> None:
     assert defuser["capabilities"]["player_name"] == "test-defuser"
     assert defuser["fingerprint"]  # stamped at the submission boundary
     assert defuser["identity"]["organisation"] == "GPTNT"  # configs/player/test-defuser.yaml
-    assert manifest["suite"]["suite_name"] == SUITE
+    assert manifest["measured"]["suite_name"] == SUITE
     assert manifest["submitter"] == {"name": "", "contact": "", "affiliation": None}
 
 
@@ -225,7 +218,7 @@ def test_two_player_usage_is_split_per_role(tmp_path: Path) -> None:
     _run_new(db_path, tmp_path / "submissions")
     bundle_dir = next((tmp_path / "submissions").rglob("submission.yaml")).parent
 
-    row = _rows(bundle_dir)[0]
+    row = read_experiments_payload(bundle_dir / "experiments.parquet")[0]
     # each player's steps are summed separately, not lumped into one session total
     assert row.defuser_usage.input_tokens == DEFUSER_STEP_INPUT_TOKENS * 2
     assert row.expert_usage is not None
@@ -283,10 +276,10 @@ def _write_statics_outputs(root: Path) -> None:
     _ = (out / "run_meta.json").write_text(
         json.dumps(
             {
-                "task_name": "expert-ocr",
                 "model_name": "gpt-5-2",
                 "run_date": "2026-07-02T10:00:00Z",
-                "dataset": {
+                "statics": {
+                    "task_name": "expert-ocr",
                     "hf_repo_id": "GPTNT/expert-element-ocr",
                     "dataset_split": None,
                     "requested_revision": "v1",
@@ -329,6 +322,7 @@ def test_statics_bundle_from_filesystem(tmp_path: Path) -> None:
     defuser = manifest["players"][0]
     assert defuser["role"] == "defuser"
     assert defuser["capabilities"]["player_name"] == "gpt-5-2"
-    assert manifest["dataset"]["hf_repo_id"] == "GPTNT/expert-element-ocr"
+    assert manifest["measured"]["task_name"] == "expert-ocr"
+    assert manifest["measured"]["hf_repo_id"] == "GPTNT/expert-element-ocr"
     assert "metrics" not in manifest
     assert manifest["submitter"] == {"name": "", "contact": "", "affiliation": None}
