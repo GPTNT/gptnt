@@ -77,6 +77,11 @@ class SuiteIdentity(BaseModel):
             suite_name=suite.name, suite_revision=suite.revision, suite_digest=suite.suite_digest
         )
 
+    @property
+    def target(self) -> str:
+        """What was measured, with its pin — the bundle dir's leaf name."""
+        return f"{self.suite_name}@{self.suite_revision}"
+
 
 class SubmissionPlayer(BaseModel):
     """One player in a submission: its role, full capabilities, fingerprint, and attribution.
