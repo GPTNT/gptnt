@@ -54,16 +54,19 @@ def gather_experiments_for_suite(
 def group_experiments_by_model(
     experiments: list[SubmissionExperiment],
 ) -> list[tuple[str, list[SubmissionExperiment]]]:
-    """Group experiments into one `(model_name, rows)` bundle group per model, name-sorted.
+    """Group experiments into one `(model_name, experiments)` bundle group per model, name-sorted.
 
     Grouped by defuser capability fingerprint (not name), so the same model run with different
     capabilities lands in different bundles.
     """
     groups: dict[str, list[SubmissionExperiment]] = defaultdict(list)
-    for row in experiments:
-        groups[row.defuser_capability_fingerprint].append(row)
+    for experiment in experiments:
+        groups[experiment.defuser_capability_fingerprint].append(experiment)
 
     return sorted(
-        ((rows[0].defuser_capabilities.player_name, rows) for rows in groups.values()),
+        (
+            (group_experiments[0].defuser_capabilities.player_name, group_experiments)
+            for group_experiments in groups.values()
+        ),
         key=lambda group: group[0],
     )

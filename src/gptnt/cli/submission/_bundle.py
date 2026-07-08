@@ -117,7 +117,7 @@ class SubmissionBundle[ManifestT: InteractiveSubmission | StaticsSubmission]:
 
 @dataclass(kw_only=True, frozen=True)
 class InteractiveBundle(SubmissionBundle[InteractiveSubmission]):
-    """An interactive submission: the manifest plus its `experiments.parquet` rows."""
+    """An interactive submission: the manifest plus its `experiments.parquet` payload."""
 
     experiments: list[SubmissionExperiment]
 
@@ -125,14 +125,16 @@ class InteractiveBundle(SubmissionBundle[InteractiveSubmission]):
 
     @classmethod
     def from_experiments(cls, experiments: list[SubmissionExperiment], suite: Suite) -> Self:
-        """Bundle one model's rows for one frozen suite (`submitter` stays blank for a human)."""
+        """Bundle one model's experiments for one frozen suite (`submitter` left for a human)."""
         canonical = experiments[0]
         measured = SuiteIdentity.from_suite(suite)
         name = BundleName(
             player_name=canonical.defuser_capabilities.player_name,
             target=measured.target,
             fingerprint=canonical.defuser_capabilities.fingerprint,
-            run_date=min(row.experiment_descriptor.start_time for row in experiments),
+            run_date=min(
+                experiment.experiment_descriptor.start_time for experiment in experiments
+            ),
         )
         manifest = InteractiveSubmission(
             submission_id=name.submission_id,
@@ -142,7 +144,7 @@ class InteractiveBundle(SubmissionBundle[InteractiveSubmission]):
                 create_submission_player_entry("defuser", canonical.defuser_capabilities),
                 *(
                     create_submission_player_entry("expert", capabilities)
-                    for capabilities in _get_distinct_experts(experiments)
+                    for capabilities in _collect_distinct_experts(experiments)
                 ),
             ],
             provenance=ProvenanceMixin(
@@ -224,18 +226,18 @@ def load_submission_manifest(bundle_dir: Path) -> InteractiveSubmission | Static
 
 
 def write_experiments_payload(experiments: list[SubmissionExperiment], *, file_path: Path) -> None:
-    """Write the rows to `experiments.parquet` using the model's `db`-context serialization."""
-    rows = [
+    """Write experiments to `experiments.parquet` using the model's `db`-context serialization."""
+    parquet_rows = [
         experiment.model_dump(context={"mode": EXPORT_CONTEXT_MARKER})
         for experiment in experiments
     ]
-    _ = pq.write_table(pa.Table.from_pylist(rows), file_path)
+    _ = pq.write_table(pa.Table.from_pylist(parquet_rows), file_path)
 
 
 def read_experiments_payload(file_path: Path) -> list[SubmissionExperiment]:
-    """Read `experiments.parquet` back into typed rows (the JSON columns parse back on input)."""
+    """Read `experiments.parquet` back into typed experiments (JSON columns parse on input)."""
     table = pq.read_table(file_path)
-    return [SubmissionExperiment.model_validate(row) for row in table.to_pylist()]
+    return [SubmissionExperiment.model_validate(parquet_row) for parquet_row in table.to_pylist()]
 
 
 def create_submission_player_entry(
@@ -255,12 +257,14 @@ def create_submission_player_entry(
     return SubmissionPlayer(role=role, capabilities=capabilities, identity=identity)
 
 
-def _get_distinct_experts(rows: list[SubmissionExperiment]) -> list[PlayerCapabilities]:
+def _collect_distinct_experts(
+    experiments: list[SubmissionExperiment],
+) -> list[PlayerCapabilities]:
     """Every distinct expert (by capability fingerprint) paired with the defuser, name-sorted."""
     experts: dict[str, PlayerCapabilities] = {}
-    for row in rows:
-        if row.expert_capabilities is not None:
-            experts[row.expert_capabilities.fingerprint] = row.expert_capabilities
+    for experiment in experiments:
+        if experiment.expert_capabilities is not None:
+            experts[experiment.expert_capabilities.fingerprint] = experiment.expert_capabilities
     return sorted(experts.values(), key=lambda capabilities: capabilities.player_name)
 
 
