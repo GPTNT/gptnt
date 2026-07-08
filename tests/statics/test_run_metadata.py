@@ -1,6 +1,6 @@
 """Tests for the `run_meta.json` contract stamped beside statics metrics.
 
-The Hub call in `DatasetIdentity.resolve` is the subject here, not a seam mocked out of the way.
+The Hub call in `StaticsIdentity.resolve` is the subject here, not a seam mocked out of the way.
 The failure-handling (offline/private repo records a null sha rather than crashing a completed run)
 is the behaviour under test, so `HfApi` is patched to force each outcome.
 """
@@ -42,42 +42,39 @@ def _patch_hub(
     monkeypatch.setattr(run_metadata, "HfApi", lambda: _StubHfApi(sha=sha, error=error))
 
 
-def test_dataset_identity_records_null_sha_when_hub_unreachable(
+def test_statics_identity_records_null_sha_when_hub_unreachable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _patch_hub(monkeypatch, error=OSError("offline"))
-    identity = run_metadata.DatasetIdentity.resolve(
-        hf_repo_id="org/ds", dataset_split="test", revision="v1.0"
+    identity = run_metadata.StaticsIdentity.resolve(
+        task_name="expert_vqa", hf_repo_id="org/ds", dataset_split="test", revision="v1.0"
     )
     assert identity.resolved_revision is None
     assert identity.requested_revision == "v1.0"
 
 
-def test_dataset_identity_records_resolved_sha(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_statics_identity_records_resolved_sha(monkeypatch: pytest.MonkeyPatch) -> None:
     _patch_hub(monkeypatch, sha="notyourrun")
     assert (
-        run_metadata.DatasetIdentity.resolve(
-            hf_repo_id="org/ds", dataset_split=None, revision="main"
+        run_metadata.StaticsIdentity.resolve(
+            task_name="expert_vqa", hf_repo_id="org/ds", dataset_split=None, revision="main"
         ).resolved_revision
         == "notyourrun"
     )
 
 
-def test_run_metadata_stamps_provenance_and_round_trips(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_run_metadata_stamps_provenance_and_round_trips(monkeypatch: pytest.MonkeyPatch) -> None:
     _patch_hub(monkeypatch, sha="notyourrun")
     capabilities = PlayerCapabilities(player_name="test-player", player_type="ai")
     metadata = run_metadata.StaticsRunMetadata(
-        task_name="expert_vqa",
         model_name="test-model",
-        dataset=run_metadata.DatasetIdentity.resolve(
-            hf_repo_id="org/ds", dataset_split="test", revision="v1.0"
+        statics=run_metadata.StaticsIdentity.resolve(
+            task_name="expert_vqa", hf_repo_id="org/ds", dataset_split="test", revision="v1.0"
         ),
         capabilities=capabilities,
     )
-    assert metadata.dataset.resolved_revision == "notyourrun"
-    assert metadata.dataset.requested_revision == "v1.0"
+    assert metadata.statics.resolved_revision == "notyourrun"
+    assert metadata.statics.requested_revision == "v1.0"
     assert metadata.capabilities == capabilities
     assert metadata.provenance.gptnt_version
     assert (

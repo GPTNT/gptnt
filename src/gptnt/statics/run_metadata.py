@@ -35,16 +35,19 @@ def _resolve_commit_sha(*, hf_repo_id: str, revision: str | None) -> str | None:
     return resolved
 
 
-class DatasetIdentity(BaseModel, frozen=True):
-    """What was measured: the repo, split, requested revision, and resolved commit sha."""
+class StaticsIdentity(BaseModel, frozen=True):
+    """What was measured: the task plus its dataset pin (repo, split, revisions)."""
 
+    task_name: str
     hf_repo_id: str
     dataset_split: str | None
     requested_revision: str | None
     resolved_revision: str | None
 
     @classmethod
-    def resolve(cls, *, hf_repo_id: str, dataset_split: str | None, revision: str | None) -> Self:
+    def resolve(
+        cls, *, task_name: str, hf_repo_id: str, dataset_split: str | None, revision: str | None
+    ) -> Self:
         """Resolve the requested revision to a commit sha, best-effort.
 
         The resolved sha pins what was measured. Resolving it needs the Hub, so it is
@@ -52,6 +55,7 @@ class DatasetIdentity(BaseModel, frozen=True):
         completed run.
         """
         return cls(
+            task_name=task_name,
             hf_repo_id=hf_repo_id,
             dataset_split=dataset_split,
             requested_revision=revision,
@@ -67,13 +71,17 @@ class DatasetIdentity(BaseModel, frozen=True):
         reference = self.resolved_revision or self.requested_revision
         return reference[:8] if reference else _UNPINNED
 
+    @property
+    def target(self) -> str:
+        """What was measured, with its pin — a submission bundle dir's leaf name."""
+        return f"{self.task_name}@{self.revision_label}"
+
 
 class StaticsRunMetadata(BaseModel, frozen=True):
     """Everything a submission needs beyond the predictions."""
 
-    task_name: str
     model_name: str
     run_date: Instant = Field(default_factory=Instant.now)
-    dataset: DatasetIdentity
+    statics: StaticsIdentity
     capabilities: PlayerCapabilities
     provenance: ProvenanceMixin = Field(default_factory=ProvenanceMixin)
