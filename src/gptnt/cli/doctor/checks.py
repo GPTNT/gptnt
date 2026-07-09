@@ -254,10 +254,12 @@ def check_calibration(details: Sequence[PlayerDetail]) -> list[CheckResult]:
     """
     rows: list[CheckResult] = []
     for detail in details:
+        if detail.report.instantiates != "pass":
+            continue
         capabilities = detail.static.capabilities
         if capabilities is None:
             continue
-        config_name = detail.report.label.split("@", 1)[0]
+        config_name = detail.static.model_name
         if capabilities.tokens_per_image > 0:
             rows.append(
                 CheckResult(config_name, "pass", f"{capabilities.tokens_per_image} tokens/image")
