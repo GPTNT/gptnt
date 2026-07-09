@@ -54,7 +54,6 @@ def validate_submission(
     for bundle_dir in bundle_dirs:
         checks = _run_bundle_checks(bundle_dir, suite_cache)
         heading = bundle_dir if bundle_dir == path else bundle_dir.relative_to(path)
-        console.print(f"[bold]{heading}[/bold]")
         render_report(console, {str(heading): checks})
         failed += any(check.status == "fail" for check in checks)
 
