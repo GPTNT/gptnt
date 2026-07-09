@@ -23,4 +23,3 @@ run = "uv run pytest"
 [tools]
 python = "3.13"
 uv = "latest"
-github-cli = "latest"
