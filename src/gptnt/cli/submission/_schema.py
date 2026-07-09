@@ -40,6 +40,9 @@ class Submitter(BaseModel):
     affiliation: str | None = None
 
 
+type SubmissionPairingKey = tuple[str, str, str]
+
+
 class SubmissionExperiment(ExperimentSummary):
     """One experiment in a submission.
 
@@ -68,6 +71,22 @@ class SubmissionExperiment(ExperimentSummary):
                 "expert_usage": usage_by_role.get("expert"),
             }
         )
+
+    @property
+    def pairing_key(self) -> SubmissionPairingKey:
+        """(defuser fingerprint, expert fingerprint, mission key) tuple to identify this run."""
+        return (
+            self.defuser_capabilities.fingerprint,
+            self.expert_capabilities.fingerprint if self.expert_capabilities else "",
+            self.mission_key,
+        )
+
+    @property
+    def pairing_description(self) -> str:
+        """Human-readable description of the pairing, for reporting."""
+        defuser_name = self.defuser_capabilities.player_name
+        expert_name = self.expert_capabilities.player_name if self.expert_capabilities else "solo"
+        return f"{defuser_name} + {expert_name} on {self.mission_key}"
 
 
 class SubmissionPlayer(BaseModel):
