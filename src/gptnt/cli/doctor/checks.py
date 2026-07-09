@@ -244,6 +244,36 @@ async def _player_detail(
     return PlayerDetail(report, static, outcome)
 
 
+def check_calibration(details: Sequence[PlayerDetail]) -> list[CheckResult]:
+    """One row per player: is its per-image token cost calibrated (non-zero)?
+
+    `capabilities.tokens_per_image` stays `0` until `gptnt calibrate-image-tokens` measures it
+    against the live model. A `0` makes the token accountant undercount image tokens, so it fails
+    here with the exact fix. Players whose config did not instantiate are skipped — the model
+    matrix already fails them.
+    """
+    rows: list[CheckResult] = []
+    for detail in details:
+        capabilities = detail.static.capabilities
+        if capabilities is None:
+            continue
+        config_name = detail.report.label.split("@", 1)[0]
+        if capabilities.tokens_per_image > 0:
+            rows.append(
+                CheckResult(config_name, "pass", f"{capabilities.tokens_per_image} tokens/image")
+            )
+        else:
+            rows.append(
+                CheckResult(
+                    config_name,
+                    "fail",
+                    "uncalibrated (0 tokens/image)",
+                    f"Run: gptnt calibrate-image-tokens {config_name}",
+                )
+            )
+    return rows
+
+
 def _static_boxes(outcome: ModelValidationResult) -> tuple[CheckStatus, CheckStatus, str]:
     """Map a static validation outcome to (exists, instantiates, note).
 
