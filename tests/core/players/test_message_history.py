@@ -28,7 +28,7 @@ from gptnt.players.history.message_transformer import (
 from gptnt.players.history.single_run import SingleRun
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
-from tests._cases.messages import ModelMessageCases
+from tests._cases.messages import TEST_TOKENS_PER_IMAGE, ModelMessageCases
 from tests._cases.protocol import ProtocolCases
 
 # ============================================================================
@@ -133,6 +133,7 @@ def capabilities(preserve_last_frame_for_n_turns: int) -> PlayerCapabilities:
         structured_output_mode="prompted",
         interaction_location_method="coordinates",
         preserve_last_frame_for_n_turns=preserve_last_frame_for_n_turns,
+        tokens_per_image=TEST_TOKENS_PER_IMAGE,
         usage_limits=UsageLimits(),
     )
 

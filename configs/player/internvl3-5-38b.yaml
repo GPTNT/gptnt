@@ -8,6 +8,7 @@ identity:
 
 capabilities:
   player_name: internvl3-5-38b
+  tokens_per_image: 267
   structured_output_mode: null
   thinking_method: thinking-out-loud
   include_schema_in_instructions: true

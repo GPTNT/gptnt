@@ -85,6 +85,13 @@ class PlayerCapabilities(BaseModel):
     Default to KTANE settings.
     """
 
+    tokens_per_image: int = 0
+    """The number of tokens used to represent one image at `image_dimensions`.
+
+    If this is actually zero, it will just mean that the token accountant will not properly
+    estimate the space needed to send the next request correctly.
+    """
+
     interaction_location_method: InteractionLocationMethod = "set-of-marks"
     """Whether interaction locations are predicted as set-of-marks or coordinates."""
 
@@ -146,11 +153,13 @@ class PlayerCapabilities(BaseModel):
     def fingerprint(self) -> str:
         """A stable digest of this exact model setup.
 
-        We exclude `usage_limits` from the fingerprint since they don't describe the model's
-        capabilities. Including them would cause small limit tweaks to produce unrelated
-        fingerprint changes.
+        We exclude several fields to ensure that the fingerprint of the model is only represented
+        by its capabilities and not by any other fields that may change over time, or that are not
+        relevant.
         """
-        return stable_digest(self.model_dump(mode="json", exclude={"usage_limits"}))
+        return stable_digest(
+            self.model_dump(mode="json", exclude={"usage_limits", "tokens_per_image"})
+        )
 
     @override
     def __hash__(self) -> int:

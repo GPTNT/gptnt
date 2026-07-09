@@ -14,7 +14,12 @@ from pydantic_ai.messages import UserPromptPart
 from pytest_cases import fixture, param_fixture
 from whenever import Instant
 
-from gptnt.players.tokens import estimate_tokens_for_image_per_model
+TEST_TOKENS_PER_IMAGE = 200
+"""Per-image token cost used across token-accounting tests.
+
+The capabilities under test carry this same value so the accountant's per-image cost matches the
+`input_tokens` baked into the model-response fixtures.
+"""
 
 
 @fixture
@@ -41,7 +46,7 @@ num_observations = param_fixture(
 @fixture
 def tokens_per_image() -> int:
     """Number of tokens per image observation."""
-    return estimate_tokens_for_image_per_model("test", long_side=640, short_side=480)
+    return TEST_TOKENS_PER_IMAGE
 
 
 class ModelMessageCases:
