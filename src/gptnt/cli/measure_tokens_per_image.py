@@ -81,10 +81,14 @@ async def _measure(agent: Agent, image_bytes: bytes) -> tuple[int, int]:
     Starts from the agent's own `model_settings` and overrides only `max_tokens`, so the config's
     provider-correct thinking setting is preserved rather than clobbered. A per-request settings
     callable has no static value to start from, so we fall back to overriding just `max_tokens`.
+
+    Both requests send the prompt as a single-element multipart list, so the only difference
+    between them is the image part — a plain-string baseline could tokenise differently and skew
+    the delta.
     """
     base = None if callable(agent.model_settings) else agent.model_settings
     settings = merge_model_settings(base, {"max_tokens": _CALIBRATION_MAX_TOKENS})
-    baseline = (await agent.run(_PROMPT, model_settings=settings)).usage.input_tokens
+    baseline = (await agent.run([_PROMPT], model_settings=settings)).usage.input_tokens
     with_image = (
         await agent.run(
             [_PROMPT, BinaryContent(image_bytes, media_type="image/png")], model_settings=settings
@@ -104,8 +108,9 @@ def _insert_tokens_per_image(text: str, tokens_per_image: int) -> str:
     """Set `tokens_per_image` inside the `capabilities:` block of a player-config yaml.
 
     A surgical text edit: replace the existing `tokens_per_image:` line if present, else insert one
-    directly under the `capabilities:` header. Everything else is left byte-for-byte, so comments
-    and `${oc.env:...}` interpolations survive.
+    just below `player_name:` (falling back to directly under the `capabilities:` header when
+    there is no `player_name:`), matching the key order of the checked-in configs. Everything else
+    is left byte-for-byte, so comments and `${oc.env:...}` interpolations survive.
     """
     lines = text.splitlines(keepends=True)
     header = next(
@@ -117,12 +122,17 @@ def _insert_tokens_per_image(text: str, tokens_per_image: int) -> str:
         )
 
     new_line = f"  tokens_per_image: {tokens_per_image}\n"
-    for index in range(header + 1, _block_end(lines, header)):
+    block = range(header + 1, _block_end(lines, header))
+    player_name = next(
+        (index for index in block if lines[index].lstrip().startswith("player_name:")), None
+    )
+    for index in block:
         if lines[index].lstrip().startswith("tokens_per_image:"):
             lines[index] = new_line
             break
     else:
-        lines.insert(header + 1, new_line)
+        insert_at = header + 1 if player_name is None else player_name + 1
+        lines.insert(insert_at, new_line)
 
     return "".join(lines)
 

@@ -23,8 +23,9 @@ action_predictor:
 def test_insert_adds_line_under_capabilities_preserving_comments() -> None:
     result = _insert_tokens_per_image(_CONFIG_WITH_COMMENT, 424)
     assert "  tokens_per_image: 424\n" in result
-    # inserted inside the capabilities block, above its existing keys
-    assert result.index("tokens_per_image: 424") < result.index("player_name")
+    # inserted just below player_name, matching the checked-in config key order
+    assert result.index("player_name") < result.index("tokens_per_image: 424")
+    assert result.index("tokens_per_image: 424") < result.index("# keep this comment")
     # every other line survives byte-for-byte
     assert "# keep this comment" in result
     assert "input_tokens_limit: 200000" in result
@@ -57,7 +58,7 @@ def _detail(label: str, tokens_per_image: int) -> PlayerDetail:
 def test_calibration_fails_uncalibrated_player() -> None:
     finding = check_calibration([_detail("claude-sonnet-4-6", 0)])[0]
     assert finding.status == "fail"
-    assert "calibrate-image-tokens claude-sonnet-4-6" in finding.hint
+    assert "measure-tokens-per-image claude-sonnet-4-6" in finding.hint
 
 
 def test_calibration_passes_calibrated_player() -> None:

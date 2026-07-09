@@ -247,7 +247,7 @@ async def _player_detail(
 def check_calibration(details: Sequence[PlayerDetail]) -> list[CheckResult]:
     """One row per player: is its per-image token cost calibrated (non-zero)?
 
-    `capabilities.tokens_per_image` stays `0` until `gptnt calibrate-image-tokens` measures it
+    `capabilities.tokens_per_image` stays `0` until `gptnt measure-tokens-per-image` measures it
     against the live model. A `0` makes the token accountant undercount image tokens, so it fails
     here with the exact fix. Players whose config did not instantiate are skipped — the model
     matrix already fails them.
@@ -270,7 +270,7 @@ def check_calibration(details: Sequence[PlayerDetail]) -> list[CheckResult]:
                     config_name,
                     "fail",
                     "uncalibrated (0 tokens/image)",
-                    f"Run: gptnt calibrate-image-tokens {config_name}",
+                    f"Run: gptnt measure-tokens-per-image {config_name}",
                 )
             )
     return rows
