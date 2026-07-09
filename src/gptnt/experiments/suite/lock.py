@@ -88,7 +88,7 @@ class SuiteLock(BaseModel):
         path = path or default_lock_path()
         if not path.exists():
             raise SuiteNotFrozenError(f"{path} not found; run `gptnt suite freeze` first")
-        raw = parse(path.read_bytes())
+        raw = parse(path.read_text())
         return cls.model_validate(raw.unwrap(), by_alias=True)
 
     def dump_to_path(self, path: Path) -> None:
@@ -98,6 +98,11 @@ class SuiteLock(BaseModel):
     @model_validator(mode="after")
     def check_wellformed(self) -> Self:
         """Missions and suite revisions are each unique, and every reference resolves."""
+        if self.version != LOCK_VERSION:
+            raise ValueError(
+                f"unsupported suites.lock version {self.version}; expected {LOCK_VERSION}"
+            )
+
         mission_keys = [mission.mission_key for mission in self.missions]
         if len(mission_keys) != len(set(mission_keys)):
             raise ValueError("duplicate mission_key in the mission table")
@@ -168,4 +173,6 @@ class SuiteLock(BaseModel):
             (*self.suites, *new_entries), key=lambda entry: (entry.name, entry.revision)
         )
         missions = sorted((*self.missions, *new_missions), key=lambda mission: mission.mission_key)
-        return self.model_copy(update={"suites": tuple(entries), "missions": tuple(missions)})
+        return self.model_validate(
+            {**dict(self), "suites": tuple(entries), "missions": tuple(missions)}
+        )
