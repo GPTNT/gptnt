@@ -243,12 +243,6 @@ def _report_dry_run(
         console.print(f"{tag}: PR body:\n{body}")
 
 
-def _create_single_submission(
-    *, slug: str, bundle_dir: Path, body: str | None, dry_run: bool
-) -> SubmissionResult:
-    """Create a single submission PR for one model bundle, returning the SubmissionResult."""
-
-
 def create_submission(  # noqa: WPS210, WPS231
     *,
     slug: str = SUBMISSION_REPO_SLUG,
