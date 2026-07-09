@@ -32,9 +32,11 @@ from gptnt.cli.submission._schema import (
     InteractiveSubmission,
     StaticsSubmission,
     SubmissionExperiment,
+    SubmissionPairingKey,
+    describe_pairing,
 )
 from gptnt.experiments.db.typed_parquet import read_typed_parquet
-from gptnt.experiments.provenance import UNKNOWN_VERSION, is_dirty_sha
+from gptnt.experiments.provenance import is_dirty_sha, is_valid_version
 
 if TYPE_CHECKING:
     from gptnt.experiments.suite import Suite
@@ -139,15 +141,22 @@ def check_suite(
 
 
 def check_mission_coverage(bundle: InteractiveBundle, suite: Suite) -> list[CheckResult]:
-    """Every mission in the suite's set has exactly one, valid run — no more, no fewer.
-
-    `gptnt submission new` bundles every recorded experiment for the (suite, model) group, so
-    a retried mission shows up here as a duplicate: the fix is curation, not a rebuild.
-    """
+    """Every (expert, mission) pairing the manifest declares has exactly one, valid run."""
+    manifest = bundle.manifest
     experiments = bundle.experiments
+    defuser = manifest.player.capabilities
+    # A submission fixes one defuser; solo play has no expert (an empty fingerprint marker).
+    experts = [player.capabilities for player in manifest.players[1:]] or [None]
+    expected = {
+        (defuser.fingerprint, expert.fingerprint if expert else "", mission_key): describe_pairing(
+            defuser.player_name, expert.player_name if expert else None, mission_key
+        )
+        for expert in experts
+        for mission_key in suite.mission_keys
+    }
     return [
         _check_experiments_belong_to_suite(suite, experiments),
-        *_check_one_run_per_mission(suite.mission_keys, experiments),
+        *_check_one_run_per_mission_per_pairing(expected, experiments),
         _check_experiment_outcomes(experiments),
     ]
 
@@ -284,14 +293,21 @@ def _check_experiments_belong_to_suite(
     )
 
 
-def _check_one_run_per_mission(
-    expected: frozenset[str], experiments: list[SubmissionExperiment]
+def _check_one_run_per_mission_per_pairing(
+    expected: dict[SubmissionPairingKey, str], experiments: list[SubmissionExperiment]
 ) -> list[CheckResult]:
-    """Exactly-one-run-per-mission, reported as missing / duplicates / unknown."""
-    actual = Counter(experiment.mission_key for experiment in experiments)
-    missing = sorted(expected - actual.keys())
-    duplicates = sorted(key for key, count in actual.items() if count > 1)
-    unknown = sorted(set(actual) - expected)
+    """Exactly one run per mission per pairing, reported as missing / duplicates / unknown.
+
+    The identity is the (defuser, expert, mission) triple: a pairwise suite plays each mission
+    once per expert, so counting on the mission alone would flag those legitimate pairings as
+    duplicates. `expected` maps each pairing to its readable label; present runs describe
+    themselves.
+    """
+    actual = Counter(experiment.pairing_key for experiment in experiments)
+    described = expected | {exp.pairing_key: exp.pairing_description for exp in experiments}
+    missing = sorted(described[key] for key in expected.keys() - actual.keys())
+    duplicates = sorted(described[key] for key, count in actual.items() if count > 1)
+    unknown = sorted(described[key] for key in actual.keys() - expected.keys())
 
     findings = []
     if missing:
@@ -367,13 +383,10 @@ def _check_experts_match_manifest(
 
 
 def _check_gptnt_version(version: str) -> CheckResult:
-    if not version.strip():
-        return CheckResult.failed("gptnt_version", "missing", hint=REBUILD_HINT)
-    if version == UNKNOWN_VERSION:
-        return CheckResult.warned(
-            "gptnt_version", f"recorded as the unknown-version marker {version}"
-        )
-    return CheckResult.passed("gptnt_version", version)
+    if is_valid_version(version):
+        return CheckResult.passed("gptnt_version", version)
+    detail = f"{version!r} is not a valid version" if version.strip() else "missing"
+    return CheckResult.failed("gptnt_version", detail, hint=REBUILD_HINT)
 
 
 def _check_git_sha(git_sha: str | None) -> CheckResult:

@@ -24,6 +24,7 @@ from gptnt.experiments.db.typed_parquet import read_typed_parquet, write_typed_p
 from gptnt.experiments.generation.missions import load_missions
 from gptnt.experiments.generation.pipeline import compose_suite
 from gptnt.experiments.models import ExperimentSummary
+from gptnt.players.specification import PlayerCapabilities
 
 from tests._cli_runner import invoke_cli
 from tests._factories.experiments import (
@@ -224,6 +225,70 @@ def test_sweep_reports_every_bundle(bundle_copy: Path, capsys: pytest.CaptureFix
 
     _assert_validate_fails(root)
     assert "1 ok, 1 failed" in _unwrap_output(capsys)
+
+
+# A pairwise suite plays each mission once per expert, so coverage is over (defuser, expert,
+# mission) pairings rather than missions alone.
+PAIRWISE_SUITE = "single-pairwise-sync"
+PAIRWISE_EXPERTS = ("test-expert", "test-oracle")
+
+
+def _make_pairwise_experiment(
+    mission: KtaneMissionSpec, suite: Suite, expert_name: str
+) -> SubmissionExperiment:
+    """One valid, solved run of `mission` played by the defuser paired with `expert_name`."""
+    return _make_experiment(mission, suite).model_copy(
+        update={
+            "expert_name": expert_name,
+            "expert_capabilities": PlayerCapabilities(player_name=expert_name, player_type="ai"),
+        }
+    )
+
+
+@pytest.fixture(scope="module")
+def pairwise_suite() -> Suite:
+    return compose_suite(PAIRWISE_SUITE)
+
+
+@pytest.fixture(scope="module")
+def valid_pairwise_root(tmp_path_factory: pytest.TempPathFactory, pairwise_suite: Suite) -> Path:
+    """A submissions root with a covering pairwise bundle: every mission run once per expert."""
+    root = tmp_path_factory.mktemp("pairwise-submissions")
+    missions = load_missions(Paths().root / pairwise_suite.missions_path)
+    experiments = [
+        _make_pairwise_experiment(mission, pairwise_suite, expert)
+        for mission in missions
+        for expert in PAIRWISE_EXPERTS
+    ]
+    _fill_submitter(InteractiveBundle.from_experiments(experiments, pairwise_suite).save(root))
+    return root
+
+
+@pytest.fixture
+def pairwise_bundle_copy(valid_pairwise_root: Path, tmp_path: Path) -> Path:
+    """A fresh mutable copy of the covering pairwise bundle; returns the bundle dir itself."""
+    root = tmp_path / "submissions"
+    _ = shutil.copytree(valid_pairwise_root, root)
+    return next(root.rglob("submission.yaml")).parent
+
+
+def test_pairwise_bundle_passes(pairwise_bundle_copy: Path) -> None:
+    """Each mission played once per expert is legitimate coverage, not duplicates."""
+    result = invoke_cli(build_app(), ["submission", "validate", str(pairwise_bundle_copy)])
+    assert result.exit_code == 0, result.output
+    assert "✗" not in result.output
+
+
+def test_pairwise_repeated_pairing_fails(
+    pairwise_bundle_copy: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Two runs of the same (expert, mission) pairing is a real duplicate."""
+    payload = pairwise_bundle_copy / "experiments.parquet"
+    experiments = read_typed_parquet(SubmissionExperiment, payload)
+    write_typed_parquet([*experiments, experiments[0]], file_path=payload)
+
+    _assert_validate_fails(pairwise_bundle_copy)
+    assert "✗ duplicates" in _unwrap_output(capsys)
 
 
 def _build_statics_bundle(

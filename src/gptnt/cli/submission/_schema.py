@@ -43,6 +43,11 @@ class Submitter(BaseModel):
 type SubmissionPairingKey = tuple[str, str, str]
 
 
+def describe_pairing(defuser_name: str, expert_name: str | None, mission_key: str) -> str:
+    """Human-readable label for a (defuser, expert, mission) pairing, for reporting."""
+    return f"{defuser_name} + {expert_name or 'solo'} on {mission_key}"
+
+
 class SubmissionExperiment(ExperimentSummary):
     """One experiment in a submission.
 
@@ -84,9 +89,8 @@ class SubmissionExperiment(ExperimentSummary):
     @property
     def pairing_description(self) -> str:
         """Human-readable description of the pairing, for reporting."""
-        defuser_name = self.defuser_capabilities.player_name
-        expert_name = self.expert_capabilities.player_name if self.expert_capabilities else "solo"
-        return f"{defuser_name} + {expert_name} on {self.mission_key}"
+        expert = self.expert_capabilities.player_name if self.expert_capabilities else None
+        return describe_pairing(self.defuser_capabilities.player_name, expert, self.mission_key)
 
 
 class SubmissionPlayer(BaseModel):
