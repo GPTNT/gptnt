@@ -1,7 +1,8 @@
-"""Create a pull request against gptnt/submissions to submit a run bundle to the leaderboard.
+"""Open one pull request per model against gptnt/submissions to submit a run to the leaderboard.
 
-Requires either a GITHUB_TOKEN env var or the `gh` CLI to be authenticated.
-PyGitHub handles all GitHub API calls; pygit2 handles all local git operations.
+Each top-level model directory under `submissions/` becomes its own branch, commit, and PR.
+Requires either a GITHUB_TOKEN env var or the `gh` CLI to be authenticated. PyGitHub handles all
+GitHub API calls; pygit2 handles all local git operations.
 """
 
 import os
@@ -98,9 +99,12 @@ def _fork_and_clone(
     return local_repo
 
 
-def _create_and_checkout_branch(repo: pygit2.Repository, branch_name: str) -> None:
-    branch = repo.create_branch(branch_name, repo.head.peel(pygit2.Commit))
-    repo.checkout(branch)
+def _create_and_checkout_branch(
+    repo: pygit2.Repository, branch_name: str, base: pygit2.Commit
+) -> None:
+    branch = repo.create_branch(branch_name, base)
+    # Force so the working tree and index reset to `base`, dropping the previous model's files.
+    repo.checkout(branch, strategy=pygit2.GIT_CHECKOUT_FORCE)
 
 
 def _stage_and_commit(
@@ -126,26 +130,35 @@ def _force_push(repo: pygit2.Repository, branch_name: str, token: str) -> None:
     )
 
 
-def _copy_submission(submission_dir: Path, clone_dir: Path) -> list[str]:
-    """Copy everything under submission_dir/submissions/ into clone_dir/submissions/.
+def _model_dirs(submission_dir: Path) -> list[Path]:
+    """Every top-level model directory under submission_dir/submissions/, name-sorted.
 
-    Returns repo-relative paths of all written files (for staging).
+    Each is one model (`<model-slug>_<capfp8>`), the boundary for one pull request.
     """
     src_root = submission_dir / "submissions"
     if not src_root.exists():
         raise ValueError(f"Expected a submissions/ directory inside {submission_dir}")
+    model_dirs = sorted(path for path in src_root.iterdir() if path.is_dir())
+    if not model_dirs:
+        raise ValueError(f"No model submission directories found under {src_root}")
+    return model_dirs
 
+
+def _copy_model(model_dir: Path, submission_dir: Path, clone_dir: Path) -> list[str]:
+    """Copy one model's subtree into clone_dir, keeping paths anchored at submission_dir.
+
+    Returns repo-relative paths of the written files (for staging), each starting
+    `submissions/<model>/...`.
+    """
     rel_paths: list[str] = []
-    for src_file in src_root.rglob("*"):
+    for src_file in model_dir.rglob("*"):
         if not src_file.is_file():
             continue
-        # e.g. submissions/model-abc/...
         rel = src_file.relative_to(submission_dir)
         destination = clone_dir / rel
         destination.parent.mkdir(parents=True, exist_ok=True)
         _ = shutil.copy2(src_file, destination)
         rel_paths.append(str(rel))
-
     return rel_paths
 
 
@@ -176,46 +189,75 @@ def _open_or_find_pr(*, source_repo: GhRepository, head: str, title: str, body: 
     return pr.html_url
 
 
+def _push_and_open_pr(
+    *,
+    local_repo: pygit2.Repository,
+    source_repo: GhRepository,
+    branch_name: str,
+    head: str,
+    token: str,
+    title: str,
+    body: str,
+) -> str:
+    """Force-push one model's branch and open (or find) its PR, returning the PR URL."""
+    _force_push(local_repo, branch_name, token)
+    return _open_or_find_pr(source_repo=source_repo, head=head, title=title, body=body)
+
+
 @dataclass
 class SubmissionResult:
-    pr_url: str
+    model: str
+    """The top-level model directory this pull request covers."""
+
     branch: str
+    pr_url: str
+    """The opened PR's URL, or `DRY_RUN_PR_URL` on a dry run."""
+
+    error: str | None = None
+    """Set when this model failed to push or open its PR."""
 
 
 DRY_RUN_PR_URL = "(dry-run — no PR created)"
 
 
 def _report_dry_run(
-    *, branch: str, head: str, rel_paths: list[str], slug: str, base: str, title: str, body: str
+    *,
+    model: str,
+    branch: str,
+    head: str,
+    rel_paths: list[str],
+    slug: str,
+    base: str,
+    title: str,
+    body: str,
 ) -> None:
-    """Print what a real run would push and open, without touching GitHub."""
+    """Print what a real run would push and open for one model, without touching GitHub."""
+    tag = f"[yellow]DRY RUN [{model}][/yellow]"
     push_target = "your fork" if ":" in head else "the upstream repo (you have push access)"
-    console.print(f"[yellow]DRY RUN[/yellow]: would force-push branch {branch!r} to {push_target}")
-    console.print(f"[yellow]DRY RUN[/yellow]: would stage {len(rel_paths)} file(s):")
+    console.print(f"{tag}: would force-push branch {branch!r} to {push_target}")
+    console.print(f"{tag}: would stage {len(rel_paths)} file(s):")
     for path in rel_paths:
         console.print(f"  - {path}")
-    console.print(
-        f"[yellow]DRY RUN[/yellow]: would open PR {title!r} against {slug}@{base} (head {head})"
-    )
+    console.print(f"{tag}: would open PR {title!r} against {slug}@{base} (head {head})")
     if body:
-        console.print(f"[yellow]DRY RUN[/yellow]: PR body:\n{body}")
+        console.print(f"{tag}: PR body:\n{body}")
 
 
 def create_submission(  # noqa: WPS210, WPS231
     *,
     slug: str = SUBMISSION_REPO_SLUG,
     submission_dir: Path,
-    title: str | None = None,
     body: str | None = None,
     dry_run: bool = False,
-) -> SubmissionResult:
-    """Copy submission_dir/submissions/* into a clone/fork of slug and open a PR.
+) -> list[SubmissionResult]:
+    """Open one pull request per model under submission_dir/submissions/.
 
-    Uses GITHUB_TOKEN env var if set, otherwise falls back to `gh auth token`. PyGitHub handles all
-    GitHub API operations; pygit2 handles local git.
+    Each top-level model directory becomes its own branch, commit, and PR against `slug`. Auth,
+    the repo lookup, and the clone/fork happen once, shared across every model. Uses GITHUB_TOKEN
+    if set, otherwise `gh auth token`. PyGitHub handles the GitHub API; pygit2 handles local git.
 
     With `dry_run=True` every read-only step still runs (auth, repo lookup, clone, local commit)
-    but nothing is mutated on GitHub — no fork, no push, no PR — so you can verify the flow works.
+    but nothing is mutated on GitHub — no fork, no push, no PR — so you can verify the flow.
     """
     token = _get_token()
     gh = Github(auth=Auth.Token(token))
@@ -224,9 +266,7 @@ def create_submission(  # noqa: WPS210, WPS231
     assert isinstance(user, AuthenticatedUser)
 
     can_push = source_repo.permissions.push
-    branch_name = f"{user.login}/add-{submission_dir.resolve().name}"
-    head = branch_name if can_push else f"{user.login}:{branch_name}"
-    pr_title = title or f"Add submission: {submission_dir.name}"
+    signature = _author_signature(user)
     pr_body = body or ""
 
     with tempfile.TemporaryDirectory(prefix="gptnt-submission-clone-") as clone_dir:
@@ -236,25 +276,56 @@ def create_submission(  # noqa: WPS210, WPS231
             local_repo = _clone(source_repo.clone_url, clone_dir_path, token)
         else:
             local_repo = _fork_and_clone(source_repo, clone_dir_path, user, token)
+        base_commit = local_repo.head.peel(pygit2.Commit)
 
-        _create_and_checkout_branch(local_repo, branch_name)
+        outcomes: list[SubmissionResult] = []
+        for model_dir in _model_dirs(submission_dir):
+            branch_name = f"{user.login}/add-{model_dir.name}"
+            head = branch_name if can_push else f"{user.login}:{branch_name}"
+            pr_title = f"Add submission: {model_dir.name}"
 
-        rel_paths = _copy_submission(submission_dir, clone_dir_path)
-        _stage_and_commit(local_repo, rel_paths, pr_title, signature=_author_signature(user))
+            _create_and_checkout_branch(local_repo, branch_name, base_commit)
+            rel_paths = _copy_model(model_dir, submission_dir, clone_dir_path)
+            _stage_and_commit(local_repo, rel_paths, pr_title, signature=signature)
 
-        if dry_run:
-            _report_dry_run(
-                branch=branch_name,
-                head=head,
-                rel_paths=rel_paths,
-                slug=slug,
-                base=source_repo.default_branch,
-                title=pr_title,
-                body=pr_body,
-            )
-            return SubmissionResult(pr_url=DRY_RUN_PR_URL, branch=branch_name)
+            if dry_run:
+                _report_dry_run(
+                    model=model_dir.name,
+                    branch=branch_name,
+                    head=head,
+                    rel_paths=rel_paths,
+                    slug=slug,
+                    base=source_repo.default_branch,
+                    title=pr_title,
+                    body=pr_body,
+                )
+                outcomes.append(
+                    SubmissionResult(
+                        model=model_dir.name, branch=branch_name, pr_url=DRY_RUN_PR_URL
+                    )
+                )
+                continue
 
-        _force_push(local_repo, branch_name, token)
-        pr_url = _open_or_find_pr(source_repo=source_repo, head=head, title=pr_title, body=pr_body)
+            # Isolate one model so a single push/PR failure does not abort the rest of the batch.
+            try:
+                pr_url = _push_and_open_pr(
+                    local_repo=local_repo,
+                    source_repo=source_repo,
+                    branch_name=branch_name,
+                    head=head,
+                    token=token,
+                    title=pr_title,
+                    body=pr_body,
+                )
+            except Exception as exc:  # noqa: BLE001 - capture per-model, report at the end.
+                outcomes.append(
+                    SubmissionResult(
+                        model=model_dir.name, branch=branch_name, pr_url="", error=str(exc)
+                    )
+                )
+            else:
+                outcomes.append(
+                    SubmissionResult(model=model_dir.name, branch=branch_name, pr_url=pr_url)
+                )
 
-        return SubmissionResult(pr_url=pr_url, branch=branch_name)
+        return outcomes

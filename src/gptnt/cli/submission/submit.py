@@ -1,10 +1,10 @@
-"""`gptnt submission submit` — open a PR against gptnt-submissions with a built bundle.
+"""`gptnt submission submit` — open one PR per model against gptnt-submissions.
 
-The final step after `new` + `validate`: it copies the `submissions/` tree into a clone (or fork)
-of the target repo and opens a pull request. Pass `--dry-run` to exercise everything locally —
-auth, repo lookup, clone, and the local commit — while skipping every GitHub mutation (no fork, no
-push, no PR), so you can confirm the flow works and see the branch, staged files, and PR title
-before anything goes out.
+The final step after `new` + `validate`: for each model directory under `submissions/`, it copies
+that model's subtree into a clone (or fork) of the target repo and opens a pull request. Pass
+`--dry-run` to run everything locally — auth, repo lookup, clone, and the local commits — while
+skipping every GitHub mutation (no fork, no push, no PR), so you can confirm the flow and see each
+model's branch, staged files, and PR title before anything goes out.
 
 Needs the `submission` extra (`uv sync --all-groups --all-extras`) and a GitHub token, via
 `GITHUB_TOKEN` or an authenticated `gh` CLI.
@@ -39,13 +39,22 @@ def submit_submission(
         ),
     ] = False,
 ) -> None:
-    """Open (or refresh) a pull request submitting the bundle under `path`."""
-    submission_result = create_submission(slug=repo, submission_dir=path, dry_run=dry_run)
+    """Open (or refresh) one pull request per model in the bundle under `path`."""
+    outcomes = create_submission(slug=repo, submission_dir=path, dry_run=dry_run)
     if dry_run:
-        console.print(
-            f"[bold]Dry run complete[/bold] — branch would be {submission_result.branch}."
-        )
-    else:
-        console.print(
-            f"[bold]Submitted[/bold] on branch {submission_result.branch}: {submission_result.pr_url}"
-        )
+        console.print(f"[bold]Dry run complete[/bold] — {len(outcomes)} PR(s) would be opened:")
+        for outcome in outcomes:
+            console.print(f"  - {outcome.model}: {outcome.branch}")
+        return
+
+    failed = 0
+    for outcome in outcomes:
+        if outcome.error is None:
+            console.print(f"  - {outcome.model}: {outcome.pr_url}")
+        else:
+            failed += 1
+            console.print(f"  - [red]{outcome.model}: {outcome.error}[/red]")
+
+    console.print(f"[bold]Submitted[/bold] {len(outcomes) - failed}/{len(outcomes)} model(s).")
+    if failed:
+        raise RuntimeError(f"{failed} model(s) failed to submit; see above.")
