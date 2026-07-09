@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, ClassVar, Self
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from tomlkit import dumps, parse
 
 from gptnt.common.paths import Paths
@@ -95,14 +95,17 @@ class SuiteLock(BaseModel):
         """Write the lock to disk as TOML."""
         _ = path.write_text(dumps(self.model_dump(mode="json", by_alias=True)))
 
+    @field_validator("version")
+    @classmethod
+    def check_lock_version(cls, version: int) -> int:
+        """Verify the lock file's schema version is supported, or raise."""
+        if version != LOCK_VERSION:
+            raise ValueError(f"unsupported suites.lock version {version}; expected {LOCK_VERSION}")
+        return version
+
     @model_validator(mode="after")
     def check_wellformed(self) -> Self:
         """Missions and suite revisions are each unique, and every reference resolves."""
-        if self.version != LOCK_VERSION:
-            raise ValueError(
-                f"unsupported suites.lock version {self.version}; expected {LOCK_VERSION}"
-            )
-
         mission_keys = [mission.mission_key for mission in self.missions]
         if len(mission_keys) != len(set(mission_keys)):
             raise ValueError("duplicate mission_key in the mission table")
