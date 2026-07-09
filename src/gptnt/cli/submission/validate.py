@@ -52,12 +52,11 @@ def validate_submission(
     suite_cache: SuiteCache = {}
     failed = 0
     for bundle_dir in bundle_dirs:
-        sections = _run_bundle_checks(bundle_dir, suite_cache)
+        checks = _run_bundle_checks(bundle_dir, suite_cache)
         heading = bundle_dir if bundle_dir == path else bundle_dir.relative_to(path)
         console.print(f"[bold]{heading}[/bold]")
-        render_report(console, sections)
-        findings = [finding for section in sections.values() for finding in section]
-        failed += any(finding.status == "fail" for finding in findings)
+        render_report(console, {str(heading): checks})
+        failed += any(check.status == "fail" for check in checks)
 
     total = len(bundle_dirs)
     console.print(
@@ -67,25 +66,25 @@ def validate_submission(
         sys.exit(1)
 
 
-def _run_bundle_checks(bundle_dir: Path, suite_cache: SuiteCache) -> dict[str, list[CheckResult]]:
+def _run_bundle_checks(bundle_dir: Path, suite_cache: SuiteCache) -> list[CheckResult]:
     """Run every applicable check for one bundle; empty sections simply don't render."""
-    loaded, structure_findings = load_bundle(bundle_dir)
-    if loaded is None:
-        return {"Structure": structure_findings}
+    sections: list[CheckResult] = []
 
-    sections = {
-        "Structure": [*structure_findings, *loaded.check_structure()],
-        "Submitter": loaded.check_submitter(),
-    }
+    loaded, structure_findings = load_bundle(bundle_dir)
+    sections.extend(structure_findings)
+    if loaded is None:
+        return sections
+
+    sections.extend(loaded.check_structure())
+    sections.extend(loaded.check_submitter())
+
     if isinstance(loaded.bundle, InteractiveBundle):
-        sections |= _interactive_sections(loaded.bundle, suite_cache)
-    sections["Provenance"] = loaded.check_provenance()
+        sections.extend(_interactive_sections(loaded.bundle, suite_cache))
+    sections.extend(loaded.check_provenance())
     return sections
 
 
-def _interactive_sections(
-    bundle: InteractiveBundle, suite_cache: SuiteCache
-) -> dict[str, list[CheckResult]]:
+def _interactive_sections(bundle: InteractiveBundle, suite_cache: SuiteCache) -> list[CheckResult]:
     """The suite-dependent sections; coverage is meaningless against a wrong suite, so it skips."""
     suite, load_error = _load_suite_cached(bundle.manifest.measured.suite_name, suite_cache)
     suite_findings = check_suite(bundle, suite, load_error=load_error)
@@ -93,11 +92,7 @@ def _interactive_sections(
         coverage_findings = [CheckResult.skipped("coverage", "suite checks failed; not assessed")]
     else:
         coverage_findings = check_mission_coverage(bundle, suite)
-    return {
-        "Suite": suite_findings,
-        "Mission coverage": coverage_findings,
-        "Players": check_players(bundle),
-    }
+    return [*suite_findings, *coverage_findings, *check_players(bundle)]
 
 
 def _load_suite_cached(suite_name: str, cache: SuiteCache) -> tuple[Suite | None, str]:
