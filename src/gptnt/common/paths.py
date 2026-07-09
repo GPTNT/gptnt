@@ -1,8 +1,12 @@
+from importlib.resources import files
 from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
 from whenever import Instant
+import structlog
+
+logger = structlog.get_logger()
 
 
 def remove_empty_experiment_recorder_outputs(root_path: Path) -> None:
@@ -17,7 +21,9 @@ class Paths(BaseSettings):
 
     root: Path = Path.cwd()
 
-    configs: Path = root.joinpath("configs")
+    configs_override: Path | None = Field(default=None, alias="CONFIGS")
+    """Explicit configs directory; overrides the checkout-then-packaged resolution of `configs`."""
+
     storage: Path = root.joinpath("storage")
 
     output: Path = root.joinpath("output")
@@ -41,6 +47,22 @@ class Paths(BaseSettings):
 
     prompts: Path = storage.joinpath("prompts")
     """Path to the where we store the prompts pieces."""
+
+    @property
+    def configs(self) -> Path:
+        """Configs directory: the override, the checkout's `configs/`, or the packaged copy.
+
+        A source checkout has `root/configs`. An installed wheel does not, so it falls back to the
+        `gptnt/_configs` tree bundled in the wheel.
+        """
+        if self.configs_override is not None:
+            return self.configs_override
+        local = self.root / "configs"
+        if local.is_dir():
+            return local
+        packaged_config_location = Path(str(files("gptnt") / "_configs"))
+        logger.debug(f"Using pre-packaged configs directory from {packaged_config_location!r}")
+        return packaged_config_location
 
     @property
     def player_configs(self) -> Path:
