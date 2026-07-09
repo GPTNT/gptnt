@@ -5,7 +5,8 @@ from functools import lru_cache
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
-from pydantic import BaseModel, Field
+from packaging.version import InvalidVersion, Version
+from pydantic import BaseModel, Field, field_validator
 
 # Used when the package metadata or git state can't be resolved (e.g. an exotic install layout).
 UNKNOWN_VERSION = "0.0.0"
@@ -58,6 +59,21 @@ def is_dirty_sha(sha: str) -> bool:
     return sha.endswith(DIRTY_SUFFIX)
 
 
+def is_valid_version(recorded: str | None) -> bool:
+    """Whether a recorded version is resolvable.
+
+    A valid version must parse as a version (PEP 440/SemVer) AND not be the `UNKNOWN_VERSION`
+    fallback we stamp when the package metadata can't be resolved.
+    """
+    if recorded is None or not recorded.strip() or recorded.strip() == UNKNOWN_VERSION:
+        return False
+    try:
+        _ = Version(recorded)
+    except InvalidVersion:
+        return False
+    return True
+
+
 class ProvenanceMixin(BaseModel):
     """Single source of truth for run provenance fields, mixed into the records that carry it."""
 
@@ -68,3 +84,19 @@ class ProvenanceMixin(BaseModel):
     def is_dirty(self) -> bool:
         """Whether the recorded git sha carries the dirty-tree marker."""
         return self.git_sha is not None and is_dirty_sha(self.git_sha)
+
+    @field_validator("gptnt_version")
+    @classmethod
+    def _reject_unknown_version(cls, recorded: str) -> str:
+        """Any explicitly-supplied version must be real — never blank or the unknown marker.
+
+        The `gptnt_version` default_factory is not run through this (pydantic skips default
+        validation), so the `UNKNOWN_VERSION` fallback still stands for a genuinely unresolvable
+        install; but a value carried in from a record, footer, or manifest is held to the bar.
+        """
+        if not is_valid_version(recorded):
+            raise ValueError(
+                f"gptnt_version {recorded!r} is not a valid version "
+                "(must be a real semantic version, not blank or the unknown marker)"
+            )
+        return recorded

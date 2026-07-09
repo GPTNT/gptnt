@@ -125,6 +125,6 @@ def make_experiment_summary(
         experiment_descriptor=descriptor,
         defuser_capabilities=descriptor.defuser_capabilities,
         expert_capabilities=None,
-        gptnt_version="test",
+        gptnt_version="1.0.0",
         git_sha=None,
     )
