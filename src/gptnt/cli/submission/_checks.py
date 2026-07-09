@@ -243,9 +243,9 @@ def _load_interactive_payload(
 def _check_suite_revision(declared_revision: int, suite: Suite) -> CheckResult:
     """The checkout's frozen revision must be the one the submission targets."""
     if suite.revision == declared_revision:
-        return CheckResult.passed("revision", f"revision {suite.revision}")
+        return CheckResult.passed("suite revision", f"revision {suite.revision}")
     detail = f"checkout is at revision {suite.revision}, submission targets {declared_revision}"
-    return CheckResult.failed("revision", detail)
+    return CheckResult.failed("suite revision", detail)
 
 
 def _check_suite_digest(declared_digest: str, suite: Suite) -> CheckResult:
@@ -253,14 +253,14 @@ def _check_suite_digest(declared_digest: str, suite: Suite) -> CheckResult:
     try:
         digest = suite.suite_digest
     except (OSError, ValidationError) as error:
-        return CheckResult.failed("digest", f"could not compute the suite digest: {error}")
+        return CheckResult.failed("suite digest", f"could not compute the suite digest: {error}")
     if digest != declared_digest:
         return CheckResult.failed(
-            "digest",
+            "suite digest",
             f"recomputed {digest}, manifest says {declared_digest}",
             hint="The suite config or its missions changed since this bundle was built.",
         )
-    return CheckResult.passed("digest", digest)
+    return CheckResult.passed("suite digest", digest)
 
 
 def _check_experiments_belong_to_suite(
