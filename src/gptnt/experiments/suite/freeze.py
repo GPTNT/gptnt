@@ -3,7 +3,7 @@
 Given the live suites and any existing lock, `FreezeReport.reconcile` decides per suite whether to
 append a new entry, leave a matching one unchanged, or flag a digest change made without a
 `revision` bump. It never mutates or removes an existing entry, and appends only the missions not
-already in the shared table. The lock model and its I/O live alongside this, in the same package.
+already in the shared table.
 """
 
 from __future__ import annotations

@@ -44,7 +44,9 @@ def test_lock_freezes_every_live_suite() -> None:
     A suite (or a mission it loads) changing without a `revision` bump makes an outcome `append`
     (missing entry) or `digest_mismatch`, failing this test.
     """
-    outcomes = FreezeReport.reconcile(_live_suites(), _committed_lock(), _IGNORED_PROVENANCE).outcomes
+    outcomes = FreezeReport.reconcile(
+        _live_suites(), _committed_lock(), _IGNORED_PROVENANCE
+    ).outcomes
     assert [outcome.action for outcome in outcomes] == ["unchanged"] * len(outcomes)
 
 

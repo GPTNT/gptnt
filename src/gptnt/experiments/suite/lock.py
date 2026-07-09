@@ -69,7 +69,6 @@ class SuiteLock(BaseModel):
 
     We store the full suite config and the detailed mission specs in the lock file so that we can
     reconstruct a suite and its missions without reading the original configs.
-
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid", populate_by_name=True)
