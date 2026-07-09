@@ -5,9 +5,9 @@ from cyclopts import App, Parameter
 from rich.console import Console
 from whenever import Instant
 
+from gptnt.cli.check_result import CheckResult
 from gptnt.cli.config_discovery import discover_suites
 from gptnt.cli.doctor import render
-from gptnt.cli.doctor.checks import CheckResult
 from gptnt.experiments.provenance import git_sha, gptnt_version
 from gptnt.experiments.suite.compose import compose_suite
 from gptnt.experiments.suite.freeze import FreezeReport, FreezeStamp, SuiteFreezeOutcome

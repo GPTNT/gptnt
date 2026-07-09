@@ -15,7 +15,8 @@ if TYPE_CHECKING:
 
     from rich.console import Console, RenderableType
 
-    from gptnt.cli.doctor.checks import CheckResult, CheckStatus, PlayerDetail, PlayerReport
+    from gptnt.cli.check_result import CheckResult, CheckStatus
+    from gptnt.cli.doctor.checks import PlayerDetail, PlayerReport
 
 _GLYPHS: dict[str, tuple[str, str]] = {
     "pass": ("✓", "green"),

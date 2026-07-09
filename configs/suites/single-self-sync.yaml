@@ -1,7 +1,7 @@
 # @package _global_
 
 suite:
-  _target_: gptnt.experiments.suite.Suite
+  _target_: gptnt.experiments.suite.core.Suite
   name: single-self-sync
   revision: 1
   modality: [vision, language]
@@ -19,5 +19,5 @@ suite:
     is_playing_alone: false
     include_manual: true
   matchup:
-    _target_: gptnt.experiments.suite.SuiteMatchup
-    pairing_type: self
+    _target_: gptnt.experiments.suite.core.SuiteMatchup
+    pairing_type: with_self

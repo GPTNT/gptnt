@@ -8,6 +8,7 @@ go through the CLI; failure paths call the command directly and assert the raise
 
 from __future__ import annotations
 
+import json
 import shutil
 from typing import TYPE_CHECKING, Any
 
@@ -27,8 +28,8 @@ from gptnt.cli.submission.validate import validate_submission
 from gptnt.common.paths import Paths
 from gptnt.experiments.db.typed_parquet import read_typed_parquet, write_typed_parquet
 from gptnt.experiments.generation.missions import load_missions
-from gptnt.experiments.generation.pipeline import compose_suite
 from gptnt.experiments.models import ExperimentSummary
+from gptnt.experiments.suite.compose import compose_suite
 from gptnt.players.specification import PlayerCapabilities
 
 from tests._cli_runner import invoke_cli
@@ -42,7 +43,7 @@ from tests._factories.statics import write_statics_run
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from gptnt.experiments.suite import Suite
+    from gptnt.experiments.suite.core import Suite
     from gptnt.ktane.mission_spec import KtaneMissionSpec
 
 SUITE = "single-parametric-sync"
@@ -230,6 +231,34 @@ def test_sweep_reports_every_bundle(bundle_copy: Path, capsys: pytest.CaptureFix
 
     _assert_validate_fails(root)
     assert "1 ok, 1 failed" in _unwrap_output(capsys)
+
+
+def test_json_format_is_parseable(bundle_copy: Path) -> None:
+    """`--format json` emits a summary and every check as machine-readable JSON."""
+    result = invoke_cli(
+        build_app(), ["submission", "validate", str(bundle_copy), "--format", "json"]
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["summary"] == {"total": 1, "ok": 1, "failed": 0}
+    assert payload["bundles"][0]["ok"] is True
+    names = {check["name"] for check in payload["bundles"][0]["checks"]}
+    assert {"suite", "suite digest", "coverage"} <= names
+
+
+def test_github_format_annotates_failures(
+    bundle_copy: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """`--format github` emits a `::error` workflow annotation for each failed check."""
+    experiments = read_typed_parquet(SubmissionExperiment, bundle_copy / "experiments.parquet")
+    write_typed_parquet(experiments[1:], file_path=bundle_copy / "experiments.parquet")
+
+    with pytest.raises(SystemExit) as exit_info:
+        validate_submission(bundle_copy, report_format="github")
+    assert exit_info.value.code == 1
+    output = capsys.readouterr().out
+    assert "::error title=" in output
+    assert "missing" in output
 
 
 # A pairwise suite plays each mission once per expert, so coverage is over (defuser, expert,

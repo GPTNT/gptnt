@@ -87,17 +87,7 @@ class Suite(BaseModel):
         payload = self.model_dump(mode="json", exclude={"name", "revision", "config_digest"})
         return stable_digest(payload)
 
-    @cached_property
-    def loaded_missions(self) -> list[KtaneMissionSpec]:
-        """The resolved mission specs for this suite, read from disk once and cached."""
-        return load_missions(Paths().root / self.missions_path)
-
-    @cached_property
-    def mission_keys(self) -> frozenset[str]:
-        """The set of mission keys in this suite's resolved mission set."""
-        return frozenset(mission.mission_key for mission in self.loaded_missions)
-
-    @cached_property
+    @property
     def missions_digest(self) -> str:
         """A stable digest of the resolved mission file contents.
 
@@ -110,7 +100,7 @@ class Suite(BaseModel):
         )
         return stable_digest(payloads)
 
-    @cached_property
+    @property
     def suite_digest(self) -> str:
         """A stable digest of the whole suite: its `config_digest` and `missions_digest` combined.
 

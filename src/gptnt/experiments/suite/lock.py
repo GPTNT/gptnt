@@ -63,6 +63,11 @@ class SuiteLockEntry(BaseModel):
     """Sorted `mission_key` of every mission the suite covers."""
     config: dict[str, Any]
 
+    @property
+    def mission_set(self) -> str:
+        """The mission-set name (the `missions_path` basename), as frozen in the config."""
+        return Path(self.config["missions_path"]).name
+
 
 class SuiteLock(BaseModel):
     """A self-contained, append-only snapshot of all the frozen suites.

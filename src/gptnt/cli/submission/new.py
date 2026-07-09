@@ -20,7 +20,7 @@ from gptnt.cli.submission._interactive import (
 )
 from gptnt.cli.submission._schema import Submitter
 from gptnt.common.paths import Paths
-from gptnt.experiments.generation.pipeline import compose_suite
+from gptnt.experiments.suite.compose import compose_suite
 from gptnt.statics.run_metadata import StaticsRunMetadata
 
 logger = structlog.get_logger()

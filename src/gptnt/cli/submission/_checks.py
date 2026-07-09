@@ -5,8 +5,8 @@ couldn't — and the checks are methods on it, each returning :class:`CheckResul
 raising. The manifest schema does the cheap gatekeeping itself (unknown schema versions, tampered
 fingerprints, blank identities, and kind discrimination all fail the parse), so the methods here
 only cover what needs the directory, the payload, or the checkout: naming, coverage, and hygiene.
-The command layer (`validate.py`) decides section order and rendering, reusing doctor's result and
-render machinery.
+The command layer (`validate.py`) decides section order and rendering, reusing the shared
+`CheckResult` and doctor's render machinery.
 """
 
 from __future__ import annotations
@@ -20,8 +20,7 @@ from typing import TYPE_CHECKING
 import yaml
 from pydantic import ValidationError
 
-from gptnt.cli.config_discovery import discover_suites
-from gptnt.cli.doctor.checks import CheckResult
+from gptnt.cli.check_result import CheckResult
 from gptnt.cli.submission._bundle import (
     BundleName,
     InteractiveBundle,
@@ -39,7 +38,7 @@ from gptnt.experiments.db.typed_parquet import read_typed_parquet
 from gptnt.experiments.provenance import is_dirty_sha, is_valid_version
 
 if TYPE_CHECKING:
-    from gptnt.experiments.suite import Suite
+    from gptnt.experiments.suite.lock import SuiteLockEntry
     from gptnt.statics.run_metadata import StaticsIdentity
 
 REBUILD_HINT = "Rebuild with `gptnt submission new`."
@@ -121,26 +120,19 @@ class LoadedBundle:
 
 
 def check_suite(
-    bundle: InteractiveBundle, suite: Suite | None, *, load_error: str = ""
+    bundle: InteractiveBundle, entry: SuiteLockEntry | None, *, lookup_error: str = ""
 ) -> list[CheckResult]:
-    """The declared suite is real in this checkout and unchanged since the bundle was built."""
+    """The declared suite revision is frozen in the lock and unchanged since the bundle built."""
+    if entry is None:
+        return [CheckResult.failed("suite", lookup_error)]
     declared = bundle.manifest.measured
-    if declared.suite_name not in discover_suites():
-        hint = "Check configs/suites/ or update the checkout."
-        detail = f"{declared.suite_name!r} is not a suite in this checkout"
-        return [CheckResult.failed("suite", detail, hint=hint)]
-    if suite is None:
-        return [
-            CheckResult.failed("suite", f"{declared.suite_name!r} did not compose: {load_error}")
-        ]
     return [
-        CheckResult.passed("suite", declared.suite_name),
-        _check_suite_revision(declared.suite_revision, suite),
-        _check_suite_digest(declared.suite_digest, suite),
+        CheckResult.passed("suite", f"{entry.name}@{entry.revision}"),
+        _check_suite_digest(declared.suite_digest, entry.suite_digest),
     ]
 
 
-def check_mission_coverage(bundle: InteractiveBundle, suite: Suite) -> list[CheckResult]:
+def check_mission_coverage(bundle: InteractiveBundle, entry: SuiteLockEntry) -> list[CheckResult]:
     """Every (expert, mission) pairing the manifest declares has exactly one, valid run."""
     manifest = bundle.manifest
     experiments = bundle.experiments
@@ -152,10 +144,10 @@ def check_mission_coverage(bundle: InteractiveBundle, suite: Suite) -> list[Chec
             defuser.player_name, expert.player_name if expert else None, mission_key
         )
         for expert in experts
-        for mission_key in suite.mission_keys
+        for mission_key in entry.mission_keys
     }
     return [
-        _check_experiments_belong_to_suite(suite, experiments),
+        _check_experiments_belong_to_suite(entry, experiments),
         *_check_one_run_per_mission_per_pairing(expected, experiments),
         _check_experiment_outcomes(experiments),
     ]
@@ -249,34 +241,22 @@ def _load_interactive_payload(
     )
 
 
-def _check_suite_revision(declared_revision: int, suite: Suite) -> CheckResult:
-    """The checkout's frozen revision must be the one the submission targets."""
-    if suite.revision == declared_revision:
-        return CheckResult.passed("suite revision", f"revision {suite.revision}")
-    detail = f"checkout is at revision {suite.revision}, submission targets {declared_revision}"
-    return CheckResult.failed("suite revision", detail)
-
-
-def _check_suite_digest(declared_digest: str, suite: Suite) -> CheckResult:
-    """Recompute the suite digest from disk; it moves if the config or any mission was edited."""
-    try:
-        digest = suite.suite_digest
-    except (OSError, ValidationError) as error:
-        return CheckResult.failed("suite digest", f"could not compute the suite digest: {error}")
-    if digest != declared_digest:
+def _check_suite_digest(declared_digest: str, frozen_digest: str) -> CheckResult:
+    """The bundle's claimed digest must equal the frozen digest for this revision in the lock."""
+    if frozen_digest != declared_digest:
         return CheckResult.failed(
             "suite digest",
-            f"recomputed {digest}, manifest says {declared_digest}",
-            hint="The suite config or its missions changed since this bundle was built.",
+            f"lock has {frozen_digest}, manifest says {declared_digest}",
+            hint=REBUILD_HINT,
         )
-    return CheckResult.passed("suite digest", digest)
+    return CheckResult.passed("suite digest", frozen_digest)
 
 
 def _check_experiments_belong_to_suite(
-    suite: Suite, experiments: list[SubmissionExperiment]
+    entry: SuiteLockEntry, experiments: list[SubmissionExperiment]
 ) -> CheckResult:
     """Every experiment must have been recorded against this suite (and its mission set)."""
-    suite_key = (suite.name, suite.revision, suite.mission_set)
+    suite_key = (entry.name, entry.revision, entry.mission_set)
     strays = sorted(
         {
             experiment.mission_key
@@ -286,10 +266,10 @@ def _check_experiments_belong_to_suite(
         }
     )
     if strays:
-        detail = f"{len(strays)} experiment(s) not from {suite.name}@{suite.revision}: {', '.join(strays)}"
+        detail = f"{len(strays)} experiment(s) not from {entry.name}@{entry.revision}: {', '.join(strays)}"
         return CheckResult.failed("experiments", detail)
     return CheckResult.passed(
-        "experiments", f"all {len(experiments)} experiments from {suite.name}@{suite.revision}"
+        "experiments", f"all {len(experiments)} experiments from {entry.name}@{entry.revision}"
     )
 
 

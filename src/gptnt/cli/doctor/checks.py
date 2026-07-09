@@ -23,13 +23,14 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, Self
+from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
 import anyio
 import httpx
 import psutil
 
+from gptnt.cli.check_result import CheckResult, CheckStatus
 from gptnt.cli.doctor.validation import (
     ModelValidationResult,
     live_check_model_config,
@@ -53,10 +54,6 @@ if TYPE_CHECKING:
 
     from gptnt.cli.doctor.validation import LiveCheckResult
 
-CheckStatus = Literal["pass", "fail", "warn", "skip"]
-"""How a check landed: `pass` ✓, `fail` ✗ (fails the run), `warn` ⚠ (reported, never fails), `skip`
-⊘ (not applicable here, e.g. an X display on macOS)."""
-
 paths = Paths()
 
 # The infra endpoints doctor probes all come from their single shared sources: the Redis DSN and EM
@@ -78,41 +75,6 @@ OTEL_HINT = "Optional — run a collector here (e.g. `docker compose up -d`) or 
 # (an anyio stream error / RemoteProtocolError). Refused/timed-out connects raise
 # OSError/TimeoutError.
 _REDIS_PROBE_ERRORS = (OSError, TimeoutError, anyio.EndOfStream, anyio.BrokenResourceError)
-
-
-@dataclass(frozen=True)
-class CheckResult:
-    """The outcome of one check (doctor and `submission validate` share it).
-
-    `detail` is what was found (shown always). `hint` is the fix and is shown on ✗/⚠. The
-    per-status constructors are the preferred spelling — `CheckResult.failed("digest", …)` reads
-    as the finding it is.
-    """
-
-    name: str
-    status: CheckStatus
-    detail: str = ""
-    hint: str = ""
-
-    @classmethod
-    def passed(cls, name: str, detail: str = "") -> Self:
-        """The check held."""
-        return cls(name, "pass", detail=detail)
-
-    @classmethod
-    def failed(cls, name: str, detail: str = "", hint: str = "") -> Self:
-        """The check found a real problem; the run fails."""
-        return cls(name, "fail", detail=detail, hint=hint)
-
-    @classmethod
-    def warned(cls, name: str, detail: str = "", hint: str = "") -> Self:
-        """Worth flagging, but never fails the run."""
-        return cls(name, "warn", detail=detail, hint=hint)
-
-    @classmethod
-    def skipped(cls, name: str, detail: str = "") -> Self:
-        """Not applicable here."""
-        return cls(name, "skip", detail=detail)
 
 
 @dataclass(frozen=True)

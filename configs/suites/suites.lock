@@ -181,6 +181,44 @@ allow_message_output = true
 pairing_type = "with_self"
 
 [[suite]]
+name = "single-self-sync"
+revision = 1
+suite_digest = "ed90bccbf5c582c38abc2bfa2786e734"
+frozen_at = "2026-07-09T15:42:52.57493Z"
+gptnt_version = "0.15.1.dev81+24954ac5"
+git_sha = "24954ac5626c80ae7e486cfa92efdf29e69f7f2c-dirty"
+mission_keys = ["234|BigButton", "234|Keypad", "234|Maze", "234|Memory", "234|Morse", "234|Password", "234|Simon", "234|Venn", "234|WhosOnFirst", "234|WireSequence", "234|Wires", "286|BigButton", "286|Keypad", "286|Maze", "286|Memory", "286|Morse", "286|Password", "286|Simon", "286|Venn", "286|WhosOnFirst", "286|WireSequence", "286|Wires", "337|BigButton", "337|Keypad", "337|Maze", "337|Memory", "337|Morse", "337|Password", "337|Simon", "337|Venn", "337|WhosOnFirst", "337|WireSequence", "337|Wires", "561|BigButton", "561|Keypad", "561|Maze", "561|Memory", "561|Morse", "561|Password", "561|Simon", "561|Venn", "561|WhosOnFirst", "561|WireSequence", "561|Wires", "563|BigButton", "563|Keypad", "563|Maze", "563|Memory", "563|Morse", "563|Password", "563|Simon", "563|Venn", "563|WhosOnFirst", "563|WireSequence", "563|Wires", "798|BigButton", "798|Keypad", "798|Maze", "798|Memory", "798|Morse", "798|Password", "798|Simon", "798|Venn", "798|WhosOnFirst", "798|WireSequence", "798|Wires", "813|BigButton", "813|Keypad", "813|Maze", "813|Memory", "813|Morse", "813|Password", "813|Simon", "813|Venn", "813|WhosOnFirst", "813|WireSequence", "813|Wires", "845|BigButton", "845|Keypad", "845|Maze", "845|Memory", "845|Morse", "845|Password", "845|Simon", "845|Venn", "845|WhosOnFirst", "845|WireSequence", "845|Wires", "849|BigButton", "849|Keypad", "849|Maze", "849|Memory", "849|Morse", "849|Password", "849|Simon", "849|Venn", "849|WhosOnFirst", "849|WireSequence", "849|Wires", "960|BigButton", "960|Keypad", "960|Maze", "960|Memory", "960|Morse", "960|Password", "960|Simon", "960|Venn", "960|WhosOnFirst", "960|WireSequence", "960|Wires"]
+
+[suite.config]
+name = "single-self-sync"
+revision = 1
+modality = ["language", "vision"]
+missions_path = "configs/missions/single_module"
+
+[suite.config.defuser_protocol]
+role = "defuser"
+communication_style = "sync"
+is_playing_alone = false
+include_manual = false
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = true
+
+[suite.config.expert_protocol]
+role = "expert"
+communication_style = "sync"
+is_playing_alone = false
+include_manual = true
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = true
+
+[suite.config.matchup]
+pairing_type = "with_self"
+
+[[suite]]
 name = "single-solo-player-sync"
 revision = 1
 suite_digest = "125050b2dc2695dcc0fd887c2d1ad2eb"

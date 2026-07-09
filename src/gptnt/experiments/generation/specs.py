@@ -16,13 +16,6 @@ if TYPE_CHECKING:
 CONFIG_NAME = "suite_generator"
 
 
-def compose_suite(suite_name: str) -> Suite:
-    """Compose and instantiate one frozen suite by name."""
-    return hydra.utils.instantiate(
-        load_config(config_name=CONFIG_NAME, overrides=[f"suites={suite_name}"]).suite
-    )
-
-
 def _best_model_for(pairing_type: PairingType, players: DictConfig) -> str | None:
     """The anchored model a `with_best_*` pairing needs, or `None` for the other pairings."""
     if pairing_type == "with_best_defuser":

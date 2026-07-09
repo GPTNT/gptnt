@@ -1,12 +1,11 @@
-"""`gptnt submission validate` — check built bundles against the local checkout.
+"""`gptnt submission validate` — check built bundles against the frozen `suites.lock`.
 
 The doctor-style gate before a bundle goes to gptnt-submissions: the manifest parses (the schema
 itself rejects unknown versions, tampered fingerprints, and blank identities), the submitter block
-is filled in, the declared suite exists here unchanged (digest recomputed from disk), every
-mission is covered by exactly one valid run, and the payload players match the manifest. Hygiene
-issues (a dirty tree at run time, an unpinned statics dataset) warn but never fail. It needs a
-full gptnt checkout: the suite configs and mission sets are the reference the bundle is checked
-against.
+is filled in, the declared suite revision is frozen in the lock with a matching digest, every
+mission the lock records is covered by exactly one valid run, and the payload players match the
+manifest. Hygiene issues (a dirty tree at run time, an unpinned statics dataset) warn but never
+fail. Its reference is `suites.lock`, which ships in the wheel, so it needs no live configs.
 
 `gptnt submission new` bundles every recorded experiment for a (suite, model) group, so a retried
 mission surfaces here as a duplicate — validate is the curation signal, not a bug in the build.
@@ -19,8 +18,7 @@ from typing import Annotated
 from cyclopts import Parameter
 from rich.console import Console
 
-from gptnt.cli.doctor.checks import CheckResult
-from gptnt.cli.doctor.render import render_report
+from gptnt.cli.check_result import CheckResult
 from gptnt.cli.submission._bundle import InteractiveBundle
 from gptnt.cli.submission._checks import (
     check_mission_coverage,
@@ -28,20 +26,25 @@ from gptnt.cli.submission._checks import (
     check_suite,
     load_bundle,
 )
+from gptnt.cli.submission._report import BundleReport, ReportFormat, render_reports
 from gptnt.common.paths import Paths
-from gptnt.experiments.generation.pipeline import compose_suite
-from gptnt.experiments.suite import Suite
+from gptnt.experiments.suite.lock import SuiteLock, SuiteLockEntry, SuiteNotFrozenError
 
 paths = Paths()
 console = Console()
-
-type SuiteCache = dict[str, tuple["Suite | None", str]]
 
 
 def validate_submission(
     path: Annotated[
         Path, Parameter(help="A bundle directory (holding submission.yaml) or a root to sweep.")
     ] = paths.submissions,
+    *,
+    report_format: Annotated[
+        ReportFormat,
+        Parameter(
+            name="--format", help="rich (human), json (machine), or github (CI annotations)."
+        ),
+    ] = "rich",
 ) -> None:
     """Validate submission bundle(s); any failed check exits non-zero (warnings never fail)."""
     # A bundle dir matches itself: rglob's implicit `**` also matches zero directories deep.
@@ -49,23 +52,20 @@ def validate_submission(
     if not bundle_dirs:
         raise RuntimeError(f"No bundles under {path}: nothing contains a submission.yaml.")
 
-    suite_cache: SuiteCache = {}
-    failed = 0
-    for bundle_dir in bundle_dirs:
-        checks = _run_bundle_checks(bundle_dir, suite_cache)
-        heading = bundle_dir if bundle_dir == path else bundle_dir.relative_to(path)
-        render_report(console, {str(heading): checks})
-        failed += any(check.status == "fail" for check in checks)
-
-    total = len(bundle_dirs)
-    console.print(
-        f"Validated {total} bundle(s): {total - failed} ok, {failed} failed.", style="bold"
-    )
-    if failed:
+    lock = SuiteLock.from_lock_path()
+    reports = [
+        BundleReport(
+            heading=str(bundle_dir if bundle_dir == path else bundle_dir.relative_to(path)),
+            checks=_run_bundle_checks(bundle_dir, lock),
+        )
+        for bundle_dir in bundle_dirs
+    ]
+    render_reports(reports, report_format, console)
+    if any(report.failed for report in reports):
         sys.exit(1)
 
 
-def _run_bundle_checks(bundle_dir: Path, suite_cache: SuiteCache) -> list[CheckResult]:
+def _run_bundle_checks(bundle_dir: Path, lock: SuiteLock) -> list[CheckResult]:
     """Run every applicable check for one bundle; empty sections simply don't render."""
     sections: list[CheckResult] = []
 
@@ -78,27 +78,28 @@ def _run_bundle_checks(bundle_dir: Path, suite_cache: SuiteCache) -> list[CheckR
     sections.extend(loaded.check_submitter())
 
     if isinstance(loaded.bundle, InteractiveBundle):
-        sections.extend(_interactive_sections(loaded.bundle, suite_cache))
+        sections.extend(_interactive_sections(loaded.bundle, lock))
     sections.extend(loaded.check_provenance())
     return sections
 
 
-def _interactive_sections(bundle: InteractiveBundle, suite_cache: SuiteCache) -> list[CheckResult]:
+def _interactive_sections(bundle: InteractiveBundle, lock: SuiteLock) -> list[CheckResult]:
     """The suite-dependent sections; coverage is meaningless against a wrong suite, so it skips."""
-    suite, load_error = _load_suite_cached(bundle.manifest.measured.suite_name, suite_cache)
-    suite_findings = check_suite(bundle, suite, load_error=load_error)
-    if suite is None or any(finding.status == "fail" for finding in suite_findings):
+    measured = bundle.manifest.measured
+    entry, lookup_error = _lookup_entry(lock, measured.suite_name, measured.suite_revision)
+    suite_findings = check_suite(bundle, entry, lookup_error=lookup_error)
+    if entry is None or any(finding.status == "fail" for finding in suite_findings):
         coverage_findings = [CheckResult.skipped("coverage", "suite checks failed; not assessed")]
     else:
-        coverage_findings = check_mission_coverage(bundle, suite)
+        coverage_findings = check_mission_coverage(bundle, entry)
     return [*suite_findings, *coverage_findings, *check_players(bundle)]
 
 
-def _load_suite_cached(suite_name: str, cache: SuiteCache) -> tuple[Suite | None, str]:
-    """Load (and memoise) one suite; hydra composes via a global singleton, so stay serial."""
-    if suite_name not in cache:
-        try:
-            cache[suite_name] = (compose_suite(suite_name), "")
-        except Exception as error:  # noqa: BLE001 — report don't crash
-            cache[suite_name] = (None, str(error))
-    return cache[suite_name]
+def _lookup_entry(
+    lock: SuiteLock, suite_name: str, suite_revision: int
+) -> tuple[SuiteLockEntry | None, str]:
+    """The lock entry for this exact `(name, revision)`, or `None` and why it isn't frozen."""
+    try:
+        return lock.select_entry(suite_name, suite_revision), ""
+    except SuiteNotFrozenError as error:
+        return None, str(error)

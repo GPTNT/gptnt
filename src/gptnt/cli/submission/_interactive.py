@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
 
-    from gptnt.experiments.suite import Suite
+    from gptnt.experiments.suite.core import Suite
 
 
 def gather_experiments_for_suite(

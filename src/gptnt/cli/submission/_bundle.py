@@ -32,13 +32,13 @@ from gptnt.cli.submission._schema import (
 )
 from gptnt.experiments.db.typed_parquet import read_typed_parquet, write_typed_parquet
 from gptnt.experiments.provenance import Provenance
-from gptnt.experiments.suite import SuiteIdentity
+from gptnt.experiments.suite.core import SuiteIdentity
 from gptnt.statics.run_metadata import StaticsRunMetadata
 
 if TYPE_CHECKING:
     from whenever import Instant
 
-    from gptnt.experiments.suite import Suite
+    from gptnt.experiments.suite.core import Suite
     from gptnt.players.specification import PlayerCapabilities
 
 _SHORT_FINGERPRINT_LENGTH = 8
