@@ -271,6 +271,9 @@ allowed-module-metadata = ["__all__"]
 
 [tool.hatch]
 
+[tool.hatch.build.targets.wheel.force-include]
+"configs" = "gptnt/_configs"
+
 [tool.hatch.version]
 source = "uv-dynamic-versioning"
 
