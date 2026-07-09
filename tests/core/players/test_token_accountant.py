@@ -55,7 +55,7 @@ class TestTokensPerImage:
         assert token_accountant.tokens_per_image == TEST_TOKENS_PER_IMAGE
 
     def test_uncalibrated_is_zero(self, defuser_protocol: PlayerProtocol) -> None:
-        """A player left uncalibrated reports 0 tokens per image (the doctor blocks it)."""
+        """A player left uncalibrated reports 0 tokens per image."""
         accountant = TokenAccountant(
             capabilities=PlayerCapabilities(player_name="gpt-5", player_type="ai"),
             protocol=defuser_protocol,

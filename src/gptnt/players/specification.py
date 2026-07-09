@@ -85,7 +85,7 @@ class PlayerCapabilities(BaseModel):
     Default to KTANE settings.
     """
 
-    tokens_per_image: int = 0
+    tokens_per_image: int = Field(default=0, ge=0)
     """The number of tokens used to represent one image at `image_dimensions`.
 
     If this is actually zero, it will just mean that the token accountant will not properly
@@ -157,9 +157,7 @@ class PlayerCapabilities(BaseModel):
         by its capabilities and not by any other fields that may change over time, or that are not
         relevant.
         """
-        return stable_digest(
-            self.model_dump(mode="json", exclude={"usage_limits", "tokens_per_image"})
-        )
+        return stable_digest(self.model_dump(mode="json", exclude={"usage_limits"}))
 
     @override
     def __hash__(self) -> int:
