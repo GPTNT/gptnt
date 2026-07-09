@@ -18,6 +18,7 @@ from gptnt.cli.submission._interactive import (
     gather_experiments_for_suite,
     group_experiments_by_model,
 )
+from gptnt.cli.submission._schema import Submitter
 from gptnt.common.paths import Paths
 from gptnt.experiments.generation.pipeline import compose_suite
 from gptnt.statics.run_metadata import StaticsRunMetadata
@@ -84,6 +85,14 @@ def build_submission(
         list[str] | None,
         Parameter(name="--model", help="Only build these models (default: every model present)."),
     ] = None,
+    submitter: Annotated[
+        Submitter | None,
+        Parameter(
+            name="--submitter",
+            help="Fill in the submitter name in each submission.yaml.",
+            env_var="SUBMITTER",
+        ),
+    ] = None,
 ) -> None:
     """Build every submission bundle from the DuckDB."""
     built = 0
@@ -93,14 +102,18 @@ def build_submission(
         suite = compose_suite(suite_name)
         experiments = gather_experiments_for_suite(experiments_db, suite, model)
         for _, model_experiments in group_experiments_by_model(experiments):
-            _ = InteractiveBundle.from_experiments(model_experiments, suite).save(output_dir)
+            _ = InteractiveBundle.from_experiments(
+                model_experiments, suite, submitter=submitter
+            ).save(output_dir)
             built += 1
 
     for run_dir, metadata in _statics_runs(
         statics=statics, statics_output_dir=statics_output_dir, model_filter=set(model or [])
     ):
         console.print(f"[bold]statics {metadata.statics.task_name}[/bold]")
-        _ = StaticsBundle.from_run_dir(run_dir, metadata=metadata).save(output_dir)
+        _ = StaticsBundle.from_run_dir(run_dir, metadata=metadata, submitter=submitter).save(
+            output_dir
+        )
         built += 1
 
     console.print(f"Built {built} bundle(s) under {output_dir}.", style="bold")
