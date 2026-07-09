@@ -1,7 +1,7 @@
 # @package _global_
 
 suite:
-  _target_: gptnt.experiments.suite.Suite
+  _target_: gptnt.experiments.suite.core.Suite
   name: single-solo-player-sync
   revision: 1
   modality: [vision, language]
@@ -14,5 +14,5 @@ suite:
     include_manual: true
   expert_protocol: null
   matchup:
-    _target_: gptnt.experiments.suite.SuiteMatchup
+    _target_: gptnt.experiments.suite.core.SuiteMatchup
     pairing_type: no_expert

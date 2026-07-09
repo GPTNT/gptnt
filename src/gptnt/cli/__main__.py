@@ -54,6 +54,12 @@ def build_app() -> App:
         help="Materialise a mission set into configs/missions/ from the seed-based generator.",
     )
     app.command(
+        "gptnt.cli.suite.__main__:suite_app",
+        name="suite",
+        group=onboarding,
+        help="Freeze and guard the suites.lock registry.",
+    )
+    app.command(
         "gptnt.cli.run.command:run",
         name="run",
         group=onboarding,

@@ -1,11 +1,3 @@
-"""The `Suite`.
-
-A suite is one self-contained, frozen definition of what is measured: its mission set, the per-role
-interaction protocol, the matchup that pairs players, the required modalities, and a revision.
-`suite_digest` fingerprints the config and the mission files together, so a change without a
-`revision` bump is caught.
-"""
-
 from pathlib import Path
 from typing import Annotated, Literal, Self
 
@@ -16,6 +8,7 @@ from gptnt.common.hashing import stable_digest
 from gptnt.common.paths import Paths
 from gptnt.experiments.generation.missions import load_missions
 from gptnt.experiments.generation.pairing import PairingType
+from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.specification import PlayerProtocol
 
 type Modality = Literal["vision", "language", "audio"]
@@ -30,7 +23,14 @@ class SuiteMatchup(BaseModel):
 
 
 class Suite(BaseModel):
-    """One frozen benchmark configuration that defines a comparable set of results."""
+    """One frozen benchmark configuration that defines a comparable set of results.
+
+    This is a frozen definition of what is measured: its mission set, the per-role interaction
+    protocol, the matchup that pairs players, the required modalities, and a revision.
+
+    `suite_digest` fingerprints the config and the mission files together, so a change without a
+    `revision` bump is caught.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -70,6 +70,16 @@ class Suite(BaseModel):
         """The mission-set name (the `missions_path` basename), grouping attempts and records."""
         return self.missions_path.name
 
+    @property
+    def loaded_missions(self) -> list[KtaneMissionSpec]:
+        """Every materialised mission the suite covers, read from disk."""
+        return load_missions(Paths().root / self.missions_path)
+
+    @property
+    def mission_keys(self) -> tuple[str, ...]:
+        """Sorted `mission_key` of every mission in the set, read from disk."""
+        return tuple(sorted(mission.mission_key for mission in self.loaded_missions))
+
     @computed_field
     @property
     def config_digest(self) -> str:
@@ -84,9 +94,10 @@ class Suite(BaseModel):
         Reads the files from disk, so it changes when a mission in the set is edited even if the
         suite config is untouched.
         """
-        missions = load_missions(Paths().root / self.missions_path)
         # sort the payloads using the digest so that the ordering is stable too.
-        payloads = sorted([mission.model_dump_json() for mission in missions], key=stable_digest)
+        payloads = sorted(
+            [mission.model_dump_json() for mission in self.loaded_missions], key=stable_digest
+        )
         return stable_digest(payloads)
 
     @property

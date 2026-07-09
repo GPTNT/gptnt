@@ -74,7 +74,7 @@ run.yaml (RunManifest):  suites: [ids]   players: [roster]   anchors ───�
 | run manifest        | one invocation: which suites, which models                    | `run.yaml` (`RunManifest`)           |
 | roster (`players`)  | the models taking part                                        | manifest field                       |
 | anchors             | reference models for `with_best_*` matchups                   | manifest field                       |
-| generate_specs      | composes a suite plus a roster into specs                     | `experiments.generation.pipeline`    |
+| generate_specs      | composes a suite plus a roster into specs                     | `experiments.generation.specs`       |
 | ExperimentGenerator | pairs missions × pairings into specs                          | `experiments.generation.experiments` |
 | PairingGenerator    | turns the roster into (defuser, expert) pairs per the matchup | `experiments.generation.pairing`     |
 | ExperimentSpec      | the logical spec for one attempt                              | `experiments.spec`                   |
