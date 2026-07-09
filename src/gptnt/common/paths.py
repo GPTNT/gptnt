@@ -1,10 +1,10 @@
 from importlib.resources import files
 from pathlib import Path
 
+import structlog
 from pydantic import Field
 from pydantic_settings import BaseSettings
 from whenever import Instant
-import structlog
 
 logger = structlog.get_logger()
 

@@ -1,6 +1,6 @@
 [project]
 name = "gptnt"
-dynamic = [ "version" ]
+dynamic = ["version"]
 description = "GPTNT: KTANE LLM-agent benchmark — domain, experiments, services, dashboard, CLI."
 requires-python = ">=3.13, <3.14"
 dependencies = [
@@ -42,7 +42,7 @@ dependencies = [
     "structlog>=25.1.0",
     "tiktoken>=0.9.0",
     "whenever>=0.7.3",
-    "zstandard>=0.25.0"
+    "zstandard>=0.25.0",
 ]
 
 # Single opt-in: W&B run-logging recorder + wandb-backed status/cleanup/records commands, Weave
@@ -51,7 +51,7 @@ dependencies = [
 [project.optional-dependencies]
 wandb = [
     "wandb[media]>=0.19.9,<0.22.1",
-    "weave>=0.51.44"
+    "weave>=0.51.44",
 ]
 
 [project.scripts]
@@ -74,7 +74,7 @@ tests = [
     "pytest-factoryboy>=2.8.1",
     "deepdiff>=8.4.2",
     "unflatten>=0.2.0",
-    "pytest-env>=1.6.0"
+    "pytest-env>=1.6.0",
 ]
 lint = [
     "basedpyright>=1.29.2",
@@ -86,20 +86,20 @@ lint = [
     "prek>=0.2.23",
     "ruff>=0.9.0",
     "toml-sort>=0.24.2",
-    "wemake-python-styleguide>=1.0.0"
+    "wemake-python-styleguide>=1.0.0",
 ]
 visualisation = [
     "pymupdf>=1.26.6",
-    "streamlit-drawable-canvas>=0.9.3"
+    "streamlit-drawable-canvas>=0.9.3",
 ]
 # Dev/CI only: keeps W&B installed so the optional W&B modules type-check and run locally.
 # Runtime W&B support ships as the `gptnt[wandb]` extra.
 wandb = [
-    "wandb[media]>=0.19.9,<0.22.1"
+    "wandb[media]>=0.19.9,<0.22.1",
 ]
 
 [tool.uv]
-override-dependencies = [ "streamlit>=1.40.0" ]
+override-dependencies = ["streamlit>=1.40.0"]
 
 [tool.basedpyright]
 verboseOutput = true
@@ -126,11 +126,11 @@ reportPrivateUsage = false
 reportUnusedImport = false
 reportUnusedParameter = false
 reportUnusedVariable = false
-extraPaths = [ "src" ]
+extraPaths = ["src"]
 executionEnvironments = [
-    { root = "tests", extraPaths = [ "." ], reportArgumentType = false }
+    {root = "tests", extraPaths = ["."], reportArgumentType = false},
 ]
-ignore = [ "scripts", "scrap", "stats", "storage", "wandb", "configs" ]
+ignore = ["scripts", "scrap", "stats", "storage", "wandb", "configs"]
 
 [tool.codespell]
 skip = '.git*,*.svg,*.lock,*.css,*.yaml,*.json'
@@ -174,29 +174,29 @@ exclude_lines = [
     '$\s*pass$',
     'assert False',
     '@pytest\.mark\.skip',
-    '@pytest\.mark\.xfail'
+    '@pytest\.mark\.xfail',
 ]
 
 [tool.coverage.run]
-patch = [ "subprocess" ]
-concurrency = [ "multiprocessing", "thread" ]
+patch = ["subprocess"]
+concurrency = ["multiprocessing", "thread"]
 data_file = ".coverage/.coverage"
 include = [
     "src/**/*.py",
-    "tests/**/*.py"
+    "tests/**/*.py",
 ]
-disable_warnings = [ "include-ignored" ]
+disable_warnings = ["include-ignored"]
 
 [tool.creosote]
-venvs = [ ".venv" ]
-paths = [ "src" ]
+venvs = [".venv"]
+paths = ["src"]
 deps-file = "pyproject.toml"
-sections = [ "project.dependencies" ]
+sections = ["project.dependencies"]
 # exclude-deps =[]
 include-deferred = true
 
 [tool.flake8]
-extend-exclude = [ ".venv" ]
+extend-exclude = [".venv"]
 extend-ignore = [
     # basedpyright checks for unused variables
     "WPS122",
@@ -221,7 +221,7 @@ extend-ignore = [
     # Unfortunately, we can't control what other people name things
     "WPS347",
     # Module complexity doesnt seem to work consistently, so we can just disable it
-    "WPS232"
+    "WPS232",
 ]
 per-file-ignores = [
     "scripts/*:WPS",
@@ -240,12 +240,12 @@ per-file-ignores = [
     "src/gptnt/cli/doctor/checks.py:WPS202,WPS226",
     "src/gptnt/processors/*:WPS203",
     "src/gptnt/experiments/db/schema.py:WPS110,WPS111,WPS430",
-    "src/gptnt/players/tokens.py:WPS402"
+    "src/gptnt/players/tokens.py:WPS402",
 ]
-select = [ "WPS" ]
+select = ["WPS"]
 max-line-length = 99
-nested-classes-whitelist = [ "Meta", "Params", "Config" ]
-allowed-domain-names = [ "data", "params", "content" ]
+nested-classes-whitelist = ["Meta", "Params", "Config"]
+allowed-domain-names = ["data", "params", "content"]
 # WPS211: Increase number of arguments allowed for a function
 max-arguments = 10
 # WPS214: Increase number of methods allowed for a class
@@ -267,7 +267,7 @@ max-awaits = 10
 # WPS204: Increase overused expression limit in a module
 max-module-expressions = 10
 # WPS410: Allow __all__ to be defined in modules
-allowed-module-metadata = [ "__all__" ]
+allowed-module-metadata = ["__all__"]
 
 [tool.hatch]
 
@@ -283,14 +283,14 @@ root_package = "gptnt"
 [[tool.importlinter.contracts]]
 name = "layered architecture"
 type = "layers"
-containers = [ "gptnt" ]
+containers = ["gptnt"]
 layers = [
     "cli",
     "statics | app | interactive",
     "experiments",
     "players : processors : prompts",
     "ktane",
-    "common : observability"
+    "common : observability",
 ]
 
 [tool.logfire]
@@ -300,13 +300,13 @@ ignore_no_config = true
 [tool.pytest.ini_options]
 filterwarnings = [
     "ignore::UserWarning",
-    'ignore:Deprecated call to `pkg_resources.declare_namespace:DeprecationWarning'
+    'ignore:Deprecated call to `pkg_resources.declare_namespace:DeprecationWarning',
 ]
 asyncio_default_fixture_loop_scope = "function"
 markers = [
     "integration: in-situ integration test (fake Redis + fake game; no external infra needed)",
     "slow: slower test, kept out of the quick feedback loop",
-    "requires_game: needs the real KTANE binary + a display; skipped in CI"
+    "requires_game: needs the real KTANE binary + a display; skipped in CI",
 ]
 
 [tool.pytest_env]
@@ -324,7 +324,7 @@ WANDB_MODE = "disabled"
 line-length = 99
 target-version = "py313"
 unsafe-fixes = true
-src = [ "src" ]
+src = ["src"]
 force-exclude = true
 
 [tool.ruff.format]
@@ -333,8 +333,8 @@ skip-magic-trailing-comma = true
 
 [tool.ruff.lint]
 # Enable every possible rule
-select = [ "ALL" ]
-external = [ "WPS" ]
+select = ["ALL"]
+external = ["WPS"]
 ignore = [
     # Don't ask for docstring at top of module --- put it in the functions/classes
     "D100",
@@ -385,13 +385,13 @@ ignore = [
     "Q001",
     "Q002",
     "Q003",
-    "W191"
+    "W191",
 ]
 unfixable = [
     # Do not remove unused variables
     "F841",
     # Do not auto-remove commented out code
-    "ERA001"
+    "ERA001",
 ]
 
 [tool.ruff.lint.flake8-quotes]
@@ -401,27 +401,27 @@ inline-quotes = "double"
 ban-relative-imports = "all"
 
 [tool.ruff.lint.flake8-type-checking]
-exempt-modules = [ "typing", "typing_extensions" ]
+exempt-modules = ["typing", "typing_extensions"]
 runtime-evaluated-base-classes = [
     "pydantic.BaseModel",
-    "pydantic.generics.GenericModel"
+    "pydantic.generics.GenericModel",
 ]
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
-known-first-party = [ "gptnt" ]
+known-first-party = ["gptnt"]
 split-on-trailing-comma = false
-forced-separate = [ "tests" ]
+forced-separate = ["tests"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 18
 
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = [ "D", "F401", "I002" ]
-"**/tests/*" = [ "D", "S101", "INP001", "PLR2004", "FBT001", "SLF001", "ANN001" ]
-"scripts/*" = [ "INP001", "D", "ANN", "PLR", "PD", "S" ]
-"scrap/*" = [ "INP001", "D", "ANN", "PLR", "PD", "S", "T201" ]
-"src/gptnt/players/tokens.py" = [ "PLR2004" ]
+"__init__.py" = ["D", "F401", "I002"]
+"**/tests/*" = ["D", "S101", "INP001", "PLR2004", "FBT001", "SLF001", "ANN001"]
+"scripts/*" = ["INP001", "D", "ANN", "PLR", "PD", "S"]
+"scrap/*" = ["INP001", "D", "ANN", "PLR", "PD", "S", "T201"]
+"src/gptnt/players/tokens.py" = ["PLR2004"]
 
 [tool.ruff.lint.pycodestyle]
 max-doc-length = 99
@@ -433,7 +433,7 @@ convention = "google"
 max-args = 20
 
 [tool.tomlsort]
-sort_first = [ "project", "dependency-groups", "tool" ]
+sort_first = ["project", "dependency-groups", "tool"]
 spaces_indent_inline_array = 4 # Matching editorconfig
 trailing_comma_inline_array = true
 overrides."project".first = [
@@ -443,9 +443,9 @@ overrides."project".first = [
     "authors",
     "license",
     "readme",
-    "requires-python"
+    "requires-python",
 ]
-overrides."tool".first = [ "uv" ]
+overrides."tool".first = ["uv"]
 
 [tool.uv-dynamic-versioning]
 vcs = "git"
@@ -454,4 +454,4 @@ bump = true
 
 [build-system]
 build-backend = "hatchling.build"
-requires = [ "hatchling", "uv-dynamic-versioning>=0.7.0" ]
+requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
