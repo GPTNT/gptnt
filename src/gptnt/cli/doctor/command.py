@@ -90,6 +90,7 @@ async def diagnose(
     system_failed, run_plan_result = await _render_system_checks(
         run,
         matrix.config_to_player,
+        calibration=checks.check_calibration(matrix.details),
         check_mod_load=check_mod_load,
         specs=specs,
         include_infra=include_infra,
@@ -113,17 +114,21 @@ async def _render_system_checks(
     run: RunManifest | None,
     config_to_player: dict[str, str | None],
     *,
+    calibration: list[checks.CheckResult],
     check_mod_load: bool,
     specs: list[ExperimentSpec] | None = None,
     include_infra: bool = True,
 ) -> tuple[bool, RunPlanResult | None]:
-    """Run + render the infra/machine/run-plan checks."""
+    """Run + render the calibration/infra/machine/run-plan checks."""
     infra = await _infrastructure_checks(check_mod_load=check_mod_load) if include_infra else []
     machine = checks.check_machine() if include_infra else []
     run_plan_result = None if run is None else _run_plan_checks(run, config_to_player, specs=specs)
     run_plan_findings = [] if run_plan_result is None else run_plan_result.findings
 
     sections: dict[str, list[checks.CheckResult]] = {}
+    # per-player image-token calibration, right after the model matrix it stems from
+    if calibration:
+        sections["Calibration"] = calibration
     if run_plan_findings:  # render the run-plan section right after the model matrix it stems from
         sections["Run plan"] = run_plan_findings
     if infra:
@@ -131,7 +136,9 @@ async def _render_system_checks(
     if machine:
         sections["Machine"] = machine
     render.render_report(console, sections)
-    failed = any(check.status == "fail" for check in (*infra, *machine, *run_plan_findings))
+    failed = any(
+        check.status == "fail" for check in (*calibration, *infra, *machine, *run_plan_findings)
+    )
     return failed, run_plan_result
 
 
