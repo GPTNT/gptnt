@@ -94,11 +94,11 @@ class FreezeReport:
         outcomes: list[SuiteFreezeOutcome] = []
         new_entries: list[SuiteLockEntry] = []
         for suite in suites:
-            outcome, entry = cls._reconcile_one(suite, lock, stamp)
+            outcome, entry = _reconcile_one(suite, lock, stamp)
             outcomes.append(outcome)
             if entry is not None:
                 new_entries.append(entry)
-        new_missions = cls._new_missions(suites, lock)
+        new_missions = _new_missions(suites, lock)
         return cls(outcomes=tuple(outcomes), updated_lock=lock.append(new_entries, new_missions))
 
     @property
@@ -109,52 +109,61 @@ class FreezeReport:
         """
         return any(outcome.action in _BLOCKING_ACTIONS for outcome in self.outcomes)
 
-    @classmethod
-    def _reconcile_one(
-        cls, suite: Suite, lock: SuiteLock, stamp: FreezeStamp
-    ) -> tuple[SuiteFreezeOutcome, SuiteLockEntry | None]:
-        """One suite's outcome against the lock, plus any entry to append."""
-        duplicate = cls._first_duplicate(suite.mission_keys)
-        if duplicate is not None:
-            detail = f"missions share mission_key {duplicate!r}"
-            return SuiteFreezeOutcome.for_suite(suite, "duplicate_keys", detail), None
 
-        entry = lock.entry_for(suite.name, suite.revision)
-        if entry is None:
-            detail = f"revision {suite.revision} not yet frozen"
-            return SuiteFreezeOutcome.for_suite(suite, "append", detail), stamp.build_entry(suite)
-        if entry.suite_digest != suite.suite_digest:
-            was, now = entry.suite_digest[:8], suite.suite_digest[:8]
-            detail = f"digest {was} → {now} without a revision bump"
-            return SuiteFreezeOutcome.for_suite(suite, "digest_mismatch", detail), None
-        detail = f"revision {suite.revision} frozen"
-        return SuiteFreezeOutcome.for_suite(suite, "unchanged", detail), None
+def _reconcile_one(
+    suite: Suite, lock: SuiteLock, stamp: FreezeStamp
+) -> tuple[SuiteFreezeOutcome, SuiteLockEntry | None]:
+    """One suite's outcome against the lock, plus any entry to append."""
+    duplicate = _first_duplicate(suite.mission_keys)
+    if duplicate is not None:
+        detail = f"missions share mission_key {duplicate!r}"
+        return SuiteFreezeOutcome.for_suite(suite, "duplicate_keys", detail), None
 
-    @staticmethod
-    def _new_missions(suites: Sequence[Suite], lock: SuiteLock) -> list[MissionEntry]:
-        """The missions across every live suite that aren't already in the lock's shared table.
+    entry = lock.entry_for(suite.name, suite.revision)
+    if entry is None:
+        detail = f"revision {suite.revision} not yet frozen"
+        return SuiteFreezeOutcome.for_suite(suite, "append", detail), stamp.build_entry(suite)
+    if entry.suite_digest != suite.suite_digest:
+        was, now = entry.suite_digest[:8], suite.suite_digest[:8]
+        detail = f"digest {was} → {now} without a revision bump"
+        return SuiteFreezeOutcome.for_suite(suite, "digest_mismatch", detail), None
+    detail = f"revision {suite.revision} frozen"
+    return SuiteFreezeOutcome.for_suite(suite, "unchanged", detail), None
 
-        A `mission_key` that maps to two different mission bodies — whether across live suites or
-        against the existing table — is a freeze error.
-        """
-        known = lock.mission_specs()
-        fresh: dict[str, KtaneMissionSpec] = {}
-        for suite in suites:
-            for mission in suite.loaded_missions:
-                key = mission.mission_key
-                prior = fresh.get(key, known.get(key))
-                if prior is not None and prior != mission:
-                    raise ValueError(f"mission_key {key!r} maps to two different missions")
-                if key not in known:
-                    fresh[key] = mission
-        return [MissionEntry(mission_key=key, spec=fresh[key]) for key in sorted(fresh)]
 
-    @staticmethod
-    def _first_duplicate(keys: tuple[str, ...]) -> str | None:
-        """The first key that appears more than once, or `None` if all are unique."""
-        seen: set[str] = set()
-        for key in keys:
-            if key in seen:
-                return key
-            seen.add(key)
-        return None
+def _new_missions(suites: Sequence[Suite], lock: SuiteLock) -> list[MissionEntry]:
+    """The missions across every live suite that aren't already in the lock's shared table.
+
+    A `mission_key` that maps to two different mission bodies — whether across live suites or
+    against the existing table — is a freeze error.
+    """
+    known = lock.mission_specs()
+    fresh: dict[str, KtaneMissionSpec] = {}
+    for suite in suites:
+        for mission in suite.loaded_missions:
+            _register_fresh_mission(fresh, known, mission)
+    return [MissionEntry(mission_key=key, spec=fresh[key]) for key in sorted(fresh)]
+
+
+def _register_fresh_mission(
+    fresh: dict[str, KtaneMissionSpec],
+    known: dict[str, KtaneMissionSpec],
+    mission: KtaneMissionSpec,
+) -> None:
+    """Record `mission` as fresh when unknown; reject a key already holding a different body."""
+    key = mission.mission_key
+    prior = fresh.get(key, known.get(key))
+    if prior is not None and prior != mission:
+        raise ValueError(f"mission_key {key!r} maps to two different missions")
+    if key not in known:
+        fresh[key] = mission
+
+
+def _first_duplicate(keys: tuple[str, ...]) -> str | None:
+    """The first key that appears more than once, or `None` if all are unique."""
+    seen: set[str] = set()
+    for key in keys:
+        if key in seen:
+            return key
+        seen.add(key)
+    return None

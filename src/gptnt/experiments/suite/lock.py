@@ -71,7 +71,9 @@ class SuiteLock(BaseModel):
     reconstruct a suite and its missions without reading the original configs.
     """
 
-    model_config = ConfigDict(frozen=True, extra="forbid", populate_by_name=True)
+    model_config = ConfigDict(
+        frozen=True, extra="forbid", validate_by_name=True, validate_by_alias=True
+    )
 
     version: int = LOCK_VERSION
 

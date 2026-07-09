@@ -71,11 +71,8 @@ def test_reconcile_flags_digest_change_without_revision_bump() -> None:
     """A different digest at the same revision is a blocking mismatch, and nothing is appended."""
     suite = _a_suite()
     frozen = FreezeReport.reconcile([suite], None, _STAMP).updated_lock
-    tampered = SuiteLock(
-        version=frozen.version,
-        missions=frozen.missions,
-        suites=(frozen.suites[0].model_copy(update={"suite_digest": "0" * 32}),),
-    )
+    tampered_entry = frozen.suites[0].model_copy(update={"suite_digest": "0" * 32})
+    tampered = frozen.model_copy(update={"suites": (tampered_entry,)})
 
     report = FreezeReport.reconcile([suite], tampered, _STAMP)
     assert [outcome.action for outcome in report.outcomes] == ["digest_mismatch"]
