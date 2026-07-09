@@ -15,7 +15,7 @@ from whenever import Instant
 from gptnt.cli.config_discovery import player_identity
 from gptnt.experiments.db.schema import AsJSON
 from gptnt.experiments.models import ExperimentSummary
-from gptnt.experiments.provenance import ProvenanceMixin
+from gptnt.experiments.provenance import Provenance
 from gptnt.experiments.suite import SuiteIdentity
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.specification import PlayerCapabilities, PlayerIdentity, PlayerRole
@@ -146,7 +146,7 @@ class Submission[IdentityT: SuiteIdentity | StaticsIdentity](BaseModel):
     players: Annotated[list[SubmissionPlayer], Field(default_factory=list, min_length=1)]
     """Role-tagged model entries, defuser first."""
 
-    provenance: ProvenanceMixin
+    provenance: Provenance
     run_date: Instant
 
     @property

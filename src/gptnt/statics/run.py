@@ -16,7 +16,7 @@ from tqdm import tqdm
 from whenever import Instant
 
 from gptnt.common.paths import Paths
-from gptnt.experiments.provenance import ProvenanceMixin
+from gptnt.experiments.provenance import Provenance
 from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
 from gptnt.players.reasoning_parser.react import ReactStyleReasoningParser
 from gptnt.players.specification import PlayerCapabilities
@@ -241,7 +241,7 @@ class RunHFDatasetEvaluation(RunEvaluation):
                 revision=self.revision,
             ),
             capabilities=self.capabilities,
-            provenance=ProvenanceMixin(),
+            provenance=Provenance(),
         )
         metadata_file = self.output_dir.joinpath("run_meta.json")
         _ = metadata_file.write_text(metadata.model_dump_json(indent=2))

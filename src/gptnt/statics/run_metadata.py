@@ -5,7 +5,7 @@ from huggingface_hub import HfApi
 from pydantic import BaseModel
 from whenever import Instant
 
-from gptnt.experiments.provenance import ProvenanceMixin
+from gptnt.experiments.provenance import Provenance
 from gptnt.players.specification import PlayerCapabilities
 
 logger = structlog.get_logger()
@@ -90,4 +90,4 @@ class StaticsRunMetadata(BaseModel, frozen=True):
     run_date: Instant
     statics: StaticsIdentity
     capabilities: PlayerCapabilities
-    provenance: ProvenanceMixin
+    provenance: Provenance

@@ -74,7 +74,7 @@ def is_valid_version(recorded: str | None) -> bool:
     return True
 
 
-class ProvenanceMixin(BaseModel):
+class Provenance(BaseModel):
     """Single source of truth for run provenance fields, mixed into the records that carry it."""
 
     gptnt_version: str = Field(default_factory=gptnt_version)

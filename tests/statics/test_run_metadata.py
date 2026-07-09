@@ -11,7 +11,7 @@ import pytest
 from pydantic import ValidationError
 from whenever import Instant
 
-from gptnt.experiments.provenance import ProvenanceMixin
+from gptnt.experiments.provenance import Provenance
 from gptnt.players.specification import PlayerCapabilities
 from gptnt.statics import run_metadata
 
@@ -73,7 +73,7 @@ def test_run_metadata_stamps_provenance_and_round_trips(monkeypatch: pytest.Monk
             task_name="expert_vqa", hf_repo_id="org/ds", dataset_split="test", revision="v1.0"
         ),
         capabilities=capabilities,
-        provenance=ProvenanceMixin(),
+        provenance=Provenance(),
     )
     assert metadata.statics.resolved_revision == "notyourrun"
     assert metadata.statics.requested_revision == "v1.0"

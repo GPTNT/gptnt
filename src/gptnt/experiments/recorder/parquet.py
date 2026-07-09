@@ -18,7 +18,7 @@ from pydantic import ConfigDict
 from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER, arrow_schema_for
 from gptnt.experiments.descriptor import ExperimentDescriptor  # noqa: TC001
 from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep
-from gptnt.experiments.provenance import ProvenanceMixin
+from gptnt.experiments.provenance import Provenance
 from gptnt.ktane.state.bomb import BombState  # noqa: TC001
 from gptnt.players.specification import PlayerRole  # noqa: TC001
 
@@ -39,7 +39,7 @@ _ROW_GROUP_SIZE = 64
 _STEP_SCHEMA = arrow_schema_for(ExperimentStep)
 
 
-class RecordFooter(ProvenanceMixin):
+class RecordFooter(Provenance):
     """The validated experiment-level footer of one player's parquet record.
 
     Provenance comes from [ProvenanceMixin]; the rest is the per-player view of the experiment that

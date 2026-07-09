@@ -31,7 +31,7 @@ from gptnt.cli.submission._schema import (
     parse_submission_manifest,
 )
 from gptnt.experiments.db.typed_parquet import read_typed_parquet, write_typed_parquet
-from gptnt.experiments.provenance import ProvenanceMixin
+from gptnt.experiments.provenance import Provenance
 from gptnt.experiments.suite import SuiteIdentity
 from gptnt.statics.run_metadata import StaticsRunMetadata
 
@@ -148,7 +148,7 @@ class InteractiveBundle(SubmissionBundle[InteractiveSubmission]):
                     for capabilities in _collect_distinct_experts(experiments)
                 ),
             ],
-            provenance=ProvenanceMixin(
+            provenance=Provenance(
                 gptnt_version=canonical.gptnt_version, git_sha=canonical.git_sha
             ),
             run_date=run_date,
