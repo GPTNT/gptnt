@@ -1,0 +1,23 @@
+# @package _global_
+
+suite:
+  _target_: gptnt.experiments.suite.Suite
+  name: single-self-sync
+  revision: 1
+  modality: [vision, language]
+  missions_path: configs/missions/single_module
+  defuser_protocol:
+    _target_: gptnt.players.specification.PlayerProtocol
+    role: defuser
+    communication_style: sync
+    is_playing_alone: false
+    include_manual: false
+  expert_protocol:
+    _target_: gptnt.players.specification.PlayerProtocol
+    role: expert
+    communication_style: sync
+    is_playing_alone: false
+    include_manual: true
+  matchup:
+    _target_: gptnt.experiments.suite.SuiteMatchup
+    pairing_type: self
