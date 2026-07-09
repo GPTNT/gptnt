@@ -121,8 +121,13 @@ class InteractiveBundle(SubmissionBundle[InteractiveSubmission]):
     payload_filename: ClassVar[str] = "experiments.parquet"
 
     @classmethod
-    def from_experiments(cls, experiments: list[SubmissionExperiment], suite: Suite) -> Self:
-        """Bundle one model's experiments for one frozen suite (`submitter` left for a human)."""
+    def from_experiments(
+        cls,
+        experiments: list[SubmissionExperiment],
+        suite: Suite,
+        submitter: Submitter | None = None,
+    ) -> Self:
+        """Bundle one model's experiments for one frozen suite."""
         canonical = experiments[0]
         measured = SuiteIdentity.from_suite(suite)
         run_date = min(experiment.experiment_descriptor.start_time for experiment in experiments)
@@ -135,7 +140,7 @@ class InteractiveBundle(SubmissionBundle[InteractiveSubmission]):
         manifest = InteractiveSubmission(
             submission_id=name.submission_id,
             measured=measured,
-            submitter=Submitter(),
+            submitter=submitter or Submitter(),
             players=[
                 SubmissionPlayer.for_role("defuser", canonical.defuser_capabilities),
                 *(
@@ -165,7 +170,11 @@ class StaticsBundle(SubmissionBundle[StaticsSubmission]):
 
     @classmethod
     def from_run_dir(
-        cls, statics_output_dir: Path, *, metadata: StaticsRunMetadata | None = None
+        cls,
+        statics_output_dir: Path,
+        *,
+        metadata: StaticsRunMetadata | None = None,
+        submitter: Submitter | None = None,
     ) -> Self:
         """Bundle one statics run from its outputs dir (`submitter` stays blank for a human).
 
@@ -186,7 +195,7 @@ class StaticsBundle(SubmissionBundle[StaticsSubmission]):
         manifest = StaticsSubmission(
             submission_id=name.submission_id,
             measured=metadata.statics,
-            submitter=Submitter(),
+            submitter=submitter or Submitter(),
             players=[SubmissionPlayer.for_role("defuser", metadata.capabilities)],
             provenance=metadata.provenance,
             run_date=metadata.run_date,
