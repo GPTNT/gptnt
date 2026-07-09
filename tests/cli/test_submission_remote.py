@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from gptnt.cli.submission._remote import _copy_model, _model_dirs
+from gptnt.cli.submission._remote import _all_bundle_dirs, _copy_model
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -30,7 +30,7 @@ def _write_model(root: Path, model: str, *targets: str) -> Path:
 def test_model_dirs_returns_one_entry_per_model(tmp_path: Path) -> None:
     _ = _write_model(tmp_path, "gpt-5-2_7bc641c3", "single-parametric-sync@1")
     _ = _write_model(tmp_path, "claude-sonnet-4-6_46a16b38", "multi-self-async@1")
-    assert [path.name for path in _model_dirs(tmp_path)] == [
+    assert [path.name for path in _all_bundle_dirs(tmp_path)] == [
         "claude-sonnet-4-6_46a16b38",  # name-sorted
         "gpt-5-2_7bc641c3",
     ]
@@ -38,13 +38,13 @@ def test_model_dirs_returns_one_entry_per_model(tmp_path: Path) -> None:
 
 def test_model_dirs_errors_without_submissions_dir(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="submissions/ directory"):
-        _ = _model_dirs(tmp_path)
+        _ = _all_bundle_dirs(tmp_path)
 
 
 def test_model_dirs_errors_when_empty(tmp_path: Path) -> None:
     (tmp_path / "submissions").mkdir()
     with pytest.raises(ValueError, match="No model submission directories"):
-        _ = _model_dirs(tmp_path)
+        _ = _all_bundle_dirs(tmp_path)
 
 
 def test_copy_model_scopes_to_one_model(tmp_path: Path) -> None:

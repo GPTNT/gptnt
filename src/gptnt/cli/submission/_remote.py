@@ -130,17 +130,17 @@ def _force_push(repo: pygit2.Repository, branch_name: str, token: str) -> None:
     )
 
 
-def _model_dirs(submission_dir: Path) -> list[Path]:
-    """Every top-level model directory under submission_dir/submissions/, name-sorted.
+def _all_bundle_dirs(submission_dir: Path) -> list[Path]:
+    """Every top-level bundle directory under submission_dir/submissions/, name-sorted.
 
     Each is one model (`<model-slug>_<capfp8>`), the boundary for one pull request.
     """
     src_root = submission_dir / "submissions"
     if not src_root.exists():
-        raise ValueError(f"Expected a submissions/ directory inside {submission_dir}")
+        raise FileNotFoundError(f"Expected a submissions/ directory inside {submission_dir}")
     model_dirs = sorted(path for path in src_root.iterdir() if path.is_dir())
     if not model_dirs:
-        raise ValueError(f"No model submission directories found under {src_root}")
+        raise FileNotFoundError(f"No model submission directories found under {src_root}")
     return model_dirs
 
 
@@ -243,6 +243,12 @@ def _report_dry_run(
         console.print(f"{tag}: PR body:\n{body}")
 
 
+def _create_single_submission(
+    *, slug: str, bundle_dir: Path, body: str | None, dry_run: bool
+) -> SubmissionResult:
+    """Create a single submission PR for one model bundle, returning the SubmissionResult."""
+
+
 def create_submission(  # noqa: WPS210, WPS231
     *,
     slug: str = SUBMISSION_REPO_SLUG,
@@ -279,18 +285,18 @@ def create_submission(  # noqa: WPS210, WPS231
         base_commit = local_repo.head.peel(pygit2.Commit)
 
         outcomes: list[SubmissionResult] = []
-        for model_dir in _model_dirs(submission_dir):
-            branch_name = f"{user.login}/add-{model_dir.name}"
+        for bundle_dir in _all_bundle_dirs(submission_dir):
+            branch_name = f"{user.login}/add-{bundle_dir.name}"
             head = branch_name if can_push else f"{user.login}:{branch_name}"
-            pr_title = f"Add submission: {model_dir.name}"
+            pr_title = f"Add submission: {bundle_dir.name}"
 
             _create_and_checkout_branch(local_repo, branch_name, base_commit)
-            rel_paths = _copy_model(model_dir, submission_dir, clone_dir_path)
+            rel_paths = _copy_model(bundle_dir, submission_dir, clone_dir_path)
             _stage_and_commit(local_repo, rel_paths, pr_title, signature=signature)
 
             if dry_run:
                 _report_dry_run(
-                    model=model_dir.name,
+                    model=bundle_dir.name,
                     branch=branch_name,
                     head=head,
                     rel_paths=rel_paths,
@@ -301,7 +307,7 @@ def create_submission(  # noqa: WPS210, WPS231
                 )
                 outcomes.append(
                     SubmissionResult(
-                        model=model_dir.name, branch=branch_name, pr_url=DRY_RUN_PR_URL
+                        model=bundle_dir.name, branch=branch_name, pr_url=DRY_RUN_PR_URL
                     )
                 )
                 continue
@@ -320,12 +326,12 @@ def create_submission(  # noqa: WPS210, WPS231
             except Exception as exc:  # noqa: BLE001 - capture per-model, report at the end.
                 outcomes.append(
                     SubmissionResult(
-                        model=model_dir.name, branch=branch_name, pr_url="", error=str(exc)
+                        model=bundle_dir.name, branch=branch_name, pr_url="", error=str(exc)
                     )
                 )
             else:
                 outcomes.append(
-                    SubmissionResult(model=model_dir.name, branch=branch_name, pr_url=pr_url)
+                    SubmissionResult(model=bundle_dir.name, branch=branch_name, pr_url=pr_url)
                 )
 
         return outcomes
