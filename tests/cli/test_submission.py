@@ -234,9 +234,7 @@ def test_model_filter_selects_one_model(tmp_path: Path) -> None:
     _run_new(db_path, tmp_path / "submissions", "--model", "test-expert")
 
     # each bundle is one flat dir: <into>/YYYYMMDD_<display-slug>_<capfp8>_<suite>_<ver>/
-    folders = {
-        path.parent.name for path in (tmp_path / "submissions").rglob("submission.yaml")
-    }
+    folders = {path.parent.name for path in (tmp_path / "submissions").rglob("submission.yaml")}
     bundles = {
         _read_manifest(path.parent)["players"][0]["capabilities"]["player_name"]
         for path in (tmp_path / "submissions").rglob("submission.yaml")
