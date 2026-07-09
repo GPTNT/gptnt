@@ -36,6 +36,12 @@ def build_app() -> App:
         help="Scaffold new player/provider configs.",
     )
     app.command(
+        "gptnt.cli.measure_tokens_per_image:measure_tokens_per_image",
+        name="measure-tokens-per-image",
+        group=onboarding,
+        help="Measure a model's per-image token cost.",
+    )
+    app.command(
         "gptnt.cli.list_configs:list_app",
         name="list",
         group=onboarding,
