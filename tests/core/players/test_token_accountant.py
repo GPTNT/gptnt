@@ -4,6 +4,7 @@ from pytest_cases import fixture, parametrize, parametrize_with_cases
 from gptnt.players.history.token_accountant import TokenAccountant
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
+from tests._cases.messages import TEST_TOKENS_PER_IMAGE
 from tests._cases.protocol import ProtocolCases
 
 
@@ -16,6 +17,7 @@ def capabilities_with_limit() -> PlayerCapabilities:
         max_observations_per_request=3,
         preserve_last_frame_for_n_turns=1,
         structured_output_mode="prompted",
+        tokens_per_image=TEST_TOKENS_PER_IMAGE,
         usage_limits=UsageLimits(input_tokens_limit=100000),
     )
 
@@ -29,6 +31,7 @@ def capabilities_no_limit() -> PlayerCapabilities:
         max_observations_per_request=3,
         preserve_last_frame_for_n_turns=1,
         structured_output_mode="prompted",
+        tokens_per_image=TEST_TOKENS_PER_IMAGE,
         usage_limits=UsageLimits(input_tokens_limit=None),
     )
 
@@ -42,6 +45,23 @@ def token_accountant(
     return TokenAccountant(
         capabilities=capabilities_with_limit, protocol=defuser_protocol, usage=RunUsage()
     )
+
+
+class TestTokensPerImage:
+    """The accountant reports the calibrated per-image cost from its capabilities."""
+
+    def test_reads_capabilities_value(self, token_accountant: TokenAccountant) -> None:
+        """It returns `capabilities.tokens_per_image` verbatim."""
+        assert token_accountant.tokens_per_image == TEST_TOKENS_PER_IMAGE
+
+    def test_uncalibrated_is_zero(self, defuser_protocol: PlayerProtocol) -> None:
+        """A player left uncalibrated reports 0 tokens per image."""
+        accountant = TokenAccountant(
+            capabilities=PlayerCapabilities(player_name="gpt-5", player_type="ai"),
+            protocol=defuser_protocol,
+            usage=RunUsage(),
+        )
+        assert accountant.tokens_per_image == 0
 
 
 class TestAddInitialTokens:

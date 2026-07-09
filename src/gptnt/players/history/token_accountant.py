@@ -4,7 +4,7 @@ import structlog
 from pydantic_ai import RunUsage, UsageLimits
 
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
-from gptnt.players.tokens import count_tokens_from_text, estimate_tokens_for_image_per_model
+from gptnt.players.tokens import count_tokens_from_text
 
 logger = structlog.get_logger()
 
@@ -30,12 +30,8 @@ class TokenAccountant:
 
     @property
     def tokens_per_image(self) -> int:
-        """Estimated tokens for one image on the current model."""
-        return estimate_tokens_for_image_per_model(
-            model=self.capabilities.player_name,
-            long_side=self.capabilities.image_dimensions.long_side,
-            short_side=self.capabilities.image_dimensions.short_side,
-        )
+        """Calibrated input-token cost of one image (set by `gptnt calibrate-image-tokens`)."""
+        return self.capabilities.tokens_per_image
 
     @property
     def usage_limits(self) -> UsageLimits:

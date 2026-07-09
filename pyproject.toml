@@ -241,7 +241,6 @@ per-file-ignores = [
     "src/gptnt/cli/doctor/checks.py:WPS202,WPS226",
     "src/gptnt/processors/*:WPS203",
     "src/gptnt/experiments/db/schema.py:WPS110,WPS111,WPS430",
-    "src/gptnt/players/tokens.py:WPS402",
 ]
 select = ["WPS"]
 max-line-length = 99
@@ -422,7 +421,6 @@ max-complexity = 18
 "**/tests/*" = ["D", "S101", "INP001", "PLR2004", "FBT001", "SLF001", "ANN001"]
 "scripts/*" = ["INP001", "D", "ANN", "PLR", "PD", "S"]
 "scrap/*" = ["INP001", "D", "ANN", "PLR", "PD", "S", "T201"]
-"src/gptnt/players/tokens.py" = ["PLR2004"]
 
 [tool.ruff.lint.pycodestyle]
 max-doc-length = 99

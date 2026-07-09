@@ -12,6 +12,7 @@ identity:
 
 capabilities:
   player_name: gemini-3-flash-preview
+  tokens_per_image: 541
   structured_output_mode: null
   thinking_method: thinking-out-loud
   include_schema_in_instructions: true

@@ -11,6 +11,7 @@ identity:
 
 capabilities:
   player_name: gpt-5-2
+  tokens_per_image: 383
   structured_output_mode: null
   thinking_method: thinking-out-loud
   include_schema_in_instructions: true

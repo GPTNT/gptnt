@@ -11,6 +11,7 @@ identity:
 
 capabilities:
   player_name: claude-sonnet-4-6
+  tokens_per_image: 424
   structured_output_mode: null
   thinking_method: thinking-out-loud
   include_schema_in_instructions: true
