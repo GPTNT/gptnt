@@ -13,6 +13,11 @@ submission_app.command(
     name="validate",
     help="Validate submission bundle(s) against the local gptnt checkout.",
 )
+submission_app.command(
+    "gptnt.cli.submission.submit:submit_submission",
+    name="submit",
+    help="Open a PR submitting a built bundle (use --dry-run to verify without any GitHub changes).",
+)
 
 
 def main() -> None:
