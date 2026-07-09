@@ -14,7 +14,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 
-from rich.console import Console
+from gptnt.cli.submission._staging import all_bundle_dirs, copy_bundle, report_dry_run
 
 try:  # noqa: WPS229
     import pygit2
@@ -31,8 +31,6 @@ except ImportError as err:
 
 SUBMISSION_REPO_SLUG = "gptnt/submissions"
 SUBMISSION_REPO_HTTPS = f"https://github.com/{SUBMISSION_REPO_SLUG}"
-
-console = Console()
 
 
 def _get_token() -> str:
@@ -130,38 +128,6 @@ def _force_push(repo: pygit2.Repository, branch_name: str, token: str) -> None:
     )
 
 
-def _all_bundle_dirs(submission_dir: Path) -> list[Path]:
-    """Every top-level bundle directory under submission_dir/submissions/, name-sorted.
-
-    Each is one model (`<model-slug>_<capfp8>`), the boundary for one pull request.
-    """
-    src_root = submission_dir / "submissions"
-    if not src_root.exists():
-        raise FileNotFoundError(f"Expected a submissions/ directory inside {submission_dir}")
-    model_dirs = sorted(path for path in src_root.iterdir() if path.is_dir())
-    if not model_dirs:
-        raise FileNotFoundError(f"No model submission directories found under {src_root}")
-    return model_dirs
-
-
-def _copy_model(model_dir: Path, submission_dir: Path, clone_dir: Path) -> list[str]:
-    """Copy one model's subtree into clone_dir, keeping paths anchored at submission_dir.
-
-    Returns repo-relative paths of the written files (for staging), each starting
-    `submissions/<model>/...`.
-    """
-    rel_paths: list[str] = []
-    for src_file in model_dir.rglob("*"):
-        if not src_file.is_file():
-            continue
-        rel = src_file.relative_to(submission_dir)
-        destination = clone_dir / rel
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        _ = shutil.copy2(src_file, destination)
-        rel_paths.append(str(rel))
-    return rel_paths
-
-
 def _open_or_find_pr(*, source_repo: GhRepository, head: str, title: str, body: str) -> str:
     """Create a PR against source_repo and return its URL.
 
@@ -220,30 +186,78 @@ class SubmissionResult:
 DRY_RUN_PR_URL = "(dry-run — no PR created)"
 
 
-def _report_dry_run(
-    *,
-    model: str,
-    branch: str,
-    head: str,
-    rel_paths: list[str],
-    slug: str,
-    base: str,
-    title: str,
-    body: str,
-) -> None:
-    """Print what a real run would push and open for one model, without touching GitHub."""
-    tag = f"[yellow]DRY RUN [{model}][/yellow]"
-    push_target = "your fork" if ":" in head else "the upstream repo (you have push access)"
-    console.print(f"{tag}: would force-push branch {branch!r} to {push_target}")
-    console.print(f"{tag}: would stage {len(rel_paths)} file(s):")
-    for path in rel_paths:
-        console.print(f"  - {path}")
-    console.print(f"{tag}: would open PR {title!r} against {slug}@{base} (head {head})")
-    if body:
-        console.print(f"{tag}: PR body:\n{body}")
+@dataclass(frozen=True, kw_only=True)
+class _SubmissionSession:
+    """The handles computed once per run, shared across every bundle's branch, commit, and PR."""
+
+    repo: pygit2.Repository
+    """The local clone (of upstream) or fork that each bundle's branch is cut from."""
+
+    source_repo: GhRepository
+    """Only touched on a real run, to open the PR; the dry-run path never dereferences it."""
+
+    default_branch: str
+    login: str
+    token: str
+    can_push: bool
+    base_commit: pygit2.Commit
+    signature: pygit2.Signature
+    submission_dir: Path
+    clone_dir: Path
+    slug: str
+    body: str
+    dry_run: bool
+
+    def branch_for(self, bundle_dir: Path) -> str:
+        return f"{self.login}/add-{bundle_dir.name}"
+
+    def head_for(self, bundle_dir: Path) -> str:
+        """The PR head ref: bare branch on push access, `login:branch` from a fork."""
+        branch = self.branch_for(bundle_dir)
+        return branch if self.can_push else f"{self.login}:{branch}"
 
 
-def create_submission(  # noqa: WPS210, WPS231
+def _submit_one_bundle(session: _SubmissionSession, bundle_dir: Path) -> SubmissionResult:
+    """Cut one bundle's branch off the base, commit its files, and push + open its PR."""
+    branch_name = session.branch_for(bundle_dir)
+    pr_title = f"Add submission: {bundle_dir.name}"
+
+    _create_and_checkout_branch(session.repo, branch_name, session.base_commit)
+    rel_paths = copy_bundle(bundle_dir, session.submission_dir, session.clone_dir)
+    _stage_and_commit(session.repo, rel_paths, pr_title, signature=session.signature)
+
+    if session.dry_run:
+        report_dry_run(
+            model=bundle_dir.name,
+            branch=branch_name,
+            head=session.head_for(bundle_dir),
+            rel_paths=rel_paths,
+            slug=session.slug,
+            base=session.default_branch,
+            title=pr_title,
+            body=session.body,
+        )
+        return SubmissionResult(model=bundle_dir.name, branch=branch_name, pr_url=DRY_RUN_PR_URL)
+
+    # Isolate one bundle so a single push/PR failure does not abort the rest of the batch.
+    try:
+        pr_url = _push_and_open_pr(
+            local_repo=session.repo,
+            source_repo=session.source_repo,
+            branch_name=branch_name,
+            head=session.head_for(bundle_dir),
+            token=session.token,
+            title=pr_title,
+            body=session.body,
+        )
+    except Exception as exc:  # noqa: BLE001 - capture per-bundle, report at the end.
+        return SubmissionResult(
+            model=bundle_dir.name, branch=branch_name, pr_url="", error=str(exc)
+        )
+    return SubmissionResult(model=bundle_dir.name, branch=branch_name, pr_url=pr_url)
+
+
+def create_submission(
     *,
     slug: str = SUBMISSION_REPO_SLUG,
     submission_dir: Path,
@@ -266,8 +280,6 @@ def create_submission(  # noqa: WPS210, WPS231
     assert isinstance(user, AuthenticatedUser)
 
     can_push = source_repo.permissions.push
-    signature = _author_signature(user)
-    pr_body = body or ""
 
     with tempfile.TemporaryDirectory(prefix="gptnt-submission-clone-") as clone_dir:
         clone_dir_path = Path(clone_dir)
@@ -276,56 +288,20 @@ def create_submission(  # noqa: WPS210, WPS231
             local_repo = _clone(source_repo.clone_url, clone_dir_path, token)
         else:
             local_repo = _fork_and_clone(source_repo, clone_dir_path, user, token)
-        base_commit = local_repo.head.peel(pygit2.Commit)
 
-        outcomes: list[SubmissionResult] = []
-        for bundle_dir in _all_bundle_dirs(submission_dir):
-            branch_name = f"{user.login}/add-{bundle_dir.name}"
-            head = branch_name if can_push else f"{user.login}:{branch_name}"
-            pr_title = f"Add submission: {bundle_dir.name}"
-
-            _create_and_checkout_branch(local_repo, branch_name, base_commit)
-            rel_paths = _copy_model(bundle_dir, submission_dir, clone_dir_path)
-            _stage_and_commit(local_repo, rel_paths, pr_title, signature=signature)
-
-            if dry_run:
-                _report_dry_run(
-                    model=bundle_dir.name,
-                    branch=branch_name,
-                    head=head,
-                    rel_paths=rel_paths,
-                    slug=slug,
-                    base=source_repo.default_branch,
-                    title=pr_title,
-                    body=pr_body,
-                )
-                outcomes.append(
-                    SubmissionResult(
-                        model=bundle_dir.name, branch=branch_name, pr_url=DRY_RUN_PR_URL
-                    )
-                )
-                continue
-
-            # Isolate one model so a single push/PR failure does not abort the rest of the batch.
-            try:
-                pr_url = _push_and_open_pr(
-                    local_repo=local_repo,
-                    source_repo=source_repo,
-                    branch_name=branch_name,
-                    head=head,
-                    token=token,
-                    title=pr_title,
-                    body=pr_body,
-                )
-            except Exception as exc:  # noqa: BLE001 - capture per-model, report at the end.
-                outcomes.append(
-                    SubmissionResult(
-                        model=bundle_dir.name, branch=branch_name, pr_url="", error=str(exc)
-                    )
-                )
-            else:
-                outcomes.append(
-                    SubmissionResult(model=bundle_dir.name, branch=branch_name, pr_url=pr_url)
-                )
-
-        return outcomes
+        session = _SubmissionSession(
+            repo=local_repo,
+            source_repo=source_repo,
+            default_branch=source_repo.default_branch,
+            login=user.login,
+            token=token,
+            can_push=can_push,
+            base_commit=local_repo.head.peel(pygit2.Commit),
+            signature=_author_signature(user),
+            submission_dir=submission_dir,
+            clone_dir=clone_dir_path,
+            slug=slug,
+            body=body or "",
+            dry_run=dry_run,
+        )
+        return [_submit_one_bundle(session, bundle) for bundle in all_bundle_dirs(submission_dir)]

@@ -1,8 +1,8 @@
 """What a submission bundle is: its naming, its two shapes, and how each saves and loads.
 
-A bundle is one directory per (model, target):
+A bundle is one flat directory per (model, target):
 
-    <output>/<model-slug>_<capfp8>/<target>@<revision>/
+    <output>/YYYYMMDD_<display-slug>_<capfp8>_<suite>_<ver>/
         submission.yaml       # the manifest; every derived field regenerated on rebuild
         experiments.parquet   # interactive payload, or
         metrics.json          # statics payload
@@ -56,6 +56,9 @@ class BundleName:
     player_name: str
     """Recorded `player_name` of the model being submitted (the defuser)."""
 
+    display_name: str
+    """The model's leaderboard `display_name` from its player config."""
+
     target: str
     """What was measured, with its pin: `<suite>@<revision>` or `<task>@<revision>`."""
 
@@ -71,6 +74,7 @@ class BundleName:
         capabilities = manifest.player.capabilities
         return cls(
             player_name=capabilities.player_name,
+            display_name=manifest.player.identity.display_name,
             target=manifest.target,
             fingerprint=capabilities.fingerprint,
             run_date=manifest.run_date,
@@ -84,8 +88,23 @@ class BundleName:
 
     @property
     def relative_dir(self) -> Path:
-        """Where the bundle lives under the output dir: `<model-slug>_<cap-fp>/<target>/`."""
-        return Path(f"{slugify(self.player_name)}_{self._short_fingerprint}") / self.target
+        """Where the bundle lives under the output dir: one flat folder per bundle.
+
+        `YYYYMMDD_<display_name>_<capfp8>_<suite>_<ver>`.
+        """
+        suite, _, version = self.target.partition("@")
+        parts = [
+            self._date_label,
+            slugify(self.display_name),
+            self._short_fingerprint,
+            slugify(suite),
+            slugify(version),
+        ]
+        return Path("_".join(parts))
+
+    @property
+    def _date_label(self) -> str:
+        return self.run_date.format_iso()[:10].replace("-", "")
 
     @property
     def _short_fingerprint(self) -> str:
@@ -131,8 +150,10 @@ class InteractiveBundle(SubmissionBundle[InteractiveSubmission]):
         canonical = experiments[0]
         measured = SuiteIdentity.from_suite(suite)
         run_date = min(experiment.experiment_descriptor.start_time for experiment in experiments)
+        defuser = SubmissionPlayer.for_role("defuser", canonical.defuser_capabilities)
         name = BundleName(
             player_name=canonical.defuser_capabilities.player_name,
+            display_name=defuser.identity.display_name,
             target=measured.target,
             fingerprint=canonical.defuser_capabilities.fingerprint,
             run_date=run_date,
@@ -142,7 +163,7 @@ class InteractiveBundle(SubmissionBundle[InteractiveSubmission]):
             measured=measured,
             submitter=submitter or Submitter(),
             players=[
-                SubmissionPlayer.for_role("defuser", canonical.defuser_capabilities),
+                defuser,
                 *(
                     SubmissionPlayer.for_role("expert", capabilities)
                     for capabilities in _collect_distinct_experts(experiments)
@@ -186,8 +207,10 @@ class StaticsBundle(SubmissionBundle[StaticsSubmission]):
             metadata = StaticsRunMetadata.model_validate_json(
                 (statics_output_dir / "run_meta.json").read_text()
             )
+        defuser = SubmissionPlayer.for_role("defuser", metadata.capabilities)
         name = BundleName(
             player_name=metadata.capabilities.player_name,
+            display_name=defuser.identity.display_name,
             target=metadata.statics.target,
             fingerprint=metadata.capabilities.fingerprint,
             run_date=metadata.run_date,
@@ -196,7 +219,7 @@ class StaticsBundle(SubmissionBundle[StaticsSubmission]):
             submission_id=name.submission_id,
             measured=metadata.statics,
             submitter=submitter or Submitter(),
-            players=[SubmissionPlayer.for_role("defuser", metadata.capabilities)],
+            players=[defuser],
             provenance=metadata.provenance,
             run_date=metadata.run_date,
         )

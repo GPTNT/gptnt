@@ -16,7 +16,12 @@ import yaml
 from pydantic_ai import RunUsage
 
 from gptnt.cli.__main__ import build_app
-from gptnt.cli.submission._bundle import InteractiveBundle, StaticsBundle, load_submission_bundle
+from gptnt.cli.submission._bundle import (
+    InteractiveBundle,
+    StaticsBundle,
+    load_submission_bundle,
+    slugify,
+)
 from gptnt.cli.submission._schema import SubmissionExperiment
 from gptnt.cli.submission.validate import validate_submission
 from gptnt.common.paths import Paths
@@ -117,12 +122,13 @@ def _unwrap_output(capsys: pytest.CaptureFixture[str]) -> str:
 def test_bundle_round_trips_through_save_and_load(bundle_copy: Path) -> None:
     loaded = load_submission_bundle(bundle_copy)
     assert isinstance(loaded, InteractiveBundle)
-    assert loaded.manifest.target == bundle_copy.name
+    suite_name = loaded.manifest.target.partition("@")[0]
+    assert slugify(suite_name) in bundle_copy.name
     assert len(loaded.experiments) == len(
         read_typed_parquet(SubmissionExperiment, bundle_copy / "experiments.parquet")
     )
     # Saving what was loaded reproduces the same directory (submitter edits survive the merge).
-    assert loaded.save(bundle_copy.parent.parent) == bundle_copy
+    assert loaded.save(bundle_copy.parent) == bundle_copy
     assert _read_manifest(bundle_copy)["submitter"]["name"] == "Ada Lovelace"
 
 
@@ -194,11 +200,10 @@ def test_tampered_written_fingerprint_fails(bundle_copy: Path) -> None:
 
 
 def test_renamed_model_dir_fails(bundle_copy: Path) -> None:
-    model_dir = bundle_copy.parent
-    renamed = model_dir.with_name("test-defuser_00000000")
-    _ = model_dir.rename(renamed)
+    renamed = bundle_copy.with_name("20200101_test-defuser_00000000_wrong-suite_9")
+    _ = bundle_copy.rename(renamed)
 
-    _assert_validate_fails(renamed / bundle_copy.name)
+    _assert_validate_fails(renamed)
 
 
 def test_missing_payload_fails(bundle_copy: Path) -> None:
@@ -219,8 +224,8 @@ def test_dirty_git_sha_warns_but_passes(bundle_copy: Path) -> None:
 
 def test_sweep_reports_every_bundle(bundle_copy: Path, capsys: pytest.CaptureFixture[str]) -> None:
     """A root with one good and one broken bundle fails overall but renders both."""
-    root = bundle_copy.parent.parent
-    broken = root / "broken" / bundle_copy.name
+    root = bundle_copy.parent
+    broken = root / "broken"
     _ = shutil.copytree(bundle_copy, broken)  # the copy's dir no longer matches its manifest
 
     _assert_validate_fails(root)

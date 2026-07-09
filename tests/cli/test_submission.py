@@ -233,16 +233,16 @@ def test_model_filter_selects_one_model(tmp_path: Path) -> None:
 
     _run_new(db_path, tmp_path / "submissions", "--model", "test-expert")
 
-    # the model dir is the grandparent of submission.yaml: <into>/<model>_<capfp8>/<suite>@<rev>/
-    models = {
-        path.parent.parent.name for path in (tmp_path / "submissions").rglob("submission.yaml")
+    # each bundle is one flat dir: <into>/YYYYMMDD_<display-slug>_<capfp8>_<suite>_<ver>/
+    folders = {
+        path.parent.name for path in (tmp_path / "submissions").rglob("submission.yaml")
     }
     bundles = {
         _read_manifest(path.parent)["players"][0]["capabilities"]["player_name"]
         for path in (tmp_path / "submissions").rglob("submission.yaml")
     }
     assert bundles == {"test-expert"}
-    assert not any(name.startswith("test-defuser") for name in models)
+    assert not any("test-defuser" in name for name in folders)
 
 
 def _run_statics_new(root: Path, into: Path, *extra: str) -> CliResult:

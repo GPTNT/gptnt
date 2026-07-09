@@ -92,8 +92,8 @@ class LoadedBundle:
 
     @property
     def _actual_dir(self) -> Path:
-        """The `<model-slug>_<fp8>/<target>` pair this bundle actually lives at on disk."""
-        return Path(self.bundle_dir.parent.name) / self.bundle_dir.name
+        """The flat `YYYYMMDD_<display>_<fp8>_<suite>_<ver>` folder this bundle lives at."""
+        return Path(self.bundle_dir.name)
 
     def _check_stray_payload(self) -> CheckResult | None:
         """The other kind's payload file must not be lying around in this bundle."""
