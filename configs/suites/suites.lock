@@ -1,0 +1,2640 @@
+version = 2
+
+[meta]
+lock_tool = "gptnt suite freeze"
+
+[[mission]]
+mission_key = "1028|Keypad,Maze,Password,WireSequence"
+
+[mission.spec]
+seed = 1028
+timeLimit = 300
+numStrikes = 3
+components = [
+    "Keypad",
+    "Maze",
+    "Password",
+    "WireSequence",
+]
+optWidgets = 5
+needyTime = 60
+isFront = false
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "110|Keypad,Maze,Wires"
+
+[mission.spec]
+seed = 110
+timeLimit = 300
+numStrikes = 3
+components = [
+    "Keypad",
+    "Wires",
+    "Maze",
+]
+optWidgets = 5
+needyTime = 60
+isFront = false
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "234|BigButton"
+
+[mission.spec]
+seed = 234
+timeLimit = 144
+numStrikes = 3
+components = [
+    "BigButton",
+]
+optWidgets = 3
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "234|Keypad"
+
+[mission.spec]
+seed = 234
+timeLimit = 90
+numStrikes = 3
+components = [
+    "Keypad",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "234|Maze"
+
+[mission.spec]
+seed = 234
+timeLimit = 183
+numStrikes = 3
+components = [
+    "Maze",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "234|Memory"
+
+[mission.spec]
+seed = 234
+timeLimit = 105
+numStrikes = 3
+components = [
+    "Memory",
+]
+optWidgets = 3
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "234|Morse"
+
+[mission.spec]
+seed = 234
+timeLimit = 144
+numStrikes = 3
+components = [
+    "Morse",
+]
+optWidgets = 1
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "234|Password"
+
+[mission.spec]
+seed = 234
+timeLimit = 231
+numStrikes = 3
+components = [
+    "Password",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "234|Simon"
+
+[mission.spec]
+seed = 234
+timeLimit = 135
+numStrikes = 3
+components = [
+    "Simon",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "234|Venn"
+
+[mission.spec]
+seed = 234
+timeLimit = 126
+numStrikes = 3
+components = [
+    "Venn",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "234|WhosOnFirst"
+
+[mission.spec]
+seed = 234
+timeLimit = 93
+numStrikes = 3
+components = [
+    "WhosOnFirst",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "234|WireSequence"
+
+[mission.spec]
+seed = 234
+timeLimit = 135
+numStrikes = 3
+components = [
+    "WireSequence",
+]
+optWidgets = 3
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "234|Wires"
+
+[mission.spec]
+seed = 234
+timeLimit = 81
+numStrikes = 3
+components = [
+    "Wires",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "286|BigButton"
+
+[mission.spec]
+seed = 286
+timeLimit = 144
+numStrikes = 3
+components = [
+    "BigButton",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "286|Keypad"
+
+[mission.spec]
+seed = 286
+timeLimit = 90
+numStrikes = 3
+components = [
+    "Keypad",
+]
+optWidgets = 3
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "286|Maze"
+
+[mission.spec]
+seed = 286
+timeLimit = 183
+numStrikes = 3
+components = [
+    "Maze",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "286|Memory"
+
+[mission.spec]
+seed = 286
+timeLimit = 105
+numStrikes = 3
+components = [
+    "Memory",
+]
+optWidgets = 4
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "286|Memory,Password,WhosOnFirst"
+
+[mission.spec]
+seed = 286
+timeLimit = 300
+numStrikes = 3
+components = [
+    "WhosOnFirst",
+    "Memory",
+    "Password",
+]
+optWidgets = 5
+needyTime = 60
+isFront = false
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "286|Morse"
+
+[mission.spec]
+seed = 286
+timeLimit = 144
+numStrikes = 3
+components = [
+    "Morse",
+]
+optWidgets = 4
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "286|Password"
+
+[mission.spec]
+seed = 286
+timeLimit = 231
+numStrikes = 3
+components = [
+    "Password",
+]
+optWidgets = 1
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "286|Simon"
+
+[mission.spec]
+seed = 286
+timeLimit = 135
+numStrikes = 3
+components = [
+    "Simon",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "286|Venn"
+
+[mission.spec]
+seed = 286
+timeLimit = 126
+numStrikes = 3
+components = [
+    "Venn",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "286|WhosOnFirst"
+
+[mission.spec]
+seed = 286
+timeLimit = 93
+numStrikes = 3
+components = [
+    "WhosOnFirst",
+]
+optWidgets = 3
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "286|WireSequence"
+
+[mission.spec]
+seed = 286
+timeLimit = 135
+numStrikes = 3
+components = [
+    "WireSequence",
+]
+optWidgets = 4
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "286|Wires"
+
+[mission.spec]
+seed = 286
+timeLimit = 81
+numStrikes = 3
+components = [
+    "Wires",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "337|BigButton"
+
+[mission.spec]
+seed = 337
+timeLimit = 144
+numStrikes = 3
+components = [
+    "BigButton",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "337|BigButton,Simon,Venn"
+
+[mission.spec]
+seed = 337
+timeLimit = 300
+numStrikes = 3
+components = [
+    "BigButton",
+    "Simon",
+    "Venn",
+]
+optWidgets = 5
+needyTime = 60
+isFront = false
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "337|Keypad"
+
+[mission.spec]
+seed = 337
+timeLimit = 90
+numStrikes = 3
+components = [
+    "Keypad",
+]
+optWidgets = 1
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "337|Maze"
+
+[mission.spec]
+seed = 337
+timeLimit = 183
+numStrikes = 3
+components = [
+    "Maze",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "337|Memory"
+
+[mission.spec]
+seed = 337
+timeLimit = 105
+numStrikes = 3
+components = [
+    "Memory",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "337|Morse"
+
+[mission.spec]
+seed = 337
+timeLimit = 144
+numStrikes = 3
+components = [
+    "Morse",
+]
+optWidgets = 3
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "337|Password"
+
+[mission.spec]
+seed = 337
+timeLimit = 231
+numStrikes = 3
+components = [
+    "Password",
+]
+optWidgets = 4
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "337|Simon"
+
+[mission.spec]
+seed = 337
+timeLimit = 135
+numStrikes = 3
+components = [
+    "Simon",
+]
+optWidgets = 3
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "337|Venn"
+
+[mission.spec]
+seed = 337
+timeLimit = 126
+numStrikes = 3
+components = [
+    "Venn",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "337|WhosOnFirst"
+
+[mission.spec]
+seed = 337
+timeLimit = 93
+numStrikes = 3
+components = [
+    "WhosOnFirst",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "337|WireSequence"
+
+[mission.spec]
+seed = 337
+timeLimit = 135
+numStrikes = 3
+components = [
+    "WireSequence",
+]
+optWidgets = 4
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "337|Wires"
+
+[mission.spec]
+seed = 337
+timeLimit = 81
+numStrikes = 3
+components = [
+    "Wires",
+]
+optWidgets = 3
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "412|Keypad,Simon,WhosOnFirst"
+
+[mission.spec]
+seed = 412
+timeLimit = 180
+numStrikes = 3
+components = [
+    "Keypad",
+    "Simon",
+    "WhosOnFirst",
+]
+optWidgets = 5
+needyTime = 60
+isFront = false
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "526|Maze,Memory,Wires"
+
+[mission.spec]
+seed = 526
+timeLimit = 180
+numStrikes = 3
+components = [
+    "Wires",
+    "Maze",
+    "Memory",
+]
+optWidgets = 5
+needyTime = 60
+isFront = false
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "561|BigButton"
+
+[mission.spec]
+seed = 561
+timeLimit = 144
+numStrikes = 3
+components = [
+    "BigButton",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "561|Keypad"
+
+[mission.spec]
+seed = 561
+timeLimit = 90
+numStrikes = 3
+components = [
+    "Keypad",
+]
+optWidgets = 4
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "561|Maze"
+
+[mission.spec]
+seed = 561
+timeLimit = 183
+numStrikes = 3
+components = [
+    "Maze",
+]
+optWidgets = 1
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "561|Memory"
+
+[mission.spec]
+seed = 561
+timeLimit = 105
+numStrikes = 3
+components = [
+    "Memory",
+]
+optWidgets = 4
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "561|Morse"
+
+[mission.spec]
+seed = 561
+timeLimit = 144
+numStrikes = 3
+components = [
+    "Morse",
+]
+optWidgets = 4
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "561|Password"
+
+[mission.spec]
+seed = 561
+timeLimit = 231
+numStrikes = 3
+components = [
+    "Password",
+]
+optWidgets = 1
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "561|Simon"
+
+[mission.spec]
+seed = 561
+timeLimit = 135
+numStrikes = 3
+components = [
+    "Simon",
+]
+optWidgets = 4
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "561|Venn"
+
+[mission.spec]
+seed = 561
+timeLimit = 126
+numStrikes = 3
+components = [
+    "Venn",
+]
+optWidgets = 4
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "561|WhosOnFirst"
+
+[mission.spec]
+seed = 561
+timeLimit = 93
+numStrikes = 3
+components = [
+    "WhosOnFirst",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "561|WireSequence"
+
+[mission.spec]
+seed = 561
+timeLimit = 135
+numStrikes = 3
+components = [
+    "WireSequence",
+]
+optWidgets = 4
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "561|Wires"
+
+[mission.spec]
+seed = 561
+timeLimit = 81
+numStrikes = 3
+components = [
+    "Wires",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "563|BigButton"
+
+[mission.spec]
+seed = 563
+timeLimit = 144
+numStrikes = 3
+components = [
+    "BigButton",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "563|Keypad"
+
+[mission.spec]
+seed = 563
+timeLimit = 90
+numStrikes = 3
+components = [
+    "Keypad",
+]
+optWidgets = 1
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "563|Maze"
+
+[mission.spec]
+seed = 563
+timeLimit = 183
+numStrikes = 3
+components = [
+    "Maze",
+]
+optWidgets = 1
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "563|Memory"
+
+[mission.spec]
+seed = 563
+timeLimit = 105
+numStrikes = 3
+components = [
+    "Memory",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "563|Morse"
+
+[mission.spec]
+seed = 563
+timeLimit = 144
+numStrikes = 3
+components = [
+    "Morse",
+]
+optWidgets = 3
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "563|Password"
+
+[mission.spec]
+seed = 563
+timeLimit = 231
+numStrikes = 3
+components = [
+    "Password",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "563|Simon"
+
+[mission.spec]
+seed = 563
+timeLimit = 135
+numStrikes = 3
+components = [
+    "Simon",
+]
+optWidgets = 4
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "563|Venn"
+
+[mission.spec]
+seed = 563
+timeLimit = 126
+numStrikes = 3
+components = [
+    "Venn",
+]
+optWidgets = 4
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "563|WhosOnFirst"
+
+[mission.spec]
+seed = 563
+timeLimit = 93
+numStrikes = 3
+components = [
+    "WhosOnFirst",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "563|WireSequence"
+
+[mission.spec]
+seed = 563
+timeLimit = 135
+numStrikes = 3
+components = [
+    "WireSequence",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "563|Wires"
+
+[mission.spec]
+seed = 563
+timeLimit = 81
+numStrikes = 3
+components = [
+    "Wires",
+]
+optWidgets = 1
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "619|BigButton,Memory,WhosOnFirst"
+
+[mission.spec]
+seed = 619
+timeLimit = 180
+numStrikes = 3
+components = [
+    "BigButton",
+    "Memory",
+    "WhosOnFirst",
+]
+optWidgets = 5
+needyTime = 60
+isFront = false
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "798|BigButton"
+
+[mission.spec]
+seed = 798
+timeLimit = 144
+numStrikes = 3
+components = [
+    "BigButton",
+]
+optWidgets = 3
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "798|BigButton,Keypad,Memory,Wires"
+
+[mission.spec]
+seed = 798
+timeLimit = 300
+numStrikes = 3
+components = [
+    "Wires",
+    "BigButton",
+    "Keypad",
+    "Memory",
+]
+optWidgets = 5
+needyTime = 60
+isFront = false
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "798|Keypad"
+
+[mission.spec]
+seed = 798
+timeLimit = 90
+numStrikes = 3
+components = [
+    "Keypad",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "798|Maze"
+
+[mission.spec]
+seed = 798
+timeLimit = 183
+numStrikes = 3
+components = [
+    "Maze",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "798|Memory"
+
+[mission.spec]
+seed = 798
+timeLimit = 105
+numStrikes = 3
+components = [
+    "Memory",
+]
+optWidgets = 4
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "798|Morse"
+
+[mission.spec]
+seed = 798
+timeLimit = 144
+numStrikes = 3
+components = [
+    "Morse",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "798|Password"
+
+[mission.spec]
+seed = 798
+timeLimit = 231
+numStrikes = 3
+components = [
+    "Password",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "798|Simon"
+
+[mission.spec]
+seed = 798
+timeLimit = 135
+numStrikes = 3
+components = [
+    "Simon",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "798|Venn"
+
+[mission.spec]
+seed = 798
+timeLimit = 126
+numStrikes = 3
+components = [
+    "Venn",
+]
+optWidgets = 1
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "798|WhosOnFirst"
+
+[mission.spec]
+seed = 798
+timeLimit = 93
+numStrikes = 3
+components = [
+    "WhosOnFirst",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "798|WireSequence"
+
+[mission.spec]
+seed = 798
+timeLimit = 135
+numStrikes = 3
+components = [
+    "WireSequence",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "798|Wires"
+
+[mission.spec]
+seed = 798
+timeLimit = 81
+numStrikes = 3
+components = [
+    "Wires",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "813|BigButton"
+
+[mission.spec]
+seed = 813
+timeLimit = 144
+numStrikes = 3
+components = [
+    "BigButton",
+]
+optWidgets = 3
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "813|Keypad"
+
+[mission.spec]
+seed = 813
+timeLimit = 90
+numStrikes = 3
+components = [
+    "Keypad",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "813|Maze"
+
+[mission.spec]
+seed = 813
+timeLimit = 183
+numStrikes = 3
+components = [
+    "Maze",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "813|Memory"
+
+[mission.spec]
+seed = 813
+timeLimit = 105
+numStrikes = 3
+components = [
+    "Memory",
+]
+optWidgets = 3
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "813|Morse"
+
+[mission.spec]
+seed = 813
+timeLimit = 144
+numStrikes = 3
+components = [
+    "Morse",
+]
+optWidgets = 4
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "813|Password"
+
+[mission.spec]
+seed = 813
+timeLimit = 231
+numStrikes = 3
+components = [
+    "Password",
+]
+optWidgets = 1
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "813|Simon"
+
+[mission.spec]
+seed = 813
+timeLimit = 135
+numStrikes = 3
+components = [
+    "Simon",
+]
+optWidgets = 3
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "813|Venn"
+
+[mission.spec]
+seed = 813
+timeLimit = 126
+numStrikes = 3
+components = [
+    "Venn",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "813|WhosOnFirst"
+
+[mission.spec]
+seed = 813
+timeLimit = 93
+numStrikes = 3
+components = [
+    "WhosOnFirst",
+]
+optWidgets = 1
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "813|WireSequence"
+
+[mission.spec]
+seed = 813
+timeLimit = 135
+numStrikes = 3
+components = [
+    "WireSequence",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "813|Wires"
+
+[mission.spec]
+seed = 813
+timeLimit = 81
+numStrikes = 3
+components = [
+    "Wires",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "845|BigButton"
+
+[mission.spec]
+seed = 845
+timeLimit = 144
+numStrikes = 3
+components = [
+    "BigButton",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "845|Keypad"
+
+[mission.spec]
+seed = 845
+timeLimit = 90
+numStrikes = 3
+components = [
+    "Keypad",
+]
+optWidgets = 3
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "845|Maze"
+
+[mission.spec]
+seed = 845
+timeLimit = 183
+numStrikes = 3
+components = [
+    "Maze",
+]
+optWidgets = 1
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "845|Memory"
+
+[mission.spec]
+seed = 845
+timeLimit = 105
+numStrikes = 3
+components = [
+    "Memory",
+]
+optWidgets = 3
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "845|Morse"
+
+[mission.spec]
+seed = 845
+timeLimit = 144
+numStrikes = 3
+components = [
+    "Morse",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "845|Password"
+
+[mission.spec]
+seed = 845
+timeLimit = 231
+numStrikes = 3
+components = [
+    "Password",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "845|Simon"
+
+[mission.spec]
+seed = 845
+timeLimit = 135
+numStrikes = 3
+components = [
+    "Simon",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "845|Venn"
+
+[mission.spec]
+seed = 845
+timeLimit = 126
+numStrikes = 3
+components = [
+    "Venn",
+]
+optWidgets = 1
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "845|WhosOnFirst"
+
+[mission.spec]
+seed = 845
+timeLimit = 93
+numStrikes = 3
+components = [
+    "WhosOnFirst",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "845|WireSequence"
+
+[mission.spec]
+seed = 845
+timeLimit = 135
+numStrikes = 3
+components = [
+    "WireSequence",
+]
+optWidgets = 3
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "845|Wires"
+
+[mission.spec]
+seed = 845
+timeLimit = 81
+numStrikes = 3
+components = [
+    "Wires",
+]
+optWidgets = 3
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "849|BigButton"
+
+[mission.spec]
+seed = 849
+timeLimit = 144
+numStrikes = 3
+components = [
+    "BigButton",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "849|Keypad"
+
+[mission.spec]
+seed = 849
+timeLimit = 90
+numStrikes = 3
+components = [
+    "Keypad",
+]
+optWidgets = 4
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "849|Maze"
+
+[mission.spec]
+seed = 849
+timeLimit = 183
+numStrikes = 3
+components = [
+    "Maze",
+]
+optWidgets = 4
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "849|Memory"
+
+[mission.spec]
+seed = 849
+timeLimit = 105
+numStrikes = 3
+components = [
+    "Memory",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "849|Morse"
+
+[mission.spec]
+seed = 849
+timeLimit = 144
+numStrikes = 3
+components = [
+    "Morse",
+]
+optWidgets = 1
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "849|Password"
+
+[mission.spec]
+seed = 849
+timeLimit = 231
+numStrikes = 3
+components = [
+    "Password",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "849|Simon"
+
+[mission.spec]
+seed = 849
+timeLimit = 135
+numStrikes = 3
+components = [
+    "Simon",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "849|Venn"
+
+[mission.spec]
+seed = 849
+timeLimit = 126
+numStrikes = 3
+components = [
+    "Venn",
+]
+optWidgets = 1
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "849|WhosOnFirst"
+
+[mission.spec]
+seed = 849
+timeLimit = 93
+numStrikes = 3
+components = [
+    "WhosOnFirst",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "849|WireSequence"
+
+[mission.spec]
+seed = 849
+timeLimit = 135
+numStrikes = 3
+components = [
+    "WireSequence",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "849|Wires"
+
+[mission.spec]
+seed = 849
+timeLimit = 81
+numStrikes = 3
+components = [
+    "Wires",
+]
+optWidgets = 1
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "851|Keypad,Simon,WhosOnFirst,Wires"
+
+[mission.spec]
+seed = 851
+timeLimit = 300
+numStrikes = 3
+components = [
+    "Wires",
+    "Keypad",
+    "Simon",
+    "WhosOnFirst",
+]
+optWidgets = 5
+needyTime = 60
+isFront = false
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "960|BigButton"
+
+[mission.spec]
+seed = 960
+timeLimit = 144
+numStrikes = 3
+components = [
+    "BigButton",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "960|Keypad"
+
+[mission.spec]
+seed = 960
+timeLimit = 90
+numStrikes = 3
+components = [
+    "Keypad",
+]
+optWidgets = 1
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "960|Maze"
+
+[mission.spec]
+seed = 960
+timeLimit = 183
+numStrikes = 3
+components = [
+    "Maze",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "960|Memory"
+
+[mission.spec]
+seed = 960
+timeLimit = 105
+numStrikes = 3
+components = [
+    "Memory",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "960|Morse"
+
+[mission.spec]
+seed = 960
+timeLimit = 144
+numStrikes = 3
+components = [
+    "Morse",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "960|Password"
+
+[mission.spec]
+seed = 960
+timeLimit = 231
+numStrikes = 3
+components = [
+    "Password",
+]
+optWidgets = 5
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "960|Simon"
+
+[mission.spec]
+seed = 960
+timeLimit = 135
+numStrikes = 3
+components = [
+    "Simon",
+]
+optWidgets = 1
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "960|Venn"
+
+[mission.spec]
+seed = 960
+timeLimit = 126
+numStrikes = 3
+components = [
+    "Venn",
+]
+optWidgets = 1
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "960|WhosOnFirst"
+
+[mission.spec]
+seed = 960
+timeLimit = 93
+numStrikes = 3
+components = [
+    "WhosOnFirst",
+]
+optWidgets = 4
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "960|WireSequence"
+
+[mission.spec]
+seed = 960
+timeLimit = 135
+numStrikes = 3
+components = [
+    "WireSequence",
+]
+optWidgets = 1
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "960|Wires"
+
+[mission.spec]
+seed = 960
+timeLimit = 81
+numStrikes = 3
+components = [
+    "Wires",
+]
+optWidgets = 2
+needyTime = 60
+isFront = true
+timeScale = 1.0
+timeStepSize = 3000
+
+[[mission]]
+mission_key = "990|Morse,Venn,WhosOnFirst,Wires"
+
+[mission.spec]
+seed = 990
+timeLimit = 300
+numStrikes = 3
+components = [
+    "Morse",
+    "Venn",
+    "WhosOnFirst",
+    "Wires",
+]
+optWidgets = 5
+needyTime = 60
+isFront = false
+timeScale = 1.0
+timeStepSize = 3000
+
+[[suite]]
+name = "multi-self-async"
+revision = 1
+suite_digest = "a02fed7179d4fd142d34324d720468ba"
+frozen_at = "2026-07-09T13:30:26.639588Z"
+gptnt_version = "0.15.1.dev6+290fd417"
+git_sha = "290fd4172a87842a92dbc643f43b9d080ceb5465-dirty"
+mission_keys = [
+    "1028|Keypad,Maze,Password,WireSequence",
+    "110|Keypad,Maze,Wires",
+    "286|Memory,Password,WhosOnFirst",
+    "337|BigButton,Simon,Venn",
+    "412|Keypad,Simon,WhosOnFirst",
+    "526|Maze,Memory,Wires",
+    "619|BigButton,Memory,WhosOnFirst",
+    "798|BigButton,Keypad,Memory,Wires",
+    "851|Keypad,Simon,WhosOnFirst,Wires",
+    "990|Morse,Venn,WhosOnFirst,Wires",
+]
+
+[suite.config]
+name = "multi-self-async"
+revision = 1
+modality = [
+    "language",
+    "vision",
+]
+missions_path = "configs/missions/multiple_module_n"
+
+[suite.config.defuser_protocol]
+role = "defuser"
+communication_style = "async"
+is_playing_alone = false
+include_manual = false
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = true
+
+[suite.config.expert_protocol]
+role = "expert"
+communication_style = "async"
+is_playing_alone = false
+include_manual = true
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = true
+
+[suite.config.matchup]
+pairing_type = "with_self"
+
+[[suite]]
+name = "multi-self-sync"
+revision = 1
+suite_digest = "365784c76589a9c1a2b6f1708f068e92"
+frozen_at = "2026-07-09T13:30:26.639588Z"
+gptnt_version = "0.15.1.dev6+290fd417"
+git_sha = "290fd4172a87842a92dbc643f43b9d080ceb5465-dirty"
+mission_keys = [
+    "1028|Keypad,Maze,Password,WireSequence",
+    "110|Keypad,Maze,Wires",
+    "286|Memory,Password,WhosOnFirst",
+    "337|BigButton,Simon,Venn",
+    "412|Keypad,Simon,WhosOnFirst",
+    "526|Maze,Memory,Wires",
+    "619|BigButton,Memory,WhosOnFirst",
+    "798|BigButton,Keypad,Memory,Wires",
+    "851|Keypad,Simon,WhosOnFirst,Wires",
+    "990|Morse,Venn,WhosOnFirst,Wires",
+]
+
+[suite.config]
+name = "multi-self-sync"
+revision = 1
+modality = [
+    "language",
+    "vision",
+]
+missions_path = "configs/missions/multiple_module_n"
+
+[suite.config.defuser_protocol]
+role = "defuser"
+communication_style = "sync"
+is_playing_alone = false
+include_manual = false
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = true
+
+[suite.config.expert_protocol]
+role = "expert"
+communication_style = "sync"
+is_playing_alone = false
+include_manual = true
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = true
+
+[suite.config.matchup]
+pairing_type = "with_self"
+
+[[suite]]
+name = "single-pairwise-sync"
+revision = 1
+suite_digest = "ecb690fb90927c540b3940afc0c458d0"
+frozen_at = "2026-07-09T13:30:26.639588Z"
+gptnt_version = "0.15.1.dev6+290fd417"
+git_sha = "290fd4172a87842a92dbc643f43b9d080ceb5465-dirty"
+mission_keys = [
+    "234|BigButton",
+    "234|Keypad",
+    "234|Maze",
+    "234|Memory",
+    "234|Morse",
+    "234|Password",
+    "234|Simon",
+    "234|Venn",
+    "234|WhosOnFirst",
+    "234|WireSequence",
+    "234|Wires",
+    "286|BigButton",
+    "286|Keypad",
+    "286|Maze",
+    "286|Memory",
+    "286|Morse",
+    "286|Password",
+    "286|Simon",
+    "286|Venn",
+    "286|WhosOnFirst",
+    "286|WireSequence",
+    "286|Wires",
+    "337|BigButton",
+    "337|Keypad",
+    "337|Maze",
+    "337|Memory",
+    "337|Morse",
+    "337|Password",
+    "337|Simon",
+    "337|Venn",
+    "337|WhosOnFirst",
+    "337|WireSequence",
+    "337|Wires",
+    "561|BigButton",
+    "561|Keypad",
+    "561|Maze",
+    "561|Memory",
+    "561|Morse",
+    "561|Password",
+    "561|Simon",
+    "561|Venn",
+    "561|WhosOnFirst",
+    "561|WireSequence",
+    "561|Wires",
+    "563|BigButton",
+    "563|Keypad",
+    "563|Maze",
+    "563|Memory",
+    "563|Morse",
+    "563|Password",
+    "563|Simon",
+    "563|Venn",
+    "563|WhosOnFirst",
+    "563|WireSequence",
+    "563|Wires",
+    "798|BigButton",
+    "798|Keypad",
+    "798|Maze",
+    "798|Memory",
+    "798|Morse",
+    "798|Password",
+    "798|Simon",
+    "798|Venn",
+    "798|WhosOnFirst",
+    "798|WireSequence",
+    "798|Wires",
+    "813|BigButton",
+    "813|Keypad",
+    "813|Maze",
+    "813|Memory",
+    "813|Morse",
+    "813|Password",
+    "813|Simon",
+    "813|Venn",
+    "813|WhosOnFirst",
+    "813|WireSequence",
+    "813|Wires",
+    "845|BigButton",
+    "845|Keypad",
+    "845|Maze",
+    "845|Memory",
+    "845|Morse",
+    "845|Password",
+    "845|Simon",
+    "845|Venn",
+    "845|WhosOnFirst",
+    "845|WireSequence",
+    "845|Wires",
+    "849|BigButton",
+    "849|Keypad",
+    "849|Maze",
+    "849|Memory",
+    "849|Morse",
+    "849|Password",
+    "849|Simon",
+    "849|Venn",
+    "849|WhosOnFirst",
+    "849|WireSequence",
+    "849|Wires",
+    "960|BigButton",
+    "960|Keypad",
+    "960|Maze",
+    "960|Memory",
+    "960|Morse",
+    "960|Password",
+    "960|Simon",
+    "960|Venn",
+    "960|WhosOnFirst",
+    "960|WireSequence",
+    "960|Wires",
+]
+
+[suite.config]
+name = "single-pairwise-sync"
+revision = 1
+modality = [
+    "language",
+    "vision",
+]
+missions_path = "configs/missions/single_module"
+
+[suite.config.defuser_protocol]
+role = "defuser"
+communication_style = "sync"
+is_playing_alone = false
+include_manual = false
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = true
+
+[suite.config.expert_protocol]
+role = "expert"
+communication_style = "sync"
+is_playing_alone = false
+include_manual = true
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = true
+
+[suite.config.matchup]
+pairing_type = "pairwise"
+
+[[suite]]
+name = "single-parametric-sync"
+revision = 1
+suite_digest = "5460034434039828c73292f7f3fc5867"
+frozen_at = "2026-07-09T13:30:26.639588Z"
+gptnt_version = "0.15.1.dev6+290fd417"
+git_sha = "290fd4172a87842a92dbc643f43b9d080ceb5465-dirty"
+mission_keys = [
+    "234|BigButton",
+    "234|Keypad",
+    "234|Maze",
+    "234|Memory",
+    "234|Morse",
+    "234|Password",
+    "234|Simon",
+    "234|Venn",
+    "234|WhosOnFirst",
+    "234|WireSequence",
+    "234|Wires",
+    "286|BigButton",
+    "286|Keypad",
+    "286|Maze",
+    "286|Memory",
+    "286|Morse",
+    "286|Password",
+    "286|Simon",
+    "286|Venn",
+    "286|WhosOnFirst",
+    "286|WireSequence",
+    "286|Wires",
+    "337|BigButton",
+    "337|Keypad",
+    "337|Maze",
+    "337|Memory",
+    "337|Morse",
+    "337|Password",
+    "337|Simon",
+    "337|Venn",
+    "337|WhosOnFirst",
+    "337|WireSequence",
+    "337|Wires",
+    "561|BigButton",
+    "561|Keypad",
+    "561|Maze",
+    "561|Memory",
+    "561|Morse",
+    "561|Password",
+    "561|Simon",
+    "561|Venn",
+    "561|WhosOnFirst",
+    "561|WireSequence",
+    "561|Wires",
+    "563|BigButton",
+    "563|Keypad",
+    "563|Maze",
+    "563|Memory",
+    "563|Morse",
+    "563|Password",
+    "563|Simon",
+    "563|Venn",
+    "563|WhosOnFirst",
+    "563|WireSequence",
+    "563|Wires",
+    "798|BigButton",
+    "798|Keypad",
+    "798|Maze",
+    "798|Memory",
+    "798|Morse",
+    "798|Password",
+    "798|Simon",
+    "798|Venn",
+    "798|WhosOnFirst",
+    "798|WireSequence",
+    "798|Wires",
+    "813|BigButton",
+    "813|Keypad",
+    "813|Maze",
+    "813|Memory",
+    "813|Morse",
+    "813|Password",
+    "813|Simon",
+    "813|Venn",
+    "813|WhosOnFirst",
+    "813|WireSequence",
+    "813|Wires",
+    "845|BigButton",
+    "845|Keypad",
+    "845|Maze",
+    "845|Memory",
+    "845|Morse",
+    "845|Password",
+    "845|Simon",
+    "845|Venn",
+    "845|WhosOnFirst",
+    "845|WireSequence",
+    "845|Wires",
+    "849|BigButton",
+    "849|Keypad",
+    "849|Maze",
+    "849|Memory",
+    "849|Morse",
+    "849|Password",
+    "849|Simon",
+    "849|Venn",
+    "849|WhosOnFirst",
+    "849|WireSequence",
+    "849|Wires",
+    "960|BigButton",
+    "960|Keypad",
+    "960|Maze",
+    "960|Memory",
+    "960|Morse",
+    "960|Password",
+    "960|Simon",
+    "960|Venn",
+    "960|WhosOnFirst",
+    "960|WireSequence",
+    "960|Wires",
+]
+
+[suite.config]
+name = "single-parametric-sync"
+revision = 1
+modality = [
+    "language",
+    "vision",
+]
+missions_path = "configs/missions/single_module"
+
+[suite.config.defuser_protocol]
+role = "defuser"
+communication_style = "sync"
+is_playing_alone = true
+include_manual = false
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = false
+
+[suite.config.matchup]
+pairing_type = "no_expert"
+
+[[suite]]
+name = "single-self-async"
+revision = 1
+suite_digest = "a47edcc5dece4e117f0e7a145ed197c5"
+frozen_at = "2026-07-09T13:30:26.639588Z"
+gptnt_version = "0.15.1.dev6+290fd417"
+git_sha = "290fd4172a87842a92dbc643f43b9d080ceb5465-dirty"
+mission_keys = [
+    "234|BigButton",
+    "234|Keypad",
+    "234|Maze",
+    "234|Memory",
+    "234|Morse",
+    "234|Password",
+    "234|Simon",
+    "234|Venn",
+    "234|WhosOnFirst",
+    "234|WireSequence",
+    "234|Wires",
+    "286|BigButton",
+    "286|Keypad",
+    "286|Maze",
+    "286|Memory",
+    "286|Morse",
+    "286|Password",
+    "286|Simon",
+    "286|Venn",
+    "286|WhosOnFirst",
+    "286|WireSequence",
+    "286|Wires",
+    "337|BigButton",
+    "337|Keypad",
+    "337|Maze",
+    "337|Memory",
+    "337|Morse",
+    "337|Password",
+    "337|Simon",
+    "337|Venn",
+    "337|WhosOnFirst",
+    "337|WireSequence",
+    "337|Wires",
+    "561|BigButton",
+    "561|Keypad",
+    "561|Maze",
+    "561|Memory",
+    "561|Morse",
+    "561|Password",
+    "561|Simon",
+    "561|Venn",
+    "561|WhosOnFirst",
+    "561|WireSequence",
+    "561|Wires",
+    "563|BigButton",
+    "563|Keypad",
+    "563|Maze",
+    "563|Memory",
+    "563|Morse",
+    "563|Password",
+    "563|Simon",
+    "563|Venn",
+    "563|WhosOnFirst",
+    "563|WireSequence",
+    "563|Wires",
+    "798|BigButton",
+    "798|Keypad",
+    "798|Maze",
+    "798|Memory",
+    "798|Morse",
+    "798|Password",
+    "798|Simon",
+    "798|Venn",
+    "798|WhosOnFirst",
+    "798|WireSequence",
+    "798|Wires",
+    "813|BigButton",
+    "813|Keypad",
+    "813|Maze",
+    "813|Memory",
+    "813|Morse",
+    "813|Password",
+    "813|Simon",
+    "813|Venn",
+    "813|WhosOnFirst",
+    "813|WireSequence",
+    "813|Wires",
+    "845|BigButton",
+    "845|Keypad",
+    "845|Maze",
+    "845|Memory",
+    "845|Morse",
+    "845|Password",
+    "845|Simon",
+    "845|Venn",
+    "845|WhosOnFirst",
+    "845|WireSequence",
+    "845|Wires",
+    "849|BigButton",
+    "849|Keypad",
+    "849|Maze",
+    "849|Memory",
+    "849|Morse",
+    "849|Password",
+    "849|Simon",
+    "849|Venn",
+    "849|WhosOnFirst",
+    "849|WireSequence",
+    "849|Wires",
+    "960|BigButton",
+    "960|Keypad",
+    "960|Maze",
+    "960|Memory",
+    "960|Morse",
+    "960|Password",
+    "960|Simon",
+    "960|Venn",
+    "960|WhosOnFirst",
+    "960|WireSequence",
+    "960|Wires",
+]
+
+[suite.config]
+name = "single-self-async"
+revision = 1
+modality = [
+    "language",
+    "vision",
+]
+missions_path = "configs/missions/single_module"
+
+[suite.config.defuser_protocol]
+role = "defuser"
+communication_style = "async"
+is_playing_alone = false
+include_manual = false
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = true
+
+[suite.config.expert_protocol]
+role = "expert"
+communication_style = "async"
+is_playing_alone = false
+include_manual = true
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = true
+
+[suite.config.matchup]
+pairing_type = "with_self"
+
+[[suite]]
+name = "single-solo-player-sync"
+revision = 1
+suite_digest = "125050b2dc2695dcc0fd887c2d1ad2eb"
+frozen_at = "2026-07-09T13:30:26.639588Z"
+gptnt_version = "0.15.1.dev6+290fd417"
+git_sha = "290fd4172a87842a92dbc643f43b9d080ceb5465-dirty"
+mission_keys = [
+    "234|BigButton",
+    "234|Keypad",
+    "234|Maze",
+    "234|Memory",
+    "234|Morse",
+    "234|Password",
+    "234|Simon",
+    "234|Venn",
+    "234|WhosOnFirst",
+    "234|WireSequence",
+    "234|Wires",
+    "286|BigButton",
+    "286|Keypad",
+    "286|Maze",
+    "286|Memory",
+    "286|Morse",
+    "286|Password",
+    "286|Simon",
+    "286|Venn",
+    "286|WhosOnFirst",
+    "286|WireSequence",
+    "286|Wires",
+    "337|BigButton",
+    "337|Keypad",
+    "337|Maze",
+    "337|Memory",
+    "337|Morse",
+    "337|Password",
+    "337|Simon",
+    "337|Venn",
+    "337|WhosOnFirst",
+    "337|WireSequence",
+    "337|Wires",
+    "561|BigButton",
+    "561|Keypad",
+    "561|Maze",
+    "561|Memory",
+    "561|Morse",
+    "561|Password",
+    "561|Simon",
+    "561|Venn",
+    "561|WhosOnFirst",
+    "561|WireSequence",
+    "561|Wires",
+    "563|BigButton",
+    "563|Keypad",
+    "563|Maze",
+    "563|Memory",
+    "563|Morse",
+    "563|Password",
+    "563|Simon",
+    "563|Venn",
+    "563|WhosOnFirst",
+    "563|WireSequence",
+    "563|Wires",
+    "798|BigButton",
+    "798|Keypad",
+    "798|Maze",
+    "798|Memory",
+    "798|Morse",
+    "798|Password",
+    "798|Simon",
+    "798|Venn",
+    "798|WhosOnFirst",
+    "798|WireSequence",
+    "798|Wires",
+    "813|BigButton",
+    "813|Keypad",
+    "813|Maze",
+    "813|Memory",
+    "813|Morse",
+    "813|Password",
+    "813|Simon",
+    "813|Venn",
+    "813|WhosOnFirst",
+    "813|WireSequence",
+    "813|Wires",
+    "845|BigButton",
+    "845|Keypad",
+    "845|Maze",
+    "845|Memory",
+    "845|Morse",
+    "845|Password",
+    "845|Simon",
+    "845|Venn",
+    "845|WhosOnFirst",
+    "845|WireSequence",
+    "845|Wires",
+    "849|BigButton",
+    "849|Keypad",
+    "849|Maze",
+    "849|Memory",
+    "849|Morse",
+    "849|Password",
+    "849|Simon",
+    "849|Venn",
+    "849|WhosOnFirst",
+    "849|WireSequence",
+    "849|Wires",
+    "960|BigButton",
+    "960|Keypad",
+    "960|Maze",
+    "960|Memory",
+    "960|Morse",
+    "960|Password",
+    "960|Simon",
+    "960|Venn",
+    "960|WhosOnFirst",
+    "960|WireSequence",
+    "960|Wires",
+]
+
+[suite.config]
+name = "single-solo-player-sync"
+revision = 1
+modality = [
+    "language",
+    "vision",
+]
+missions_path = "configs/missions/single_module"
+
+[suite.config.defuser_protocol]
+role = "defuser"
+communication_style = "sync"
+is_playing_alone = true
+include_manual = true
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = false
+
+[suite.config.matchup]
+pairing_type = "no_expert"

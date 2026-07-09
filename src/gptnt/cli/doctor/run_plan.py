@@ -6,7 +6,7 @@ from gptnt.cli.doctor.checks import CheckResult
 from gptnt.cli.doctor.validation import validate_model_config
 from gptnt.cli.run.manifest import RunManifest
 from gptnt.common.paths import Paths
-from gptnt.experiments.generation.pipeline import generate_specs
+from gptnt.experiments.generation.specs import generate_specs
 from gptnt.experiments.ledger.resolve import filter_experiments
 from gptnt.experiments.spec import ExperimentSpec
 

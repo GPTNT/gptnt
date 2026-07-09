@@ -1,11 +1,3 @@
-"""The `Suite`.
-
-A suite is one self-contained, frozen definition of what is measured: its mission set, the per-role
-interaction protocol, the matchup that pairs players, the required modalities, and a revision.
-`suite_digest` fingerprints the config and the mission files together, so a change without a
-`revision` bump is caught.
-"""
-
 from pathlib import Path
 from typing import Annotated, Literal, Self
 
@@ -31,7 +23,14 @@ class SuiteMatchup(BaseModel):
 
 
 class Suite(BaseModel):
-    """One frozen benchmark configuration that defines a comparable set of results."""
+    """One frozen benchmark configuration that defines a comparable set of results.
+
+    This is a frozen definition of what is measured: its mission set, the per-role interaction
+    protocol, the matchup that pairs players, the required modalities, and a revision.
+
+    `suite_digest` fingerprints the config and the mission files together, so a change without a
+    `revision` bump is caught.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

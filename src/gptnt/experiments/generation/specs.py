@@ -2,20 +2,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import hydra
-
 from gptnt.common.hydra import load_config
-from gptnt.common.paths import Paths
 from gptnt.experiments.generation.experiments import ExperimentGenerator
-from gptnt.experiments.generation.missions import load_missions
 from gptnt.experiments.generation.pairing import PairingGenerator
+from gptnt.experiments.suite.lock import SuiteLock
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig
 
     from gptnt.experiments.generation.pairing import PairingType
     from gptnt.experiments.spec import ExperimentSpec
-    from gptnt.experiments.suite import Suite
 
 CONFIG_NAME = "suite_generator"
 
@@ -32,15 +28,14 @@ def _best_model_for(pairing_type: PairingType, players: DictConfig) -> str | Non
 def generate_specs(overrides: list[str] | None = None) -> list[ExperimentSpec]:
     """Generate the `ExperimentSpec` objects for one suite, with a roster from the config.
 
-    The suite supplies the mission set, role protocols, and matchup; the roster
-    (`players.all`) and sampling depth (`attempts_per_mission`) come from the suite-generator
-    config, which a run overrides. Missions are loaded from the materialised set; nothing generates
-    them here.
+    The suite and its missions come from `suites.lock` (the frozen snapshot), selected by the
+    `suites=<name>` override at its latest frozen revision. The roster (`players.all`) and sampling
+    depth (`attempts_per_mission`) still come from the suite-generator config, which a run
+    overrides. Raises `SuiteNotFrozenError` if the selected suite is not frozen.
     """
     cfg = load_config(config_name=CONFIG_NAME, overrides=overrides)
-    suite: Suite = hydra.utils.instantiate(cfg.suite)
+    suite, missions = SuiteLock.from_lock_path().load_suite(cfg.suite.name)
 
-    missions = load_missions(Paths().root / suite.missions_path)
     pairings = list(
         PairingGenerator(
             pairing_type=suite.matchup.pairing_type,

@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from gptnt.experiments.suite import Suite, SuiteMatchup
+from gptnt.experiments.suite.core import Suite, SuiteMatchup
 from gptnt.players.specification import PlayerProtocol
 
 _DEFUSER = PlayerProtocol(
