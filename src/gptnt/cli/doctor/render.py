@@ -161,5 +161,6 @@ def render_report(console: Console, sections: Mapping[str, list[CheckResult]]) -
                 title_align="left",
                 border_style=border_style,
                 padding=(0, 1),
+                expand=False,
             )
         )
