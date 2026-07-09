@@ -24,7 +24,7 @@ from pydantic_ai import ModelMessage, ModelMessagesTypeAdapter, RunUsage
 from gptnt.common.logger import monkey_patch_binary_content_repr
 from gptnt.experiments.db.schema import AsBlob, AsJSON, AsVarchar, DuckDBSchemaMixin
 from gptnt.experiments.descriptor import ExperimentDescriptor, PlayerContent
-from gptnt.experiments.provenance import ProvenanceMixin
+from gptnt.experiments.provenance import Provenance
 from gptnt.ktane.actions import KtaneBaseAction, KtaneGameplayInput
 from gptnt.ktane.mission_spec import compute_mission_key
 from gptnt.ktane.state.bomb import BombState
@@ -228,7 +228,7 @@ class StepRecordsMetricsMixin(BaseModel):
         return None
 
 
-class ExperimentPlayerRecord(ProvenanceMixin, StepRecordsMetricsMixin):
+class ExperimentPlayerRecord(Provenance, StepRecordsMetricsMixin):
     """Records for a single player in an experiment."""
 
     experiment_descriptor: ExperimentDescriptor
@@ -313,7 +313,7 @@ class ExperimentOutcome(BaseModel):
         )
 
 
-class ExperimentSummary(ProvenanceMixin, DuckDBSchemaMixin):
+class ExperimentSummary(Provenance, DuckDBSchemaMixin):
     """Experiment-level summary — one per experiment."""
 
     model_config = ConfigDict(populate_by_name=True)
@@ -372,12 +372,17 @@ class ExperimentSummary(ProvenanceMixin, DuckDBSchemaMixin):
         descriptor: ExperimentDescriptor,
         final_bomb_state: BombState,
         is_hard_crash: bool,
-        gptnt_version: str = "unknown",
+        gptnt_version: str | None = None,
         git_sha: str | None = None,
     ) -> Self:
         """Construct ExperimentSummary from an ExperimentDescriptor and final BombState."""
         spec = descriptor.experiment_spec
         outcome = ExperimentOutcome.from_bomb_state(final_bomb_state, is_hard_crash=is_hard_crash)
+        # Omit gptnt_version when not supplied so the Provenance default_factory resolves the
+        # live version, rather than passing a placeholder the field validator rejects.
+        provenance: dict[str, Any] = {"git_sha": git_sha}
+        if gptnt_version is not None:
+            provenance["gptnt_version"] = gptnt_version
         return cls(
             attempt_name=spec.attempt_name,
             session_id=descriptor.session_id,
@@ -402,8 +407,7 @@ class ExperimentSummary(ProvenanceMixin, DuckDBSchemaMixin):
             experiment_descriptor=descriptor,
             defuser_capabilities=descriptor.defuser_capabilities,
             expert_capabilities=descriptor.expert_capabilities,
-            gptnt_version=gptnt_version,
-            git_sha=git_sha,
+            **provenance,
         )
 
     @override
