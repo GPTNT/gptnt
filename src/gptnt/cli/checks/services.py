@@ -1,13 +1,4 @@
-"""The `gptnt doctor` service-reachability checks: Redis, the EM port, the OTLP collector.
-
-Each check returns one :class:`CheckResult` and never raises. The infra endpoints all come from
-their single shared sources — the Redis DSN and EM endpoint from `common.runtime_settings`, the
-OTLP endpoint from `observability.settings` — the same sources the runtime binds, so doctor can't
-report against a different endpoint than the one the services use.
-
-"Reachable" means a real service *answered*, not that a port accepted a TCP handshake: a container
-runtime's port-forward with nothing behind it accepts the connect, then drops it.
-"""
+"""`gptnt doctor` service-reachability checks: Redis, the EM port, and the OTLP collector."""
 
 from __future__ import annotations
 
@@ -21,11 +12,6 @@ from gptnt.common.runtime_settings import RuntimeSettings
 from gptnt.observability.settings import ObservabilitySettings
 
 _NET_TIMEOUT = 3.0
-
-# Hints offer Docker as one easy option, not a mandate — point REDIS_DSN /
-# OTEL_EXPORTER_OTLP_ENDPOINT at your own services instead if you prefer.
-REDIS_HINT = "Run a Redis here — e.g. `docker compose up -d`, or set REDIS_DSN to your own."
-OTEL_HINT = "Optional — run a collector here (e.g. `docker compose up -d`) or set OTEL_EXPORTER_OTLP_ENDPOINT."
 # Refused/timed-out connects raise OSError/TimeoutError; a dead port-forward drops the stream
 # (an anyio stream error).
 _REDIS_PROBE_ERRORS = (OSError, TimeoutError, anyio.EndOfStream, anyio.BrokenResourceError)
@@ -58,21 +44,26 @@ async def _http_responds(url: str) -> bool:
     return True
 
 
-async def check_redis() -> CheckResult:
+async def check_redis(
+    *,
+    name: str = "Redis",
+    hint: str = "Run a Redis here — e.g. `docker compose up -d`, or set REDIS_DSN to your own.",
+) -> CheckResult:
     """Is a Redis actually answering at the configured DSN (via PING, not a bare port check)?"""
     parsed = urlsplit(str(RuntimeSettings().redis_dsn))
     host, port = parsed.hostname or "localhost", parsed.port or 6379
     if await _redis_pings(host, port):
-        return CheckResult("Redis", "pass", f"reachable at {host}:{port}")
-    return CheckResult("Redis", "fail", f"not reachable at {host}:{port}", REDIS_HINT)
+        return CheckResult(name, "pass", f"reachable at {host}:{port}")
+    return CheckResult(name, "fail", f"not reachable at {host}:{port}", hint)
 
 
-async def check_em_port() -> CheckResult:
+async def check_em_port(
+    *, kill_hint: str = "A stale process is squatting the port — clear it with: gptnt kill"
+) -> CheckResult:
     """Port :8085 is free (the EM can start) or already serving a healthy EM."""
     runtime = RuntimeSettings()
     name = f"EM port :{runtime.em_port}"
     url = runtime.em_health_url
-    kill_hint = "A stale process is squatting the port — clear it with: gptnt kill"
     try:
         async with httpx.AsyncClient(timeout=_NET_TIMEOUT) as client:
             response = await client.get(url)
@@ -89,23 +80,19 @@ async def check_em_port() -> CheckResult:
 
 
 def _otel_host_port() -> tuple[str, int]:
-    """Host/port the OTLP collector is expected at.
-
-    Read from OTEL_EXPORTER_OTLP_ENDPOINT (else the default).
-    """
+    """Host/port for the OTLP collector, from `OTEL_EXPORTER_OTLP_ENDPOINT` or the default."""
     endpoint = ObservabilitySettings().otel_endpoint or "http://localhost:4318/"
     parsed = urlsplit(endpoint)
     return parsed.hostname or "localhost", parsed.port or 4318
 
 
-async def check_observability() -> CheckResult:
-    """Is an OTLP collector reachable? Recommended, not required — a warning, never a failure.
-
-    We only care that the endpoint is up; how it's hosted (Docker, a local collector, a remote
-    backend via OTEL_EXPORTER_OTLP_ENDPOINT) is the user's choice.
-    """
+async def check_observability(
+    *,
+    hint: str = "Optional — run a collector here (e.g. `docker compose up -d`) or set OTEL_EXPORTER_OTLP_ENDPOINT.",
+) -> CheckResult:
+    """Is an OTLP collector reachable? Recommended, not required — a warning, never a failure."""
     host, port = _otel_host_port()
     name = f"otel-collector :{port}"
     if await _http_responds(f"http://{host}:{port}/"):
         return CheckResult(name, "pass", f"reachable at {host}:{port}")
-    return CheckResult(name, "warn", f"not reachable at {host}:{port}", OTEL_HINT)
+    return CheckResult(name, "warn", f"not reachable at {host}:{port}", hint)

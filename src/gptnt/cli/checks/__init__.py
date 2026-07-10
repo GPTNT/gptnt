@@ -1,6 +1,4 @@
-"""The `CheckResult` type, its renderer and format emitters, and `gptnt doctor`'s environment
-probes (players, services, game, machine, validation).
-"""
+"""The `CheckResult` type, its renderer and format emitters, and `gptnt doctor`'s probes."""
 
 from gptnt.cli.checks.formats import Report
 from gptnt.cli.checks.render import render_report

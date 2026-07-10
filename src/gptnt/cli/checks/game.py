@@ -1,9 +1,4 @@
-"""The `gptnt doctor` game/mod checks: the KTANE binary, mod files, X display, and the game spawn.
-
-`check_mod_load` is the definitive but slow one — it actually launches the game to prove the mod
-loads — so the command only runs it behind `--check-mod-load` and after the cheap binary/mod checks
-pass. Each check returns one :class:`CheckResult` and never raises.
-"""
+"""`gptnt doctor` game/mod checks: the KTANE binary, mod files, X display, and the game spawn."""
 
 from __future__ import annotations
 
@@ -35,38 +30,41 @@ MOD_LOAD_POLL = 1.0
 MOD_LOAD_CHECK = "Mod loads (game spawn)"
 
 
-def _game_layout_hint() -> str:
-    return (
+def check_game_binary(
+    *,
+    name: str = "Game binary",
+    layout_hint: str = (
         f"Copy the KTANE build into {paths.ktane} "
         "(Linux: *.x86_64 + ktane_Data/; macOS: *.app; Windows: *.exe + ktane_Data/)."
-    )
-
-
-def check_game_binary() -> CheckResult:
+    ),
+) -> CheckResult:
     """Resolve the per-OS game executable under `paths.ktane`."""
-    name = "Game binary"
     try:
         executable = get_executable_path()
     except (GameNotFoundError, RuntimeError) as exc:  # RuntimeError == unsupported OS
-        return CheckResult(name, "fail", str(exc), _game_layout_hint())
+        return CheckResult(name, "fail", str(exc), layout_hint)
     return CheckResult(name, "pass", str(executable))
 
 
-def check_mod_files() -> CheckResult:
+def check_mod_files(
+    *,
+    name: str = "Mod files",
+    hint: str = f"Install the 'Gptnt Plays' mod under {paths.ktane / 'mods'}.",
+) -> CheckResult:
     """Cheap on-disk check that the 'Gptnt Plays' mod directory exists."""
-    name = "Mod files"
     try:
         _ = ensure_mod_exists()
     except ModNotFoundError as exc:
-        hint = f"Install the 'Gptnt Plays' mod under {paths.ktane / 'mods'}."
         return CheckResult(name, "fail", str(exc), hint)
     return CheckResult(name, "pass", "'Gptnt Plays' present")
 
 
-def check_display() -> CheckResult:
+def check_display(
+    *,
+    name: str = "Display (X)",
+    startx_hint: str = "Start a GPU-backed X server: uv run python scripts/startx.py",
+) -> CheckResult:
     """On Linux, confirm an X display is available; elsewhere it is not required."""
-    name = "Display (X)"
-    startx_hint = "Start a GPU-backed X server: uv run python scripts/startx.py"
     if sys.platform != "linux":
         return CheckResult(name, "skip", f"not required on {platform.system()}")
 

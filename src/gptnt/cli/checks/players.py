@@ -1,15 +1,4 @@
-"""The `gptnt doctor` player-model checks: does each config compose, instantiate, and answer?
-
-Each check returns one :class:`CheckResult` (or a small list) and **never raises**: a check reports
-failure rather than aborting the whole report. The command layer (`doctor/command.py`) decides
-which checks to run and renders them.
-
-Heavy dependencies (hydra via `validation`) load only when a doctor command actually runs, because
-cyclopts lazy-loads command modules.
-
-Secret safety: the model checks may surface pydantic-ai's own "set the X environment variable" text
-(which names a var), but no environment variable VALUE is ever read, printed, or logged.
-"""
+"""`gptnt doctor` player-model checks: does each config compose, instantiate, and answer?"""
 
 from __future__ import annotations
 

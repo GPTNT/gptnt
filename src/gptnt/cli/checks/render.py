@@ -1,9 +1,4 @@
-"""Presentation for findings: the shared section renderer plus doctor's model-matrix table.
-
-`render_report` prints one bordered panel of pass/fail rows per section and is reused by every
-findings command (`gptnt doctor`, `gptnt suite freeze`, `gptnt submission validate`).
-`render_players` is doctor-specific — the model exists/instantiates/live matrix.
-"""
+"""Rendering for findings: the section-table renderer and doctor's model-matrix table."""
 
 from __future__ import annotations
 

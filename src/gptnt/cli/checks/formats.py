@@ -1,11 +1,4 @@
-"""Emit findings as rich tables, a JSON summary, or GitHub workflow annotations.
-
-`rich` is the human default (the shared section tables from `render.py`). `json` is a machine-
-readable summary plus every check; `github` emits a workflow annotation per failure/warning and a
-job-summary table. Generic over a list of :class:`Report`s, so any findings command can offer the
-same `--format` surface — `noun`/`title` only tune the wording (e.g. "bundle" for
-`gptnt submission validate`).
-"""
+"""Emit findings as rich tables, a JSON summary, or GitHub workflow annotations."""
 
 from __future__ import annotations
 
@@ -150,11 +143,14 @@ def _glyph(status: CheckStatus) -> str:
     return _STATUS_GLYPH[status]
 
 
-# GitHub workflow-command escaping: data and property values must escape these characters so the
-# runner parses the whole message. https://docs.github.com/actions/reference/workflow-commands
 def _escape_data(text: str) -> str:
+    """Escape a workflow-command data value so the runner parses the whole message.
+
+    https://docs.github.com/actions/reference/workflow-commands
+    """
     return text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
 
 
 def _escape_property(text: str) -> str:
+    """Escape a workflow-command property value (stricter: also escapes `:` and `,`)."""
     return _escape_data(text).replace(":", "%3A").replace(",", "%2C")

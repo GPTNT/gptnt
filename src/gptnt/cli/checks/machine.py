@@ -1,8 +1,4 @@
-"""The `gptnt doctor` host check: report machine specs (informational) and warn on low free disk.
-
-Returns :class:`CheckResult` rows and never raises — host probing that fails degrades to a single
-warn rather than aborting the report.
-"""
+"""`gptnt doctor` host check: machine specs and a free-disk warning."""
 
 from __future__ import annotations
 
@@ -19,8 +15,6 @@ from gptnt.cli.checks.result import CheckResult
 from gptnt.common.paths import Paths
 
 paths = Paths()
-
-DISK_WARN_GIB = 10.0
 
 
 def _nearest_existing(path: Path) -> Path:
@@ -49,15 +43,17 @@ def _detect_gpu() -> str | None:
     return first_line[0].strip() if first_line else None
 
 
-def check_machine() -> list[CheckResult]:
+def check_machine(
+    *, name: str = "Machine", disk_name: str = "Disk space", warn_gib: float = 10.0
+) -> list[CheckResult]:
     """Report host specs + free disk; degrade to a single warn if probing the host fails."""
     try:
-        return _collect_machine()
+        return _collect_machine(name=name, disk_name=disk_name, warn_gib=warn_gib)
     except Exception as exc:  # noqa: BLE001 — purely informational; never abort the report
-        return [CheckResult("Machine", "warn", "could not read host info", str(exc))]
+        return [CheckResult(name, "warn", "could not read host info", str(exc))]
 
 
-def _collect_machine() -> list[CheckResult]:
+def _collect_machine(*, name: str, disk_name: str, warn_gib: float) -> list[CheckResult]:
     """Report host specs (informational) and warn on low free disk for experiment outputs."""
     ram_gib = psutil.virtual_memory().total / 1024**3
     cpus = os.cpu_count() or 0
@@ -65,20 +61,20 @@ def _collect_machine() -> list[CheckResult]:
     gpu = _detect_gpu()
     if gpu:
         spec = f"{spec}, GPU: {gpu}"
-    findings = [CheckResult("Machine", "pass", spec)]
+    findings = [CheckResult(name, "pass", spec)]
 
     target = _nearest_existing(paths.experiment_recorder_dir)
     free_gib = shutil.disk_usage(target).free / 1024**3
     detail = f"{free_gib:.1f} GiB free on {target}"
-    if free_gib < DISK_WARN_GIB:
+    if free_gib < warn_gib:
         findings.append(
             CheckResult(
-                "Disk space",
+                disk_name,
                 "warn",
                 detail,
-                f"Below {DISK_WARN_GIB:.0f} GiB free; experiment recordings accumulate here.",
+                f"Below {warn_gib:.0f} GiB free; experiment recordings accumulate here.",
             )
         )
     else:
-        findings.append(CheckResult("Disk space", "pass", detail))
+        findings.append(CheckResult(disk_name, "pass", detail))
     return findings
