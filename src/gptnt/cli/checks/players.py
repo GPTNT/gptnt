@@ -97,8 +97,6 @@ async def check_players(targets: Sequence[tuple[str, str | None]], *, live: bool
     for model_name, provider in targets:
         label = model_name if provider is None else f"{model_name}@{provider}"
         try:
-            # Sequential await is required: validate_model_config clears the global Hydra
-            # singleton on each call, so models cannot be composed concurrently.
             detail = await _player_detail(label, model_name, provider, live=live)  # noqa: WPS476
         except Exception as exc:  # noqa: BLE001 — isolate one bad config from the rest of the run
             crashed = ModelValidationResult(model_name, provider, ok=False, error=str(exc))
@@ -150,13 +148,12 @@ def check_tokens_per_image(details: Sequence[PlayerDetail]) -> list[CheckResult]
         config_name = detail.static.model_name
         if capabilities.tokens_per_image > 0:
             rows.append(
-                CheckResult(config_name, "pass", f"{capabilities.tokens_per_image} tokens/image")
+                CheckResult.passed(config_name, f"{capabilities.tokens_per_image} tokens/image")
             )
         else:
             rows.append(
-                CheckResult(
+                CheckResult.failed(
                     config_name,
-                    "fail",
                     "uncalibrated (0 tokens/image)",
                     f"Run: gptnt measure-tokens-per-image {config_name}",
                 )

@@ -39,8 +39,8 @@ def check_game_binary(*, name: str = "Game binary") -> CheckResult:
     try:
         executable = get_executable_path()
     except (GameNotFoundError, RuntimeError) as exc:  # RuntimeError == unsupported OS
-        return CheckResult(name, "fail", str(exc), layout_hint)
-    return CheckResult(name, "pass", str(executable))
+        return CheckResult.failed(name, str(exc), layout_hint)
+    return CheckResult.passed(name, str(executable))
 
 
 def check_mod_files(*, name: str = "Mod files") -> CheckResult:
@@ -49,8 +49,8 @@ def check_mod_files(*, name: str = "Mod files") -> CheckResult:
     try:
         _ = ensure_mod_exists()
     except ModNotFoundError as exc:
-        return CheckResult(name, "fail", str(exc), hint)
-    return CheckResult(name, "pass", "'Gptnt Plays' present")
+        return CheckResult.failed(name, str(exc), hint)
+    return CheckResult.passed(name, "'Gptnt Plays' present")
 
 
 def check_display(
@@ -60,19 +60,18 @@ def check_display(
 ) -> CheckResult:
     """On Linux, confirm an X display is available; elsewhere it is not required."""
     if sys.platform != "linux":
-        return CheckResult(name, "skip", f"not required on {platform.system()}")
+        return CheckResult.skipped(name, f"not required on {platform.system()}")
 
     display = os.environ.get("DISPLAY", "")
     if not display:
-        return CheckResult(name, "fail", "$DISPLAY is not set", startx_hint)
+        return CheckResult.failed(name, "$DISPLAY is not set", startx_hint)
 
     display_num = display.rsplit(":", 1)[-1].split(".")[0]
     socket_path = Path(f"/tmp/.X11-unix/X{display_num}")  # noqa: S108  (standard X socket location)
     if socket_path.exists():
-        return CheckResult(name, "pass", f"using existing $DISPLAY={display}")
-    return CheckResult(
+        return CheckResult.passed(name, f"using existing $DISPLAY={display}")
+    return CheckResult.warned(
         name,
-        "warn",
         f"$DISPLAY={display} set but {socket_path} not found",
         f"If this is a remote/TCP display it may still work; otherwise: {startx_hint}",
     )
@@ -95,7 +94,7 @@ async def check_mod_load(
     try:
         port = await manager.start()
     except (OSError, RuntimeError) as exc:  # OSError covers Game/ModNotFoundError
-        return CheckResult(name, "fail", "could not spawn the game", str(exc))
+        return CheckResult.failed(name, "could not spawn the game", str(exc))
 
     client = KtaneClient(url=f"http://localhost:{port}")
     try:  # noqa: WPS501  (teardown of the spawned game must always run)
@@ -120,9 +119,9 @@ async def _poll_for_mod(
             except (httpx.HTTPError, OSError):
                 state = GameState.unknown  # not listening yet — keep polling
             if state is not GameState.unknown:
-                return CheckResult(name, "pass", f"mod responding (state={state.name})")
+                return CheckResult.passed(name, f"mod responding (state={state.name})")
             await anyio.sleep(poll)
-    return CheckResult(name, "fail", f"no /health response within {load_timeout:.0f}s", hint)
+    return CheckResult.failed(name, f"no /health response within {load_timeout:.0f}s", hint)
 
 
 async def _teardown_game(client: KtaneClient, manager: GameProcessManager) -> None:

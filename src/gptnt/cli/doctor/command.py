@@ -69,7 +69,8 @@ async def doctor(
     """Check that this machine is ready to run the benchmark, and print exact fixes for what isn't.
 
     Pass a `run.yaml` to additionally cross-check its roster against what generation requires (this
-    catches the generate/throw player mismatch before it silently stalls) and report resume state.
+    catches a roster player the generated specs never cover before it silently stalls) and report
+    resume state.
     """
     run = None
     if manifest is not None:
@@ -168,7 +169,7 @@ def _run_plan_checks(
         return analyze_run_plan(run, config_to_player, specs=specs)
     except Exception as exc:  # noqa: BLE001 — a crashing cross-check must not abort the report
         return RunPlanResult(
-            findings=[CheckResult("Run plan", "fail", "cross-check crashed", str(exc)[:200])],
+            findings=[CheckResult.failed("Run plan", "cross-check crashed", str(exc)[:200])],
             specs=[],
             config_to_player={},
         )
@@ -194,9 +195,9 @@ async def _infrastructure_checks(*, check_mod_load: bool) -> list[CheckResult]:
 async def _mod_load_row(*, enabled: bool, prerequisites: tuple[CheckResult, ...]) -> CheckResult:
     """The mod-load row: skip (with the flag to run it) when disabled or a prerequisite failed."""
     if not enabled:
-        return CheckResult(MOD_LOAD_CHECK, "skip", "not run", "run with --check-mod-load")
+        return CheckResult.skipped(MOD_LOAD_CHECK, "not run", "run with --check-mod-load")
 
     blockers = [check.name for check in prerequisites if check.status == "fail"]
     if blockers:
-        return CheckResult(MOD_LOAD_CHECK, "skip", f"skipped because {', '.join(blockers)} failed")
+        return CheckResult.skipped(MOD_LOAD_CHECK, f"skipped because {', '.join(blockers)} failed")
     return await check_mod_load()

@@ -53,8 +53,8 @@ async def check_redis(
     parsed = urlsplit(str(RuntimeSettings().redis_dsn))
     host, port = parsed.hostname or "localhost", parsed.port or 6379
     if await _redis_pings(host, port):
-        return CheckResult(name, "pass", f"reachable at {host}:{port}")
-    return CheckResult(name, "fail", f"not reachable at {host}:{port}", hint)
+        return CheckResult.passed(name, f"reachable at {host}:{port}")
+    return CheckResult.failed(name, f"not reachable at {host}:{port}", hint)
 
 
 async def check_em_port(
@@ -71,14 +71,14 @@ async def check_em_port(
             response = await client.get(url)
     except (httpx.ConnectError, httpx.ConnectTimeout):
         # refused/timed-out/filtered connect == Nothing healthy is running here, so the EM can
-        return CheckResult(name, "pass", "free (the EM can start here)")
+        return CheckResult.passed(name, "free (the EM can start here)")
     except httpx.HTTPError as exc:
         # connected, but mid-request timeout or not speaking HTTP
-        return CheckResult(name, "fail", f"occupied, not responding: {exc}", kill_hint)
+        return CheckResult.failed(name, f"occupied, not responding: {exc}", kill_hint)
     if response.status_code == httpx.codes.OK:  # pyright: ignore[reportUnnecessaryComparison]
-        return CheckResult(name, "pass", "an EM is already running and healthy")
+        return CheckResult.passed(name, "an EM is already running and healthy")
 
-    return CheckResult(name, "fail", f"occupied (HTTP {response.status_code})", kill_hint)
+    return CheckResult.failed(name, f"occupied (HTTP {response.status_code})", kill_hint)
 
 
 def _otel_host_port() -> tuple[str, int]:
@@ -99,5 +99,5 @@ async def check_observability(
     host, port = _otel_host_port()
     name = f"otel-collector :{port}"
     if await _http_responds(f"http://{host}:{port}/"):
-        return CheckResult(name, "pass", f"reachable at {host}:{port}")
-    return CheckResult(name, "warn", f"not reachable at {host}:{port}", hint)
+        return CheckResult.passed(name, f"reachable at {host}:{port}")
+    return CheckResult.warned(name, f"not reachable at {host}:{port}", hint)

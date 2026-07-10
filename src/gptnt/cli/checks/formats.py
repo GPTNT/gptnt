@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
-from gptnt.cli.checks.render import render_report
+from gptnt.cli.checks.render import GLYPHS, render_report
 
 if TYPE_CHECKING:
     from rich.console import Console
@@ -16,8 +16,6 @@ if TYPE_CHECKING:
     from gptnt.cli.checks.result import CheckResult
 
 ReportFormat = Literal["rich", "json", "github"]
-
-_STATUS_GLYPH: dict[str, str] = {"pass": "✓", "fail": "✗", "warn": "⚠", "skip": "⊘"}
 
 
 @dataclass(frozen=True)
@@ -136,7 +134,8 @@ def _write_step_summary(reports: list[Report], *, title: str, noun: str) -> None
 def _summary_row(check: CheckResult) -> str:
     """One markdown table row, with the cell-breaking pipe neutralised."""
     detail = " ".join(part for part in (check.detail, check.hint) if part).replace("|", r"\|")
-    return f"| {_STATUS_GLYPH[check.status]} | {check.name} | {detail} |"
+    glyph, _ = GLYPHS[check.status]
+    return f"| {glyph} | {check.name} | {detail} |"
 
 
 def _escape_data(text: str) -> str:

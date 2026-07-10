@@ -50,7 +50,7 @@ def check_machine(
     try:
         return _collect_machine_specs(name=name, disk_name=disk_name, warn_gib=warn_gib)
     except Exception as exc:  # noqa: BLE001 — purely informational; never abort the report
-        return [CheckResult(name, "warn", "could not read host info", str(exc))]
+        return [CheckResult.warned(name, "could not read host info", str(exc))]
 
 
 def _collect_machine_specs(*, name: str, disk_name: str, warn_gib: float) -> list[CheckResult]:
@@ -61,20 +61,19 @@ def _collect_machine_specs(*, name: str, disk_name: str, warn_gib: float) -> lis
     gpu = _detect_gpu()
     if gpu:
         spec = f"{spec}, GPU: {gpu}"
-    findings = [CheckResult(name, "pass", spec)]
+    findings = [CheckResult.passed(name, spec)]
 
     target = _nearest_existing(paths.experiment_recorder_dir)
     free_gib = shutil.disk_usage(target).free / 1024**3
     detail = f"{free_gib:.1f} GiB free on {target}"
     if free_gib < warn_gib:
         findings.append(
-            CheckResult(
+            CheckResult.warned(
                 disk_name,
-                "warn",
                 detail,
                 f"Below {warn_gib:.0f} GiB free; experiment recordings accumulate here.",
             )
         )
     else:
-        findings.append(CheckResult(disk_name, "pass", detail))
+        findings.append(CheckResult.passed(disk_name, detail))
     return findings

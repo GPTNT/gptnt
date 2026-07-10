@@ -1,19 +1,4 @@
-"""Validate a model config — used by the `validate` and `doctor` CLI commands.
-
-- :func:`validate_model_config` (static): compose `player.yaml` + `player=<name>`
-  (+ `player/provider=<provider>`) and instantiate it — i.e. prove the YAML is correct.
-  Credential-tolerant: an unset provider key is reported as `missing_credential` (with
-  pydantic-ai's own "set the X environment variable" message retained in `error`), not a
-  failure. Instantiation *is* the credential check — there is no separate hardcoded
-  provider→env-var map to maintain; pydantic-ai owns which key each provider needs.
-- :func:`live_check_model_config` (live, SPENDS MONEY): send one plain-text request and
-  report whether the endpoint answers. That is all — we check that it *connects*, not
-  what it can do. If a model can't do what its config claims, that is the user's problem
-  and surfaces at run time, not here.
-
-Secret safety: an error message may name an env var, but no env var VALUE is ever read,
-logged, or returned by this module.
-"""
+"""Validate a model config — used by the `validate` and `doctor` CLI commands."""
 
 from __future__ import annotations
 
@@ -62,8 +47,8 @@ class LiveCheckResult:
     error: str | None = None
 
 
-# TODO: We ripped out the @provider stuff so this shouldnt be saying this stuff anymore. I think
-#       its still needed though.
+# TODO: confirm this mismatch is still reachable after the `@provider` merge changed; drop the
+#       check if a tier-1 string model can no longer take a `@provider` override.
 def _provider_pairing_error(cfg: DictConfig, model_name: str, provider: str | None) -> str | None:
     """Flag the tier-1-string-model + `@provider` mismatch before it fails cryptically.
 
@@ -116,7 +101,7 @@ def _validate_agent(
         )
 
     model = agent.model
-    resolved = model if isinstance(model, str) else getattr(model, "model_name", None)
+    resolved = model if isinstance(model, str) else model.model_name
     return ModelValidationResult(
         model_name, provider, ok=True, capabilities=capabilities, resolved_model_name=resolved
     )

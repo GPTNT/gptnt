@@ -18,6 +18,7 @@ from typing import Annotated
 from cyclopts import Parameter
 from rich.console import Console
 
+from gptnt.cli.checks.formats import Report, ReportFormat
 from gptnt.cli.checks.result import CheckResult
 from gptnt.cli.submission._bundle import InteractiveBundle
 from gptnt.cli.submission._checks import (
@@ -26,7 +27,7 @@ from gptnt.cli.submission._checks import (
     check_suite,
     load_bundle,
 )
-from gptnt.cli.submission._report import BundleReport, ReportFormat, render_reports
+from gptnt.cli.submission._report import render_reports
 from gptnt.common.paths import Paths
 from gptnt.experiments.suite.lock import SuiteLock, SuiteLockEntry, SuiteNotFrozenError
 
@@ -54,7 +55,7 @@ def validate_submission(
 
     lock = SuiteLock.from_lock_path()
     reports = [
-        BundleReport(
+        Report(
             heading=str(bundle_dir if bundle_dir == path else bundle_dir.relative_to(path)),
             checks=_run_bundle_checks(bundle_dir, lock),
         )

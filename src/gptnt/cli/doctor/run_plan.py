@@ -97,9 +97,8 @@ def _resolve_roster(
         player_name = config_to_player.get(entry.player)
         if player_name is None:
             findings.append(
-                CheckResult(
+                CheckResult.failed(
                     f"Roster: {entry.player}",
-                    "fail",
                     "config does not resolve to a player_name (it failed to compose/instantiate)",
                     "fix the ✗ for this config in the Models table above",
                 )
@@ -111,9 +110,8 @@ def _resolve_roster(
     for player_name, configs in player_to_configs.items():
         if len(configs) > 1:
             findings.append(
-                CheckResult(
+                CheckResult.failed(
                     f"Roster: {player_name}",
-                    "fail",
                     f"player_name '{player_name}' is provided by multiple configs: "
                     f"{', '.join(sorted(configs))}",
                     "each player must come from exactly one roster entry",
@@ -143,9 +141,8 @@ def _resolve_anchors(
         player_name = _anchor_player_name(config_name, roster_config_to_player, cache)
         if player_name is None:
             findings.append(
-                CheckResult(
+                CheckResult.failed(
                     f"Anchor {field_name}",
-                    "fail",
                     f"'{config_name}' is not a usable player config",
                     "no player config of that name exists under configs/player/",
                 )
@@ -198,9 +195,8 @@ def _generate_union(
             specs = generate_specs(overrides)
         except Exception as exc:  # noqa: BLE001 — surface a bad suite/override as a ✗ row
             findings.append(
-                CheckResult(
+                CheckResult.failed(
                     f"Generate: {suite_name}",
-                    "fail",
                     f"generation failed: {exc}",
                     "check the suite name (run `gptnt list suites`); "
                     "with_best_* matchups need a matching anchor in `anchors:`",
@@ -233,9 +229,8 @@ def _unknown_player_findings(
         if player_name in anchor_by_player:
             hint = f"it's your {anchor_by_player[player_name]} anchor — {hint}"
         findings.append(
-            CheckResult(
+            CheckResult.failed(
                 f"Player {player_name}",
-                "fail",
                 f"required by the run (appears {appearances[player_name]} times) "
                 "but no roster entry provides it",
                 hint,
@@ -254,9 +249,8 @@ def _unused_findings(roster: _Roster, appearances: Counter[str]) -> list[CheckRe
     for config_name, player_name in roster.config_to_player.items():
         if appearances.get(player_name, 0) == 0:
             findings.append(
-                CheckResult(
+                CheckResult.warned(
                     f"Player {config_name}",
-                    "warn",
                     "in the roster but no selected experiment uses it",
                     "drop it from players: or select an experiment that pairs it",
                 )
@@ -279,7 +273,7 @@ def _coverage_ok(
         detail = f"{detail} ({manifest.attempts_per_mission} attempts/mission)"
     if spawning:
         detail = f"{detail}; will spawn {spawning}"
-    return CheckResult(COVERAGE_CHECK, "pass", detail)
+    return CheckResult.passed(COVERAGE_CHECK, detail)
 
 
 def _resume(
@@ -293,7 +287,7 @@ def _resume(
     """
     if not specs:
         return (
-            CheckResult(RESUME_CHECK, "skip", "no specs were generated, so nothing to resume"),
+            CheckResult.skipped(RESUME_CHECK, "no specs were generated, so nothing to resume"),
             None,
         )
 
@@ -302,9 +296,8 @@ def _resume(
         remaining = filter_experiments(specs, source=source, output_dir=_resume_output_dir())
     except Exception as exc:  # noqa: BLE001 — resume is informational; never block the run
         return (
-            CheckResult(
+            CheckResult.warned(
                 RESUME_CHECK,
-                "warn",
                 f"could not determine resume state ({source.value}): {exc}",
                 "resume state is unknown; this does not block the run",
             ),
@@ -313,9 +306,8 @@ def _resume(
 
     done = len(specs) - len(remaining)
     return (
-        CheckResult(
+        CheckResult.passed(
             RESUME_CHECK,
-            "pass",
             f"{done} of {len(specs)} already done ({source.value}); "
             f"this run would execute {len(remaining)}",
         ),

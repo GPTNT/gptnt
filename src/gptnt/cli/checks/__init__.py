@@ -1,4 +1,4 @@
-"""The `CheckResult` type, its renderer and format emitters, and `gptnt doctor`'s probes."""
+"""The `CheckResult` value object, its status type, and the section renderer."""
 
 from gptnt.cli.checks.formats import Report
 from gptnt.cli.checks.render import render_report
