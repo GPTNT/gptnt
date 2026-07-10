@@ -7,6 +7,7 @@ from cyclopts import Parameter
 from cyclopts.types import ExistingFile
 from rich.console import Console
 
+from gptnt.cli.check_result import CheckResult
 from gptnt.cli.config_discovery import discover_players
 from gptnt.cli.doctor import checks, render
 from gptnt.cli.doctor.run_plan import RunPlanResult, analyze_run_plan
@@ -114,7 +115,7 @@ async def _render_system_checks(
     run: RunManifest | None,
     config_to_player: dict[str, str | None],
     *,
-    calibration: list[checks.CheckResult],
+    calibration: list[CheckResult],
     check_mod_load: bool,
     specs: list[ExperimentSpec] | None = None,
     include_infra: bool = True,
@@ -125,7 +126,7 @@ async def _render_system_checks(
     run_plan_result = None if run is None else _run_plan_checks(run, config_to_player, specs=specs)
     run_plan_findings = [] if run_plan_result is None else run_plan_result.findings
 
-    sections: dict[str, list[checks.CheckResult]] = {}
+    sections: dict[str, list[CheckResult]] = {}
     # per-player image-token calibration, right after the model matrix it stems from
     if calibration:
         sections["Calibration"] = calibration
@@ -156,15 +157,13 @@ def _run_plan_checks(
         return analyze_run_plan(run, config_to_player, specs=specs)
     except Exception as exc:  # noqa: BLE001 — a crashing cross-check must not abort the report
         return RunPlanResult(
-            findings=[
-                checks.CheckResult("Run plan", "fail", "cross-check crashed", str(exc)[:200])
-            ],
+            findings=[CheckResult("Run plan", "fail", "cross-check crashed", str(exc)[:200])],
             specs=[],
             config_to_player={},
         )
 
 
-async def _infrastructure_checks(*, check_mod_load: bool) -> list[checks.CheckResult]:
+async def _infrastructure_checks(*, check_mod_load: bool) -> list[CheckResult]:
     """Run the full system-state checks."""
     redis = await checks.check_redis()
     game = checks.check_game_binary()
@@ -181,18 +180,14 @@ async def _infrastructure_checks(*, check_mod_load: bool) -> list[checks.CheckRe
     return infra
 
 
-async def _mod_load_row(
-    *, enabled: bool, prerequisites: tuple[checks.CheckResult, ...]
-) -> checks.CheckResult:
+async def _mod_load_row(*, enabled: bool, prerequisites: tuple[CheckResult, ...]) -> CheckResult:
     """The mod-load row: skip (with the flag to run it) when disabled or a prerequisite failed."""
     if not enabled:
-        return checks.CheckResult(
-            checks.MOD_LOAD_CHECK, "skip", "not run", "run with --check-mod-load"
-        )
+        return CheckResult(checks.MOD_LOAD_CHECK, "skip", "not run", "run with --check-mod-load")
 
     blockers = [check.name for check in prerequisites if check.status == "fail"]
     if blockers:
-        return checks.CheckResult(
+        return CheckResult(
             checks.MOD_LOAD_CHECK, "skip", f"skipped because {', '.join(blockers)} failed"
         )
     return await checks.check_mod_load()

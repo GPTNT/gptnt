@@ -16,12 +16,11 @@ import pytest
 from rich.console import Console
 
 from gptnt.cli.__main__ import build_app
+from gptnt.cli.check_result import CheckResult
 from gptnt.cli.doctor import checks, command, render
 from gptnt.cli.doctor.validation import ModelValidationResult
 
 from tests._cli_runner import invoke_cli
-
-CheckResult = checks.CheckResult
 
 
 def _quiet_console() -> Console:
