@@ -298,6 +298,7 @@ pydantic_plugin_record = "failure"
 ignore_no_config = true
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
 filterwarnings = [
     "ignore::UserWarning",
     'ignore:Deprecated call to `pkg_resources.declare_namespace:DeprecationWarning',
