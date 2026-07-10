@@ -30,15 +30,12 @@ MOD_LOAD_POLL = 1.0
 MOD_LOAD_CHECK = "Mod loads (game spawn)"
 
 
-def check_game_binary(
-    *,
-    name: str = "Game binary",
-    layout_hint: str = (
+def check_game_binary(*, name: str = "Game binary") -> CheckResult:
+    """Resolve the per-OS game executable under `paths.ktane`."""
+    layout_hint = (
         f"Copy the KTANE build into {paths.ktane} "
         "(Linux: *.x86_64 + ktane_Data/; macOS: *.app; Windows: *.exe + ktane_Data/)."
-    ),
-) -> CheckResult:
-    """Resolve the per-OS game executable under `paths.ktane`."""
+    )
     try:
         executable = get_executable_path()
     except (GameNotFoundError, RuntimeError) as exc:  # RuntimeError == unsupported OS
@@ -46,12 +43,9 @@ def check_game_binary(
     return CheckResult(name, "pass", str(executable))
 
 
-def check_mod_files(
-    *,
-    name: str = "Mod files",
-    hint: str = f"Install the 'Gptnt Plays' mod under {paths.ktane / 'mods'}.",
-) -> CheckResult:
+def check_mod_files(*, name: str = "Mod files") -> CheckResult:
     """Cheap on-disk check that the 'Gptnt Plays' mod directory exists."""
+    hint = f"Install the 'Gptnt Plays' mod under {paths.ktane / 'mods'}."
     try:
         _ = ensure_mod_exists()
     except ModNotFoundError as exc:

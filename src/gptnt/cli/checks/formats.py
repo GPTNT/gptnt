@@ -59,7 +59,7 @@ def _render_rich(reports: list[Report], console: Console, *, noun: str) -> None:
     for report in reports:
         render_report(console, {report.heading: report.checks})
     total = len(reports)
-    failed = sum(report.failed for report in reports)
+    failed = sum(one.failed for one in reports)
     console.print(
         f"Validated {total} {noun}(s): {total - failed} ok, {failed} failed.", style="bold"
     )
@@ -68,7 +68,7 @@ def _render_rich(reports: list[Report], console: Console, *, noun: str) -> None:
 def _render_json(reports: list[Report], console: Console, *, noun: str) -> None:
     """A machine-readable summary plus every check, for a CI step to parse."""
     total = len(reports)
-    failed = sum(report.failed for report in reports)
+    failed = sum(one.failed for one in reports)
     payload = {
         "summary": {"total": total, "ok": total - failed, "failed": failed},
         f"{noun}s": [
@@ -121,7 +121,7 @@ def _write_step_summary(reports: list[Report], *, title: str, noun: str) -> None
     if summary_path is None:
         return
     total = len(reports)
-    failed = sum(report.failed for report in reports)
+    failed = sum(one.failed for one in reports)
     lines = [f"## {title} — {total - failed}/{total} {noun}(s) ok", ""]
     for report in reports:
         lines.append(f"### {'❌' if report.failed else '✅'} {report.heading}")

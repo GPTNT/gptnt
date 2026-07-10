@@ -15,7 +15,7 @@ from gptnt.cli.checks.game import (
     check_mod_load,
 )
 from gptnt.cli.checks.machine import check_machine
-from gptnt.cli.checks.players import PlayerReport, check_calibration, check_players
+from gptnt.cli.checks.players import PlayerReport, check_players, check_tokens_per_image
 from gptnt.cli.checks.render import render_players, render_report
 from gptnt.cli.checks.result import CheckResult
 from gptnt.cli.checks.services import check_em_port, check_observability, check_redis
@@ -101,7 +101,7 @@ async def diagnose(
     system_failed, run_plan_result = await _render_system_checks(
         run,
         matrix.config_to_player,
-        calibration=check_calibration(matrix.details),
+        tokens_per_image=check_tokens_per_image(matrix.details),
         check_mod_load=check_mod_load,
         specs=specs,
         include_infra=include_infra,
@@ -125,21 +125,21 @@ async def _render_system_checks(
     run: RunManifest | None,
     config_to_player: dict[str, str | None],
     *,
-    calibration: list[CheckResult],
+    tokens_per_image: list[CheckResult],
     check_mod_load: bool,
     specs: list[ExperimentSpec] | None = None,
     include_infra: bool = True,
 ) -> tuple[bool, RunPlanResult | None]:
-    """Run + render the calibration/infra/machine/run-plan checks."""
+    """Run + render the image-token/infra/machine/run-plan checks."""
     infra = await _infrastructure_checks(check_mod_load=check_mod_load) if include_infra else []
     machine = check_machine() if include_infra else []
     run_plan_result = None if run is None else _run_plan_checks(run, config_to_player, specs=specs)
     run_plan_findings = [] if run_plan_result is None else run_plan_result.findings
 
     sections: dict[str, list[CheckResult]] = {}
-    # per-player image-token calibration, right after the model matrix it stems from
-    if calibration:
-        sections["Calibration"] = calibration
+    # per-player image-token cost, right after the model matrix it stems from
+    if tokens_per_image:
+        sections["Image tokens"] = tokens_per_image
     if run_plan_findings:  # render the run-plan section right after the model matrix it stems from
         sections["Run plan"] = run_plan_findings
     if infra:
@@ -148,7 +148,8 @@ async def _render_system_checks(
         sections["Machine"] = machine
     render_report(console, sections)
     failed = any(
-        check.status == "fail" for check in (*calibration, *infra, *machine, *run_plan_findings)
+        check.status == "fail"
+        for check in (*tokens_per_image, *infra, *machine, *run_plan_findings)
     )
     return failed, run_plan_result
 

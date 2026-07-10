@@ -1,6 +1,6 @@
 import pytest
 
-from gptnt.cli.checks.players import PlayerDetail, PlayerReport, check_calibration
+from gptnt.cli.checks.players import PlayerDetail, PlayerReport, check_tokens_per_image
 from gptnt.cli.checks.validation import ModelValidationResult
 from gptnt.cli.onboarding.measure_tokens_per_image import _insert_tokens_per_image
 from gptnt.players.specification import PlayerCapabilities
@@ -55,21 +55,21 @@ def _detail(label: str, tokens_per_image: int) -> PlayerDetail:
     )
 
 
-def test_calibration_fails_uncalibrated_player() -> None:
-    finding = check_calibration([_detail("claude-sonnet-4-6", 0)])[0]
+def test_tokens_per_image_fails_uncalibrated_player() -> None:
+    finding = check_tokens_per_image([_detail("claude-sonnet-4-6", 0)])[0]
     assert finding.status == "fail"
     assert "measure-tokens-per-image claude-sonnet-4-6" in finding.hint
 
 
-def test_calibration_passes_calibrated_player() -> None:
-    finding = check_calibration([_detail("gpt-5", 383)])[0]
+def test_tokens_per_image_passes_calibrated_player() -> None:
+    finding = check_tokens_per_image([_detail("gpt-5", 383)])[0]
     assert finding.status == "pass"
     assert "383" in finding.detail
 
 
-def test_calibration_skips_uninstantiated_config() -> None:
+def test_tokens_per_image_skips_uninstantiated_config() -> None:
     detail = PlayerDetail(
         report=PlayerReport("broken", "pass", "fail", "skip", "boom"),
         static=ModelValidationResult("broken", None, ok=False, capabilities=None),
     )
-    assert check_calibration([detail]) == []
+    assert check_tokens_per_image([detail]) == []

@@ -92,7 +92,10 @@ async def check_observability(
     *,
     hint: str = "Optional — run a collector here (e.g. `docker compose up -d`) or set OTEL_EXPORTER_OTLP_ENDPOINT.",
 ) -> CheckResult:
-    """Is an OTLP collector reachable? Recommended, not required — a warning, never a failure."""
+    """Is an OTLP collector reachable?
+
+    Recommended, not required — a warning, never a failure.
+    """
     host, port = _otel_host_port()
     name = f"otel-collector :{port}"
     if await _http_responds(f"http://{host}:{port}/"):

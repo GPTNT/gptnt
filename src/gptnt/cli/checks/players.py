@@ -72,7 +72,9 @@ class PlayerMatrix:
     config_to_player: dict[str, str | None]
     """Each config name mapped to its resolved `player_name`, from the same `validate_model_config`
     pass that builds `details`, so the report and the run-plan roster resolution cannot disagree.
-    `None` when the config did not instantiate far enough to yield a `capabilities.player_name`."""
+
+    `None` when the config did not instantiate far enough to yield a `capabilities.player_name`.
+    """
 
     @property
     def reports(self) -> list[PlayerReport]:
@@ -130,7 +132,7 @@ async def _player_detail(
     return PlayerDetail(report, static, outcome)
 
 
-def check_calibration(details: Sequence[PlayerDetail]) -> list[CheckResult]:
+def check_tokens_per_image(details: Sequence[PlayerDetail]) -> list[CheckResult]:
     """One row per player: is its per-image token cost calibrated (non-zero)?
 
     `capabilities.tokens_per_image` stays `0` until `gptnt measure-tokens-per-image` measures it
