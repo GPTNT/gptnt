@@ -60,6 +60,12 @@ class RunManifest(BaseModel):
 
     observability: Literal["full", "limited", "off"] = "limited"
 
+    attempts_per_mission: int = Field(default=1, ge=1)
+    """Independent attempts to generate per (mission, pairing).
+
+    Overrides the suite-generator default; sampling depth, not part of a suite's identity.
+    """
+
     @classmethod
     def from_path(cls, path: Path) -> RunManifest:
         """Read and validate a `run.yaml` manifest from disk."""

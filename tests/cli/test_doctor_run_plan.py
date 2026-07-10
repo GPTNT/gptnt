@@ -135,3 +135,16 @@ def test_multiple_suites_union_grows_the_spec_count() -> None:
     ).findings
 
     assert _coverage_spec_count(two) > _coverage_spec_count(one)
+
+
+def test_attempts_per_mission_multiplies_the_spec_count() -> None:
+    """`attempts_per_mission` reaches generation via a Hydra override: N attempts give N specs."""
+    config_to_player = {"test-defuser": "test-defuser", "test-expert": "test-expert"}
+
+    once = analyze_run_plan(_manifest(attempts_per_mission=1), config_to_player).findings
+    thrice = analyze_run_plan(_manifest(attempts_per_mission=3), config_to_player).findings
+
+    assert _coverage_spec_count(thrice) == 3 * _coverage_spec_count(once)
+    coverage = _row(thrice, "Roster coverage")
+    assert coverage is not None
+    assert "3 attempts/mission" in coverage.detail
