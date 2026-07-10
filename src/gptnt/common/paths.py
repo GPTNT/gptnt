@@ -48,6 +48,9 @@ class Paths(BaseSettings):
     prompts: Path = storage.joinpath("prompts")
     """Path to the where we store the prompts pieces."""
 
+    submissions: Path = output.joinpath("submissions")
+    """Path to the prepared submissions."""
+
     @property
     def configs(self) -> Path:
         """Configs directory: the override, the checkout's `configs/`, or the packaged copy.

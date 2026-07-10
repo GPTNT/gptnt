@@ -11,12 +11,36 @@ from gptnt.experiments.descriptor import ExperimentDescriptor
 from gptnt.experiments.models import ExperimentSummary
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
+from gptnt.ktane.state.bomb import BombState
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from gptnt.players.specification import CommunicationStyle
+
+
+def make_solved_bomb() -> BombState:
+    """A solved bomb (empty modules; the is-solved validator marks an empty bomb solved)."""
+    return BombState.model_validate(
+        {
+            "seed": 1,
+            "maxStrikes": 3,
+            "strikes": None,
+            "isDetonated": False,
+            "isSolved": True,
+            "isLightOn": True,
+            "bombSide": "front",
+            "timerModule": {
+                "name": "Timer",
+                "onFront": True,
+                "index": 0,
+                "secondsRemaining": 100.0,
+            },
+            "widgets": [],
+            "modules": [],
+        }
+    )
 
 
 def make_experiment_spec(seed: int = 12345) -> ExperimentSpec:

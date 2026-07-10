@@ -82,7 +82,7 @@ jobs:
             ${{ runner.os }}-prek-
 
       - name: Install deps
-        run: uv sync --all-groups
+        run: uv sync --all-groups --extra submission
 
       - name: Run prek hook
         id: run-prek-hooks
@@ -125,7 +125,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install deps
-        run: uv sync --all-groups
+        run: uv sync --all-groups --extra submission
 
       - name: Run tests
         run: |
