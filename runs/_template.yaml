@@ -51,3 +51,6 @@ source: local
 
 # How much logging to do: full | limited | off. Default `limited` (cost-safe)
 observability: limited
+
+# OPTIONAL. Independent attempts to generate per (mission, pairing) — sampling depth. Default 1.
+# attempts_per_mission: 1

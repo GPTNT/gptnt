@@ -180,6 +180,30 @@ def test_source_accepts_local_and_wandb(tmp_path: Path, source_value: str) -> No
     assert manifest.source == Source(source_value)
 
 
+def test_attempts_per_mission_defaults_to_one(tmp_path: Path) -> None:
+    manifest = _load_payload(tmp_path, _minimal_manifest())
+
+    assert manifest.attempts_per_mission == 1
+
+
+def test_attempts_per_mission_accepts_explicit_count(tmp_path: Path) -> None:
+    payload = _minimal_manifest()
+    payload["attempts_per_mission"] = 4
+
+    manifest = _load_payload(tmp_path, payload)
+
+    assert manifest.attempts_per_mission == 4
+
+
+@pytest.mark.parametrize("bad_count", [0, -1])
+def test_non_positive_attempts_per_mission_is_rejected(tmp_path: Path, bad_count: int) -> None:
+    payload = _minimal_manifest()
+    payload["attempts_per_mission"] = bad_count
+
+    with pytest.raises(ValidationError):
+        _ = _load_payload(tmp_path, payload)
+
+
 def test_missing_file_propagates_filenotfound(tmp_path: Path) -> None:
     """Path existence is the CLI's job (Typer's `exists=True`); `RunManifest.from_path` no longer
     wraps it.

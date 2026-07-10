@@ -188,7 +188,12 @@ def _generate_union(
     ]
     union: dict[str, ExperimentSpec] = {}
     for suite_name in manifest.suites:
-        overrides = [f"suites={suite_name}", roster_override, *anchor_overrides]
+        overrides = [
+            f"suites={suite_name}",
+            roster_override,
+            *anchor_overrides,
+            f"attempts_per_mission={manifest.attempts_per_mission}",
+        ]
         try:
             specs = generate_specs(overrides)
         except Exception as exc:  # noqa: BLE001 — surface a bad suite/override as a ✗ row
@@ -270,6 +275,8 @@ def _coverage_ok(
         if roster.config_to_player.get(entry.player) in appearing
     )
     detail = f"{len(roster.player_names)} player(s) cover {total_specs} spec(s)"
+    if manifest.attempts_per_mission > 1:
+        detail = f"{detail} ({manifest.attempts_per_mission} attempts/mission)"
     if spawning:
         detail = f"{detail}; will spawn {spawning}"
     return CheckResult(COVERAGE_CHECK, "pass", detail)
