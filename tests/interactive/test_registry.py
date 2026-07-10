@@ -13,7 +13,7 @@ from gptnt.interactive.services.registry.manifest import ServiceManifest, Servic
 from gptnt.interactive.services.registry.registry import ServiceRegistry
 from gptnt.ktane.state.game import GameState
 
-from tests._factories.players import PlayerCapabilitiesFactory
+from tests._factories.players import make_capabilities
 
 
 def player_manifest(
@@ -23,7 +23,7 @@ def player_manifest(
         uuid=uuid4(),
         service_name="player",
         ready_state=ReadyState.ready if ready else ReadyState.not_ready,
-        capabilities=PlayerCapabilitiesFactory.build(),
+        capabilities=make_capabilities(),
         state=state,
     )
     return ServiceManifest(heartbeat=heartbeat)

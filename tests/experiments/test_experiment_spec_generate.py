@@ -20,9 +20,9 @@ from gptnt.experiments.generation.specs import CONFIG_NAME, _best_model_for, gen
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.modules import KtaneComponent
-from gptnt.players.specification import PlayerProtocol
 
 from tests._cases.mission_generator_config import MissionGeneratorConfigCases
+from tests._factories.players import make_protocol
 
 pairing_type = param_fixture("pairing_type", list(get_args(PairingType.__value__)))
 
@@ -114,18 +114,15 @@ def pairings(pairing_type: PairingType) -> Iterator[Pairing]:
 def test_experiment_generation_does_not_crash(
     pairing_type: PairingType, missions: Iterator[KtaneMissionSpec], pairings: Iterator[Pairing]
 ) -> None:
-    expert_spec = PlayerProtocol(
+    expert_spec = make_protocol(
         role="expert", communication_style="async", is_playing_alone=False, include_manual=True
     )
     generator = ExperimentGenerator(
         mission_set="single_module",
         suite_name="single-test",
         suite_revision=1,
-        defuser_protocol=PlayerProtocol(
-            role="defuser",
-            communication_style="async",
-            is_playing_alone=False,
-            include_manual=False,
+        defuser_protocol=make_protocol(
+            role="defuser", communication_style="async", is_playing_alone=False
         ),
         expert_protocol=None if pairing_type == "no_expert" else expert_spec,
     )

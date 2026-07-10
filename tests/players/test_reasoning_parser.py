@@ -15,11 +15,12 @@ from gptnt.players.reasoning_parser.react import (
     REACT_REASONING_TAG,
     ReactStyleReasoningParser,
 )
-from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.players.specification import PlayerCapabilities
 
 from tests._cases.capabilities import CapabilitiesCases
 from tests._cases.outputs import PredictedActionCases
-from tests.core.players._models import InnerMonologueModel, ThinkingOutLoudModel
+from tests._factories.players import make_protocol
+from tests.players._models import InnerMonologueModel, ThinkingOutLoudModel
 
 thinking_output = param_fixture(
     "thinking_output", [None, "This is my inner monologue."], ids=["no_thinking", "with_thinking"]
@@ -29,14 +30,14 @@ thinking_output = param_fixture(
 @parametrize_with_cases("capabilities", cases=CapabilitiesCases, glob="*prompted*")
 @parametrize_with_cases("expected_output", cases=PredictedActionCases)
 def test_inner_monologue_reasoning_parser(
-    defuser_protocol: PlayerProtocol,
     capabilities: PlayerCapabilities,
     expected_output: PlayerOutputType | str,
     thinking_output: str | None,
 ) -> None:
     CapabilitiesCases.check_expected_output_with_capabilities(expected_output, capabilities)
 
-    deps = PlayerDeps(capabilities=capabilities, protocol=defuser_protocol)
+    protocol = make_protocol(role="defuser", is_playing_alone=False)
+    deps = PlayerDeps(capabilities=capabilities, protocol=protocol)
     agent = Agent(
         InnerMonologueModel(expected_output, thinking_output), deps_type=PlayerDeps, retries=0
     )
@@ -54,13 +55,13 @@ def test_inner_monologue_reasoning_parser(
 @parametrize_with_cases("expected_output", cases=PredictedActionCases)
 def test_react_reasoning_parser_with_success(
     capabilities: PlayerCapabilities,
-    defuser_protocol: PlayerProtocol,
     expected_output: PlayerOutputType | str,
     thinking_output: str | None,
 ) -> None:
     CapabilitiesCases.check_expected_output_with_capabilities(expected_output, capabilities)
 
-    deps = PlayerDeps(capabilities=capabilities, protocol=defuser_protocol)
+    protocol = make_protocol(role="defuser", is_playing_alone=False)
+    deps = PlayerDeps(capabilities=capabilities, protocol=protocol)
     agent = Agent(
         ThinkingOutLoudModel(expected_output, thinking_output), deps_type=PlayerDeps, retries=0
     )
@@ -519,11 +520,10 @@ class BadReactOutputCases:
 @parametrize_with_cases("capabilities", cases=CapabilitiesCases, glob="*react*")
 @parametrize_with_cases("expected_output", cases=BadReactOutputCases)
 def test_react_reasoning_parser_with_failures(
-    capabilities: PlayerCapabilities,
-    defuser_protocol: PlayerProtocol,
-    expected_output: ParsedOutputCase,
+    capabilities: PlayerCapabilities, expected_output: ParsedOutputCase
 ) -> None:
-    deps = PlayerDeps(capabilities=capabilities, protocol=defuser_protocol)
+    protocol = make_protocol(role="defuser", is_playing_alone=False)
+    deps = PlayerDeps(capabilities=capabilities, protocol=protocol)
     agent = Agent(
         TestModel(custom_output_text=expected_output.model_output_text),
         deps_type=PlayerDeps,

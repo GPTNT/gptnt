@@ -28,7 +28,8 @@ from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import DoNothingAction
 from gptnt.players.observation_handler import Observation
-from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
+
+from tests._factories.players import make_capabilities, make_protocol
 
 
 @fixture
@@ -98,31 +99,18 @@ def bomb_state() -> BombState:
 
 
 @fixture
-def player_protocol() -> PlayerProtocol:
-    """Create a minimal player protocol."""
-    return PlayerProtocol(
-        role="defuser",
-        communication_style="sync",
-        is_playing_alone=True,
-        include_manual=False,
-        receive_feedback_after_action=False,
-        allow_magic_actions=False,
-    )
-
-
-@fixture
-def player_content(player_protocol: PlayerProtocol) -> PlayerContent:
+def player_content() -> PlayerContent:
     """Create a minimal player content."""
     return PlayerContent(
-        protocol=player_protocol,
+        protocol=make_protocol(),
         name="test-player",
         uuid=uuid4(),
-        capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai"),
+        capabilities=make_capabilities(player_name="test-defuser"),
     )
 
 
 @fixture
-def experiment_descriptor(player_protocol: PlayerProtocol) -> ExperimentDescriptor:
+def experiment_descriptor() -> ExperimentDescriptor:
     """Create a minimal experiment descriptor."""
     mission_spec = KtaneMissionSpec(
         seed=12345,
@@ -137,7 +125,7 @@ def experiment_descriptor(player_protocol: PlayerProtocol) -> ExperimentDescript
         mission_set="single_module",
         suite_name="test-suite",
         suite_revision=1,
-        defuser_protocol=player_protocol,
+        defuser_protocol=make_protocol(),
         defuser_name="test-defuser",
         expert_protocol=None,
         expert_name=None,
@@ -150,7 +138,7 @@ def experiment_descriptor(player_protocol: PlayerProtocol) -> ExperimentDescript
         expert_uuid=None,
         game_uuid=uuid4(),
         start_time=Instant.now(),
-        defuser_capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai"),
+        defuser_capabilities=make_capabilities(player_name="test-defuser"),
         expert_capabilities=None,
     )
 
@@ -266,9 +254,7 @@ async def test_recorder_saves_parquet_roundtrips(
     """The real recorder method writes a parquet file that round-trips back to the same record."""
     player_record = _build_player_record(experiment_descriptor, player_content, step_record)
 
-    recorder = ExperimentPlayerRecorder(
-        capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai")
-    )
+    recorder = ExperimentPlayerRecorder(capabilities=make_capabilities(player_name="test-defuser"))
     recorder.output_dir = tmp_path
     await recorder.save_player_record_to_disk(player_record=player_record)
 
@@ -332,9 +318,7 @@ async def test_recorder_skips_empty_record(
         step_records=[],
         is_hard_crash=False,
     )
-    recorder = ExperimentPlayerRecorder(
-        capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai")
-    )
+    recorder = ExperimentPlayerRecorder(capabilities=make_capabilities(player_name="test-defuser"))
     recorder.output_dir = tmp_path
     await recorder.save_player_record_to_disk(player_record=empty_record)
 

@@ -6,6 +6,7 @@ from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cases.messages import TEST_TOKENS_PER_IMAGE
 from tests._cases.protocol import ProtocolCases
+from tests._factories.players import make_protocol
 
 
 @fixture
@@ -54,11 +55,11 @@ class TestTokensPerImage:
         """It returns `capabilities.tokens_per_image` verbatim."""
         assert token_accountant.tokens_per_image == TEST_TOKENS_PER_IMAGE
 
-    def test_uncalibrated_is_zero(self, defuser_protocol: PlayerProtocol) -> None:
+    def test_uncalibrated_is_zero(self) -> None:
         """A player left uncalibrated reports 0 tokens per image."""
         accountant = TokenAccountant(
             capabilities=PlayerCapabilities(player_name="gpt-5", player_type="ai"),
-            protocol=defuser_protocol,
+            protocol=make_protocol(role="defuser", is_playing_alone=False),
             usage=RunUsage(),
         )
         assert accountant.tokens_per_image == 0
@@ -240,12 +241,12 @@ class TestEstimateNextRunTokens:
     """Test estimate_next_run_tokens method."""
 
     def test_estimate_defuser_no_message(
-        self, defuser_protocol: PlayerProtocol, capabilities_with_limit: PlayerCapabilities
+        self, capabilities_with_limit: PlayerCapabilities
     ) -> None:
         """Test estimation for defuser without next message."""
         accountant = TokenAccountant(
             capabilities=capabilities_with_limit,
-            protocol=defuser_protocol,
+            protocol=make_protocol(role="defuser", is_playing_alone=False),
             usage=RunUsage(input_tokens=10000, output_tokens=200),
         )
 
@@ -256,12 +257,12 @@ class TestEstimateNextRunTokens:
         )
 
     def test_estimate_defuser_with_message(
-        self, defuser_protocol: PlayerProtocol, capabilities_with_limit: PlayerCapabilities
+        self, capabilities_with_limit: PlayerCapabilities
     ) -> None:
         """Test estimation for defuser with next message."""
         accountant = TokenAccountant(
             capabilities=capabilities_with_limit,
-            protocol=defuser_protocol,
+            protocol=make_protocol(role="defuser", is_playing_alone=False),
             usage=RunUsage(input_tokens=10000, output_tokens=200),
         )
 
@@ -271,13 +272,11 @@ class TestEstimateNextRunTokens:
             accountant.tokens_per_image * capabilities_with_limit.max_observations_per_request
         )
 
-    def test_estimate_expert_no_images(
-        self, expert_protocol: PlayerProtocol, capabilities_with_limit: PlayerCapabilities
-    ) -> None:
+    def test_estimate_expert_no_images(self, capabilities_with_limit: PlayerCapabilities) -> None:
         """Test estimation for expert (no images)."""
         accountant = TokenAccountant(
             capabilities=capabilities_with_limit,
-            protocol=expert_protocol,
+            protocol=make_protocol(role="expert", is_playing_alone=False),
             usage=RunUsage(input_tokens=10000, output_tokens=200),
         )
 
@@ -311,13 +310,11 @@ class TestShouldTruncate:
         )
         assert token_accountant.should_truncate(threshold=0.9)
 
-    def test_no_limit(
-        self, defuser_protocol: PlayerProtocol, capabilities_no_limit: PlayerCapabilities
-    ) -> None:
+    def test_no_limit(self, capabilities_no_limit: PlayerCapabilities) -> None:
         """Never truncates without a limit."""
         accountant = TokenAccountant(
             capabilities=capabilities_no_limit,
-            protocol=defuser_protocol,
+            protocol=make_protocol(role="defuser", is_playing_alone=False),
             usage=RunUsage(input_tokens=999999),
         )
         assert not accountant.should_truncate(threshold=0.9)

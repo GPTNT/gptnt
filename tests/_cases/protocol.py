@@ -1,8 +1,9 @@
 import pytest
-from pytest_cases import fixture
 
 from gptnt.players.actions import InteractGameAction, PlayerOutputType, SendMessageAction
 from gptnt.players.specification import PlayerProtocol
+
+from tests._factories.players import make_protocol
 
 
 class ProtocolCases:
@@ -10,30 +11,19 @@ class ProtocolCases:
 
     def case_defuser(self) -> PlayerProtocol:
         """Defuser role, collaborative, without manual."""
-        return PlayerProtocol(
-            role="defuser",
-            communication_style="sync",
-            is_playing_alone=False,
-            include_manual=False,
-        )
+        return make_protocol(role="defuser", is_playing_alone=False)
 
     def case_defuser_with_manual(self) -> PlayerProtocol:
         """Defuser role, collaborative, with manual."""
-        return PlayerProtocol(
-            role="defuser", communication_style="sync", is_playing_alone=False, include_manual=True
-        )
+        return make_protocol(role="defuser", is_playing_alone=False, include_manual=True)
 
     def case_solo_defuser(self) -> PlayerProtocol:
         """Solo defuser, playing alone, without manual."""
-        return PlayerProtocol(
-            role="defuser", communication_style="sync", is_playing_alone=True, include_manual=False
-        )
+        return make_protocol(role="defuser", is_playing_alone=True)
 
     def case_expert(self) -> PlayerProtocol:
         """Expert role with manual."""
-        return PlayerProtocol(
-            role="expert", communication_style="sync", is_playing_alone=False, include_manual=True
-        )
+        return make_protocol(role="expert", is_playing_alone=False, include_manual=True)
 
     @staticmethod
     def check_expected_output_with_protocol(  # noqa: WPS602
@@ -46,19 +36,3 @@ class ProtocolCases:
         ]
         if any(invalid_test_combinations):
             pytest.skip("The expected output is not compatible with the given protocol.")
-
-
-@fixture
-def defuser_protocol() -> PlayerProtocol:
-    """Create a defuser protocol."""
-    return PlayerProtocol(
-        role="defuser", include_manual=False, is_playing_alone=False, communication_style="sync"
-    )
-
-
-@fixture
-def expert_protocol() -> PlayerProtocol:
-    """Create an expert protocol."""
-    return PlayerProtocol(
-        role="expert", include_manual=False, is_playing_alone=False, communication_style="sync"
-    )

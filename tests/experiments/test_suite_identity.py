@@ -5,14 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 
 from gptnt.experiments.suite.core import Suite, SuiteIdentity, SuiteMatchup
-from gptnt.players.specification import PlayerProtocol
 
-_DEFUSER = PlayerProtocol(
-    role="defuser", communication_style="sync", is_playing_alone=False, include_manual=False
-)
-_EXPERT = PlayerProtocol(
-    role="expert", communication_style="sync", is_playing_alone=False, include_manual=True
-)
+from tests._factories.players import make_protocol
+
+_DEFUSER = make_protocol(role="defuser", is_playing_alone=False)
+_EXPERT = make_protocol(role="expert", is_playing_alone=False, include_manual=True)
 
 
 def _suite(**overrides: object) -> Suite:

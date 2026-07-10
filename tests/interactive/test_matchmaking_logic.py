@@ -11,9 +11,8 @@ from gptnt.interactive.services.heartbeat.player import PlayerHeartbeat
 from gptnt.interactive.services.registry.manifest import PlayerServiceManifest, ServiceManifest
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.modules import KtaneComponent
-from gptnt.players.specification import PlayerProtocol
 
-from tests._factories.players import PlayerCapabilitiesFactory
+from tests._factories.players import make_capabilities, make_protocol
 
 
 def make_player(
@@ -24,7 +23,7 @@ def make_player(
         uuid=uuid4(),
         service_name=player_name,
         ready_state=ReadyState.ready,
-        capabilities=PlayerCapabilitiesFactory.build(player_name=player_name),
+        capabilities=make_capabilities(player_name=player_name),
         state=state,
     )
     return ServiceManifest(heartbeat=heartbeat)
@@ -44,22 +43,14 @@ def make_spec(*, defuser_name: str, expert_name: str | None = None) -> Experimen
         mission_set="single_module",
         suite_name="test-suite",
         suite_revision=1,
-        defuser_protocol=PlayerProtocol(
-            role="defuser",
-            communication_style="sync",
-            is_playing_alone=is_solo,
-            include_manual=True,
+        defuser_protocol=make_protocol(
+            role="defuser", is_playing_alone=is_solo, include_manual=True
         ),
         defuser_name=defuser_name,
         expert_protocol=(
             None
             if is_solo
-            else PlayerProtocol(
-                role="expert",
-                communication_style="sync",
-                is_playing_alone=False,
-                include_manual=True,
-            )
+            else make_protocol(role="expert", is_playing_alone=False, include_manual=True)
         ),
         expert_name=expert_name,
     )
