@@ -93,7 +93,7 @@ class PlayerReport:
     instantiates: CheckStatus
     """It builds into a working `pydantic_ai.Agent`.
 
-    ⚠ when valid but the provider credential is unset.
+    ✗ when the provider credential is unset — it composes but cannot run, so the doctor fails it.
     """
 
     live: CheckStatus
@@ -213,7 +213,7 @@ async def _player_detail(
     """Validate one model into its full detail (boxes + resolved fields + optional live result)."""
     static = validate_model_config(model_name, provider)
     exists, instantiates, note = _static_boxes(static)
-    # Live only runs when requested AND the model instantiated with its credential present (a ⚠
+    # Live only runs when requested AND the model instantiated with its credential present (a ✗
     # instantiate means the key is unset, so there is nothing to call).
     if not (live and exists == "pass" and instantiates == "pass"):
         return PlayerDetail(PlayerReport(label, exists, instantiates, "skip", note), static)
@@ -263,15 +263,18 @@ def check_calibration(details: Sequence[PlayerDetail]) -> list[CheckResult]:
 def _static_boxes(outcome: ModelValidationResult) -> tuple[CheckStatus, CheckStatus, str]:
     """Map a static validation outcome to (exists, instantiates, note).
 
-    Instantiation IS the credential check: an unset provider key is a ⚠ carrying pydantic-ai's own
-    "set the X environment variable" text — no hardcoded key map to maintain.
+    Instantiation IS the credential check: an unset provider key is a ✗ carrying pydantic-ai's own
+    "set the X environment variable" text — no hardcoded key map to maintain. The doctor fails it
+    (a config with no key can't run) even though the raw validator stays credential-tolerant.
     """
     if outcome.error_stage == "compose":  # YAML missing / invalid — nothing to instantiate
         return "fail", "skip", outcome.error or ""
     if not outcome.ok:  # composed, but capabilities/agent failed to build
         return "pass", "fail", outcome.error or ""
     if outcome.missing_credential:
-        return "pass", "warn", outcome.error or ""
+        # Doctor is stricter than validate_model_config here: an unset provider key can't run, so
+        # it FAILS the report (the raw validator stays credential-tolerant for other callers).
+        return "pass", "fail", outcome.error or ""
     return "pass", "pass", f"resolves to {outcome.resolved_model_name or 'instantiated'}"
 
 
