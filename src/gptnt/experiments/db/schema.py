@@ -45,6 +45,19 @@ class AsBlob(DuckDBType):
 
     sql_type: str = field(default="BLOB", init=False)
 
+    @staticmethod
+    def from_blob(v: bytes | bytearray) -> Any:  # noqa: WPS602
+        """Decompress a stored BLOB back into a Python object."""
+        return msgpack.unpackb(zstd.decompress(bytes(v)), raw=False)
+
+    @staticmethod
+    def to_blob(v: Any, *, context: Any = None) -> bytes:  # noqa: WPS602
+        """Compress a Python object into the stored BLOB representation."""
+        packed_bytes = cast(
+            "bytes", msgpack.packb(to_jsonable_python(v, context=context), use_bin_type=True)
+        )
+        return zstd.compress(packed_bytes, level=19)
+
     @classmethod
     def __get_pydantic_core_schema__(
         cls, source_type: Any, handler: GetCoreSchemaHandler
@@ -56,7 +69,7 @@ class AsBlob(DuckDBType):
             v: Any, next_validator: core_schema.ValidatorFunctionWrapHandler
         ) -> Any:
             if isinstance(v, (bytes, bytearray)):
-                v = msgpack.unpackb(zstd.decompress(bytes(v)), raw=False)
+                v = cls.from_blob(v)
             return next_validator(v)
 
         def blob_serializer(
@@ -65,11 +78,7 @@ class AsBlob(DuckDBType):
             info: core_schema.SerializationInfo,
         ) -> Any:
             if info.context and info.context.get("mode") == EXPORT_CONTEXT_MARKER:
-                packed_bytes = cast(
-                    "bytes",
-                    msgpack.packb(to_jsonable_python(v, context=info.context), use_bin_type=True),
-                )
-                return zstd.compress(packed_bytes, level=19)
+                return cls.to_blob(v, context=info.context)
             return next_serializer(v)
 
         return core_schema.no_info_wrap_validator_function(
