@@ -129,7 +129,7 @@ def _resolve_anchors(
 
     Returns a map of anchor field (`best_expert`/`best_defuser`) → player_name for those that
     resolved. An anchor already in the roster reuses its resolved name (no extra validation). An
-    unresolved name fails plainly — no typo-guesser.
+    unresolved name fails.
     """
     resolved: dict[str, str] = {}
     cache: dict[str, str | None] = {}
