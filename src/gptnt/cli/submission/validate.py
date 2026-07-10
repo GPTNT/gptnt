@@ -18,7 +18,7 @@ from typing import Annotated
 from cyclopts import Parameter
 from rich.console import Console
 
-from gptnt.cli.check_result import CheckResult
+from gptnt.cli.checks.result import CheckResult
 from gptnt.cli.submission._bundle import InteractiveBundle
 from gptnt.cli.submission._checks import (
     check_mission_coverage,

@@ -7,7 +7,7 @@ is set (credential tolerance), and an unknown model name fails at the compose st
 
 import pytest
 
-from gptnt.cli.doctor.validation import validate_model_config
+from gptnt.cli.checks.validation import validate_model_config
 
 
 @pytest.mark.skip

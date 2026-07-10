@@ -1,7 +1,8 @@
 """The check-result value object and its four-state status.
 
-A dependency-free module so findings can be built and rendered apart from doctor's probes (httpx,
-psutil, the game client, hydra).
+A dependency-free module so findings can be built and rendered apart from the probes that produce
+them (httpx, psutil, the game client, hydra). It is the shared vocabulary for every findings
+command — `gptnt doctor`, `gptnt suite freeze`, and `gptnt submission validate`.
 """
 
 from __future__ import annotations

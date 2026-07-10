@@ -2,8 +2,8 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
-from gptnt.cli.check_result import CheckResult
-from gptnt.cli.doctor.validation import validate_model_config
+from gptnt.cli.checks.result import CheckResult
+from gptnt.cli.checks.validation import validate_model_config
 from gptnt.cli.run.manifest import RunManifest
 from gptnt.common.paths import Paths
 from gptnt.experiments.generation.specs import generate_specs

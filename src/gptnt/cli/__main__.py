@@ -37,25 +37,25 @@ def build_app() -> App:
         help="Scaffold new player/provider configs.",
     )
     app.command(
-        "gptnt.cli.measure_tokens_per_image:measure_tokens_per_image",
+        "gptnt.cli.onboarding.measure_tokens_per_image:measure_tokens_per_image",
         name="measure-tokens-per-image",
         group=onboarding,
         help="Measure a model's per-image token cost.",
     )
     app.command(
-        "gptnt.cli.list_configs:list_app",
+        "gptnt.cli.onboarding.list_configs:list_app",
         name="list",
         group=onboarding,
         help="List the experiment presets and player configs a run.yaml can reference.",
     )
     app.command(
-        "gptnt.cli.generate_specs:generate",
+        "gptnt.cli.onboarding.generate_specs:generate",
         name="generate",
         group=onboarding,
         help="Generate experiment specs from a run.yaml.",
     )
     app.command(
-        "gptnt.cli.generate_missions:generate_missions",
+        "gptnt.cli.onboarding.generate_missions:generate_missions",
         name="generate-missions",
         group=onboarding,
         help="Materialise a mission set into configs/missions/ from the seed-based generator.",

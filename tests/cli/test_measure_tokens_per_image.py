@@ -1,8 +1,8 @@
 import pytest
 
-from gptnt.cli.doctor.checks import PlayerDetail, PlayerReport, check_calibration
-from gptnt.cli.doctor.validation import ModelValidationResult
-from gptnt.cli.measure_tokens_per_image import _insert_tokens_per_image
+from gptnt.cli.checks.players import PlayerDetail, PlayerReport, check_calibration
+from gptnt.cli.checks.validation import ModelValidationResult
+from gptnt.cli.onboarding.measure_tokens_per_image import _insert_tokens_per_image
 from gptnt.players.specification import PlayerCapabilities
 
 _CONFIG_WITH_COMMENT = """# @package player
