@@ -13,7 +13,7 @@ from gptnt.cli.checks.render import render_report
 if TYPE_CHECKING:
     from rich.console import Console
 
-    from gptnt.cli.checks.result import CheckResult, CheckStatus
+    from gptnt.cli.checks.result import CheckResult
 
 ReportFormat = Literal["rich", "json", "github"]
 
@@ -54,21 +54,12 @@ def render_reports(
         _render_rich(reports, console, noun=noun)
 
 
-def _emit(console: Console, text: str) -> None:
-    """Print one line verbatim: no rich markup, highlighting, or wrapping to corrupt CI output."""
-    console.print(text, markup=False, highlight=False, soft_wrap=True)
-
-
-def _tally(reports: list[Report]) -> tuple[int, int]:
-    """`(total, failed)` report counts."""
-    return len(reports), sum(report.failed for report in reports)
-
-
 def _render_rich(reports: list[Report], console: Console, *, noun: str) -> None:
     """The shared per-section tables, one heading per report, then a one-line tally."""
     for report in reports:
         render_report(console, {report.heading: report.checks})
-    total, failed = _tally(reports)
+    total = len(reports)
+    failed = sum(report.failed for report in reports)
     console.print(
         f"Validated {total} {noun}(s): {total - failed} ok, {failed} failed.", style="bold"
     )
@@ -76,7 +67,8 @@ def _render_rich(reports: list[Report], console: Console, *, noun: str) -> None:
 
 def _render_json(reports: list[Report], console: Console, *, noun: str) -> None:
     """A machine-readable summary plus every check, for a CI step to parse."""
-    total, failed = _tally(reports)
+    total = len(reports)
+    failed = sum(report.failed for report in reports)
     payload = {
         "summary": {"total": total, "ok": total - failed, "failed": failed},
         f"{noun}s": [
@@ -96,7 +88,8 @@ def _render_json(reports: list[Report], console: Console, *, noun: str) -> None:
             for report in reports
         ],
     }
-    _emit(console, json.dumps(payload, indent=2))
+    # markup/highlight off + soft_wrap so rich never mangles the machine-readable output.
+    console.print(json.dumps(payload, indent=2), markup=False, highlight=False, soft_wrap=True)
 
 
 def _render_github(reports: list[Report], console: Console, *, title: str, noun: str) -> None:
@@ -104,7 +97,13 @@ def _render_github(reports: list[Report], console: Console, *, title: str, noun:
     for report in reports:
         for check in report.checks:
             if check.status in {"fail", "warn"}:
-                _emit(console, _annotation(report.heading, check))
+                # markup/highlight off + soft_wrap so rich never mangles the workflow command.
+                console.print(
+                    _annotation(report.heading, check),
+                    markup=False,
+                    highlight=False,
+                    soft_wrap=True,
+                )
     _write_step_summary(reports, title=title, noun=noun)
 
 
@@ -121,7 +120,8 @@ def _write_step_summary(reports: list[Report], *, title: str, noun: str) -> None
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary_path is None:
         return
-    total, failed = _tally(reports)
+    total = len(reports)
+    failed = sum(report.failed for report in reports)
     lines = [f"## {title} — {total - failed}/{total} {noun}(s) ok", ""]
     for report in reports:
         lines.append(f"### {'❌' if report.failed else '✅'} {report.heading}")
@@ -136,11 +136,7 @@ def _write_step_summary(reports: list[Report], *, title: str, noun: str) -> None
 def _summary_row(check: CheckResult) -> str:
     """One markdown table row, with the cell-breaking pipe neutralised."""
     detail = " ".join(part for part in (check.detail, check.hint) if part).replace("|", r"\|")
-    return f"| {_glyph(check.status)} | {check.name} | {detail} |"
-
-
-def _glyph(status: CheckStatus) -> str:
-    return _STATUS_GLYPH[status]
+    return f"| {_STATUS_GLYPH[check.status]} | {check.name} | {detail} |"
 
 
 def _escape_data(text: str) -> str:
