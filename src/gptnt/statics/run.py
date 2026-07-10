@@ -13,15 +13,17 @@ import structlog
 from PIL import Image
 from pydantic_ai import Agent
 from tqdm import tqdm
+from whenever import Instant
 
 from gptnt.common.paths import Paths
+from gptnt.experiments.provenance import Provenance
 from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
 from gptnt.players.reasoning_parser.react import ReactStyleReasoningParser
 from gptnt.players.specification import PlayerCapabilities
 from gptnt.processors.image_resizer import ImageResizer
 from gptnt.statics.model import EvalModel, ModelOutput
 from gptnt.statics.preprocess import PostprocessInputsFunc
-from gptnt.statics.run_metadata import StaticsRunMetadata
+from gptnt.statics.run_metadata import StaticsIdentity, StaticsRunMetadata
 from gptnt.statics.scorers import Instances, Metrics, Predictions, Scorer, score_predictions
 
 logger = structlog.get_logger()
@@ -229,13 +231,17 @@ class RunHFDatasetEvaluation(RunEvaluation):
 
     def write_run_metadata(self) -> None:
         """Stamp `run_meta.json` beside the metrics so the outputs are self-describing."""
-        metadata = StaticsRunMetadata.build(
-            task_name=self.task_name,
+        metadata = StaticsRunMetadata(
             model_name=self.model_name,
-            hf_repo_id=self.hf_repo_id,
-            dataset_split=self.dataset_split,
-            revision=self.revision,
+            run_date=Instant.now(),
+            statics=StaticsIdentity.resolve(
+                task_name=self.task_name,
+                hf_repo_id=self.hf_repo_id,
+                dataset_split=self.dataset_split,
+                revision=self.revision,
+            ),
             capabilities=self.capabilities,
+            provenance=Provenance(),
         )
         metadata_file = self.output_dir.joinpath("run_meta.json")
         _ = metadata_file.write_text(metadata.model_dump_json(indent=2))

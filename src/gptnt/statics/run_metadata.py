@@ -9,6 +9,7 @@ from gptnt.experiments.provenance import Provenance
 from gptnt.players.specification import PlayerCapabilities
 
 logger = structlog.get_logger()
+_UNPINNED = "unpinned"
 
 
 def _resolve_commit_sha(*, hf_repo_id: str, revision: str | None) -> str | None:
@@ -34,16 +35,19 @@ def _resolve_commit_sha(*, hf_repo_id: str, revision: str | None) -> str | None:
     return resolved
 
 
-class DatasetIdentity(BaseModel, frozen=True):
-    """What was measured: the repo, split, requested revision, and resolved commit sha."""
+class StaticsIdentity(BaseModel, frozen=True):
+    """What was measured: the task plus its dataset pin (repo, split, revisions)."""
 
+    task_name: str
     hf_repo_id: str
     dataset_split: str | None
     requested_revision: str | None
     resolved_revision: str | None
 
     @classmethod
-    def resolve(cls, *, hf_repo_id: str, dataset_split: str | None, revision: str | None) -> Self:
+    def resolve(
+        cls, *, task_name: str, hf_repo_id: str, dataset_split: str | None, revision: str | None
+    ) -> Self:
         """Resolve the requested revision to a commit sha, best-effort.
 
         The resolved sha pins what was measured. Resolving it needs the Hub, so it is
@@ -51,42 +55,39 @@ class DatasetIdentity(BaseModel, frozen=True):
         completed run.
         """
         return cls(
+            task_name=task_name,
             hf_repo_id=hf_repo_id,
             dataset_split=dataset_split,
             requested_revision=revision,
             resolved_revision=_resolve_commit_sha(hf_repo_id=hf_repo_id, revision=revision),
         )
 
+    @property
+    def is_pinned(self) -> bool:
+        """Whether the dataset is pinned to a concrete commit (a resolved sha exists)."""
+        return self.resolved_revision is not None
+
+    @property
+    def revision_label(self) -> str:
+        """A short label for the dataset revision — always the resolved commit sha.
+
+        A HuggingFace dataset is only reproducibly pinned by its commit sha; a requested tag or
+        branch can move, so it never forms the label. With no resolved sha (offline/private repo),
+        return the unpinned mark.
+        """
+        return self.resolved_revision[:8] if self.resolved_revision else _UNPINNED
+
+    @property
+    def target(self) -> str:
+        """What was measured, with its pin — a submission bundle dir's leaf name."""
+        return f"{self.task_name}@{self.revision_label}"
+
 
 class StaticsRunMetadata(BaseModel, frozen=True):
     """Everything a submission needs beyond the predictions."""
 
-    task_name: str
     model_name: str
-    run_date: str
-    dataset: DatasetIdentity
+    run_date: Instant
+    statics: StaticsIdentity
     capabilities: PlayerCapabilities
     provenance: Provenance
-
-    @classmethod
-    def build(
-        cls,
-        *,
-        task_name: str,
-        model_name: str,
-        hf_repo_id: str,
-        dataset_split: str | None,
-        revision: str | None,
-        capabilities: PlayerCapabilities,
-    ) -> Self:
-        """Assemble a completed run's metadata, resolving the dataset identity from the Hub."""
-        return cls(
-            task_name=task_name,
-            model_name=model_name,
-            run_date=Instant.now().format_iso(),
-            dataset=DatasetIdentity.resolve(
-                hf_repo_id=hf_repo_id, dataset_split=dataset_split, revision=revision
-            ),
-            capabilities=capabilities,
-            provenance=Provenance(),
-        )
