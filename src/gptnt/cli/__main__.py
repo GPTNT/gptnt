@@ -21,6 +21,7 @@ def build_app() -> App:
     interactive = Group("Interactive", sort_key=1)
     analysis = Group("Analysis", sort_key=2)
     statics = Group("Statics", sort_key=3)
+    submission = Group("Submission", sort_key=4)
 
     # Onboarding (gptnt-cli) — verify the system, then scaffold + validate your model.
     app.command(
@@ -136,6 +137,14 @@ def build_app() -> App:
         name="statics",
         group=statics,
         help="Run static evaluations against HuggingFace datasets.",
+    )
+
+    # Submission (gptnt-cli) — nested group.
+    app.command(
+        "gptnt.cli.submission.__main__:submission_app",
+        name="submission",
+        group=submission,
+        help="Build and check a submission for the gptnt-submissions repo.",
     )
     return app
 
