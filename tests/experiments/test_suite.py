@@ -4,11 +4,14 @@ import pytest
 from pydantic import ValidationError
 
 from gptnt.experiments.suite.core import Suite, SuiteMatchup
+from gptnt.players.specification import PlayerProtocol
 
-from tests._factories.players import make_protocol
-
-_DEFUSER = make_protocol(role="defuser", is_playing_alone=False)
-_EXPERT = make_protocol(role="expert", is_playing_alone=False, include_manual=True)
+_DEFUSER = PlayerProtocol(
+    role="defuser", communication_style="sync", is_playing_alone=False, include_manual=False
+)
+_EXPERT = PlayerProtocol(
+    role="expert", communication_style="sync", is_playing_alone=False, include_manual=True
+)
 
 
 def _suite(**overrides: object) -> Suite:
@@ -65,7 +68,9 @@ def test_absolute_missions_path_is_rejected() -> None:
 
 def test_solo_defuser_cannot_have_expert() -> None:
     """A solo defuser paired with an expert fails loudly."""
-    solo = make_protocol(role="defuser", is_playing_alone=True)
+    solo = PlayerProtocol(
+        role="defuser", communication_style="sync", is_playing_alone=True, include_manual=False
+    )
     with pytest.raises(ValidationError, match="solo defuser cannot have an expert"):
         _ = _suite(defuser_protocol=solo, expert_protocol=_EXPERT)
 

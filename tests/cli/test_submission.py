@@ -26,10 +26,10 @@ from gptnt.experiments.recorder.parquet import (
     write_player_record_parquet,
 )
 from gptnt.players.actions import DoNothingAction
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cli_runner import CliResult, invoke_cli
 from tests._factories.experiments import make_experiment_spec, make_solved_bomb
-from tests._factories.players import make_capabilities, make_protocol
 from tests._factories.statics import write_statics_run
 
 if TYPE_CHECKING:
@@ -54,20 +54,23 @@ def _descriptor(*, seed: int, model: str, expert: str | None = None) -> Experime
                     update={"is_playing_alone": False}
                 ),
                 "expert_name": expert,
-                "expert_protocol": make_protocol(
-                    role="expert", is_playing_alone=False, include_manual=True
+                "expert_protocol": PlayerProtocol(
+                    role="expert",
+                    communication_style="sync",
+                    is_playing_alone=False,
+                    include_manual=True,
                 ),
             }
         )
         expert_uuid = uuid4()
-        expert_capabilities = make_capabilities(player_name=expert)
+        expert_capabilities = PlayerCapabilities(player_name=expert, player_type="ai")
     return ExperimentDescriptor(
         experiment_spec=spec,
         session_id=uuid4(),
         defuser_uuid=uuid4(),
         expert_uuid=expert_uuid,
         game_uuid=uuid4(),
-        defuser_capabilities=make_capabilities(player_name=model),
+        defuser_capabilities=PlayerCapabilities(player_name=model, player_type="ai"),
         expert_capabilities=expert_capabilities,
     )
 

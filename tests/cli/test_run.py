@@ -25,11 +25,10 @@ from gptnt.cli.doctor.command import DiagnoseResult
 from gptnt.cli.doctor.run_plan import RunPlanResult
 from gptnt.cli.run import pipeline
 from gptnt.cli.run.manifest import RunManifest
-from gptnt.players.specification import PlayerSpec
+from gptnt.players.specification import PlayerProtocol, PlayerSpec
 
 from tests._cli_runner import invoke_cli
 from tests._factories.experiments import make_experiment_spec
-from tests._factories.players import make_protocol
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
@@ -55,9 +54,19 @@ def _spec(defuser: str = "claude-sonnet-4-6", expert: str | None = None) -> Expe
         return spec.model_copy(update={"defuser_name": defuser})
     return spec.model_copy(
         update={
-            "defuser_protocol": make_protocol(role="defuser", is_playing_alone=False),
+            "defuser_protocol": PlayerProtocol(
+                role="defuser",
+                communication_style="sync",
+                is_playing_alone=False,
+                include_manual=False,
+            ),
             "defuser_name": defuser,
-            "expert_protocol": make_protocol(role="expert", is_playing_alone=False),
+            "expert_protocol": PlayerProtocol(
+                role="expert",
+                communication_style="sync",
+                is_playing_alone=False,
+                include_manual=False,
+            ),
             "expert_name": expert,
         }
     )

@@ -23,8 +23,7 @@ from gptnt.interactive.services.experiment_manager.experiment_manager import Exp
 from gptnt.interactive.services.experiment_manager.experiment_runner import ExperimentState
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.modules import KtaneComponent
-
-from tests._factories.players import make_protocol
+from gptnt.players.specification import PlayerProtocol
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -74,7 +73,7 @@ class AssembledExperiment:
         expert_protocol = (
             None
             if is_solo
-            else make_protocol(
+            else PlayerProtocol(
                 role="expert",
                 communication_style=communication_style,
                 is_playing_alone=False,
@@ -92,7 +91,7 @@ class AssembledExperiment:
             mission_set=mission_set,
             suite_name="test-suite",
             suite_revision=1,
-            defuser_protocol=make_protocol(
+            defuser_protocol=PlayerProtocol(
                 role="defuser",
                 communication_style=communication_style,
                 is_playing_alone=is_solo,

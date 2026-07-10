@@ -3,27 +3,36 @@ import pytest
 from gptnt.players.actions import InteractGameAction, PlayerOutputType, SendMessageAction
 from gptnt.players.specification import PlayerProtocol
 
-from tests._factories.players import make_protocol
-
 
 class ProtocolCases:
     """Comprehensive PlayerProtocol configurations consolidating various test scenarios."""
 
     def case_defuser(self) -> PlayerProtocol:
         """Defuser role, collaborative, without manual."""
-        return make_protocol(role="defuser", is_playing_alone=False)
+        return PlayerProtocol(
+            role="defuser",
+            communication_style="sync",
+            is_playing_alone=False,
+            include_manual=False,
+        )
 
     def case_defuser_with_manual(self) -> PlayerProtocol:
         """Defuser role, collaborative, with manual."""
-        return make_protocol(role="defuser", is_playing_alone=False, include_manual=True)
+        return PlayerProtocol(
+            role="defuser", communication_style="sync", is_playing_alone=False, include_manual=True
+        )
 
     def case_solo_defuser(self) -> PlayerProtocol:
         """Solo defuser, playing alone, without manual."""
-        return make_protocol(role="defuser", is_playing_alone=True)
+        return PlayerProtocol(
+            role="defuser", communication_style="sync", is_playing_alone=True, include_manual=False
+        )
 
     def case_expert(self) -> PlayerProtocol:
         """Expert role with manual."""
-        return make_protocol(role="expert", is_playing_alone=False, include_manual=True)
+        return PlayerProtocol(
+            role="expert", communication_style="sync", is_playing_alone=False, include_manual=True
+        )
 
     @staticmethod
     def check_expected_output_with_protocol(  # noqa: WPS602

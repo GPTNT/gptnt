@@ -15,11 +15,10 @@ from gptnt.players.reasoning_parser.react import (
     REACT_REASONING_TAG,
     ReactStyleReasoningParser,
 )
-from gptnt.players.specification import PlayerCapabilities
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cases.capabilities import CapabilitiesCases
 from tests._cases.outputs import PredictedActionCases
-from tests._factories.players import make_protocol
 from tests.players._models import InnerMonologueModel, ThinkingOutLoudModel
 
 thinking_output = param_fixture(
@@ -36,7 +35,9 @@ def test_inner_monologue_reasoning_parser(
 ) -> None:
     CapabilitiesCases.check_expected_output_with_capabilities(expected_output, capabilities)
 
-    protocol = make_protocol(role="defuser", is_playing_alone=False)
+    protocol = PlayerProtocol(
+        role="defuser", communication_style="sync", is_playing_alone=False, include_manual=False
+    )
     deps = PlayerDeps(capabilities=capabilities, protocol=protocol)
     agent = Agent(
         InnerMonologueModel(expected_output, thinking_output), deps_type=PlayerDeps, retries=0
@@ -60,7 +61,9 @@ def test_react_reasoning_parser_with_success(
 ) -> None:
     CapabilitiesCases.check_expected_output_with_capabilities(expected_output, capabilities)
 
-    protocol = make_protocol(role="defuser", is_playing_alone=False)
+    protocol = PlayerProtocol(
+        role="defuser", communication_style="sync", is_playing_alone=False, include_manual=False
+    )
     deps = PlayerDeps(capabilities=capabilities, protocol=protocol)
     agent = Agent(
         ThinkingOutLoudModel(expected_output, thinking_output), deps_type=PlayerDeps, retries=0
@@ -522,7 +525,9 @@ class BadReactOutputCases:
 def test_react_reasoning_parser_with_failures(
     capabilities: PlayerCapabilities, expected_output: ParsedOutputCase
 ) -> None:
-    protocol = make_protocol(role="defuser", is_playing_alone=False)
+    protocol = PlayerProtocol(
+        role="defuser", communication_style="sync", is_playing_alone=False, include_manual=False
+    )
     deps = PlayerDeps(capabilities=capabilities, protocol=protocol)
     agent = Agent(
         TestModel(custom_output_text=expected_output.model_output_text),

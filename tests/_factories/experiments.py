@@ -12,8 +12,7 @@ from gptnt.experiments.models import ExperimentSummary
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
-
-from tests._factories.players import make_capabilities, make_protocol
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -58,7 +57,9 @@ def make_experiment_spec(seed: int = 12345) -> ExperimentSpec:
         mission_set="single_module",
         suite_name="single-parametric-sync",
         suite_revision=1,
-        defuser_protocol=make_protocol(),
+        defuser_protocol=PlayerProtocol(
+            role="defuser", communication_style="sync", is_playing_alone=True, include_manual=False
+        ),
         defuser_name="test-defuser",
         expert_protocol=None,
         expert_name=None,
@@ -74,7 +75,7 @@ def make_experiment_descriptor(spec: ExperimentSpec | None = None) -> Experiment
         expert_uuid=None,
         game_uuid=uuid4(),
         start_time=Instant.now(),
-        defuser_capabilities=make_capabilities(player_name="test-defuser"),
+        defuser_capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai"),
         expert_capabilities=None,
     )
 

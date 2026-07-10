@@ -13,9 +13,7 @@ from gptnt.experiments.models import ExperimentSummary
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
-from gptnt.players.specification import PlayerCapabilities
-
-from tests._factories.players import make_protocol
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 _DEFUSER_CAPS = PlayerCapabilities(
     player_name="d", player_type="ai", max_observations_per_request=8
@@ -65,9 +63,16 @@ def _paired_descriptor() -> ExperimentDescriptor:
         mission_set="single_module",
         suite_name="single-pairwise-sync",
         suite_revision=2,
-        defuser_protocol=make_protocol(role="defuser", is_playing_alone=False),
+        defuser_protocol=PlayerProtocol(
+            role="defuser",
+            communication_style="sync",
+            is_playing_alone=False,
+            include_manual=False,
+        ),
         defuser_name="d",
-        expert_protocol=make_protocol(role="expert", is_playing_alone=False, include_manual=True),
+        expert_protocol=PlayerProtocol(
+            role="expert", communication_style="sync", is_playing_alone=False, include_manual=True
+        ),
         expert_name="e",
     )
     return ExperimentDescriptor(

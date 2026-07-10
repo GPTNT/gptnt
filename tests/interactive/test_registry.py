@@ -12,8 +12,7 @@ from gptnt.interactive.services.heartbeat.player import PlayerHeartbeat
 from gptnt.interactive.services.registry.manifest import ServiceManifest, ServiceState
 from gptnt.interactive.services.registry.registry import ServiceRegistry
 from gptnt.ktane.state.game import GameState
-
-from tests._factories.players import make_capabilities
+from gptnt.players.specification import PlayerCapabilities
 
 
 def player_manifest(
@@ -23,7 +22,7 @@ def player_manifest(
         uuid=uuid4(),
         service_name="player",
         ready_state=ReadyState.ready if ready else ReadyState.not_ready,
-        capabilities=make_capabilities(),
+        capabilities=PlayerCapabilities(player_name="test-player", player_type="ai"),
         state=state,
     )
     return ServiceManifest(heartbeat=heartbeat)

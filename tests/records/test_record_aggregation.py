@@ -18,8 +18,7 @@ from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentRecord, E
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.actions import DoNothingAction
-
-from tests._factories.players import make_capabilities, make_protocol
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -29,7 +28,9 @@ pytestmark = pytest.mark.anyio
 
 
 def _descriptor() -> ExperimentDescriptor:
-    protocol = make_protocol(role="defuser", is_playing_alone=False, include_manual=True)
+    protocol = PlayerProtocol(
+        role="defuser", communication_style="sync", is_playing_alone=False, include_manual=True
+    )
     spec = ExperimentSpec(
         mission_spec=KtaneMissionSpec(
             seed=7, time_limit=300, num_strikes_allowed=3, components=["Wires"], optional_widgets=1
@@ -39,7 +40,9 @@ def _descriptor() -> ExperimentDescriptor:
         suite_revision=1,
         defuser_protocol=protocol,
         defuser_name="test-defuser",
-        expert_protocol=make_protocol(role="expert", is_playing_alone=False, include_manual=True),
+        expert_protocol=PlayerProtocol(
+            role="expert", communication_style="sync", is_playing_alone=False, include_manual=True
+        ),
         expert_name="test-expert",
     )
     return ExperimentDescriptor(
@@ -48,8 +51,8 @@ def _descriptor() -> ExperimentDescriptor:
         defuser_uuid=uuid4(),
         expert_uuid=uuid4(),
         game_uuid=uuid4(),
-        defuser_capabilities=make_capabilities(player_name="test-defuser"),
-        expert_capabilities=make_capabilities(player_name="test-expert"),
+        defuser_capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai"),
+        expert_capabilities=PlayerCapabilities(player_name="test-expert", player_type="ai"),
     )
 
 
@@ -84,7 +87,7 @@ def _player_record(
         protocol=descriptor.experiment_spec.defuser_protocol,
         name=f"test-{role}",
         uuid=player_uuid,
-        capabilities=make_capabilities(player_name=f"test-{role}"),
+        capabilities=PlayerCapabilities(player_name=f"test-{role}", player_type="ai"),
     )
     steps = [
         _step(

@@ -28,8 +28,7 @@ from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import DoNothingAction
 from gptnt.players.observation_handler import Observation
-
-from tests._factories.players import make_capabilities, make_protocol
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 
 @fixture
@@ -102,10 +101,12 @@ def bomb_state() -> BombState:
 def player_content() -> PlayerContent:
     """Create a minimal player content."""
     return PlayerContent(
-        protocol=make_protocol(),
+        protocol=PlayerProtocol(
+            role="defuser", communication_style="sync", is_playing_alone=True, include_manual=False
+        ),
         name="test-player",
         uuid=uuid4(),
-        capabilities=make_capabilities(player_name="test-defuser"),
+        capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai"),
     )
 
 
@@ -125,7 +126,9 @@ def experiment_descriptor() -> ExperimentDescriptor:
         mission_set="single_module",
         suite_name="test-suite",
         suite_revision=1,
-        defuser_protocol=make_protocol(),
+        defuser_protocol=PlayerProtocol(
+            role="defuser", communication_style="sync", is_playing_alone=True, include_manual=False
+        ),
         defuser_name="test-defuser",
         expert_protocol=None,
         expert_name=None,
@@ -138,7 +141,7 @@ def experiment_descriptor() -> ExperimentDescriptor:
         expert_uuid=None,
         game_uuid=uuid4(),
         start_time=Instant.now(),
-        defuser_capabilities=make_capabilities(player_name="test-defuser"),
+        defuser_capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai"),
         expert_capabilities=None,
     )
 
@@ -254,7 +257,9 @@ async def test_recorder_saves_parquet_roundtrips(
     """The real recorder method writes a parquet file that round-trips back to the same record."""
     player_record = _build_player_record(experiment_descriptor, player_content, step_record)
 
-    recorder = ExperimentPlayerRecorder(capabilities=make_capabilities(player_name="test-defuser"))
+    recorder = ExperimentPlayerRecorder(
+        capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai")
+    )
     recorder.output_dir = tmp_path
     await recorder.save_player_record_to_disk(player_record=player_record)
 
@@ -318,7 +323,9 @@ async def test_recorder_skips_empty_record(
         step_records=[],
         is_hard_crash=False,
     )
-    recorder = ExperimentPlayerRecorder(capabilities=make_capabilities(player_name="test-defuser"))
+    recorder = ExperimentPlayerRecorder(
+        capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai")
+    )
     recorder.output_dir = tmp_path
     await recorder.save_player_record_to_disk(player_record=empty_record)
 
