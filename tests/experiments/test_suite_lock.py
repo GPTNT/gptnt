@@ -106,3 +106,10 @@ def test_lock_roundtrips_through_toml(tmp_path: Path) -> None:
     path = tmp_path / "suites.lock"
     lock.dump_to_path(path)
     assert SuiteLock.from_lock_path(path) == lock
+
+
+def test_frozen_entry_mission_set_is_the_missions_path_basename() -> None:
+    """A frozen entry reports the same mission-set label as the suite it was frozen from."""
+    suite = _a_suite()
+    entry = FreezeReport.reconcile([suite], None, _STAMP).updated_lock.suites[0]
+    assert entry.mission_set == suite.mission_set
