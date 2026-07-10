@@ -1,29 +1,6 @@
 from typing import Any
 
-from pytest_cases import fixture, parametrize
-
-from gptnt.players.locations import SetOfMarksLocation
-from gptnt.processors.labels.drawing import AnnotationBackgroundParams, AnnotationTextParams
-from gptnt.processors.set_of_marks import MaskDrawingParams, SetOfMarksHandler
-
-
-@fixture
-@parametrize("mark_type", ["alphabet", "number"], ids=["mark_type=alphabet", "mark_type=int"])
-def set_of_marks_handler(mark_type: type[SetOfMarksLocation]) -> SetOfMarksHandler:
-    annotation_text_params = AnnotationTextParams(
-        font=0, font_scale=0.5, thickness=1, space_between_boxes=2
-    )
-    annotation_background_params = AnnotationBackgroundParams(padding=0, alpha=0.5)
-    mask_drawing_params = MaskDrawingParams(
-        mask_thickness=1, soft_mask_alpha=0.5, bw_outside_mask=False
-    )
-    som_handler = SetOfMarksHandler(
-        annotation_background_params=annotation_background_params,
-        annotation_text_params=annotation_text_params,
-        mask_drawing_params=mask_drawing_params,
-        mark_type=mark_type,
-    )
-    return som_handler
+from pytest_cases import fixture
 
 
 @fixture(scope="session")

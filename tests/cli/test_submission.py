@@ -59,8 +59,6 @@ def _descriptor(*, seed: int, model: str, expert: str | None = None) -> Experime
                     communication_style="sync",
                     is_playing_alone=False,
                     include_manual=True,
-                    receive_feedback_after_action=False,
-                    allow_magic_actions=False,
                 ),
             }
         )

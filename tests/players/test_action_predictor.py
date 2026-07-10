@@ -20,7 +20,7 @@ from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from tests._cases.capabilities import CapabilitiesCases
 from tests._cases.outputs import PredictedActionCases, ReflectionOutputCases
 from tests._cases.protocol import ProtocolCases
-from tests.core.players._models import (
+from tests.players._models import (
     ALL_ERRORING_MODELS,
     ContentFilteringErrorModel,
     ExceededRequestQuotaModel,

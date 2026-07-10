@@ -1,5 +1,4 @@
 import pytest
-from pytest_cases import fixture
 
 from gptnt.players.actions import InteractGameAction, PlayerOutputType, SendMessageAction
 from gptnt.players.specification import PlayerProtocol
@@ -46,19 +45,3 @@ class ProtocolCases:
         ]
         if any(invalid_test_combinations):
             pytest.skip("The expected output is not compatible with the given protocol.")
-
-
-@fixture
-def defuser_protocol() -> PlayerProtocol:
-    """Create a defuser protocol."""
-    return PlayerProtocol(
-        role="defuser", include_manual=False, is_playing_alone=False, communication_style="sync"
-    )
-
-
-@fixture
-def expert_protocol() -> PlayerProtocol:
-    """Create an expert protocol."""
-    return PlayerProtocol(
-        role="expert", include_manual=False, is_playing_alone=False, communication_style="sync"
-    )

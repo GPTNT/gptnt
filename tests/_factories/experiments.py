@@ -58,12 +58,7 @@ def make_experiment_spec(seed: int = 12345) -> ExperimentSpec:
         suite_name="single-parametric-sync",
         suite_revision=1,
         defuser_protocol=PlayerProtocol(
-            role="defuser",
-            communication_style="sync",
-            is_playing_alone=True,
-            include_manual=False,
-            receive_feedback_after_action=False,
-            allow_magic_actions=False,
+            role="defuser", communication_style="sync", is_playing_alone=True, include_manual=False
         ),
         defuser_name="test-defuser",
         expert_protocol=None,

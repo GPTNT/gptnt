@@ -98,23 +98,12 @@ def bomb_state() -> BombState:
 
 
 @fixture
-def player_protocol() -> PlayerProtocol:
-    """Create a minimal player protocol."""
-    return PlayerProtocol(
-        role="defuser",
-        communication_style="sync",
-        is_playing_alone=True,
-        include_manual=False,
-        receive_feedback_after_action=False,
-        allow_magic_actions=False,
-    )
-
-
-@fixture
-def player_content(player_protocol: PlayerProtocol) -> PlayerContent:
+def player_content() -> PlayerContent:
     """Create a minimal player content."""
     return PlayerContent(
-        protocol=player_protocol,
+        protocol=PlayerProtocol(
+            role="defuser", communication_style="sync", is_playing_alone=True, include_manual=False
+        ),
         name="test-player",
         uuid=uuid4(),
         capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai"),
@@ -122,7 +111,7 @@ def player_content(player_protocol: PlayerProtocol) -> PlayerContent:
 
 
 @fixture
-def experiment_descriptor(player_protocol: PlayerProtocol) -> ExperimentDescriptor:
+def experiment_descriptor() -> ExperimentDescriptor:
     """Create a minimal experiment descriptor."""
     mission_spec = KtaneMissionSpec(
         seed=12345,
@@ -137,7 +126,9 @@ def experiment_descriptor(player_protocol: PlayerProtocol) -> ExperimentDescript
         mission_set="single_module",
         suite_name="test-suite",
         suite_revision=1,
-        defuser_protocol=player_protocol,
+        defuser_protocol=PlayerProtocol(
+            role="defuser", communication_style="sync", is_playing_alone=True, include_manual=False
+        ),
         defuser_name="test-defuser",
         expert_protocol=None,
         expert_name=None,

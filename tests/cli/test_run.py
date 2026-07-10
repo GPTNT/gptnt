@@ -15,7 +15,6 @@ running `gptnt run` directly.
 from __future__ import annotations
 
 import functools
-import types
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, ClassVar, cast
 
@@ -26,12 +25,15 @@ from gptnt.cli.doctor.command import DiagnoseResult
 from gptnt.cli.doctor.run_plan import RunPlanResult
 from gptnt.cli.run import pipeline
 from gptnt.cli.run.manifest import RunManifest
-from gptnt.players.specification import PlayerSpec
+from gptnt.players.specification import PlayerProtocol, PlayerSpec
 
 from tests._cli_runner import invoke_cli
+from tests._factories.experiments import make_experiment_spec
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
+
+    from gptnt.experiments.spec import ExperimentSpec
 
 
 def _manifest(**overrides: object) -> RunManifest:
@@ -45,10 +47,28 @@ def _manifest(**overrides: object) -> RunManifest:
     return RunManifest.model_validate(payload)
 
 
-def _spec(defuser: str = "claude-sonnet-4-6", expert: str | None = None) -> types.SimpleNamespace:
-    """A stand-in spec: the pipeline only reads `.defuser_name` / `.expert_name`."""
-    return types.SimpleNamespace(
-        defuser_name=defuser, expert_name=expert, attempt_name="exp_attempt1"
+def _spec(defuser: str = "claude-sonnet-4-6", expert: str | None = None) -> ExperimentSpec:
+    """A real spec keyed on the given player names (the pipeline reads the name fields)."""
+    spec = make_experiment_spec()
+    if expert is None:
+        return spec.model_copy(update={"defuser_name": defuser})
+    return spec.model_copy(
+        update={
+            "defuser_protocol": PlayerProtocol(
+                role="defuser",
+                communication_style="sync",
+                is_playing_alone=False,
+                include_manual=False,
+            ),
+            "defuser_name": defuser,
+            "expert_protocol": PlayerProtocol(
+                role="expert",
+                communication_style="sync",
+                is_playing_alone=False,
+                include_manual=False,
+            ),
+            "expert_name": expert,
+        }
     )
 
 

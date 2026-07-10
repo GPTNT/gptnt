@@ -3,7 +3,6 @@ from collections.abc import AsyncIterator
 from pathlib import Path
 
 import pytest
-from pytest_factoryboy import register
 
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
@@ -11,8 +10,6 @@ from gptnt.common.servers import get_available_port
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.manual import KtaneManualPaths
 from gptnt.prompts.prompt_cache import PromptCache
-
-from tests._factories.players import PlayerProtocolFactory
 
 configure_logging(enable_logfire=False)
 
@@ -36,10 +33,6 @@ pytest_plugins = [
     f"tests._cases.{fixture_file.stem}"
     for fixture_file in (Path(__file__).parent / "_cases").glob("[!__]*.py")
 ]
-
-
-# Register factories with pytest-factoryboy
-_ = register(PlayerProtocolFactory)
 
 
 @pytest.fixture

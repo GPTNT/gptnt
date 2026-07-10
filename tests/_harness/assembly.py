@@ -23,7 +23,7 @@ from gptnt.interactive.services.experiment_manager.experiment_manager import Exp
 from gptnt.interactive.services.experiment_manager.experiment_runner import ExperimentState
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.modules import KtaneComponent
-from gptnt.players.specification import CommunicationStyle, PlayerProtocol
+from gptnt.players.specification import PlayerProtocol
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from gptnt.interactive.services.experiment_manager.session import Session
     from gptnt.interactive.services.game.service import GameService
     from gptnt.interactive.services.player.service import PlayerService
+    from gptnt.players.specification import CommunicationStyle
 
 _POLL = 0.1
 _STARTUP_TIMEOUT = 15.0

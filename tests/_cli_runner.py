@@ -30,7 +30,11 @@ class CliResult:
 
 
 def invoke_cli(app: App, argv: list[str]) -> CliResult:
-    """Run `app` with `argv`, capturing combined stdout/stderr and the resulting exit code."""
+    """Run `app` with `argv`, capturing combined stdout/stderr and the resulting exit code.
+
+    Output is plain text: the `pytest_env` config sets `TTY_COMPATIBLE=0`, so the commands' `rich`
+    consoles emit no ANSI escapes and a test can assert on the rendered text directly.
+    """
     buffer = io.StringIO()
     exit_code = 0
     with contextlib.redirect_stdout(buffer), contextlib.redirect_stderr(buffer):
