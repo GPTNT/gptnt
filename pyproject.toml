@@ -76,7 +76,6 @@ tests = [
     "fakeredis>=2.30.1",
     "asgi-lifespan>=2.1.0",
     "respx>=0.22.0",
-    "pytest-factoryboy>=2.8.1",
     "deepdiff>=8.4.2",
     "unflatten>=0.2.0",
     "pytest-env>=1.6.0",
@@ -325,6 +324,9 @@ UPDATE_METRICS_INTERVAL = "0.5"
 DEBUG = "true"
 WEAVE_DISABLED = "true"
 WANDB_MODE = "disabled"
+# Render every `rich` console as plain text; a coloured environment (`FORCE_COLOR`) otherwise emits
+# ANSI escapes into the buffers CLI tests assert on, splitting the plain substrings they match.
+TTY_COMPATIBLE = "0"
 
 [tool.ruff]
 line-length = 99

@@ -21,7 +21,7 @@ def make_protocol(
     allow_magic_actions: bool = False,
     allow_lottery_actions: bool = False,
 ) -> PlayerProtocol:
-    """A real PlayerProtocol; a solo defuser by default (an expert must set is_playing_alone)."""
+    """A real `PlayerProtocol`; defaults to a solo defuser (experts set `is_playing_alone`)."""
     return PlayerProtocol(
         role=role,
         communication_style=communication_style,
@@ -36,5 +36,5 @@ def make_protocol(
 def make_capabilities(
     *, player_name: str = "test-player", player_type: PlayerType = "ai"
 ) -> PlayerCapabilities:
-    """A real PlayerCapabilities; every field past the name and type keeps its model default."""
+    """A real `PlayerCapabilities`; every field past the name and type keeps its model default."""
     return PlayerCapabilities(player_name=player_name, player_type=player_type)

@@ -8,8 +8,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
 
-import pygit2
 import pytest
+
+# The GitHub/git path lives behind the opt-in `submission` extra; skip the whole module when it is
+# not installed rather than failing collection (`_remote` imports both at runtime too).
+pytest.importorskip("pygit2")
+pytest.importorskip("github")
+
+import pygit2
 
 from gptnt.cli.submission._remote import DRY_RUN_PR_URL, _SubmissionSession, _submit_one_bundle
 from gptnt.cli.submission._staging import all_bundle_dirs, copy_bundle

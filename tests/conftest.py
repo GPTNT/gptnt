@@ -1,11 +1,4 @@
 import os
-
-# Force every `rich` console the suite drives to render plain text. A coloured dev/CI environment
-# sets `FORCE_COLOR`, which otherwise makes rich emit ANSI escapes even into a redirected buffer,
-# splitting the plain substrings tests assert on. Set before importing anything that builds a
-# module-level `Console()` at import time, so the setting is in place when they read it.
-os.environ["TTY_COMPATIBLE"] = "0"
-
 from collections.abc import AsyncIterator
 from pathlib import Path
 
