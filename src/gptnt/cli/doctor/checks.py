@@ -93,7 +93,8 @@ class PlayerReport:
     instantiates: CheckStatus
     """It builds into a working `pydantic_ai.Agent`.
 
-    ✗ when the provider credential is unset — it composes but cannot run, so the doctor fails it.
+    ✗ when the build fails, which includes an unset provider credential: the config composes but
+    cannot run, so the doctor fails it rather than warning.
     """
 
     live: CheckStatus
@@ -213,8 +214,8 @@ async def _player_detail(
     """Validate one model into its full detail (boxes + resolved fields + optional live result)."""
     static = validate_model_config(model_name, provider)
     exists, instantiates, note = _static_boxes(static)
-    # Live only runs when requested AND the model instantiated with its credential present (a ✗
-    # instantiate means the key is unset, so there is nothing to call).
+    # Live only runs when requested AND the model instantiated (a ✗ instantiate — a build error or
+    # an unset credential — leaves nothing to call).
     if not (live and exists == "pass" and instantiates == "pass"):
         return PlayerDetail(PlayerReport(label, exists, instantiates, "skip", note), static)
 
