@@ -48,12 +48,12 @@ def check_machine(
 ) -> list[CheckResult]:
     """Report host specs + free disk; degrade to a single warn if probing the host fails."""
     try:
-        return _collect_machine(name=name, disk_name=disk_name, warn_gib=warn_gib)
+        return _collect_machine_specs(name=name, disk_name=disk_name, warn_gib=warn_gib)
     except Exception as exc:  # noqa: BLE001 — purely informational; never abort the report
         return [CheckResult(name, "warn", "could not read host info", str(exc))]
 
 
-def _collect_machine(*, name: str, disk_name: str, warn_gib: float) -> list[CheckResult]:
+def _collect_machine_specs(*, name: str, disk_name: str, warn_gib: float) -> list[CheckResult]:
     """Report host specs (informational) and warn on low free disk for experiment outputs."""
     ram_gib = psutil.virtual_memory().total / 1024**3
     cpus = os.cpu_count() or 0

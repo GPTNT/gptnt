@@ -84,7 +84,12 @@ def check_display(
     )
 
 
-async def check_mod_load() -> CheckResult:
+async def check_mod_load(
+    *,
+    name: str = MOD_LOAD_CHECK,
+    load_timeout: float = MOD_LOAD_TIMEOUT,
+    poll: float = MOD_LOAD_POLL,
+) -> CheckResult:
     """Definitive proof the mod loads: spawn a game and poll /health for a real GameState.
 
     Slow — it launches the game — so the command only runs this when `--check-mod-load` is given
@@ -96,32 +101,34 @@ async def check_mod_load() -> CheckResult:
     try:
         port = await manager.start()
     except (OSError, RuntimeError) as exc:  # OSError covers Game/ModNotFoundError
-        return CheckResult(MOD_LOAD_CHECK, "fail", "could not spawn the game", str(exc))
+        return CheckResult(name, "fail", "could not spawn the game", str(exc))
 
     client = KtaneClient(url=f"http://localhost:{port}")
     try:  # noqa: WPS501  (teardown of the spawned game must always run)
-        return await _poll_for_mod(client)
+        return await _poll_for_mod(client, name=name, load_timeout=load_timeout, poll=poll)
     finally:
         await _teardown_game(client, manager)
 
 
-async def _poll_for_mod(client: KtaneClient) -> CheckResult:
+async def _poll_for_mod(
+    client: KtaneClient,
+    *,
+    name: str = MOD_LOAD_CHECK,
+    load_timeout: float = MOD_LOAD_TIMEOUT,
+    poll: float = MOD_LOAD_POLL,
+    hint: str = "Files are present but the mod is not loading.",
+) -> CheckResult:
     """Poll the game's /health until a real GameState appears, or time out."""
-    with anyio.move_on_after(MOD_LOAD_TIMEOUT):
+    with anyio.move_on_after(load_timeout):
         while True:
             try:
                 state = await client.get_game_state()
             except (httpx.HTTPError, OSError):
                 state = GameState.unknown  # not listening yet — keep polling
             if state is not GameState.unknown:
-                return CheckResult(MOD_LOAD_CHECK, "pass", f"mod responding (state={state.name})")
-            await anyio.sleep(MOD_LOAD_POLL)
-    return CheckResult(
-        MOD_LOAD_CHECK,
-        "fail",
-        f"no /health response within {MOD_LOAD_TIMEOUT:.0f}s",
-        "Files are present but the mod is not loading.",
-    )
+                return CheckResult(name, "pass", f"mod responding (state={state.name})")
+            await anyio.sleep(poll)
+    return CheckResult(name, "fail", f"no /health response within {load_timeout:.0f}s", hint)
 
 
 async def _teardown_game(client: KtaneClient, manager: GameProcessManager) -> None:

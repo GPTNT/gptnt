@@ -17,14 +17,14 @@ _NET_TIMEOUT = 3.0
 _REDIS_PROBE_ERRORS = (OSError, TimeoutError, anyio.EndOfStream, anyio.BrokenResourceError)
 
 
-async def _redis_pings(host: str, port: int) -> bool:
+async def _redis_pings(host: str, port: int, *, net_timeout: float = _NET_TIMEOUT) -> bool:
     """True iff a Redis answers its native PING health check (+PONG) at host:port.
 
     A port that merely accepts the TCP connection (e.g. a container runtime's port-forward with
     nothing behind it) is not a running Redis.
     """
     try:
-        with anyio.fail_after(_NET_TIMEOUT):
+        with anyio.fail_after(net_timeout):
             stream = await anyio.connect_tcp(host, port)
             async with stream:
                 await stream.send(b"PING\r\n")
@@ -34,10 +34,10 @@ async def _redis_pings(host: str, port: int) -> bool:
     return reply.startswith(b"+PONG")
 
 
-async def _http_responds(url: str) -> bool:
+async def _http_responds(url: str, *, net_timeout: float = _NET_TIMEOUT) -> bool:
     """True iff an HTTP server answers at `url` with any status (not a dead port-forward)."""
     try:
-        async with httpx.AsyncClient(timeout=_NET_TIMEOUT) as client:
+        async with httpx.AsyncClient(timeout=net_timeout) as client:
             _ = await client.get(url)
     except httpx.HTTPError:
         return False
@@ -58,14 +58,16 @@ async def check_redis(
 
 
 async def check_em_port(
-    *, kill_hint: str = "A stale process is squatting the port — clear it with: gptnt kill"
+    *,
+    kill_hint: str = "A stale process is squatting the port — clear it with: gptnt kill",
+    net_timeout: float = _NET_TIMEOUT,
 ) -> CheckResult:
     """Port :8085 is free (the EM can start) or already serving a healthy EM."""
     runtime = RuntimeSettings()
     name = f"EM port :{runtime.em_port}"
     url = runtime.em_health_url
     try:
-        async with httpx.AsyncClient(timeout=_NET_TIMEOUT) as client:
+        async with httpx.AsyncClient(timeout=net_timeout) as client:
             response = await client.get(url)
     except (httpx.ConnectError, httpx.ConnectTimeout):
         # refused/timed-out/filtered connect == Nothing healthy is running here, so the EM can

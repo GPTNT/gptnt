@@ -51,30 +51,28 @@ class PlayerReport:
 
 @dataclass(frozen=True)
 class PlayerDetail:
-    """One model's full validation result: the ✓/✗ boxes plus the underlying data.
-
-    `static` carries every resolved field so the detailed rows can be rendered; `live` is the real-
-    request result when `--live` ran, else `None`; `report` keeps the matrix-compatible boxes that
-    drive the failed/exit decision.
-    """
+    """One model's full validation result: the ✓/✗ boxes plus the underlying data."""
 
     report: PlayerReport
+    """The matrix-compatible boxes that drive the failed/exit decision."""
+
     static: ModelValidationResult
+    """Every resolved field, so the detailed rows can be rendered."""
+
     live: LiveCheckResult | None = None
+    """The real-request result when `--live` ran, else `None`."""
 
 
 @dataclass(frozen=True)
 class PlayerMatrix:
-    """Every model's detail plus the config-name → player_name mapping.
-
-    The mapping comes from the SAME `validate_model_config` pass that builds the detail, so the
-    report the user sees and the roster resolution the run-plan cross-check uses can never disagree
-    (CLAUDE.md §3). Keyed by the *config* name; a value is `None` when the config did not
-    instantiate far enough to yield a `capabilities.player_name`.
-    """
+    """Every model's detail plus the config-name → player_name mapping."""
 
     details: list[PlayerDetail]
+
     config_to_player: dict[str, str | None]
+    """Each config name mapped to its resolved `player_name`, from the same `validate_model_config`
+    pass that builds `details`, so the report and the run-plan roster resolution cannot disagree.
+    `None` when the config did not instantiate far enough to yield a `capabilities.player_name`."""
 
     @property
     def reports(self) -> list[PlayerReport]:
