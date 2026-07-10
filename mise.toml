@@ -14,7 +14,7 @@ run = "uv run cz bump"
 
 [tasks.sync]
 description = "Install dependencies"
-run = "uv sync --all-groups"
+run = "uv sync --all-groups --all-extras"
 
 [tasks.tests]
 description = "Run all tests"
