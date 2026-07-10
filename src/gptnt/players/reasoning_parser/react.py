@@ -119,6 +119,13 @@ class ParsedReActOutput:
         ]
 
 
+def _first_tag_position(events: list[TagBlock], tag: TagType, event: TagEvent) -> int | None:
+    """Position of the first tag event matching the given tag and event, if any."""
+    return next(
+        (block.position for block in events if block.tag == tag and block.event == event), None
+    )
+
+
 @dataclass(kw_only=True)
 class ReActContentExtractor:
     """Extracts thoughts and actions from parsed ReAct output.
@@ -232,25 +239,11 @@ class ReActContentExtractor:
 
     def _get_first_action_close_position(self) -> int | None:
         """Get the position of the first closed action tag."""
-        return next(
-            (
-                tag.position
-                for tag in self.parsed.tag_events
-                if tag.tag == TagType.action and tag.event == TagEvent.closed
-            ),
-            None,
-        )
+        return _first_tag_position(self.parsed.tag_events, TagType.action, TagEvent.closed)
 
     def _get_first_action_open_position(self) -> int | None:
         """Get the position of the first opened action tag."""
-        return next(
-            (
-                tag.position
-                for tag in self.parsed.tag_events
-                if tag.tag == TagType.action and tag.event == TagEvent.opened
-            ),
-            None,
-        )
+        return _first_tag_position(self.parsed.tag_events, TagType.action, TagEvent.opened)
 
 
 @dataclass
@@ -295,13 +288,8 @@ class ReActValidator:
         if self._first_reasoning_open_pos is not UNSET:
             return self._first_reasoning_open_pos
 
-        self._first_reasoning_open_pos = next(
-            (
-                tag.position
-                for tag in self.parsed.tag_events
-                if tag.tag == TagType.reasoning and tag.event == TagEvent.opened
-            ),
-            None,
+        self._first_reasoning_open_pos = _first_tag_position(
+            self.parsed.tag_events, TagType.reasoning, TagEvent.opened
         )
         return self._first_reasoning_open_pos
 
@@ -310,13 +298,8 @@ class ReActValidator:
         if self._first_action_open_pos is not UNSET:
             return self._first_action_open_pos
 
-        self._first_action_open_pos = next(
-            (
-                tag.position
-                for tag in self.parsed.tag_events
-                if tag.tag == TagType.action and tag.event == TagEvent.opened
-            ),
-            None,
+        self._first_action_open_pos = _first_tag_position(
+            self.parsed.tag_events, TagType.action, TagEvent.opened
         )
         return self._first_action_open_pos
 
@@ -325,13 +308,8 @@ class ReActValidator:
         if self._first_action_close_pos is not UNSET:
             return self._first_action_close_pos
 
-        self._first_action_close_pos = next(
-            (
-                event.position
-                for event in self.parsed.tag_events
-                if event.tag == TagType.action and event.event == TagEvent.closed
-            ),
-            None,
+        self._first_action_close_pos = _first_tag_position(
+            self.parsed.tag_events, TagType.action, TagEvent.closed
         )
         return self._first_action_close_pos
 
