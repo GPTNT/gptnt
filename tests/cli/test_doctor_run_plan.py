@@ -23,7 +23,7 @@ from gptnt.cli.run.manifest import RunManifest
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from gptnt.cli.doctor.checks import CheckResult
+    from gptnt.cli.check_result import CheckResult
 
 
 @pytest.fixture(autouse=True)
