@@ -1,8 +1,5 @@
-"""The shared findings framework: the `CheckResult` value object, the section renderer, and the
-CI-format emitters — plus doctor's environment/readiness probes, split by concern (players,
-services, game, machine, validation).
-
-Every findings command depends outward on this leaf; nothing here reaches into a feature package.
+"""The `CheckResult` type, its renderer and format emitters, and `gptnt doctor`'s environment
+probes (players, services, game, machine, validation).
 """
 
 from gptnt.cli.checks.formats import Report
