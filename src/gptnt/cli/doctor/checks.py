@@ -404,7 +404,7 @@ def _detect_gpu() -> str | None:
         return None
     try:
         completed = subprocess.run(
-            ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],  # noqa: S607
+            ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
             capture_output=True,
             text=True,
             timeout=5,
