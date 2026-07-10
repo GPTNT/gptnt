@@ -1,4 +1,5 @@
 from dataclasses import asdict
+from functools import cached_property
 from operator import attrgetter
 from pathlib import Path
 from typing import Annotated, Any, Self, override
@@ -171,61 +172,55 @@ class StepRecordsMetricsMixin(BaseModel):
                     error_counts[error] = error_counts.get(error, 0) + 1
         return error_counts
 
-    @property
-    def is_solved(self) -> bool | None:
-        """Check if the bomb was solved in the experiment."""
-        for record in reversed(self.step_records):
-            if record.bomb_state is not None:
-                return record.bomb_state.is_solved
-        return None
-
-    @property
-    def is_strike_out(self) -> bool | None:
-        """Check if the bomb was strike out in the experiment."""
-        for record in reversed(self.step_records):
-            if record.bomb_state is not None:
-                return record.bomb_state.is_strike_out
-        return None
-
-    @property
-    def is_timed_out(self) -> bool | None:
-        """Check if the bomb was timed out in the experiment."""
-        for record in reversed(self.step_records):
-            if record.bomb_state is not None:
-                return record.bomb_state.is_timed_out
-        return None
-
-    @property
-    def time_remaining(self) -> float | None:
-        """Get the time remaining on the bomb at the end of the experiment."""
-        for record in reversed(self.step_records):
-            if record.bomb_state is not None:
-                return record.bomb_state.timer_module.seconds_remaining
-        return None
-
-    @property
-    def total_modules_solved(self) -> int | None:
-        """Get the total number of modules solved by the end of the experiment."""
-        for record in reversed(self.step_records):
-            if record.bomb_state is not None:
-                return sum(1 for module in record.bomb_state.modules if module.is_solved)
-        return None
-
-    @property
-    def total_strikes(self) -> int | None:
-        """Get the total number of strikes by the end of the experiment."""
-        for record in reversed(self.step_records):
-            if record.bomb_state is not None:
-                return record.bomb_state.current_strikes
-        return None
-
-    @property
+    @cached_property
     def final_bomb_state(self) -> BombState | None:
         """Get the final bomb state from the step records."""
         for record in reversed(self.step_records):
             if record.bomb_state is not None:
                 return record.bomb_state
         return None
+
+    @property
+    def is_solved(self) -> bool | None:
+        """Check if the bomb was solved in the experiment."""
+        if self.final_bomb_state is None:
+            return None
+        return self.final_bomb_state.is_solved
+
+    @property
+    def is_strike_out(self) -> bool | None:
+        """Check if the bomb was strike out in the experiment."""
+        if self.final_bomb_state is None:
+            return None
+        return self.final_bomb_state.is_strike_out
+
+    @property
+    def is_timed_out(self) -> bool | None:
+        """Check if the bomb was timed out in the experiment."""
+        if self.final_bomb_state is None:
+            return None
+        return self.final_bomb_state.is_timed_out
+
+    @property
+    def time_remaining(self) -> float | None:
+        """Get the time remaining on the bomb at the end of the experiment."""
+        if self.final_bomb_state is None:
+            return None
+        return self.final_bomb_state.timer_module.seconds_remaining
+
+    @property
+    def total_modules_solved(self) -> int | None:
+        """Get the total number of modules solved by the end of the experiment."""
+        if self.final_bomb_state is None:
+            return None
+        return sum(1 for module in self.final_bomb_state.modules if module.is_solved)
+
+    @property
+    def total_strikes(self) -> int | None:
+        """Get the total number of strikes by the end of the experiment."""
+        if self.final_bomb_state is None:
+            return None
+        return self.final_bomb_state.current_strikes
 
 
 class ExperimentPlayerRecord(Provenance, StepRecordsMetricsMixin):
