@@ -108,3 +108,25 @@ class Suite(BaseModel):
         revision, so changing the config or any mission file requires bumping `revision`.
         """
         return stable_digest([self.config_digest, self.missions_digest])
+
+
+class SuiteIdentity(BaseModel):
+    """The frozen suite the interactive results were measured against."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    suite_name: str
+    suite_revision: int
+    suite_digest: str
+
+    @classmethod
+    def from_suite(cls, suite: Suite) -> Self:
+        """Snapshot a `Suite`'s identity: its name, revision, and digest."""
+        return cls(
+            suite_name=suite.name, suite_revision=suite.revision, suite_digest=suite.suite_digest
+        )
+
+    @property
+    def target(self) -> str:
+        """What was measured, with its pin — the bundle dir's leaf name."""
+        return f"{self.suite_name}@{self.suite_revision}"
