@@ -29,11 +29,14 @@ def configure_test_environment(tmp_path: Path) -> None:
     _ = os.environ.setdefault("EXPERIMENT_RECORDER_OUTPUTS", records_dir.as_posix())
 
 
-# Import all the fixtures from every file in the tests/_cases dir.
+# Import all the fixtures from every file in the tests/_cases dir. Anchor the glob to this file's
+# directory, not the CWD: a bare rglob from the working tree also sweeps up nested git worktrees
+# (e.g. .claude/worktrees/*/tests/_cases), which produce unimportable plugin names.
 pytest_plugins = [
-    fixture_file.as_posix().replace("/", ".").replace(".py", "")
-    for fixture_file in Path().rglob("tests/_cases/[!__]*.py")
+    f"tests._cases.{fixture_file.stem}"
+    for fixture_file in (Path(__file__).parent / "_cases").glob("[!__]*.py")
 ]
+
 
 # Register factories with pytest-factoryboy
 _ = register(PlayerProtocolFactory)
