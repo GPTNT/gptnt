@@ -47,7 +47,7 @@ def test_static_boxes_agent_fail_is_instantiate_fail() -> None:
     assert (exists, instantiates) == ("pass", "fail")
 
 
-def test_static_boxes_missing_credential_is_instantiate_warn() -> None:
+def test_static_boxes_missing_credential_is_instantiate_fail() -> None:
     outcome = ModelValidationResult(
         "m",
         None,
@@ -56,7 +56,8 @@ def test_static_boxes_missing_credential_is_instantiate_warn() -> None:
         error="Set the FOO_API_KEY environment variable",
     )
     exists, instantiates, note = checks._static_boxes(outcome)
-    assert (exists, instantiates) == ("pass", "warn")
+    # An unset provider key composes but can't run, so the doctor fails it (not a warn).
+    assert (exists, instantiates) == ("pass", "fail")
     # The note surfaces pydantic-ai's own message (which names the var) — no maintained map.
     assert "FOO_API_KEY" in note
 
@@ -65,6 +66,14 @@ def test_model_report_failed_only_on_fail_box() -> None:
     assert checks.PlayerReport("m", "pass", "fail", "skip").failed is True
     assert checks.PlayerReport("m", "pass", "warn", "skip").failed is False
     assert checks.PlayerReport("m", "pass", "pass", "skip").failed is False
+
+
+def test_model_report_missing_credential_fails_the_run() -> None:
+    # A missing-credential model instantiates as ✗, so the report (and the doctor run) fails.
+    _, instantiates, _ = checks._static_boxes(
+        ModelValidationResult("m", None, ok=True, missing_credential=True, error="set FOO")
+    )
+    assert checks.PlayerReport("m", "pass", instantiates, "skip").failed is True
 
 
 def test_display_skipped_off_linux(monkeypatch: pytest.MonkeyPatch) -> None:
