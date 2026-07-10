@@ -5,9 +5,9 @@ from cyclopts import App, Parameter
 from rich.console import Console
 from whenever import Instant
 
-from gptnt.cli.check_result import CheckResult
+from gptnt.cli.checks.render import render_report
+from gptnt.cli.checks.result import CheckResult
 from gptnt.cli.config_discovery import discover_suites
-from gptnt.cli.doctor import render
 from gptnt.experiments.provenance import git_sha, gptnt_version
 from gptnt.experiments.suite.compose import compose_suite
 from gptnt.experiments.suite.freeze import FreezeReport, FreezeStamp, SuiteFreezeOutcome
@@ -49,7 +49,7 @@ def freeze(*, check: CheckOption = False) -> None:
     )
 
     rows = [_check_result(outcome, check=check) for outcome in report.outcomes]
-    render.render_report(console, {"Suites": rows})
+    render_report(console, {"Suites": rows})
 
     if check:
         _finish_check(rows)
@@ -65,19 +65,19 @@ def _check_result(outcome: SuiteFreezeOutcome, *, check: bool) -> CheckResult:
     """
     name = f"{outcome.name} (rev {outcome.revision})"
     if outcome.action == "unchanged":
-        return CheckResult(name, "pass", outcome.detail)
+        return CheckResult.passed(name, outcome.detail)
     if outcome.action == "digest_mismatch":
         hint = f"Bump `revision` in configs/suites/{outcome.name}.yaml, then re-freeze."
-        return CheckResult(name, "fail", outcome.detail, hint)
+        return CheckResult.failed(name, outcome.detail, hint)
     if outcome.action == "duplicate_keys":
-        return CheckResult(name, "fail", outcome.detail, "Regenerate the mission set.")
+        return CheckResult.failed(name, outcome.detail, "Regenerate the mission set.")
     if check:
-        return CheckResult(name, "fail", "not in suites.lock", "Run `gptnt suite freeze`.")
-    return CheckResult(name, "pass", "froze new entry")
+        return CheckResult.failed(name, "not in suites.lock", "Run `gptnt suite freeze`.")
+    return CheckResult.passed(name, "froze new entry")
 
 
 def _finish_check(rows: list[CheckResult]) -> None:
-    """Fail loudly if any suite is unfrozen or mismatched; otherwise report all frozen."""
+    """Raise if any suite is unfrozen or mismatched, else report how many are frozen."""
     if any(row.status == "fail" for row in rows):
         raise RuntimeError("suites.lock is out of date; run `gptnt suite freeze`.")
     console.print(f"[green]{len(rows)} suites, all frozen.[/green]")

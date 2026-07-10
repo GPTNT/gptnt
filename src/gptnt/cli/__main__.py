@@ -7,13 +7,9 @@ BACKEND = "asyncio"
 def build_app() -> App:
     """Assemble the root `gptnt` command surface.
 
-    This package owns the root `gptnt` command. It only assembles the command surface; every
-    command's implementation lives in the package that owns its domain (interactive runtime,
-    records data/analysis, app dashboard, statics evaluation, core configs).
-
-    Every command is registered by lazy import-path string, so the command's module, and its heavy
-    dependencies (hydra, torch, polars, duckdb, wandb, ...), is imported only when that command is
-    invoked or when its own `--help` is shown.
+    Every command is registered by lazy import-path string, so a command's module and its heavy
+    dependencies (hydra, torch, polars, duckdb, wandb, ...) load only when that command or its own
+    `--help` runs.
     """
     app = App(name="gptnt", help="GPTNT.", backend=BACKEND)
 
@@ -23,7 +19,7 @@ def build_app() -> App:
     statics = Group("Statics", sort_key=3)
     submission = Group("Submission", sort_key=4)
 
-    # Onboarding (gptnt-cli) — verify the system, then scaffold + validate your model.
+    # Onboarding — verify the system, then scaffold + validate your model.
     app.command(
         "gptnt.cli.doctor.command:doctor",
         name="doctor",
@@ -37,25 +33,25 @@ def build_app() -> App:
         help="Scaffold new player/provider configs.",
     )
     app.command(
-        "gptnt.cli.measure_tokens_per_image:measure_tokens_per_image",
+        "gptnt.cli.onboarding.measure_tokens_per_image:measure_tokens_per_image",
         name="measure-tokens-per-image",
         group=onboarding,
         help="Measure a model's per-image token cost.",
     )
     app.command(
-        "gptnt.cli.list_configs:list_app",
+        "gptnt.cli.onboarding.list_configs:list_app",
         name="list",
         group=onboarding,
-        help="List the experiment presets and player configs a run.yaml can reference.",
+        help="List the suites and player configs a run.yaml can reference.",
     )
     app.command(
-        "gptnt.cli.generate_specs:generate",
+        "gptnt.cli.onboarding.generate_specs:generate",
         name="generate",
         group=onboarding,
         help="Generate experiment specs from a run.yaml.",
     )
     app.command(
-        "gptnt.cli.generate_missions:generate_missions",
+        "gptnt.cli.onboarding.generate_missions:generate_missions",
         name="generate-missions",
         group=onboarding,
         help="Materialise a mission set into configs/missions/ from the seed-based generator.",
@@ -73,7 +69,7 @@ def build_app() -> App:
         help="Run a run.yaml's pre-generated specs end-to-end: doctor → spawn → submit → monitor.",
     )
 
-    # Interactive runtime (gptnt-interactive) — flattened in as top-level commands.
+    # Interactive runtime — top-level commands.
     app.command(
         "gptnt.cli.interactive.submit:send_experiment_specs_to_em",
         name="submit",
@@ -105,7 +101,7 @@ def build_app() -> App:
         help="Reconcile local outputs against W&B: tags invalid/duplicate/orphaned remote W&B runs as 'old' and deletes local files lacking a valid run. Mutates remote W&B state. Previews by default; pass --execute to apply.",
     )
 
-    # Analysis (gptnt-experiments + gptnt-app).
+    # Analysis.
     app.command(
         "gptnt.cli.experiments.build_db:build_metadata_database",
         name="build-db",
@@ -131,7 +127,7 @@ def build_app() -> App:
         help="List completed experiment outcomes from the DuckDB results.",
     )
 
-    # Statics evaluation (gptnt-statics) — nested group.
+    # Statics evaluation — nested group.
     app.command(
         "gptnt.cli.statics.__main__:statics_app",
         name="statics",
@@ -139,7 +135,7 @@ def build_app() -> App:
         help="Run static evaluations against HuggingFace datasets.",
     )
 
-    # Submission (gptnt-cli) — nested group.
+    # Submission — nested group.
     app.command(
         "gptnt.cli.submission.__main__:submission_app",
         name="submission",

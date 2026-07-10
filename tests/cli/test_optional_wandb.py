@@ -20,7 +20,7 @@ NON_WANDB_MODULES = (
     "gptnt.experiments.ledger.resolve",
     "gptnt.experiments.ledger",
     "gptnt.cli.run.command",
-    "gptnt.cli.generate_specs",
+    "gptnt.cli.onboarding.generate_specs",
     "gptnt.cli.experiments.cleanup",
     "gptnt.cli.experiments.cleanup_wandb",
 )

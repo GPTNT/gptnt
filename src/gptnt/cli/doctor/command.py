@@ -7,9 +7,19 @@ from cyclopts import Parameter
 from cyclopts.types import ExistingFile
 from rich.console import Console
 
-from gptnt.cli.check_result import CheckResult
+from gptnt.cli.checks.game import (
+    MOD_LOAD_CHECK,
+    check_display,
+    check_game_binary,
+    check_mod_files,
+    check_mod_load,
+)
+from gptnt.cli.checks.machine import check_machine
+from gptnt.cli.checks.players import PlayerReport, check_players, check_tokens_per_image
+from gptnt.cli.checks.render import render_players, render_report
+from gptnt.cli.checks.result import CheckResult
+from gptnt.cli.checks.services import check_em_port, check_observability, check_redis
 from gptnt.cli.config_discovery import discover_players
-from gptnt.cli.doctor import checks, render
 from gptnt.cli.doctor.run_plan import RunPlanResult, analyze_run_plan
 from gptnt.cli.run.manifest import RunManifest
 
@@ -46,7 +56,7 @@ class DiagnoseResult:
     """
 
     failed: bool
-    player_reports: list[checks.PlayerReport]
+    player_reports: list[PlayerReport]
     run_plan: RunPlanResult | None
 
 
@@ -59,7 +69,8 @@ async def doctor(
     """Check that this machine is ready to run the benchmark, and print exact fixes for what isn't.
 
     Pass a `run.yaml` to additionally cross-check its roster against what generation requires (this
-    catches the generate/throw player mismatch before it silently stalls) and report resume state.
+    catches a roster player the generated specs never cover before it silently stalls) and report
+    resume state.
     """
     run = None
     if manifest is not None:
@@ -84,14 +95,14 @@ async def diagnose(
 
     `include_infra=False` skips the redis/game/display/machine checks.
     """
-    matrix = await checks.check_players(_doctor_targets(run), live=live)
-    render.render_players(console, matrix.details)
+    matrix = await check_players(_doctor_targets(run), live=live)
+    render_players(console, matrix.details)
     failed = not matrix.details or any(report.failed for report in matrix.reports)
 
     system_failed, run_plan_result = await _render_system_checks(
         run,
         matrix.config_to_player,
-        calibration=checks.check_calibration(matrix.details),
+        tokens_per_image=check_tokens_per_image(matrix.details),
         check_mod_load=check_mod_load,
         specs=specs,
         include_infra=include_infra,
@@ -115,30 +126,31 @@ async def _render_system_checks(
     run: RunManifest | None,
     config_to_player: dict[str, str | None],
     *,
-    calibration: list[CheckResult],
+    tokens_per_image: list[CheckResult],
     check_mod_load: bool,
     specs: list[ExperimentSpec] | None = None,
     include_infra: bool = True,
 ) -> tuple[bool, RunPlanResult | None]:
-    """Run + render the calibration/infra/machine/run-plan checks."""
+    """Run + render the image-token/infra/machine/run-plan checks."""
     infra = await _infrastructure_checks(check_mod_load=check_mod_load) if include_infra else []
-    machine = checks.check_machine() if include_infra else []
+    machine = check_machine() if include_infra else []
     run_plan_result = None if run is None else _run_plan_checks(run, config_to_player, specs=specs)
     run_plan_findings = [] if run_plan_result is None else run_plan_result.findings
 
     sections: dict[str, list[CheckResult]] = {}
-    # per-player image-token calibration, right after the model matrix it stems from
-    if calibration:
-        sections["Calibration"] = calibration
+    # per-player image-token cost, right after the model matrix it stems from
+    if tokens_per_image:
+        sections["Image tokens"] = tokens_per_image
     if run_plan_findings:  # render the run-plan section right after the model matrix it stems from
         sections["Run plan"] = run_plan_findings
     if infra:
         sections["Infrastructure"] = infra
     if machine:
         sections["Machine"] = machine
-    render.render_report(console, sections)
+    render_report(console, sections)
     failed = any(
-        check.status == "fail" for check in (*calibration, *infra, *machine, *run_plan_findings)
+        check.status == "fail"
+        for check in (*tokens_per_image, *infra, *machine, *run_plan_findings)
     )
     return failed, run_plan_result
 
@@ -157,7 +169,7 @@ def _run_plan_checks(
         return analyze_run_plan(run, config_to_player, specs=specs)
     except Exception as exc:  # noqa: BLE001 — a crashing cross-check must not abort the report
         return RunPlanResult(
-            findings=[CheckResult("Run plan", "fail", "cross-check crashed", str(exc)[:200])],
+            findings=[CheckResult.failed("Run plan", "cross-check crashed", str(exc)[:200])],
             specs=[],
             config_to_player={},
         )
@@ -165,12 +177,12 @@ def _run_plan_checks(
 
 async def _infrastructure_checks(*, check_mod_load: bool) -> list[CheckResult]:
     """Run the full system-state checks."""
-    redis = await checks.check_redis()
-    game = checks.check_game_binary()
-    mod_files = checks.check_mod_files()
-    display = checks.check_display()
-    em_port = await checks.check_em_port()
-    observability = await checks.check_observability()
+    redis = await check_redis()
+    game = check_game_binary()
+    mod_files = check_mod_files()
+    display = check_display()
+    em_port = await check_em_port()
+    observability = await check_observability()
     mod_loads = await _mod_load_row(
         enabled=check_mod_load, prerequisites=(game, mod_files, display)
     )
@@ -183,11 +195,9 @@ async def _infrastructure_checks(*, check_mod_load: bool) -> list[CheckResult]:
 async def _mod_load_row(*, enabled: bool, prerequisites: tuple[CheckResult, ...]) -> CheckResult:
     """The mod-load row: skip (with the flag to run it) when disabled or a prerequisite failed."""
     if not enabled:
-        return CheckResult(checks.MOD_LOAD_CHECK, "skip", "not run", "run with --check-mod-load")
+        return CheckResult.skipped(MOD_LOAD_CHECK, "not run", "run with --check-mod-load")
 
     blockers = [check.name for check in prerequisites if check.status == "fail"]
     if blockers:
-        return CheckResult(
-            checks.MOD_LOAD_CHECK, "skip", f"skipped because {', '.join(blockers)} failed"
-        )
-    return await checks.check_mod_load()
+        return CheckResult.skipped(MOD_LOAD_CHECK, f"skipped because {', '.join(blockers)} failed")
+    return await check_mod_load()

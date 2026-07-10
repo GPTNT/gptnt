@@ -1,8 +1,4 @@
-"""The check-result value object and its four-state status.
-
-A dependency-free module so findings can be built and rendered apart from doctor's probes (httpx,
-psutil, the game client, hydra).
-"""
+"""The check-result value object and its four-state status."""
 
 from __future__ import annotations
 
@@ -10,8 +6,11 @@ from dataclasses import dataclass
 from typing import Literal, Self
 
 CheckStatus = Literal["pass", "fail", "warn", "skip"]
-"""The four check statuses: `pass` ✓, `fail` ✗ (fails the run), `warn` ⚠ (reported, never fails),
-`skip` ⊘ (not applicable here, e.g. an X display on macOS)."""
+"""The four check statuses.
+
+`fail` fails the run, `warn` is reported but never fails, and `skip`
+marks a check not applicable here (an X display on macOS). Glyphs live in `render.GLYPHS`.
+"""
 
 
 @dataclass(frozen=True)
@@ -43,6 +42,6 @@ class CheckResult:
         return cls(name, "warn", detail=detail, hint=hint)
 
     @classmethod
-    def skipped(cls, name: str, detail: str = "") -> Self:
+    def skipped(cls, name: str, detail: str = "", hint: str = "") -> Self:
         """Not applicable here."""
-        return cls(name, "skip", detail=detail)
+        return cls(name, "skip", detail=detail, hint=hint)

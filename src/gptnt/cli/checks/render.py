@@ -1,4 +1,4 @@
-"""Presentation for `gptnt doctor`."""
+"""Rendering for findings: the section-table renderer and doctor's model-matrix table."""
 
 from __future__ import annotations
 
@@ -15,10 +15,10 @@ if TYPE_CHECKING:
 
     from rich.console import Console, RenderableType
 
-    from gptnt.cli.check_result import CheckResult, CheckStatus
-    from gptnt.cli.doctor.checks import PlayerDetail, PlayerReport
+    from gptnt.cli.checks.players import PlayerDetail, PlayerReport
+    from gptnt.cli.checks.result import CheckResult, CheckStatus
 
-_GLYPHS: dict[str, tuple[str, str]] = {
+GLYPHS: dict[CheckStatus, tuple[str, str]] = {
     "pass": ("✓", "green"),
     "fail": ("✗", "bold red"),
     "warn": ("⚠", "yellow"),
@@ -26,7 +26,7 @@ _GLYPHS: dict[str, tuple[str, str]] = {
 }
 
 # Used to derive section-level border colour from worst finding.
-_SEVERITY: dict[str, int] = {"skip": 0, "pass": 1, "warn": 2, "fail": 3}
+_SEVERITY: dict[CheckStatus, int] = {"skip": 0, "pass": 1, "warn": 2, "fail": 3}
 _BORDER: dict[int, str] = {0: "dim", 1: "dim", 2: "yellow", 3: "red"}
 
 _MESSAGE_CAP = 200
@@ -40,7 +40,7 @@ def _short(message: str | None) -> str:
 
 
 def _cell(status: CheckStatus) -> Text:
-    glyph, style = _GLYPHS[status]
+    glyph, style = GLYPHS[status]
     return Text(glyph, style=style)
 
 

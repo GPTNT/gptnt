@@ -6,7 +6,7 @@ raising. The manifest schema does the cheap gatekeeping itself (unknown schema v
 fingerprints, blank identities, and kind discrimination all fail the parse), so the methods here
 only cover what needs the directory, the payload, or the checkout: naming, coverage, and hygiene.
 The command layer (`validate.py`) decides section order and rendering, reusing the shared
-`CheckResult` and doctor's render machinery.
+`CheckResult` and the `gptnt.cli.checks` render/format machinery.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING
 import yaml
 from pydantic import ValidationError
 
-from gptnt.cli.check_result import CheckResult
+from gptnt.cli.checks.result import CheckResult
 from gptnt.cli.submission._bundle import (
     BundleName,
     InteractiveBundle,

@@ -14,8 +14,8 @@ import yaml
 from rich.console import Console
 
 from gptnt.cli.__main__ import build_app
-from gptnt.cli.doctor import checks, render
-from gptnt.cli.doctor.validation import validate_model_config
+from gptnt.cli.checks import players, render
+from gptnt.cli.checks.validation import validate_model_config
 from gptnt.cli.player.new import _validate_name
 from gptnt.cli.player.templates import PLAYER_TEMPLATE, PROVIDER_TEMPLATE
 from gptnt.common.paths import Paths
@@ -124,7 +124,7 @@ def test_new_model_rejects_traversal_through_cli(evil_name: str) -> None:
 @pytest.mark.anyio
 async def test_doctor_player_detailed_view_for_a_real_config() -> None:
     """`doctor` renders a credential-free config (test-random) as a passing detail row."""
-    matrix = await checks.check_players([("test-random", None)], live=False)
+    matrix = await players.check_players([("test-random", None)], live=False)
     detail = matrix.details[0]
     assert detail.static.ok
     assert detail.report.exists == "pass"
