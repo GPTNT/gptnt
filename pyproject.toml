@@ -90,6 +90,7 @@ lint = [
     "prek>=0.2.23",
     "ruff>=0.9.0",
     "toml-sort>=0.24.2",
+    "typos>=1.48.0",
     "wemake-python-styleguide>=1.0.0",
 ]
 visualisation = [
@@ -100,6 +101,10 @@ visualisation = [
 # Runtime W&B support ships as the `gptnt[wandb]` extra.
 wandb = [
     "wandb[media]>=0.19.9,<0.22.1",
+]
+docs = [
+    "zensical>=0.0.46",
+    "mkdocstrings-python>=1.11.0",
 ]
 
 [tool.uv]
@@ -135,12 +140,6 @@ executionEnvironments = [
     {root = "tests", extraPaths = ["."], reportArgumentType = false},
 ]
 ignore = ["scripts", "scrap", "stats", "storage", "wandb", "configs"]
-
-[tool.codespell]
-skip = '.git*,*.svg,*.lock,*.css,*.yaml,*.json'
-check-hidden = true
-ignore-regex = '\*\*[A-Z]\*\*[a-z]+\b'
-ignore-words-list = 'som'
 
 [tool.commitizen]
 name = "cz_conventional_commits"
@@ -455,6 +454,19 @@ overrides."project".first = [
     "requires-python",
 ]
 overrides."tool".first = ["uv"]
+
+[tool.typos.default.extend-identifiers]
+Whos_On_First = "Whos_On_First"
+
+[tool.typos.default.extend-words]
+whos = "whos" # Who's On First module — identifiers, splits, and docstrings
+nin = "nin" # MongoDB $nin operator
+ser = "ser" # pydantic-core serializer abbreviation
+mis = "mis" # English prefix (mis-parsing, mis-read, etc.)
+som = "som"
+
+[tool.typos.files]
+extend-exclude = ["*.lock", "CHANGELOG.md", "configs/missions/**/*.json", "src/gptnt/statics/constants.py", "src/gptnt/ktane/state/constants.py"]
 
 [tool.uv-dynamic-versioning]
 vcs = "git"

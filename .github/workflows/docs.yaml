@@ -1,0 +1,60 @@
+name: Docs
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/**"
+      - "src/**"
+      - "zensical.toml"
+      - ".github/workflows/docs.yaml"
+      - "pyproject.toml"
+      - "uv.lock"
+
+# Serialise deploys so a later build never races an earlier one onto gh-pages.
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  build-and-deploy:
+    name: Build and deploy docs
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      # Only the docs group: zensical and mkdocstrings-python. The build is
+      # static (mkdocstrings reads src/ via griffe without importing gptnt), so
+      # the project and its heavy main dependency tree are not needed.
+      - name: Install docs dependencies
+        run: uv sync --only-group docs
+
+      - name: Build site
+        run: uv run zensical build
+
+      # Publish the built site to the gh-pages branch of GPTNT/docs, which
+      # serves it at https://gptnt.github.io/docs/. force_orphan keeps that
+      # branch at a single commit, so no build artifacts accumulate.
+      - name: Deploy to GPTNT/docs
+        uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4.1.0
+        with:
+          deploy_key: ${{ secrets.DOCS_DEPLOY_KEY }}
+          external_repository: GPTNT/docs
+          publish_branch: gh-pages
+          publish_dir: ./site
+          force_orphan: true

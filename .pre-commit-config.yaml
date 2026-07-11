@@ -1,3 +1,5 @@
+# yaml-language-server: $schema=https://www.schemastore.org/prek.json
+
 # Only commit is installed by default: https://pre-commit.com/#pre-commit-install
 # Pending rename of pre-push from: https://github.com/pre-commit/pre-commit/issues/2732
 default_install_hook_types: ["commit-msg", "pre-commit"]
@@ -100,7 +102,10 @@ repos:
     hooks:
       - id: prettier
         types_or: [html, javascript, yaml, json, markdown]
-        exclude: storage/prompts/
+        exclude:
+          glob:
+            - "storage/prompts/**"
+            - "docs/**"
 
   - repo: local
     hooks:
