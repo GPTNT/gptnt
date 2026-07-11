@@ -22,8 +22,6 @@ GPTNT is an AI benchmark built on **KTANE** ("Keep Talking and Nobody Explodes")
 > [!NOTE]
 > Creating an asynchronous, real-time, multi-agent benchmark is not trivial. We've tried to make the process of running things as simple and clear as possible to ensure that no logs or information is lost in the async hell that can happen. You can find more information about how to get started and run the benchmark on the documentation site: [https://gptnt.github.io/docs/](https://gptnt.github.io/docs/).
 
-
-
 ## Citation
 
 ```bibtex

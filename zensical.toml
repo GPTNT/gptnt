@@ -24,16 +24,9 @@ nav = [
         "running/add-new-player.md",
         "running/run-your-model.md",
     ]},
-    "submit-your-results.md"
+    "submit-your-results.md",
 ]
-
 extra_css = ["stylesheets/extra.css"]
-
-# Render ```mermaid fences client-side with beautiful-mermaid, loaded as an ESM
-# module from jsDelivr. See docs/javascripts/beautiful-mermaid.js.
-[[project.extra_javascript]]
-path = "javascripts/beautiful-mermaid.js"
-type = "module"
 
 [project.extra]
 homepage = "/docs/get-started/"
@@ -44,6 +37,12 @@ homepage = "/docs/get-started/"
 [[project.extra.social]]
 icon = "fontawesome/brands/github"
 link = "https://github.com/gptnt/"
+
+# Render ```mermaid fences client-side with beautiful-mermaid, loaded as an ESM
+# module from jsDelivr. See docs/javascripts/beautiful-mermaid.js.
+[[project.extra_javascript]]
+path = "javascripts/beautiful-mermaid.js"
+type = "module"
 
 # ----------------------------------------------------------------------------
 # In this section you can configure the Markdown extensions that are used when
