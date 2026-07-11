@@ -12,22 +12,21 @@ console = Console()
 
 
 def all_bundle_dirs(submission_dir: Path) -> list[Path]:
-    """Every top-level bundle directory under submission_dir/submissions/, name-sorted.
+    """Every top-level bundle directory under submission_dir, name-sorted.
 
     Each is one bundle (`YYYYMMDD_<display-slug>_<capfp8>_<suite>_<ver>`), the boundary for one
     pull request.
     """
-    src_root = submission_dir / "submissions"
-    if not src_root.exists():
-        raise FileNotFoundError(f"Expected a submissions/ directory inside {submission_dir}")
-    bundle_dirs = sorted(path for path in src_root.iterdir() if path.is_dir())
+    if not submission_dir.exists():
+        raise FileNotFoundError(f"Expected a submissions directory at {submission_dir}")
+    bundle_dirs = sorted(path for path in submission_dir.iterdir() if path.is_dir())
     if not bundle_dirs:
-        raise FileNotFoundError(f"No bundle submission directories found under {src_root}")
+        raise FileNotFoundError(f"No bundle submission directories found under {submission_dir}")
     return bundle_dirs
 
 
 def copy_bundle(bundle_dir: Path, submission_dir: Path, clone_dir: Path) -> list[str]:
-    """Copy one bundle's subtree into clone_dir, keeping paths anchored at submission_dir.
+    """Copy one bundle's subtree into clone_dir under the repo's `submissions/` tree.
 
     Returns repo-relative paths of the written files (for staging), each starting
     `submissions/<bundle>/...`.
@@ -36,7 +35,7 @@ def copy_bundle(bundle_dir: Path, submission_dir: Path, clone_dir: Path) -> list
     for src_file in bundle_dir.rglob("*"):
         if not src_file.is_file():
             continue
-        rel = src_file.relative_to(submission_dir)
+        rel = Path("submissions") / src_file.relative_to(submission_dir)
         destination = clone_dir / rel
         destination.parent.mkdir(parents=True, exist_ok=True)
         _ = shutil.copy2(src_file, destination)

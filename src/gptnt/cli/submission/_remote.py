@@ -261,7 +261,7 @@ def create_submission(
     body: str | None = None,
     dry_run: bool = False,
 ) -> list[SubmissionResult]:
-    """Open one pull request per bundle under submission_dir/submissions/.
+    """Open one pull request per bundle under submission_dir.
 
     Each top-level bundle directory becomes its own branch, commit, and PR against `slug`. Auth,
     the repo lookup, and the clone/fork happen once, shared across every bundle. Uses GITHUB_TOKEN

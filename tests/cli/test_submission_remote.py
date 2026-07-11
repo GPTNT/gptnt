@@ -40,21 +40,21 @@ def _write_model(root: Path, model: str, *targets: str) -> Path:
 def test_model_dirs_returns_one_entry_per_model(tmp_path: Path) -> None:
     _ = _write_model(tmp_path, "gpt-5-2_7bc641c3", "single-parametric-sync@1")
     _ = _write_model(tmp_path, "claude-sonnet-4-6_46a16b38", "multi-self-async@1")
-    assert [path.name for path in all_bundle_dirs(tmp_path)] == [
+    assert [path.name for path in all_bundle_dirs(tmp_path / "submissions")] == [
         "claude-sonnet-4-6_46a16b38",  # name-sorted
         "gpt-5-2_7bc641c3",
     ]
 
 
 def test_model_dirs_errors_without_submissions_dir(tmp_path: Path) -> None:
-    with pytest.raises(FileNotFoundError, match="submissions/ directory"):
-        _ = all_bundle_dirs(tmp_path)
+    with pytest.raises(FileNotFoundError, match="Expected a submissions directory"):
+        _ = all_bundle_dirs(tmp_path / "submissions")
 
 
 def test_model_dirs_errors_when_empty(tmp_path: Path) -> None:
     (tmp_path / "submissions").mkdir()
     with pytest.raises(FileNotFoundError, match="No bundle submission directories"):
-        _ = all_bundle_dirs(tmp_path)
+        _ = all_bundle_dirs(tmp_path / "submissions")
 
 
 def test_copy_model_scopes_to_one_model(tmp_path: Path) -> None:
@@ -65,7 +65,7 @@ def test_copy_model_scopes_to_one_model(tmp_path: Path) -> None:
     clone_dir = tmp_path / "clone"
     clone_dir.mkdir()
 
-    rel_paths = copy_bundle(kept, tmp_path, clone_dir)
+    rel_paths = copy_bundle(kept, tmp_path / "submissions", clone_dir)
 
     # Only the target model's files, anchored at submissions/<model>/...
     assert sorted(rel_paths) == [
@@ -113,7 +113,10 @@ def test_submit_one_bundle_dry_run_commits_only_that_bundle(tmp_path: Path) -> N
 
     result = _submit_one_bundle(
         _dry_run_session(
-            repo=repo, submission_dir=tmp_path, clone_dir=clone_dir, signature=signature
+            repo=repo,
+            submission_dir=tmp_path / "submissions",
+            clone_dir=clone_dir,
+            signature=signature,
         ),
         kept,
     )

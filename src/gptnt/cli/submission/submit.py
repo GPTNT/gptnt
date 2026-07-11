@@ -16,8 +16,7 @@ from typing import Annotated
 from cyclopts import Parameter
 from rich.console import Console
 
-from gptnt.cli.submission._remote import SUBMISSION_REPO_SLUG, create_submission
-from gptnt.common.paths import Paths
+from gptnt.common.paths import SUBMISSION_REPO_SLUG, Paths
 
 paths = Paths()
 console = Console()
@@ -25,8 +24,8 @@ console = Console()
 
 def submit_submission(
     path: Annotated[
-        Path, Parameter(help="Directory containing the submissions/ tree to submit.")
-    ] = paths.output,
+        Path, Parameter(help="Directory of submission bundles to submit.")
+    ] = paths.submissions,
     *,
     repo: Annotated[
         str, Parameter(name="--repo", help="Target repo slug (owner/name).")
