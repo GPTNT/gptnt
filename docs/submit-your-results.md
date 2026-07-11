@@ -5,36 +5,44 @@ title: Submit your results
 # Submit your results
 
 
-A submission is a bundle of your results, pinned so anyone can tell how they were measured: the suites and their revisions, your model's capabilities, and the exact GPTNT commit that produced them. You contribute it to the submissions registry by pull request, and an automated check validates it before merge. Again, we've tried to make this as simple as possible but it's still a process.
+A submission is a bundle of your results, pinned so anyone can tell how they were measured: the suites and their revisions, your model's capabilities, and the exact GPTNT commit that produced them. You contribute it to the submissions registry by pull request, and an automated check validates it before merge. We've tried to make this as simple as possible but it's still a process.
 
 
 ## Briefly, how this works
 
-At a high-level, you can add and run your model and have all the results there. Then, you're going to need to package them up and submit them.
-The submissions process itself is a pull request to [gptnt/submissions](https://github.com/gptnt/submissions), a different repository we are using to keep track of them all.
-The PR gets validated for structure and we will check the results out, and then we'll merge it in. After that, we'll update the leaderboard and see how your model compares to the others. There is also a diagram below that shows the flow of the submission process.
+Once your model is added and run, you have all the results sitting on disk. You package them up, check them, and send them as a pull request to [gptnt/submissions](https://github.com/gptnt/submissions), a separate repository we use to track them all. The PR gets validated for structure, we check the results, and we merge it in. After that, your results will join the others on the leaderboard.
 
-Once your model is added and run, submitting takes five steps:
+Submitting takes four steps:
 
 1. [**Collate**](#collate-into-the-single-duckdb-file){data-preview} your experiment outputs into one DuckDB file.
-2. [**Build**](#build-the-submission){data-preview} the submission bundle.
-3. [**Fill in**](#update-the-submissionyaml-files){data-preview} each `submission.yaml`.
-4. [**Check**](#check-it-before-you-send-it){data-preview} the bundle.
-5. [**Open**](#open-the-pull-request){data-preview} the pull request.
+2. [**Build**](#build-the-submission){data-preview} the submission bundles, filling in who you are.
+3. [**Check**](#check-it-before-you-send-it){data-preview} them.
+4. [**Submit**](#open-the-pull-request){data-preview} the pull request.
 
-## What we expect you to have run
 
-For a submission, we ask that you run the following suites:
+## Before you start
+
+We ask that you run the following suites:
 
 - `multi-self-async`
 - `multi-self-sync`
 - `single-parametric-sync`
 
-and the following statics:
+and the following static:
 
 - `expert-vqa-no-manual`
 
+Each model you submit needs a filled `identity` block in its player config (`configs/player/<player-name>.yaml`). This is where the display name, organisation, URL, and open-source flag come from. If you followed the steps to [add a new player](running/add-new-player.md#configuring-the-identity){data-preview}, you already have it. If it's missing, `gptnt submission new` will stop and tells you.
 
+The final step opens a pull request for you, which needs a bit more:
+
+- The `submission` extra, for the git and GitHub plumbing:
+
+    ```bash
+    uv sync --all-groups --extra submission
+    ```
+
+- A GitHub token, either in the `GITHUB_TOKEN` environment variable or through an authenticated `gh` CLI (`gh auth login`).
 
 
 ## Collate into the single DuckDB file
@@ -63,63 +71,70 @@ gptnt build-db <directory-of-experiment-outputs> -o <output-duckdb-file>
 
 ## Build the submission
 
-As mentioned above, the submission is a bundle of the results, and pinned so that anyone can tell how they were measured.
-For each bundle, we automatically extract the information and structure it for you to submit. In the end, it'll look something like this:
+The submission is a bundle of your results, pinned so anyone can tell how they were measured. We extract and structure everything for you. You get one bundle per model per target (a suite or a static), and they land under `output/submissions/`:
 
 ```yaml
 submissions/
-└── <model-name>_{capfp8}/ # (1)!
-    ├── <suite-name>@<revision>/ # (2)!
-    │   ├── experiments.parquet # (3)!
-    │   └── submission.yaml
-    └── <static-name>@<revision>/ # (4)!
-        ├── metrics.json # (5)!
-        └── submission.yaml
+├── 20260711_claude-sonnet-5_3f2a1b8c_multi-self-async_1/ # (1)!
+│   ├── submission.yaml
+│   └── experiments.parquet # (2)!
+└── 20260711_claude-sonnet-5_3f2a1b8c_expert-vqa-no-manual_9f8e7d6c/ # (3)!
+    ├── submission.yaml
+    └── metrics.json # (4)!
 ```
 
-1. The canonical model name and a hash of the capabilities used for the evaluation. E.g., `claude-sonnet-5_3f2a1b8c`.
-2. The name and revision of a suite. E.g., `multi-self-async@1`.
-3. An `ExperimentSummary` for every single experiment in the suite. This is _not_ the trajectory data.
-4. The name and revision of a static evaluation. E.g., `expert-vqa-no-manual@2`.
-5. The aggregated scorer outputs for the static evaluation task.
+1. The build date, the model's display-name slug, an 8-character hash of the capabilities used, the suite, and its revision.
+2. An `ExperimentSummary` for every experiment in the suite. This is _not_ the trajectory data.
+3. A bundle for a static evaluation. Same naming, ending in the static's name and the dataset revision it ran against.
+4. The aggregated scorer outputs for the static, copied across as-is.
 
-
-### Run the command(s)
-
-The simplest way to create it is to run the following command:
+To build them, run:
 
 ```bash
-gptnt submission new
+gptnt submission new \
+  --submitter.name "<name>" \
+  --submitter.contact "@<handle>" \
+  --submitter.affiliation "<affiliation>" \
 ```
 
-This will use all the default paths to create a submission bundle for all the suites and statics that were run. If you want to create a submission for a specific static or suite, you can use the `--suite` or `--static` flags to specify which one you want to create a submission for.
+`--submitter.contact` is your GitHub handle or an email, so we can reach you. There's also an optional `--submitter.affiliation`. This uses the default paths and builds a bundle for every suite and static you ran. To target a specific one, pass `--suite` or `--static`; to build for specific models only, pass `--model`.
 
+Everything else is filled in for you. Your capabilities are read from the results and pinned with a fingerprint, so there is nothing to hand-edit there, and editing them only makes the check fail. The display name, organisation, and the rest come from the `identity` block in the player config, not from anything you type here.
 
-## Update the `submission.yaml` file(s)
-
-One thing that we can't do for you is fill in the information for the `submission.yaml` file. We'll do as much as we can automatically, but the rest is up to you.
-
-Once you've generated the submission bundle, go to the directory and fill in your details in each `submission.yaml` file. This is important so that we know who you are, what model you used, and how to contact you if we have questions. The `submission.yaml` file is also where you can add any additional information about your submission that you think is important for us to know. For instance, we use it to track what capabilities your model has, what suite you used, and more.
-
-These files get validated against the schema, so if you don't fill them out correctly, the automated check will fail. Please make sure to read the schema and fill out the files correctly.
+??? tip "Prefer to fill it in by hand?"
+    If you leave the submitter flags off, the `submitter` block in each `submission.yaml` is written blank for you to fill in afterward. Rebuilding keeps whatever you've already put there, so you won't lose it.
 
 
 ## Check it before you send it
 
 ```bash
-gptnt submission validate <submission-bundle-dir>
+gptnt submission validate
 ```
 
-Once you're ready to go, you can run the validation command to check that everything is in order. This will check that the submission bundle is structured correctly, that the `submission.yaml` files are filled out, and that the results make sense. If the validation passes, you're ready to open the pull request. If it fails, you'll need to fix the issues before you can submit.
+Once you're ready to go, run the validation command to check that everything is in order. It checks that each bundle is structured and named correctly, that the `submitter` block is filled, that the suite is frozen, and that every mission was run exactly once and ended cleanly. If it passes, you're ready to open the pull request. If it fails, fix the issues it lists before you submit.
+
+A couple of things only warn, and won't block you: a static whose dataset revision wasn't pinned at run time (pin it with `--dataset-revision` when you run statics, for a reproducible submission), and a git tree that had uncommitted changes when the results were produced.
 
 !!! note
-    We use the same command when we validate the submission too.
+    We run this same command when we validate your submission on our end.
 
 
 ## Open the pull request
 
-We have automated the process of opening a pull request for you.
+The last step opens the pull request for you, one per bundle, against [gptnt/submissions](https://github.com/gptnt/submissions). It needs the `submission` extra and GitHub auth from [Before you start](#before-you-start){data-preview}.
 
-<!-- Fork gptnt/submissions, drop your submissions/<id>/ folder in, and open the PR. Point at the
-     repo's README for the exact folder layout. -->
+Do a dry run first. This clones, branches, and commits locally, and shows you each branch, the files it would stage, and the PR title, without touching GitHub:
 
+```bash
+gptnt submission submit --dry-run
+```
+
+When it looks right, drop the flag:
+
+```bash
+gptnt submission submit
+```
+
+If you have push access to the registry it pushes a branch directly; otherwise it forks the repository first and pushes there. Re-running is safe: it updates the branch and the existing pull request rather than opening a new one.
+
+That pull request is your submission. From there we validate it, check the results, and merge it in.
