@@ -1,33 +1,15 @@
----
-title: Get Started
----
-
 # Get Started
-
-!!! warning
-    This documentation is a work in progress. Currently, it is focused on getting you to a set of results you can submit.
-
-This project has gone through several major overhauls. Digging into it is strongly encouraged, but you are going to want to know what exists and how things work before you can get stuck all the way in. While the code is the ultimate source of truth, this documentation is meant to provide background and context on the decisions made, and anything else that is not immediately obvious.
-
-## What is GPTNT?
-
-GPTNT is a benchmark for real-time collaboration between multimodal agents. It uses the game [Keep Talking and Nobody Explodes](https://keeptalkinggame.com/) (KTANE) to evaluate how well agents can work together to solve problems in real time.
-If you want to know more and see how it worked in practice, check out our [website](https://gptnt.github.io "https://gptnt.github.io") for all the details in full.
-
-## Where to start?
-- If you haven't already, make sure you can run the dummy models using the [Installation](#installation){data-preview} instructions below.
-- If you want to just run models on the benchmark, check out [Run the benchmark](running/index.md){data-preview}.
-- If you want to dig in and understand how the benchmark works and how to build on top of it, that's a work in progress.
-
-## Installation
 
 Creating an asynchronous, real-time, multi-agent benchmark is not trivial. We've tried to make the process of running things as simple and clear as possible to ensure that no logs or information is lost in the async hell that can happen.
 
-### Preconditions
+
+
+
+## Preconditions
 
 There are some things we cannot provide for you through Python dependencies so you need to run them yourself. We've tried to keep them to a minimum.
 
-#### Bring your own game
+### Bring your own game
 
 !!! danger "You must provide the game yourself"
     We do **not** distribute or provide the game—you must supply it yourself. You can purchase a DRM-free version from the [Humble Bundle store](https://humblebundle.com/store/keep-talking-and-nobody-explodes).
@@ -43,7 +25,7 @@ Copy-paste your KTANE game that you downloaded under `storage/ktane`.[^game-path
 [^game-path]: This path is included in the `.gitignore` so it won't get committed.
 [^funny-vscode]: If you are using VSCode, it may show the `*.app` bundle as a folder. This is normal and expected so there's nothing to worry about. It's just how `*.app` files work.
 
-#### Run the infrastructure (with Docker Compose)
+### Run the infrastructure (with Docker Compose)
 
 !!! note
     Docker is only used to run Redis and the OpenTelemetry collector. The game itself is **not** run in Docker.
@@ -71,7 +53,7 @@ docker compose up -d
 ??? question "What if you don't want to use OpenTelemetry?"
     The most robust option is to set the `COMPOSE_PROFILES` environment variable to `dev` to send all traces to the void. Not using OpenTelemetry will make deubugging harder, so we recommend you keep it enabled unless you know you don't need it.
 
-#### Rendering the game: display vs headless
+### Rendering the game: display vs headless
 
 The game has to render _somewhere_. If you have a display, like on macOS or Windows, you don't need to do anything. If you are on Linux, you may need to start an X display.
 
@@ -95,7 +77,7 @@ We have validated the following cases:
     sudo -E .venv/bin/python scripts/startx.py 3
     ```
 
-### Run the benchmark (using dummy models)
+## Run the benchmark (using dummy models)
 
 To make sure that you can run the game and the benchmark, we have "dummy models" that you can run. They don't do anything useful, but they will make sure that the game and the benchmark are working end-to-end.
 

@@ -38,15 +38,15 @@ jobs:
           enable-cache: true
           python-version: ${{ env.PYTHON_VERSION }}
 
-      # Only the docs group: zensical and mkdocstrings-python. The build is
-      # static (mkdocstrings reads src/ via griffe without importing gptnt), so
-      # the project and its heavy main dependency tree are not needed.
+      # Only the docs group: zensical and mkdocstrings-python. The build is static (mkdocstrings
+      # reads src/ via griffe without importing gptnt), so the project and its heavy main
+      # dependency tree are not needed.
       - name: Build site
         run: uv run --only-group docs zensical build
 
-      # Publish the built site to the gh-pages branch of GPTNT/docs, which
-      # serves it at https://gptnt.github.io/docs/. force_orphan keeps that
-      # branch at a single commit, so no build artifacts accumulate.
+      # Publish the built site to the gh-pages branch of GPTNT/docs, which serves it at
+      # https://gptnt.github.io/docs/. force_orphan keeps that branch at a single commit, so no
+      # build artifacts accumulate.
       - name: Deploy to GPTNT/docs
         uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4.1.0
         with:

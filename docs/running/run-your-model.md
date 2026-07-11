@@ -68,7 +68,7 @@ Most runs can use the defaults for these fields. Configure them when you need ex
 
 ##### Displays
 
-`displays` spreads game rooms round-robin across X displays on a headless Linux host (see [Installation](../get-started.md#installation){data-preview}). Use one display number per GPU to spread rooms across GPUs, for example `displays: [0, 1]`. Omit it to inherit the ambient `$DISPLAY`.
+`displays` spreads game rooms round-robin across X displays on a headless Linux host (see [rendering the game](../get-started.md#rendering-the-game-display-vs-headless){data-preview}). Use one display number per GPU to spread rooms across GPUs, for example `displays: [0, 1]`. Omit it to inherit the ambient `$DISPLAY`.
 
 ```yaml hl_lines="6"
 spec_version: 2

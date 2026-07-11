@@ -288,8 +288,8 @@ The model class is important otherwise you won't instantiate the right model. Py
 !!! danger "Always-on reasoning models"
     Some models always reason and ignore `false`. Set `thinking: 'minimal'` to keep it as low as it goes. Check the documentation for your model to see if it has any special settings for reasoning. If it does, you can use those instead of `thinking` to control the reasoning.
 
-!!! note "This will not affect open source models that you are serving with vLLM or SGLang"
-    Please check the settings for your respective model. It is unlikely but possible that you may have to provide a custom chat template to achieve this, which we had to do for [InternVL3.5](../../configs/player/internvl3-5-38b.yaml).
+!!! danger "This will not affect open source models that you are serving with vLLM or SGLang"
+    Please check the settings for your respective model. It is unlikely but possible that you may have to provide a custom chat template to achieve this, which we had to do for InternVL3.5.
 
 ???+ note "Using model-specific settings classes needs `_convert_: all`"
 
@@ -381,8 +381,8 @@ The `capabilities` block at the top of your config is where you say what your mo
 | `include_schema_in_instructions` | Whether the output schema is pasted into the instructions. | `true` |
 | `interaction_location_method` | How the model points:<br>`set-of-marks` labels elements A, B, C, ...<br>`coordinates` asks for pixel or normalised coordinates. | `set-of-marks` |
 | `usage_limits` | The per-request input and output token budgets. Set these to your model's real limits. | none |
-| `image_dimensions` | The size of the images that get sent. Override it if your model expects a fixed resolution. | 640×480 (KTANE) |
-| `preserve_last_frame_for_n_turns` | How many previous turns' final frames are provided. | `0` |
+| `image_dimensions` | The size of the images that get sent. Override it if your model expects a fixed resolution. | 640×480 |
+| `preserve_last_frame_for_n_turns` | How many previous turns' final frames are provided. | 0 |
 | `enable_nobf_generation` | Whether models should receive a warning when their previous output caused an error. | `true` |
 
 !!! warning "Thinking out loud and structured output don't mix"

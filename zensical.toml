@@ -18,6 +18,7 @@ Copyright &copy; 2026 GPTNT
 #
 # Read more: https://zensical.org/docs/setup/navigation/
 nav = [
+    "index.md",
     "get-started.md",
     {"Run the benchmark" = [
         "running/index.md",
@@ -29,7 +30,7 @@ nav = [
 extra_css = ["stylesheets/extra.css"]
 
 [project.extra]
-homepage = "/docs/get-started/"
+homepage = "/docs"
 
 # ----------------------------------------------------------------------------
 # The "extra" section contains miscellaneous settings.

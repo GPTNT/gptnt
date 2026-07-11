@@ -1,7 +1,7 @@
 # Run the benchmark
 
 !!! warning "Ensure the dummy models work first"
-    This section presumes you have already run the benchmark with the dummy models and have a working setup. If you have not, follow [Get started](../get-started.md#installation){data-preview} first.
+    This section presumes you have already run the benchmark with the dummy models and have a working setup. If you have not, follow [Get started](../get-started.md){data-preview} first.
 
 This section takes you from a working setup to a set of results you can submit. Add your model, run the benchmark's suites, then package the outcome.
 The benchmark runs as a set of suites through two commands:
