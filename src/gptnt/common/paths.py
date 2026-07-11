@@ -8,6 +8,9 @@ from whenever import Instant
 
 logger = structlog.get_logger()
 
+SUBMISSION_REPO_SLUG = "gptnt/submissions"
+SUBMISSION_REPO_HTTPS = f"https://github.com/{SUBMISSION_REPO_SLUG}"
+
 
 def remove_empty_experiment_recorder_outputs(root_path: Path) -> None:
     """Remove empty experiment recorder output directories."""

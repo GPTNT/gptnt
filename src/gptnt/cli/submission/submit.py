@@ -40,6 +40,8 @@ def submit_submission(
     ] = False,
 ) -> None:
     """Open (or refresh) one pull request per bundle under `path`."""
+    from gptnt.cli.submission._remote import create_submission  # noqa: PLC0415
+
     outcomes = create_submission(slug=repo, submission_dir=path, dry_run=dry_run)
     if dry_run:
         console.print(f"[bold]Dry run complete[/bold] — {len(outcomes)} PR(s) would be opened:")

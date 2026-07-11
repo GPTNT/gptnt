@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from gptnt.cli.submission._staging import all_bundle_dirs, copy_bundle, report_dry_run
+from gptnt.common.paths import SUBMISSION_REPO_SLUG
 
 try:  # noqa: WPS229
     import pygit2
@@ -27,10 +28,6 @@ except ImportError as err:
         "Please install the 'pygithub' and 'pygit2' packages by installing the `submission` extra "
         "(e.g. `uv sync --all-groups --extra submission` or `uv sync --all-groups --all-extras`)."
     ) from err
-
-
-SUBMISSION_REPO_SLUG = "gptnt/submissions"
-SUBMISSION_REPO_HTTPS = f"https://github.com/{SUBMISSION_REPO_SLUG}"
 
 
 def _get_token() -> str:
