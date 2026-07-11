@@ -21,10 +21,18 @@ def discover_players() -> list[str]:
 
 @lru_cache
 def discover_suites() -> list[str]:
-    """Return sorted list of available suite ids from configs/suites/*.yaml."""
+    """Return sorted list of available suite ids from configs/suites/*.yaml.
+
+    Underscore-prefixed stems (e.g. `_template.yaml`) are scaffolding, not live suites, and are
+    skipped so `compose_suite` never trips over their unfilled mandatory fields.
+    """
     if not paths.suite_configs.is_dir():
         return []
-    return sorted(path.stem for path in paths.suite_configs.glob("*.yaml"))
+    return sorted(
+        path.stem
+        for path in paths.suite_configs.glob("*.yaml")
+        if not path.stem.startswith("_")
+    )
 
 
 @lru_cache
