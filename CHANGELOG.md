@@ -1,3 +1,42 @@
+## v0.16.0 (2026-07-11)
+
+### Feat
+
+- add a website for the docs (#7)
+- submission tooling — new, validate, submit (#30)
+- **suites**: add suite identity and lock-entry mission set (#27)
+- **db**: add typed parquet read/write for recorded runs (#25)
+- **run**: support multiple attempts from the `run.yaml`  (#26)
+- **run**: expose attempts_per_mission in run.yaml
+- **cli/tokens**: add command to measure tokens and update the config (#21)
+- **cli/doctor**: ensure tokens-per-image > 0 before running (#22)
+- **tokens**: store the tokens per image for each player in their capabilities (#20)
+- **suites**: create lock file for suites (#19)
+- **configs**: include `configs` inside of the `gptnt` package (#18)
+- add a class for `PlayerIdentity` (#14)
+- **statics**: track metadata when running statics (#11)
+
+### Fix
+
+- **docs**: separate the index from the get-started page
+- **doctor**: fail, and not warn, when a provider credential is unset (#29)
+- **tests**: limit fixture finding to the tests dir
+- **tests**: set the default version to semver for tests
+- exclude usage limits from the fingerprint (#13)
+
+### Refactor
+
+- **cli/submissions**: provided path should be `submissions/` dir
+- move constants for submissions
+- **tests**: improve separation between factory/cases (and flatten the core fossil) (#32)
+- **cli**: consolidate the findings checks into a checks/ package (#31)
+- **statics**: give a static run a resolved identity (#28)
+- **cli**: move CheckResult into its own module (#24)
+- **provenance**: rename ProvenanceMixin to Provenance (#23)
+- remove unnecessary specs-store file (#16)
+- **db**: move duckdb types into db subpackage (#15)
+- move `specification` to `players.specification` (#12)
+
 ## v0.15.0 (2026-07-02)
 
 ### Feat
