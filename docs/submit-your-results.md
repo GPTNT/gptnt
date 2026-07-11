@@ -66,7 +66,7 @@ gptnt build-db <directory-of-experiment-outputs> -o <output-duckdb-file>
 As mentioned above, the submission is a bundle of the results, and pinned so that anyone can tell how they were measured.
 For each bundle, we automatically extract the information and structure it for you to submit. In the end, it'll look something like this:
 
-```text
+```yaml
 submissions/
 └── <model-name>_{capfp8}/ # (1)!
     ├── <suite-name>@<revision>/ # (2)!
