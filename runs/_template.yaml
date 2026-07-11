@@ -27,10 +27,12 @@ players:
   # Player config name: configs/player/<player>.yaml
   # Optional provider override: configs/player/provider/<provider>.yaml (defaults to player)
   # Optional explicit count: how many copies of this player to spawn (default 1).
-  - player: peekaboo
+  - player: qwen3-5-27b
+    # This runs qwen3-5-27b through configs/player/provider/vllm_box1.yaml instead of its default provider.
     provider: vllm_box1
     count: 2
   - player: claude-sonnet-4-6
+  - player: gemini-3-flash-preview
 
 anchors: # OPTIONAL. Reference players held fixed on one side of a pairing.
   best_expert: gemini-3-flash-preview #   used by with_best_expert (candidate=defuser, anchor=expert)

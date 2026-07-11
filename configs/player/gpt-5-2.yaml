@@ -26,7 +26,7 @@ action_predictor:
       _target_: pydantic_ai.models.openai.OpenAIChatModel
       model_name: gpt-5.2
 
-    # gpt-5.2 always reasons, so its reasoning cannot be turned off, only floored. `minimal` maps to
+    # gpt-5.2 always reasons, so its reasoning cannot be turned off, `minimal` maps to
     # reasoning_effort=minimal, the lowest setting.
     model_settings:
       thinking: minimal
