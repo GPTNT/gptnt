@@ -21,7 +21,7 @@ If you want to know more and see how it worked in practice, check out our [websi
 
 ## Installation
 
-Creating a asynchronous, real-time, multi-agent benchmark is not trivial. We've tried to make the process of running things as simple and clear as possible to ensure that no logs or information is lost in the async hell that can happen.
+Creating an asynchronous, real-time, multi-agent benchmark is not trivial. We've tried to make the process of running things as simple and clear as possible to ensure that no logs or information is lost in the async hell that can happen.
 
 ### Preconditions
 
@@ -69,7 +69,7 @@ docker compose up -d
     We don't use a password for Redis because it is only accessible from the local machine and there was no one else using the machine and nothing else running on it. Of course, the correct thing to do, especially if you are accessing Redis remotely, is to **set a password and configure the services to use it.**
 
 ??? question "What if you don't want to use OpenTelemetry?"
-    The most robust option is to set the `COMPOSE_PROFILE` environment variable to `dev` to send all traces to the void. Not using OpenTelemetry will make deubugging harder, so we recommend you keep it enabled unless you know you don't need it.
+    The most robust option is to set the `COMPOSE_PROFILES` environment variable to `dev` to send all traces to the void. Not using OpenTelemetry will make deubugging harder, so we recommend you keep it enabled unless you know you don't need it.
 
 #### Rendering the game: display vs headless
 

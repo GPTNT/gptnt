@@ -6,9 +6,9 @@
 // own stock mermaid.js, so a distinct class keeps those two off each other and
 // lets this renderer own the fences. This module reads the fence source,
 // renders a self-contained SVG, and swaps it in. No build step: the
-// library is an ESM bundle pulled from jsDelivr, which inlines its elkjs and
-// entities dependencies. Pinned to a version because jsDelivr generates the
-// +esm bundle on the fly, so subresource integrity hashes do not apply.
+// library is an ESM bundle pulled from esm.run, which inlines its elkjs and
+// entities dependencies. Pinned to a version because the bundle is generated
+// on the fly, so subresource integrity hashes do not apply.
 import {
 	renderMermaidSVG,
 	THEMES,

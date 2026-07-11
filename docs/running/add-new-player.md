@@ -13,7 +13,7 @@ Every model is a "player" in the game. What matters is not just the model itself
 
 All responsibility for running the models themselves has been offloaded to [Pydantic AI](https://ai.pydantic.dev/ "https://ai.pydantic.dev/"). Pydantic AI is an excellent library for dealing with the many variations that come with different models and providers. We started using it when it was on v0.0.10 at the very beginning of this project and you should use it. It's brilliant.
 
-Everything is instantiated using dependency inversion through [Hydra](https://hydra.cc/ "https://hydra.cc"). This is to keep the codebase and its features compositional to facilitte people easily hacking onto it. This means that the configs in `configs/player` contain everything you need to implement and configure access to your models. There are three main parts to configure:
+Everything is instantiated using dependency inversion through [Hydra](https://hydra.cc/ "https://hydra.cc"). This is to keep the codebase and its features compositional to facilitate people easily hacking onto it. This means that the configs in `configs/player` contain everything you need to implement and configure access to your models. There are three main parts to configure:
 
 1. How the model is configured (e.g. temperature, max tokens, etc.)
 2. How you access the model
@@ -30,7 +30,7 @@ gptnt new player <player-name>
 
 ???+ example "Example scaffolds"
 
-    Below are some examples of what the scaffolding would look like if you're instantiating a closed-source model or a open-source model that you're self-hosting with vLLM.
+    Below are some examples of what the scaffolding would look like if you're instantiating a closed-source model or an open-source model that you're self-hosting with vLLM.
 
     === "Claude Sonnet 5"
 

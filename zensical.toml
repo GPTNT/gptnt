@@ -39,7 +39,7 @@ icon = "fontawesome/brands/github"
 link = "https://github.com/gptnt/"
 
 # Render ```mermaid fences client-side with beautiful-mermaid, loaded as an ESM
-# module from jsDelivr. See docs/javascripts/beautiful-mermaid.js.
+# module from esm.run. See docs/javascripts/beautiful-mermaid.js.
 [[project.extra_javascript]]
 path = "javascripts/beautiful-mermaid.js"
 type = "module"
