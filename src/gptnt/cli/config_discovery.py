@@ -29,9 +29,7 @@ def discover_suites() -> list[str]:
     if not paths.suite_configs.is_dir():
         return []
     return sorted(
-        path.stem
-        for path in paths.suite_configs.glob("*.yaml")
-        if not path.stem.startswith("_")
+        path.stem for path in paths.suite_configs.glob("*.yaml") if not path.stem.startswith("_")
     )
 
 
