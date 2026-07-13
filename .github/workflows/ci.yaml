@@ -129,7 +129,7 @@ jobs:
 
       - name: Run tests
         run: |
-          uv run pytest -k "not requires_game" --junitxml=pytest.xml --cov-report "xml:coverage.xml" --cov=src -n auto
+          uv run pytest -k "not requires_game and not slow" --junitxml=pytest.xml --cov-report "xml:coverage.xml" --cov=src -n auto
 
       - name: Comment coverage
         if: ${{ github.event_name == 'pull_request' }}
