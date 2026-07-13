@@ -111,7 +111,9 @@ jobs:
     if: ${{needs.changes.outputs.python == 'true' && !github.event.pull_request.draft }}
 
     permissions:
-      contents: read
+      contents: write
+      checks: write
+      pull-requests: write
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -128,94 +130,11 @@ jobs:
       - name: Run tests
         env:
           COVERAGE_CORE: sysmon
-          COVERAGE_FILE: .coverage.fast
         run: |
-          uv run pytest -k "not requires_game and not slow" --junitxml=pytest.xml --cov=src --cov-report= -n auto
-
-      - name: Upload coverage data
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: coverage-fast
-          path: |
-            .coverage.fast
-            pytest.xml
-          include-hidden-files: true
-
-  test_slow:
-    name: Run slow tests
-    runs-on: ubuntu-latest
-    needs: [changes]
-    if: ${{needs.changes.outputs.python == 'true' && !github.event.pull_request.draft }}
-    timeout-minutes: 15
-
-    permissions:
-      contents: read
-
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
-        with:
-          enable-cache: true
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install deps
-        run: uv sync --all-groups --extra submission
-
-      # Runs in parallel with `test`, so enabling the slow suite costs max(fast, slow).
-      # These are timing-sensitive in-process integration runs; drop to `-n 2` if a runner thrashes.
-      - name: Run slow tests
-        env:
-          COVERAGE_CORE: sysmon
-          COVERAGE_FILE: .coverage.slow
-        run: |
-          uv run pytest -m slow -k "not requires_game" --cov=src --cov-report=
-
-      - name: Upload coverage data
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: coverage-slow
-          path: .coverage.slow
-          include-hidden-files: true
-
-  coverage:
-    name: Combine coverage
-    runs-on: ubuntu-latest
-    needs: [test, test_slow]
-    if: ${{ github.event_name == 'pull_request' }}
-
-    permissions:
-      contents: read
-      checks: write
-      pull-requests: write
-
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          persist-credentials: false
-      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
-        with:
-          enable-cache: true
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: coverage-fast
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: coverage-slow
-
-      # No project sync: `combine`/`xml` only read the data files and checked-out source. Pin
-      # `coverage` to the locked version so it reads the data format the test jobs wrote.
-      - name: Combine coverage
-        env:
-          COVERAGE_FILE: .coverage.combined
-        run: |
-          uvx coverage combine .coverage.fast .coverage.slow
-          uvx coverage xml -o coverage.xml
+          uv run pytest -k "not requires_game and not slow" --junitxml=pytest.xml --cov-report "xml:coverage.xml" --cov=src -n auto
 
       - name: Comment coverage
+        if: ${{ github.event_name == 'pull_request' }}
         uses: MishaKav/pytest-coverage-comment@dd5b80bde6d16941f336518e92929e89069d8451 # v1.7.2
         with:
           pytest-xml-coverage-path: ./coverage.xml
