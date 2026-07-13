@@ -44,15 +44,8 @@ class PlayerDeps(BaseModel, frozen=True):
 
     @property
     def structured_output_type(self) -> type[PlayerOutputType]:
-        """The output type for the player.
-
-        This is used to determine what the agent can output.
-
-        Note that at the end, we also patch the name so that it can be used by various tool
-        functions because for some reason, this was not working properly.
-        """
-        output: list[type[PlayerOutputType]] = []
-        output.append(DoNothingAction)
+        """The output type the agent is allowed to produce."""
+        output: list[type[PlayerOutputType]] = [DoNothingAction]
 
         if not self.protocol.is_playing_alone:
             output.append(SendMessageAction)
@@ -66,14 +59,7 @@ class PlayerDeps(BaseModel, frozen=True):
         if self.protocol.allow_lottery_actions:
             output.append(LotteryGameAction)
 
-        clean_output: list[type[PlayerOutputType]] = []
-        for output_type in output:
-            # Remove the brackets from the output type name
-            output_type.__name__ = output_type.__name__.replace("[", "").replace("]", "")
-            output_type.__qualname__ = output_type.__qualname__.replace("[", "").replace("]", "")
-            clean_output.append(output_type)
-
-        return cast("type[PlayerOutputType]", Union[tuple(clean_output)])  # noqa: UP007
+        return cast("type[PlayerOutputType]", Union[tuple(output)])  # noqa: UP007
 
     @property
     def should_manually_add_schema_in_instructions(self) -> bool:
