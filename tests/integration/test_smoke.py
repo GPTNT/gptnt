@@ -75,7 +75,7 @@ async def test_full_run_solved(
 async def test_full_run_detonated(
     assembled: AssembledExperiment, fake_game: FakeKtaneGame, records_dir: Path
 ) -> None:
-    """A detonated bomb ends the run withoutß a hard crash, and records it."""
+    """A detonated bomb ends the run with a game-over, not a hard crash, and records it."""
     session = await assembled.run_to_completion(assembled.build_spec())
 
     assert session.state == ExperimentState.done
