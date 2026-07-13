@@ -170,7 +170,7 @@ jobs:
           COVERAGE_CORE: sysmon
           COVERAGE_FILE: .coverage.slow
         run: |
-          uv run pytest -m slow -k "not requires_game" --cov=src --cov-report= -n auto
+          uv run pytest -m slow -k "not requires_game" --cov=src --cov-report=
 
       - name: Upload coverage data
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -212,8 +212,8 @@ jobs:
         env:
           COVERAGE_FILE: .coverage.combined
         run: |
-          uvx coverage@7.10.7 combine .coverage.fast .coverage.slow
-          uvx coverage@7.10.7 xml -o coverage.xml
+          uvx coverage combine .coverage.fast .coverage.slow
+          uvx coverage xml -o coverage.xml
 
       - name: Comment coverage
         uses: MishaKav/pytest-coverage-comment@dd5b80bde6d16941f336518e92929e89069d8451 # v1.7.2
