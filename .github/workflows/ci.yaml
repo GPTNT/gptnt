@@ -163,10 +163,9 @@ jobs:
       - name: Install deps
         run: uv sync --all-groups --extra submission
 
-      # Runs in parallel with `test`, so enabling the slow suite costs max(fast, slow). These are
-      # timing-sensitive in-process integration runs; verified green on a 2-core pin (the runner size).
+      # No xdist on purpose: each test is ALREADY a full multi-service, multi-threaded stack
       - name: Run slow tests
         env:
           COVERAGE_CORE: sysmon
         run: |
-          uv run pytest -m slow -k "not requires_game" -n auto
+          uv run pytest -m slow -k "not requires_game" -vv
