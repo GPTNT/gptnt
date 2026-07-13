@@ -21,7 +21,9 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.anyio
 
 # A child that traps SIGTERM and keeps running, so only SIGKILL can reclaim it.
-_IGNORES_SIGTERM = "import signal, time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(60)"
+_IGNORES_SIGTERM = (
+    "import signal, time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(60)"
+)
 
 
 async def _drain(orchestrator: ProcessOrchestrator, *, fail_after: float = 10.0) -> None:
