@@ -75,7 +75,7 @@ async def test_full_run_solved(
 async def test_full_run_detonated(
     assembled: AssembledExperiment, fake_game: FakeKtaneGame, records_dir: Path
 ) -> None:
-    """A detonated bomb ends the run through the game-over branch, not a hard crash, and records it."""
+    """A detonated bomb ends the run withoutß a hard crash, and records it."""
     session = await assembled.run_to_completion(assembled.build_spec())
 
     assert session.state == ExperimentState.done
@@ -135,10 +135,7 @@ async def test_full_run_async(
 
 @pytest.mark.slow
 async def test_run_to_results_chain(
-    assembled: AssembledExperiment,
-    fake_game: FakeKtaneGame,  # noqa: ARG001
-    records_dir: Path,
-    tmp_path: Path,
+    assembled: AssembledExperiment, fake_game: FakeKtaneGame, records_dir: Path, tmp_path: Path
 ) -> None:
     """A run's records ingest into DuckDB and surface through `results` with the right outcome.
 
@@ -146,7 +143,7 @@ async def test_run_to_results_chain(
     """
     session = await assembled.run_to_completion(assembled.build_spec())
     assert session.state == ExperimentState.done
-    await wait_for_record_footers(records_dir, count=2)
+    _ = await wait_for_record_footers(records_dir, count=2)
 
     db_path = tmp_path.joinpath("experiments.duckdb")
     built = invoke_cli(build_app(), ["build-db", str(records_dir), "--output", str(db_path)])
