@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING, Any, Literal
 import httpx
 from PIL import Image
 
+from gptnt.interactive.services.game import client as game_client
 from gptnt.ktane import process_manager
 from gptnt.ktane.state.game import GameState
 
@@ -95,6 +96,10 @@ class FakeKtaneGame:
 
     def install(self, respx_mock: respx.MockRouter, monkeypatch: pytest.MonkeyPatch) -> None:
         """Patch the process manager and register the HTTP routes against `respx_mock`."""
+        # The client sleeps `SECONDS_PER_ACTION` after each `advance_game_time` to track the real
+        # game's wall clock. The fake game has no clock, so that sleep is pure dead time (~3s/step,
+        # the bulk of a full-run test); drop it to 0 with no effect on the state machine.
+        monkeypatch.setattr(game_client, "SECONDS_PER_ACTION", 0)
 
         async def _fake_start(_self: object) -> int:  # noqa: WPS430
             return self.port
