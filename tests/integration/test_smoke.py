@@ -1,36 +1,32 @@
-"""First integration test (the "floor"): real services assemble on fake Redis and matchmake.
-
-This isolates the parts that MUST work for the benchmark to run at all — service startup,
-heartbeat registration, and matchmaking — by mocking `Session.run` so it does NOT drive the
-full game loop. That keeps the test robust and makes a stall easy to localise.
-
-Manual debugging (run without output capture so you can see where it stalls):
-
-    uv run pytest tests/integration/test_smoke.py -s -o addopts="" -p no:sugar --no-header
-
-Where a stall localises to:
-- never reaches the body  -> the `assembled` fixture (service startup) is stuck
-- reaches `wait_until_ready` timeout -> a service never registered as ready (heartbeats /
-  the game's /health -> main_menu transition); inspect `assembled.experiment_manager`
-  `.connected_services` / `.ready_games` / `.ready_players`
-- past ready but no session -> matchmaking (`_try_match_experiments` / name matching)
-
-The composable pieces are importable for a REPL session too — see `tests/integration/conftest.py`.
-"""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import anyio
 import pytest
 
-from gptnt.interactive.services.experiment_manager.experiment_runner import ExperimentState
+from gptnt.cli.__main__ import build_app
+from gptnt.interactive.services.experiment_manager.experiment_runner import (
+    AsyncExperimentRunner,
+    ExperimentState,
+)
+
+from tests._cli_runner import invoke_cli
+from tests._harness.records import wait_for_record_footers, wait_for_recorded_outcome
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from pytest_mock import MockerFixture
 
     from tests._harness.assembly import AssembledExperiment
+    from tests._harness.fake_game import FakeKtaneGame
+
+# Manual debugging (see where a run stalls, without output capture):
+#   uv run pytest tests/integration/test_smoke.py -s -o addopts="" -p no:sugar --no-header
+# The full-run family exercises the orchestration over `FakeKtaneGame`, a scripted single-module
+# phase machine with no real timing or frame-buffer decoding. A green run is evidence about the
+# service plumbing, not that the benchmark starts against the real KTANE binary (a `requires_game`
+# run covers that), and it drives the dummy players, not model I/O.
 
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
@@ -58,51 +54,104 @@ async def test_services_register_and_matchmake(
     assert session.game.uuid == assembled.game.uuid
 
 
-def _is_set(obj: object, name: str) -> object:
-    """Best-effort `event.is_set()` for a named attribute, or `"?"` if absent."""
-    event = getattr(obj, name, None)
-    return getattr(event, "is_set", lambda: "?")()
-
-
-def _snapshot(session: object, game: object) -> str:
-    """Defensive one-line trace of runner + fake-game state for localising a stall."""
-    runner = getattr(session, "experiment_runner", None)
-    watcher = getattr(runner, "game_state_watcher", None)
-    defuser_watcher = getattr(runner, "defuser_state_watcher", None)
-
-    return (
-        f"runner={getattr(getattr(runner, 'state', None), 'name', '?')} "
-        f"game.phase={getattr(game, 'phase', '?')} hits={getattr(game, 'hits', '?')} "
-        f"timesteps={getattr(game, 'timesteps', '?')} actions={getattr(game, 'actions_sent', '?')} "
-        f"lights_off={_is_set(watcher, 'lights_are_off_event')} "
-        f"lights_on={_is_set(watcher, 'first_lights_on_event')} "
-        f"game_over={_is_set(watcher, 'good_game_over_event')} "
-        f"defuser_waiting={_is_set(defuser_watcher, 'is_first_waiting_for_turn')}"
-    )
-
-
 @pytest.mark.slow
-async def test_full_experiment_runs_to_completion(
-    assembled: AssembledExperiment, fake_game: object
+async def test_full_run_solved(
+    assembled: AssembledExperiment, fake_game: FakeKtaneGame, records_dir: Path
 ) -> None:
-    """GOLD: drive the fake game to completion and assert the experiment finishes cleanly.
-
-    Prints a state trace each time the runner/game phase changes so a stall localises to a phase.
-    """
-    await assembled.wait_until_ready(timeout=8)
-
-    spec = assembled.build_spec()
-    assembled.experiment_manager.specs.add(spec)
-    await assembled.experiment_manager.try_match_experiments()
-    session = next(iter(assembled.experiment_manager.active_sessions))
-
-    last = ""
-    with anyio.fail_after(50):
-        while session.state != ExperimentState.done:
-            snap = _snapshot(session, fake_game)
-            if snap != last:
-                last = snap
-            await anyio.sleep(0.1)
+    """A full run reaches done, the defuser acts on the bomb, and the record reads solved."""
+    session = await assembled.run_to_completion(assembled.build_spec())
 
     assert session.state == ExperimentState.done
     assert not session.is_hard_crash
+    assert fake_game.hits.get("/action", 0) > 0, "the defuser never acted on the bomb"
+
+    outcome = await wait_for_recorded_outcome(records_dir)
+    assert outcome.is_solved
+    assert not outcome.is_detonated
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("fake_game", ["detonated"], indirect=True)
+async def test_full_run_detonated(
+    assembled: AssembledExperiment, fake_game: FakeKtaneGame, records_dir: Path
+) -> None:
+    """A detonated bomb ends the run through the game-over branch, not a hard crash, and records it."""
+    session = await assembled.run_to_completion(assembled.build_spec())
+
+    assert session.state == ExperimentState.done
+    assert not session.is_hard_crash, "detonation is a game-over end, not a hard crash"
+
+    outcome = await wait_for_recorded_outcome(records_dir)
+    assert outcome.is_detonated
+    assert not outcome.is_solved
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("fake_game", ["timed_out"], indirect=True)
+async def test_full_run_timeout(
+    assembled: AssembledExperiment, fake_game: FakeKtaneGame, records_dir: Path
+) -> None:
+    """A bomb that runs out of time ends the run and records a timed-out outcome."""
+    session = await assembled.run_to_completion(assembled.build_spec())
+
+    assert session.state == ExperimentState.done
+    assert not session.is_hard_crash
+
+    outcome = await wait_for_recorded_outcome(records_dir)
+    assert outcome.is_timed_out
+    assert not outcome.is_solved
+
+
+@pytest.mark.slow
+async def test_full_run_solo(
+    assembled_solo: AssembledExperiment, fake_game: FakeKtaneGame, records_dir: Path
+) -> None:
+    """Solo play drives the runner's `expert is None` branches from start to a recorded outcome."""
+    spec = assembled_solo.build_spec()
+    assert spec.expert_name is None, "solo spec must carry no expert"
+
+    session = await assembled_solo.run_to_completion(spec)
+
+    assert session.state == ExperimentState.done
+    assert not session.is_hard_crash
+    assert (await wait_for_recorded_outcome(records_dir)).is_solved
+
+
+@pytest.mark.slow
+async def test_full_run_async(
+    assembled: AssembledExperiment, fake_game: FakeKtaneGame, records_dir: Path
+) -> None:
+    """An async-style run selects the `AsyncExperimentRunner` and reaches a recorded outcome."""
+    spec = assembled.build_spec(communication_style="async")
+    session = await assembled.run_to_completion(spec)
+
+    # Assert the runner type so a silent fallback to the sync runner cannot pass this vacuously.
+    assert isinstance(session.experiment_runner, AsyncExperimentRunner)
+    assert session.state == ExperimentState.done
+    assert not session.is_hard_crash
+    assert fake_game.hits.get("/action", 0) > 0
+    assert (await wait_for_recorded_outcome(records_dir)).is_solved
+
+
+@pytest.mark.slow
+async def test_run_to_results_chain(
+    assembled: AssembledExperiment,
+    fake_game: FakeKtaneGame,  # noqa: ARG001
+    records_dir: Path,
+    tmp_path: Path,
+) -> None:
+    """A run's records ingest into DuckDB and surface through `results` with the right outcome.
+
+    Guards against drift between the outcome the runner records and what `build-db`/`results` read.
+    """
+    session = await assembled.run_to_completion(assembled.build_spec())
+    assert session.state == ExperimentState.done
+    await wait_for_record_footers(records_dir, count=2)
+
+    db_path = tmp_path.joinpath("experiments.duckdb")
+    built = invoke_cli(build_app(), ["build-db", str(records_dir), "--output", str(db_path)])
+    assert built.exit_code == 0, built.output
+
+    shown = invoke_cli(build_app(), ["results", str(db_path)])
+    assert shown.exit_code == 0, shown.output
+    assert "solved" in shown.output

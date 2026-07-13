@@ -1,17 +1,19 @@
 """A scripted, in-process stand-in for the KTANE game binary.
 
-Two seams replace the real game (see plan Stage C):
+Two seams replace the real game:
 
 1. `GameProcessManager` is patched so `start()` returns a fixed port without spawning the
    binary, and the process is reported alive.
-2. The `KtaneClient` HTTP endpoints are mocked with `respx` by a tiny state machine that
-   advances exactly on the calls the real runner makes:
+2. The `KtaneClient` HTTP endpoints are mocked with `respx` by a phase machine:
 
-   `Setup` --(/startMission)--> `LightsOff` --(/settimescale value>0)--> `LightsOn`
-   --(N x /timestep)--> `PostGame`
+   `setup` --(/startMission)--> `lights_off` --(/settimescale value>0)--> `lights_on` --> `ended`
 
-The *real* `GameStateMonitor`, heartbeats, `GameStateWatcher` and `ExperimentRunner` all run
-unmodified on top of this, so a full Defuser+Expert experiment runs to completion with no binary.
+The game advances from `lights_on` to `ended` after `steps_until_end` steps. Sync play drives those
+steps by explicit `/timestep` calls and pauses the game in between; async play leaves the game
+unpaused and never calls `/timestep`, so an unpaused game advances on each defuser `/action`
+instead, standing in for the wall clock the real game runs on. On `ended` the bomb reads solved or
+detonated per `outcome`. The real `GameStateMonitor`, heartbeats, `GameStateWatcher`, and
+`ExperimentRunner` all run unmodified on top of this.
 """
 
 from __future__ import annotations
@@ -72,11 +74,12 @@ class FakeKtaneGame:
 
     port: int = _FAKE_GAME_PORT
     steps_until_end: int = 2
-    outcome: Literal["solved", "detonated"] = "solved"
+    outcome: Literal["solved", "detonated", "timed_out"] = "solved"
 
     phase: Literal["setup", "lights_off", "lights_on", "ended"] = field(
         default="setup", init=False
     )
+    unpaused: bool = field(default=False, init=False)
     timesteps: int = field(default=0, init=False)
     actions_sent: int = field(default=0, init=False)
     hits: dict[str, int] = field(default_factory=dict, init=False)
@@ -135,13 +138,23 @@ class FakeKtaneGame:
     def _bomb_state(self) -> dict[str, Any]:
         state = {**_BASE_BOMB_STATE}
         state["isLightOn"] = self.phase in {"lights_on", "ended"}
-        if self.phase == "ended" and self.outcome == "solved":
+        if self.phase == "ended":
+            self._apply_terminal_state(state)
+        return state
+
+    def _apply_terminal_state(self, state: dict[str, Any]) -> None:
+        """Set the fields that make `BombState` read as the final `outcome`.
+
+        `is_timed_out` and `is_strike_out` both require `is_detonated`, so a detonation is the base
+        of every losing end and the timer or strike count is what distinguishes them.
+        """
+        if self.outcome == "solved":
             state["isSolved"] = True
             state["modules"] = [{**module, "isSolved": True} for module in state["modules"]]
-        if self.phase == "ended" and self.outcome == "detonated":
-            state["isDetonated"] = True
-            state["currentStrikes"] = 3
-        return state
+            return
+        state["isDetonated"] = True
+        if self.outcome == "timed_out":
+            state["timerModule"] = {**state["timerModule"], "secondsRemaining": 0.0}
 
     # --- HTTP handlers -----------------------------------------------------------------------
     def _on_health(self, _request: httpx.Request) -> httpx.Response:
@@ -156,12 +169,12 @@ class FakeKtaneGame:
         return httpx.Response(200, text="true")
 
     def _on_set_timescale(self, request: httpx.Request) -> httpx.Response:
+        # value>0 unpauses the game (and turns the lights on); value==0 pauses it. Sync mode pauses
+        # between steps and advances time by explicit `/timestep`; async mode leaves the game
+        # unpaused and never steps it, so an unpaused game advances itself in `_on_state`.
         value = float(request.url.params.get("value", "0"))
-        if value > 0:
-            assert self.phase == "lights_off", (
-                f"settimescale value>0 called in phase {self.phase!r} — expected 'lights_off'. "
-                "ExperimentRunner call order has changed."
-            )
+        self.unpaused = value > 0
+        if self.unpaused and self.phase == "lights_off":
             self.phase = "lights_on"
         return httpx.Response(200, text="true")
 
@@ -171,13 +184,21 @@ class FakeKtaneGame:
             "ExperimentRunner call order has changed."
         )
         if self.phase == "lights_on":
-            self.timesteps += 1
-            if self.timesteps >= self.steps_until_end:
-                self.phase = "ended"
+            self._advance()
         return httpx.Response(200, text="true")
+
+    def _advance(self) -> None:
+        """Advance one step towards the end; the bomb resolves per `outcome` once time runs out."""
+        self.timesteps += 1
+        if self.timesteps >= self.steps_until_end:
+            self.phase = "ended"
 
     def _on_action(self, _request: httpx.Request) -> httpx.Response:
         self.actions_sent += 1
+        # Async play never calls `/timestep`, so the defuser's own actions drive time forward while
+        # the game is unpaused. Sync play stays paused here and advances by `/timestep` instead.
+        if self.unpaused and self.phase == "lights_on":
+            self._advance()
         return httpx.Response(200, text="true")
 
     def _on_state(self, _request: httpx.Request) -> httpx.Response:
