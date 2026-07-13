@@ -1,3 +1,10 @@
+## v1.0.0 (2026-07-13)
+
+### Feat
+
+- **tests**: improve integration smoke test (#35)
+- **configs**: support a more secure tunnel for more vllm boxes
+
 ## v0.16.0 (2026-07-11)
 
 ### Feat
