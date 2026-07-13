@@ -47,9 +47,14 @@ def fake_redis_dsn() -> Iterator[str]:
 def fake_game(
     request: pytest.FixtureRequest, respx_mock: respx.MockRouter, monkeypatch: pytest.MonkeyPatch
 ) -> FakeKtaneGame:
-    """Install the scripted KTANE game; outcome comes from an indirect param, default `solved`."""
-    outcome = getattr(request, "param", "solved")
-    game = FakeKtaneGame(outcome=outcome)
+    """Install the scripted KTANE game, configured from an optional indirect param.
+
+    The param is either an `outcome` string (default `solved`) or a dict of `FakeKtaneGame` keyword
+    arguments, e.g. `{"steps_until_end": 1000}` for a run that only ends when something stops it.
+    """
+    param = getattr(request, "param", {})
+    kwargs = {"outcome": param} if isinstance(param, str) else param
+    game = FakeKtaneGame(**kwargs)
     game.install(respx_mock, monkeypatch)
     return game
 

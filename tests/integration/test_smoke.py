@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import anyio
 import pytest
 
 from gptnt.cli.__main__ import build_app
@@ -152,3 +153,56 @@ async def test_run_to_results_chain(
     shown = invoke_cli(build_app(), ["results", str(db_path)])
     assert shown.exit_code == 0, shown.output
     assert "solved" in shown.output
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("fake_game", [{"steps_until_end": 1000}], indirect=True)
+async def test_player_crash_midrun(
+    assembled: AssembledExperiment,
+    fake_game: FakeKtaneGame,
+    records_dir: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A player going silent mid-run is detected as a hard crash, and no log is lost to it.
+
+    The bomb never ends on its own (`steps_until_end` is high), so the silenced defuser is the only
+    thing that stops the run. The registry must detect the expired heartbeat, force-stop the
+    session, reach `done`, and still write a record, all within the heartbeat-expiry timeout rather
+    than hanging on the runner's RPC. Only the heartbeat is silenced, so the defuser's RPC still
+    answers the stop and its record saves too; a truly unrecoverable player is a separate case.
+    """
+    spec = assembled.build_spec(communication_style="async")
+    assembled.experiment_manager.specs.add(spec)
+
+    # Wait until the run is matched, running, and the defuser has acted once (so it has a step).
+    session = None
+    with anyio.fail_after(20):
+        while True:
+            sessions = assembled.experiment_manager.active_sessions
+            session = next(iter(sessions)) if sessions else None
+            if (
+                session is not None
+                and session.state >= ExperimentState.running
+                and fake_game.hits.get("/action", 0) >= 1
+            ):
+                break
+            await anyio.sleep(0.1)
+    assert session is not None  # the loop only breaks once a session is matched and running
+
+    async def _silent() -> None:
+        """Stand in for a player that has stopped sending heartbeats."""
+
+    # Stop refreshing the defuser's heartbeat key; it expires within `HEARTBEAT_EXPIRATION`.
+    monkeypatch.setattr(assembled.defuser, "send_heartbeat", _silent)
+
+    # The registry detects the expired defuser and force-stops the session. Bounded, so a failed
+    # recovery surfaces as a timeout here rather than hanging on the runner's RPC.
+    with anyio.fail_after(20):
+        while True:
+            if session.state == ExperimentState.done:
+                break
+            await anyio.sleep(0.1)
+
+    assert session.is_hard_crash
+    footers = await wait_for_record_footers(records_dir, count=1)
+    assert any(footer.is_hard_crash for footer in footers)
