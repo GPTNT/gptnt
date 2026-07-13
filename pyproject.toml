@@ -312,11 +312,13 @@ markers = [
 ]
 
 [tool.pytest_env]
-HEARTBEAT_REPEAT_INTERVAL = "0.1"
-HEARTBEAT_CHECK_INTERVAL = "0.1"
+# 0.5s keeps heartbeats fresh while leaving the loop room to work. Too small and they will saturate
+# the 2-core CI runner, leaving hanging
+HEARTBEAT_REPEAT_INTERVAL = "0.5"
+HEARTBEAT_CHECK_INTERVAL = "0.5"
 HEARTBEAT_EXPIRATION = "5"
-GAME_STATE_INTERVAL = "0.1"
-SESSION_STATE_WATCHER_INTERVAL = "0.1"
+GAME_STATE_INTERVAL = "0.5"
+SESSION_STATE_WATCHER_INTERVAL = "0.5"
 UPDATE_METRICS_INTERVAL = "0.5"
 DEBUG = "true"
 WEAVE_DISABLED = "true"
@@ -425,7 +427,7 @@ max-complexity = 18
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["D", "F401", "I002"]
-"**/tests/*" = ["D", "S101", "INP001", "PLR2004", "FBT001", "SLF001", "ANN001"]
+"**/tests/*" = ["D", "S101", "INP001", "PLR2004", "FBT001", "SLF001", "ANN001", "ARG001"]
 "scripts/*" = ["INP001", "D", "ANN", "PLR", "PD", "S"]
 "scrap/*" = ["INP001", "D", "ANN", "PLR", "PD", "S", "T201"]
 
