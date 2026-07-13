@@ -66,7 +66,7 @@ async def test_terminate_force_kills_straggler(tmp_path: Path) -> None:
     await anyio.sleep(0.5)
 
     with anyio.fail_after(15):
-        await orchestrator.terminate_all(grace_period=2)
+        await orchestrator.terminate_all(grace_period=1)
 
     assert not orchestrator.running_processes(), "a process survived teardown"
     assert stubborn.status == ProcessStatus.KILLED
