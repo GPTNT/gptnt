@@ -67,8 +67,15 @@ class AssembledExperiment:
         num_strikes_allowed: int = 3,
         communication_style: CommunicationStyle = "sync",
         mission_set: str = "single_module",
+        include_manual: bool = False,
     ) -> ExperimentSpec:
-        """Build a spec whose player names match the assembled services (so matchmaking pairs)."""
+        """Build a spec whose player names match the assembled services (so matchmaking pairs).
+
+        `include_manual` is off by default: embedding the manual runs the image encode and token
+        count synchronously, which on a slow (2-core CI) box blocks the shared event loop past the
+        heartbeat expiry and gets the player falsely reaped. The smoke suite test the run loop. A
+        test that needs the manual can opt back in.
+        """
         is_solo = self.expert is None
         expert_protocol = (
             None
@@ -77,7 +84,7 @@ class AssembledExperiment:
                 role="expert",
                 communication_style=communication_style,
                 is_playing_alone=False,
-                include_manual=True,
+                include_manual=include_manual,
             )
         )
         return ExperimentSpec(
@@ -95,7 +102,7 @@ class AssembledExperiment:
                 role="defuser",
                 communication_style=communication_style,
                 is_playing_alone=is_solo,
-                include_manual=True,
+                include_manual=include_manual,
             ),
             defuser_name=self.defuser.capabilities.player_name,
             expert_protocol=expert_protocol,
