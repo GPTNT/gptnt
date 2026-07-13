@@ -6,6 +6,7 @@ from contextlib import suppress
 from typing import TYPE_CHECKING
 
 import anyio
+from pyarrow import ArrowInvalid
 
 from gptnt.experiments.models import ExperimentOutcome
 from gptnt.experiments.recorder.parquet import read_record_footer
@@ -20,11 +21,13 @@ def _readable_footers(records_dir: Path) -> list[RecordFooter]:
     """Every player record currently readable under `records_dir`.
 
     Skips a file a player's background save is still writing, since the runner reaches `done`
-    before that save flushes and a half-written parquet raises on read.
+    before that save flushes and a half-written parquet raises on read. A `ValueError` (an unknown
+    footer format version) is a genuine problem, not a mid-write file, so it propagates.
     """
     footers: list[RecordFooter] = []
     for path in sorted(records_dir.glob("experiment-*.parquet")):
-        with suppress(Exception):
+        # A mid-write parquet raises `OSError`/`ArrowInvalid`; the next poll retries it.
+        with suppress(OSError, ArrowInvalid):
             footers.append(read_record_footer(path))
     return footers
 

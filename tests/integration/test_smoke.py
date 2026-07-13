@@ -32,6 +32,10 @@ if TYPE_CHECKING:
 pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
 
+async def _silent_heartbeat() -> None:
+    """Stand in for a player that has stopped sending heartbeats."""
+
+
 async def test_services_register_and_matchmake(
     assembled: AssembledExperiment, mocker: MockerFixture
 ) -> None:
@@ -101,6 +105,27 @@ async def test_full_run_timeout(
     outcome = await wait_for_recorded_outcome(records_dir)
     assert outcome.is_timed_out
     assert not outcome.is_solved
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "fake_game",
+    [{"num_modules": 2, "modules_solved_at_end": 1, "outcome": "detonated"}],
+    indirect=True,
+)
+async def test_full_run_partial_solve(
+    assembled: AssembledExperiment, fake_game: FakeKtaneGame, records_dir: Path
+) -> None:
+    """A two-module bomb that detonates with one module solved records a partial solve."""
+    session = await assembled.run_to_completion(assembled.build_spec())
+
+    assert session.state == ExperimentState.done
+    assert not session.is_hard_crash
+
+    outcome = await wait_for_recorded_outcome(records_dir)
+    assert outcome.is_detonated
+    assert not outcome.is_solved
+    assert outcome.num_modules_solved == 1
 
 
 @pytest.mark.slow
@@ -189,11 +214,8 @@ async def test_player_crash_midrun(
             await anyio.sleep(0.1)
     assert session is not None  # the loop only breaks once a session is matched and running
 
-    async def _silent() -> None:
-        """Stand in for a player that has stopped sending heartbeats."""
-
     # Stop refreshing the defuser's heartbeat key; it expires within `HEARTBEAT_EXPIRATION`.
-    monkeypatch.setattr(assembled.defuser, "send_heartbeat", _silent)
+    monkeypatch.setattr(assembled.defuser, "send_heartbeat", _silent_heartbeat)
 
     # The registry detects the expired defuser and force-stops the session. Bounded, so a failed
     # recovery surfaces as a timeout here rather than hanging on the runner's RPC.

@@ -11,9 +11,9 @@ Two seams replace the real game:
 The game advances from `lights_on` to `ended` after `steps_until_end` steps. Sync play drives those
 steps by explicit `/timestep` calls and pauses the game in between; async play leaves the game
 unpaused and never calls `/timestep`, so an unpaused game advances on each defuser `/action`
-instead, standing in for the wall clock the real game runs on. On `ended` the bomb reads solved or
-detonated per `outcome`. The real `GameStateMonitor`, heartbeats, `GameStateWatcher`, and
-`ExperimentRunner` all run unmodified on top of this.
+instead, standing in for the wall clock the real game runs on. On `ended` the bomb reads solved,
+detonated, or timed out per `outcome`. The real `GameStateMonitor`, heartbeats, `GameStateWatcher`,
+and `ExperimentRunner` all run unmodified on top of this.
 """
 
 from __future__ import annotations
@@ -75,6 +75,9 @@ class FakeKtaneGame:
     port: int = _FAKE_GAME_PORT
     steps_until_end: int = 2
     outcome: Literal["solved", "detonated", "timed_out"] = "solved"
+    num_modules: int = 1
+    modules_solved_at_end: int = 0
+    """How many modules read as solved on a losing end, for a partial-solve bomb."""
 
     phase: Literal["setup", "lights_off", "lights_on", "ended"] = field(
         default="setup", init=False
@@ -138,23 +141,38 @@ class FakeKtaneGame:
     def _bomb_state(self) -> dict[str, Any]:
         state = {**_BASE_BOMB_STATE}
         state["isLightOn"] = self.phase in {"lights_on", "ended"}
+        state["modules"] = self._modules()
         if self.phase == "ended":
             self._apply_terminal_state(state)
         return state
 
+    def _modules(self) -> list[dict[str, Any]]:
+        """Build `num_modules` module states, marking the ones solved at the current phase."""
+        template = _BASE_BOMB_STATE["modules"][0]
+        solved = self._modules_solved()
+        return [
+            {**template, "index": index + 1, "isSolved": index < solved}
+            for index in range(self.num_modules)
+        ]
+
+    def _modules_solved(self) -> int:
+        """How many modules read as solved: all on a win, `modules_solved_at_end` on a loss."""
+        if self.phase != "ended":
+            return 0
+        return self.num_modules if self.outcome == "solved" else self.modules_solved_at_end
+
     def _apply_terminal_state(self, state: dict[str, Any]) -> None:
-        """Set the fields that make `BombState` read as the final `outcome`.
+        """Set the losing-end flags; the modules already carry the solved count from `_modules`.
 
         `is_timed_out` and `is_strike_out` both require `is_detonated`, so a detonation is the base
         of every losing end and the timer or strike count is what distinguishes them.
         """
         if self.outcome == "solved":
             state["isSolved"] = True
-            state["modules"] = [{**module, "isSolved": True} for module in state["modules"]]
             return
         state["isDetonated"] = True
         if self.outcome == "timed_out":
-            state["timerModule"] = {**state["timerModule"], "secondsRemaining": 0.0}
+            state["timerModule"] = {**state["timerModule"], "secondsRemaining": 0}
 
     # --- HTTP handlers -----------------------------------------------------------------------
     def _on_health(self, _request: httpx.Request) -> httpx.Response:
@@ -171,7 +189,7 @@ class FakeKtaneGame:
     def _on_set_timescale(self, request: httpx.Request) -> httpx.Response:
         # value>0 unpauses the game (and turns the lights on); value==0 pauses it. Sync mode pauses
         # between steps and advances time by explicit `/timestep`; async mode leaves the game
-        # unpaused and never steps it, so an unpaused game advances itself in `_on_state`.
+        # unpaused and never steps it, so an unpaused game advances on each defuser `/action`.
         value = float(request.url.params.get("value", "0"))
         self.unpaused = value > 0
         if self.unpaused and self.phase == "lights_off":
