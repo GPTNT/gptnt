@@ -140,3 +140,30 @@ jobs:
           pytest-xml-coverage-path: ./coverage.xml
           junitxml-path: ./pytest.xml
           report-only-changed-files: true
+
+  test_slow:
+    name: Run slow tests
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: ${{needs.changes.outputs.python == 'true' && !github.event.pull_request.draft }}
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install deps
+        run: uv sync --all-groups --extra submission
+
+      # Runs in parallel with `test`, so enabling the slow suite costs max(fast, slow)
+      - name: Run slow tests
+        run: |
+          uv run pytest -m slow -k "not requires_game" -n auto
