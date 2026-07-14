@@ -822,7 +822,8 @@ output/
 
 AGENTS.md
 CLAUDE.md
+agent_docs/
 
 # ignore worktrees
 .worktrees/
-agent_docs/
+.worktreeinclude
