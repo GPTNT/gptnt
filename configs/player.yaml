@@ -33,6 +33,8 @@ player:
     enable_nobf_generation: true
     usage_limits:
       _target_: pydantic_ai.usage.UsageLimits
+      input_tokens_limit: ???
+      output_tokens_limit: ???
 
   # Leaderboard metadata for this player.
   identity:
