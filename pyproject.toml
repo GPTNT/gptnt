@@ -228,6 +228,9 @@ per-file-ignores = [
     "scripts/*:WPS",
     "scrap/*:WPS",
     "tests/*:WPS110,WPS2,WPS118,WPS407,WPS432,WPS435,WPS444,WPS476,WPS411",
+    # test_output_schema.py pins pydantic-ai's rendered schema via inline-snapshot, whose
+    # generated block strings ("""\ ... """) trip the multiline-string check.
+    "tests/prompts/test_output_schema.py:WPS462",
     "src/gptnt/cli/*:WPS211,WPS213,WPS238,WPS407",
     # interactive/orchestration/{orchestrator,spawn}.py are the run-supervisor engine;
     # engine-shaped bodies (many expressions/args for the lifecycle + spawn commands).
