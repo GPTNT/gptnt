@@ -13,8 +13,9 @@ from gptnt.players.actions import (
     PlayerOutputType,
     SendMessageAction,
 )
+from gptnt.players.deps import PlayerDeps
 from gptnt.players.exceptions import AIResponseErrorType
-from gptnt.players.history.message_history import MessageHistory
+from gptnt.players.history import Conversation
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cases.capabilities import CapabilitiesCases
@@ -37,9 +38,9 @@ def create_action_predictor(
     agent: Agent[Any, Any], capabilities: PlayerCapabilities, protocol: PlayerProtocol
 ) -> ActionPredictor:
     """Factory to create configured ActionPredictor instances."""
-    message_history = MessageHistory(capabilities=capabilities, protocol=protocol)
+    conversation = Conversation.begin(PlayerDeps(capabilities=capabilities, protocol=protocol))
     predictor = ActionPredictor(agent=agent, capabilities=capabilities)
-    predictor.configure_for_experiment(protocol=protocol, message_history=message_history)
+    predictor.configure_for_experiment(protocol=protocol, conversation=conversation)
     return predictor
 
 
@@ -112,8 +113,8 @@ async def test_send_request_does_not_include_manual_in_new_messages(
             if isinstance(part, UserPromptPart) and not isinstance(part.content, str):
                 assert all(not isinstance(content, BinaryContent) for content in part.content)
 
-    # Make sure the manual is in the history though
-    assert predictor.message_history.messages_per_run[0].contains_manual
+    # Make sure the manual is in the history though, as the leading pinned entry.
+    assert predictor.conversation.entries[0].pinned
 
 
 # ============================================================================

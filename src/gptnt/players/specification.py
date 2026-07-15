@@ -106,6 +106,10 @@ class PlayerCapabilities(BaseModel):
     preserve_last_frame_for_n_turns: int = 0
     """Number of previous turns from which to keep the last frame in the observation window."""
 
+    truncation_forecast_window: int = Field(default=3, ge=1)
+    """Number of recent turns whose real input-token growth is averaged to forecast the next
+    prompt's size when deciding truncation."""
+
     enable_nobf_generation: bool = True
     """Whether to generate Naughty Output Behaviour Feedback for each action."""
 

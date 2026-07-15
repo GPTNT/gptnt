@@ -19,7 +19,8 @@ from gptnt.ktane.client import FrameBuffer
 from gptnt.ktane.manual import KtaneManualPaths
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.action_predictor import ActionPredictor
-from gptnt.players.history.message_history import MessageHistory
+from gptnt.players.deps import PlayerDeps
+from gptnt.players.history import Conversation
 from gptnt.players.input_builder import AgentInputBuilder
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
@@ -45,7 +46,9 @@ class BoxWarmer:
         """Run a simple prompt through the model to warm it up."""
         self.action_predictor.configure_for_experiment(
             protocol=protocol,
-            message_history=MessageHistory(capabilities=self.capabilities, protocol=protocol),
+            conversation=Conversation.begin(
+                PlayerDeps(capabilities=self.capabilities, protocol=protocol)
+            ),
         )
         input_builder = AgentInputBuilder(
             capabilities=self.capabilities,

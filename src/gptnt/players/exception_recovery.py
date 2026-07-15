@@ -25,10 +25,18 @@ from gptnt.players.exceptions import (
     InvalidResponseError,
     ReasoningParsingError,
 )
-from gptnt.players.history.message_transformer import ensure_messages_have_valid_final_response
 from gptnt.players.result import AgentCallResult
 
 logger = structlog.get_logger()
+
+
+def ensure_messages_have_valid_final_response(messages: list[ModelMessage]) -> list[ModelMessage]:
+    """Append an empty `ModelResponse` when the messages hold none, so a run always ends in one."""
+    if not messages:
+        return messages
+    if not any(isinstance(message, ModelResponse) for message in messages):
+        messages.append(ModelResponse([TextPart("")]))
+    return messages
 
 
 @dataclass(kw_only=True)

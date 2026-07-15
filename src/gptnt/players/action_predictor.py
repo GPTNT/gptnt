@@ -10,7 +10,7 @@ from gptnt.players.actions import PlayerOutputType, SendMessageAction
 from gptnt.players.deps import PlayerDeps, load_instructions_from_deps
 from gptnt.players.exception_recovery import ExceptionRecoveryChain
 from gptnt.players.exceptions import ExceededMaxOutputTokensError
-from gptnt.players.history.message_history import MessageHistory
+from gptnt.players.history import Conversation
 from gptnt.players.input_builder import AgentMessageInput
 from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
 from gptnt.players.reasoning_parser.react import ReactStyleReasoningParser
@@ -65,7 +65,7 @@ class ActionPredictor:
     reasoning_parser: ReasoningParser[Any, Any] = field(init=False, repr=False)
 
     protocol: PlayerProtocol = field(init=False, repr=False)
-    message_history: MessageHistory = field(init=False, repr=False)
+    conversation: Conversation = field(init=False, repr=False)
 
     exception_recovery: ExceptionRecoveryChain = field(
         default_factory=ExceptionRecoveryChain.with_default_strategies, repr=False
@@ -102,22 +102,21 @@ class ActionPredictor:
         raise ValueError("Model name not found")
 
     def configure_for_experiment(
-        self, *, protocol: PlayerProtocol, message_history: MessageHistory
+        self, *, protocol: PlayerProtocol, conversation: Conversation
     ) -> None:
         """Setup the agent for the current experiment."""
         self.protocol = protocol
-        self.message_history = message_history
+        self.conversation = conversation
 
     @logfire.instrument("Send request to agent", extract_args=False)
-    async def send_request_to_agent(  # noqa: WPS212, WPS231
+    async def send_request_to_agent(
         self, *, message_input: AgentMessageInput
     ) -> AgentCallResult[PlayerOutputType]:
         """Send a message to the AI.
 
         This will be the main way to send messages to the AI.
         """
-        self.message_history.remove_observations_from_previous_messages()
-        self.message_history.truncate_history_if_needed()
+        rendered = self.conversation.render(self._agent_deps)
 
         with capture_run_messages() as run_messages:
             try:
@@ -126,14 +125,14 @@ class ActionPredictor:
                     agent=self.agent,
                     reasoning_parser=self.reasoning_parser,
                     deps=self._agent_deps,
-                    message_history=self.message_history.to_history(),
+                    message_history=rendered,
                     model_output_type=self._agent_deps.output_type,
                     parser_output_type=self._agent_deps.structured_output_type,
                 )
             except Exception as exc:  # noqa: BLE001
                 return self.exception_recovery.recover(
                     exception=exc,
-                    new_messages=self._extract_new_messages(run_messages),
+                    new_messages=run_messages[len(rendered) :],
                     raw_model_output=None,
                 )
 
@@ -152,6 +151,7 @@ class ActionPredictor:
         reflection_prompt = load_reflection_prompt(
             self._agent_deps.protocol, self._agent_deps.capabilities
         )
+        rendered = self.conversation.render(self._agent_deps)
 
         with capture_run_messages() as run_messages:
             try:
@@ -160,20 +160,16 @@ class ActionPredictor:
                     agent=self.agent,
                     reasoning_parser=self.reasoning_parser,
                     deps=self._agent_deps,
-                    message_history=self.message_history.to_history(),
+                    message_history=rendered,
                     model_output_type=str,
                     parser_output_type=SendMessageAction,
                 )
             except Exception as exc:  # noqa: BLE001
                 return self.reflection_exception_recovery.recover(
                     exception=exc,
-                    new_messages=self._extract_new_messages(run_messages),
+                    new_messages=run_messages[len(rendered) :],
                     raw_model_output=None,
                 )
-
-    def _extract_new_messages(self, run_messages: list[ModelMessage]) -> list[ModelMessage]:
-        """Extract the new messages from all the run messages."""
-        return run_messages[len(self.message_history.to_history()) :]
 
     @property
     def _agent_deps(self) -> PlayerDeps:

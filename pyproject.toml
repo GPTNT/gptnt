@@ -40,7 +40,6 @@ dependencies = [
     "streamlit>=1.40.0",
     "streamlit-code-editor>=0.1.22",
     "structlog>=25.1.0",
-    "tiktoken>=0.9.0",
     "tomlkit>=0.13.3",
     "whenever>=0.7.3",
     "zstandard>=0.25.0",

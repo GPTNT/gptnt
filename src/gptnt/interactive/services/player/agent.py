@@ -16,7 +16,7 @@ from gptnt.interactive.services.player.action_dispatcher import ActionDispatcher
 from gptnt.interactive.services.player.message_handler import IncomingMessageHandler
 from gptnt.players.action_predictor import ActionPredictor
 from gptnt.players.feedback.nobf import NaughtyOutputBehaviourFeedbackGenerator
-from gptnt.players.history.message_history import MessageHistory
+from gptnt.players.history import Conversation
 from gptnt.players.input_builder import AgentInputBuilder
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.players.specification import PlayerCapabilities, PlayerIdentity, PlayerProtocol
@@ -53,7 +53,7 @@ class PlayerAgent(HeartbeatBroadcaster):
     # This is set when the player is configured for an experiment
     experiment_descriptor: ExperimentDescriptor = field(init=False, repr=False)
     protocol: PlayerProtocol = field(init=False, repr=False)
-    message_history: MessageHistory = field(init=False, repr=False)
+    conversation: Conversation = field(init=False, repr=False)
     input_builder: AgentInputBuilder = field(init=False, repr=False)
 
     _state: PlayerState = field(default=PlayerState.idle, init=False)
