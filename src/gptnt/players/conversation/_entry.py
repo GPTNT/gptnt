@@ -34,12 +34,3 @@ class Entry:
             + self.usage.cache_write_tokens
             + self.usage.cache_audio_read_tokens
         )
-
-    def add_to_input_tokens(self, additional_tokens: int) -> None:
-        """Add to the total input tokens for this entry.
-
-        This is used when we have to add additional tokens to the entry that are not accounted for
-        in the messages themselves. This is expected behaviour because we can't do anything about
-        it.
-        """
-        self.usage.input_tokens += additional_tokens

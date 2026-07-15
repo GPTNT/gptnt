@@ -55,7 +55,11 @@ def test_truncation_keeps_pinned_entries() -> None:
     )
     capabilities.usage_limits.input_tokens_limit = 1000
 
-    kept = truncate(entries, capabilities)
+    kept = truncate(
+        entries=entries,
+        input_tokens_limit=capabilities.usage_limits.input_tokens_limit,
+        truncation_forecast_window=capabilities.truncation_forecast_window,
+    )
 
     assert kept[0].pinned
     assert len(kept) < len(entries)

@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Self
 
-from pydantic_ai import BinaryContent, RequestUsage
 from pydantic_ai.messages import ModelMessage, ModelRequest, UserPromptPart
 
 from gptnt.players.conversation._coercion import coerce_tool_output_into_native_output
@@ -13,9 +12,6 @@ from gptnt.players.conversation._observations import (
 from gptnt.players.conversation._truncation import truncate, turns_to_drop
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.prompts.manual import load_manual_as_prompt
-
-_CHARS_PER_TOKEN = 4
-"""Rough approximation: ~4 characters per token on average."""
 
 
 @dataclass(kw_only=True)
@@ -43,21 +39,10 @@ class Conversation:
 
         if protocol.include_manual:
             manual_parts = load_manual_as_prompt(image_dimensions=capabilities.image_dimensions)
-            num_tokens_for_manual_images = (
-                sum(1 for part in manual_parts if isinstance(part, BinaryContent))
-                * capabilities.tokens_per_image
-            )
-            num_tokens_for_manual_text = (
-                sum(len(part) for part in manual_parts if isinstance(part, str))
-                // _CHARS_PER_TOKEN
-            )
             entries.append(
                 Entry(
                     messages=[ModelRequest(parts=[UserPromptPart(content=manual_parts)])],
                     pinned=True,
-                    usage=RequestUsage(
-                        input_tokens=num_tokens_for_manual_images + num_tokens_for_manual_text
-                    ),
                 )
             )
 
@@ -88,17 +73,6 @@ class Conversation:
         originals, with any evicted binary content removed and any tool output coerced into native
         output.
         """
-        return [message for entry in self._shaped(capabilities) for message in entry.messages]
-
-    def num_entries_dropped(self, capabilities: PlayerCapabilities) -> int:
-        """Compute the number of entries that were dropped from the conversation."""
-        return turns_to_drop(
-            entries=self.entries,
-            input_tokens_limit=capabilities.usage_limits.input_tokens_limit,
-            truncation_forecast_window=capabilities.truncation_forecast_window,
-        )
-
-    def _shaped(self, capabilities: PlayerCapabilities) -> list[Entry]:
         kept = truncate(
             entries=self.entries,
             input_tokens_limit=capabilities.usage_limits.input_tokens_limit,
@@ -107,9 +81,18 @@ class Conversation:
         windowed = remove_binary_content_outside_window(
             entries=kept, window=capabilities.preserve_last_frame_for_n_turns
         )
-        return [
+        coerced = (
             Entry(
                 messages=coerce_tool_output_into_native_output(entry.messages), pinned=entry.pinned
             )
             for entry in windowed
-        ]
+        )
+        return [message for entry in coerced for message in entry.messages]
+
+    def num_entries_dropped(self, capabilities: PlayerCapabilities) -> int:
+        """Compute the number of entries that were dropped from the conversation."""
+        return turns_to_drop(
+            entries=self.entries,
+            input_tokens_limit=capabilities.usage_limits.input_tokens_limit,
+            truncation_forecast_window=capabilities.truncation_forecast_window,
+        )

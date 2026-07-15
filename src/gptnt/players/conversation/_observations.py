@@ -1,4 +1,5 @@
 import copy
+from collections.abc import Iterator
 
 from pydantic_ai import BinaryContent
 from pydantic_ai.messages import ModelMessage, ModelRequest, UserPromptPart
@@ -58,7 +59,7 @@ def remove_binary_content_from_messages(
     ]
 
 
-def remove_binary_content_outside_window(*, entries: list[Entry], window: int) -> list[Entry]:
+def remove_binary_content_outside_window(*, entries: list[Entry], window: int) -> Iterator[Entry]:
     """Return a view with binary content removed from non-pinned entries outside the window.
 
     Within-window non-pinned entries keep the last binary content per part. Earlier non-pinned
@@ -68,17 +69,14 @@ def remove_binary_content_outside_window(*, entries: list[Entry], window: int) -
     window_start = max(len(non_pinned) - window, 0)
     keep_last_indices = set(non_pinned[window_start:]) if window > 0 else set()
 
-    view: list[Entry] = []
     for index, entry in enumerate(entries):
         if entry.pinned:
-            view.append(entry)
+            yield entry
         else:
-            keep_last = index in keep_last_indices
-            view.append(
+            yield (
                 Entry(
                     messages=remove_binary_content_from_messages(
-                        entry.messages, keep_last=keep_last
+                        entry.messages, keep_last=index in keep_last_indices
                     )
                 )
             )
-    return view

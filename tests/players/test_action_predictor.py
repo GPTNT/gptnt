@@ -14,7 +14,6 @@ from gptnt.players.actions import (
     SendMessageAction,
 )
 from gptnt.players.conversation import Conversation
-from gptnt.players.deps import PlayerDeps
 from gptnt.players.exceptions import AIResponseErrorType
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
@@ -38,7 +37,7 @@ def create_action_predictor(
     agent: Agent[Any, Any], capabilities: PlayerCapabilities, protocol: PlayerProtocol
 ) -> ActionPredictor:
     """Factory to create configured ActionPredictor instances."""
-    conversation = Conversation.begin(PlayerDeps(capabilities=capabilities, protocol=protocol))
+    conversation = Conversation.begin(capabilities=capabilities, protocol=protocol)
     predictor = ActionPredictor(agent=agent, capabilities=capabilities)
     predictor.configure_for_experiment(protocol=protocol, conversation=conversation)
     return predictor

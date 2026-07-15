@@ -116,7 +116,7 @@ class ActionPredictor:
 
         This will be the main way to send messages to the AI.
         """
-        rendered = self.conversation.render(self._agent_deps)
+        rendered = self.conversation.render(self._agent_deps.capabilities)
 
         with capture_run_messages() as run_messages:
             try:
@@ -151,7 +151,7 @@ class ActionPredictor:
         reflection_prompt = load_reflection_prompt(
             self._agent_deps.protocol, self._agent_deps.capabilities
         )
-        rendered = self.conversation.render(self._agent_deps)
+        rendered = self.conversation.render(self._agent_deps.capabilities)
 
         with capture_run_messages() as run_messages:
             try:

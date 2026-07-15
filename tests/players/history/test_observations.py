@@ -97,14 +97,14 @@ def test_render_is_pure_and_windows_observations(
         pytest.skip("only defusers receive observations")
 
     deps = PlayerDeps(capabilities=_capabilities(window), protocol=protocol)
-    conversation = Conversation.begin(deps)
+    conversation = Conversation.begin(capabilities=deps.capabilities, protocol=deps.protocol)
     for index in range(turns):
         conversation.record(copy.deepcopy(_turn(protocol.role, observations, index)))
         conversation.evict_observations(window)
-        assert _dump(conversation.render(deps)) == _dump(conversation.render(deps))
+        assert _dump(conversation.render(deps.capabilities)) == _dump(conversation.render(deps.capabilities))
 
     requests = [
-        message for message in conversation.render(deps) if isinstance(message, ModelRequest)
+        message for message in conversation.render(deps.capabilities) if isinstance(message, ModelRequest)
     ]
     manual_offset = int(protocol.include_manual)
     for index in range(turns):
@@ -120,17 +120,17 @@ def test_eviction_preserves_manual_images_and_rendered_history() -> None:
         role="defuser", communication_style="sync", is_playing_alone=False, include_manual=True
     )
     deps = PlayerDeps(capabilities=_capabilities(1), protocol=protocol)
-    conversation = Conversation.begin(deps)
+    conversation = Conversation.begin(capabilities=deps.capabilities, protocol=deps.protocol)
     conversation.record(_turn("defuser", 3, 0))
     conversation.record(_turn("defuser", 3, 1))
-    rendered_before = _dump(conversation.render(deps))
+    rendered_before = _dump(conversation.render(deps.capabilities))
 
     conversation.evict_observations(1)
 
     assert _image_count(conversation.entries[0].messages) > 0
     assert _image_count(conversation.entries[1].messages) == 0
     assert _image_count(conversation.entries[2].messages) == 3
-    assert _dump(conversation.render(deps)) == rendered_before
+    assert _dump(conversation.render(deps.capabilities)) == rendered_before
 
 
 def test_evict_binary_content_keeps_last_per_part() -> None:
