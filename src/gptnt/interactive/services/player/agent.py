@@ -15,8 +15,8 @@ from gptnt.interactive.services.heartbeat.player import PlayerHeartbeat
 from gptnt.interactive.services.player.action_dispatcher import ActionDispatcher
 from gptnt.interactive.services.player.message_handler import IncomingMessageHandler
 from gptnt.players.action_predictor import ActionPredictor
+from gptnt.players.conversation import Conversation
 from gptnt.players.feedback.nobf import NaughtyOutputBehaviourFeedbackGenerator
-from gptnt.players.history import Conversation
 from gptnt.players.input_builder import AgentInputBuilder
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.players.specification import PlayerCapabilities, PlayerIdentity, PlayerProtocol

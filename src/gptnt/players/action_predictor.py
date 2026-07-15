@@ -7,10 +7,10 @@ from pydantic_ai import Agent, ModelMessage, capture_run_messages
 from pydantic_ai.models import Model
 
 from gptnt.players.actions import PlayerOutputType, SendMessageAction
+from gptnt.players.conversation import Conversation
 from gptnt.players.deps import PlayerDeps, load_instructions_from_deps
 from gptnt.players.exception_recovery import ExceptionRecoveryChain
 from gptnt.players.exceptions import ExceededMaxOutputTokensError
-from gptnt.players.history import Conversation
 from gptnt.players.input_builder import AgentMessageInput
 from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
 from gptnt.players.reasoning_parser.react import ReactStyleReasoningParser

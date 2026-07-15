@@ -1,8 +1,7 @@
 import itertools
 import math
 
-from gptnt.players.history._entry import Entry
-from gptnt.players.specification import PlayerCapabilities
+from gptnt.players.conversation._entry import Entry
 
 _THRESHOLD = 0.9
 """Fraction of `input_tokens_limit` the next prompt can fill before turns are dropped."""
@@ -50,15 +49,17 @@ def turns_to_drop(
     return min(math.ceil(overshoot / mean_turn), droppable)
 
 
-def truncate(entries: list[Entry], capabilities: PlayerCapabilities) -> list[Entry]:
+def truncate(
+    *, entries: list[Entry], input_tokens_limit: int | None, truncation_forecast_window: int
+) -> list[Entry]:
     """Drop the oldest non-pinned turns the forecast requires to fit the budget.
 
     Pinned entries are never dropped. With no limit set the entries are returned unchanged.
     """
     count = turns_to_drop(
         entries=entries,
-        input_tokens_limit=capabilities.usage_limits.input_tokens_limit,
-        truncation_forecast_window=capabilities.truncation_forecast_window,
+        input_tokens_limit=input_tokens_limit,
+        truncation_forecast_window=truncation_forecast_window,
     )
     kept: list[Entry] = []
     dropped = 0

@@ -2,8 +2,8 @@ import datetime
 
 from pydantic_ai import ModelRequest, ModelResponse, RequestUsage, TextPart, UserPromptPart
 
-from gptnt.players.history._entry import Entry
-from gptnt.players.history._truncation import truncate, turns_to_drop
+from gptnt.players.conversation._entry import Entry
+from gptnt.players.conversation._truncation import truncate, turns_to_drop
 from gptnt.players.specification import PlayerCapabilities
 
 _FIXED_TIMESTAMP = datetime.datetime(2025, 1, 1, 12, 0, 0, tzinfo=datetime.UTC)

@@ -12,7 +12,7 @@ from pydantic_ai import (
 )
 from pydantic_ai.messages import ModelMessagesTypeAdapter
 
-from gptnt.players.history._coercion import coerce_tool_output_into_native_output
+from gptnt.players.conversation._coercion import coerce_tool_output_into_native_output
 
 _FIXED_TIMESTAMP = datetime.datetime(2025, 1, 1, 12, 0, 0, tzinfo=datetime.UTC)
 

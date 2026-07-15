@@ -13,9 +13,9 @@ from gptnt.players.actions import (
     PlayerOutputType,
     SendMessageAction,
 )
+from gptnt.players.conversation import Conversation
 from gptnt.players.deps import PlayerDeps
 from gptnt.players.exceptions import AIResponseErrorType
-from gptnt.players.history import Conversation
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cases.capabilities import CapabilitiesCases

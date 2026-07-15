@@ -17,13 +17,13 @@ from pydantic_ai.messages import ModelMessagesTypeAdapter
 from pydantic_ai.usage import UsageLimits
 from pytest_cases import parametrize, parametrize_with_cases
 
-from gptnt.players.deps import PlayerDeps
-from gptnt.players.history import Conversation
-from gptnt.players.history._entry import Entry
-from gptnt.players.history._observations import (
-    _evict_binary_content,
+from gptnt.players.conversation import Conversation
+from gptnt.players.conversation._entry import Entry
+from gptnt.players.conversation._observations import (
+    remove_binary_content_from_messages,
     remove_binary_content_outside_window,
 )
+from gptnt.players.deps import PlayerDeps
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cases.messages import TEST_TOKENS_PER_IMAGE
@@ -144,8 +144,8 @@ def test_evict_binary_content_keeps_last_per_part() -> None:
         ModelRequest(parts=[UserPromptPart(content=content, timestamp=_FIXED_TIMESTAMP)])
     ]
 
-    assert _image_count(_evict_binary_content(messages, keep_last=True)) == 1
-    assert _image_count(_evict_binary_content(messages, keep_last=False)) == 0
+    assert _image_count(remove_binary_content_from_messages(messages, keep_last=True)) == 1
+    assert _image_count(remove_binary_content_from_messages(messages, keep_last=False)) == 0
     assert _image_count(messages) == 2
 
 

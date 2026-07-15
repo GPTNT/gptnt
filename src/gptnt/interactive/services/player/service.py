@@ -22,8 +22,7 @@ from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.manual import KtaneManualPaths
 from gptnt.observability.span_timing import set_timing_identity
 from gptnt.players.actions import PlayerOutputType
-from gptnt.players.deps import PlayerDeps
-from gptnt.players.history import Conversation
+from gptnt.players.conversation import Conversation
 from gptnt.players.input_builder import AgentInputBuilder
 from gptnt.players.result import AgentCallResult
 from gptnt.players.specification import PlayerProtocol
@@ -131,7 +130,7 @@ class PlayerService(PlayerAgent, BaseRPCService[PlayerCommand]):
         )
 
         self.conversation = Conversation.begin(
-            PlayerDeps(capabilities=self.capabilities, protocol=self.protocol)
+            capabilities=self.capabilities, protocol=self.protocol, prior_messages=None
         )
         self.input_builder = AgentInputBuilder(
             capabilities=self.capabilities,
@@ -232,12 +231,11 @@ class PlayerService(PlayerAgent, BaseRPCService[PlayerCommand]):
         self, agent_call_result: AgentCallResult[PlayerOutputType | KtaneGameplayInput]
     ) -> None:
         """Update the metrics for the player based on the agent call result."""
-        deps = PlayerDeps(capabilities=self.capabilities, protocol=self.protocol)
         self.experiment_recorder.track_step(
             agent_call_result=agent_call_result,
-            num_prompt_truncations=self.conversation.truncated_turn_count(deps),
+            num_prompt_truncations=self.conversation.num_entries_dropped(self.capabilities),
             is_reflection=False,
-            input_messages=self.conversation.render(deps),
+            input_messages=self.conversation.render(self.capabilities),
         )
         self.conversation.record(agent_call_result.new_messages)
         self.conversation.evict_observations(self.capabilities.preserve_last_frame_for_n_turns)
@@ -255,12 +253,11 @@ class PlayerService(PlayerAgent, BaseRPCService[PlayerCommand]):
             reflection_message=message.message
         )
 
-        deps = PlayerDeps(capabilities=self.capabilities, protocol=self.protocol)
         self.experiment_recorder.track_step(
             agent_call_result=agent_call_result,
-            num_prompt_truncations=self.conversation.truncated_turn_count(deps),
+            num_prompt_truncations=self.conversation.num_entries_dropped(self.capabilities),
             is_reflection=True,
-            input_messages=self.conversation.render(deps),
+            input_messages=self.conversation.render(self.capabilities),
         )
 
         self.state = PlayerState.waiting_for_turn

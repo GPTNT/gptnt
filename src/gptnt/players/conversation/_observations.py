@@ -3,7 +3,7 @@ import copy
 from pydantic_ai import BinaryContent
 from pydantic_ai.messages import ModelMessage, ModelRequest, UserPromptPart
 
-from gptnt.players.history._entry import Entry
+from gptnt.players.conversation._entry import Entry
 
 
 def remove_binary_content_from_model_request(
@@ -46,7 +46,9 @@ def remove_binary_content_from_model_request(
     return num_removed, clean_message
 
 
-def _evict_binary_content(messages: list[ModelMessage], *, keep_last: bool) -> list[ModelMessage]:
+def remove_binary_content_from_messages(
+    messages: list[ModelMessage], *, keep_last: bool
+) -> list[ModelMessage]:
     """Copy of `messages` with binary content removed, optionally keeping the last per part."""
     return [
         remove_binary_content_from_model_request(message, keep_last=keep_last)[1]
@@ -72,5 +74,11 @@ def remove_binary_content_outside_window(*, entries: list[Entry], window: int) -
             view.append(entry)
         else:
             keep_last = index in keep_last_indices
-            view.append(Entry(messages=_evict_binary_content(entry.messages, keep_last=keep_last)))
+            view.append(
+                Entry(
+                    messages=remove_binary_content_from_messages(
+                        entry.messages, keep_last=keep_last
+                    )
+                )
+            )
     return view

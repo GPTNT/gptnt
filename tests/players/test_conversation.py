@@ -14,8 +14,8 @@ from pydantic_ai import (
 )
 from pydantic_ai.usage import UsageLimits
 
+from gptnt.players.conversation import Conversation
 from gptnt.players.deps import PlayerDeps
-from gptnt.players.history import Conversation
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cases.messages import TEST_TOKENS_PER_IMAGE
