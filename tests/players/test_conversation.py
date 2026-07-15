@@ -62,7 +62,7 @@ def _texts(messages: list[ModelMessage]) -> list[str]:
         for part in message.parts:
             if isinstance(part, TextPart):
                 collected.append(part.content)
-            elif not isinstance(getattr(part, "content", None), str):
+            elif isinstance(part, UserPromptPart) and isinstance(part.content, list):
                 collected.extend(
                     item.content for item in part.content if isinstance(item, TextPart)
                 )
