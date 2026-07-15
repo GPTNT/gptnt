@@ -23,7 +23,6 @@ from gptnt.players.conversation._observations import (
     remove_binary_content_from_messages,
     remove_binary_content_outside_window,
 )
-from gptnt.players.deps import PlayerDeps
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cases.messages import TEST_TOKENS_PER_IMAGE
@@ -96,15 +95,17 @@ def test_render_is_pure_and_windows_observations(
     if protocol.role != "defuser" and observations:
         pytest.skip("only defusers receive observations")
 
-    deps = PlayerDeps(capabilities=_capabilities(window), protocol=protocol)
-    conversation = Conversation.begin(capabilities=deps.capabilities, protocol=deps.protocol)
+    capabilities = _capabilities(window)
+    conversation = Conversation.begin(capabilities=capabilities, protocol=protocol)
     for index in range(turns):
         conversation.record(copy.deepcopy(_turn(protocol.role, observations, index)))
         conversation.evict_observations(window)
-        assert _dump(conversation.render(deps.capabilities)) == _dump(conversation.render(deps.capabilities))
+        assert _dump(conversation.render(capabilities)) == _dump(conversation.render(capabilities))
 
     requests = [
-        message for message in conversation.render(deps.capabilities) if isinstance(message, ModelRequest)
+        message
+        for message in conversation.render(capabilities)
+        if isinstance(message, ModelRequest)
     ]
     manual_offset = int(protocol.include_manual)
     for index in range(turns):
@@ -119,18 +120,18 @@ def test_eviction_preserves_manual_images_and_rendered_history() -> None:
     protocol = PlayerProtocol(
         role="defuser", communication_style="sync", is_playing_alone=False, include_manual=True
     )
-    deps = PlayerDeps(capabilities=_capabilities(1), protocol=protocol)
-    conversation = Conversation.begin(capabilities=deps.capabilities, protocol=deps.protocol)
+    capabilities = _capabilities(1)
+    conversation = Conversation.begin(capabilities=capabilities, protocol=protocol)
     conversation.record(_turn("defuser", 3, 0))
     conversation.record(_turn("defuser", 3, 1))
-    rendered_before = _dump(conversation.render(deps.capabilities))
+    rendered_before = _dump(conversation.render(capabilities))
 
     conversation.evict_observations(1)
 
     assert _image_count(conversation.entries[0].messages) > 0
     assert _image_count(conversation.entries[1].messages) == 0
     assert _image_count(conversation.entries[2].messages) == 3
-    assert _dump(conversation.render(deps.capabilities)) == rendered_before
+    assert _dump(conversation.render(capabilities)) == rendered_before
 
 
 def test_evict_binary_content_keeps_last_per_part() -> None:

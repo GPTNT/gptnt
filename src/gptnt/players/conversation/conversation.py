@@ -6,6 +6,7 @@ from pydantic_ai.messages import ModelMessage, ModelRequest, UserPromptPart
 from gptnt.players.conversation._coercion import coerce_tool_output_into_native_output
 from gptnt.players.conversation._entry import Entry
 from gptnt.players.conversation._observations import (
+    partition_non_pinned_by_window,
     remove_binary_content_from_messages,
     remove_binary_content_outside_window,
 )
@@ -57,9 +58,7 @@ class Conversation:
 
     def evict_observations(self, window: int) -> None:
         """Drop image bytes from non-pinned entries older than the last `window` turns."""
-        non_pinned = [index for index, entry in enumerate(self.entries) if not entry.pinned]
-        # Figure out which entries are outside the window and evict their binary content
-        aged = non_pinned[: max(len(non_pinned) - window, 0)] if window > 0 else non_pinned
+        aged, _ = partition_non_pinned_by_window(self.entries, window=window)
         for index in aged:
             self.entries[index].messages = remove_binary_content_from_messages(
                 self.entries[index].messages, keep_last=False

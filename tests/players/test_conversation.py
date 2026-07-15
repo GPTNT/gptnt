@@ -15,7 +15,6 @@ from pydantic_ai import (
 from pydantic_ai.usage import UsageLimits
 
 from gptnt.players.conversation import Conversation
-from gptnt.players.deps import PlayerDeps
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cases.messages import TEST_TOKENS_PER_IMAGE
@@ -85,8 +84,8 @@ def test_render_composes_truncation_windowing_and_coercion() -> None:
     protocol = PlayerProtocol(
         role="defuser", communication_style="sync", is_playing_alone=False, include_manual=False
     )
-    deps = PlayerDeps(capabilities=_capabilities(), protocol=protocol)
-    conversation = Conversation.begin(capabilities=deps.capabilities, protocol=deps.protocol)
+    capabilities = _capabilities()
+    conversation = Conversation.begin(capabilities=capabilities, protocol=protocol)
     conversation.record(_turn(0, input_tokens=100))
     conversation.record(_turn(1, input_tokens=200))
     conversation.record(
@@ -116,7 +115,7 @@ def test_render_composes_truncation_windowing_and_coercion() -> None:
         ]
     )
 
-    rendered = conversation.render(deps.capabilities)
+    rendered = conversation.render(capabilities)
 
     assert _texts(rendered) == [
         "What should I do on turn 1?",
@@ -131,7 +130,9 @@ def test_render_composes_truncation_windowing_and_coercion() -> None:
     assert _image_count([requests[1]]) == 1
 
 
-def _deps(*, limit: int | None, window: int, include_manual: bool) -> PlayerDeps:
+def _capabilities_and_protocol(
+    *, limit: int | None, window: int, include_manual: bool
+) -> tuple[PlayerCapabilities, PlayerProtocol]:
     capabilities = PlayerCapabilities(
         player_name="test-player",
         player_type="ai",
@@ -147,7 +148,7 @@ def _deps(*, limit: int | None, window: int, include_manual: bool) -> PlayerDeps
         is_playing_alone=False,
         include_manual=include_manual,
     )
-    return PlayerDeps(capabilities=capabilities, protocol=protocol)
+    return capabilities, protocol
 
 
 def _recorded_turns(conversation: Conversation) -> int:
@@ -165,13 +166,13 @@ def test_recorded_usage_truncates_the_render() -> None:
     reported sizes grow past the budget make `render()` drop oldest turns while the pinned manual
     survives and the append-only store is left untouched.
     """
-    deps = _deps(limit=1000, window=1, include_manual=True)
-    conversation = Conversation.begin(capabilities=deps.capabilities, protocol=deps.protocol)
+    capabilities, protocol = _capabilities_and_protocol(limit=1000, window=1, include_manual=True)
+    conversation = Conversation.begin(capabilities=capabilities, protocol=protocol)
     for index in range(10):
         conversation.record(_turn(index, input_tokens=100 * (index + 1)))
 
-    dropped = conversation.num_entries_dropped(deps.capabilities)
-    rendered = conversation.render(deps.capabilities)
+    dropped = conversation.num_entries_dropped(capabilities)
+    rendered = conversation.render(capabilities)
 
     assert dropped > 0
     assert _rendered_turns(rendered) == _recorded_turns(conversation) - dropped
@@ -181,27 +182,25 @@ def test_recorded_usage_truncates_the_render() -> None:
 
 def test_truncated_count_equals_turns_missing_from_render() -> None:
     """F4: recorded `num_prompt_truncations` equals the turns actually absent from the prompt."""
-    deps = _deps(limit=1000, window=1, include_manual=True)
-    conversation = Conversation.begin(capabilities=deps.capabilities, protocol=deps.protocol)
+    capabilities, protocol = _capabilities_and_protocol(limit=1000, window=1, include_manual=True)
+    conversation = Conversation.begin(capabilities=capabilities, protocol=protocol)
     for index in range(10):
         conversation.record(_turn(index, input_tokens=100 * (index + 1)))
 
-    missing = _recorded_turns(conversation) - _rendered_turns(
-        conversation.render(deps.capabilities)
-    )
+    missing = _recorded_turns(conversation) - _rendered_turns(conversation.render(capabilities))
 
-    assert conversation.num_entries_dropped(deps.capabilities) == missing
+    assert conversation.num_entries_dropped(capabilities) == missing
 
 
 def test_zero_usage_turn_does_not_break_truncation() -> None:
     """F3: a turn recorded with no usage (e.g. exception recovery) must not crash or over-drop."""
-    deps = _deps(limit=1000, window=1, include_manual=False)
-    conversation = Conversation.begin(capabilities=deps.capabilities, protocol=deps.protocol)
+    capabilities, protocol = _capabilities_and_protocol(limit=1000, window=1, include_manual=False)
+    conversation = Conversation.begin(capabilities=capabilities, protocol=protocol)
     for input_tokens in (300, 600, 0, 900, 1200):
         conversation.record(_turn(0, input_tokens=input_tokens))
 
-    dropped = conversation.num_entries_dropped(deps.capabilities)
-    rendered = conversation.render(deps.capabilities)
+    dropped = conversation.num_entries_dropped(capabilities)
+    rendered = conversation.render(capabilities)
 
     assert 0 <= dropped < _recorded_turns(conversation)  # sane, and not everything dropped
     assert _rendered_turns(rendered) == _recorded_turns(conversation) - dropped
@@ -213,12 +212,12 @@ def test_render_bounds_growth_and_windows_images() -> None:
     This is the guarantee the old `TokenAccountant` gave: context does not grow without bound, and
     observations survive only inside the frame window.
     """
-    deps = _deps(limit=1000, window=1, include_manual=False)
-    conversation = Conversation.begin(capabilities=deps.capabilities, protocol=deps.protocol)
+    capabilities, protocol = _capabilities_and_protocol(limit=1000, window=1, include_manual=False)
+    conversation = Conversation.begin(capabilities=capabilities, protocol=protocol)
     for index in range(15):
         conversation.record(_turn(index, input_tokens=100 * (index + 1)))
 
-    rendered = conversation.render(deps.capabilities)
+    rendered = conversation.render(capabilities)
 
     assert _rendered_turns(rendered) < 15  # truncation bounds growth
     assert _image_count(rendered) == 1  # window=1 keeps the last frame only
