@@ -10,6 +10,9 @@ capabilities:
   include_schema_in_instructions: true
   interaction_location_method: set-of-marks
   thinking_method: inner-monologue
+  usage_limits:
+    input_tokens_limit: 200000
+    output_tokens_limit: 64000
 
 identity:
   display_name: Test Defuser

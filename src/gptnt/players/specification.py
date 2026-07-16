@@ -88,8 +88,8 @@ class PlayerCapabilities(BaseModel):
     tokens_per_image: int = Field(default=0, ge=0)
     """The number of tokens used to represent one image at `image_dimensions`.
 
-    If this is actually zero, it will just mean that the token accountant will not properly
-    estimate the space needed to send the next request correctly.
+    Truncation counts each image as this many tokens when sizing the prompt. Left at zero, images
+    add nothing to that estimate, so a vision player's prompt can be sized under its real length.
     """
 
     interaction_location_method: InteractionLocationMethod = "set-of-marks"

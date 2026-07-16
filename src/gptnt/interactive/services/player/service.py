@@ -22,7 +22,7 @@ from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.manual import KtaneManualPaths
 from gptnt.observability.span_timing import set_timing_identity
 from gptnt.players.actions import PlayerOutputType
-from gptnt.players.history.message_history import MessageHistory
+from gptnt.players.conversation import Conversation
 from gptnt.players.input_builder import AgentInputBuilder
 from gptnt.players.result import AgentCallResult
 from gptnt.players.specification import PlayerProtocol
@@ -129,8 +129,8 @@ class PlayerService(PlayerAgent, BaseRPCService[PlayerCommand]):
             player_uuid=self.uuid,
         )
 
-        self.message_history = MessageHistory(
-            capabilities=self.capabilities, protocol=self.protocol
+        self.conversation = Conversation.begin(
+            capabilities=self.capabilities, protocol=self.protocol, prior_messages=None
         )
         self.input_builder = AgentInputBuilder(
             capabilities=self.capabilities,
@@ -140,7 +140,7 @@ class PlayerService(PlayerAgent, BaseRPCService[PlayerCommand]):
         )
 
         self.action_predictor.configure_for_experiment(
-            protocol=self.protocol, message_history=self.message_history
+            protocol=self.protocol, conversation=self.conversation
         )
         self.action_dispatcher.configure_for_experiment(
             protocol=self.protocol, experiment_descriptor=self.experiment_descriptor
@@ -233,13 +233,12 @@ class PlayerService(PlayerAgent, BaseRPCService[PlayerCommand]):
         """Update the metrics for the player based on the agent call result."""
         self.experiment_recorder.track_step(
             agent_call_result=agent_call_result,
-            num_prompt_truncations=self.message_history.num_times_truncated,
+            num_prompt_truncations=self.conversation.num_entries_dropped(self.capabilities),
             is_reflection=False,
-            input_messages=self.message_history.to_history(),
+            input_messages=self.conversation.render(self.capabilities),
         )
-        self.message_history.update(
-            new_messages=agent_call_result.new_messages, usage=agent_call_result.usage
-        )
+        self.conversation.record(agent_call_result.new_messages)
+        self.conversation.evict_observations(self.capabilities.preserve_last_frame_for_n_turns)
 
     async def perform_reflection(self, message: PlayerMessage[str]) -> bool:
         """Perform a reflection for the player."""
@@ -256,9 +255,9 @@ class PlayerService(PlayerAgent, BaseRPCService[PlayerCommand]):
 
         self.experiment_recorder.track_step(
             agent_call_result=agent_call_result,
-            num_prompt_truncations=self.message_history.num_times_truncated,
+            num_prompt_truncations=self.conversation.num_entries_dropped(self.capabilities),
             is_reflection=True,
-            input_messages=self.message_history.to_history(),
+            input_messages=self.conversation.render(self.capabilities),
         )
 
         self.state = PlayerState.waiting_for_turn
