@@ -1,6 +1,5 @@
 from gptnt.players.conversation._entry import Entry
 from gptnt.players.conversation._observations import partition_non_pinned_by_window
-from gptnt.players.conversation._sizing import estimate_rendered_tokens
 
 _THRESHOLD = 0.9
 """Fraction of `input_tokens_limit` left for the render after reserving the next observation.
@@ -46,8 +45,8 @@ def turns_to_drop(
     _, in_window = partition_non_pinned_by_window(entries, window=preserve_window)
     freed = 0
     for dropped, (index, entry) in enumerate(non_pinned[:-1], start=1):
-        freed += estimate_rendered_tokens(
-            entry, in_window=index in in_window, tokens_per_image=tokens_per_image
+        freed += entry.estimated_render_tokens(
+            in_window=index in in_window, tokens_per_image=tokens_per_image
         )
         if anchor - freed <= budget:
             return dropped
