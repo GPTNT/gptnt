@@ -82,13 +82,11 @@ class Conversation:
         windowed = remove_binary_content_outside_window(
             entries=kept, window=capabilities.preserve_last_frame_for_n_turns
         )
-        coerced = (
-            Entry(
-                messages=coerce_tool_output_into_native_output(entry.messages), pinned=entry.pinned
-            )
+        return [
+            message
             for entry in windowed
-        )
-        return [message for entry in coerced for message in entry.messages]
+            for message in coerce_tool_output_into_native_output(entry.messages)
+        ]
 
     def num_entries_dropped(self, capabilities: PlayerCapabilities) -> int:
         """Compute the number of entries that were dropped from the conversation."""
