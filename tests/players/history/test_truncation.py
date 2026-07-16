@@ -22,7 +22,6 @@ from pydantic_ai import (
 )
 
 from gptnt.players.conversation._entry import Entry
-from gptnt.players.conversation._sizing import estimate_rendered_tokens
 from gptnt.players.conversation._truncation import truncate, turns_to_drop
 
 _FIXED_TIMESTAMP = datetime.datetime(2025, 1, 1, 12, 0, 0, tzinfo=datetime.UTC)
@@ -41,7 +40,7 @@ def _turn(
     The images sit in a single user-prompt part, as a real multi-frame observation does, so the
     window keeps one of them and a pinned entry keeps them all.
     """
-    prompt: list[object] = ["x" * text_chars]
+    prompt: list[str | BinaryContent] = ["x" * text_chars]
     prompt.extend(
         BinaryContent(data=b"\x89PNG-fake", media_type="image/png") for _ in range(images)
     )
@@ -58,8 +57,8 @@ def _turn(
     )
 
 
-def _drop(entries: list[Entry], **overrides: object) -> int:
-    kwargs: dict[str, object] = {
+def _drop(entries: list[Entry], **overrides: int | None) -> int:
+    kwargs: dict[str, int | None] = {
         "input_tokens_limit": 1000,
         "preserve_window": 0,
         "tokens_per_image": 0,
@@ -75,34 +74,34 @@ def _drop(entries: list[Entry], **overrides: object) -> int:
 def test_text_is_sized_at_four_characters_per_token() -> None:
     entry = _turn(input_tokens=0, text_chars=40)
 
-    assert estimate_rendered_tokens(entry, in_window=False, tokens_per_image=100) == 10
+    assert entry.estimated_render_tokens(in_window=False, tokens_per_image=100) == 10
 
 
 def test_in_window_turn_keeps_one_image_per_part() -> None:
     """The window keeps the last image per part, so a five-frame turn counts one image here."""
     entry = _turn(input_tokens=0, text_chars=40, images=5)
 
-    assert estimate_rendered_tokens(entry, in_window=True, tokens_per_image=100) == 10 + 100
+    assert entry.estimated_render_tokens(in_window=True, tokens_per_image=100) == 10 + 100
 
 
 def test_aged_turn_is_sized_by_text_alone() -> None:
     """Once a turn ages out of the window its images are stripped, so only its text is left."""
     entry = _turn(input_tokens=0, text_chars=40, images=5)
 
-    assert estimate_rendered_tokens(entry, in_window=False, tokens_per_image=100) == 10
+    assert entry.estimated_render_tokens(in_window=False, tokens_per_image=100) == 10
 
 
 def test_pinned_turn_keeps_every_image() -> None:
     """Pinned entries pass through the window untouched, so all five frames are counted."""
     entry = _turn(input_tokens=0, text_chars=40, images=5, pinned=True)
 
-    assert estimate_rendered_tokens(entry, in_window=True, tokens_per_image=100) == 10 + 5 * 100
+    assert entry.estimated_render_tokens(in_window=True, tokens_per_image=100) == 10 + 5 * 100
 
 
 def test_zero_tokens_per_image_adds_no_image_size() -> None:
     entry = _turn(input_tokens=0, text_chars=40, images=5)
 
-    assert estimate_rendered_tokens(entry, in_window=True, tokens_per_image=0) == 10
+    assert entry.estimated_render_tokens(in_window=True, tokens_per_image=0) == 10
 
 
 # --- the drop decision ------------------------------------------------------------------------

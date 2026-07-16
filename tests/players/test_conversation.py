@@ -17,7 +17,7 @@ from pydantic_ai.usage import UsageLimits
 from gptnt.players.conversation import Conversation
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
-from tests._cases.messages import TEST_TOKENS_PER_IMAGE
+from tests._cases.messages import TEST_TOKENS_PER_IMAGE, image_count
 
 _FIXED_TIMESTAMP = datetime.datetime(2025, 1, 1, 12, 0, 0, tzinfo=datetime.UTC)
 
@@ -109,17 +109,6 @@ def _texts(messages: list[ModelMessage]) -> list[str]:
     return collected
 
 
-def _image_count(messages: list[ModelMessage]) -> int:
-    return sum(
-        isinstance(item, BinaryContent)
-        for message in messages
-        if isinstance(message, ModelRequest)
-        for part in message.parts
-        if isinstance(part, UserPromptPart) and not isinstance(part.content, str)
-        for item in part.content
-    )
-
-
 def test_render_composes_truncation_windowing_and_coercion() -> None:
     """Rendering truncates turns before it windows images and coerces structured output."""
     protocol = PlayerProtocol(
@@ -186,8 +175,8 @@ def test_render_composes_truncation_windowing_and_coercion() -> None:
         ),
     ]
     requests = [message for message in rendered if isinstance(message, ModelRequest)]
-    assert _image_count([requests[0]]) == 0
-    assert _image_count([requests[1]]) == 1
+    assert image_count([requests[0]]) == 0
+    assert image_count([requests[1]]) == 1
 
 
 def _capabilities_and_protocol(
@@ -284,7 +273,7 @@ def test_eviction_leaves_the_truncation_decision_and_usage_untouched() -> None:
 
     dropped_before = conversation.num_entries_dropped(capabilities)
     usage_before = [entry.usage.input_tokens for entry in conversation.entries]
-    images_before = sum(_image_count(entry.messages) for entry in conversation.entries)
+    images_before = sum(image_count(entry.messages) for entry in conversation.entries)
 
     conversation.evict_observations(capabilities.preserve_last_frame_for_n_turns)
 
@@ -292,9 +281,7 @@ def test_eviction_leaves_the_truncation_decision_and_usage_untouched() -> None:
     assert conversation.num_entries_dropped(capabilities) == dropped_before
     assert [entry.usage.input_tokens for entry in conversation.entries] == usage_before
     assert images_before == 40  # the test is not vacuous: images were present to begin with
-    assert (
-        sum(_image_count(entry.messages) for entry in conversation.entries) == 1
-    )  # window kept 1
+    assert sum(image_count(entry.messages) for entry in conversation.entries) == 1  # window kept 1
 
 
 def test_render_bounds_growth_and_windows_images() -> None:
@@ -313,7 +300,7 @@ def test_render_bounds_growth_and_windows_images() -> None:
     assert (
         0 < _rendered_turns(rendered) < 20
     )  # truncation bounds growth well below the 40 recorded
-    assert _image_count(rendered) == 1  # window=1 keeps the last frame only
+    assert image_count(rendered) == 1  # window=1 keeps the last frame only
 
 
 def test_morse_turn_of_sixteen_frames_collapses_to_one_image_in_render() -> None:
@@ -331,8 +318,8 @@ def test_morse_turn_of_sixteen_frames_collapses_to_one_image_in_render() -> None
 
     rendered = conversation.render(capabilities)
 
-    assert _image_count(conversation.entries[-1].messages) == 16  # stored whole, render is a query
-    assert _image_count(rendered) == 1  # the one in-window turn collapses 16 frames to its last
+    assert image_count(conversation.entries[-1].messages) == 16  # stored whole, render is a query
+    assert image_count(rendered) == 1  # the one in-window turn collapses 16 frames to its last
 
 
 def test_eviction_of_a_morse_turn_does_not_shift_truncation() -> None:
@@ -352,7 +339,7 @@ def test_eviction_of_a_morse_turn_does_not_shift_truncation() -> None:
 
     dropped_before = conversation.num_entries_dropped(capabilities)
     usage_before = [entry.usage.input_tokens for entry in conversation.entries]
-    images_before = sum(_image_count(entry.messages) for entry in conversation.entries)
+    images_before = sum(image_count(entry.messages) for entry in conversation.entries)
 
     conversation.evict_observations(capabilities.preserve_last_frame_for_n_turns)
 
@@ -361,8 +348,8 @@ def test_eviction_of_a_morse_turn_does_not_shift_truncation() -> None:
     assert images_before == 4 + 16  # four single-frame turns plus the morse turn
     # Eviction strips aged turns whole but leaves the in-window morse turn untouched, so its 16
     # frames stay in the store; only `render` applies the per-part keep_last that collapses them.
-    assert sum(_image_count(entry.messages) for entry in conversation.entries) == 16
-    assert _image_count(conversation.render(capabilities)) == 1
+    assert sum(image_count(entry.messages) for entry in conversation.entries) == 16
+    assert image_count(conversation.render(capabilities)) == 1
 
 
 def test_long_monotonic_conversation_stays_bounded_and_keeps_pinned() -> None:
@@ -410,7 +397,7 @@ def test_long_growing_conversation_with_morse_spikes_stays_bounded() -> None:
     rendered = conversation.render(capabilities)
     assert _recorded_turns(conversation) == 200  # the append-only store holds every turn
     assert 0 < max(rendered_turn_counts) < 40  # bounded above; context is retained on normal turns
-    assert _image_count(rendered) <= 1  # window=1 caps observation images even across morse spikes
+    assert image_count(rendered) <= 1  # window=1 caps observation images even across morse spikes
 
 
 def test_a_recent_morse_spike_truncates_far_harder_than_its_size() -> None:

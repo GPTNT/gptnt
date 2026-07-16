@@ -49,6 +49,18 @@ def tokens_per_image() -> int:
     return TEST_TOKENS_PER_IMAGE
 
 
+def image_count(messages: list[ModelMessage]) -> int:
+    """Count the image parts across a message list's user prompts."""
+    return sum(
+        isinstance(item, BinaryContent)
+        for message in messages
+        if isinstance(message, ModelRequest)
+        for part in message.parts
+        if isinstance(part, UserPromptPart) and not isinstance(part.content, str)
+        for item in part.content
+    )
+
+
 class ModelMessageCases:
     """Case class for common model message patterns."""
 
