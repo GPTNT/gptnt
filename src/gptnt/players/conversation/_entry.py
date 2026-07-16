@@ -27,10 +27,10 @@ class Entry:
 
     @property
     def total_input_tokens(self) -> int:
-        """The total input tokens for this entry."""
-        return (
-            self.usage.input_tokens
-            + self.usage.cache_read_tokens
-            + self.usage.cache_write_tokens
-            + self.usage.cache_audio_read_tokens
-        )
+        """The total prompt tokens for this entry.
+
+        `input_tokens` is already the whole prompt: genai-prices reports the cache and audio
+        buckets as sub-counts contained within it, not disjoint additions, so summing them on top
+        double-counts the cached tokens and inflates the size (badly, on cache-heavy providers).
+        """
+        return self.usage.input_tokens

@@ -75,7 +75,9 @@ class Conversation:
         kept = truncate(
             entries=self.entries,
             input_tokens_limit=capabilities.usage_limits.input_tokens_limit,
-            truncation_forecast_window=capabilities.truncation_forecast_window,
+            preserve_window=capabilities.preserve_last_frame_for_n_turns,
+            tokens_per_image=capabilities.tokens_per_image,
+            max_observations_per_request=capabilities.max_observations_per_request,
         )
         windowed = remove_binary_content_outside_window(
             entries=kept, window=capabilities.preserve_last_frame_for_n_turns
@@ -93,5 +95,7 @@ class Conversation:
         return turns_to_drop(
             entries=self.entries,
             input_tokens_limit=capabilities.usage_limits.input_tokens_limit,
-            truncation_forecast_window=capabilities.truncation_forecast_window,
+            preserve_window=capabilities.preserve_last_frame_for_n_turns,
+            tokens_per_image=capabilities.tokens_per_image,
+            max_observations_per_request=capabilities.max_observations_per_request,
         )

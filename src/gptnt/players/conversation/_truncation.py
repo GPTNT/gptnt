@@ -1,65 +1,77 @@
-import itertools
-import math
-
 from gptnt.players.conversation._entry import Entry
+from gptnt.players.conversation._observations import partition_non_pinned_by_window
+from gptnt.players.conversation._sizing import estimate_rendered_tokens
 
 _THRESHOLD = 0.9
-"""Fraction of `input_tokens_limit` the next prompt can fill before turns are dropped."""
+"""Fraction of `input_tokens_limit` left for the render after reserving the next observation.
 
-_MIN_TURNS_FOR_FORECAST = 2
-
-
-def _mean_recent_growth(sizes: list[int], window: int) -> float:
-    growths = [later - earlier for earlier, later in itertools.pairwise(sizes)]
-    recent = growths[-window:]
-    return sum(recent) / len(recent)
+The remaining tenth is slack for the parts the anchor cannot see yet: this turn's response text as
+it enters the history, and estimation error in the per-turn sizes.
+"""
 
 
 def turns_to_drop(
-    *, entries: list[Entry], input_tokens_limit: int | None, truncation_forecast_window: int
+    *,
+    entries: list[Entry],
+    input_tokens_limit: int | None,
+    preserve_window: int,
+    tokens_per_image: int,
+    max_observations_per_request: int,
 ) -> int:
-    """How many of the oldest turns to drop so the next prompt is forecast to fit the budget.
+    """How many oldest turns to drop so the render plus the next observation fits the budget.
 
-    Forecasts the next prompt as the last measured size plus the mean growth over the last
-    `truncation_forecast_window` turns. When that exceeds `input_tokens_limit * _THRESHOLD`, drops
-    whole turns, each worth the mean per-turn growth, until it fits. Zero with no limit set, or
-    before two turns carry a measured size and there is a growth to forecast from.
+    The next observation is sent on top of the render, not inside it: a multi-frame module sends up
+    to `max_observations_per_request` frames, so that much space (plus one frame of margin) is held
+    back from the budget unconditionally — enough room to land the worst-case incoming frames even
+    when the last turn carried none. The decision then anchors on the real measured size of the
+    latest prompt — ground truth from the provider, so estimation error re-syncs every turn — and
+    when it exceeds the reserved budget, drops whole oldest non-pinned turns until it fits,
+    subtracting each dropped turn's estimated rendered size (text from length, images at
+    `tokens_per_image`, none once a turn ages out of the window). Pinned entries and the newest
+    turn are never dropped. Zero when no limit is set or the latest prompt already fits.
     """
     if input_tokens_limit is None:
         return 0
 
-    # Get the sizes of non-pinned entries
-    sizes = [entry.total_input_tokens for entry in entries if not entry.pinned]
-    # minimum number of turns needed to forecast the next prompt
-    if len(sizes) < _MIN_TURNS_FOR_FORECAST:
+    non_pinned = [(index, entry) for index, entry in enumerate(entries) if not entry.pinned]
+    if not non_pinned:
         return 0
 
-    # Calculate the forecast budget and overshoot
-    budget = input_tokens_limit * _THRESHOLD
-    forecast = sizes[-1] + max(_mean_recent_growth(sizes, truncation_forecast_window), 0)
-    overshoot = forecast - budget
-    if overshoot <= 0:
+    reservation = (max_observations_per_request + 1) * tokens_per_image
+    budget = input_tokens_limit * _THRESHOLD - reservation
+    anchor = non_pinned[-1][1].total_input_tokens
+    if anchor <= budget:
         return 0
 
-    # If the overshoot is positive, calculate the least possible number of turns to drop
-    # Get avg number of tokens added per turn
-    mean_turn = max(_mean_recent_growth(sizes, len(sizes)), 1)
-    # Count how many turns can be dropped
-    droppable = sum(1 for entry in entries if not entry.pinned)
-    return min(math.ceil(overshoot / mean_turn), droppable)
+    _, in_window = partition_non_pinned_by_window(entries, window=preserve_window)
+    freed = 0
+    for dropped, (index, entry) in enumerate(non_pinned[:-1], start=1):
+        freed += estimate_rendered_tokens(
+            entry, in_window=index in in_window, tokens_per_image=tokens_per_image
+        )
+        if anchor - freed <= budget:
+            return dropped
+    return len(non_pinned) - 1
 
 
 def truncate(
-    *, entries: list[Entry], input_tokens_limit: int | None, truncation_forecast_window: int
+    *,
+    entries: list[Entry],
+    input_tokens_limit: int | None,
+    preserve_window: int,
+    tokens_per_image: int,
+    max_observations_per_request: int,
 ) -> list[Entry]:
-    """Drop the oldest non-pinned turns the forecast requires to fit the budget.
+    """Drop the oldest non-pinned turns needed to fit the budget, keeping pinned entries.
 
-    Pinned entries are never dropped. With no limit set the entries are returned unchanged.
+    With no limit set the entries are returned unchanged.
     """
     count = turns_to_drop(
         entries=entries,
         input_tokens_limit=input_tokens_limit,
-        truncation_forecast_window=truncation_forecast_window,
+        preserve_window=preserve_window,
+        tokens_per_image=tokens_per_image,
+        max_observations_per_request=max_observations_per_request,
     )
     kept: list[Entry] = []
     dropped = 0
