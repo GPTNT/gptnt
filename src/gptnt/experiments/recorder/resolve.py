@@ -11,9 +11,9 @@ def _get_path_to_obj(obj: object) -> str:  # noqa: WPS110
 
 def resolve_recorder(source: Source) -> str:
     """Using the source, get the target for the resolver."""
-    if source is Source.local:
-        return _get_path_to_obj(ExperimentPlayerRecorder)
+    if source is Source.wandb:
+        from gptnt.experiments.recorder.wandb import WandbExperimentPlayerRecorder  # noqa: PLC0415
 
-    from gptnt.experiments.recorder.wandb import WandbExperimentPlayerRecorder  # noqa: PLC0415
+        return _get_path_to_obj(WandbExperimentPlayerRecorder)
 
-    return _get_path_to_obj(WandbExperimentPlayerRecorder)
+    return _get_path_to_obj(ExperimentPlayerRecorder)
