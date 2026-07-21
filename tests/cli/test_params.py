@@ -4,7 +4,7 @@ from gptnt.cli import _params
 
 
 @pytest.fixture(autouse=True)
-def _known_configs(monkeypatch: pytest.MonkeyPatch) -> None:
+def known_configs(monkeypatch: pytest.MonkeyPatch) -> None:
     """Pin the discovered players/providers so the validators test against a fixed set."""
     monkeypatch.setattr(_params, "discover_players", lambda: ["gpt-4o", "claude-sonnet", "dummy"])
     monkeypatch.setattr(_params, "discover_providers", lambda: ["openai", "anthropic"])
