@@ -226,7 +226,9 @@ async def _spawn_and_submit(
     """Spawn EM/rooms/players, submit the specs in-process, and tearing down on fail."""
     await spawn_experiment_manager(orch)
     await spawn_rooms(orch, manifest.rooms, manifest.displays)
-    await spawn_players(orch, manifest.players, output_dir)
+    await spawn_players(
+        orch=orch, players=manifest.players, output_dir=output_dir, source=manifest.source
+    )
 
     console.print(f"\n[bold]Submitting {len(specs)} experiment spec(s) to the EM...[/bold]")
     try:
