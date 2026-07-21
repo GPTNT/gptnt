@@ -1,24 +1,17 @@
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 from hydra.utils import instantiate
-from pydantic_ai import BinaryContent
+from pydantic_ai import Agent, BinaryContent
 from pydantic_ai.settings import merge_model_settings
 from rich.console import Console
 from rich.table import Table
 
+from gptnt.cli._params import PlayerOption, ProviderOption
 from gptnt.common.hydra import compose_player_config
 from gptnt.common.paths import Paths
+from gptnt.players.specification import PlayerCapabilities
 from gptnt.processors.image_resizer import ImageResizer
 from gptnt.prompts.manual import load_manual_image
-
-if TYPE_CHECKING:
-    from pathlib import Path
-
-    from pydantic_ai import Agent
-
-    from gptnt.players.specification import PlayerCapabilities
 
 console = Console()
 
@@ -34,7 +27,7 @@ Output tokens don't affect the input count we read, but a low cap keeps each cal
 _MANUAL_FIRST_PAGE = 1
 
 
-async def measure_tokens_per_image(player: str) -> None:
+async def measure_tokens_per_image(player: PlayerOption, provider: ProviderOption = None) -> None:
     """Measure player's per-image token cost from the model and update config.
 
     We do this so that we do not need to guess how much each image is worth in tokens, which is
@@ -44,7 +37,7 @@ async def measure_tokens_per_image(player: str) -> None:
     measures the per-image input-token cost, writes it into `configs/player/<player>.yaml`, and
     prints the result. SPENDS MONEY.
     """
-    cfg = compose_player_config(player, None)
+    cfg = compose_player_config(player, provider)
     capabilities: PlayerCapabilities = instantiate(cfg.player.capabilities)
     agent: Agent = instantiate(cfg.player.action_predictor.agent)
 
