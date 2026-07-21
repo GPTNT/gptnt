@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 
+from cyclopts import Parameter
 from hydra.utils import instantiate
 from pydantic_ai import BinaryContent
 from pydantic_ai.settings import merge_model_settings
@@ -34,7 +35,16 @@ Output tokens don't affect the input count we read, but a low cap keeps each cal
 _MANUAL_FIRST_PAGE = 1
 
 
-async def measure_tokens_per_image(player: str) -> None:
+async def measure_tokens_per_image(
+    player_name: Annotated[
+        str,
+        Parameter(help="Player name to measure for, taken from `configs/player/<player_name>`"),
+    ],
+    provider: Annotated[
+        str | None,
+        Parameter(help="Provider to use, taken from `./configs/player/provider/<provider>`"),
+    ] = None,
+) -> None:
     """Measure player's per-image token cost from the model and update config.
 
     We do this so that we do not need to guess how much each image is worth in tokens, which is
@@ -44,7 +54,7 @@ async def measure_tokens_per_image(player: str) -> None:
     measures the per-image input-token cost, writes it into `configs/player/<player>.yaml`, and
     prints the result. SPENDS MONEY.
     """
-    cfg = compose_player_config(player, None)
+    cfg = compose_player_config(player_name, provider)
     capabilities: PlayerCapabilities = instantiate(cfg.player.capabilities)
     agent: Agent = instantiate(cfg.player.action_predictor.agent)
 
@@ -58,8 +68,8 @@ async def measure_tokens_per_image(player: str) -> None:
             f"The provider may not report image tokens in the input-token count."
         )
 
-    path = _write_tokens_per_image(player, tokens_per_image)
-    _render(player, capabilities, baseline, with_image, tokens_per_image, path)
+    path = _write_tokens_per_image(player_name, tokens_per_image)
+    _render(player_name, capabilities, baseline, with_image, tokens_per_image, path)
 
 
 def _load_first_manual_page(capabilities: PlayerCapabilities) -> bytes:
