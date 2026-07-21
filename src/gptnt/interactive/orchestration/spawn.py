@@ -11,6 +11,7 @@ import structlog
 
 from gptnt.common.async_ops import periodic
 from gptnt.common.runtime_settings import RuntimeSettings
+from gptnt.experiments.recorder.resolve import resolve_recorder
 from gptnt.interactive.orchestration.orchestrator import (
     ProcessOrchestrator,
     abort_on_shutdown,
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
     from pathlib import Path
 
+    from gptnt.experiments.ledger.base import Source
     from gptnt.players.specification import PlayerSpec
 
 
@@ -108,7 +110,7 @@ async def spawn_experiment_manager(orch: ProcessOrchestrator) -> None:
     await _wait_for_em_ready(orch)
 
 
-def _build_player_command(player: PlayerSpec) -> list[str]:
+def _build_player_command(*, player: PlayerSpec, source: Source) -> list[str]:
     """Build the `run_player` entrypoint command for one player spec."""
     command = [
         "uv",
@@ -118,6 +120,7 @@ def _build_player_command(player: PlayerSpec) -> list[str]:
         "-m",
         "gptnt.interactive.entrypoints.run_player",
         f"player={player.player}",
+        f"player.experiment_recorder._target_={resolve_recorder(source)}",
     ]
     if player.provider:
         command.append(f"player/provider={player.provider}")
@@ -125,7 +128,7 @@ def _build_player_command(player: PlayerSpec) -> list[str]:
 
 
 async def spawn_players(
-    orch: ProcessOrchestrator, players: list[PlayerSpec], output_dir: Path
+    *, orch: ProcessOrchestrator, players: list[PlayerSpec], output_dir: Path, source: Source
 ) -> None:
     """Spawn the requested players, each in its own process to run in parallel."""
     logger.info("Starting players", count=sum(player.count for player in players))
@@ -140,7 +143,7 @@ async def spawn_players(
             player_counters[player.player] += 1
             _ = await orch.spawn(  # noqa: WPS476
                 f"{player.player}__{idx}",
-                _build_player_command(player),
+                _build_player_command(player=player, source=source),
                 extra_env={"EXPERIMENT_RECORDER_OUTPUTS": str(output_dir)},
             )
             await anyio.sleep(1)  # noqa: WPS476
