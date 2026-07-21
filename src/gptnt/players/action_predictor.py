@@ -3,7 +3,7 @@ from typing import Any
 
 import logfire
 import structlog
-from pydantic_ai import Agent, ModelMessage, capture_run_messages
+from pydantic_ai import Agent, ModelMessage, ModelSettings, capture_run_messages
 from pydantic_ai.models import Model
 
 from gptnt.players.actions import PlayerOutputType, SendMessageAction
@@ -29,6 +29,7 @@ async def execute_request[DepsT, ModelOutputT, ParserOutputT](
     reasoning_parser: ReasoningParser[ModelOutputT, ParserOutputT],
     deps: DepsT,
     message_history: list[ModelMessage] | None = None,
+    model_settings: ModelSettings | None = None,
     model_output_type: Any | None = None,
     parser_output_type: type[ParserOutputT] | None = None,
 ) -> AgentCallResult[ParserOutputT]:
@@ -37,7 +38,11 @@ async def execute_request[DepsT, ModelOutputT, ParserOutputT](
     Handle any and all exceptions OUTSIDE OF THIS FUNCTION PLEASE.
     """
     model_output = await agent.run(
-        message_input, deps=deps, output_type=model_output_type, message_history=message_history
+        message_input,
+        deps=deps,
+        output_type=model_output_type,
+        message_history=message_history,
+        model_settings=model_settings,
     )
     if model_output.response.finish_reason == "length":
         full_output = ""
@@ -137,11 +142,14 @@ class ActionPredictor:
                 )
 
     async def send_reflection_request(
-        self, *, reflection_message: str
+        self, *, reflection_message: str, max_tokens_override: int = 5_000
     ) -> AgentCallResult[SendMessageAction]:
         """Send a reflection message to the agent.
 
         Importantly, we do not care if the reflection fails, we just want to log it and move on.
+
+        We override the max tokens for this request because models now want to use and output more
+        and more reasoning, which was leading to issues, so we just increase this.
 
         For handling structured outputs:
             If the player supports structured output, then we give it the chance to use the
@@ -163,6 +171,7 @@ class ActionPredictor:
                     message_history=rendered,
                     model_output_type=str,
                     parser_output_type=SendMessageAction,
+                    model_settings=ModelSettings(max_tokens=max_tokens_override),
                 )
             except Exception as exc:  # noqa: BLE001
                 return self.reflection_exception_recovery.recover(
