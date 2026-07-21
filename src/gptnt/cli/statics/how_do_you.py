@@ -6,8 +6,9 @@ from cyclopts.types import PositiveInt
 from pydantic_core import to_json
 from structlog import get_logger
 
+from gptnt.cli._params import PlayerOption, ProviderOption
 from gptnt.cli.statics._config_loader import ConfigLoader
-from gptnt.cli.statics._fields import AllowThinkingOption, PlayerOption, ProviderOption
+from gptnt.cli.statics._params import AllowThinkingOption
 from gptnt.common.logger import create_progress
 from gptnt.common.paths import Paths
 from gptnt.ktane.state.modules import KtaneComponent

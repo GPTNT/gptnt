@@ -2,20 +2,6 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-PlayerOption = Annotated[
-    str,
-    Parameter(name="--player", help="Player config name (under configs/player/).", group="Player"),
-]
-
-ProviderOption = Annotated[
-    str | None,
-    Parameter(
-        name="--provider",
-        help="Provider config override (under configs/player/provider/).",
-        group="Player",
-    ),
-]
-
 DownloadOption = Annotated[
     bool,
     Parameter(

@@ -1,11 +1,10 @@
+from gptnt.cli._params import PlayerOption, ProviderOption
 from gptnt.cli.statics._evaluation import create_and_run_evaluation
-from gptnt.cli.statics._fields import (
+from gptnt.cli.statics._params import (
     AllowThinkingOption,
     DatasetRevisionOption,
     DownloadOption,
     LimitInstancesOption,
-    PlayerOption,
-    ProviderOption,
     ThrowOption,
     UploadOption,
 )
