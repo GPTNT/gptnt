@@ -491,7 +491,7 @@ def create_scorers(comparer: BaseComparer[Any, Any]) -> list[Scorer]:
 
 type Instances = list[dict[str, Any]]
 type Predictions = dict[int, dict[str, Any]]
-type Metrics = dict[str, dict[str, float]]
+type Metrics = dict[str, dict[str, Any]]
 type Sums = dict[str, float]
 type Counts = dict[str, int]
 
