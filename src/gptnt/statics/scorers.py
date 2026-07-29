@@ -500,13 +500,13 @@ def score_single_prediction(
     scorers: list[Scorer], instance: dict[str, Any], prediction: ModelOutput
 ) -> dict[str, dict[str, float]]:
     """Score a single prediction for each scorer."""
-    metrics: dict[str, dict[str, float]] = {}
+    metrics: dict[str, dict[str, Any]] = {}
     for scorer in scorers:
         scored = scorer.score(
             {"output": prediction["output"]}, instance["ground_truth"], instance.get("categories")
         )
         if scored:
-            metrics.update(scored)
+            metrics[scorer.name] = scored
     return metrics
 
 

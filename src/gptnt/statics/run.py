@@ -3,7 +3,7 @@ import json
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, ClassVar, cast, override
+from typing import Any, ClassVar, override
 
 import datasets
 import numpy as np
@@ -210,7 +210,7 @@ class RunEvaluation(abc.ABC):
 
         eval_logger = weave.EvaluationLogger(
             name=self.task_name,
-            model=cast("str", self.eval_model.name),
+            model=self.model_name,
             dataset=dataset,
             eval_attributes={"capabilities": self.capabilities.model_dump(mode="json")},
         )
