@@ -1,10 +1,9 @@
 import abc
-import importlib
 import json
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, ClassVar, override
+from typing import Any, ClassVar, cast, override
 
 import datasets
 import numpy as np
@@ -24,7 +23,14 @@ from gptnt.processors.image_resizer import ImageResizer
 from gptnt.statics.model import EvalModel, ModelOutput
 from gptnt.statics.preprocess import PostprocessInputsFunc
 from gptnt.statics.run_metadata import StaticsIdentity, StaticsRunMetadata
-from gptnt.statics.scorers import Instances, Metrics, Predictions, Scorer, score_predictions
+from gptnt.statics.scorers import (
+    Instances,
+    Metrics,
+    Predictions,
+    Scorer,
+    score_predictions,
+    score_single_prediction,
+)
 
 logger = structlog.get_logger()
 paths = Paths()
@@ -194,14 +200,32 @@ class RunEvaluation(abc.ABC):
         Requires the `weave` optional extra.
         """
         try:
-            weave: Any = importlib.import_module("weave")
+            import weave  # noqa: PLC0415
         except ImportError as exc:
             raise RuntimeError(
                 "Weave is not installed. Install `gptnt-statics[weave]` to use --upload."
             ) from exc
         weave_client = weave.init(self.weave_project)
-        metrics = self.score()
-        _ = weave.publish(metrics, name=f"{self.task_name}-{self.model_name}-metrics")
+        dataset = self.load_dataset()
+
+        eval_logger = weave.EvaluationLogger(
+            name=self.task_name,
+            model=cast("str", self.eval_model.name),
+            dataset=dataset,
+            eval_attributes={"capabilities": self.capabilities.model_dump(mode="json")},
+        )
+
+        for model_input in tqdm(
+            dataset, desc="Uploading predictions to Weave", total=len(dataset)
+        ):
+            model_output = self.eval_model.predict(**model_input)
+            scorer = eval_logger.log_prediction(inputs=model_input, output=model_output)
+
+            score = score_single_prediction(self.scorers, model_input, model_output)
+            for scorer_name, score_value in score.items():
+                await scorer.alog_score(scorer_name, score_value)  # noqa: WPS476
+            scorer.finish()
+
         weave_client.finish()
 
     def _resize_all_images(self, all_instances: list[dict[str, Any]]) -> list[dict[str, Any]]:
