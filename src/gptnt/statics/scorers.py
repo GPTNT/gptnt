@@ -17,6 +17,7 @@ from gptnt.statics.constants import (
     KEYPAD_SYMBOL_DESCRIPTIONS,
     TaskType,
 )
+from gptnt.statics.model import ModelOutput
 from gptnt.statics.postprocess import PostProcessModelOutputsFunc, default_postprocess
 
 type PredictionOutput = dict[Literal["output"], str]
@@ -490,9 +491,23 @@ def create_scorers(comparer: BaseComparer[Any, Any]) -> list[Scorer]:
 
 type Instances = list[dict[str, Any]]
 type Predictions = dict[int, dict[str, Any]]
-type Metrics = dict[str, dict[str, float]]
+type Metrics = dict[str, dict[str, Any]]
 type Sums = dict[str, float]
 type Counts = dict[str, int]
+
+
+def score_single_prediction(
+    scorers: list[Scorer], instance: dict[str, Any], prediction: ModelOutput
+) -> dict[str, dict[str, Any]]:
+    """Score a single prediction for each scorer."""
+    metrics: dict[str, dict[str, Any]] = {}
+    for scorer in scorers:
+        scored = scorer.score(
+            {"output": prediction["output"]}, instance["ground_truth"], instance.get("categories")
+        )
+        if scored:
+            metrics[scorer.name] = scored
+    return metrics
 
 
 def _accumulate(scored: dict[str, Any], sums: Sums, counts: Counts, *, prefix: str = "") -> None:
