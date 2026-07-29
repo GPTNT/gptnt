@@ -498,7 +498,7 @@ type Counts = dict[str, int]
 
 def score_single_prediction(
     scorers: list[Scorer], instance: dict[str, Any], prediction: ModelOutput
-) -> dict[str, dict[str, float]]:
+) -> dict[str, dict[str, Any]]:
     """Score a single prediction for each scorer."""
     metrics: dict[str, dict[str, Any]] = {}
     for scorer in scorers:
