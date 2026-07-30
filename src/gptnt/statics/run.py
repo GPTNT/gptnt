@@ -23,14 +23,7 @@ from gptnt.processors.image_resizer import ImageResizer
 from gptnt.statics.model import EvalModel, ModelOutput
 from gptnt.statics.preprocess import PostprocessInputsFunc
 from gptnt.statics.run_metadata import StaticsIdentity, StaticsRunMetadata
-from gptnt.statics.scorers import (
-    Instances,
-    Metrics,
-    Predictions,
-    Scorer,
-    score_predictions,
-    score_single_prediction,
-)
+from gptnt.statics.scorers import Instances, Metrics, Predictions, Scorer, score_predictions
 
 logger = structlog.get_logger()
 paths = Paths()
@@ -206,26 +199,14 @@ class RunEvaluation(abc.ABC):
                 "Weave is not installed. Install `gptnt-statics[weave]` to use --upload."
             ) from exc
         weave_client = weave.init(self.weave_project)
-        dataset = self.load_dataset()
-
-        eval_logger = weave.EvaluationLogger(
+        evaluation = weave.Evaluation(
             name=self.task_name,
-            model=self.model_name,
-            dataset=dataset,
-            eval_attributes={"capabilities": self.capabilities.model_dump(mode="json")},
+            dataset=weave.Dataset(name=self.task_name, rows=weave.Table(self.load_dataset())),
+            # type ignored because weave's type system doesn't directly match the typing of the
+            # function but it should be okay and not be an issue.
+            scorers=self.scorers,  # pyright: ignore[reportArgumentType]
         )
-
-        for model_input in tqdm(
-            dataset, desc="Uploading predictions to Weave", total=len(dataset)
-        ):
-            model_output = self.eval_model.predict(**model_input)
-            scorer = eval_logger.log_prediction(inputs=model_input, output=model_output)
-
-            score = score_single_prediction(self.scorers, model_input, model_output)
-            for scorer_name, score_value in score.items():
-                await scorer.alog_score(scorer_name, score_value)  # noqa: WPS476
-            scorer.finish()
-
+        await evaluation.evaluate(self.eval_model)
         weave_client.finish()
 
     def _resize_all_images(self, all_instances: list[dict[str, Any]]) -> list[dict[str, Any]]:
