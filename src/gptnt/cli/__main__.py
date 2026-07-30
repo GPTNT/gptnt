@@ -1,6 +1,8 @@
 import anyio
 from cyclopts import App, Group
 
+from gptnt.common.logger import monkey_patch_binary_content_repr
+
 BACKEND = "asyncio"
 
 
@@ -151,4 +153,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    monkey_patch_binary_content_repr()
     main()
