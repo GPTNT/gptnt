@@ -1,3 +1,22 @@
+## v1.1.0 (2026-07-30)
+
+### Feat
+
+- **reflection**: override max tokens for reflection requests (#40)
+
+### Fix
+
+- **statics/weave**: replace uploading for weave to the previous way we used to do it (#43)
+- **statics/weave**: use the imperative eval logger to upload prediction/scores to weave (#42)
+- **cli/measure-tokens**: support providing a provider to the measure tokens command (#41)
+- **run/recorder**: select recorder by the manifest source (#39)
+
+### Refactor
+
+- simplify message history into `Conversation`  (#38)
+- **prompts**: add test in case `PromptedOutputSchema` from pydantic ai changes (#37)
+- **players**: stop mutating action class `__name__` for tool naming (#36)
+
 ## v1.0.0 (2026-07-13)
 
 ### Feat
