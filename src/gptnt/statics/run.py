@@ -198,15 +198,20 @@ class RunEvaluation(abc.ABC):
             raise RuntimeError(
                 "Weave is not installed. Install `gptnt-statics[weave]` to use --upload."
             ) from exc
+
         weave_client = weave.init(self.weave_project)
+        scorers_as_ops = [
+            weave.op(scorer.score, name=scorer.name, kind="scorer") for scorer in self.scorers
+        ]
         evaluation = weave.Evaluation(
-            name=self.task_name,
             dataset=weave.Dataset(name=self.task_name, rows=weave.Table(self.load_dataset())),
-            # type ignored because weave's type system doesn't directly match the typing of the
-            # function but it should be okay and not be an issue.
-            scorers=self.scorers,  # pyright: ignore[reportArgumentType]
+            # type checker complains because it's syaingmore about the op than weave checks for, so
+            # it's okay.
+            scorers=scorers_as_ops,  # pyright: ignore[reportArgumentType]
         )
-        await evaluation.evaluate(self.eval_model)
+
+        model_as_op = weave.op(self.eval_model.predict, name=self.model_name)
+        _ = await evaluation.evaluate(model_as_op)
         weave_client.finish()
 
     def _resize_all_images(self, all_instances: list[dict[str, Any]]) -> list[dict[str, Any]]:
