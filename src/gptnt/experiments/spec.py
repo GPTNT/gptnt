@@ -2,8 +2,9 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Self, override
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, computed_field, model_validator
 
+from gptnt.common.hashing import stable_digest
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.specification import CommunicationStyle, PlayerProtocol, PlayerRole
 
@@ -46,6 +47,22 @@ class ExperimentSpec(BaseModel, frozen=True):
         if self.defuser_protocol.is_solo_player and self.expert_name is not None:
             raise ValueError("If the defuser is a solo player, then the expert_name must be None.")
         return self
+
+    @computed_field
+    @property
+    def fingerprint(self) -> str:
+        """Stable fingerprint for experiment spec.
+
+        This makes it easier to compare experiments across players to see what is and isn't the
+        same. Importantly, we need to exclude the attempt, the defuser name, and the expert name,
+        because those are not part of the experiment itself. We also exclude `fingerprint` itself,
+        since it is a computed field that `model_dump` would otherwise recurse into.
+        """
+        return stable_digest(
+            self.model_dump(
+                mode="json", exclude={"attempt", "defuser_name", "expert_name", "fingerprint"}
+            )
+        )
 
     @property
     def is_single_player(self) -> bool:
