@@ -55,9 +55,14 @@ class ExperimentSpec(BaseModel, frozen=True):
 
         This makes it easier to compare experiments across players to see what is and isn't the
         same. Importantly, we need to exclude the attempt, the defuser name, and the expert name,
-        because those are not part of the experiment itself.
+        because those are not part of the experiment itself. We also exclude `fingerprint` itself,
+        since it is a computed field that `model_dump` would otherwise recurse into.
         """
-        return stable_digest(self.model_dump(exclude={"attempt", "defuser_name", "expert_name"}))
+        return stable_digest(
+            self.model_dump(
+                mode="json", exclude={"attempt", "defuser_name", "expert_name", "fingerprint"}
+            )
+        )
 
     @property
     def is_single_player(self) -> bool:
