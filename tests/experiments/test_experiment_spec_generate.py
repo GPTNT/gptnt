@@ -16,8 +16,8 @@ from gptnt.experiments.generation.missions import (
     load_missions,
 )
 from gptnt.experiments.generation.pairing import Pairing, PairingGenerator, PairingType
-from gptnt.experiments.generation.specs import CONFIG_NAME, _best_model_for, generate_specs
 from gptnt.experiments.spec import ExperimentSpec
+from gptnt.experiments.suite.generate import CONFIG_NAME, _best_model_for, generate_specs
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.players.specification import PlayerProtocol
