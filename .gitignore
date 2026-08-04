@@ -827,3 +827,6 @@ agent_docs/
 # ignore worktrees
 .worktrees/
 .worktreeinclude
+
+.claude/
+.codex/
