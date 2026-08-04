@@ -6,9 +6,9 @@ from gptnt.cli.checks.result import CheckResult
 from gptnt.cli.checks.validation import validate_model_config
 from gptnt.cli.run.manifest import RunManifest
 from gptnt.common.paths import Paths
-from gptnt.experiments.generation.specs import generate_specs
 from gptnt.experiments.ledger.resolve import filter_experiments
 from gptnt.experiments.spec import ExperimentSpec
+from gptnt.experiments.suite.generate import generate_specs
 
 RESUME_CHECK = "Resume"
 COVERAGE_CHECK = "Roster coverage"

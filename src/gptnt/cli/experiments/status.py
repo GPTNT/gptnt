@@ -13,8 +13,8 @@ from gptnt.cli.config_discovery import discover_suites
 from gptnt.cli.experiments.models import ExperimentsSource, SourceOption
 from gptnt.common.paths import Paths
 from gptnt.common.runtime_settings import RuntimeSettings
-from gptnt.experiments.generation.specs import generate_specs
 from gptnt.experiments.ledger import ExperimentStatus, Source, resolve_ledger
+from gptnt.experiments.suite.generate import generate_specs
 
 console = Console()
 paths = Paths()
