@@ -111,13 +111,7 @@ def test_outcome_and_validity_parity(
 
     # One validity definition: the shared helper (on the outcome's flags) and the local bomb-state
     # path agree.
-    assert (
-        is_valid_outcome(
-            outcome=bomb.outcome,
-            is_hard_crash=is_hard_crash,
-        )
-        is expected_valid
-    )
+    assert is_valid_outcome(outcome=bomb.outcome, is_hard_crash=is_hard_crash) is expected_valid
     # The W&B run-summary path (a finished defuser run) reaches the same verdict. A W&B Run can't
     # be built offline, so we stand in its three touched attributes with REAL outcome data — the
     # assertion still exercises the real is_run_valid logic end to end.
@@ -134,12 +128,7 @@ def test_outcome_and_validity_parity(
 
 def test_timeout_takes_precedence_if_terminal_signals_overlap() -> None:
     """Preserve deterministic classification for a state the old flags allowed."""
-    bomb = _bomb(
-        solved=False,
-        detonated=True,
-        seconds=0,
-        strikes=["Wires", "Wires", "Wires"],
-    )
+    bomb = _bomb(solved=False, detonated=True, seconds=0, strikes=["Wires", "Wires", "Wires"])
 
     assert bomb.outcome is BombOutcome.timeout
 

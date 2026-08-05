@@ -294,11 +294,7 @@ class ExperimentOutcome(BaseModel):
     @property
     def is_detonated(self) -> bool:
         """Whether the bomb ended by detonation, including timeout and strikeout."""
-        return self.outcome in {
-            BombOutcome.timeout,
-            BombOutcome.strikeout,
-            BombOutcome.detonated,
-        }
+        return self.outcome in {BombOutcome.timeout, BombOutcome.strikeout, BombOutcome.detonated}
 
 
 class ExperimentSummary(Provenance, ExperimentOutcome, DuckDBSchemaMixin):

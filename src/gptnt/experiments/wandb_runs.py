@@ -118,10 +118,7 @@ def is_run_valid(run: Run) -> bool:
         outcome = BombOutcome.strikeout
     else:
         outcome = BombOutcome.incomplete
-    return is_valid_outcome(
-        outcome=outcome,
-        is_hard_crash=run.summary["is_hard_crash"],
-    )
+    return is_valid_outcome(outcome=outcome, is_hard_crash=run.summary["is_hard_crash"])
 
 
 def mark_runs_as_old(runs: list[Run]) -> None:
