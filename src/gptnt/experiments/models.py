@@ -200,7 +200,7 @@ class StepRecordsMetricsMixin(BaseModel):
         """Get the total number of strikes by the end of the experiment."""
         for record in reversed(self.step_records):
             if record.bomb_state is not None:
-                return record.bomb_state.current_strikes
+                return record.bomb_state.strike_count
         return None
 
     @property
