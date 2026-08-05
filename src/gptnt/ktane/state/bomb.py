@@ -1,4 +1,5 @@
 import json
+from enum import StrEnum
 from functools import partial
 from typing import Annotated, Any, Literal, Self, Union
 
@@ -24,6 +25,17 @@ from gptnt.ktane.state.modules import (
 from gptnt.ktane.state.widget import WidgetStates
 
 
+class BombOutcome(StrEnum):
+    """The terminal condition represented by a bomb state."""
+
+    solved = "solved"
+    timeout = "timeout"
+    strikeout = "strikeout"
+
+    detonated = "detonated"
+    incomplete = "incomplete"
+
+
 def _serialise_states_to_string(
     input_value: Any,
     handler: SerializerFunctionWrapHandler,  # noqa: WPS110
@@ -45,7 +57,12 @@ def _validate_state_from_string(data: str | Any) -> dict[str, Any]:
 
 
 class BombState(BaseModel):
-    """State of the bomb at the current timestep."""
+    """State of the bomb at the current timestep.
+
+    This is the canonical representation of the bomb state that we receive from the mod. This
+    should be able to tell you everything about the current state of the game in a logical/single
+    object.
+    """
 
     model_config = ConfigDict(alias_generator=alias_generators.to_camel, populate_by_name=True)
 
@@ -138,16 +155,24 @@ class BombState(BaseModel):
         return self.is_detonated and len(self.strikes) >= self.max_strikes
 
     @property
+    def outcome(self) -> BombOutcome:
+        """Classify the outcome from the bomb state."""
+        if self.is_solved:
+            return BombOutcome.solved
+        if self.is_timed_out:
+            return BombOutcome.timeout
+        if self.is_strike_out:
+            return BombOutcome.strikeout
+        if self.is_detonated:
+            return BombOutcome.detonated
+        return BombOutcome.incomplete
+
+    @property
     def current_strikes(self) -> int:
         """Get the current number of strikes."""
         if not self.strikes:
             return 0
         return len(self.strikes)
-
-    @property
-    def is_game_correctly_over(self) -> bool:
-        """Check if the game is correctly over."""
-        return self.is_detonated or self.is_solved or self.is_timed_out or self.is_strike_out
 
     @model_validator(mode="after")
     def check_is_solved_condition(self) -> Self:
