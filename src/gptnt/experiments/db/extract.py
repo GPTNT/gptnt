@@ -7,7 +7,7 @@ import structlog
 
 from gptnt.common.logger import ProgressSentinel, with_default_progress
 from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER
-from gptnt.experiments.models import ExperimentSummary, is_valid_experiment
+from gptnt.experiments.models import ExperimentSummary, is_valid_outcome
 from gptnt.experiments.recorder.parquet import (
     KEY_PLAYER_UUID,
     KEY_SESSION_ID,
@@ -44,9 +44,9 @@ def validity_from_footers(footers: list[RecordFooter]) -> bool:
     )
     if final_bomb_state is None:
         return False
-    return is_valid_experiment(
+    return is_valid_outcome(
+        outcome=final_bomb_state.outcome,
         is_hard_crash=any(footer.is_hard_crash for footer in footers),
-        final_bomb_state=final_bomb_state,
     )
 
 

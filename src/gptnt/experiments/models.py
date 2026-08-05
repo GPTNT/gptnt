@@ -27,7 +27,7 @@ from gptnt.experiments.descriptor import ExperimentDescriptor, PlayerContent
 from gptnt.experiments.provenance import Provenance
 from gptnt.ktane.actions import KtaneBaseAction, KtaneGameplayInput
 from gptnt.ktane.mission_spec import compute_mission_key
-from gptnt.ktane.state.bomb import BombState
+from gptnt.ktane.state.bomb import BombOutcome, BombState
 from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.players.actions import DoNothingAction, PlayerOutputType, SendMessageAction
 from gptnt.players.exceptions import AIResponseErrorType
@@ -172,27 +172,11 @@ class StepRecordsMetricsMixin(BaseModel):
         return error_counts
 
     @property
-    def is_solved(self) -> bool | None:
-        """Check if the bomb was solved in the experiment."""
+    def outcome(self) -> BombOutcome | None:
+        """Classify the last observed bomb state."""
         for record in reversed(self.step_records):
             if record.bomb_state is not None:
-                return record.bomb_state.is_solved
-        return None
-
-    @property
-    def is_strike_out(self) -> bool | None:
-        """Check if the bomb was strike out in the experiment."""
-        for record in reversed(self.step_records):
-            if record.bomb_state is not None:
-                return record.bomb_state.is_strike_out
-        return None
-
-    @property
-    def is_timed_out(self) -> bool | None:
-        """Check if the bomb was timed out in the experiment."""
-        for record in reversed(self.step_records):
-            if record.bomb_state is not None:
-                return record.bomb_state.is_timed_out
+                return record.bomb_state.outcome
         return None
 
     @property
@@ -279,44 +263,20 @@ class ExperimentPlayerRecord(Provenance, StepRecordsMetricsMixin):
 
 
 class ExperimentOutcome(BaseModel):
-    """The canonical, single-source view of how an experiment ended.
+    """Bomb outcome fields shared by the DuckDB summary and W&B summary."""
 
-    Derived once from the final [BombState] (plus the run's hard-crash flag) and reused by every
-    surface that reports an outcome — the DuckDB `experiment_summary` row and the W&B `run.summary`
-    — so the field names and values are identical whichever source a consumer reads. Every field
-    reads straight off a `BombState` property: no re-derivation, no magic numbers.
-    """
+    model_config = ConfigDict(frozen=True, populate_by_name=True, from_attributes=True)
 
-    model_config = ConfigDict(frozen=True)
-
-    is_solved: bool
-    is_detonated: bool
-    is_timed_out: bool
-    is_strike_out: bool
-    is_hard_crash: bool
-    seconds_remaining: float
+    outcome: BombOutcome
+    seconds_remaining: Annotated[float, Field(alias="timer_seconds")]
     strike_count: int
     num_modules_solved: int
 
-    @classmethod
-    def from_bomb_state(cls, bomb_state: BombState, *, is_hard_crash: bool) -> Self:
-        """Build the outcome from a final bomb state and the run's hard-crash flag."""
-        return cls(
-            is_solved=bomb_state.is_solved,
-            is_detonated=bomb_state.is_detonated,
-            is_timed_out=bomb_state.is_timed_out,
-            is_strike_out=bomb_state.is_strike_out,
-            is_hard_crash=is_hard_crash,
-            seconds_remaining=bomb_state.seconds_remaining,
-            strike_count=bomb_state.current_strikes,
-            num_modules_solved=bomb_state.num_modules_solved,
-        )
 
-
-class ExperimentSummary(Provenance, DuckDBSchemaMixin):
+class ExperimentSummary(Provenance, ExperimentOutcome, DuckDBSchemaMixin):
     """Experiment-level summary — one per experiment."""
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, frozen=False)
 
     attempt_name: Annotated[str, Field(alias="name")]
     session_id: UUID4
@@ -334,13 +294,6 @@ class ExperimentSummary(Provenance, DuckDBSchemaMixin):
 
     modules: list[KtaneComponent]
 
-    is_solved: bool
-    is_detonated: bool
-    is_timed_out: bool
-    is_strike_out: bool
-    seconds_remaining: Annotated[float, Field(alias="timer_seconds")]
-    strike_count: int
-    num_modules_solved: int
     is_hard_crash: bool
 
     experiment_descriptor: Annotated[ExperimentDescriptor, AsJSON]
@@ -377,7 +330,7 @@ class ExperimentSummary(Provenance, DuckDBSchemaMixin):
     ) -> Self:
         """Construct ExperimentSummary from an ExperimentDescriptor and final BombState."""
         spec = descriptor.experiment_spec
-        outcome = ExperimentOutcome.from_bomb_state(final_bomb_state, is_hard_crash=is_hard_crash)
+        outcome = ExperimentOutcome.model_validate(final_bomb_state)
         # Omit gptnt_version when not supplied so the Provenance default_factory resolves the
         # live version, rather than passing a placeholder the field validator rejects.
         provenance: dict[str, Any] = {"git_sha": git_sha}
@@ -396,14 +349,8 @@ class ExperimentSummary(Provenance, DuckDBSchemaMixin):
             expert_name=spec.expert_name,
             attempt=spec.attempt,
             seed=spec.mission_spec.seed,
-            is_solved=outcome.is_solved,
-            is_detonated=outcome.is_detonated,
-            is_timed_out=outcome.is_timed_out,
-            is_strike_out=outcome.is_strike_out,
-            seconds_remaining=outcome.seconds_remaining,
-            strike_count=outcome.strike_count,
-            num_modules_solved=outcome.num_modules_solved,
-            is_hard_crash=outcome.is_hard_crash,
+            **outcome.model_dump(),
+            is_hard_crash=is_hard_crash,
             experiment_descriptor=descriptor,
             defuser_capabilities=descriptor.defuser_capabilities,
             expert_capabilities=descriptor.expert_capabilities,
@@ -436,12 +383,7 @@ class ExperimentSummary(Provenance, DuckDBSchemaMixin):
     @property
     def is_valid(self) -> bool:
         """Whether this is a valid, completed run, decided by the shared `is_valid_outcome`."""
-        return is_valid_outcome(
-            is_solved=self.is_solved,
-            is_timed_out=self.is_timed_out,
-            is_strike_out=self.is_strike_out,
-            is_hard_crash=self.is_hard_crash,
-        )
+        return is_valid_outcome(outcome=self.outcome, is_hard_crash=self.is_hard_crash)
 
     @computed_field
     @property
@@ -480,27 +422,15 @@ class ExperimentRecord(StepRecordsMetricsMixin):
         return self
 
 
-def is_valid_outcome(
-    *, is_solved: bool, is_timed_out: bool, is_strike_out: bool, is_hard_crash: bool
-) -> bool:
+def is_valid_outcome(*, outcome: BombOutcome, is_hard_crash: bool) -> bool:
     """Whether an experiment outcome counts as a valid, completed run.
 
-    Valid means no hard crash and a clean ending: either solved (without also timing/striking out)
-    or a real failure (timed out or struck out). This is the single definition every completion
-    check shares — the local footer-based ledger and the W&B run-based ledger both decide validity
-    here, so "already done" can never depend on which source you read. It reads only the four flags
-    that decide validity, so neither ledger has to reconstruct a full [ExperimentOutcome] to ask.
+    Valid means no hard crash and the outcome classified as either solved, timeout, or strikeout.
+    This is the single definition shared by the local footer ledger, DuckDB summaries, and W&B
+    runs.
     """
-    is_good_solved = is_solved and not is_timed_out and not is_strike_out
-    is_good_failed = not is_solved and (is_timed_out or is_strike_out)
-    return not is_hard_crash and (is_good_solved or is_good_failed)
-
-
-def is_valid_experiment(*, is_hard_crash: bool, final_bomb_state: BombState) -> bool:
-    """Determine if the experiment is valid (i.e. no hard crashes and good ending)."""
-    return is_valid_outcome(
-        is_solved=final_bomb_state.is_solved,
-        is_timed_out=final_bomb_state.is_timed_out,
-        is_strike_out=final_bomb_state.is_strike_out,
-        is_hard_crash=is_hard_crash,
-    )
+    return not is_hard_crash and outcome in {
+        BombOutcome.solved,
+        BombOutcome.timeout,
+        BombOutcome.strikeout,
+    }

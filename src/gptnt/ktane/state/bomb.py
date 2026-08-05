@@ -168,7 +168,7 @@ class BombState(BaseModel):
         return BombOutcome.incomplete
 
     @property
-    def current_strikes(self) -> int:
+    def strike_count(self) -> int:
         """Get the current number of strikes."""
         if not self.strikes:
             return 0
