@@ -12,6 +12,7 @@ from wandb.apis.public import Run, Runs
 from gptnt.common.logger import ProgressSentinel, with_default_progress
 from gptnt.experiments.models import is_valid_outcome
 from gptnt.experiments.recorder.parquet import read_record_footer
+from gptnt.ktane.state.bomb import BombOutcome
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -109,12 +110,15 @@ def is_run_valid(run: Run) -> bool:
         return run.summary["is_hard_crash"] is False
     if not all(key in run.summary for key in _VALIDITY_KEYS):
         return False
-    return is_valid_outcome(
-        is_solved=run.summary["is_solved"],
-        is_timed_out=run.summary["is_timed_out"],
-        is_strike_out=run.summary["is_strike_out"],
-        is_hard_crash=run.summary["is_hard_crash"],
-    )
+    if run.summary["is_solved"]:
+        outcome = BombOutcome.solved
+    elif run.summary["is_timed_out"]:
+        outcome = BombOutcome.timeout
+    elif run.summary["is_strike_out"]:
+        outcome = BombOutcome.strikeout
+    else:
+        outcome = BombOutcome.incomplete
+    return is_valid_outcome(outcome=outcome, is_hard_crash=run.summary["is_hard_crash"])
 
 
 def mark_runs_as_old(runs: list[Run]) -> None:

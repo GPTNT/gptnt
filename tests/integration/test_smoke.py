@@ -10,6 +10,7 @@ from gptnt.interactive.services.experiment_manager.experiment_runner import (
     AsyncExperimentRunner,
     ExperimentState,
 )
+from gptnt.ktane.state.bomb import BombOutcome
 
 from tests._cli_runner import invoke_cli
 from tests._harness.records import wait_for_record_footers, wait_for_recorded_outcome
@@ -71,8 +72,7 @@ async def test_full_run_solved(
     assert fake_game.hits.get("/action", 0) > 0, "the defuser never acted on the bomb"
 
     outcome = await wait_for_recorded_outcome(records_dir)
-    assert outcome.is_solved
-    assert not outcome.is_detonated
+    assert outcome.outcome is BombOutcome.solved
 
 
 @pytest.mark.slow
@@ -87,8 +87,7 @@ async def test_full_run_detonated(
     assert not session.is_hard_crash, "detonation is a game-over end, not a hard crash"
 
     outcome = await wait_for_recorded_outcome(records_dir)
-    assert outcome.is_detonated
-    assert not outcome.is_solved
+    assert outcome.outcome is BombOutcome.detonated
 
 
 @pytest.mark.slow
@@ -103,8 +102,7 @@ async def test_full_run_timeout(
     assert not session.is_hard_crash
 
     outcome = await wait_for_recorded_outcome(records_dir)
-    assert outcome.is_timed_out
-    assert not outcome.is_solved
+    assert outcome.outcome is BombOutcome.timeout
 
 
 @pytest.mark.slow
@@ -123,8 +121,7 @@ async def test_full_run_partial_solve(
     assert not session.is_hard_crash
 
     outcome = await wait_for_recorded_outcome(records_dir)
-    assert outcome.is_detonated
-    assert not outcome.is_solved
+    assert outcome.outcome is BombOutcome.detonated
     assert outcome.num_modules_solved == 1
 
 
@@ -140,7 +137,7 @@ async def test_full_run_solo(
 
     assert session.state == ExperimentState.done
     assert not session.is_hard_crash
-    assert (await wait_for_recorded_outcome(records_dir)).is_solved
+    assert (await wait_for_recorded_outcome(records_dir)).outcome is BombOutcome.solved
 
 
 @pytest.mark.slow
@@ -156,7 +153,7 @@ async def test_full_run_async(
     assert session.state == ExperimentState.done
     assert not session.is_hard_crash
     assert fake_game.hits.get("/action", 0) > 0
-    assert (await wait_for_recorded_outcome(records_dir)).is_solved
+    assert (await wait_for_recorded_outcome(records_dir)).outcome is BombOutcome.solved
 
 
 @pytest.mark.slow

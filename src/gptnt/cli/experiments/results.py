@@ -12,6 +12,7 @@ from rich.text import Text
 from gptnt.common.paths import Paths
 from gptnt.experiments.db.read import load_experiment_summaries
 from gptnt.experiments.models import ExperimentSummary
+from gptnt.ktane.state.bomb import BombOutcome
 
 console = Console()
 paths = Paths()
@@ -23,9 +24,9 @@ def _outcome(summary: ExperimentSummary) -> Text:
     `is_valid_outcome` guarantees a valid summary is exactly one of solved, struck out, or timed
     out, so these three branches are total for the rows we render.
     """
-    if summary.is_solved:
+    if summary.outcome is BombOutcome.solved:
         return Text("✅ solved", style="green")
-    if summary.is_strike_out:
+    if summary.outcome is BombOutcome.strikeout:
         return Text("✗ strikeout", style="red")
     return Text("⏱ timeout", style="yellow")
 

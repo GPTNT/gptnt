@@ -12,6 +12,7 @@ from gptnt.cli.__main__ import build_app
 from gptnt.cli.experiments.results import show_results
 from gptnt.experiments.db.ingest import ensure_schema
 from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER
+from gptnt.ktane.state.bomb import BombOutcome
 
 from tests._cli_runner import invoke_cli
 from tests._factories.experiments import make_experiment_summary
@@ -42,25 +43,26 @@ def test_results_lists_outcomes_and_dims_invalid(
         db_path,
         [
             make_experiment_summary(
-                defuser_name="model-a", expert_name="model-a", is_solved=True, seed=110
+                defuser_name="model-a", expert_name="model-a", outcome=BombOutcome.solved, seed=110
             ),
             make_experiment_summary(
                 defuser_name="model-b",
                 expert_name="model-b",
-                is_solved=False,
-                is_timed_out=True,
+                outcome=BombOutcome.timeout,
                 num_modules_solved=1,
                 seed=222,
             ),
             make_experiment_summary(
                 defuser_name="model-c",
-                is_solved=False,
-                is_strike_out=True,
+                outcome=BombOutcome.strikeout,
                 num_modules_solved=0,
                 seed=333,
             ),
             make_experiment_summary(
-                defuser_name="model-x", is_hard_crash=True, is_solved=False, seed=999
+                defuser_name="model-x",
+                is_hard_crash=True,
+                outcome=BombOutcome.incomplete,
+                seed=999,
             ),
         ],
     )

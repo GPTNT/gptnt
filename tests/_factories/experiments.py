@@ -11,7 +11,7 @@ from gptnt.experiments.descriptor import ExperimentDescriptor
 from gptnt.experiments.models import ExperimentSummary
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
-from gptnt.ktane.state.bomb import BombState
+from gptnt.ktane.state.bomb import BombOutcome, BombState
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 if TYPE_CHECKING:
@@ -86,9 +86,7 @@ def make_experiment_summary(
     expert_name: str | None = None,
     modules: Sequence[str] = ("Wires", "Keypad"),
     num_modules_solved: int = 2,
-    is_solved: bool = True,
-    is_timed_out: bool = False,
-    is_strike_out: bool = False,
+    outcome: BombOutcome = BombOutcome.solved,
     is_hard_crash: bool = False,
     strike_count: int = 0,
     seconds_remaining: float = 60.0,
@@ -109,10 +107,7 @@ def make_experiment_summary(
         communication_style=communication_style,
         attempt=1,
         modules=list(modules),
-        is_solved=is_solved,
-        is_detonated=not is_solved,
-        is_timed_out=is_timed_out,
-        is_strike_out=is_strike_out,
+        outcome=outcome,
         seconds_remaining=seconds_remaining,
         strike_count=strike_count,
         num_modules_solved=num_modules_solved,

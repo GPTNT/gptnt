@@ -153,7 +153,7 @@ class WandbExperimentPlayerRecorder(ExperimentPlayerRecorder):
         player_record = await player_record.rebuild_with_observations()
         await self.save_player_record_to_disk(player_record=player_record)
 
-        data_to_send = self._compute_data_to_send()
+        data_to_send = self._compute_data_to_send(is_hard_crash=is_hard_crash)
         data_to_send["step_records"] = convert_records_to_wandb_table(player_record.step_records)
 
         wandb.log(data_to_send, commit=False)
@@ -173,15 +173,17 @@ class WandbExperimentPlayerRecorder(ExperimentPlayerRecorder):
                 logger.exception("Error finishing WandB run", error=err)
         logger.debug("WandB run finished")
 
-    def _compute_data_to_send(self) -> dict[str, Any]:
+    def _compute_data_to_send(self, *, is_hard_crash: bool = False) -> dict[str, Any]:
         """Compute the data to send to WandB.
 
-        The outcome subset is logged under the canonical [ExperimentOutcome] names — shared with
-        the DuckDB `experiment_summary` row — so the two sources stay interchangeable. The rest are
-        the player's process metrics + provenance. The outcome is logged only when a final bomb
-        state exists (the defuser); an expert run that never observed the bomb has no outcome.
+        The outcome subset is logged under the canonical ExperimentOutcome names, which is shared
+        with the DuckDB `experiment_summary` row, so the two sources stay interchangeable. The
+        rest are the player's process metrics + provenance.
+
+        The outcome is logged only when a final bomb state exists (i.e., for the defuser). An
+        expert run has no outcome because they never observed the bomb.
         """
-        player_record = self.build_player_record()
+        player_record = self.build_player_record(is_hard_crash=is_hard_crash)
         data_to_send = player_record.model_dump(
             mode="json", exclude={"step_records", "experiment_descriptor", "player_content"}
         )
@@ -189,9 +191,7 @@ class WandbExperimentPlayerRecorder(ExperimentPlayerRecorder):
         final_bomb_state = player_record.final_bomb_state
         if final_bomb_state is not None:
             data_to_send.update(
-                ExperimentOutcome.from_bomb_state(
-                    final_bomb_state, is_hard_crash=player_record.is_hard_crash
-                ).model_dump(mode="json")
+                ExperimentOutcome.model_validate(final_bomb_state).model_dump(mode="json")
             )
 
         # Remove None values (e.g. an expert run that never observed a bomb state).

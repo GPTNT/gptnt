@@ -259,9 +259,9 @@ def load_options_for_filters(connection: DuckDBConnection) -> Filters:
 
 
 OUTCOME_SQL: dict[OutcomeType, str] = {  # noqa: WPS407
-    "Solved": "is_solved = true",
-    "Strike Out": "is_strike_out = true",
-    "Timeout": "is_timed_out = true",
+    "Solved": "outcome = 'solved'",
+    "Strike Out": "outcome = 'strikeout'",
+    "Timeout": "outcome = 'timeout'",
 }
 
 
