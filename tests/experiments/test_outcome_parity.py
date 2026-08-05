@@ -18,12 +18,11 @@ from gptnt.experiments.models import (
     ExperimentOutcome,
     ExperimentStep,
     ExperimentSummary,
-    is_valid_experiment,
     is_valid_outcome,
 )
 from gptnt.experiments.recorder.wandb import WandbExperimentPlayerRecorder
 from gptnt.experiments.wandb_runs import is_run_valid
-from gptnt.ktane.state.bomb import BombState
+from gptnt.ktane.state.bomb import BombOutcome, BombState
 from gptnt.players.actions import DoNothingAction
 from gptnt.players.specification import PlayerCapabilities
 
@@ -83,6 +82,7 @@ _CASES = (
         False,
         True,
     ),
+    ("detonated", _bomb(solved=False, detonated=True, seconds=50.0), False, False),
     ("abandoned", _bomb(solved=False, detonated=False, seconds=50.0), False, False),
     ("solved_but_crashed", _bomb(solved=True, detonated=False, seconds=100.0), True, False),
 )
@@ -98,37 +98,67 @@ def test_outcome_and_validity_parity(
 ) -> None:
     """The DB summary, the W&B run summary, and both validity checks all agree per outcome."""
     descriptor = make_experiment_descriptor()
-    outcome = ExperimentOutcome.from_bomb_state(bomb, is_hard_crash=is_hard_crash)
     summary = ExperimentSummary.from_descriptor_and_bomb_state(
         descriptor=descriptor, final_bomb_state=bomb, is_hard_crash=is_hard_crash
     )
 
     # The DuckDB summary carries every outcome field under the same name and value.
-    for field in ExperimentOutcome.model_fields:
-        assert getattr(summary, field) == getattr(outcome, field), field
+    assert summary.outcome is bomb.outcome
+    assert summary.seconds_remaining == bomb.seconds_remaining
+    assert summary.strike_count == bomb.strike_count
+    assert summary.num_modules_solved == bomb.num_modules_solved
+    assert summary.is_hard_crash is is_hard_crash
 
     # One validity definition: the shared helper (on the outcome's flags) and the local bomb-state
     # path agree.
     assert (
         is_valid_outcome(
-            is_solved=outcome.is_solved,
-            is_timed_out=outcome.is_timed_out,
-            is_strike_out=outcome.is_strike_out,
-            is_hard_crash=outcome.is_hard_crash,
+            outcome=bomb.outcome,
+            is_hard_crash=is_hard_crash,
         )
         is expected_valid
     )
-    assert (
-        is_valid_experiment(is_hard_crash=is_hard_crash, final_bomb_state=bomb) is expected_valid
-    )
-
     # The W&B run-summary path (a finished defuser run) reaches the same verdict. A W&B Run can't
     # be built offline, so we stand in its three touched attributes with REAL outcome data — the
     # assertion still exercises the real is_run_valid logic end to end.
     run = SimpleNamespace(
-        state="finished", config={"role": "defuser"}, summary=outcome.model_dump()
+        state="finished",
+        config={"role": "defuser"},
+        summary={
+            **ExperimentOutcome.model_validate(bomb).model_dump(),
+            "is_hard_crash": is_hard_crash,
+        },
     )
     assert is_run_valid(run) is expected_valid
+
+
+def test_timeout_takes_precedence_if_terminal_signals_overlap() -> None:
+    """Preserve deterministic classification for a state the old flags allowed."""
+    bomb = _bomb(
+        solved=False,
+        detonated=True,
+        seconds=0,
+        strikes=["Wires", "Wires", "Wires"],
+    )
+
+    assert bomb.outcome is BombOutcome.timeout
+
+
+def test_wandb_validity_still_reads_legacy_boolean_summary() -> None:
+    """Existing W&B runs remain valid without the new outcome field."""
+    run = SimpleNamespace(
+        state="finished",
+        config={"role": "defuser"},
+        summary={
+            "is_solved": False,
+            "is_detonated": True,
+            "is_timed_out": True,
+            "is_strike_out": False,
+            "is_hard_crash": False,
+        },
+    )
+
+    assert is_run_valid(run)
 
 
 def test_outcome_field_names_are_shared_and_drift_free() -> None:
@@ -168,9 +198,16 @@ def test_wandb_recorder_logs_canonical_outcome_names() -> None:
 
     logged = recorder._compute_data_to_send()
 
-    expected = ExperimentOutcome.from_bomb_state(bomb, is_hard_crash=False)
     assert set(ExperimentOutcome.model_fields) <= set(logged)
     assert {"time_remaining", "total_modules_solved", "total_strikes"}.isdisjoint(logged)
-    assert logged["seconds_remaining"] == expected.seconds_remaining
-    assert logged["is_timed_out"] is expected.is_timed_out
-    assert logged["num_modules_solved"] == expected.num_modules_solved
+    assert logged["outcome"] == BombOutcome.timeout
+    assert logged["seconds_remaining"] == bomb.seconds_remaining
+    assert logged["num_modules_solved"] == bomb.num_modules_solved
+    assert logged["is_solved"] is False
+    assert logged["is_detonated"] is True
+    assert logged["is_timed_out"] is True
+    assert logged["is_strike_out"] is False
+
+    crashed = recorder._compute_data_to_send(is_hard_crash=True)
+    assert crashed["outcome"] == BombOutcome.timeout
+    assert crashed["is_hard_crash"] is True

@@ -102,9 +102,9 @@ def render_experiment_card(  # noqa: WPS231
                     unsafe_allow_html=True,
                     width="content",
                 )
-                if experiment.is_solved:
+                if experiment.outcome == "solved":
                     _ = st.markdown(":small[:green[:material/celebration:]]")
-                if experiment.is_detonated:
+                if experiment.outcome in {"timeout", "strikeout", "detonated"}:
                     _ = st.markdown(":small[:red[:material/destruction:]]")
 
         if show_button:

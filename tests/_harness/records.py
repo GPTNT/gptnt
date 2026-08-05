@@ -67,7 +67,7 @@ async def wait_for_recorded_outcome(
                 None,
             )
             if stated is not None:
-                return ExperimentOutcome.from_bomb_state(
-                    stated.final_bomb_state, is_hard_crash=stated.is_hard_crash
-                )
+                final_bomb_state = stated.final_bomb_state
+                assert final_bomb_state is not None
+                return ExperimentOutcome.model_validate(final_bomb_state)
             await anyio.sleep(0.1)

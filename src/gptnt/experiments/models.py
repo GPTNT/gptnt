@@ -272,6 +272,34 @@ class ExperimentOutcome(BaseModel):
     strike_count: int
     num_modules_solved: int
 
+    @computed_field
+    @property
+    def is_solved(self) -> bool:
+        """Whether the bomb was solved."""
+        return self.outcome == BombOutcome.solved
+
+    @computed_field
+    @property
+    def is_strike_out(self) -> bool:
+        """Whether the bomb was strike out."""
+        return self.outcome == BombOutcome.strikeout
+
+    @computed_field
+    @property
+    def is_timed_out(self) -> bool:
+        """Whether the bomb was timed out."""
+        return self.outcome == BombOutcome.timeout
+
+    @computed_field
+    @property
+    def is_detonated(self) -> bool:
+        """Whether the bomb ended by detonation, including timeout and strikeout."""
+        return self.outcome in {
+            BombOutcome.timeout,
+            BombOutcome.strikeout,
+            BombOutcome.detonated,
+        }
+
 
 class ExperimentSummary(Provenance, ExperimentOutcome, DuckDBSchemaMixin):
     """Experiment-level summary — one per experiment."""

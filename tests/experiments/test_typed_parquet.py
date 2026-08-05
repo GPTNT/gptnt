@@ -9,6 +9,7 @@ from pydantic_ai import RunUsage
 
 from gptnt.experiments.db.typed_parquet import read_typed_parquet, write_typed_parquet
 from gptnt.experiments.models import ExperimentStep, ExperimentSummary
+from gptnt.ktane.state.bomb import BombOutcome
 from gptnt.players.actions import DoNothingAction
 
 from tests._factories.experiments import make_experiment_summary
@@ -21,7 +22,7 @@ def test_round_trips_summaries_through_json_columns(tmp_path: Path) -> None:
     """The AsJSON fields (descriptor, capabilities) parse back into models after a write/read."""
     summaries = [
         make_experiment_summary(defuser_name="model-a", seed=1),
-        make_experiment_summary(defuser_name="model-b", is_solved=False, seed=2),
+        make_experiment_summary(defuser_name="model-b", outcome=BombOutcome.incomplete, seed=2),
     ]
     path = tmp_path / "summaries.parquet"
     write_typed_parquet(summaries, file_path=path)
