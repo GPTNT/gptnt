@@ -26,7 +26,11 @@ from gptnt.ktane.state.widget import WidgetStates
 
 
 class BombOutcome(StrEnum):
-    """The terminal condition represented by a bomb state."""
+    """Classification of a bomb state's outcome.
+
+    Values include terminal outcomes (solved, timeout, strikeout, and detonated) as well as the
+    non-terminal `incomplete` state when the game has not ended.
+    """
 
     solved = "solved"
     timeout = "timeout"
