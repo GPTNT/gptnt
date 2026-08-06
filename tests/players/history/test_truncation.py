@@ -1,15 +1,3 @@
-"""Truncation and its size estimate, scenario by scenario.
-
-Truncation answers one question: will the history plus the next observation fit under
-`input_tokens_limit`? It anchors on the real measured size of the latest prompt and drops whole
-oldest turns until there is room, sizing each dropped turn from a rough per-turn estimate — text
-from its length, images at `tokens_per_image`, none once a turn ages out of the window.
-
-The tests below fix each situation that estimate was built for: budgets met and exceeded, images
-sized in-window versus aged out, pinned and newest turns kept, the latest prompt standing in for
-the next observation, and the cache sub-counts not inflating the anchor.
-"""
-
 import datetime
 
 from pydantic_ai import (
@@ -35,10 +23,10 @@ def _turn(
     cache_read_tokens: int = 0,
     pinned: bool = False,
 ) -> Entry:
-    """A turn whose anchor size is `input_tokens` and whose content is `text_chars` and `images`.
+    """Build an entry with measured usage and controllable estimated content.
 
-    The images sit in a single user-prompt part, as a real multi-frame observation does, so the
-    window keeps one of them and a pinned entry keeps them all.
+    All images share one user-prompt part. An in-window entry therefore retains one image, while a
+    pinned entry retains every image.
     """
     prompt: list[str | BinaryContent] = ["x" * text_chars]
     prompt.extend(
@@ -78,21 +66,21 @@ def test_text_is_sized_at_four_characters_per_token() -> None:
 
 
 def test_in_window_turn_keeps_one_image_per_part() -> None:
-    """The window keeps the last image per part, so a five-frame turn counts one image here."""
+    """An in-window prompt part contributes one image to the estimate."""
     entry = _turn(input_tokens=0, text_chars=40, images=5)
 
     assert entry.estimated_render_tokens(in_window=True, tokens_per_image=100) == 10 + 100
 
 
 def test_aged_turn_is_sized_by_text_alone() -> None:
-    """Once a turn ages out of the window its images are stripped, so only its text is left."""
+    """An entry outside the image window contributes only text."""
     entry = _turn(input_tokens=0, text_chars=40, images=5)
 
     assert entry.estimated_render_tokens(in_window=False, tokens_per_image=100) == 10
 
 
 def test_pinned_turn_keeps_every_image() -> None:
-    """Pinned entries pass through the window untouched, so all five frames are counted."""
+    """A pinned entry contributes all of its images."""
     entry = _turn(input_tokens=0, text_chars=40, images=5, pinned=True)
 
     assert entry.estimated_render_tokens(in_window=True, tokens_per_image=100) == 10 + 5 * 100
@@ -114,7 +102,7 @@ def test_no_limit_never_truncates() -> None:
 
 
 def test_prompt_under_budget_keeps_everything() -> None:
-    """The latest prompt sits under 0.9 * limit, so nothing is dropped."""
+    """A prompt at the 80% threshold requires no truncation."""
     entries = [_turn(input_tokens=100, text_chars=400) for _ in range(5)]
     entries.append(_turn(input_tokens=800, text_chars=400))
 
@@ -122,26 +110,17 @@ def test_prompt_under_budget_keeps_everything() -> None:
 
 
 def test_over_budget_drops_oldest_until_it_fits() -> None:
-    """Anchor 1200 against a 900 budget overshoots by 300; each aged turn frees 100, so three go.
-
-    Five older turns plus the newest. The newest (the anchor) is never dropped; the oldest three of
-    the remaining four are enough to bring 1200 down to 900.
-    """
+    """Four 100-token turns reduce a 1,200-token prompt to the 800-token
+    budget."""
     entries = [_turn(input_tokens=0, text_chars=400) for _ in range(5)]
     entries.append(_turn(input_tokens=1200, text_chars=400))
 
-    assert _drop(entries, input_tokens_limit=1000) == 3
+    assert _drop(entries, input_tokens_limit=1000) == 4
 
 
 def test_only_the_latest_turn_impacts_the_truncation_decision() -> None:
-    """The most recent request usage should be the decider for truncation.
-
-    This is because the most recent one has the most accurate measurement of the prompt size give
-    any and all previous truncations.
-
-    Two histories with wildly different old sizes but the same newest size and content drop the
-    same number of turns — the anchor is the last real measurement, not a running sum.
-    """
+    """Only the latest provider measurement determines the starting prompt
+    size."""
     small_olds = [_turn(input_tokens=1, text_chars=400) for _ in range(5)]
     huge_olds = [_turn(input_tokens=9_999, text_chars=400) for _ in range(5)]
     latest = _turn(input_tokens=1200, text_chars=400)
@@ -152,19 +131,32 @@ def test_only_the_latest_turn_impacts_the_truncation_decision() -> None:
 
 
 def test_room_is_reserved_for_the_next_observation() -> None:
-    """Space is held back for the worst-case next observation, which lands on top of the render.
+    """The budget reserves tokens for the largest allowed next observation.
 
-    Anchor 850 fits the 900 budget (0.9 * 1000) on its own. Reserving two incoming frames plus one
-    of margin at 100 each removes 300 from the budget, so the same history now sheds turns to leave
-    room for the frames that will land next. With no image tokens, nothing is reserved and it fits.
+    A 750-token prompt fits within 80% of a 1,000-token limit. Reserving 300 tokens for three
+    images reduces the available history budget to 500, which requires truncation.
     """
     entries = [_turn(input_tokens=0, text_chars=400) for _ in range(5)]
-    entries.append(_turn(input_tokens=850, text_chars=400))
+    entries.append(_turn(input_tokens=750, text_chars=400))
 
     assert _drop(entries, input_tokens_limit=1000) == 0
     assert (
         _drop(
             entries, input_tokens_limit=1000, tokens_per_image=100, max_observations_per_request=2
+        )
+        > 0
+    )
+
+
+def test_room_is_reserved_for_a_sixteen_frame_observation() -> None:
+    """A 16-frame limit reserves tokens for 17 calibrated images."""
+    entries = [_turn(input_tokens=0, text_chars=400) for _ in range(5)]
+    entries.append(_turn(input_tokens=700, text_chars=400))
+
+    assert _drop(entries, input_tokens_limit=5000) == 0
+    assert (
+        _drop(
+            entries, input_tokens_limit=5000, tokens_per_image=200, max_observations_per_request=16
         )
         > 0
     )
@@ -198,7 +190,8 @@ def test_the_newest_turn_is_never_dropped() -> None:
 
 
 def test_a_prompt_larger_than_the_whole_history_drops_all_but_the_newest() -> None:
-    """When even shedding every older turn cannot fit, truncation drops all it may and stops."""
+    """Truncation keeps the newest turn even when omitting every older turn is
+    insufficient."""
     entries = [_turn(input_tokens=0, text_chars=40) for _ in range(4)]
     entries.append(_turn(input_tokens=100_000, text_chars=40))
 
@@ -209,10 +202,9 @@ def test_a_prompt_larger_than_the_whole_history_drops_all_but_the_newest() -> No
 
 
 def test_total_input_tokens_excludes_cache_subcounts() -> None:
-    """`input_tokens` is the whole prompt; the cache buckets are sub-counts within it.
+    """Cache token fields are subsets of `input_tokens`, not additional tokens.
 
-    genai-prices reports cache reads/writes as sub-counts of `input_tokens`, so summing them
-    double-counts — nearly doubling the anchor on cache-heavy providers and truncating for nothing.
+    Adding cache reads and writes to `input_tokens` would count them twice and truncate too early.
     """
     entry = Entry(
         messages=[],
@@ -228,7 +220,7 @@ def test_total_input_tokens_excludes_cache_subcounts() -> None:
 
 
 def test_cache_heavy_history_drops_the_same_as_a_fresh_one() -> None:
-    """The latest prompt's cache split must not move the drop count: only its total matters."""
+    """The cache-token split does not affect truncation."""
     olds = [_turn(input_tokens=0, text_chars=400) for _ in range(5)]
     fresh_latest = _turn(input_tokens=1200, text_chars=400)
     cached_latest = _turn(input_tokens=1200, text_chars=400, cache_read_tokens=1100)

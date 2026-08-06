@@ -1,11 +1,11 @@
 from gptnt.players.conversation._entry import Entry
 from gptnt.players.conversation._observations import partition_non_pinned_by_window
 
-_THRESHOLD = 0.9
-"""Fraction of `input_tokens_limit` left for the render after reserving the next observation.
+_THRESHOLD = 0.8
+"""Fraction of the input-token limit available to conversation history.
 
-The remaining tenth is slack for the parts the anchor cannot see yet: this turn's response text as
-it enters the history, and estimation error in the per-turn sizes.
+The remaining 20% covers response text added after the previous request and errors in the size
+estimates used to remove old turns. Tokens for the next observation are reserved separately.
 """
 
 
@@ -16,41 +16,54 @@ def turns_to_drop(
     preserve_window: int,
     tokens_per_image: int,
     max_observations_per_request: int,
+    omitted_count: int = 0,
 ) -> int:
-    """How many oldest turns to drop so the render plus the next observation fits the budget.
+    """Return how many oldest non-pinned turns the next request must omit.
 
-    The next observation is sent on top of the render, not inside it: a multi-frame module sends up
-    to `max_observations_per_request` frames, so that much space (plus one frame of margin) is held
-    back from the budget unconditionally — enough room to land the worst-case incoming frames even
-    when the last turn carried none. The decision then anchors on the real measured size of the
-    latest prompt — ground truth from the provider, so estimation error re-syncs every turn — and
-    when it exceeds the reserved budget, drops whole oldest non-pinned turns until it fits,
-    subtracting each dropped turn's estimated rendered size (text from length, images at
-    `tokens_per_image`, none once a turn ages out of the window). Pinned entries and the newest
-    turn are never dropped. Zero when no limit is set or the latest prompt already fits.
+    `omitted_count` is the number of turns already excluded from every request. The latest provider
+    input-token count measures the previous request, which excluded those turns. If it exceeds the
+    available budget, this function subtracts the estimated size of additional old turns until the
+    prompt fits. It always keeps pinned entries and the newest turn.
+
+    The available budget reserves enough tokens for the maximum next observation plus one extra
+    image. A provider count of zero is not a usable measurement, so `omitted_count` remains
+    unchanged.
     """
     if input_tokens_limit is None:
-        return 0
+        return omitted_count
 
     non_pinned = [(index, entry) for index, entry in enumerate(entries) if not entry.pinned]
-    if not non_pinned:
-        return 0
+    active = non_pinned[omitted_count:]
+    if not active:
+        return omitted_count
 
     reservation = (max_observations_per_request + 1) * tokens_per_image
     budget = input_tokens_limit * _THRESHOLD - reservation
-    anchor = non_pinned[-1][1].total_input_tokens
-    if anchor <= budget:
-        return 0
+    measured_tokens = active[-1][1].total_input_tokens
+    if measured_tokens <= 0 or measured_tokens <= budget:
+        return omitted_count
 
     _, in_window = partition_non_pinned_by_window(entries, window=preserve_window)
     freed = 0
-    for dropped, (index, entry) in enumerate(non_pinned[:-1], start=1):
+    for dropped, (index, entry) in enumerate(active[:-1], start=1):
         freed += entry.estimated_render_tokens(
             in_window=index in in_window, tokens_per_image=tokens_per_image
         )
-        if anchor - freed <= budget:
-            return dropped
-    return len(non_pinned) - 1
+        if measured_tokens - freed <= budget:
+            return omitted_count + dropped
+    return omitted_count + len(active) - 1
+
+
+def drop_oldest_non_pinned(*, entries: list[Entry], count: int) -> list[Entry]:
+    """Omit the first `count` non-pinned entries."""
+    kept: list[Entry] = []
+    dropped = 0
+    for entry in entries:
+        if not entry.pinned and dropped < count:
+            dropped += 1
+            continue
+        kept.append(entry)
+    return kept
 
 
 def truncate(
@@ -61,7 +74,7 @@ def truncate(
     tokens_per_image: int,
     max_observations_per_request: int,
 ) -> list[Entry]:
-    """Drop the oldest non-pinned turns needed to fit the budget, keeping pinned entries.
+    """Drop the oldest non-pinned turns needed to fit the budget.
 
     With no limit set the entries are returned unchanged.
     """
@@ -72,11 +85,4 @@ def truncate(
         tokens_per_image=tokens_per_image,
         max_observations_per_request=max_observations_per_request,
     )
-    kept: list[Entry] = []
-    dropped = 0
-    for entry in entries:
-        if not entry.pinned and dropped < count:
-            dropped += 1
-            continue
-        kept.append(entry)
-    return kept
+    return drop_oldest_non_pinned(entries=entries, count=count)
