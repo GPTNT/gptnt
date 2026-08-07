@@ -1,7 +1,8 @@
-from typing import Generic, TypeVar
+from typing import Generic, Self, TypeVar
 
 from pydantic import BaseModel, Field, field_validator
 from pydantic_ai import BaseToolCallPart, BaseToolReturnPart, ModelMessage, ModelResponse, RunUsage
+from whenever import Instant
 
 from gptnt.players.exceptions import AIResponseErrorType
 
@@ -47,3 +48,26 @@ class AgentCallResult(BaseModel, Generic[ModelOutputT_co]):  # noqa: UP046
             if not isinstance(final_message, ModelResponse):
                 raise ValueError("The final message in new_messages must be a ModelResponse.")
         return messages
+
+
+class DispatchedAgentCallResult(AgentCallResult[ModelOutputT_co], Generic[ModelOutputT_co]):  # noqa: UP046
+    """Agent result stamped when dispatch of its output begins."""
+
+    dispatched_at: Instant
+
+    @classmethod
+    def from_agent_call(cls, agent_call_result: AgentCallResult[ModelOutputT_co]) -> Self:
+        """Copy an agent result and stamp it with the current time.
+
+        Since we are copying an existing `AgentCallResult`, we use `model_construct` to avoid
+        re-validating the object.
+        """
+        return cls.model_construct(
+            output=agent_call_result.output,
+            thoughts=agent_call_result.thoughts,
+            usage=agent_call_result.usage,
+            new_messages=agent_call_result.new_messages,
+            ai_response_error=agent_call_result.ai_response_error,
+            raw_output=agent_call_result.raw_output,
+            dispatched_at=Instant.now(),
+        )

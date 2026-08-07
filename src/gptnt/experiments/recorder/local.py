@@ -76,7 +76,7 @@ class ExperimentPlayerRecorder:
         self.experiment_descriptor = experiment_descriptor
         self.protocol = protocol
         self.player_uuid = player_uuid
-        self.start_time = Instant.now()
+        self.start_time = experiment_descriptor.start_time
         logger.debug(
             "Configured experiment logger",
             attempt_name=experiment_descriptor.name,
@@ -110,6 +110,7 @@ class ExperimentPlayerRecorder:
     def track_step(
         self,
         *,
+        event_time: Instant,
         agent_call_result: AgentCallResult[PlayerOutputType | KtaneGameplayInput],
         num_prompt_truncations: int,
         input_messages: list[ModelMessage],
@@ -126,7 +127,8 @@ class ExperimentPlayerRecorder:
         self.num_steps += 1
 
         record = ExperimentStep(
-            timestamp=self._seconds_since_start,
+            # The timestamp should be relative to the start of the experiment.
+            timestamp=(event_time - self.start_time).in_seconds(),
             role=self.protocol.role,
             session_id=self.experiment_descriptor.session_id,
             player_uuid=self.player_uuid,
@@ -217,11 +219,6 @@ class ExperimentPlayerRecorder:
             self.step_records[-1] = self.step_records[-1].model_copy(
                 update={"bomb_state": final_bomb_state}
             )
-
-    @property
-    def _seconds_since_start(self) -> float:
-        """Get the time delta since the start of the experiment in seconds."""
-        return (Instant.now() - self.start_time).in_seconds()
 
 
 def _write_player_record_sync(player_record: ExperimentPlayerRecord, output_path: Path) -> None:

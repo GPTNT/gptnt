@@ -23,17 +23,25 @@ from gptnt.players.actions import (
 )
 from gptnt.players.exceptions import AIResponseErrorType
 from gptnt.players.observation_handler import ObservationHandler
-from gptnt.players.result import AgentCallResult
+from gptnt.players.result import AgentCallResult, DispatchedAgentCallResult
 from gptnt.players.specification import PlayerProtocol
 from gptnt.processors.image_resizer import CoordinateOutOfBoundsError
 from gptnt.processors.set_of_marks import InvalidMarkLocationError
 
 logger = structlog.get_logger()
 
-ActionHandlerType = Callable[
-    [AgentCallResult[PlayerOutputType | KtaneGameplayInput]],
-    Awaitable[AgentCallResult[PlayerOutputType | KtaneGameplayInput]],
-]
+
+type DispatchedAgentCall = (
+    DispatchedAgentCallResult[SendMessageAction]
+    | DispatchedAgentCallResult[DoNothingAction]
+    | DispatchedAgentCallResult[KtaneGameplayInput]
+)
+"""Type alias for the dispatched agent call result.
+
+These are the only things which a dispatched agent call result can be.
+"""
+
+type _ActionHandlerType = Callable[..., Awaitable[DispatchedAgentCall]]
 
 
 @dataclass(kw_only=True)
@@ -50,7 +58,7 @@ class BaseActionDispatcher(abc.ABC):
 
     async def direct_output_from_agent(
         self, agent_output: AgentCallResult[PlayerOutputType]
-    ) -> AgentCallResult[PlayerOutputType | KtaneGameplayInput]:
+    ) -> DispatchedAgentCall:
         """Process output from Agent and direct to correct function.
 
         Once it comes in, index the type in the agent_output_type_to_function and call the function
@@ -62,16 +70,13 @@ class BaseActionDispatcher(abc.ABC):
 
     def agent_output_type_to_function(
         self, output_type: type[PlayerOutputType]
-    ) -> ActionHandlerType:
+    ) -> _ActionHandlerType:
         """Map the output type from the AI model to a method within the function.
 
         This will allow us to dynamically convert the output from the AI model to a function that
         can be called to carry the logic forwards.
         """
-        switcher: dict[
-            type[PlayerOutputType],
-            Callable[..., Awaitable[AgentCallResult[PlayerOutputType | KtaneGameplayInput]]],
-        ] = {
+        switcher: dict[type[PlayerOutputType], _ActionHandlerType] = {
             SendMessageAction: self._send_message,
             DoNothingAction: self._do_nothing_action,
             InteractGameAction: self._send_game_action,
@@ -105,15 +110,21 @@ class BaseActionDispatcher(abc.ABC):
     @logfire.instrument("Do nothing action")
     async def _do_nothing_action(
         self, action: AgentCallResult[DoNothingAction]
-    ) -> AgentCallResult[DoNothingAction]:
+    ) -> DispatchedAgentCallResult[DoNothingAction]:
         """Do nothing action."""
-        return action
+        return DispatchedAgentCallResult.from_agent_call(action)
 
     @logfire.instrument("Send game action")
     async def _send_game_action(
         self, action: AgentCallResult[GameInteractionActionType]
-    ) -> AgentCallResult[PlayerOutputType | KtaneGameplayInput]:
-        """Send a game action to the game."""
+    ) -> (
+        DispatchedAgentCallResult[DoNothingAction] | DispatchedAgentCallResult[KtaneGameplayInput]
+    ):
+        """Send a game action to the game.
+
+        One of two things will happen: either it will be converted to a game action and sent to the
+        game, or it will be treated as a do nothing action if the conversion for SoM fails.
+        """
         try:
             game_action = self.observation_handler.convert_to_game_action(action=action.output)
         except InvalidMarkLocationError:
@@ -121,7 +132,7 @@ class BaseActionDispatcher(abc.ABC):
                 "Invalid mark location in action, defaulting to DoNothing", action=action
             )
             return await self._do_nothing_action(
-                AgentCallResult[DoNothingAction](
+                AgentCallResult(
                     output=DoNothingAction(),
                     thoughts=None,
                     usage=action.usage,
@@ -135,7 +146,7 @@ class BaseActionDispatcher(abc.ABC):
                 "Out of bounds coordinate in action, defaulting to DoNothing", action=action
             )
             return await self._do_nothing_action(
-                AgentCallResult[DoNothingAction](
+                AgentCallResult(
                     output=DoNothingAction(),
                     thoughts=None,
                     usage=action.usage,
@@ -145,20 +156,24 @@ class BaseActionDispatcher(abc.ABC):
                 )
             )
 
-        _ = await self.send_game_action(action=game_action)
-        return AgentCallResult[PlayerOutputType | KtaneGameplayInput](
-            output=game_action,
-            thoughts=action.thoughts,
-            usage=action.usage,
-            new_messages=action.new_messages,
-            raw_output=action.raw_output,
-            ai_response_error=[],
+        dispatched_result = DispatchedAgentCallResult[KtaneGameplayInput].from_agent_call(
+            AgentCallResult(
+                output=game_action,
+                thoughts=action.thoughts,
+                usage=action.usage,
+                new_messages=action.new_messages,
+                raw_output=action.raw_output,
+                ai_response_error=[],
+            )
         )
+        _ = await self.send_game_action(action=game_action)
+        return dispatched_result
 
     @logfire.instrument("Send message")
     async def _send_message(
         self, action: AgentCallResult[SendMessageAction]
-    ) -> AgentCallResult[SendMessageAction]:
+    ) -> DispatchedAgentCallResult[SendMessageAction]:
         """Send a message to the dialogue space."""
+        dispatched_result = DispatchedAgentCallResult[SendMessageAction].from_agent_call(action)
         _ = await self.send_dialogue_message(action.output.message)
-        return action
+        return dispatched_result

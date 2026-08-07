@@ -10,6 +10,7 @@ from anyio.abc import TaskGroup
 from fastapi import HTTPException
 from faststream.redis import RedisBroker
 from pydantic import BaseModel
+from whenever import Instant
 
 from gptnt.common.paths import Paths
 from gptnt.experiments.descriptor import ExperimentDescriptor
@@ -18,10 +19,9 @@ from gptnt.interactive.services.heartbeat.base import PlayerState
 from gptnt.interactive.services.player.agent import PlayerAgent
 from gptnt.interactive.services.player.commands import PlayerMessage, StopPlayerEvent
 from gptnt.interactive.services.rpc import BaseRPCService
-from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.manual import KtaneManualPaths
 from gptnt.observability.span_timing import set_timing_identity
-from gptnt.players.actions import PlayerOutputType
+from gptnt.players.base_action_dispatcher import DispatchedAgentCall
 from gptnt.players.conversation import Conversation
 from gptnt.players.input_builder import AgentInputBuilder
 from gptnt.players.result import AgentCallResult
@@ -227,11 +227,10 @@ class PlayerService(PlayerAgent, BaseRPCService[PlayerCommand]):
         # if tapf_output:
         #     _ = await self.handle_feedback(tapf_output)
 
-    async def update_metrics(
-        self, agent_call_result: AgentCallResult[PlayerOutputType | KtaneGameplayInput]
-    ) -> None:
+    async def update_metrics(self, agent_call_result: DispatchedAgentCall) -> None:
         """Update the metrics for the player based on the agent call result."""
         self.experiment_recorder.track_step(
+            event_time=agent_call_result.dispatched_at,
             agent_call_result=agent_call_result,
             num_prompt_truncations=self.conversation.num_entries_dropped(self.capabilities),
             is_reflection=False,
@@ -254,6 +253,7 @@ class PlayerService(PlayerAgent, BaseRPCService[PlayerCommand]):
         )
 
         self.experiment_recorder.track_step(
+            event_time=Instant.now(),
             agent_call_result=agent_call_result,
             num_prompt_truncations=self.conversation.num_entries_dropped(self.capabilities),
             is_reflection=True,

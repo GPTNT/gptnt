@@ -28,6 +28,7 @@ from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import DoNothingAction
 from gptnt.players.observation_handler import Observation
+from gptnt.players.result import AgentCallResult
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 
@@ -331,6 +332,36 @@ async def test_recorder_skips_empty_record(
 
     # Synchronous glob in a test assertion — not a hot path, anyio.Path is unwarranted here.
     assert list(tmp_path.glob("*.parquet")) == []  # noqa: ASYNC240
+
+
+@pytest.mark.anyio
+async def test_recorder_uses_shared_origin_and_supplied_dispatch_timestamp(
+    experiment_descriptor: ExperimentDescriptor,
+    player_content: PlayerContent,
+    simple_model_messages: list[ModelMessage],
+) -> None:
+    first = ExperimentPlayerRecorder(capabilities=player_content.capabilities)
+    second = ExperimentPlayerRecorder(capabilities=player_content.capabilities)
+
+    for recorder in (first, second):
+        await recorder.configure_for_experiment(
+            experiment_descriptor=experiment_descriptor,
+            protocol=player_content.protocol,
+            player_uuid=player_content.uuid,
+        )
+
+    assert first.start_time == second.start_time == experiment_descriptor.start_time
+
+    first.track_step(
+        event_time=experiment_descriptor.start_time.add(seconds=2.75),
+        agent_call_result=AgentCallResult(
+            output=DoNothingAction(), thoughts=None, usage=RunUsage(), new_messages=[]
+        ),
+        num_prompt_truncations=0,
+        input_messages=simple_model_messages,
+    )
+
+    assert first.step_records[0].timestamp == pytest.approx(2.75)
 
 
 def _write_record_parquet(record: ExperimentPlayerRecord, path: Path) -> None:
