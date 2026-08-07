@@ -19,6 +19,7 @@ from gptnt.players.observation_handler import Observation
 if TYPE_CHECKING:
     from pydantic import UUID4
     from pydantic_ai import ModelMessage
+    from whenever import Instant
 
     from gptnt.experiments.descriptor import ExperimentDescriptor
     from gptnt.experiments.models import ExperimentStep
@@ -125,6 +126,7 @@ class WandbExperimentPlayerRecorder(ExperimentPlayerRecorder):
     def track_step(
         self,
         *,
+        event_time: Instant,
         agent_call_result: AgentCallResult[PlayerOutputType | KtaneGameplayInput],
         num_prompt_truncations: int,
         input_messages: list[ModelMessage],
@@ -132,6 +134,7 @@ class WandbExperimentPlayerRecorder(ExperimentPlayerRecorder):
         **kwargs: bool | str | None | float,
     ) -> None:
         super().track_step(
+            event_time=event_time,
             agent_call_result=agent_call_result,
             num_prompt_truncations=num_prompt_truncations,
             input_messages=input_messages,

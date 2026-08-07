@@ -50,6 +50,7 @@ class ExperimentStep(DuckDBSchemaMixin):
 
     step: int
     timestamp: float
+    """Seconds from the shared experiment start to the beginning of output dispatch."""
     role: PlayerRole
     session_id: UUID4
     player_uuid: UUID4
