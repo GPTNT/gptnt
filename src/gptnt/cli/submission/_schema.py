@@ -13,9 +13,9 @@ from pydantic_ai import RunUsage
 from whenever import Instant
 
 from gptnt.cli.config_discovery import player_identity
+from gptnt.common.provenance import Provenance
 from gptnt.experiments.db.schema import AsJSON
 from gptnt.experiments.models import ExperimentSummary
-from gptnt.experiments.provenance import Provenance
 from gptnt.experiments.suite.core import SuiteIdentity
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.specification import PlayerCapabilities, PlayerIdentity, PlayerRole

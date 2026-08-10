@@ -34,8 +34,8 @@ from gptnt.cli.submission._schema import (
     SubmissionPairingKey,
     describe_pairing,
 )
+from gptnt.common.provenance import is_dirty_sha, is_valid_version
 from gptnt.experiments.db.typed_parquet import read_typed_parquet
-from gptnt.experiments.provenance import is_dirty_sha, is_valid_version
 
 if TYPE_CHECKING:
     from gptnt.experiments.suite.lock import SuiteLockEntry
