@@ -30,8 +30,8 @@ from gptnt.cli.submission._schema import (
     Submitter,
     parse_submission_manifest,
 )
+from gptnt.common.provenance import Provenance
 from gptnt.experiments.db.typed_parquet import read_typed_parquet, write_typed_parquet
-from gptnt.experiments.provenance import Provenance
 from gptnt.experiments.suite.core import SuiteIdentity
 from gptnt.statics.run_metadata import StaticsRunMetadata
 

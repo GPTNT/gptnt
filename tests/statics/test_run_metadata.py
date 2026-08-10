@@ -11,7 +11,7 @@ import pytest
 from pydantic import ValidationError
 from whenever import Instant
 
-from gptnt.experiments.provenance import Provenance
+from gptnt.common.provenance import Provenance
 from gptnt.players.specification import PlayerCapabilities
 from gptnt.statics import run_metadata
 

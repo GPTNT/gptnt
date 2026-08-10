@@ -22,7 +22,7 @@ While `MAJOR` is `0`, a breaking commit bumps **MINOR** (not to `1.0.0`), and a 
 
 Comparability is judged on **MAJOR** once we are past `1.0.0` (same major ⇒ comparable). The full
 version and git SHA are stamped into every recorded run for exact reproduction (see
-[`provenance.py`](src/gptnt/experiments/provenance.py)).
+[`provenance.py`](src/gptnt/common/provenance.py)).
 
 ### How versions are produced
 
