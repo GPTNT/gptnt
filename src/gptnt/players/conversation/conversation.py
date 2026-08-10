@@ -10,22 +10,23 @@ from gptnt.players.conversation._observations import (
     remove_binary_content_from_messages,
     remove_binary_content_outside_window,
 )
-from gptnt.players.conversation._truncation import truncate, turns_to_drop
+from gptnt.players.conversation._truncation import drop_oldest_non_pinned, turns_to_drop
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.prompts.manual import load_manual_as_prompt
 
 
 @dataclass(kw_only=True)
 class Conversation:
-    """Append-only store of conversation entries and the render derived from them.
+    """Store every conversation entry and build the history sent to the model.
 
-    The store's only mutation is `evict_observations`, which drops image bytes from non-pinned
-    entries that have aged out of the observation window. Those bytes are already invisible to
-    every current and future render, so eviction changes no render output. Recorded text is never
-    touched, and `render` never mutates the store.
+    `_dropped_non_pinned` counts the oldest non-pinned entries omitted from every future request.
+    That count can increase but cannot decrease. Image eviction removes old image bytes from
+    storage; neither truncation nor eviction removes stored text.
     """
 
     entries: list[Entry] = field(default_factory=list)
+    _dropped_non_pinned: int = field(default=0, init=False, repr=False)
+    _evaluated_non_pinned: int = field(default=0, init=False, repr=False)
 
     @classmethod
     def begin(
@@ -53,11 +54,11 @@ class Conversation:
         return cls(entries=entries)
 
     def record(self, new_messages: list[ModelMessage]) -> None:
-        """Append one exchange as a non-pinned turn, stamped with its real prompt size."""
+        """Append a non-pinned exchange with its measured prompt size."""
         self.entries.append(Entry.from_turn(messages=new_messages))
 
     def evict_observations(self, window: int) -> None:
-        """Drop image bytes from non-pinned entries older than the last `window` turns."""
+        """Drop image bytes from non-pinned entries outside `window`."""
         aged, _ = partition_non_pinned_by_window(self.entries, window=window)
         for index in aged:
             self.entries[index].messages = remove_binary_content_from_messages(
@@ -65,20 +66,14 @@ class Conversation:
             )
 
     def render(self, capabilities: PlayerCapabilities) -> list[ModelMessage]:
-        """Build the message view to send to the model.
+        """Build the message history for the next model request.
 
-        This means: truncate, then window, then coerce, then flatten. It's a query over the
-        existing entries and doesn't directly mutate them. The returned messages are a copy of the
-        originals, with any evicted binary content removed and any tool output coerced into native
-        output.
+        First update the number of permanently omitted turns. Then remove images outside the
+        observation window, convert tool output to the model's native output format, and flatten
+        the remaining entries into messages.
         """
-        kept = truncate(
-            entries=self.entries,
-            input_tokens_limit=capabilities.usage_limits.input_tokens_limit,
-            preserve_window=capabilities.preserve_last_frame_for_n_turns,
-            tokens_per_image=capabilities.tokens_per_image,
-            max_observations_per_request=capabilities.max_observations_per_request,
-        )
+        self._refresh_truncation(capabilities)
+        kept = drop_oldest_non_pinned(entries=self.entries, count=self._dropped_non_pinned)
         windowed = remove_binary_content_outside_window(
             entries=kept, window=capabilities.preserve_last_frame_for_n_turns
         )
@@ -89,11 +84,28 @@ class Conversation:
         ]
 
     def num_entries_dropped(self, capabilities: PlayerCapabilities) -> int:
-        """Compute the number of entries that were dropped from the conversation."""
-        return turns_to_drop(
+        """Return how many oldest non-pinned entries the next request omits."""
+        self._refresh_truncation(capabilities)
+        return self._dropped_non_pinned
+
+    def _refresh_truncation(self, capabilities: PlayerCapabilities) -> None:
+        """Update the omitted-entry count after a turn is recorded.
+
+        The latest provider count measured a prompt that already omitted the current prefix. Only
+        entries after that prefix may be subtracted from the measurement. The count never
+        decreases, so later requests cannot restore previously omitted entries. A zero provider
+        count leaves it unchanged.
+        """
+        non_pinned = sum(not entry.pinned for entry in self.entries)
+        if non_pinned == self._evaluated_non_pinned:
+            return
+
+        self._dropped_non_pinned = turns_to_drop(
             entries=self.entries,
             input_tokens_limit=capabilities.usage_limits.input_tokens_limit,
             preserve_window=capabilities.preserve_last_frame_for_n_turns,
             tokens_per_image=capabilities.tokens_per_image,
             max_observations_per_request=capabilities.max_observations_per_request,
+            omitted_count=self._dropped_non_pinned,
         )
+        self._evaluated_non_pinned = non_pinned

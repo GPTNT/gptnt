@@ -10,7 +10,7 @@ _CHARS_PER_TOKEN = 4
 
 
 def _text_chars(element: ModelRequestPart | ModelResponsePart | UserContent) -> int:
-    """Number of text characters `element` contributes: a message part, or a piece within one."""
+    """Count text characters in a message part or nested content."""
     if isinstance(element, str):
         return len(element)
     content = getattr(element, "content", None)
@@ -53,20 +53,9 @@ class Entry:
     def estimated_render_tokens(self, *, in_window: bool, tokens_per_image: int) -> int:
         """Estimate the tokens this entry adds to a render.
 
-        The estimated counterpart of `total_input_tokens`. Text is estimated from its length at a
-        fixed characters-per-token ratio rather than a real tokenizer because they're not really
-        that huge - we cap max tokens on the running so it should be okay.
-
-        Binary content (images, etc) are the heft of the prompt and we estimate the tokens per each
-        using `tokens_per_image`.
-
-        We count images differently depending on whether the entry is pinned, in the observation
-        window, or aged out. Pinned entries keep all their images, in-window entries keep one image
-        per part, and aged-out entries keep none. This is because the window keeps one image per
-        part, and once an entry has aged out, its images are stripped.
-
-        The `in_window` parameter indicates whether the entry is currently in the observation
-        window or not.
+        Text uses a fixed four-characters-per-token estimate. Each retained image contributes
+        `tokens_per_image`: pinned entries retain every image, entries inside the observation
+        window retain one image per prompt part, and older entries retain none.
         """
         text_chars = 0
         image_bearing_parts = 0
