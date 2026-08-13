@@ -1,0 +1,22 @@
+# Per-module intrinsic facts, keyed by KtaneContent ModuleID.
+#
+# GPTNT owns this file. Manual profiles, missions, and suites never restate anything here: a fact
+# about a module (how the Defuser must observe it, and in future how its state is read) belongs in
+# one place, not copy-pasted into every config that happens to use the module.
+#
+# The key is the ModuleID reported by the game and used everywhere else (the same string a manual
+# profile puts in `id:`). The set is open so that community modules can be added without touching
+# any enum.
+#
+# Record only what deviates from the defaults. A module absent from this file takes them:
+#
+#   needs_multiple_frames: false   # a single observation frame is enough
+#
+# So the file lists the exceptions, not the whole module set.
+
+modules:
+  # The answer is a sequence of light flashes, which a single frame cannot capture.
+  Simon:
+    needs_multiple_frames: true
+  Morse:
+    needs_multiple_frames: true
