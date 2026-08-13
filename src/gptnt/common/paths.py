@@ -54,6 +54,9 @@ class Paths(BaseSettings):
     submissions: Path = output.joinpath("submissions")
     """Path to the prepared submissions."""
 
+    manual_cache: Path = output.joinpath("manual_cache")
+    """Storage for caching manuals and their assets."""
+
     @property
     def configs(self) -> Path:
         """Configs directory: the override, the checkout's `configs/`, or the packaged copy.
