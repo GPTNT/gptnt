@@ -16,12 +16,8 @@ from pydantic import (
     model_validator,
 )
 
-from gptnt.ktane.state.modules import (
-    NEEDS_MULTIPLE_IMAGES,
-    KtaneComponent,
-    ModuleStates,
-    TimerState,
-)
+from gptnt.ktane.state.module_registry import module_registry
+from gptnt.ktane.state.modules import KtaneComponent, ModuleStates, TimerState
 from gptnt.ktane.state.widget import WidgetStates
 
 
@@ -138,7 +134,7 @@ class BombState(BaseModel):
     def view_needs_multiple_frames(self) -> bool:
         """Check if the current view needs multiple frames."""
         if self.zoomed_in_component is not None:
-            return NEEDS_MULTIPLE_IMAGES.get(self.zoomed_in_component, False)
+            return module_registry().needs_multiple_frames(self.zoomed_in_component.value)
         return False
 
     @property

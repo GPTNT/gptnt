@@ -89,6 +89,11 @@ class Paths(BaseSettings):
         return self.configs / "missions"
 
     @property
+    def module_registry(self) -> Path:
+        """Per-module facts file (`configs/module_registry.yaml`)."""
+        return self.configs / "module_registry.yaml"
+
+    @property
     def experiment_recorder_dir(self) -> Path:
         """The base directory under which each run's timestamped output dir is created."""
         return self.output.joinpath("experiment_recorder_outputs")
