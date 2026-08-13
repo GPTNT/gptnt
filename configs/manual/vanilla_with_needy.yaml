@@ -1,0 +1,59 @@
+include_frontmatter: true
+
+documents:
+  # Regular modules
+  - id: Wires
+    source: ktanecontent
+    language: en
+  - id: BigButton
+    source: ktanecontent
+    language: en
+  - id: Keypad
+    source: ktanecontent
+    language: en
+  - id: Simon
+    source: ktanecontent
+    language: en
+  - id: WhosOnFirst
+    source: ktanecontent
+    language: en
+  - id: Memory
+    source: ktanecontent
+    language: en
+  - id: Morse
+    source: ktanecontent
+    language: en
+  - id: Venn
+    source: ktanecontent
+    language: en
+  - id: WireSequence
+    source: ktanecontent
+    language: en
+  - id: Maze
+    source: ktanecontent
+    language: en
+  - id: Password
+    source: ktanecontent
+    language: en
+
+  # Needy modules
+  - id: NeedyVentGas
+    source: ktanecontent
+    language: en
+  - id: NeedyCapacitor
+    source: ktanecontent
+    language: en
+  - id: NeedyKnob
+    source: ktanecontent
+    language: en
+
+  # Widget appendices (A: indicators, B: batteries, C: ports)
+  - id: IndicatorWidget
+    source: ktanecontent
+    language: en
+  - id: BatteryWidget
+    source: ktanecontent
+    language: en
+  - id: PortWidget
+    source: ktanecontent
+    language: en
