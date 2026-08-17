@@ -1,48 +1,48 @@
 include_frontmatter: false
 
 documents:
-  # Regular modules
+  # Regular modules — French vanilla pages come from the official manual, not KtaneContent.
   - id: Wires
-    source: ktanecontent
+    source: official
     language: fr
   - id: BigButton
-    source: ktanecontent
+    source: official
     language: fr
   - id: Keypad
-    source: ktanecontent
+    source: official
     language: fr
   - id: Simon
-    source: ktanecontent
+    source: official
     language: fr
   - id: WhosOnFirst
-    source: ktanecontent
+    source: official
     language: fr
   - id: Memory
-    source: ktanecontent
+    source: official
     language: fr
   - id: Morse
-    source: ktanecontent
+    source: official
     language: fr
   - id: Venn
-    source: ktanecontent
+    source: official
     language: fr
   - id: WireSequence
-    source: ktanecontent
+    source: official
     language: fr
   - id: Maze
-    source: ktanecontent
+    source: official
     language: fr
   - id: Password
-    source: ktanecontent
+    source: official
     language: fr
 
   # Widget appendices (A: indicators, B: batteries, C: ports)
   - id: IndicatorWidget
-    source: ktanecontent
+    source: official
     language: fr
   - id: BatteryWidget
-    source: ktanecontent
+    source: official
     language: fr
   - id: PortWidget
-    source: ktanecontent
+    source: official
     language: fr

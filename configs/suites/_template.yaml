@@ -1,5 +1,8 @@
 # @package _global_
 
+defaults:
+  - /manual@suite.manual_profile: vanilla
+
 suite:
   _target_: gptnt.experiments.suite.core.Suite
   name: ???
@@ -21,3 +24,6 @@ suite:
   matchup:
     _target_: gptnt.experiments.suite.core.SuiteMatchup
     pairing_type: ???
+  manual_profile:
+    _target_: gptnt.ktane.manuals.profile.ManualProfile
+    documents: ???
