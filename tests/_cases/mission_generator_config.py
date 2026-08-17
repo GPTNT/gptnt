@@ -1,5 +1,5 @@
 from gptnt.experiments.generation.missions import MissionGeneratorConfig
-from gptnt.ktane.state.modules import KtaneComponent
+from gptnt.ktane.state.modules import KNOWN_KTANE_MODULE_IDS
 
 
 class MissionGeneratorConfigCases:
@@ -38,6 +38,5 @@ class MissionGeneratorConfigCases:
             min_optional_widgets=1,
             max_optional_widgets=5,
             # Force there to be repeated modules
-            excluded_modules=set(KtaneComponent)
-            - {KtaneComponent.big_button, KtaneComponent.keypad},
+            excluded_modules=KNOWN_KTANE_MODULE_IDS - {"BigButton", "Keypad"},
         )

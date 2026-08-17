@@ -7,7 +7,7 @@ prompts, and CLI. Self-contained domain data (no generation deps).
 from types import MappingProxyType
 from typing import Literal
 
-from gptnt.ktane.state.modules import KtaneComponent
+from gptnt.ktane.state.modules import KNOWN_KTANE_MODULE_IDS, KtaneModuleId
 
 type TaskType = Literal["vqa", "oe", "grounding", "expert_vqa"]
 
@@ -16,17 +16,17 @@ GROUNDING_HALLUCINATION_TYPE_B_RESPONSE = "None"
 
 MODULE_NAMES = MappingProxyType(
     {
-        KtaneComponent.wires: "Wires",
-        KtaneComponent.big_button: "Button",
-        KtaneComponent.keypad: "Keypad",
-        KtaneComponent.simon: "Simon Says",
-        KtaneComponent.whos_on_first: "Who's On First",
-        KtaneComponent.memory: "Memory",
-        KtaneComponent.morse_code: "Morse Code",
-        KtaneComponent.venn: "Complicated Wires",
-        KtaneComponent.wire_sequence: "Wire Sequence",
-        KtaneComponent.maze: "Maze",
-        KtaneComponent.password: "Password",
+        "Wires": "Wires",
+        "BigButton": "Button",
+        "Keypad": "Keypad",
+        "Simon": "Simon Says",
+        "WhosOnFirst": "Who's On First",
+        "Memory": "Memory",
+        "Morse": "Morse Code",
+        "Venn": "Complicated Wires",
+        "WireSequence": "Wire Sequence",
+        "Maze": "Maze",
+        "Password": "Password",
     }
 )
 
@@ -308,17 +308,9 @@ KEYPAD_SYMBOL_DESCRIPTIONS: MappingProxyType[str, list[str]] = MappingProxyType(
     }
 )
 
-EXCLUDED_MODULES = frozenset(
-    (
-        KtaneComponent.timer,
-        KtaneComponent.empty,
-        KtaneComponent.needy_capacitor,
-        KtaneComponent.needy_vent_gas,
-        KtaneComponent.needy_knob,
-    )
-)
+EXCLUDED_MODULES = frozenset(("NeedyCapacitor", "NeedyVentGas", "NeedyKnob"))
 
 
-def get_valid_modules() -> list[KtaneComponent]:
-    """Get list of valid modules (excluding timer, empty, and needy modules)."""
-    return [module for module in KtaneComponent if module not in EXCLUDED_MODULES]
+def get_valid_modules() -> list[KtaneModuleId]:
+    """Get the known solvable modules used by static evaluations."""
+    return sorted(KNOWN_KTANE_MODULE_IDS - EXCLUDED_MODULES)

@@ -28,7 +28,7 @@ from gptnt.experiments.descriptor import ExperimentDescriptor, PlayerContent
 from gptnt.ktane.actions import KtaneBaseAction, KtaneGameplayInput
 from gptnt.ktane.mission_spec import compute_mission_key
 from gptnt.ktane.state.bomb import BombOutcome, BombState
-from gptnt.ktane.state.modules import KtaneComponent
+from gptnt.ktane.state.modules import KtaneModuleId
 from gptnt.players.actions import DoNothingAction, PlayerOutputType, SendMessageAction
 from gptnt.players.exceptions import AIResponseErrorType
 from gptnt.players.observation_handler import Observation
@@ -317,7 +317,7 @@ class ExperimentSummary(Provenance, ExperimentOutcome, DuckDBSchemaMixin):
     communication_style: CommunicationStyle
     attempt: int
 
-    modules: list[KtaneComponent]
+    modules: list[KtaneModuleId]
 
     is_hard_crash: bool
 
@@ -402,8 +402,8 @@ class ExperimentSummary(Provenance, ExperimentOutcome, DuckDBSchemaMixin):
 
     @property
     def modules_str(self) -> list[str]:
-        """Comma-separated string of module names for easy display."""
-        return [module.name for module in self.modules]
+        """Module names for display."""
+        return list(self.modules)
 
     @property
     def is_valid(self) -> bool:

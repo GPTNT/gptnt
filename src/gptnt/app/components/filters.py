@@ -10,7 +10,7 @@ from more_itertools import flatten
 from gptnt.common.paths import Paths
 from gptnt.experiments.db.connection import DuckDBConnection
 from gptnt.experiments.models import ExperimentSummary
-from gptnt.ktane.state.modules import KtaneComponent
+from gptnt.ktane.state.modules import KNOWN_KTANE_MODULE_IDS
 from gptnt.players.specification import CommunicationStyle
 
 type ModuleFilterType = Literal["Include All", "Include Any"]
@@ -29,7 +29,7 @@ def _load_available_players() -> list[str]:
 
 
 ALL_COMMUNICATION_STYLES = list(get_args(CommunicationStyle.__value__))
-ALL_MODULES = sorted({component.value for component in KtaneComponent})
+ALL_MODULES = sorted(KNOWN_KTANE_MODULE_IDS)
 ALL_PLAYERS = _load_available_players()
 
 
@@ -84,15 +84,19 @@ class Filters:
             defuser = sorted({exp.defuser_name for exp in experiments if exp.defuser_name})
             expert = sorted({exp.expert_name for exp in experiments if exp.expert_name})
             seed = sorted({exp.seed for exp in experiments if exp.seed})
+            modules = sorted(
+                KNOWN_KTANE_MODULE_IDS | {module for exp in experiments for module in exp.modules}
+            )
         else:
             mission_set = []
             defuser = ALL_PLAYERS
             expert = [*ALL_PLAYERS, "None"]
             seed = []
+            modules = ALL_MODULES
         return cls(
             mission_set=mission_set,
             communication_style=ALL_COMMUNICATION_STYLES,
-            modules=ALL_MODULES,
+            modules=modules,
             defuser=defuser,
             expert=expert,
             seed=seed,

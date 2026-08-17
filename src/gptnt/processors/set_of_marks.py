@@ -15,7 +15,7 @@ from numpy.typing import NDArray
 from skimage.measure import regionprops
 
 from gptnt.ktane.actions import RelativeCoordinate
-from gptnt.ktane.state.modules import KtaneComponent
+from gptnt.ktane.state.modules import KtaneModuleId
 from gptnt.players.locations import SetOfMarksLocation
 from gptnt.processors.labels.color import get_region_color
 from gptnt.processors.labels.drawing import (
@@ -54,22 +54,22 @@ PROPS_AREA_THRESHOLD = 10
 BIG_BUTTON_OFFSET = -6
 
 COMPONENT_WRITE_LABEL_MAPPER: Mapping[
-    KtaneComponent | None,
+    KtaneModuleId | None,
     Callable[[list[RegionProperties], NumberBoxDimensions], Generator[DrawData]],
 ] = MappingProxyType(
     {
         None: zoomed_out,
-        KtaneComponent.big_button: partial(zoomed_out, offset=BIG_BUTTON_OFFSET),
-        KtaneComponent.memory: memory,
-        KtaneComponent.morse_code: morse_code,
-        KtaneComponent.password: password,
-        KtaneComponent.simon: simon,
-        KtaneComponent.keypad: keypad,
-        KtaneComponent.whos_on_first: whos_on_first,
-        KtaneComponent.maze: maze,
-        KtaneComponent.wires: wires,
-        KtaneComponent.venn: venn,
-        KtaneComponent.wire_sequence: wire_sequence,
+        "BigButton": partial(zoomed_out, offset=BIG_BUTTON_OFFSET),
+        "Memory": memory,
+        "Morse": morse_code,
+        "Password": password,
+        "Simon": simon,
+        "Keypad": keypad,
+        "WhosOnFirst": whos_on_first,
+        "Maze": maze,
+        "Wires": wires,
+        "Venn": venn,
+        "WireSequence": wire_sequence,
     }
 )
 
@@ -167,7 +167,7 @@ def get_region_properties(labeled_image: NDArray[np.uint8]) -> list[RegionProper
 
 
 def extract_and_order_regions(
-    colorful_image: RGBArray, zoomed_in_component: KtaneComponent | None
+    colorful_image: RGBArray, zoomed_in_component: KtaneModuleId | None
 ) -> tuple[RGBArray, list[RegionProperties]]:
     """Extract regions from a colourful segmentation image."""
     labeled_segmentation = convert_colorful_segm_to_labeled(colorful_image)
@@ -203,7 +203,7 @@ def draw_region_masks(  # noqa: WPS210, WPS211
     image: RGBArray,
     segm_image: RGBArray,
     regions: list[RegionProperties],
-    zoomed_in_component: KtaneComponent | None,
+    zoomed_in_component: KtaneModuleId | None,
     drawing_params: MaskDrawingParams,
 ) -> RGBArray:
     """Place label numbers on image based on region properties."""
@@ -285,7 +285,7 @@ class SetOfMarksHandler:
 
     @logfire.instrument("Extract regions", extract_args=["zoomed_in_component"])
     def extract_regions(
-        self, colorful_image: RGBArray, zoomed_in_component: KtaneComponent | None
+        self, colorful_image: RGBArray, zoomed_in_component: KtaneModuleId | None
     ) -> tuple[RGBArray, list[RegionProperties]]:
         """Extract regions from a colourful segmentation image."""
         labeled_segmentation, regions = extract_and_order_regions(
@@ -300,7 +300,7 @@ class SetOfMarksHandler:
         *,
         observation: RGBArray,
         colorful_image: RGBArray,
-        zoomed_in_component: KtaneComponent | None = None,
+        zoomed_in_component: KtaneModuleId | None = None,
     ) -> RGBArray:
         """Handle the labelling and bounding box drawing on the screenshot based on segmentation.
 
@@ -365,7 +365,7 @@ class SetOfMarksHandler:
         image: RGBArray,
         segm_img: RGBArray,
         regions: list[RegionProperties],
-        module: KtaneComponent | None,
+        module: KtaneModuleId | None,
     ) -> RGBArray:
         """Draw labels on the image based on the segmentation image and observation."""
         text_width, text_height = compute_sample_text_dimensions(
@@ -373,7 +373,7 @@ class SetOfMarksHandler:
         )
 
         # Get list of coordinates to draw labels
-        draw_coords = COMPONENT_WRITE_LABEL_MAPPER[module](
+        draw_coords = COMPONENT_WRITE_LABEL_MAPPER.get(module, zoomed_out)(
             regions,
             NumberBoxDimensions(
                 width=text_width,
@@ -406,12 +406,12 @@ class SetOfMarksHandler:
 
     @logfire.instrument("Update mark to coordinate mapping", extract_args=["zoomed_in_component"])
     def _update_mark_to_coordinate_mapping(
-        self, regions: list[RegionProperties], zoomed_in_component: KtaneComponent | None
+        self, regions: list[RegionProperties], zoomed_in_component: KtaneModuleId | None
     ) -> None:
         """Map the region label to a relative coordinate."""
         label_to_coord = {}
         for region in regions:
-            if zoomed_in_component == KtaneComponent.wire_sequence:
+            if zoomed_in_component == "WireSequence":
                 coords = get_centered_stepped_coordinate(region)
             else:
                 coords = region.centroid

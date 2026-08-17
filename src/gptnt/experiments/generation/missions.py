@@ -6,7 +6,7 @@ import numpy as np
 from pydantic import BaseModel, Field, NonNegativeInt
 
 from gptnt.ktane.mission_spec import KtaneMissionSpec
-from gptnt.ktane.state.modules import KtaneComponent
+from gptnt.ktane.state.modules import KNOWN_KTANE_MODULE_IDS, KtaneModuleId
 from gptnt.ktane.time_limits import get_time_limit_for_mission
 
 
@@ -32,22 +32,15 @@ class MissionGeneratorConfig(BaseModel):
     min_optional_widgets: NonNegativeInt = Field(ge=1, default=1)
     max_optional_widgets: NonNegativeInt = Field(ge=1, default=5)
 
-    excluded_modules: set[KtaneComponent] = Field(
-        default_factory=lambda: {
-            KtaneComponent.empty,
-            KtaneComponent.timer,
-            KtaneComponent.needy_vent_gas,
-            KtaneComponent.needy_capacitor,
-            KtaneComponent.needy_knob,
-        }
+    excluded_modules: set[KtaneModuleId] = Field(
+        default_factory=lambda: {"NeedyVentGas", "NeedyCapacitor", "NeedyKnob"}
     )
 
     @property
-    def available_modules(self) -> list[KtaneComponent]:
+    def available_modules(self) -> list[KtaneModuleId]:
         """Get a list of available modules."""
-        all_modules = set(KtaneComponent)
-        usable_modules = all_modules - self.excluded_modules
-        return sorted(usable_modules, key=lambda component: component.value)
+        usable_modules = KNOWN_KTANE_MODULE_IDS - self.excluded_modules
+        return sorted(usable_modules)
 
     @property
     def expected_num_missions(self) -> int:
@@ -98,10 +91,10 @@ class MissionGenerator:
             yield self._generate_mission(seed=seed, chosen_module=None)
         else:
             for module in self._available_modules:
-                yield self._generate_mission(seed=seed, chosen_module=KtaneComponent(module))
+                yield self._generate_mission(seed=seed, chosen_module=module)
 
     def _generate_mission(
-        self, seed: int, *, chosen_module: KtaneComponent | None
+        self, seed: int, *, chosen_module: KtaneModuleId | None
     ) -> KtaneMissionSpec:
         """Generate one mission spec for a given condition."""
         n_components = self._rng.integers(
@@ -139,7 +132,7 @@ class MissionGenerator:
 
         return mission
 
-    def _sample_from_all_modules(self, n_components: int) -> list[KtaneComponent]:
+    def _sample_from_all_modules(self, n_components: int) -> list[KtaneModuleId]:
         """Sample modules from all available modules."""
         sampled_modules = self._rng.choice(
             self._available_modules, size=n_components, replace=self.spec.allow_repeat_module
@@ -149,7 +142,7 @@ class MissionGenerator:
         if len(set(sampled_modules)) <= 1:
             return self._sample_from_all_modules(n_components)
 
-        return [KtaneComponent(module) for module in sampled_modules]
+        return [str(module) for module in sampled_modules]
 
     def _reset_rng(self, seed: int) -> None:
         """Reset the random number generator with a specific seed."""
@@ -158,4 +151,4 @@ class MissionGenerator:
     @property
     def _available_modules(self) -> list[str]:
         """Get a list of available modules."""
-        return [component.value for component in self.spec.available_modules]
+        return self.spec.available_modules

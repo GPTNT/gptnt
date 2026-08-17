@@ -17,7 +17,7 @@ from pydantic import (
 )
 
 from gptnt.ktane.state.module_registry import module_registry
-from gptnt.ktane.state.modules import KtaneComponent, ModuleStates, TimerState
+from gptnt.ktane.state.modules import KtaneModuleId, ModuleStates, TimerState
 from gptnt.ktane.state.widget import WidgetStates
 
 
@@ -70,10 +70,10 @@ class BombState(BaseModel):
     max_strikes: int = 3
     strikes: (
         Annotated[
-            list[KtaneComponent],
+            list[KtaneModuleId],
             BeforeValidator(_validate_state_from_string),
             WrapSerializer(
-                partial(_serialise_states_to_string, obj_type=list[KtaneComponent]),
+                partial(_serialise_states_to_string, obj_type=list[KtaneModuleId]),
                 when_used="json-unless-none",
                 return_type=Union[list[str], str],  # noqa: UP007
             ),
@@ -105,7 +105,7 @@ class BombState(BaseModel):
     ]
 
     @property
-    def module_names(self) -> list[KtaneComponent]:
+    def module_names(self) -> list[KtaneModuleId]:
         """Get the names of all modules on the bomb."""
         return [module.name for module in self.modules]
 
@@ -115,7 +115,7 @@ class BombState(BaseModel):
         return self.timer_module.seconds_remaining
 
     @property
-    def zoomed_in_component(self) -> KtaneComponent | None:
+    def zoomed_in_component(self) -> KtaneModuleId | None:
         """Get the currently zoomed in component, if we are zoomed in."""
         for module in self.modules:
             if module.in_focus:
@@ -134,7 +134,7 @@ class BombState(BaseModel):
     def view_needs_multiple_frames(self) -> bool:
         """Check if the current view needs multiple frames."""
         if self.zoomed_in_component is not None:
-            return module_registry().needs_multiple_frames(self.zoomed_in_component.value)
+            return module_registry().needs_multiple_frames(self.zoomed_in_component)
         return False
 
     @property

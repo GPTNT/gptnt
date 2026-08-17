@@ -19,7 +19,7 @@ from gptnt.experiments.generation.pairing import Pairing, PairingGenerator, Pair
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.experiments.suite.generate import CONFIG_NAME, _best_model_for, generate_specs
 from gptnt.ktane.mission_spec import KtaneMissionSpec
-from gptnt.ktane.state.modules import KtaneComponent
+from gptnt.ktane.state.modules import KNOWN_KTANE_MODULE_IDS
 from gptnt.players.specification import PlayerProtocol
 
 from tests._cases.mission_generator_config import MissionGeneratorConfigCases
@@ -76,7 +76,7 @@ def test_fails_when_module_repeats_required_but_disallowed() -> None:
         allow_repeat_module=False,
         min_optional_widgets=1,
         max_optional_widgets=5,
-        excluded_modules=set(KtaneComponent) - {KtaneComponent.big_button, KtaneComponent.keypad},
+        excluded_modules=KNOWN_KTANE_MODULE_IDS - {"BigButton", "Keypad"},
     )
 
     generator = MissionGenerator(config=config, num_seeds_per_mission=3, seed=42)

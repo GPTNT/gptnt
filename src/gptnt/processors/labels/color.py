@@ -1,7 +1,7 @@
 import numpy as np
 from color_contrast import check_contrast
 
-from gptnt.ktane.state.modules import KtaneComponent
+from gptnt.ktane.state.modules import KtaneModuleId
 from gptnt.processors.labels.types import (  # noqa: WPS235
     BLACK,
     BLUE,
@@ -15,8 +15,8 @@ from gptnt.processors.labels.types import (  # noqa: WPS235
     RGBArray,
 )
 
-ENTIRELY_COLOR_DEPENDENT_MODULES: frozenset[KtaneComponent] = frozenset(
-    (KtaneComponent.simon, KtaneComponent.venn, KtaneComponent.wires, KtaneComponent.big_button)
+ENTIRELY_COLOR_DEPENDENT_MODULES: frozenset[KtaneModuleId] = frozenset(
+    ("Simon", "Venn", "Wires", "BigButton")
 )
 
 MAX_RGB = 255
@@ -94,22 +94,22 @@ def handle_venn(region: RegionProperties, image: RGBArray) -> tuple[Color, ...]:
 
 
 def get_region_color(  # noqa: WPS212
-    image: RGBArray, segm_image: RGBArray, region: RegionProperties, module: KtaneComponent | None
+    image: RGBArray, segm_image: RGBArray, region: RegionProperties, module: KtaneModuleId | None
 ) -> tuple[Color, ...]:
     """Get the colour of a region based on the module type."""
     # Use image colours for colour dependent modules (but only wire interactables for wire modules)
 
-    if module == KtaneComponent.venn:
+    if module == "Venn":
         return handle_venn(region, image)
 
     if module in ENTIRELY_COLOR_DEPENDENT_MODULES or (
-        module == KtaneComponent.wire_sequence and region.eccentricity > IS_LINE_THRESHOLD
+        module == "WireSequence" and region.eccentricity > IS_LINE_THRESHOLD
     ):
         color = get_median_colour(region, image)
 
         return (color,)
 
-    if module == KtaneComponent.wire_sequence:
+    if module == "WireSequence":
         # Set the colors of the wire_sequence buttons so that they do not match one of the wires
         color = get_median_colour(region, segm_image)
         if color == RED:

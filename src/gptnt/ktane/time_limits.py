@@ -1,7 +1,7 @@
 import types
 
 from gptnt.ktane.button_actions_per_step_size import compute_button_holding_steps
-from gptnt.ktane.state.modules import KtaneComponent
+from gptnt.ktane.state.modules import KtaneModuleId
 
 SECONDS_PER_ACTION = 3
 """Seconds per sequential action taken.
@@ -34,17 +34,17 @@ MAX_NUM_STRIKES_PER_GAME = 3
 # Mapping of whether a module needs side info
 NEEDS_SIDE_INFO = types.MappingProxyType(
     {
-        KtaneComponent.wires: 1,
-        KtaneComponent.big_button: 2,
-        KtaneComponent.keypad: 0,
-        KtaneComponent.simon: 1,
-        KtaneComponent.whos_on_first: 0,
-        KtaneComponent.memory: 0,
-        KtaneComponent.morse_code: 0,
-        KtaneComponent.venn: 2,
-        KtaneComponent.wire_sequence: 0,
-        KtaneComponent.maze: 0,
-        KtaneComponent.password: 0,
+        "Wires": 1,
+        "BigButton": 2,
+        "Keypad": 0,
+        "Simon": 1,
+        "WhosOnFirst": 0,
+        "Memory": 0,
+        "Morse": 0,
+        "Venn": 2,
+        "WireSequence": 0,
+        "Maze": 0,
+        "Password": 0,
     }
 )
 """Whether a module needs information from the sides of the bomb."""
@@ -52,50 +52,50 @@ NEEDS_SIDE_INFO = types.MappingProxyType(
 # Mapping of module stages
 NUM_STAGES_PER_MODULE = types.MappingProxyType(
     {
-        KtaneComponent.wires: 1,
-        KtaneComponent.big_button: 2,  # original + after pressing
-        KtaneComponent.keypad: 1,
-        KtaneComponent.simon: 5,  # sequence of 5 colors flashing
-        KtaneComponent.whos_on_first: 3,
-        KtaneComponent.memory: 5,
-        KtaneComponent.morse_code: 1,
-        KtaneComponent.venn: 1,
-        KtaneComponent.wire_sequence: 4,  # 4 panels
-        KtaneComponent.maze: 1,
-        KtaneComponent.password: 1,
+        "Wires": 1,
+        "BigButton": 2,  # original + after pressing
+        "Keypad": 1,
+        "Simon": 5,  # sequence of 5 colors flashing
+        "WhosOnFirst": 3,
+        "Memory": 5,
+        "Morse": 1,
+        "Venn": 1,
+        "WireSequence": 4,  # 4 panels
+        "Maze": 1,
+        "Password": 1,
     }
 )
 
 NUM_ACTIONS_PER_MODULE = types.MappingProxyType(
     {
-        KtaneComponent.wires: 1,  # noqa: WPS345
+        "Wires": 1,  # noqa: WPS345
         # 1 for pressing the button, N for waiting for the timer, 1 for releasing the button
-        KtaneComponent.big_button: 2 + compute_button_holding_steps(SECONDS_PER_ACTION),
-        KtaneComponent.keypad: 4,
+        "BigButton": 2 + compute_button_holding_steps(SECONDS_PER_ACTION),
+        "Keypad": 4,
         # Max seq length is 5, and you have to press all the old ones too
-        KtaneComponent.simon: 15,
+        "Simon": 15,
         # Max 3 stages
-        KtaneComponent.whos_on_first: 3,
+        "WhosOnFirst": 3,
         # Memory is strike specific: max 5 stages, strike resets each time,
-        KtaneComponent.memory: 5,
+        "Memory": 5,
         # 6 do nothing to gather info per letter + up to 15 clicks set frequency + press transmit
-        KtaneComponent.morse_code: 22,
+        "Morse": 22,
         # Max 6 wires
-        KtaneComponent.venn: 6,
+        "Venn": 6,
         # 3 wires, 1 click to move to next panel, max 4 panels
-        KtaneComponent.wire_sequence: (3 + 1) * 4,
+        "WireSequence": (3 + 1) * 4,
         # 6x6 maze, worst case is 35 steps
-        KtaneComponent.maze: 35,
+        "Maze": 35,
         # 5 letters, 6 options for each letter
         # Need to cycle through letters twice (to communicate and set) + 1 for submitting
-        KtaneComponent.password: 5 * 5 * 2 + 1,
+        "Password": 5 * 5 * 2 + 1,
     }
 )
 """Number of turns needed per module to add to the time limit."""
 
 
 def get_time_limit_for_mission(
-    components: list[KtaneComponent], *, allow_back_placement: bool
+    components: list[KtaneModuleId], *, allow_back_placement: bool
 ) -> int:
     """Get the time limit for a mission based on the components."""
     turns = 0

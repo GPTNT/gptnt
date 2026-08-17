@@ -11,7 +11,7 @@ from gptnt.cli.statics._config_loader import ConfigLoader
 from gptnt.cli.statics._params import AllowThinkingOption
 from gptnt.common.logger import create_progress
 from gptnt.common.paths import Paths
-from gptnt.ktane.state.modules import KtaneComponent
+from gptnt.ktane.state.modules import KtaneModuleId
 from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
 from gptnt.players.reasoning_parser.react import ReactStyleReasoningParser
 from gptnt.statics.constants import MODULE_NAMES, get_valid_modules
@@ -24,7 +24,7 @@ paths = Paths()
 QUESTION = "How do you solve the {module} module in KTANE?"
 
 
-def create_prompts() -> dict[KtaneComponent, str]:
+def create_prompts() -> dict[KtaneModuleId, str]:
     """Create prompts for each module."""
     valid_modules = get_valid_modules()
     prompts = {module: QUESTION.format(module=MODULE_NAMES[module]) for module in valid_modules}
