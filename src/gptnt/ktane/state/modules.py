@@ -47,7 +47,7 @@ KNOWN_KTANE_MODULE_IDS: frozenset[KtaneModuleId] = frozenset(
 """Module identifiers that have typed state models in GPTNT."""
 
 
-def coerce_color(value: str | None) -> str | None:  # noqa: WPS110
+def _coerce_color(value: str | None) -> str | None:  # noqa: WPS110
     """Coerce the color to lowercase.
 
     This is used to ensure that the color is always in lowercase, as the KTANE API expects it to
@@ -126,7 +126,7 @@ class ButtonModuleState(InteractiveModuleState):
     @classmethod
     def fix_color(cls, value: str | None) -> str | None:  # noqa: WPS110
         """Coerce the color."""
-        return coerce_color(value)
+        return _coerce_color(value)
 
 
 class KeyPadButtonState(BaseModel):
@@ -139,7 +139,7 @@ class KeyPadButtonState(BaseModel):
     @classmethod
     def fix_color(cls, value: str | None) -> str | None:  # noqa: WPS110
         """Coerce the strip color."""
-        return coerce_color(value)
+        return _coerce_color(value)
 
 
 class KeypadModuleState(InteractiveModuleState):
