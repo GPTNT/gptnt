@@ -15,7 +15,7 @@ from tqdm import tqdm
 from whenever import Instant
 
 from gptnt.common.paths import Paths
-from gptnt.experiments.provenance import Provenance
+from gptnt.common.provenance import Provenance
 from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
 from gptnt.players.reasoning_parser.react import ReactStyleReasoningParser
 from gptnt.players.specification import PlayerCapabilities

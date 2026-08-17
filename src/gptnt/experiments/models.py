@@ -22,9 +22,9 @@ from pydantic import (
 from pydantic_ai import ModelMessage, ModelMessagesTypeAdapter, RunUsage
 
 from gptnt.common.logger import monkey_patch_binary_content_repr
+from gptnt.common.provenance import Provenance
 from gptnt.experiments.db.schema import AsBlob, AsJSON, AsVarchar, DuckDBSchemaMixin
 from gptnt.experiments.descriptor import ExperimentDescriptor, PlayerContent
-from gptnt.experiments.provenance import Provenance
 from gptnt.ktane.actions import KtaneBaseAction, KtaneGameplayInput
 from gptnt.ktane.mission_spec import compute_mission_key
 from gptnt.ktane.state.bomb import BombOutcome, BombState
