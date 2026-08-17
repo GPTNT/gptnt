@@ -7,7 +7,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from structlog import get_logger
 
 from gptnt.common.paths import Paths
-from gptnt.ktane.state.modules import KtaneComponent
 
 logger = get_logger()
 
@@ -41,17 +40,17 @@ There are probably better ways to do this, but for now, this is a good enough he
 
 MODULE_TO_PAGE_NUM_MAP = types.MappingProxyType(
     {
-        KtaneComponent.wires: (5,),
-        KtaneComponent.big_button: (6,),
-        KtaneComponent.keypad: (7,),
-        KtaneComponent.simon: (8,),
-        KtaneComponent.whos_on_first: (9, 10),
-        KtaneComponent.memory: (11,),
-        KtaneComponent.morse_code: (12,),
-        KtaneComponent.venn: (13,),
-        KtaneComponent.wire_sequence: (14,),
-        KtaneComponent.maze: (15,),
-        KtaneComponent.password: (16,),
+        "Wires": (5,),
+        "BigButton": (6,),
+        "Keypad": (7,),
+        "Simon": (8,),
+        "WhosOnFirst": (9, 10),
+        "Memory": (11,),
+        "Morse": (12,),
+        "Venn": (13,),
+        "WireSequence": (14,),
+        "Maze": (15,),
+        "Password": (16,),
     }
 )
 

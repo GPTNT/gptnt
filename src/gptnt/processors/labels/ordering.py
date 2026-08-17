@@ -6,7 +6,7 @@ import numpy as np
 from skimage.measure import regionprops
 from structlog import get_logger
 
-from gptnt.ktane.state.modules import KtaneComponent
+from gptnt.ktane.state.modules import KtaneModuleId
 from gptnt.processors.labels.types import RegionProperties, RGBArray
 
 _logger = get_logger()
@@ -67,7 +67,7 @@ def get_centered_stepped_coordinate(region: RegionProperties) -> tuple[float, fl
 def order_regions_reading_order(  # noqa: WPS231
     regions: Sequence[RegionProperties],
     image_shape: tuple[int, int],
-    zoomed_in_component: KtaneComponent | None,
+    zoomed_in_component: KtaneModuleId | None,
 ) -> list[int]:
     """Orders region labels in reading order (left-to-right, top-to-bottom).
 
@@ -78,7 +78,7 @@ def order_regions_reading_order(  # noqa: WPS231
 
     region_data = []
     for region in regions:
-        if zoomed_in_component == KtaneComponent.wire_sequence:
+        if zoomed_in_component == "WireSequence":
             coords = get_centered_stepped_coordinate(region)
         else:
             coords = region.centroid
@@ -98,7 +98,7 @@ def order_regions_reading_order(  # noqa: WPS231
     for region in sorted(region_data, key=lambda row: row["centroid_y"]):
         added_to_row = False
 
-        if zoomed_in_component is not KtaneComponent.wire_sequence:
+        if zoomed_in_component != "WireSequence":
             for row in rows:
                 if any(_check_row_overlap(region, other) for other in row):
                     row.append(region)
@@ -120,7 +120,7 @@ def order_regions_reading_order(  # noqa: WPS231
 def relabel_regions_in_reading_order(
     labeled_image: RGBArray,
     regions: list[RegionProperties],
-    zoomed_in_component: KtaneComponent | None,
+    zoomed_in_component: KtaneModuleId | None,
 ) -> tuple[RGBArray, list[RegionProperties]]:
     """Relabels both the labeled image and region properties in reading order.
 

@@ -1,22 +1,22 @@
-from typing import cast, override
+from typing import override
 
 from httpx import QueryParams
 from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator
 
 from gptnt.ktane.state.module_registry import module_registry
-from gptnt.ktane.state.modules import KtaneComponent
+from gptnt.ktane.state.modules import KtaneModuleId
 
 MAX_COMPONENTS = 11
 
 
-def compute_mission_key(components: list[KtaneComponent], seed: int) -> str:
+def compute_mission_key(components: list[KtaneModuleId], seed: int) -> str:
     """Stable, human-readable identity for a *mission* (its modules + seed).
 
     Just `"{seed}|{sorted module names}"` — order-independent, collision-free, and readable (you
     can see which mission a row is at a glance), so experiments of the same mission group together
     for querying/seeding. e.g. `"12345|BigButton,Wires"`.
     """
-    sorted_modules = ",".join(sorted(component.value for component in components))
+    sorted_modules = ",".join(sorted(str(component) for component in components))
     return f"{seed}|{sorted_modules}"
 
 
@@ -42,7 +42,7 @@ class KtaneMissionSpec(BaseModel):
         serialization_alias="numStrikes",
         description="Allowed mistakes before failure",
     )
-    components: list[KtaneComponent] = Field(
+    components: list[KtaneModuleId] = Field(
         max_length=MAX_COMPONENTS, description="List of required components in the mission"
     )
     optional_widgets: int = Field(
@@ -90,33 +90,26 @@ class KtaneMissionSpec(BaseModel):
     def requires_multiple_images_per_observation(self) -> bool:
         """Check if the mission requires multiple images per observation."""
         return any(
-            module_registry().needs_multiple_frames(component.value)
-            for component in self.components
+            module_registry().needs_multiple_frames(component) for component in self.components
         )
 
     @field_validator("components", mode="before")
     @classmethod
     def coerce_components(
         cls,
-        components: str | list[str] | list[KtaneComponent],  # noqa: WPS110
-    ) -> list[KtaneComponent]:
-        """Coerce components to KtaneComponent enum values."""
+        components: str | list[KtaneModuleId],  # noqa: WPS110
+    ) -> list[KtaneModuleId]:
+        """Coerce a known component per identifier, keeping the raw id for a community module."""
         if isinstance(components, str):
             components = components.split(",") if "," in components else [components]
-            components = [comp.strip().capitalize() for comp in components]
+            components = [comp.strip() for comp in components]
 
-        if all(isinstance(comp, str) for comp in components):
-            components = [KtaneComponent(comp) for comp in components]
-
-        return cast("list[KtaneComponent]", components)
+        return components
 
     def to_query_params(self) -> QueryParams:
         """Converts the mission spec into a query parameter string for API requests."""
         specification_dict = self.model_dump(by_alias=True)
-        # Fix the enums for the components which is what the API wants
-        specification_dict["components"] = (
-            ",".join(component.value for component in specification_dict["components"]),
-        )
+        specification_dict["components"] = (",".join(specification_dict["components"]),)
         return QueryParams(specification_dict)
 
     @override

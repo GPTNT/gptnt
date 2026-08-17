@@ -10,7 +10,6 @@ from gptnt.ktane.actions import GameActionType, KtaneBaseAction, RelativeCoordin
 from gptnt.ktane.client import KtaneClient
 from gptnt.ktane.mission_spec import KtaneMissionConfig, KtaneMissionSpec
 from gptnt.ktane.state.game import GameState
-from gptnt.ktane.state.modules import KtaneComponent
 
 
 @fixture
@@ -22,7 +21,7 @@ def mission_config() -> KtaneMissionConfig:
         needy_time=90,  # noqa: WPS432
         force_modules_to_front=True,
         optional_widgets=5,
-        components=[KtaneComponent.wires, KtaneComponent.big_button],
+        components=["Wires", "BigButton"],
         session_id=None,
     )
     return mission_config

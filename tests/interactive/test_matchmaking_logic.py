@@ -10,7 +10,6 @@ from gptnt.interactive.services.heartbeat.base import PlayerState, ReadyState
 from gptnt.interactive.services.heartbeat.player import PlayerHeartbeat
 from gptnt.interactive.services.registry.manifest import PlayerServiceManifest, ServiceManifest
 from gptnt.ktane.mission_spec import KtaneMissionSpec
-from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 
@@ -36,7 +35,7 @@ def make_spec(*, defuser_name: str, expert_name: str | None = None) -> Experimen
             seed=1,
             time_limit=300,
             num_strikes_allowed=3,
-            components=[KtaneComponent.big_button],
+            components=["BigButton"],
             optional_widgets=1,
         ),
         mission_set="single_module",

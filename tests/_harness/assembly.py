@@ -22,7 +22,6 @@ from gptnt.interactive.services.broker import create_redis_broker
 from gptnt.interactive.services.experiment_manager.experiment_manager import ExperimentManager
 from gptnt.interactive.services.experiment_manager.experiment_runner import ExperimentState
 from gptnt.ktane.mission_spec import KtaneMissionSpec
-from gptnt.ktane.state.modules import KtaneComponent
 from gptnt.players.specification import PlayerProtocol
 
 if TYPE_CHECKING:
@@ -31,6 +30,7 @@ if TYPE_CHECKING:
     from gptnt.interactive.services.experiment_manager.session import Session
     from gptnt.interactive.services.game.service import GameService
     from gptnt.interactive.services.player.service import PlayerService
+    from gptnt.ktane.state.modules import KtaneModuleId
     from gptnt.players.specification import CommunicationStyle
 
 _POLL = 0.1
@@ -62,7 +62,7 @@ class AssembledExperiment:
         self,
         *,
         seed: int = 234,
-        component: KtaneComponent = KtaneComponent.big_button,
+        component: KtaneModuleId = "BigButton",
         time_limit: int = 300,
         num_strikes_allowed: int = 3,
         communication_style: CommunicationStyle = "sync",

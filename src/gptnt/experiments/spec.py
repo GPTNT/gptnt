@@ -90,9 +90,7 @@ class ExperimentSpec(BaseModel, frozen=True):
     @property
     def experiment_name(self) -> str:
         """Get the name for the experiment."""
-        module_names = "-".join(
-            sorted({component.value for component in self.mission_spec.components})
-        )
+        module_names = "-".join(sorted(self.mission_spec.components))
         return "_".join(
             [
                 self.suite_version,

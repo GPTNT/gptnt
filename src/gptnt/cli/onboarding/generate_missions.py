@@ -32,7 +32,7 @@ def generate_missions(
 
     missions = list(generator.generate())
     for mission in missions:
-        modules = "-".join(sorted(component.value for component in mission.components))
+        modules = "-".join(sorted(mission.components))
         _ = out_dir.joinpath(f"{modules}-{mission.seed}.json").write_text(
             mission.model_dump_json()
         )
