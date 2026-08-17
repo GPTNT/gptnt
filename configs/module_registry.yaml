@@ -1,4 +1,4 @@
-# Per-module intrinsic facts, keyed by KtaneContent ModuleID.
+# Per-module intrinsic facts, keyed by KtaneContent's `ModuleID` metadata field.
 #
 # GPTNT owns this file. Manual profiles, missions, and suites never restate anything here: a fact
 # about a module (how the Defuser must observe it, and in future how its state is read) belongs in

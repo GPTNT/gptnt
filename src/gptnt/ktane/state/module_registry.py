@@ -49,7 +49,8 @@ class ModuleRegistry(BaseModel):
 
 def _load_module_registry(path: Path) -> ModuleRegistry:
     """Load a registry from a specific YAML file."""
-    return ModuleRegistry.model_validate(yaml.safe_load(path.read_text()))
+    loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+    return ModuleRegistry.model_validate({} if loaded is None else loaded)
 
 
 @lru_cache(maxsize=1)
