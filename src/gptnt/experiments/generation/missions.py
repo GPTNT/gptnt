@@ -6,6 +6,7 @@ import numpy as np
 from pydantic import BaseModel, Field, NonNegativeInt
 
 from gptnt.ktane.mission_spec import KtaneMissionSpec
+from gptnt.ktane.state.module_registry import module_registry
 from gptnt.ktane.state.modules import KNOWN_KTANE_MODULE_IDS, KtaneModuleId
 from gptnt.ktane.time_limits import get_time_limit_for_mission
 
@@ -110,7 +111,8 @@ class MissionGenerator:
 
         time_limit = (
             get_time_limit_for_mission(
-                components, allow_back_placement=self.spec.allow_back_placement
+                [module_registry().facts(component) for component in components],
+                allow_back_placement=self.spec.allow_back_placement,
             )
             if self.spec.time_limit is None
             else self.spec.time_limit
