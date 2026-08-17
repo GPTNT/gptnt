@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, NonNegativeInt, PositiveInt
 
 from gptnt.common.paths import Paths
 
@@ -20,6 +20,15 @@ class ModuleFacts(BaseModel):
 
     True for a module whose answer is temporal, such as Simon Says' flash sequence.
     """
+
+    side_info_rotations: NonNegativeInt = 0
+    """How many bomb rotations' worth of side information this module needs."""
+
+    num_stages: PositiveInt = 1
+    """Number of stages before this module is solved."""
+
+    num_interaction_actions: PositiveInt = 1
+    """Number of sequential actions needed to solve with this module."""
 
 
 _DEFAULT_FACTS = ModuleFacts()

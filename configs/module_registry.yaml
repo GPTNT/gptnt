@@ -1,8 +1,9 @@
 # Per-module intrinsic facts, keyed by KtaneContent's `ModuleID` metadata field.
 #
 # GPTNT owns this file. Manual profiles, missions, and suites never restate anything here: a fact
-# about a module (how the Defuser must observe it, and in future how its state is read) belongs in
-# one place, not copy-pasted into every config that happens to use the module.
+# about a module (how the Defuser must observe it, how much of the bomb its answer depends on, and
+# how much work it takes to solve) belongs in one place, not copy-pasted into every config that
+# happens to use the module.
 #
 # The key is the ModuleID reported by the game and used everywhere else (the same string a manual
 # profile puts in `id:`). The set is open so that community modules can be added without touching
@@ -11,12 +12,56 @@
 # Record only what deviates from the defaults. A module absent from this file takes them:
 #
 #   needs_multiple_frames: false   # a single observation frame is enough
+#   side_info_rotations: 0         # the answer does not depend on the bomb's sides
+#   num_stages: 1                  # one stage to report before it is solved
+#   num_interaction_actions: 1     # one action to solve it
 #
-# So the file lists the exceptions, not the whole module set.
+# So the file lists the exceptions, not the whole module set. `side_info_rotations`, `num_stages`,
+# and `num_interaction_actions` feed the mission time budget (see `ktane/time_limits.py`).
 
 modules:
-  # The answer is a sequence of light flashes, which a single frame cannot capture.
+  Wires:
+    side_info_rotations: 1
+  BigButton:
+    side_info_rotations: 2
+    # original label + label after pressing
+    num_stages: 2
+    # 1 press + 1 release, plus 9 waits to see digits 1/4/5 at 3s per action
+    num_interaction_actions: 11
+  Keypad:
+    num_interaction_actions: 4
   Simon:
+    # the answer is a sequence of light flashes
     needs_multiple_frames: true
+    side_info_rotations: 1
+    # sequence of up to 5 colours flashing
+    num_stages: 5
+    # replay the growing sequence, up to 5 presses each stage
+    num_interaction_actions: 15
+  WhosOnFirst:
+    num_stages: 3
+    num_interaction_actions: 3
+  Memory:
+    # up to 5 stages, a strike resets to the first
+    num_stages: 5
+    num_interaction_actions: 5
   Morse:
+    # the answer is a flashing morse signal
     needs_multiple_frames: true
+    # 6 waits to read each letter + up to 15 clicks to set the frequency + 1 transmit
+    num_interaction_actions: 22
+  Venn:
+    side_info_rotations: 2
+    # up to 6 wires
+    num_interaction_actions: 6
+  WireSequence:
+    # 4 panels
+    num_stages: 4
+    # 3 wires + 1 panel advance, across 4 panels
+    num_interaction_actions: 16
+  Maze:
+    # 6x6 maze, worst case is 35 steps
+    num_interaction_actions: 35
+  Password:
+    # 5 letters, cycled twice (to communicate then set) through 5 options each, + 1 submit
+    num_interaction_actions: 51
