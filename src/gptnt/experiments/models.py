@@ -402,7 +402,7 @@ class ExperimentSummary(Provenance, ExperimentOutcome, DuckDBSchemaMixin):
 
     @property
     def modules_str(self) -> list[str]:
-        """Comma-separated string of module names for easy display."""
+        """Module names for display."""
         return list(self.modules)
 
     @property

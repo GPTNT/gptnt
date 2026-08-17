@@ -141,7 +141,8 @@ def preprocess_expert_ocr_instance(
         pages = MODULE_TO_PAGE_NUM_MAP[instance["module"]]
         manual_content.extend(ktane_manual_paths.load_text(page_num) for page_num in pages)
 
-    manual_image = manual_content.append(load_image(instance["image"]))
+    manual_image = load_image(instance["image"])
+    manual_content.append(manual_image)
 
     return {
         **instance,
