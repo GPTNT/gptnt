@@ -34,7 +34,6 @@ type KeypadSymbol = Literal[
     "yat",
 ]
 
-type SimonSaysColor = Literal["red", "blue", "green", "yellow"]
 
 type ComplicatedWireColor = Literal[
     "white", "red", "blue", "red, white", "blue, white", "red, blue"
@@ -59,9 +58,3 @@ type WidgetPosition = Literal["top", "bottom", "left", "right"]
 type BatteryType = Literal["D", "AA"]
 
 type PortType = Literal["DVI-D", "Parallel", "PS/2", "RJ-45", "Serial", "Stereo RCA"]
-
-type ButtonWord = Literal["Abort", "Detonate", "Hold", "Press"]
-
-type ButtonStripColor = Literal["red", "blue", "yellow", "white"]
-
-type KeyPadButtonColor = Literal["green", "red"]
