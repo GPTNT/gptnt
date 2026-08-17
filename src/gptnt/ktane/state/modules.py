@@ -62,7 +62,7 @@ class BaseModuleState(BaseModel):
     """Base class for all module states."""
 
     model_config = ConfigDict(
-        alias_generator=alias_generators.to_camel, populate_by_name=True, extra="ignore"
+        alias_generator=alias_generators.to_camel, populate_by_name=True, extra="allow"
     )
 
     name: KtaneModuleId
