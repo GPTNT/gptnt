@@ -31,9 +31,9 @@ def test_more_interaction_actions_extends_the_budget() -> None:
     cheap = [ModuleFacts(num_interaction_actions=1)]
     dear = [ModuleFacts(num_interaction_actions=35)]
 
-    assert get_time_limit_for_mission(dear, allow_back_placement=False) > get_time_limit_for_mission(
-        cheap, allow_back_placement=False
-    )
+    assert get_time_limit_for_mission(
+        dear, allow_back_placement=False
+    ) > get_time_limit_for_mission(cheap, allow_back_placement=False)
 
 
 def test_registry_carries_the_migrated_module_facts() -> None:
