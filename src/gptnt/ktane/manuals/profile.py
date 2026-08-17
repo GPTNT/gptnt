@@ -6,7 +6,7 @@ from typing import Annotated, Literal
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 type DocumentName = Annotated[str, Field(pattern=r"^[^/]+\.html$")]
-"""The name of a single HTML document in the repository, without any directory."""
+"""The name of a single HTML document in the KtaneContent repository, without any directory."""
 
 
 def _require_html_suffix(path: Path) -> Path:
