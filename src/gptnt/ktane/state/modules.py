@@ -1,5 +1,4 @@
-from enum import Enum
-from typing import Annotated, Any, NamedTuple, override
+from typing import Annotated, Any, Literal, NamedTuple, get_args, override
 
 from pydantic import (
     BaseModel,
@@ -17,26 +16,30 @@ from pydantic.types import Tag
 from gptnt.ktane.state import constants
 from gptnt.ktane.state.module_registry import module_registry
 
+type _KnownKtaneModuleId = Literal[
+    "Wires",
+    "BigButton",
+    "Keypad",
+    "Simon",
+    "Venn",
+    "Maze",
+    "Memory",
+    "Morse",
+    "Password",
+    "WhosOnFirst",
+    "WireSequence",
+    "NeedyCapacitor",
+    "NeedyKnob",
+    "NeedyVentGas",
+]
+"""All known module identifiers from Ktane that also have a typed module state class."""
 
-class KtaneComponent(Enum):
-    """Enum representing valid KTANE components."""
+type KtaneModuleId = _KnownKtaneModuleId | str
+"""Module identifiers in Ktane.
 
-    empty = "Empty"
-    timer = "Timer"
-    wires = "Wires"
-    big_button = "BigButton"
-    keypad = "Keypad"
-    simon = "Simon"
-    whos_on_first = "WhosOnFirst"
-    memory = "Memory"
-    morse_code = "Morse"
-    venn = "Venn"
-    wire_sequence = "WireSequence"
-    maze = "Maze"
-    password = "Password"  # noqa: S105
-    needy_vent_gas = "NeedyVentGas"
-    needy_capacitor = "NeedyCapacitor"
-    needy_knob = "NeedyKnob"
+Yes, it is a bit silly to have a union of a literal and str, but it's the only way to get the
+typing to work correctly with the discriminated union for the known module states.
+"""
 
 
 def coerce_color(value: str | None) -> str | None:  # noqa: WPS110
@@ -57,16 +60,10 @@ class BaseModuleState(BaseModel):
         alias_generator=alias_generators.to_camel, populate_by_name=True, extra="ignore"
     )
 
-    name: KtaneComponent
+    name: KtaneModuleId
 
     on_front: bool
     index: Annotated[int, Field(ge=0, le=5)]
-
-    @field_validator("name", mode="before")
-    @classmethod
-    def coerce_name(cls, value: str) -> KtaneComponent:  # noqa: WPS110
-        """Coerce the name to a KtaneComponent."""
-        return KtaneComponent(value)
 
     @computed_field
     @property
@@ -82,7 +79,11 @@ class BaseModuleState(BaseModel):
 
 
 class InteractiveModuleState(BaseModuleState):
-    """Base class for interactive module states."""
+    """Base class for interactive module states.
+
+    This also works for community modules that do not have a typed state class so we can still keep
+    track of some information from them.
+    """
 
     is_solved: bool
     in_focus: bool
@@ -94,7 +95,7 @@ class InteractiveModuleState(BaseModuleState):
 
         This is used to determine if the module needs multiple images to be solved.
         """
-        return module_registry().needs_multiple_frames(self.name.value)
+        return module_registry().needs_multiple_frames(self.name)
 
 
 class TimerState(BaseModuleState):
@@ -108,7 +109,7 @@ class TimerState(BaseModuleState):
 class ButtonModuleState(InteractiveModuleState):
     """State of the Button module."""
 
-    name: KtaneComponent = KtaneComponent.big_button
+    name = "BigButton"
 
     button_color: constants.ButtonColor
     button_word: constants.ButtonWord
@@ -138,7 +139,7 @@ class KeyPadButtonState(BaseModel):
 class KeypadModuleState(InteractiveModuleState):
     """State of the Keypad module."""
 
-    name: KtaneComponent = KtaneComponent.keypad
+    name = "Keypad"
     top_left: KeyPadButtonState
     top_right: KeyPadButtonState
     bottom_left: KeyPadButtonState
@@ -148,7 +149,7 @@ class KeypadModuleState(InteractiveModuleState):
 class SimonSaysModuleState(InteractiveModuleState):
     """State of the Simon Says module."""
 
-    name: KtaneComponent = KtaneComponent.simon
+    name = "Simon"
     beep_sequence: Annotated[list[constants.SimonSaysColor], Field(min_length=1, max_length=6)]
     solve_progress: Annotated[int, Field(le=5, ge=0)]
 
@@ -194,7 +195,7 @@ class WireSequenceWire(BaseWire[constants.WireSequenceColor]):
 class ComplicatedWiresModuleState(InteractiveModuleState):
     """State of the Complicated Wires module."""
 
-    name: KtaneComponent = KtaneComponent.venn
+    name = "Venn"
     wires: Annotated[list[ComplicatedWire], Field(max_length=6, min_length=1)]
 
     @field_validator("wires", mode="before")
@@ -214,7 +215,7 @@ class ComplicatedWiresModuleState(InteractiveModuleState):
 class WireSequenceModuleState(InteractiveModuleState):
     """State of the Wire Sequence module."""
 
-    name: KtaneComponent = KtaneComponent.wire_sequence
+    name = "WireSequence"
     panel: Annotated[int, Field(le=5, ge=1)]
     wires: Annotated[list[WireSequenceWire], Field(max_length=12, min_length=1)]
     is_emerged: bool = True
@@ -243,7 +244,7 @@ class WireSequenceModuleState(InteractiveModuleState):
 class WireSetModuleState(InteractiveModuleState):
     """State of the Wire Set module."""
 
-    name: KtaneComponent = KtaneComponent.wires
+    name = "Wires"
     wires: Annotated[list[WireSetWire], Field(max_length=6, min_length=1)]
 
     @field_validator("wires", mode="before")
@@ -281,7 +282,7 @@ class MazeModuleState(InteractiveModuleState):
     (The `-1` is because the coordinates are 0-indexed.)
     """
 
-    name: KtaneComponent = KtaneComponent.maze
+    name = "Maze"
     num_rows: int
     num_columns: int
     triangle_position: MazeCoordinate
@@ -292,7 +293,7 @@ class MazeModuleState(InteractiveModuleState):
 class MemoryModuleState(InteractiveModuleState):
     """State of the Memory module."""
 
-    name: KtaneComponent = KtaneComponent.memory
+    name = "Memory"
     display_number: Annotated[int, Field(le=4, ge=1)] | None
     button_numbers: (
         Annotated[list[Annotated[int, Field(le=4, ge=1)]], Field(max_length=4, min_length=4)]
@@ -305,7 +306,7 @@ class MemoryModuleState(InteractiveModuleState):
 class MorseCodeModuleState(InteractiveModuleState):
     """State of the Morse Code module."""
 
-    name: KtaneComponent = KtaneComponent.morse_code
+    name = "MorseCode"
     sequence: str
     current_frequency: float
     correct_frequency: float
@@ -314,7 +315,7 @@ class MorseCodeModuleState(InteractiveModuleState):
 class PasswordModuleState(InteractiveModuleState):
     """State of the Password module."""
 
-    name: KtaneComponent = KtaneComponent.password
+    name = "Password"
     current_word: str
     goal_word: str
 
@@ -322,7 +323,7 @@ class PasswordModuleState(InteractiveModuleState):
 class WhosOnFirstModuleState(InteractiveModuleState):
     """State of the Who's on First module."""
 
-    name: KtaneComponent = KtaneComponent.whos_on_first
+    name = "WhosOnFirst"
     display_word: str | None
     button_words: list[str] | None
     stage: Annotated[int, Field(le=4, ge=1)]
@@ -332,7 +333,7 @@ class WhosOnFirstModuleState(InteractiveModuleState):
 class DischargeModuleState(InteractiveModuleState):
     """State of the Capacitor Discharge module."""
 
-    name: KtaneComponent = KtaneComponent.needy_capacitor
+    name = "NeedyCapacitor"
     is_being_needy: bool
     seconds_until_discharge: int
 
@@ -340,7 +341,7 @@ class DischargeModuleState(InteractiveModuleState):
 class KnobModuleState(InteractiveModuleState):
     """State of the Knob module."""
 
-    name: KtaneComponent = KtaneComponent.needy_knob
+    name = "NeedyKnob"
     is_being_needy: bool
     knob_position: constants.KnobPosition
     led_position: dict[Annotated[int, Field(le=11, ge=0)], bool]  # noqa: WPS432
@@ -349,20 +350,26 @@ class KnobModuleState(InteractiveModuleState):
 class GasModuleState(InteractiveModuleState):
     """State of the Venting Gas module."""
 
-    name: KtaneComponent = KtaneComponent.needy_vent_gas
+    name = "NeedyVentGas"
     is_being_needy: bool
     message: constants.GasMessages
     timer: int
 
 
+_GENERIC_MODULE_TAG = "Modded"
+"""Discriminator tag for a module with no typed state class."""
+
+_KNOWN_MODULE_IDS = frozenset(get_args(KtaneModuleId))
+
+
 def _get_discriminator_value(module_state: BaseModuleState | dict[str, Any]) -> str:
-    """Get the discriminator value for a module state."""
-    if isinstance(module_state, BaseModel):
-        return module_state.name.value
-    return module_state["name"]
+    """Return a module's identifier when a typed state member matches it, else the generic tag."""
+    name = module_state.name if isinstance(module_state, BaseModel) else module_state["name"]
+    tag = str(name)
+    return tag if tag in _KNOWN_MODULE_IDS else _GENERIC_MODULE_TAG
 
 
-# Note: the Tags need to match the KtaneComponent values
+# Note: the Tags need to match KtaneModuleId
 type ModuleStates = Annotated[
     (
         Annotated[WireSetModuleState, Tag("Wires")]
@@ -379,6 +386,7 @@ type ModuleStates = Annotated[
         | Annotated[DischargeModuleState, Tag("NeedyCapacitor")]
         | Annotated[KnobModuleState, Tag("NeedyKnob")]
         | Annotated[GasModuleState, Tag("NeedyVentGas")]
+        | Annotated[InteractiveModuleState, Tag(_GENERIC_MODULE_TAG)]
     ),
     Discriminator(_get_discriminator_value),
 ]
