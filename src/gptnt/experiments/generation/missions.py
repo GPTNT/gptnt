@@ -109,14 +109,14 @@ class MissionGenerator:
             else self._sample_from_all_modules(n_components=n_components)
         )
 
-        time_limit = (
-            get_time_limit_for_mission(
-                [module_registry().facts(component) for component in components],
+        if self.spec.time_limit is None:
+            registry = module_registry()
+            time_limit = get_time_limit_for_mission(
+                [registry.facts(component) for component in components],
                 allow_back_placement=self.spec.allow_back_placement,
             )
-            if self.spec.time_limit is None
-            else self.spec.time_limit
-        )
+        else:
+            time_limit = self.spec.time_limit
 
         mission = KtaneMissionSpec.model_validate(
             {
