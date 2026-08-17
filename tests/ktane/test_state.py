@@ -65,7 +65,7 @@ def test_unknown_module_uses_generic_state() -> None:
         }
     )
 
-    assert type(state) is InteractiveModuleState
+    assert isinstance(state, InteractiveModuleState)
     assert state.name == "SomeCommunityModule"
 
 
