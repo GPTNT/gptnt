@@ -3,7 +3,8 @@ from typing import cast, override
 from httpx import QueryParams
 from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator
 
-from gptnt.ktane.state.modules import NEEDS_MULTIPLE_IMAGES, KtaneComponent
+from gptnt.ktane.state.module_registry import module_registry
+from gptnt.ktane.state.modules import KtaneComponent
 
 MAX_COMPONENTS = 11
 
@@ -88,7 +89,10 @@ class KtaneMissionSpec(BaseModel):
     @property
     def requires_multiple_images_per_observation(self) -> bool:
         """Check if the mission requires multiple images per observation."""
-        return any(NEEDS_MULTIPLE_IMAGES.get(component, False) for component in self.components)
+        return any(
+            module_registry().needs_multiple_frames(component.value)
+            for component in self.components
+        )
 
     @field_validator("components", mode="before")
     @classmethod
