@@ -1,19 +1,8 @@
-from enum import Enum
-from typing import Annotated, Union
+from typing import Literal, Union
 
-import annotated_types
 from pydantic import BaseModel, ConfigDict, alias_generators
 
-from gptnt.ktane.state import constants
-
-
-class KtaneWidget(Enum):
-    """Enum representing valid KTANE widgets."""
-
-    battery = "Battery"
-    indicator = "Indicator"
-    port = "Port"
-    serial_number = "SerialNumber"
+type KtaneWidget = Literal["Battery", "Indicator", "Port", "SerialNumber"]
 
 
 class BaseWidgetState(BaseModel):
@@ -22,28 +11,34 @@ class BaseWidgetState(BaseModel):
     model_config = ConfigDict(
         alias_generator=alias_generators.to_camel, populate_by_name=True, extra="ignore"
     )
-    position: constants.WidgetPosition
     name: KtaneWidget
+    position: str
+
+
+type _KnownBatteryTypes = Literal["D", "AA"]
 
 
 class BatteryWidgetState(BaseWidgetState):
     """State of the Battery widget."""
 
     batteries_count: int
-    battery_type: constants.BatteryType
+    battery_type: _KnownBatteryTypes | str
 
 
 class IndicatorWidgetState(BaseWidgetState):
     """State of the Indicator widget."""
 
     light_activated: bool
-    label: Annotated[str, annotated_types.MaxLen(3), annotated_types.MinLen(3)]
+    label: str
+
+
+type _KnownPorts = Literal["DVI-D", "Parallel", "PS/2", "RJ-45", "Serial", "Stereo RCA"]
 
 
 class PortWidgetState(BaseWidgetState):
     """State of the Port widget."""
 
-    port_type: list[constants.PortType]
+    port_type: list[_KnownPorts | str]
 
 
 class SerialWidgetState(BaseWidgetState):

@@ -13,7 +13,6 @@ from pydantic import (
 )
 from pydantic.types import Tag
 
-from gptnt.ktane.state import constants
 from gptnt.ktane.state.module_registry import module_registry
 
 type _KnownKtaneModuleId = Literal[
@@ -179,13 +178,13 @@ class BaseWire[WireColorT](BaseModel):
     color: Annotated[WireColorT, BeforeValidator(lambda word: word.lower())]
 
 
-class WireSetWire(BaseWire[constants.WireSetColor]):
+class WireSetWire(BaseWire[str]):
     """Wire for the 'Wire Set' module."""
 
     position: Annotated[int, Field(le=5, ge=0)]
 
 
-class ComplicatedWire(BaseWire[constants.ComplicatedWireColor]):
+class ComplicatedWire(BaseWire[str]):
     """Wire for the 'Complicated Wires' module."""
 
     position: Annotated[int, Field(le=5, ge=0)]
@@ -193,7 +192,7 @@ class ComplicatedWire(BaseWire[constants.ComplicatedWireColor]):
     has_star: bool
 
 
-class WireSequenceWire(BaseWire[constants.WireSequenceColor]):
+class WireSequenceWire(BaseWire[str]):
     """Wire for the 'Wire Sequence' module."""
 
     start_position_number: int
@@ -201,7 +200,10 @@ class WireSequenceWire(BaseWire[constants.WireSequenceColor]):
 
 
 class ComplicatedWiresModuleState(InteractiveModuleState):
-    """State of the Complicated Wires module."""
+    """State of the Complicated Wires module.
+
+    Default wire colours are: white, red, blue, red-white, blue-white, red-blue
+    """
 
     name: KtaneModuleId = "Venn"
     wires: Annotated[list[ComplicatedWire], Field(max_length=6, min_length=1)]
@@ -221,7 +223,10 @@ class ComplicatedWiresModuleState(InteractiveModuleState):
 
 
 class WireSequenceModuleState(InteractiveModuleState):
-    """State of the Wire Sequence module."""
+    """State of the Wire Sequence module.
+
+    Default wire colours are: red, blue, black
+    """
 
     name: KtaneModuleId = "WireSequence"
     panel: Annotated[int, Field(le=5, ge=1)]
@@ -250,7 +255,10 @@ class WireSequenceModuleState(InteractiveModuleState):
 
 
 class WireSetModuleState(InteractiveModuleState):
-    """State of the Wire Set module."""
+    """State of the Wire Set module.
+
+    Default wire colours are: red, blue, black, yellow, white
+    """
 
     name: KtaneModuleId = "Wires"
     wires: Annotated[list[WireSetWire], Field(max_length=6, min_length=1)]
@@ -351,7 +359,7 @@ class KnobModuleState(InteractiveModuleState):
 
     name: KtaneModuleId = "NeedyKnob"
     is_being_needy: bool
-    knob_position: constants.KnobPosition
+    knob_position: str
     led_position: dict[Annotated[int, Field(le=11, ge=0)], bool]  # noqa: WPS432
 
 
@@ -360,7 +368,7 @@ class GasModuleState(InteractiveModuleState):
 
     name: KtaneModuleId = "NeedyVentGas"
     is_being_needy: bool
-    message: constants.GasMessages
+    message: str
     timer: int
 
 
