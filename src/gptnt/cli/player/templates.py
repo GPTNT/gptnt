@@ -20,7 +20,7 @@ capabilities:
 
   # How the model reasons:
   #   thinking-out-loud -> ReAct-style; reasoning is part of the message (no structured output)
-  #   inner-monologue   -> reasoning kept separate from the user-visible message (e.g. parsed as `ThinkingPart` from the model output; the prompt format uses a dedicated `<think>` section).
+  #   inner-monologue   -> reasoning kept separate from the user-visible message (e.g. parsed as `ThinkingPart` from the model output; no reasoning tag is prescribed by the prompt).
   thinking_method: thinking-out-loud
 
   # Structured output mode (pydantic-ai). MUST be null when thinking-out-loud.

@@ -24,8 +24,8 @@ type ThinkingMethod = Literal["inner-monologue", "thinking-out-loud"]
 """Thinking method used by players.
 
 - "inner-monologue": Model reasoning is kept separate from the user-visible message (parsed as
-                    `ThinkingPart` from the model output; the prompt format uses a dedicated
-                    `<think>` section).
+                    `ThinkingPart` from the model output); the prompt does not prescribe a
+                    provider-specific reasoning tag.
 - "thinking-out-loud": Reasoning is part of the normal message flow (ReAct-style).
 """
 

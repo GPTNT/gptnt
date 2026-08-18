@@ -15,6 +15,10 @@ from gptnt.players.reasoning_parser.react import (
     REACT_REASONING_TAG,
     ReactStyleReasoningParser,
 )
+from gptnt.players.reasoning_parser.reasoning_parser import (
+    strip_action_envelope,
+    strip_box_envelope,
+)
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cases.capabilities import CapabilitiesCases
@@ -24,6 +28,36 @@ from tests.players._models import InnerMonologueModel, ThinkingOutLoudModel
 thinking_output = param_fixture(
     "thinking_output", [None, "This is my inner monologue."], ids=["no_thinking", "with_thinking"]
 )
+
+
+@pytest.mark.parametrize(
+    ("output", "expected"),
+    [
+        ("<|begin_of_box|>A<|end_of_box|>", "A"),
+        ("  <|begin_of_box|>A<|end_of_box|>\n", "A"),
+        ("A", "A"),
+        ("Answer: <|begin_of_box|>A<|end_of_box|>", "Answer: <|begin_of_box|>A<|end_of_box|>"),
+        ("<|begin_of_box|>A", "<|begin_of_box|>A"),
+    ],
+)
+def test_strip_box_envelope(output: str, expected: str) -> None:
+    assert strip_box_envelope(output) == expected
+
+
+@pytest.mark.parametrize(
+    ("output", "expected"),
+    [
+        ('<action>{"message": "Hello"}</action>', '{"message": "Hello"}'),
+        ('  <action>{"message": "Hello"}</action>\n', '{"message": "Hello"}'),
+        ('{"message": "Hello"}', '{"message": "Hello"}'),
+        (
+            'prefix <action>{"message": "Hello"}</action>',
+            'prefix <action>{"message": "Hello"}</action>',
+        ),
+    ],
+)
+def test_strip_action_envelope(output: str, expected: str) -> None:
+    assert strip_action_envelope(output) == expected
 
 
 @parametrize_with_cases("capabilities", cases=CapabilitiesCases, glob="*prompted*")

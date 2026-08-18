@@ -9,6 +9,9 @@ from gptnt.prompts.prompt_cache import PromptCache
 paths = Paths()
 """Reflection messages for the player to receive when reflecting on the bomb state."""
 
+INNER_MONOLOGUE_OUTPUT = "Reason internally, then return only the send_message command as a JSON object in the required format. Do not include your reasoning or any reasoning tags in the response."
+THINKING_OUT_LOUD_OUTPUT = 'Provide your reasoning first, followed by a send_message command in the correct JSON format: \'<thought>{REASONING}</thought><action>{"result": {"kind": "send_message", "data": {"message": "{MESSAGE}"}}}</action>\', replacing {REASONING} with your reasoning and {MESSAGE} with your final answer.'
+
 
 @dataclass(kw_only=True)
 class InvalidBombStateForReflectionError(ValueError):
@@ -25,11 +28,12 @@ def load_reflection_prompt(protocol: PlayerProtocol, capabilities: PlayerCapabil
             "reflection_solo.txt" if protocol.is_playing_alone else "reflection.txt"
         )
     )
-    if capabilities.thinking_method == "inner-monologue":
-        return reflection_prompt.replace("thought", "think").replace(
-            "reasoning", "thinking process"
-        )
-    return reflection_prompt
+    output_instruction = (
+        INNER_MONOLOGUE_OUTPUT
+        if capabilities.thinking_method == "inner-monologue"
+        else THINKING_OUT_LOUD_OUTPUT
+    )
+    return f"{reflection_prompt}\n\n{output_instruction}"
 
 
 def convert_bomb_state_to_reflection(bomb_state: BombState) -> str:

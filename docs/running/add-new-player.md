@@ -60,7 +60,7 @@ gptnt new player <player-name>
 
           # How the model reasons:
           #   thinking-out-loud -> ReAct-style; reasoning is part of the message (no structured output)
-          #   inner-monologue   -> reasoning kept separate from the user-visible message (e.g. parsed as `ThinkingPart` from the model output; the prompt format uses a dedicated `<think>` section).
+          #   inner-monologue   -> reasoning kept separate from the user-visible message (e.g. parsed as `ThinkingPart` from the model output; no reasoning tag is prescribed by the prompt).
           thinking_method: thinking-out-loud
 
           # Structured output mode (pydantic-ai). MUST be null when thinking-out-loud.
@@ -121,7 +121,7 @@ gptnt new player <player-name>
 
           # How the model reasons:
           #   thinking-out-loud -> ReAct-style; reasoning is part of the message (no structured output)
-          #   inner-monologue   -> reasoning kept separate from the user-visible message (e.g. parsed as `ThinkingPart` from the model output; the prompt format uses a dedicated `<think>` section).
+          #   inner-monologue   -> reasoning kept separate from the user-visible message (e.g. parsed as `ThinkingPart` from the model output; no reasoning tag is prescribed by the prompt).
           thinking_method: thinking-out-loud
 
           # Structured output mode (pydantic-ai). MUST be null when thinking-out-loud.
@@ -376,7 +376,7 @@ The `capabilities` block at the top of your config is where you say what your mo
 | Field | What it does | Default |
 | ----- | ------------ | ------- |
 | `player_name` | The name that shows up in specs, rosters, and recordings. | Required |
-| `thinking_method` | How the model reasons:<br>`thinking-out-loud` means ReAct-style reasoning is part of the message.<br>`inner-monologue` keeps reasoning in a dedicated `<think>` section. | `inner-monologue` |
+| `thinking_method` | How the model reasons:<br>`thinking-out-loud` means ReAct-style reasoning is part of the message.<br>`inner-monologue` reads reasoning from the provider's separate reasoning channel without prescribing a textual tag. | `inner-monologue` |
 | `structured_output_mode` | How Pydantic AI coaxes structured output:<br>`null`, `prompted`, `native`, or `tool`. | `prompted` |
 | `include_schema_in_instructions` | Whether the output schema is pasted into the instructions. | `true` |
 | `interaction_location_method` | How the model points:<br>`set-of-marks` labels elements A, B, C, ...<br>`coordinates` asks for pixel or normalised coordinates. | `set-of-marks` |
