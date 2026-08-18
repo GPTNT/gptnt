@@ -3,11 +3,10 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Literal, override
 
-import json_repair
 import numpy as np
 from more_itertools import collapse
 from numpy.typing import NDArray
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import cos_sim as cosine_similarity
 
@@ -17,9 +16,11 @@ from gptnt.statics.constants import (
     KEYPAD_SYMBOL_DESCRIPTIONS,
     TaskType,
 )
+from gptnt.statics.coordinates import Coords, parse_coordinates
+from gptnt.statics.output import static_prediction_answer
 from gptnt.statics.postprocess import PostProcessModelOutputsFunc, default_postprocess
 
-type PredictionOutput = dict[Literal["output"], str]
+type PredictionOutput = dict[str, Any]
 
 type GroundTruthType = str | list[str] | NDArray[np.uint8]
 """Type for ground truth values.
@@ -50,18 +51,24 @@ def check_for_bad_symbols(
     return bad_symbols
 
 
-class Coords(BaseModel):
-    """Coordinate dictionary.
+def _coordinate_output(output: PredictionOutput) -> str:
+    """Return the raw response when available so later coordinates are not discarded."""
+    scored_output = output.get("scored_output")
+    if isinstance(scored_output, str) and scored_output.strip():
+        return scored_output
+    raw_output = output.get("raw_output")
+    if isinstance(raw_output, str) and raw_output.strip():
+        return raw_output
+    return str(output["output"])
 
-    Just to keep things explicit.
-    """
 
-    x: int  # noqa: WPS111
-    y: int  # noqa: WPS111
-
-    def is_in_bounds(self, width: int, height: int) -> bool:
-        """Check if the coordinates are within the bounds."""
-        return 0 <= self.x <= width and 0 <= self.y <= height
+def _coordinate_output_for_scoring(
+    output: PredictionOutput, *, postprocess: PostProcessModelOutputsFunc
+) -> str:
+    """Use persisted task normalization, or normalize legacy predictions on demand."""
+    if isinstance(output.get("scored_output"), str):
+        return str(output["scored_output"])
+    return postprocess(_coordinate_output(output))
 
 
 @dataclass(kw_only=True)
@@ -104,20 +111,21 @@ class StringBasedComparer(BaseComparer[str | list[str], bool]):  # noqa: WPS338
     def __call__(
         self, output: PredictionOutput, ground_truth: str | list[str], *, module: str
     ) -> bool:
+        model_answer = static_prediction_answer(output)
         if module == "keypad" and self.task_type == "oe":
             ground_truth_symbol = (
                 ground_truth[0] if isinstance(ground_truth, list) else ground_truth
             )
             is_correct = self.check_keypad_with_exact_match(
-                input_string=output["output"], correct_symbol=ground_truth_symbol
+                input_string=model_answer, correct_symbol=ground_truth_symbol
             )
             if not is_correct:
                 is_correct = self.check_keypad_with_embeddings(
-                    input_string=output["output"], correct_symbol=ground_truth_symbol
+                    input_string=model_answer, correct_symbol=ground_truth_symbol
                 )
             return is_correct
 
-        model_output = self.postprocess_output_func(output["output"])
+        model_output = self.postprocess_output_func(model_answer)
         if module == "morse":
             model_output = model_output.replace("mhz", "").strip()
         cleaned_ground_truth = (
@@ -189,9 +197,12 @@ class CoordinateValidator(BaseComparer[NDArray[np.uint8], CoordinateValidatorRes
     def __call__(
         self, output: PredictionOutput, ground_truth: NDArray[np.uint8] | str, *, module: str
     ) -> CoordinateValidatorResult:
-        cleaned_output = self.postprocess_output_func(output["output"])
         if isinstance(ground_truth, str):
+            cleaned_output = self.postprocess_output_func(static_prediction_answer(output))
             return self.validate_string_ground_truth(cleaned_output)
+        cleaned_output = _coordinate_output_for_scoring(
+            output, postprocess=self.postprocess_output_func
+        )
         return self.validate_array_ground_truth(cleaned_output, ground_truth)
 
     def validate_string_ground_truth(self, cleaned_output: str) -> CoordinateValidatorResult:
@@ -208,8 +219,8 @@ class CoordinateValidator(BaseComparer[NDArray[np.uint8], CoordinateValidatorRes
     ) -> CoordinateValidatorResult:
         """Validate the output against array ground truth."""
         try:
-            parsed_coords = Coords.model_validate_json(json_repair.repair_json(cleaned_output))
-        except ValidationError:
+            parsed_coords = parse_coordinates(cleaned_output)
+        except (ValidationError, ValueError):
             return "invalid_format"
 
         if not parsed_coords.is_in_bounds(ground_truth.shape[1], ground_truth.shape[0]):
@@ -235,7 +246,7 @@ class CoordinateInRegionComparer(BaseComparer[NDArray[np.uint8] | str, bool]):
 
     def score_with_string_ground_truth(self, output: PredictionOutput, ground_truth: str) -> bool:
         """Score when ground truth is a string (hallucination question)."""
-        cleaned_output = self.postprocess_output_func(output["output"])
+        cleaned_output = self.postprocess_output_func(static_prediction_answer(output))
         cleaned_ground_truth = self.postprocess_output_func(ground_truth)
         return cleaned_output == cleaned_ground_truth
 
@@ -243,11 +254,11 @@ class CoordinateInRegionComparer(BaseComparer[NDArray[np.uint8] | str, bool]):
         self, output: PredictionOutput, ground_truth: NDArray[np.uint8]
     ) -> bool:
         """Score when ground truth is a binary mask array."""
-        cleaned_output = json_repair.repair_json(self.postprocess_output_func(output["output"]))
-
         try:
-            parsed_coords = Coords.model_validate_json(cleaned_output)
-        except ValidationError:
+            parsed_coords = parse_coordinates(
+                _coordinate_output_for_scoring(output, postprocess=self.postprocess_output_func)
+            )
+        except (ValidationError, ValueError):
             return False
 
         if not parsed_coords.is_in_bounds(ground_truth.shape[1], ground_truth.shape[0]):
@@ -292,7 +303,7 @@ class CoordinateDistanceComparer(BaseComparer[NDArray[np.uint8] | str, float], a
 
     def score_with_string_ground_truth(self, output: PredictionOutput, ground_truth: str) -> float:
         """Score when ground truth is a string (hallucination question)."""
-        cleaned_output = self.postprocess_output_func(output["output"])
+        cleaned_output = self.postprocess_output_func(static_prediction_answer(output))
         cleaned_ground_truth = self.postprocess_output_func(ground_truth)
         if cleaned_output == cleaned_ground_truth:
             return self._min_distance
@@ -302,11 +313,11 @@ class CoordinateDistanceComparer(BaseComparer[NDArray[np.uint8] | str, float], a
         self, output: PredictionOutput, ground_truth: NDArray[np.uint8]
     ) -> float:
         """Score when ground truth is a binary mask array."""
-        cleaned_output = json_repair.repair_json(self.postprocess_output_func(output["output"]))
-
         try:
-            parsed_coords = Coords.model_validate_json(cleaned_output)
-        except ValidationError:
+            parsed_coords = parse_coordinates(
+                _coordinate_output_for_scoring(output, postprocess=self.postprocess_output_func)
+            )
+        except (ValidationError, ValueError):
             return self._max_distance
 
         if not parsed_coords.is_in_bounds(ground_truth.shape[1], ground_truth.shape[0]):
@@ -526,10 +537,12 @@ def score_predictions(
             prediction = predictions.get(instance["index"])
             if prediction is None:
                 continue
+            prediction_for_scoring = {
+                **prediction,
+                "output": prediction.get("scored_output", prediction["output"]),
+            }
             scored = scorer.score(
-                {"output": prediction["output"]},
-                instance["ground_truth"],
-                instance.get("categories"),
+                prediction_for_scoring, instance["ground_truth"], instance.get("categories")
             )
             if scored is not None:
                 _accumulate(scored, sums, counts)

@@ -1,9 +1,11 @@
 from collections.abc import Callable
+from typing import Any
 
 from structlog import get_logger
 
 from gptnt.cli.statics._config_loader import ConfigLoader
 from gptnt.players.specification import PlayerCapabilities, PlayerRole
+from gptnt.statics.output import static_prediction_answer
 from gptnt.statics.preprocess import PostprocessInputsFunc
 from gptnt.statics.run import RunHFDatasetEvaluation
 from gptnt.statics.scorers import Scorer
@@ -26,6 +28,10 @@ async def create_and_run_evaluation(
     preprocess_instance_func: PostprocessInputsFunc,
     build_instruction: Callable[[PlayerCapabilities], str],
     build_scorers: Callable[[PlayerCapabilities], list[Scorer]],
+    build_model_output_type: Callable[[PlayerCapabilities], Any] | None = None,
+    output_serializer: Callable[[Any], str] = str,
+    build_scored_output_func: Callable[[PlayerCapabilities], Callable[[dict[str, Any]], str]]
+    | None = None,
     dataset_split: str | None = None,
     dataset_revision: str | None = None,
     should_download: bool,
@@ -50,6 +56,9 @@ async def create_and_run_evaluation(
         preprocess_instance_func: Per-instance preprocessing function.
         build_instruction: Callback building the system instruction from capabilities.
         build_scorers: Callback building the scorer list from capabilities.
+        build_model_output_type: Optional callback building a task-specific structured output.
+        output_serializer: Convert the validated model output to its stored string form.
+        build_scored_output_func: Optional callback building the task answer normalizer.
         dataset_split: Optional HuggingFace dataset split to load.
         dataset_revision: Optional dataset revision (branch, tag, or commit sha) to pin.
         should_download: Whether to download the dataset up-front before running.
@@ -59,6 +68,13 @@ async def create_and_run_evaluation(
     """
     config_loader = ConfigLoader(player=player, provider=provider, role=role)
     capabilities = config_loader.capabilities
+    agent = config_loader.agent_fn(instructions=build_instruction(capabilities))
+    model_output_type = str
+    if build_model_output_type is not None:
+        model_output_type = build_model_output_type(capabilities)
+    scored_output_func = static_prediction_answer
+    if build_scored_output_func is not None:
+        scored_output_func = build_scored_output_func(capabilities)
     runner = RunHFDatasetEvaluation(
         hf_repo_id=hf_repo_id,
         dataset_split=dataset_split,
@@ -66,11 +82,14 @@ async def create_and_run_evaluation(
         task_name=task_name,
         weave_project=weave_project,
         preprocess_instance_func=preprocess_instance_func,
-        agent=config_loader.agent_fn(instructions=build_instruction(capabilities)),
+        agent=agent,
         capabilities=capabilities,
         scorers=build_scorers(capabilities),
         max_instances=limit_instances,
         image_resizer=config_loader.image_resizer,
+        model_output_type=model_output_type,
+        output_serializer=output_serializer,
+        scored_output_func=scored_output_func,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")

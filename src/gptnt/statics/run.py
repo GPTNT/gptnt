@@ -17,10 +17,10 @@ from whenever import Instant
 from gptnt.common.paths import Paths
 from gptnt.common.provenance import Provenance
 from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
-from gptnt.players.reasoning_parser.react import ReactStyleReasoningParser
 from gptnt.players.specification import PlayerCapabilities
 from gptnt.processors.image_resizer import ImageResizer
 from gptnt.statics.model import EvalModel, ModelOutput
+from gptnt.statics.output import StaticsReasoningParser, static_prediction_answer
 from gptnt.statics.preprocess import PostprocessInputsFunc
 from gptnt.statics.run_metadata import StaticsIdentity, StaticsRunMetadata
 from gptnt.statics.scorers import Instances, Metrics, Predictions, Scorer, score_predictions
@@ -107,6 +107,10 @@ class RunEvaluation(abc.ABC):
 
     image_resizer: ImageResizer
 
+    model_output_type: Any = str
+    output_serializer: Callable[[Any], str] = str
+    scored_output_func: Callable[[dict[str, Any]], str] = static_prediction_answer
+
     eval_model: EvalModel = field(init=False, repr=False)
     model_name: str = field(init=False, repr=False)
 
@@ -122,8 +126,12 @@ class RunEvaluation(abc.ABC):
         self.eval_model.update_reasoning_parser(
             InnerMonologueReasoningParser()
             if self.capabilities.thinking_method == "inner-monologue"
-            else ReactStyleReasoningParser()
+            else StaticsReasoningParser()
         )
+        self.eval_model.update_output_contract(
+            model_output_type=self.model_output_type, output_serializer=self.output_serializer
+        )
+        self.eval_model.update_scored_output_func(self.scored_output_func)
 
     @property
     def output_dir(self) -> Path:
