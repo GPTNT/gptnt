@@ -26,6 +26,7 @@ nav = [
         "running/run-your-model.md",
     ]},
     "submit-your-results.md",
+    "manuals.md",
 ]
 extra_css = ["stylesheets/extra.css"]
 
