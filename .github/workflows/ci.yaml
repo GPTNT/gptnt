@@ -7,6 +7,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - main
+      - "v*"
   push:
     branches:
       - main
