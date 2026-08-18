@@ -1,4 +1,6 @@
+from collections.abc import Callable
 from functools import partial
+from typing import Any
 
 from gptnt.cli._params import PlayerOption, ProviderOption
 from gptnt.cli.statics._evaluation import create_and_run_evaluation
@@ -11,9 +13,23 @@ from gptnt.cli.statics._params import (
     UploadOption,
 )
 from gptnt.players.specification import PlayerCapabilities
+from gptnt.statics.constants import (
+    GROUNDING_HALLUCINATION_TYPE_A_RESPONSE,
+    GROUNDING_HALLUCINATION_TYPE_B_RESPONSE,
+)
+from gptnt.statics.coordinates import (
+    coordinate_model_output_type,
+    parse_coordinates,
+    serialise_coordinate_model_output,
+)
+from gptnt.statics.output import static_prediction_answer
 from gptnt.statics.postprocess import convert_normalised_to_absolute, default_postprocess
 from gptnt.statics.preprocess import preprocess_grounding_coordinates_instance
-from gptnt.statics.prompts import GROUNDING_COORDINATES_PROMPT, format_instruction_with_reasoning
+from gptnt.statics.prompts import (
+    GROUNDING_COORDINATES_PROMPT,
+    build_grounding_normalised_coordinates_prompt,
+    format_instruction_with_reasoning,
+)
 from gptnt.statics.scorers import (
     CoordinateAbsoluteDistanceComparer,
     CoordinateEuclideanDistanceComparer,
@@ -27,9 +43,20 @@ from gptnt.statics.scorers import (
 def _build_coordinate_instruction(
     capabilities: PlayerCapabilities, *, allow_thinking: bool
 ) -> str:
-    instruction = GROUNDING_COORDINATES_PROMPT.replace(
-        "{IMAGE_WIDTH}", str(capabilities.image_dimensions.width)
-    ).replace("{IMAGE_HEIGHT}", str(capabilities.image_dimensions.height))
+    if capabilities.coordinate_mode == "normalised":
+        instruction = build_grounding_normalised_coordinates_prompt(
+            capabilities.normalised_coordinate_scale
+        )
+    else:
+        instruction = GROUNDING_COORDINATES_PROMPT.replace(
+            "{IMAGE_WIDTH}", str(capabilities.image_dimensions.width)
+        ).replace("{IMAGE_HEIGHT}", str(capabilities.image_dimensions.height))
+    if capabilities.structured_output_mode is not None:
+        for answer in (
+            GROUNDING_HALLUCINATION_TYPE_A_RESPONSE,
+            GROUNDING_HALLUCINATION_TYPE_B_RESPONSE,
+        ):
+            instruction = instruction.replace(f'"{answer}"', f'{{"answer": "{answer}"}}')
     return format_instruction_with_reasoning(
         instruction, allow_thinking=allow_thinking, thinking_method=capabilities.thinking_method
     )
@@ -41,6 +68,7 @@ def _build_coordinate_scorers(capabilities: PlayerCapabilities) -> list[Scorer]:
             convert_normalised_to_absolute,
             image_width=capabilities.image_dimensions.width,
             image_height=capabilities.image_dimensions.height,
+            normalised_upper_bound=capabilities.normalised_coordinate_scale,
         )
     else:
         post_process_func = default_postprocess
@@ -84,6 +112,36 @@ def _build_coordinate_scorers(capabilities: PlayerCapabilities) -> list[Scorer]:
     ]
 
 
+def _build_coordinate_scored_output_func(
+    capabilities: PlayerCapabilities,
+) -> Callable[[dict[str, Any]], str]:
+    """Build the canonicalizer whose result is persisted and consumed by scorers."""
+
+    def canonicalize(prediction: dict[str, Any]) -> str:  # noqa: WPS430
+        raw_output = prediction.get("raw_output")
+        candidate_source = (
+            raw_output
+            if isinstance(raw_output, str) and raw_output.strip()
+            else str(prediction.get("output", ""))
+        )
+        try:
+            coordinate = parse_coordinates(candidate_source)
+        except (ValueError, TypeError):
+            return static_prediction_answer(prediction)
+
+        coordinate_json = coordinate.model_dump_json()
+        if capabilities.coordinate_mode == "normalised":
+            return convert_normalised_to_absolute(
+                coordinate_json,
+                image_width=capabilities.image_dimensions.width,
+                image_height=capabilities.image_dimensions.height,
+                normalised_upper_bound=capabilities.normalised_coordinate_scale,
+            )
+        return coordinate_json
+
+    return canonicalize
+
+
 async def run_defuser_grounding_evaluation(
     *,
     player: PlayerOption,
@@ -107,6 +165,9 @@ async def run_defuser_grounding_evaluation(
         preprocess_instance_func=preprocess_grounding_coordinates_instance,
         build_instruction=partial(_build_coordinate_instruction, allow_thinking=allow_thinking),
         build_scorers=_build_coordinate_scorers,
+        build_model_output_type=coordinate_model_output_type,
+        output_serializer=serialise_coordinate_model_output,
+        build_scored_output_func=_build_coordinate_scored_output_func,
         should_download=should_download,
         should_throw=should_throw,
         should_upload=should_upload,

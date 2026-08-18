@@ -88,3 +88,14 @@ def test_missing_predictions_are_ignored() -> None:
     metrics = score_predictions([scorer], instances, predictions)
 
     assert metrics["module"]["total"] == Decimal("1.0")
+
+
+def test_scored_output_is_the_value_consumed_by_local_scorers() -> None:
+    """Saved task normalization, rather than the display output, drives metrics."""
+    scorer = ModuleScorer(name="module", comparer=_ExactMatchComparer(task_type=None))
+    instances = [{"index": 0, "ground_truth": "yes", "categories": ["module=wires"]}]
+    predictions = {0: {"output": "not normalized", "scored_output": "yes"}}
+
+    metrics = score_predictions([scorer], instances, predictions)
+
+    assert metrics["module"]["total"] == Decimal("1.0")

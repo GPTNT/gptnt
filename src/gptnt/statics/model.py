@@ -1,6 +1,7 @@
 import io
 import json
 import sys
+from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Self, TypedDict
@@ -33,6 +34,9 @@ class ModelOutput(TypedDict):
     usage: dict[str, int]
     model: str
     output: str
+    scored_output: str
+    """Canonical task answer consumed by scorers."""
+
     thoughts: str | None
     raw_output: str | None
     error: str | None
@@ -55,6 +59,9 @@ class EvalModel(BaseModel):
     """Directory to save the evaluation outputs."""
 
     _reasoning_parser: ReasoningParser[Any, Any] = PrivateAttr()
+    _model_output_type: Any = PrivateAttr(default=str)
+    _output_serializer: Callable[[Any], str] = PrivateAttr(default=str)
+    _scored_output_func: Callable[[dict[str, Any]], str] = PrivateAttr()
 
     @classmethod
     def from_agent(cls, *, agent: Agent) -> Self:
@@ -82,6 +89,17 @@ class EvalModel(BaseModel):
         """Update the reasoning parser for the model."""
         self._reasoning_parser = reasoning_parser
 
+    def update_output_contract(
+        self, *, model_output_type: Any, output_serializer: Callable[[Any], str]
+    ) -> None:
+        """Set the task-specific model output type and its storage serializer."""
+        self._model_output_type = model_output_type
+        self._output_serializer = output_serializer
+
+    def update_scored_output_func(self, func: Callable[[dict[str, Any]], str]) -> None:
+        """Set the task normalizer used to populate `scored_output`."""
+        self._scored_output_func = func
+
     async def model_predict(  # noqa: WPS210
         self,
         model_input: list[str | Image.Image],
@@ -106,7 +124,7 @@ class EvalModel(BaseModel):
                 reasoning_parser=self._reasoning_parser,
                 deps=None,
                 message_history=None,
-                model_output_type=str,
+                model_output_type=self._model_output_type,
                 parser_output_type=None,
             )
         except Exception as exc:
@@ -116,6 +134,7 @@ class EvalModel(BaseModel):
                 usage={},
                 model=self.name or "",
                 output="",
+                scored_output="",
                 thoughts=None,
                 raw_output=getattr(exc, "output", None),
                 error=str(response_errors) if response_errors else None,
@@ -131,15 +150,18 @@ class EvalModel(BaseModel):
                 usage[token_type] = token_count
         usage = {token: count for token, count in usage.items() if count > 0}
 
-        return ModelOutput(
+        prediction = ModelOutput(
             usage=usage,
             model=self.name or "",
-            output=model_output.output,
+            output=self._output_serializer(model_output.output),
+            scored_output="",
             thoughts=model_output.thoughts,
             raw_output=model_output.raw_output,
             error=str(model_output.ai_response_error) if model_output.ai_response_error else None,
             exception=None,
         )
+        prediction["scored_output"] = self._scored_output_func(dict(prediction))
+        return prediction
 
     def predict(self, index: int, model_input: Any, *args: Any, **kwargs: Any) -> ModelOutput:  # noqa: ARG002
         """Fetch the model answer from the json."""

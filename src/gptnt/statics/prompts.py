@@ -4,7 +4,9 @@ from gptnt.statics.constants import (
     GROUNDING_HALLUCINATION_TYPE_B_RESPONSE,
 )
 
-REASONING_PROMPT = "Reason about your task before choosing an answer. Keep your thoughts concise, using as few words and sentences as possible. Avoid redundancy and do not get stuck in circular reasoning loops. Provide your reasoning first, followed by your chosen answer using the format '<thought>{REASONING}</thought><action>{ANSWER}</action>', replacing {REASONING} with your reasoning and {ANSWER} with your chosen answer."
+THINKING_OUT_LOUD_PROMPT = "Reason about your task before choosing an answer. Keep your reasoning concise, using as few words and sentences as possible. Avoid redundancy and do not get stuck in circular reasoning loops. Provide your reasoning first, followed by your chosen answer using the format '<thought>{REASONING}</thought><action>{ANSWER}</action>', replacing {REASONING} with your reasoning and {ANSWER} with your chosen answer."
+
+INNER_MONOLOGUE_PROMPT = "Reason internally about your task before choosing an answer. Keep your reasoning concise, avoid redundancy, and do not get stuck in circular reasoning loops. Do not include your reasoning or any reasoning tags in the response. Output only the chosen answer in the required format."
 
 OPEN_ENDED_INSTRUCTION = "Answer the following question based on given context. Output only the one letter, word, short phrase, or number required to answer the question, nothing else."
 MCQ_INSTRUCTION = "Answer the following multiple choice question based on the given context. Output only the letter of the correct answer, nothing else."
@@ -20,9 +22,28 @@ GROUNDING_SOM_PROMPT = (
 )
 
 GROUNDING_COORDINATES_PROMPT = (
-    'The resolution of the screen is {IMAGE_WIDTH}x{IMAGE_HEIGHT} pixels.\nCoordinates are measured from the top-left corner: x (pixels from left edge), y (pixels from top edge).\nTo click on the UI element specified by the user, identify a (x, y) pixel coordinate that falls within the element.\n\nAnswer Format: Respond with exactly one of the following:\n\n1. If the target is found: Return a JSON with the coordinate: {"x": <int>, "y": <int>}.\n\n'
+    'The resolution of the screen is {IMAGE_WIDTH}x{IMAGE_HEIGHT} pixels.\nCoordinates are measured from the top-left corner: x (pixels from left edge), y (pixels from top edge).\nTo click on the UI element specified by the user, identify a pixel coordinate that falls within the element.\n\nAnswer Format: Respond with exactly one of the following:\n\n1. If the target is found: Return exactly one JSON object with exactly two integer fields, x and y, in this format: {"x": 468, "y": 535}. Do not return arrays, a bounding box, a tuple, function-call syntax, or more than one coordinate.\n\n'
     + GROUNDING_HALLUCINATION_PROMPT
 )
+
+
+def build_grounding_normalised_coordinates_prompt(coordinate_scale: int = 1000) -> str:
+    """Build grounding instructions using the model's native normalised coordinate scale."""
+    example_coordinate = round(coordinate_scale * 0.468)
+    return (
+        "Coordinates are normalised independently along each axis to integers from 0 to "
+        f'{coordinate_scale}. The top-left corner is {{"x": 0, "y": 0}} and the '
+        f'bottom-right corner is {{"x": {coordinate_scale}, "y": {coordinate_scale}}}.\n'
+        "To click on the UI element specified by the user, identify a normalised coordinate that "
+        "falls within the element.\n\nAnswer Format: Respond with exactly one of the following:\n\n"
+        "1. If the target is found: Return exactly one JSON object with exactly two integer "
+        f'fields, x and y, in this format: {{"x": {example_coordinate}, "y": '
+        f"{round(coordinate_scale * 0.535)}}}. Do not return arrays, a bounding box, a tuple, "
+        "function-call syntax, or more than one coordinate.\n\n" + GROUNDING_HALLUCINATION_PROMPT
+    )
+
+
+GROUNDING_NORMALISED_COORDINATES_PROMPT = build_grounding_normalised_coordinates_prompt()
 
 
 def format_instruction_with_reasoning(
@@ -32,11 +53,9 @@ def format_instruction_with_reasoning(
     if not allow_thinking:
         return instruction
 
-    reasoning_prompt = REASONING_PROMPT
-    if thinking_method == "inner-monologue":
-        reasoning_prompt = (
-            REASONING_PROMPT.replace("<thought>", "<think>")
-            .replace("</thought>", "</think>")
-            .replace("reasoning", "thinking process")
-        )
+    reasoning_prompt = (
+        INNER_MONOLOGUE_PROMPT
+        if thinking_method == "inner-monologue"
+        else THINKING_OUT_LOUD_PROMPT
+    )
     return f"{reasoning_prompt} {instruction}"
