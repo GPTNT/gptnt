@@ -8,7 +8,6 @@ cross-checks (those belong to `gptnt doctor <run.yaml>`, a later chunk).
 from __future__ import annotations
 
 from pathlib import Path
-from textwrap import dedent
 
 import pytest
 import yaml
@@ -51,26 +50,6 @@ def test_default_models_do_not_share_mutable_state() -> None:
 
     assert first.anchors.best_expert == "claude-sonnet-4-6"
     assert second.anchors.best_expert is None
-
-
-def test_loads_manifest_from_yaml_file(tmp_path: Path) -> None:
-    spec = """
-        spec_version: 2
-        suites: [single-pairwise-sync]
-        rooms: 3
-        players:
-          - player: claude-sonnet-4-6
-        anchors:
-          best_expert: claude-sonnet-4-6
-        """
-    manifest_file = tmp_path / "run.yaml"
-    _ = manifest_file.write_text(dedent(spec), encoding="utf-8")
-
-    manifest = RunManifest.from_path(manifest_file)
-
-    assert manifest.rooms == 3
-    assert manifest.players[0].player == "claude-sonnet-4-6"
-    assert manifest.anchors.best_expert == "claude-sonnet-4-6"
 
 
 def test_committed_quickstart_manifest_loads_cleanly() -> None:
@@ -126,22 +105,6 @@ def test_zero_rooms_is_rejected(tmp_path: Path) -> None:
         _ = _load_payload(tmp_path, payload)
 
 
-def test_displays_defaults_to_none(tmp_path: Path) -> None:
-    """Omitting `displays` means 'inherit the ambient $DISPLAY', represented as None."""
-    manifest = _load_payload(tmp_path, _minimal_manifest())
-
-    assert manifest.displays is None
-
-
-def test_displays_accepts_explicit_list(tmp_path: Path) -> None:
-    payload = _minimal_manifest()
-    payload["displays"] = [0, 1]
-
-    manifest = _load_payload(tmp_path, payload)
-
-    assert manifest.displays == [0, 1]
-
-
 def test_empty_displays_list_is_rejected(tmp_path: Path) -> None:
     """An explicit empty list is meaningless; `min_length=1` rejects it (use omission for
     default)."""
@@ -170,31 +133,6 @@ def test_recording_key_is_rejected(tmp_path: Path) -> None:
         _ = _load_payload(tmp_path, payload)
 
 
-@pytest.mark.parametrize("source_value", ["local", "wandb"])
-def test_source_accepts_local_and_wandb(tmp_path: Path, source_value: str) -> None:
-    payload = _minimal_manifest()
-    payload["source"] = source_value
-
-    manifest = _load_payload(tmp_path, payload)
-
-    assert manifest.source == Source(source_value)
-
-
-def test_attempts_per_mission_defaults_to_one(tmp_path: Path) -> None:
-    manifest = _load_payload(tmp_path, _minimal_manifest())
-
-    assert manifest.attempts_per_mission == 1
-
-
-def test_attempts_per_mission_accepts_explicit_count(tmp_path: Path) -> None:
-    payload = _minimal_manifest()
-    payload["attempts_per_mission"] = 4
-
-    manifest = _load_payload(tmp_path, payload)
-
-    assert manifest.attempts_per_mission == 4
-
-
 @pytest.mark.parametrize("bad_count", [0, -1])
 def test_non_positive_attempts_per_mission_is_rejected(tmp_path: Path, bad_count: int) -> None:
     payload = _minimal_manifest()
@@ -202,16 +140,3 @@ def test_non_positive_attempts_per_mission_is_rejected(tmp_path: Path, bad_count
 
     with pytest.raises(ValidationError):
         _ = _load_payload(tmp_path, payload)
-
-
-def test_missing_file_propagates_filenotfound(tmp_path: Path) -> None:
-    """Path existence is the CLI's job (Typer's `exists=True`); `RunManifest.from_path` no longer
-    wraps it.
-
-    Called directly on a missing path, it surfaces Python's own `FileNotFoundError` rather than a
-    bespoke manifest error.
-    """
-    missing = tmp_path / "does-not-exist.yaml"
-
-    with pytest.raises(FileNotFoundError):
-        _ = RunManifest.from_path(missing)

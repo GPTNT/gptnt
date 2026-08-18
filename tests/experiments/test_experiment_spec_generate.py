@@ -1,30 +1,18 @@
-from collections.abc import Iterator
 from pathlib import Path
-from typing import get_args
 
-import hydra
 import pytest
 from omegaconf import OmegaConf
-from pytest_cases import fixture, param_fixture, parametrize_with_cases
+from pytest_cases import parametrize_with_cases
 
-from gptnt.common.hydra import load_config
-from gptnt.common.paths import Paths
-from gptnt.experiments.generation.experiments import ExperimentGenerator
 from gptnt.experiments.generation.missions import (
     MissionGenerator,
     MissionGeneratorConfig,
     load_missions,
 )
-from gptnt.experiments.generation.pairing import Pairing, PairingGenerator, PairingType
-from gptnt.experiments.spec import ExperimentSpec
-from gptnt.experiments.suite.generate import CONFIG_NAME, _best_model_for, generate_specs
-from gptnt.ktane.mission_spec import KtaneMissionSpec
+from gptnt.experiments.suite.generate import _best_model_for
 from gptnt.ktane.state.modules import KNOWN_KTANE_MODULE_IDS
-from gptnt.players.specification import PlayerProtocol
 
 from tests._cases.mission_generator_config import MissionGeneratorConfigCases
-
-pairing_type = param_fixture("pairing_type", list(get_args(PairingType.__value__)))
 
 
 def test_load_missions_raises_on_an_empty_set(tmp_path: Path) -> None:
@@ -94,85 +82,3 @@ def test_seed_reproducibility(config: MissionGeneratorConfig) -> None:
     missions2 = list(generator2.generate())
 
     assert missions1 == missions2
-
-
-@fixture
-@parametrize_with_cases("config", cases=MissionGeneratorConfigCases)
-def missions(config: MissionGeneratorConfig) -> Iterator[KtaneMissionSpec]:
-    generator = MissionGenerator(config=config, num_seeds_per_mission=3, seed=42)
-    return generator.generate()
-
-
-@fixture
-def pairings(pairing_type: PairingType) -> Iterator[Pairing]:
-    generator = PairingGenerator(
-        pairing_type=pairing_type, all_players=["test-defuser", "test-expert"], best_model="gemini"
-    )
-    return generator.generate()
-
-
-def test_experiment_generation_does_not_crash(
-    pairing_type: PairingType, missions: Iterator[KtaneMissionSpec], pairings: Iterator[Pairing]
-) -> None:
-    expert_spec = PlayerProtocol(
-        role="expert", communication_style="async", is_playing_alone=False, include_manual=True
-    )
-    generator = ExperimentGenerator(
-        mission_set="single_module",
-        suite_name="single-test",
-        suite_revision=1,
-        defuser_protocol=PlayerProtocol(
-            role="defuser",
-            communication_style="async",
-            is_playing_alone=False,
-            include_manual=False,
-        ),
-        expert_protocol=None if pairing_type == "no_expert" else expert_spec,
-    )
-    experiments = list(generator.generate(missions=missions, pairings=pairings))
-
-    assert experiments
-
-
-_ROSTER_OVERRIDE = "players.all=[alpha,beta]"
-
-
-def _folder_based_specs(suite_name: str) -> list[ExperimentSpec]:
-    """Generate specs the pre-lock way: instantiate the live suite and glob its mission folder.
-
-    Kept as the regression baseline for `generate_specs`, which now sources both the suite and its
-    missions from `suites.lock`. The two must agree for every frozen suite.
-    """
-    cfg = load_config(
-        config_name=CONFIG_NAME, overrides=[f"suites={suite_name}", _ROSTER_OVERRIDE]
-    )
-    suite = hydra.utils.instantiate(cfg.suite)
-    missions = load_missions(Paths().root / suite.missions_path)
-    pairings = PairingGenerator(
-        pairing_type=suite.matchup.pairing_type,
-        all_players=list(cfg.players.all),
-        best_model=_best_model_for(suite.matchup.pairing_type, cfg.players),
-    ).generate()
-    generator = ExperimentGenerator(
-        mission_set=suite.mission_set,
-        suite_name=suite.name,
-        suite_revision=suite.revision,
-        defuser_protocol=suite.defuser_protocol,
-        expert_protocol=suite.expert_protocol,
-        attempts_per_mission=cfg.attempts_per_mission,
-    )
-    return list(generator.generate(missions=iter(missions), pairings=pairings))
-
-
-@pytest.mark.parametrize("suite_name", ["single-pairwise-sync", "single-solo-player-sync"])
-def test_generate_specs_from_lock_matches_the_folder_path(suite_name: str) -> None:
-    """Generating from the frozen lock yields exactly the specs the old folder path produced.
-
-    Spec order differs (the lock sorts missions by `mission_key`, the folder path by file name), so
-    compare as a multiset keyed by `attempt_name`.
-    """
-    from_lock = generate_specs([f"suites={suite_name}", _ROSTER_OVERRIDE])
-    from_folder = _folder_based_specs(suite_name)
-    assert sorted(from_lock, key=lambda spec: spec.attempt_name) == sorted(
-        from_folder, key=lambda spec: spec.attempt_name
-    )

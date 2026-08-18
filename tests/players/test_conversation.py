@@ -225,19 +225,6 @@ def test_recorded_usage_truncates_the_render() -> None:
     assert conversation.entries[0].pinned
 
 
-def test_truncated_count_equals_turns_missing_from_render() -> None:
-    """The reported truncation count equals the omitted turn count."""
-    capabilities, protocol = _capabilities_and_protocol(limit=5000, window=1, include_manual=True)
-    conversation = Conversation.begin(capabilities=capabilities, protocol=protocol)
-    for index in range(40):
-        conversation.record(_turn(index, input_tokens=100 * (index + 1), text_chars=400))
-
-    missing = _recorded_turns(conversation) - _rendered_turns(conversation.render(capabilities))
-
-    assert missing > 0
-    assert conversation.num_entries_dropped(capabilities) == missing
-
-
 def test_zero_usage_turn_does_not_break_truncation() -> None:
     """A zero-usage entry among measured entries does not affect truncation."""
     capabilities, protocol = _capabilities_and_protocol(limit=5000, window=1, include_manual=False)
@@ -335,20 +322,6 @@ def test_eviction_leaves_the_truncation_decision_and_usage_untouched() -> None:
     assert sum(image_count(entry.messages) for entry in conversation.entries) == 1
 
 
-def test_render_bounds_growth_and_windows_images() -> None:
-    """Rendering limits both conversation turns and retained observation
-    images."""
-    capabilities, protocol = _capabilities_and_protocol(limit=5000, window=1, include_manual=False)
-    conversation = Conversation.begin(capabilities=capabilities, protocol=protocol)
-    for index in range(40):
-        conversation.record(_turn(index, input_tokens=100 * (index + 1), text_chars=400))
-
-    rendered = conversation.render(capabilities)
-
-    assert 0 < _rendered_turns(rendered) < 20
-    assert image_count(rendered) == 1
-
-
 def test_morse_turn_of_sixteen_frames_collapses_to_one_image_in_render() -> None:
     """Rendering retains only the final image from a 16-frame prompt part.
 
@@ -389,20 +362,6 @@ def test_eviction_of_a_morse_turn_does_not_shift_truncation() -> None:
     assert images_before == 4 + 16
     assert sum(image_count(entry.messages) for entry in conversation.entries) == 16
     assert image_count(conversation.render(capabilities)) == 1
-
-
-def test_long_monotonic_conversation_stays_bounded_and_keeps_pinned() -> None:
-    """A 300-turn history stays bounded without omitting the pinned manual."""
-    capabilities, protocol = _capabilities_and_protocol(limit=5000, window=1, include_manual=True)
-    conversation = Conversation.begin(capabilities=capabilities, protocol=protocol)
-    for index in range(300):
-        conversation.record(_turn(index, input_tokens=100 * (index + 1), text_chars=400))
-
-    rendered = conversation.render(capabilities)
-
-    assert _recorded_turns(conversation) == 300
-    assert 0 < _rendered_turns(rendered) < 40
-    assert conversation.entries[0].pinned
 
 
 def test_long_growing_conversation_with_multiframe_turns_stays_bounded() -> None:

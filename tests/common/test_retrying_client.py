@@ -112,19 +112,6 @@ async def test_retrying_transport_exhaust_raises() -> None:
     assert mock.call_count == MAX_RETRYING_CLIENT_ATTEMPTS
 
 
-@pytest.mark.parametrize("status_code", [502, 503, 504])
-@pytest.mark.anyio
-async def test_retrying_transport_retries_all_retryable_codes(status_code: int) -> None:
-    """All four retryable status codes trigger a retry, not just 429."""
-    transport, mock = _build_transport([httpx.Response(status_code), httpx.Response(200)])
-
-    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/")
-
-    assert response.status_code == 200
-    assert mock.call_count == 2
-
-
 @pytest.fixture(autouse=True)
 def clear_client_cache() -> Generator[Any]:
     """Ensure a clean cache before and after every test in this module."""

@@ -64,18 +64,3 @@ class PredictedActionCases:
             if game_command in GameActionType.require_location()
             else None,
         )
-
-
-class ReflectionOutputCases:
-    """Case class for different reflection output scenarios."""
-
-    message = "I need to be better."
-
-    def case_full_schema(self) -> str:
-        return SendMessageAction(message=self.message).text_part_dump()
-
-    def case_only_action(self) -> str:
-        return SendMessageAction(message=self.message).model_dump_json()
-
-    def case_string_output(self) -> str:
-        return self.message

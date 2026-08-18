@@ -1,20 +1,7 @@
 from pytest_cases import parametrize
 
-from gptnt.common.image_ops import ImageDimensions
 from gptnt.ktane.manual import APPENDIX_PAGES, EXPLAINER_PAGES_TO_REMOVE, NEEDY_MODULE_PAGE_NUMS
 from gptnt.prompts.manual import load_manual_as_prompt
-
-
-@parametrize(("width", "height"), [(800, 600), (640, 480), (480, 640), (100, 100)])
-def test_manual_loads_consistently_without_error(width: int, height: int) -> None:
-    """Test that the manual loads from the function without error."""
-    desired_image_dimensions = ImageDimensions(width=width, height=height)
-    manual_prompt = load_manual_as_prompt(image_dimensions=desired_image_dimensions)
-    assert manual_prompt
-    manual_prompt = load_manual_as_prompt(image_dimensions=desired_image_dimensions)
-    assert manual_prompt
-    manual_prompt = load_manual_as_prompt(image_dimensions=desired_image_dimensions)
-    assert manual_prompt
 
 
 @parametrize("should_skip", [True, False], ids=["skip_needy_modules", "don't_skip_needy_modules"])

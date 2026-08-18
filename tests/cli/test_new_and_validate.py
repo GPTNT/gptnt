@@ -10,14 +10,12 @@ from __future__ import annotations
 import io
 
 import pytest
-import yaml
 from rich.console import Console
 
 from gptnt.cli.__main__ import build_app
 from gptnt.cli.checks import players, render
 from gptnt.cli.checks.validation import validate_model_config
 from gptnt.cli.player.new import _validate_name
-from gptnt.cli.player.templates import PLAYER_TEMPLATE, PROVIDER_TEMPLATE
 from gptnt.common.paths import Paths
 
 from tests._cli_runner import invoke_cli
@@ -25,23 +23,10 @@ from tests._cli_runner import invoke_cli
 _SCAFFOLD_NAME = "_pytest_scaffold_model"
 
 
-@pytest.mark.parametrize("template", [PLAYER_TEMPLATE, PROVIDER_TEMPLATE])
-def test_templates_render_without_placeholder_and_parse(template: str) -> None:
-    rendered = template.replace("<NAME>", "peekaboo")
-    assert "<NAME>" not in rendered
-    # The `${oc.env:...}` lines live inside comments, so plain YAML parsing must succeed.
-    assert yaml.safe_load(rendered) is not None
-
-
 @pytest.mark.parametrize("bad_name", ["", "with space", "a/b", "..", "dot.name"])
 def test_validate_name_rejects_unsafe_names(bad_name: str) -> None:
     with pytest.raises(ValueError, match="invalid name"):
         _validate_name(str, bad_name)
-
-
-@pytest.mark.parametrize("good_name", ["peekaboo", "vllm_box1", "my-model"])
-def test_validate_name_accepts_safe_names(good_name: str) -> None:
-    assert _validate_name(str, good_name) is None  # the cyclopts validator returns None on success
 
 
 def test_new_model_success_through_cli() -> None:

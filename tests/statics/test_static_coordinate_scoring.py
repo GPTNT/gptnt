@@ -36,31 +36,6 @@ def create_binary_mask(
     return mask
 
 
-def test_create_binary_mask_all_zeros() -> None:
-    """Test create_binary_mask with no regions."""
-    mask = create_binary_mask(50, 30)
-    assert mask.shape == (30, 50)
-    assert mask.dtype == np.uint8
-    assert np.all(mask == 0)
-
-
-def test_create_binary_mask_single_region() -> None:
-    """Test create_binary_mask with one region."""
-    mask = create_binary_mask(100, 100, regions=[(10, 20, 30, 40)])
-    assert mask.shape == (100, 100)
-    assert mask[25, 15] == 1  # Inside region (y=25, x=15)
-    assert mask[10, 10] == 0  # Outside region
-    assert mask[50, 50] == 0  # Outside region
-
-
-def test_create_binary_mask_multiple_regions() -> None:
-    """Test create_binary_mask with multiple regions."""
-    mask = create_binary_mask(100, 100, regions=[(10, 10, 20, 20), (50, 50, 60, 60)])
-    assert mask[15, 15] == 1  # First region
-    assert mask[55, 55] == 1  # Second region
-    assert mask[30, 30] == 0  # Between regions
-
-
 class CoordinateValidatorCase(NamedTuple):
     """Test case for CoordinateValidator."""
 

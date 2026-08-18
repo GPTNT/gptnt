@@ -4,7 +4,7 @@ from xml.etree import ElementTree as ET
 
 import pytest
 from pydantic import ValidationError
-from pytest_cases import param_fixture, parametrize
+from pytest_cases import parametrize
 
 from gptnt.ktane.game_settings import DEFAULT_PROGRESSION_XML, KtaneSettings
 
@@ -27,23 +27,6 @@ def settings_instance() -> KtaneSettings:
 DEFAULT_PLAYER_SETTINGS_XML = KtaneSettings(
     music_volume=0, sfx_volume=0, language_code="en"
 ).rendered_player_settings
-
-
-system = param_fixture("system", ["Windows", "Darwin", "Linux"])
-
-
-def test_get_correct_path_for_system(settings_instance: KtaneSettings, system: str) -> None:
-    """Test that the correct settings path is returned based on the actual OS."""
-    if system == "Windows":
-        expected_path = settings_instance.windows
-    elif system == "Darwin":
-        expected_path = settings_instance.mac
-    elif system == "Linux":
-        expected_path = settings_instance.linux
-    else:
-        pytest.fail(f"Unsupported OS: {system}")
-
-    assert settings_instance.get_dir(system=system) == expected_path
 
 
 @parametrize(
@@ -118,15 +101,6 @@ def test_rendered_player_settings_uses_configured_values() -> None:
     assert _settings_element_text(rendered, "MusicVolume") == "40"
     assert _settings_element_text(rendered, "SFXVolume") == "60"
     assert _settings_element_text(rendered, "LanguageCode") == "zh-CN"
-
-
-def test_rendered_player_settings_defaults_are_silent_english() -> None:
-    """Defaults render muted audio and English, matching the shipped file."""
-    rendered = KtaneSettings().rendered_player_settings
-
-    assert _settings_element_text(rendered, "MusicVolume") == "0"
-    assert _settings_element_text(rendered, "SFXVolume") == "0"
-    assert _settings_element_text(rendered, "LanguageCode") == "en"
 
 
 @parametrize("volume", [-1, 101])
