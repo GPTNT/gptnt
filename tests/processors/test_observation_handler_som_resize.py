@@ -4,11 +4,11 @@ import numpy as np
 from pytest_cases import fixture, param_fixture
 
 from gptnt.common.image_ops import load_observation_from_bytes
-from gptnt.ktane.actions import RelativeCoordinate
+from gptnt.ktane.actions import GameActionType, RelativeCoordinate
 from gptnt.ktane.client import FrameBuffer
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import InteractGameAction
-from gptnt.players.locations import SetOfMarksLocation
+from gptnt.players.locations import ScaledLocation, SetOfMarksLocation
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.processors.image_resizer import ImageResizer
 from gptnt.processors.labels.drawing import AnnotationBackgroundParams, AnnotationTextParams
@@ -57,6 +57,22 @@ def observation_handler(
         set_of_marks_painter=som_handler,
         image_resizer=image_resizer,
     )
+
+
+def test_normalised_action_uses_configured_coordinate_scale(image_resizer: ImageResizer) -> None:
+    """Normalised game actions use the model's native coordinate denominator."""
+    handler = ObservationHandler(
+        interaction_location_method="coordinates",
+        coordinate_scale=1024,
+        image_resizer=image_resizer,
+    )
+    action = InteractGameAction(
+        action=GameActionType.click_release, location=ScaledLocation(x=512, y=768)
+    )
+
+    game_action = handler.convert_to_game_action(action=action)
+
+    assert game_action.location == RelativeCoordinate(x_pos=0.5, y_pos=0.75)
 
 
 @fixture

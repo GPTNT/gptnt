@@ -1,6 +1,6 @@
 from typing import Literal, Self, override
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, PositiveInt
 from pydantic.fields import computed_field
 from pydantic.functional_validators import model_validator
 from pydantic_ai.output import StructuredOutputMode
@@ -98,9 +98,15 @@ class PlayerCapabilities(BaseModel):
     coordinate_mode: CoordinateMode = "absolute"
     """The flavour of coordinates that the model supports.
 
-    Normalised coordinates are on a scale from 0 to 1000, while absolute coordinates are in pixel
-    values based on the image dimensions. You can change the ranges of normalised coordinates in
-    the ScaledLocation class var.
+    Normalised coordinates use `coordinate_scale` as their per-axis denominator, while absolute
+    coordinates are pixel values based on the image dimensions.
+    """
+
+    coordinate_scale: PositiveInt | None = None
+    """Per-axis denominator for normalised coordinates, otherwise `None`.
+
+    Every normalised model declares its native scale explicitly. Absolute coordinates have no
+    scale, so combining `coordinate_mode="absolute"` with a value here is invalid.
     """
 
     preserve_last_frame_for_n_turns: int = 0
@@ -118,6 +124,22 @@ class PlayerCapabilities(BaseModel):
                 "included in the instructions, so 'include_schema_in_instructions' cannot be False."
             )
         return self
+
+    @model_validator(mode="after")
+    def validate_coordinate_scale_matches_mode(self) -> Self:
+        """Require a scale exactly when the coordinate mode is normalised."""
+        if self.coordinate_mode == "normalised" and self.coordinate_scale is None:
+            raise ValueError("Normalised coordinates require coordinate_scale.")
+        if self.coordinate_mode == "absolute" and self.coordinate_scale is not None:
+            raise ValueError("Absolute coordinates must not define coordinate_scale.")
+        return self
+
+    @property
+    def normalised_coordinate_scale(self) -> PositiveInt:
+        """Return the validated scale for normalised-coordinate code paths."""
+        if self.coordinate_mode != "normalised" or self.coordinate_scale is None:
+            raise ValueError("Player does not use normalised coordinates.")
+        return self.coordinate_scale
 
     @model_validator(mode="after")
     def validate_thinking_mode_output_compatibility(self) -> Self:

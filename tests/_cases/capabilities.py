@@ -51,6 +51,7 @@ class CapabilitiesCases:
             interaction_location_method="coordinates",
             thinking_method="inner-monologue",
             coordinate_mode="normalised",
+            coordinate_scale=1000,
         )
 
     def case_react_set_of_marks(self) -> PlayerCapabilities:
@@ -80,6 +81,7 @@ class CapabilitiesCases:
             interaction_location_method="coordinates",
             thinking_method="thinking-out-loud",
             coordinate_mode="normalised",
+            coordinate_scale=1000,
         )
 
     @staticmethod
