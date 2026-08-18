@@ -1,6 +1,10 @@
 from pytest_cases import parametrize
 
-from gptnt.ktane.manual import APPENDIX_PAGES, EXPLAINER_PAGES_TO_REMOVE, NEEDY_MODULE_PAGE_NUMS
+from gptnt.ktane.manuals.legacy import (
+    APPENDIX_PAGES,
+    EXPLAINER_PAGES_TO_REMOVE,
+    NEEDY_MODULE_PAGE_NUMS,
+)
 from gptnt.prompts.manual import load_manual_as_prompt
 
 

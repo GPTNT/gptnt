@@ -8,7 +8,7 @@ from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
 from gptnt.common.servers import get_available_port
 from gptnt.ktane.client import KtaneClient
-from gptnt.ktane.manual import KtaneManualPaths
+from gptnt.ktane.manuals.legacy import KtaneManualPaths
 from gptnt.prompts.prompt_cache import PromptCache
 
 configure_logging(enable_logfire=False)

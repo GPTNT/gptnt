@@ -19,7 +19,7 @@ from gptnt.interactive.services.heartbeat.base import PlayerState
 from gptnt.interactive.services.player.agent import PlayerAgent
 from gptnt.interactive.services.player.commands import PlayerMessage, StopPlayerEvent
 from gptnt.interactive.services.rpc import BaseRPCService
-from gptnt.ktane.manual import KtaneManualPaths
+from gptnt.ktane.manuals.legacy import KtaneManualPaths
 from gptnt.observability.span_timing import set_timing_identity
 from gptnt.players.base_action_dispatcher import DispatchedAgentCall
 from gptnt.players.conversation import Conversation

@@ -6,7 +6,7 @@ import structlog
 from pydantic_ai import BinaryContent
 
 from gptnt.common.image_ops import ImageDimensions, load_observation_from_bytes
-from gptnt.ktane.manual import (
+from gptnt.ktane.manuals.legacy import (
     APPENDIX_PAGES,
     EXPLAINER_PAGES_TO_REMOVE,
     MANUAL_NUM_PAGES,
