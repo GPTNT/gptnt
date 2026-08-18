@@ -6,8 +6,6 @@ from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator
 from gptnt.ktane.state.module_registry import module_registry
 from gptnt.ktane.state.modules import KtaneModuleId
 
-MAX_COMPONENTS = 11
-
 
 def compute_mission_key(components: list[KtaneModuleId], seed: int) -> str:
     """Stable, human-readable identity for a *mission* (its modules + seed).
@@ -43,7 +41,7 @@ class KtaneMissionSpec(BaseModel):
         description="Allowed mistakes before failure",
     )
     components: list[KtaneModuleId] = Field(
-        max_length=MAX_COMPONENTS, description="List of required components in the mission"
+        description="List of required components in the mission"
     )
     optional_widgets: int = Field(
         ge=0,
