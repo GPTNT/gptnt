@@ -13,7 +13,7 @@ from gptnt.interactive.services.broker import create_redis_broker
 from gptnt.interactive.services.game.client import GameClient
 from gptnt.interactive.services.player.message_handler import IncomingMessageHandler
 from gptnt.interactive.services.player.service import PlayerService
-from gptnt.ktane.manual import KtaneManualPaths
+from gptnt.ktane.manuals.legacy import KtaneManualPaths
 from gptnt.observability.settings import ObservabilitySettings
 
 logger = get_logger()

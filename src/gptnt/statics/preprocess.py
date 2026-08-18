@@ -8,7 +8,7 @@ import structlog
 from numpy.typing import NDArray
 from PIL import Image
 
-from gptnt.ktane.manual import MODULE_TO_PAGE_NUM_MAP
+from gptnt.ktane.manuals.legacy import MODULE_TO_PAGE_NUM_MAP
 from gptnt.prompts.manual import KtaneManualLoader
 
 logger = structlog.get_logger()

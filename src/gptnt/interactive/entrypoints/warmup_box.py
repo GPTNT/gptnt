@@ -16,7 +16,7 @@ from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
 from gptnt.ktane.actions import GameActionType
 from gptnt.ktane.client import FrameBuffer
-from gptnt.ktane.manual import KtaneManualPaths
+from gptnt.ktane.manuals.legacy import KtaneManualPaths
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.action_predictor import ActionPredictor
 from gptnt.players.conversation import Conversation
