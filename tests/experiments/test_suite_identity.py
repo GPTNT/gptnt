@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from gptnt.experiments.suite.core import Suite, SuiteIdentity, SuiteMatchup
+from gptnt.ktane.manuals.profile import KtaneContentDocument, ManualProfile
 from gptnt.players.specification import PlayerProtocol
 
 _DEFUSER = PlayerProtocol(
@@ -12,6 +13,10 @@ _DEFUSER = PlayerProtocol(
 )
 _EXPERT = PlayerProtocol(
     role="expert", communication_style="sync", is_playing_alone=False, include_manual=True
+)
+_MANUAL = ManualProfile(
+    include_frontmatter=False,
+    documents=(KtaneContentDocument(source="ktanecontent", id="Wires", language="en"),),
 )
 
 
@@ -25,6 +30,7 @@ def _suite(**overrides: object) -> Suite:
         "defuser_protocol": _DEFUSER,
         "expert_protocol": _EXPERT,
         "matchup": SuiteMatchup(pairing_type="with_self"),
+        "manual_profile": _MANUAL,
     }
     fields.update(overrides)
     return Suite.model_validate(fields)

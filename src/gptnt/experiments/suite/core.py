@@ -8,6 +8,7 @@ from gptnt.common.hashing import stable_digest
 from gptnt.common.paths import Paths
 from gptnt.experiments.generation.missions import load_missions
 from gptnt.experiments.generation.pairing import PairingType
+from gptnt.ktane.manuals.profile import ManualProfile
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.specification import PlayerProtocol
 
@@ -57,6 +58,9 @@ class Suite(BaseModel):
     ]
 
     matchup: SuiteMatchup
+
+    manual_profile: ManualProfile
+    """The manual required for the mission in this Suite."""
 
     @model_validator(mode="after")
     def validate_roles(self) -> Self:
