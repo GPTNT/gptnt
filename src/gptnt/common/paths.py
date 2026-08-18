@@ -54,10 +54,18 @@ class Paths(BaseSettings):
     submissions: Path = output.joinpath("submissions")
     """Path to the prepared submissions."""
 
+    manual_cache: Path = output.joinpath("manual_cache")
+    """Storage for caching manuals and their assets."""
+
     @property
     def manual_profiles(self) -> Path:
-        """Directory containing manual profiles."""
+        """Directory containing manual profiles and their pinned source configuration."""
         return self.configs / "manual"
+
+    @property
+    def manual_sources(self) -> Path:
+        """Pinned source configuration used by the manual download command."""
+        return self.manual_profiles / "sources.toml"
 
     @property
     def configs(self) -> Path:
