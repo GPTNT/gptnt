@@ -104,8 +104,8 @@ class Suite(BaseModel):
     def suite_digest(self) -> str:
         """A stable digest of the whole suite: its `config_digest` and `missions_digest` combined.
 
-        The full fingerprint of what the suite measures. `test_frozen_suites.py` pins it per
-        revision, so changing the config or any mission file requires bumping `revision`.
+        The full fingerprint of what the suite measures. Frozen lock entries store it alongside
+        the suite revision.
         """
         return stable_digest([self.config_digest, self.missions_digest])
 
