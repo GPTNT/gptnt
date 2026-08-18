@@ -1,11 +1,10 @@
-"""A suite, and the missions it loads, are frozen once recorded in `configs/suites/suites.lock`.
+"""Integrity checks for the snapshots in `configs/suites/suites.lock`.
 
 `suites.lock` snapshots each `(name, revision)`: its `suite_digest`, the full config, and the
-`mission_key`s it covers. A change to a suite config, or to any mission file it loads, changes the
-digest, so `gptnt suite freeze --check` (mirrored by `test_lock_freezes_every_live_suite`) fails
-until the suite's `revision` is bumped and the lock re-frozen. The provenance fields (`frozen_at`,
-`git_sha`, `gptnt_version`) are deliberately ignored here, so a re-freeze that only restamps them
-never churns this guard.
+`mission_key`s it covers. These tests check that the committed lock is internally consistent and
+self-contained. They deliberately do not compare it with live suite files: requiring every suite
+change to rewrite this shared registry creates avoidable merge conflicts. Run
+`gptnt suite freeze --check` explicitly when live-to-lock parity needs checking.
 
 A separate check holds each suite's `name` to its filename, so a `suites=` reference and the
 stamped `suite_name` stay in sync.
@@ -13,24 +12,9 @@ stamped `suite_name` stay in sync.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from gptnt.cli.config_discovery import discover_suites
 from gptnt.experiments.suite.compose import compose_suite
-from gptnt.experiments.suite.freeze import FreezeReport, FreezeStamp
 from gptnt.experiments.suite.lock import SuiteLock, default_lock_path
-
-if TYPE_CHECKING:
-    from gptnt.experiments.suite.core import Suite
-
-# Provenance is stamped only onto newly appended entries, so any placeholder works: reconciling an
-# already-complete lock appends nothing and never reads these.
-_IGNORED_PROVENANCE = FreezeStamp(frozen_at="", gptnt_version="", git_sha="")
-
-
-def _live_suites() -> list[Suite]:
-    """Compose every suite exactly as generation does."""
-    return [compose_suite(stem) for stem in discover_suites()]
 
 
 def _committed_lock() -> SuiteLock:
@@ -38,31 +22,17 @@ def _committed_lock() -> SuiteLock:
     return SuiteLock.from_lock_path(default_lock_path())
 
 
-def test_lock_freezes_every_live_suite() -> None:
-    """`gptnt suite freeze --check` passes: every live suite has a matching current-revision entry.
+def test_lock_entry_reconstructs_the_frozen_suite() -> None:
+    """Each entry's stored config and missions rebuild its frozen suite.
 
-    A suite (or a mission it loads) changing without a `revision` bump makes an outcome `append`
-    (missing entry) or `digest_mismatch`, failing this test.
-    """
-    outcomes = FreezeReport.reconcile(
-        _live_suites(), _committed_lock(), _IGNORED_PROVENANCE
-    ).outcomes
-    assert [outcome.action for outcome in outcomes] == ["unchanged"] * len(outcomes)
-
-
-def test_lock_entry_reconstructs_the_live_suite() -> None:
-    """Each entry's stored config + missions rebuild a suite matching the live one.
-
-    The reconstructed suite recomputes the SAME `suite_digest` and `mission_keys` as the live one,
-    and the stored digest agrees. Compares only measured content; provenance is never read.
+    The reconstructed suite recomputes the stored `suite_digest` and `mission_keys`. This checks
+    snapshot integrity without coupling the lock to mutable live configs.
     """
     lock = _committed_lock()
-    live_by_name = {suite.name: suite for suite in _live_suites()}
     for entry in lock.suites:
         rebuilt, missions = lock.load_suite(entry.name, entry.revision)
-        live = live_by_name[entry.name]
-        assert rebuilt.suite_digest == live.suite_digest == entry.suite_digest
-        assert rebuilt.mission_keys == live.mission_keys == entry.mission_keys
+        assert rebuilt.suite_digest == entry.suite_digest
+        assert rebuilt.mission_keys == entry.mission_keys
         # missions resolve from the shared table, one per referenced key
         assert [mission.mission_key for mission in missions] == list(entry.mission_keys)
 
