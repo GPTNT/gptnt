@@ -55,6 +55,11 @@ class Paths(BaseSettings):
     """Path to the prepared submissions."""
 
     @property
+    def manual_profiles(self) -> Path:
+        """Directory containing manual profiles."""
+        return self.configs / "manual"
+
+    @property
     def configs(self) -> Path:
         """Configs directory: the override, the checkout's `configs/`, or the packaged copy.
 

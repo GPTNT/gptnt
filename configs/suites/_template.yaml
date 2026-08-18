@@ -1,5 +1,8 @@
 # @package _global_
 
+defaults:
+  - /manual@suite.manual_profile: ???
+
 suite:
   _target_: gptnt.experiments.suite.core.Suite
   name: ???
