@@ -3,7 +3,7 @@
 Frozen `KtaneMissionSpec` JSON files, grouped into named sets that a suite loads by path
 (`missions_path` in `configs/suites/<id>.yaml`). These files are the source of truth: a run loads
 them and never generates. Editing any file changes the loading suite's `missions_digest`, so
-`tests/experiments/test_frozen_suites.py` requires a `revision` bump in the same change.
+freeze the relevant suite revision when preparing a separate `suites.lock` update.
 
 ## Sets
 
