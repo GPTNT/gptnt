@@ -1,0 +1,143 @@
+version = 1
+
+[ktane_content]
+repository = "https://github.com/Timwi/KtaneContent.git"
+commit = "137cc181b37038ccefeddcb095b402aab8dff5de"
+
+[ktane_content.catalog]
+url = "https://ktane.timwi.de/json/raw"
+
+# العربية
+[official_manual.ar]
+version = "3-ar"
+url = "https://www.bombmanual.com/ar/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v3-ar.pdf"
+
+# Čeština
+[official_manual.cs]
+version = "2-cs"
+url = "https://www.bombmanual.com/cs/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v2-cs.pdf"
+
+# Dansk
+[official_manual.da]
+version = "1-da"
+url = "https://www.bombmanual.com/da/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-da.pdf"
+
+# Deutsch
+[official_manual.de]
+version = "1-de"
+url = "https://www.bombmanual.com/de/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-de.pdf"
+
+# English
+[official_manual.en]
+version = "1"
+url = "https://www.bombmanual.com/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1.pdf"
+
+# Esperanto
+[official_manual.eo]
+version = "2-eo"
+url = "https://www.bombmanual.com/eo/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v2-eo.pdf"
+
+# Español
+[official_manual.es]
+version = "1-es"
+url = "https://www.bombmanual.com/es/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-es.pdf"
+
+# Suomi
+[official_manual.fi]
+version = "1-fi"
+url = "https://www.bombmanual.com/fi/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-fi.pdf"
+
+# Français
+[official_manual.fr]
+version = "1-fr"
+url = "https://www.bombmanual.com/fr/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-fr.pdf"
+
+# עברית
+[official_manual.he]
+version = "2-he"
+url = "https://www.bombmanual.com/he/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v2-he.pdf"
+
+# Magyar
+[official_manual.hu]
+version = "2-hu"
+url = "https://www.bombmanual.com/hu/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v2-hu.pdf"
+
+# Italiano
+[official_manual.it]
+version = "1-it"
+url = "https://www.bombmanual.com/it/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-it.pdf"
+
+# 日本語
+[official_manual.ja]
+version = "1-ja"
+url = "https://www.bombmanual.com/ja/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-ja.pdf"
+
+# 한국어
+[official_manual.ko]
+version = "1-ko"
+url = "https://www.bombmanual.com/ko/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-ko.pdf"
+
+# Norsk
+[official_manual.nb]
+version = "2-nb"
+url = "https://www.bombmanual.com/nb/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v2-nb.pdf"
+
+# Nederlands
+[official_manual.nl]
+version = "2-nl"
+url = "https://www.bombmanual.com/nl/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v2-nl.pdf"
+
+# Polski
+[official_manual.pl]
+version = "2-pl"
+url = "https://www.bombmanual.com/pl/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v2-pl.pdf"
+
+# Português-Brasil
+[official_manual.pt-BR]
+version = "2-pt-BR"
+url = "https://www.bombmanual.com/pt-BR/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v2-pt-BR.pdf"
+
+# Português-Portugal
+[official_manual.pt-PT]
+version = "3-pt-PT"
+url = "https://www.bombmanual.com/pt-PT/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v3-pt-PT.pdf"
+
+# Română
+[official_manual.ro]
+version = "1-ro"
+url = "https://www.bombmanual.com/ro/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-ro.pdf"
+
+# Русский
+[official_manual.ru]
+version = "2-ru"
+url = "https://www.bombmanual.com/ru/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v2-ru.pdf"
+
+# Svenska
+[official_manual.sv]
+version = "1-sv"
+url = "https://www.bombmanual.com/sv/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-sv.pdf"
+
+# Thai (ภาษาไทย)
+[official_manual.th]
+version = "1-th"
+url = "https://www.bombmanual.com/th/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-th.pdf"
+
+# Türkçe
+[official_manual.tr]
+version = "1-tr"
+url = "https://www.bombmanual.com/tr/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-tr.pdf"
+
+# Українська
+[official_manual.uk]
+version = "1-uk"
+url = "https://www.bombmanual.com/uk/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-uk.pdf"
+
+# 简体中文
+[official_manual.zh-CN]
+version = "1-zh-CN"
+url = "https://www.bombmanual.com/zh-CN/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-zh-CN.pdf"
+
+# 繁體中文
+[official_manual.zh-TW]
+version = "1-zh-TW"
+url = "https://www.bombmanual.com/zh-TW/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-zh-TW.pdf"

@@ -65,6 +65,12 @@ def build_app() -> App:
         help="Freeze and guard the suites.lock registry.",
     )
     app.command(
+        "gptnt.cli.manual.__main__:manual_app",
+        name="manual",
+        group=onboarding,
+        help="Manage manual assets.",
+    )
+    app.command(
         "gptnt.cli.run.command:run",
         name="run",
         group=onboarding,

@@ -58,6 +58,16 @@ class Paths(BaseSettings):
     """Storage for caching manuals and their assets."""
 
     @property
+    def manual_profiles(self) -> Path:
+        """Directory containing manual profiles and their pinned source configuration."""
+        return self.configs / "manual"
+
+    @property
+    def manual_sources(self) -> Path:
+        """Pinned source configuration used by the manual download command."""
+        return self.manual_profiles / "sources.toml"
+
+    @property
     def configs(self) -> Path:
         """Configs directory: the override, the checkout's `configs/`, or the packaged copy.
 

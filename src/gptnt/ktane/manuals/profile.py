@@ -82,7 +82,8 @@ class KtaneContentAppendix(BaseModel):
     """Document name.
 
     This is the only way to identify an appendix since it does not have a ModuleID. It must be a
-    single HTML file in the repository."""
+    single HTML file in the repository.
+    """
 
 
 class LocalDocument(BaseModel):
@@ -93,7 +94,10 @@ class LocalDocument(BaseModel):
     source: Literal["local"]
 
     path: LocalHtmlPath
-    """Path to the local HTML file. Directories are allowed, unlike a repository document name."""
+    """Path to the local HTML file.
+
+    Directories are allowed, unlike a repository document name.
+    """
 
     language: str
     """Language this document is written in."""
