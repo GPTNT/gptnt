@@ -6,6 +6,8 @@ from pydantic_ai import AgentRunResult, ThinkingPart
 
 from gptnt.players.reasoning_parser.reasoning_parser import (
     ReasoningParser,
+    strip_action_envelope,
+    strip_box_envelope,
     structure_string_output,
 )
 from gptnt.players.result import AgentCallResult
@@ -34,18 +36,23 @@ def extract_thoughts_from_model_response(run_result: AgentRunResult[Any]) -> str
 
 @dataclass(kw_only=True)
 class InnerMonologueReasoningParser[OutputT](ReasoningParser[OutputT, OutputT]):
-    """Parser for inner-monologue style reasoning.
-
-    Basically, when it's in the <think></think> tags, which comes from the API response.
-    """
+    """Parse reasoning returned separately from normal output as `ThinkingPart` objects."""
 
     @override
     def __call__(
         self, output: AgentRunResult[OutputT], *, output_type: type[OutputT] | None
     ) -> AgentCallResult[OutputT]:
         thoughts = extract_thoughts_from_model_response(output)
-        if isinstance(output.output, str) and output_type is not None:
-            output.output = structure_string_output(output=output.output, output_type=output_type)
+        raw_output = None
+        if isinstance(output.output, str):
+            cleaned_output = strip_action_envelope(strip_box_envelope(output.output))
+            if cleaned_output != output.output:
+                raw_output = output.output
+                output.output = cleaned_output
+            if output_type is not None:
+                output.output = structure_string_output(
+                    output=output.output, output_type=output_type
+                )
 
         # TODO: I don't think that it's possible for this to ever be a string unless the OutputT is
         #       a string, so it'll error if it ever returns something that doesnt parse into one of
@@ -57,5 +64,5 @@ class InnerMonologueReasoningParser[OutputT](ReasoningParser[OutputT, OutputT]):
             usage=output.usage,
             new_messages=output.new_messages(),
             ai_response_error=[],
-            raw_output=None,
+            raw_output=raw_output,
         )

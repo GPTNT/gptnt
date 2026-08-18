@@ -51,17 +51,10 @@ def _load_role(protocol: PlayerProtocol) -> str:
 
 @lru_cache
 def _load_reasoning(capabilities: PlayerCapabilities) -> str:
-    """Load the reasoning section for the given protocol."""
-    reasoning = PromptCache.get_text(paths.prompts.joinpath("reasoning.md"))
-    tag_format = PromptCache.get_text(
-        paths.prompts.joinpath(
-            "reasoning_thinking-out-loud.md"
-            if capabilities.thinking_method == "thinking-out-loud"
-            else "reasoning_inner-monologue.md"
-        )
+    """Load the self-contained prompt for the configured reasoning mode."""
+    return PromptCache.get_text(
+        paths.prompts.joinpath(f"reasoning_{capabilities.thinking_method}.md")
     )
-
-    return f"{reasoning}\n{tag_format}"
 
 
 @lru_cache
@@ -126,6 +119,11 @@ def _load_commands(protocol: PlayerProtocol, capabilities: PlayerCapabilities) -
 
         interact_game = f"{interact_game}\n{location}"
         commands = f"{commands}\n{interact_game}"
+
+    # Command fragments own only their JSON payload. The selected output mode adds the envelope:
+    # non-structured responses use ReAct action tags, while structured modes use bare JSON.
+    if capabilities.structured_output_mode is None:
+        commands = commands.replace("`{", "`<action>{").replace("}`", "}</action>`")
 
     return commands
 
