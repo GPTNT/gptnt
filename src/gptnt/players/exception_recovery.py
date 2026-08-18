@@ -30,6 +30,38 @@ from gptnt.players.result import AgentCallResult
 logger = structlog.get_logger()
 
 
+def usage_from_model_responses(messages: list[ModelMessage]) -> RunUsage:
+    """Sum usage from provider responses captured before an agent run failed.
+
+    PydanticAI raises some errors after the provider has already returned a billable response, for
+    example when prompted output does not validate. In those cases there is no `AgentRunResult`
+    to supply run usage, but `capture_run_messages` still gives us each response and its usage.
+
+    `RunUsage.incr(RequestUsage)` does not increment the request count, so count each captured
+    response explicitly as well as adding its token fields.
+    """
+    usage = RunUsage()
+    for message in messages:
+        if isinstance(message, ModelResponse):
+            usage.requests += 1
+            usage.incr(message.usage)
+    return usage
+
+
+def latest_model_response(messages: list[ModelMessage]) -> ModelResponse | None:
+    """Return the latest captured provider response, if the request reached the provider."""
+    return next(
+        (message for message in reversed(messages) if isinstance(message, ModelResponse)), None
+    )
+
+
+def response_raw_output(response: ModelResponse | None) -> str | None:
+    """Recover visible output, falling back to native thinking when no text was returned."""
+    if response is None:
+        return None
+    return response.text or response.thinking
+
+
 def ensure_messages_have_valid_final_response(messages: list[ModelMessage]) -> list[ModelMessage]:
     """Append an empty `ModelResponse` when the messages hold none, so a run always ends in one."""
     if not messages:
@@ -81,22 +113,26 @@ class DoNothingRecoveryStrategy[ExceptionT: Exception](
         ai_response_error: list[AIResponseErrorType],
         new_messages: list[ModelMessage],
         raw_model_output: str | None = None,
+        thoughts: str | None = None,
+        usage: RunUsage | None = None,
     ) -> AgentCallResult[DoNothingAction]:
         """Return a DoNothingAction as the recovery output."""
-        # If the raw model output isn't given, then we can
+        response = latest_model_response(new_messages)
+
         if raw_model_output is None:
-            if new_messages and isinstance(new_messages[-1], ModelResponse):
-                raw_model_output = new_messages[-1].text
-            else:
-                raw_model_output = str(exception)
+            raw_model_output = response_raw_output(response) or str(exception)
+        if thoughts is None and response is not None:
+            thoughts = response.thinking
+        if usage is None:
+            usage = usage_from_model_responses(new_messages)
 
         new_messages = ensure_messages_have_valid_final_response(new_messages)
 
         return AgentCallResult(
             output=DoNothingAction(),
-            thoughts=None,
+            thoughts=thoughts,
             raw_output=raw_model_output,
-            usage=RunUsage(),
+            usage=usage,
             new_messages=new_messages,
             ai_response_error=ai_response_error,
         )
@@ -137,12 +173,18 @@ class GuardrailViolationRecovery(SendMessageRecoveryStrategy[AgentRunError]):
         logger.warning("Filtered due to content policy", error=exception)
 
         model_output = SendMessageAction(message="Can you rephrase that please?")
+        response = latest_model_response(new_messages)
 
         return AgentCallResult(
             output=model_output,
-            thoughts=None,
-            raw_output=raw_model_output,
-            usage=RunUsage(),
+            thoughts=response.thinking if response is not None else None,  # noqa: WPS504
+            raw_output=(
+                raw_model_output  # noqa: WPS504
+                if raw_model_output is not None
+                else response_raw_output(response)
+            ),
+            usage=usage_from_model_responses(new_messages),
+            # Do not add a refused prompt to conversation history, or it may be refused again.
             new_messages=[],
             ai_response_error=[AIResponseErrorType.guardrail_violation],
         )
@@ -156,11 +198,21 @@ class ExceededMaxOutputTokensRecovery(
 
     @override
     def can_handle(self, *, exception: Exception, new_messages: list[ModelMessage]) -> bool:
-        return bool(
+        response_ended_at_length = bool(
             new_messages
             and isinstance(new_messages[-1], ModelResponse)
             and new_messages[-1].finish_reason == "length"
-        ) or isinstance(exception, ExceededMaxOutputTokensError)
+        )
+        token_limit_exception = bool(
+            isinstance(exception, UnexpectedModelBehavior)
+            and "model token limit" in exception.message.lower()
+            and "exceeded" in exception.message.lower()
+        )
+        return (
+            response_ended_at_length
+            or token_limit_exception
+            or isinstance(exception, ExceededMaxOutputTokensError)
+        )
 
     @override
     def recover(
@@ -173,6 +225,17 @@ class ExceededMaxOutputTokensRecovery(
     ) -> AgentCallResult[DoNothingAction]:
         logger.warning("Exceeded maximum output tokens", error=str(exception))
 
+        response = latest_model_response(new_messages)
+        thoughts = response.thinking if response is not None else None  # noqa: WPS504
+
+        if raw_model_output is None and isinstance(exception, ExceededMaxOutputTokensError):
+            raw_model_output = exception.output
+        if raw_model_output is None and response is not None:
+            raw_model_output = f"{response.thinking or ''}{response.text or ''}"
+
+        # Collect before adding a synthetic response for conversation-history compatibility.
+        usage = usage_from_model_responses(new_messages)
+
         new_messages = self.ensure_the_response_has_some_text(new_messages)
 
         return self.recover_do_nothing(
@@ -180,6 +243,8 @@ class ExceededMaxOutputTokensRecovery(
             ai_response_error=[AIResponseErrorType.max_output_tokens_exceeded],
             new_messages=new_messages,
             raw_model_output=raw_model_output,
+            thoughts=thoughts,
+            usage=usage,
         )
 
     def ensure_the_response_has_some_text(
@@ -238,9 +303,11 @@ class InvalidFormatRecovery(
 
     @override
     def can_handle(self, *, exception: Exception, new_messages: list[ModelMessage]) -> bool:
+        exception_message = str(exception).lower()
         is_exceed_max_retries = bool(
             isinstance(exception, UnexpectedModelBehavior)
-            and "Exceeded maximum retries" in exception.message
+            and "exceeded maximum" in exception_message
+            and "retries" in exception_message
         )
 
         # Check if it is length, and then NOT that because we want to only handle non-length cases
@@ -274,7 +341,7 @@ class InvalidFormatRecovery(
 
         response_error = getattr(exception, "response_error", None)
         if response_error is None:
-            response_error = [AIResponseErrorType.unknown]
+            response_error = [AIResponseErrorType.action_parsing_failed]
 
         return self.recover_do_nothing(
             exception=exception,
@@ -426,13 +493,20 @@ class ReflectionBrokenFormRecovery(SendMessageRecoveryStrategy[InvalidResponseEr
             "Reflection output in invalid format. Capturing full output.", error=str(exception)
         )
         model_output = SendMessageAction(message=str(exception.output))
+        response = latest_model_response(new_messages)
+        usage = usage_from_model_responses(new_messages)
+        new_messages = ensure_messages_have_valid_final_response(new_messages)
 
         return AgentCallResult(
             output=model_output,
-            thoughts=None,
-            raw_output=raw_model_output,
-            usage=RunUsage(),
-            new_messages=[],
+            thoughts=response.thinking if response is not None else None,  # noqa: WPS504
+            raw_output=(
+                raw_model_output  # noqa: WPS504
+                if raw_model_output is not None
+                else response_raw_output(response)
+            ),
+            usage=usage,
+            new_messages=new_messages,
             ai_response_error=exception.response_error or [AIResponseErrorType.unknown],
         )
 
@@ -481,12 +555,20 @@ class ReflectionOverrideRecovery(SendMessageRecoveryStrategy[Any]):
         if response_error is None:
             response_error = [AIResponseErrorType.unknown]
 
+        response = latest_model_response(new_messages)
+        usage = usage_from_model_responses(new_messages)
+        new_messages = ensure_messages_have_valid_final_response(new_messages)
+
         return AgentCallResult(
             output=model_output,
-            thoughts=None,
-            raw_output=raw_model_output,
-            usage=RunUsage(),
-            new_messages=[],
+            thoughts=response.thinking if response is not None else None,  # noqa: WPS504
+            raw_output=(
+                raw_model_output  # noqa: WPS504
+                if raw_model_output is not None
+                else response_raw_output(response)
+            ),
+            usage=usage,
+            new_messages=new_messages,
             ai_response_error=response_error,
         )
 
