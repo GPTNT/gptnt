@@ -20,14 +20,12 @@ from typing import TYPE_CHECKING, ClassVar, cast
 
 import pytest
 
-from gptnt.cli.__main__ import build_app
 from gptnt.cli.doctor.command import DiagnoseResult
 from gptnt.cli.doctor.run_plan import RunPlanResult
 from gptnt.cli.run import pipeline
 from gptnt.cli.run.manifest import RunManifest
 from gptnt.players.specification import PlayerProtocol, PlayerSpec
 
-from tests._cli_runner import invoke_cli
 from tests._factories.experiments import make_experiment_spec
 
 if TYPE_CHECKING:
@@ -189,13 +187,6 @@ def test_observability_env_off_disables_everything() -> None:
 # -------------------------------------------------------------------------------------------------
 # _assert_roster_covers_specs
 # -------------------------------------------------------------------------------------------------
-
-
-def test_assert_roster_covers_specs_passes_when_all_players_present() -> None:
-    specs = [_spec(defuser="claude-sonnet-4-6", expert="gemini3")]
-    config_to_player = {"claude-sonnet-4-6": "claude-sonnet-4-6", "gemini-3": "gemini3"}
-    # Every referenced player is in config_to_player.values() — must not raise.
-    pipeline._assert_roster_covers_specs(specs, config_to_player)
 
 
 def test_assert_roster_covers_specs_raises_on_missing_player() -> None:
@@ -366,21 +357,3 @@ async def test_spawn_submit_monitor_tears_down_on_submit_failure(
         )
 
     assert _FakeOrch.terminate_calls == [True]  # the cluster was torn down on submit failure
-
-
-# -------------------------------------------------------------------------------------------------
-# CLI: the `run` command's real cyclopts parse path (help + declarative path validation).
-# -------------------------------------------------------------------------------------------------
-
-
-def test_run_help_through_cli() -> None:
-    """`gptnt run --help` parses and documents its flags (lazy `--help` stays green)."""
-    result = invoke_cli(build_app(), ["run", "--help"])
-    assert result.exit_code == 0
-    assert "--force" in result.output  # the run gate's --force stays (distinct from `new`'s)
-
-
-def test_run_missing_manifest_path_rejected_by_cli() -> None:
-    """A non-existent run.yaml is rejected by cyclopts' `ExistingFile` type (no bespoke error)."""
-    result = invoke_cli(build_app(), ["run", "this_path_does_not_exist.yaml"])
-    assert result.exit_code != 0

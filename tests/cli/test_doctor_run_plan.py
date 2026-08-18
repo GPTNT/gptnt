@@ -72,27 +72,6 @@ def test_clean_roster_resolves_config_to_player_name_and_passes() -> None:
     assert resume.detail.startswith("0 of ")
 
 
-@pytest.mark.skip(
-    reason="no committed suite uses a with_best_* matchup; the anchor cross-check is dormant until "
-    "baseline suites return (run-driven baselines, deferred)."
-)
-def test_anchor_not_in_roster_is_a_fatal_cross_check() -> None:
-    """A `with_best_defuser` suite whose anchor isn't spawned would stall — that must be a ✗."""
-    manifest = _manifest(
-        suites=["single-best-defuser-sync"],
-        players=[{"player": "test-defuser"}],
-        anchors={"best_defuser": "test-expert"},  # resolves to test-expert, NOT in the roster
-    )
-    config_to_player = {"test-defuser": "test-defuser"}
-
-    findings = analyze_run_plan(manifest, config_to_player).findings
-
-    offender = _row(findings, "Player test-expert")
-    assert offender is not None
-    assert offender.status == "fail"
-    assert "best_defuser" in offender.hint
-
-
 def test_explicit_count_is_not_second_guessed() -> None:
     """`count` is the user's explicit choice, so a low count is reported in the plan, not
     failed."""

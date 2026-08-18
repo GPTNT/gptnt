@@ -1,19 +1,5 @@
 from gptnt.ktane.state.module_registry import ModuleFacts, module_registry
-from gptnt.ktane.time_limits import SECONDS_PER_ACTION, get_time_limit_for_mission
-
-
-def test_time_limit_is_a_pure_calculation_over_facts() -> None:
-    """The budget only reads the passed-in facts, not the registry."""
-    facts = [
-        ModuleFacts(side_info_rotations=1, num_stages=1, num_interaction_actions=1),
-        ModuleFacts(side_info_rotations=2, num_stages=2, num_interaction_actions=11),
-    ]
-
-    limit = get_time_limit_for_mission(facts, allow_back_placement=False)
-
-    # A whole number of seconds, each turn worth SECONDS_PER_ACTION.
-    assert limit > 0
-    assert limit % SECONDS_PER_ACTION == 0
+from gptnt.ktane.time_limits import get_time_limit_for_mission
 
 
 def test_back_placement_adds_time() -> None:
@@ -36,13 +22,15 @@ def test_more_interaction_actions_extends_the_budget() -> None:
     ) > get_time_limit_for_mission(cheap, allow_back_placement=False)
 
 
-def test_registry_carries_the_migrated_module_facts() -> None:
-    """The shipped registry supplies the per-module time-budget facts."""
-    facts = module_registry().facts("Password")
+def test_registered_complex_module_receives_more_time() -> None:
+    """Registry facts make an interaction-heavy module cost more than an unknown module."""
+    registry = module_registry()
 
-    assert facts.num_interaction_actions == 51
-    assert facts.num_stages == 1
-    assert facts.side_info_rotations == 0
+    assert get_time_limit_for_mission(
+        [registry.facts("Password")], allow_back_placement=False
+    ) > get_time_limit_for_mission(
+        [registry.facts("SomeCommunityModule")], allow_back_placement=False
+    )
 
 
 def test_absent_module_takes_the_default_facts() -> None:

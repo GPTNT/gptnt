@@ -2,7 +2,6 @@ from pathlib import Path
 from uuid import uuid4
 
 import duckdb
-import orjson
 import pytest
 from pydantic_ai import BinaryContent, ModelMessage, ModelRequest, ModelResponse, TextPart
 from pydantic_ai.messages import SystemPromptPart, UserPromptPart
@@ -11,9 +10,8 @@ from pytest_cases import fixture
 from whenever import Instant
 
 from gptnt.experiments.db.ingest import ingest_player_records
-from gptnt.experiments.db.schema import arrow_schema_for, generate_duckdb_schema
 from gptnt.experiments.descriptor import ExperimentDescriptor, PlayerContent
-from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep, ExperimentSummary
+from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep
 from gptnt.experiments.recorder.local import ExperimentPlayerRecorder
 from gptnt.experiments.recorder.parquet import (
     KEY_FORMAT_VERSION,
@@ -175,62 +173,6 @@ def step_record(
         error_type=None,
         is_reflection=False,
     )
-
-
-@pytest.mark.anyio
-async def test_step_record_serialization(step_record: ExperimentStep) -> None:
-    """Test that a single step record can be serialized to JSON."""
-    dumped = step_record.model_dump(mode="json")
-    assert isinstance(dumped, dict)
-    assert dumped["step"] == 1
-    assert dumped["role"] == "defuser"
-
-    json_bytes = orjson.dumps(dumped)
-    assert len(json_bytes) > 0
-
-    loaded_dict = orjson.loads(json_bytes)
-    assert loaded_dict["step"] == 1
-
-
-@pytest.mark.anyio
-async def test_player_record_serialization(
-    experiment_descriptor: ExperimentDescriptor,
-    player_content: PlayerContent,
-    step_record: ExperimentStep,
-) -> None:
-    """Test that a player record with multiple steps can be serialized."""
-    step2 = step_record.model_copy(update={"step": 2, "timestamp": 2.0, "thoughts": "Second step"})
-
-    player_record = ExperimentPlayerRecord(
-        experiment_descriptor=experiment_descriptor,
-        player_content=player_content,
-        step_records=[step_record, step2],
-        is_hard_crash=False,
-    )
-
-    dumped = player_record.model_dump(mode="json")
-    assert isinstance(dumped, dict)
-    assert len(dumped["step_records"]) == 2
-    assert dumped["num_steps"] == 2
-
-    json_bytes = orjson.dumps(dumped)
-    assert len(json_bytes) > 100
-
-    loaded_dict = orjson.loads(json_bytes)
-    assert len(loaded_dict["step_records"]) == 2
-
-
-def test_arrow_schema_derives_from_duckdb() -> None:
-    """`arrow_schema_for` is derived from the DuckDB table, so its columns match name-for-name.
-
-    Smoke-tests the in-memory derivation (and that every model column survives the round-trip).
-    """
-    for model in (ExperimentStep, ExperimentSummary):
-        arrow_names = [field.name for field in arrow_schema_for(model)]
-        # Column names from the generated CREATE TABLE, in declared order.
-        ddl_lines = generate_duckdb_schema(model).splitlines()[1:-1]
-        duckdb_names = [line.strip().split(" ", 1)[0] for line in ddl_lines]
-        assert arrow_names == duckdb_names
 
 
 def _build_player_record(

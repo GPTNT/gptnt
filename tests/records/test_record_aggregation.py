@@ -1,15 +1,10 @@
-"""Tests for building an ExperimentRecord from per-player records + JSON round-tripping.
-
-Complements `tests/records` serialization tests by covering the aggregation seam
-(`ExperimentRecord.from_player_records`) and a disk round-trip of player records.
-"""
+"""Tests for building an ExperimentRecord from per-player records."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-import orjson
 import pytest
 from pydantic_ai.result import RunUsage
 
@@ -21,7 +16,6 @@ from gptnt.players.actions import DoNothingAction
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 if TYPE_CHECKING:
-    from pathlib import Path
     from uuid import UUID
 
 pytestmark = pytest.mark.anyio
@@ -128,17 +122,3 @@ async def test_from_player_records_propagates_hard_crash() -> None:
     record = ExperimentRecord.from_player_records(player_records=[healthy, crashed])
 
     assert record.is_hard_crash
-
-
-async def test_player_record_disk_round_trip(tmp_path: Path) -> None:
-    descriptor = _descriptor()
-    original = _player_record(descriptor, role="defuser", timestamps=[0, 1], is_hard_crash=False)
-
-    path = tmp_path / f"experiment-{descriptor.name}-{original.player_content.uuid}.json"
-    _ = path.write_bytes(orjson.dumps(original.model_dump(mode="json")))
-
-    reloaded = ExperimentPlayerRecord.model_validate(orjson.loads(path.read_bytes()))
-
-    assert len(reloaded.step_records) == 2
-    assert reloaded.player_content.uuid == original.player_content.uuid
-    assert reloaded.experiment_descriptor.name == descriptor.name

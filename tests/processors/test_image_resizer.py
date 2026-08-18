@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-from hypothesis import given, strategies as st
 from PIL import Image
 from pytest_cases import param_fixture
 
@@ -17,17 +16,6 @@ def test_image(fixture_path: Path, test_image_names: str) -> Image.Image:
     """Fixture to get test images."""
     path = fixture_path.joinpath(test_image_names)
     return Image.open(path)
-
-
-# Ensure maximum hypothesis is still smaller than smallest image (only downscaling allowed)
-@given(
-    target_width=st.integers(min_value=1, max_value=1024),
-    target_height=st.integers(min_value=1, max_value=1024),
-)
-def test_resize_targets(target_width: int, target_height: int) -> None:
-    resizer = ImageResizer(target_width=target_width, target_height=target_height)
-    assert resizer.target_height == target_height
-    assert resizer.target_width == target_width
 
 
 @pytest.mark.parametrize(

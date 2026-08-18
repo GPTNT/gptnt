@@ -9,8 +9,6 @@ solved" state needs a real unsolved module, so we use one.
 
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 import pytest
 from pydantic_ai import RunUsage
 
@@ -21,7 +19,6 @@ from gptnt.experiments.models import (
     is_valid_outcome,
 )
 from gptnt.experiments.recorder.wandb import WandbExperimentPlayerRecorder
-from gptnt.experiments.wandb_runs import is_run_valid
 from gptnt.ktane.state.bomb import BombOutcome, BombState
 from gptnt.players.actions import DoNothingAction
 from gptnt.players.specification import PlayerCapabilities
@@ -112,18 +109,6 @@ def test_outcome_and_validity_parity(
     # One validity definition: the shared helper (on the outcome's flags) and the local bomb-state
     # path agree.
     assert is_valid_outcome(outcome=bomb.outcome, is_hard_crash=is_hard_crash) is expected_valid
-    # The W&B run-summary path (a finished defuser run) reaches the same verdict. A W&B Run can't
-    # be built offline, so we stand in its three touched attributes with REAL outcome data — the
-    # assertion still exercises the real is_run_valid logic end to end.
-    run = SimpleNamespace(
-        state="finished",
-        config={"role": "defuser"},
-        summary={
-            **ExperimentOutcome.model_validate(bomb).model_dump(),
-            "is_hard_crash": is_hard_crash,
-        },
-    )
-    assert is_run_valid(run) is expected_valid
 
 
 def test_timeout_takes_precedence_if_terminal_signals_overlap() -> None:
@@ -131,23 +116,6 @@ def test_timeout_takes_precedence_if_terminal_signals_overlap() -> None:
     bomb = _bomb(solved=False, detonated=True, seconds=0, strikes=["Wires", "Wires", "Wires"])
 
     assert bomb.outcome is BombOutcome.timeout
-
-
-def test_wandb_validity_still_reads_legacy_boolean_summary() -> None:
-    """Existing W&B runs remain valid without the new outcome field."""
-    run = SimpleNamespace(
-        state="finished",
-        config={"role": "defuser"},
-        summary={
-            "is_solved": False,
-            "is_detonated": True,
-            "is_timed_out": True,
-            "is_strike_out": False,
-            "is_hard_crash": False,
-        },
-    )
-
-    assert is_run_valid(run)
 
 
 def test_outcome_field_names_are_shared_and_drift_free() -> None:

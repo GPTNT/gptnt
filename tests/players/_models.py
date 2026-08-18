@@ -1,33 +1,8 @@
-import tenacity
-from google.genai.errors import ServerError
-from pydantic_ai import (
-    AgentRunError,
-    ModelHTTPError,
-    ModelMessage,
-    ModelResponse,
-    TextPart,
-    ThinkingPart,
-)
-from pydantic_ai.models import Model
+from pydantic_ai import ModelMessage, ModelResponse, TextPart, ThinkingPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from gptnt.players.actions import PlayerOutputType
 from gptnt.players.reasoning_parser.react import REACT_ACT_TAG, REACT_REASONING_TAG
-
-
-class ContentFilteringErrorModel(FunctionModel):
-    """Model that raises AgentRunError for content filtering."""
-
-    def __init__(self) -> None:
-        super().__init__(self._raise_content_filtering_error)
-
-    def _raise_content_filtering_error(
-        self, _messages: list[ModelMessage], _info: AgentInfo
-    ) -> ModelResponse:
-        """Raise AgentRunError with content filtering message."""
-        raise AgentRunError(
-            "Request was filtered due to the prompt triggering Azure OpenAI's content filtering system."
-        )
 
 
 class MaxTokensExceededModel(FunctionModel):
@@ -58,75 +33,6 @@ class MaxTokensExceededWithNoTextModel(FunctionModel):
         # Create a response with finish_reason="length" but no text parts
         response = ModelResponse(parts=[], finish_reason="length")
         return response
-
-
-class ExceededRequestQuotaModel(FunctionModel):
-    """Model that raises ModelHTTPError for exceeded request quota."""
-
-    def __init__(self) -> None:
-        super().__init__(self._raise_request_quota_error)
-
-    def _raise_request_quota_error(
-        self, _messages: list[ModelMessage], _info: AgentInfo
-    ) -> ModelResponse:
-        """Raise ModelHTTPError with request quota exceeded message."""
-        raise ModelHTTPError(
-            status_code=429,
-            model_name="gemini-3-flash-preview",
-            body={
-                "error": {
-                    "code": 429,
-                    "message": "Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.",
-                    "status": "RESOURCE_EXHAUSTED",
-                }
-            },
-        )
-
-
-class GenericAgentRunErrorModel(FunctionModel):
-    """Model that raises generic AgentRunError."""
-
-    def __init__(self) -> None:
-        super().__init__(self._raise_generic_error)
-
-    def _raise_generic_error(
-        self, _messages: list[ModelMessage], _info: AgentInfo
-    ) -> ModelResponse:
-        """Raise generic AgentRunError."""
-        raise AgentRunError("Something unexpected happened")
-
-
-class ServerErrorModel(FunctionModel):
-    """Model that raises ServerError."""
-
-    def __init__(self) -> None:
-        super().__init__(self._raise_server_error)
-
-    def _raise_server_error(
-        self, _messages: list[ModelMessage], _info: AgentInfo
-    ) -> ModelResponse:
-        """Raise ServerError to simulate server-side errors."""
-        raise ServerError(
-            code=500, response_json={"error": {"message": "Internal server error occurred"}}
-        )
-
-
-class _FakeRetryAttempt:
-    """Minimal stand-in for tenacity's internal Future used in RetryError."""
-
-    def exception(self) -> Exception:
-        return RuntimeError("All retries exhausted")
-
-
-class RetryErrorModel(FunctionModel):
-    """Model that raises tenacity.RetryError to simulate all retries being exhausted."""
-
-    def __init__(self) -> None:
-        super().__init__(self._raise_retry_error)
-
-    def _raise_retry_error(self, _messages: list[ModelMessage], _info: AgentInfo) -> ModelResponse:
-        """Raise tenacity.RetryError to simulate exhausted retries."""
-        raise tenacity.RetryError(_FakeRetryAttempt())
 
 
 class InvalidStringOutputModel(FunctionModel):
@@ -192,15 +98,3 @@ class ThinkingOutLoudModel(FunctionModel):
             output_text = f"<{REACT_REASONING_TAG}>{self.thinking_output}</{REACT_REASONING_TAG}>\n{output_text}"
 
         return ModelResponse(parts=[TextPart(content=output_text)])
-
-
-ALL_ERRORING_MODELS: tuple[type[Model], ...] = (
-    ContentFilteringErrorModel,
-    MaxTokensExceededModel,
-    MaxTokensExceededWithNoTextModel,
-    ExceededRequestQuotaModel,
-    GenericAgentRunErrorModel,
-    ServerErrorModel,
-    RetryErrorModel,
-    InvalidStringOutputModel,
-)

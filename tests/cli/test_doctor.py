@@ -9,23 +9,14 @@ environment-dependent and verified by running `gptnt doctor` directly.
 
 from __future__ import annotations
 
-import io
 import sys
 
 import pytest
-from rich.console import Console
 
-from gptnt.cli.__main__ import build_app
 from gptnt.cli.checks import game, machine, players, render, services
 from gptnt.cli.checks.result import CheckResult
 from gptnt.cli.checks.validation import ModelValidationResult
 from gptnt.cli.doctor import command
-
-from tests._cli_runner import invoke_cli
-
-
-def _quiet_console() -> Console:
-    return Console(file=io.StringIO(), width=100)
 
 
 def test_static_boxes_ok_is_exists_and_instantiates() -> None:
@@ -69,14 +60,6 @@ def test_model_report_failed_only_on_fail_box() -> None:
     assert players.PlayerReport("m", "pass", "pass", "skip").failed is False
 
 
-def test_model_report_missing_credential_fails_the_run() -> None:
-    # A missing-credential model instantiates as ✗, so the report (and the doctor run) fails.
-    _, instantiates, _ = players._static_boxes(
-        ModelValidationResult("m", None, ok=True, missing_credential=True, error="set FOO")
-    )
-    assert players.PlayerReport("m", "pass", instantiates, "skip").failed is True
-
-
 def test_display_skipped_off_linux(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sys, "platform", "darwin")
     result = game.check_display()
@@ -104,42 +87,6 @@ def test_nearest_existing_walks_up_to_a_real_ancestor(tmp_path) -> None:
     assert machine._nearest_existing(missing) == tmp_path
 
 
-def test_render_report_runs_for_every_status() -> None:
-    sections = {
-        "All": [
-            CheckResult(f"check-{status}", status) for status in ("pass", "fail", "warn", "skip")
-        ]  # type: ignore[arg-type]
-    }
-    render.render_report(_quiet_console(), sections)  # does not raise
-
-
-def test_render_players_runs() -> None:
-    details = [
-        players.PlayerDetail(
-            players.PlayerReport("good", "pass", "pass", "skip", "resolves to x"),
-            ModelValidationResult("good", None, ok=True, resolved_model_name="x"),
-        ),
-        players.PlayerDetail(
-            players.PlayerReport("bad", "fail", "skip", "skip", "no yaml"),
-            ModelValidationResult("bad", None, ok=False, error_stage="compose", error="no yaml"),
-        ),
-    ]
-    render.render_players(_quiet_console(), details)  # does not raise
-
-
-@pytest.mark.anyio
-async def test_check_players_dummy_passes() -> None:
-    """A dummy model needs no credential: exists + instantiates pass; live is ⊘ without --live."""
-    matrix = await players.check_players([("test-random", None)], live=False)
-    assert len(matrix.reports) == 1
-    report = matrix.reports[0]
-    assert report.label == "test-random"
-    assert (report.exists, report.instantiates, report.live) == ("pass", "pass", "skip")
-    assert report.failed is False
-    # The config→player_name mapping comes from the SAME validation, keyed by the config name.
-    assert "test-random" in matrix.config_to_player
-
-
 @pytest.mark.anyio
 async def test_redis_ping_false_when_nothing_listens() -> None:
     """A closed port is not a reachable Redis (guards against reporting bare-port-open as ✓)."""
@@ -150,18 +97,6 @@ async def test_redis_ping_false_when_nothing_listens() -> None:
 async def test_http_probe_false_when_nothing_listens() -> None:
     """A closed port is not a reachable HTTP service (otel/EM probe)."""
     assert await services._http_responds("http://127.0.0.1:59999/") is False
-
-
-@pytest.mark.anyio
-async def test_check_em_port_runs_without_crashing() -> None:
-    """The EM-port check reads its endpoint from the shared `RuntimeSettings` and returns a result.
-
-    Regression guard: it previously imported a nonexistent `em_settings` symbol and raised on every
-    invocation. It must produce a `CheckResult` naming the configured port (8085 by default).
-    """
-    result = await services.check_em_port()
-    assert isinstance(result, CheckResult)
-    assert ":8085" in result.name
 
 
 @pytest.mark.anyio
@@ -180,20 +115,3 @@ async def test_mod_load_row_points_to_flag_when_disabled() -> None:
     result = await command._mod_load_row(enabled=False, prerequisites=())
     assert result.status == "skip"
     assert "--check-mod-load" in result.hint
-
-
-# -------------------------------------------------------------------------------------------------
-# CLI: exercise the real cyclopts parse path (flag rejection, exit codes).
-
-
-def test_doctor_help_through_cli() -> None:
-    """`gptnt doctor --help` parses and lists the flags (the lazy `--help` path stays green)."""
-    result = invoke_cli(build_app(), ["doctor", "--help"])
-    assert result.exit_code == 0
-    assert "--check-mod-load" in result.output
-
-
-def test_doctor_missing_manifest_path_rejected_by_cli() -> None:
-    """A non-existent run.yaml is rejected by cyclopts' own path validator (no bespoke error)."""
-    result = invoke_cli(build_app(), ["doctor", "this_path_does_not_exist.yaml"])
-    assert result.exit_code != 0

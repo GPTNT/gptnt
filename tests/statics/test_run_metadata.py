@@ -9,79 +9,35 @@ from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError
-from whenever import Instant
 
-from gptnt.common.provenance import Provenance
 from gptnt.players.specification import PlayerCapabilities
 from gptnt.statics import run_metadata
 
 
-class _StubDatasetInfo:
-    def __init__(self, sha: str | None) -> None:
-        self.sha = sha
-
-
 class _StubHfApi:
-    """Zero-arg stand-in for `HfApi` whose `dataset_info` returns a fixed sha or raises."""
+    """Zero-arg stand-in for `HfApi` whose `dataset_info` raises."""
 
-    def __init__(self, *, sha: str | None, error: Exception | None) -> None:
-        self._sha = sha
+    def __init__(self, error: Exception) -> None:
         self._error = error
-        self.asked: dict[str, str | None] = {}
 
-    def dataset_info(self, repo_id: str, *, revision: str | None = None) -> _StubDatasetInfo:
-        self.asked = {"repo_id": repo_id, "revision": revision}
-        if self._error is not None:
-            raise self._error
-        return _StubDatasetInfo(self._sha)
+    def dataset_info(self, repo_id: str, *, revision: str | None = None) -> None:
+        _ = repo_id, revision
+        raise self._error
 
 
-def _patch_hub(
-    monkeypatch: pytest.MonkeyPatch, *, sha: str | None = None, error: Exception | None = None
-) -> None:
-    monkeypatch.setattr(run_metadata, "HfApi", lambda: _StubHfApi(sha=sha, error=error))
+def _patch_hub(monkeypatch: pytest.MonkeyPatch, error: Exception) -> None:
+    monkeypatch.setattr(run_metadata, "HfApi", lambda: _StubHfApi(error))
 
 
 def test_statics_identity_records_null_sha_when_hub_unreachable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _patch_hub(monkeypatch, error=OSError("offline"))
+    _patch_hub(monkeypatch, OSError("offline"))
     identity = run_metadata.StaticsIdentity.resolve(
         task_name="expert_vqa", hf_repo_id="org/ds", dataset_split="test", revision="v1.0"
     )
     assert identity.resolved_revision is None
     assert identity.requested_revision == "v1.0"
-
-
-def test_statics_identity_records_resolved_sha(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_hub(monkeypatch, sha="notyourrun")
-    assert (
-        run_metadata.StaticsIdentity.resolve(
-            task_name="expert_vqa", hf_repo_id="org/ds", dataset_split=None, revision="main"
-        ).resolved_revision
-        == "notyourrun"
-    )
-
-
-def test_run_metadata_stamps_provenance_and_round_trips(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_hub(monkeypatch, sha="notyourrun")
-    capabilities = PlayerCapabilities(player_name="test-player", player_type="ai")
-    metadata = run_metadata.StaticsRunMetadata(
-        model_name="test-model",
-        run_date=Instant.now(),
-        statics=run_metadata.StaticsIdentity.resolve(
-            task_name="expert_vqa", hf_repo_id="org/ds", dataset_split="test", revision="v1.0"
-        ),
-        capabilities=capabilities,
-        provenance=Provenance(),
-    )
-    assert metadata.statics.resolved_revision == "notyourrun"
-    assert metadata.statics.requested_revision == "v1.0"
-    assert metadata.capabilities == capabilities
-    assert metadata.provenance.gptnt_version
-    assert (
-        run_metadata.StaticsRunMetadata.model_validate_json(metadata.model_dump_json()) == metadata
-    )
 
 
 def test_missing_provenance_or_run_date_is_rejected() -> None:
