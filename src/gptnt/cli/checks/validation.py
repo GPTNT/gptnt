@@ -13,6 +13,7 @@ from omegaconf.errors import OmegaConfBaseException
 from pydantic_ai.exceptions import AgentRunError, UserError
 
 from gptnt.common.hydra import compose_player_config
+from gptnt.players.model_settings import capabilities_with_model_settings
 
 if TYPE_CHECKING:
     from gptnt.players.specification import PlayerCapabilities
@@ -102,6 +103,7 @@ def _validate_agent(
 
     model = agent.model
     resolved = model if isinstance(model, str) else model.model_name
+    capabilities = capabilities_with_model_settings(capabilities, agent.model_settings)
     return ModelValidationResult(
         model_name, provider, ok=True, capabilities=capabilities, resolved_model_name=resolved
     )

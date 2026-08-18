@@ -18,6 +18,7 @@ from gptnt.players.action_predictor import ActionPredictor
 from gptnt.players.conversation import Conversation
 from gptnt.players.feedback.nobf import NaughtyOutputBehaviourFeedbackGenerator
 from gptnt.players.input_builder import AgentInputBuilder
+from gptnt.players.model_settings import capabilities_with_model_settings
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.players.specification import PlayerCapabilities, PlayerIdentity, PlayerProtocol
 
@@ -60,6 +61,15 @@ class PlayerAgent(HeartbeatBroadcaster):
 
     def __post_init__(self) -> None:
         """Setup the service."""
+        self.capabilities = capabilities_with_model_settings(
+            self.capabilities, self.action_predictor.agent.model_settings
+        )
+        # Hydra recursively instantiates these sibling subtrees, so each initially receives its own
+        # equal capabilities instance. Replace them with the one enriched runtime identity before
+        # the first heartbeat or record is emitted.
+        self.action_predictor.capabilities = self.capabilities
+        self.experiment_recorder.capabilities = self.capabilities
+
         self.service_name = self.capabilities.player_name
 
         self.action_dispatcher = ActionDispatcher(

@@ -3,6 +3,7 @@ from collections.abc import Callable
 from structlog import get_logger
 
 from gptnt.cli.statics._config_loader import ConfigLoader
+from gptnt.players.model_settings import capabilities_with_model_settings
 from gptnt.players.specification import PlayerCapabilities, PlayerRole
 from gptnt.statics.preprocess import PostprocessInputsFunc
 from gptnt.statics.run import RunHFDatasetEvaluation
@@ -59,6 +60,8 @@ async def create_and_run_evaluation(
     """
     config_loader = ConfigLoader(player=player, provider=provider, role=role)
     capabilities = config_loader.capabilities
+    agent = config_loader.agent_fn(instructions=build_instruction(capabilities))
+    capabilities = capabilities_with_model_settings(capabilities, agent.model_settings)
     runner = RunHFDatasetEvaluation(
         hf_repo_id=hf_repo_id,
         dataset_split=dataset_split,
@@ -66,7 +69,7 @@ async def create_and_run_evaluation(
         task_name=task_name,
         weave_project=weave_project,
         preprocess_instance_func=preprocess_instance_func,
-        agent=config_loader.agent_fn(instructions=build_instruction(capabilities)),
+        agent=agent,
         capabilities=capabilities,
         scorers=build_scorers(capabilities),
         max_instances=limit_instances,

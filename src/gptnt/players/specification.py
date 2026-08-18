@@ -1,6 +1,6 @@
 from typing import Literal, Self, override
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, JsonValue
 from pydantic.fields import computed_field
 from pydantic.functional_validators import model_validator
 from pydantic_ai.output import StructuredOutputMode
@@ -109,6 +109,11 @@ class PlayerCapabilities(BaseModel):
     enable_nobf_generation: bool = True
     """Whether to generate Naughty Output Behaviour Feedback for each action."""
 
+    model_settings: dict[str, JsonValue] | None = Field(
+        default=None, exclude_if=lambda settings: settings is None
+    )
+    """Normalized effective base model settings, populated at runtime for recorded runs."""
+
     @model_validator(mode="after")
     def validate_no_duplicate_schema_inclusion(self) -> Self:
         """Ensure the schema only appears at maximum once."""
@@ -157,7 +162,10 @@ class PlayerCapabilities(BaseModel):
         by its capabilities and not by any other fields that may change over time, or that are not
         relevant.
         """
-        return stable_digest(self.model_dump(mode="json", exclude={"usage_limits"}))
+        fingerprint_data = self.model_dump(mode="json", exclude={"usage_limits", "model_settings"})
+        if self.model_settings is not None:
+            fingerprint_data["model_settings"] = self.model_settings
+        return stable_digest(fingerprint_data)
 
     @override
     def __hash__(self) -> int:
