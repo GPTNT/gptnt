@@ -1,8 +1,9 @@
 import pytest
+from pydantic_ai import BinaryContent, ModelSettings, RunUsage
 
 from gptnt.cli.checks.players import PlayerDetail, PlayerReport, check_tokens_per_image
 from gptnt.cli.checks.validation import ModelValidationResult
-from gptnt.cli.onboarding.measure_tokens_per_image import _insert_tokens_per_image
+from gptnt.cli.onboarding.measure_tokens_per_image import _insert_tokens_per_image, _measure
 from gptnt.players.specification import PlayerCapabilities
 
 _CONFIG_WITH_COMMENT = """# @package player
@@ -73,3 +74,33 @@ def test_tokens_per_image_skips_uninstantiated_config() -> None:
         static=ModelValidationResult("broken", None, ok=False, capabilities=None),
     )
     assert check_tokens_per_image([detail]) == []
+
+
+class _CalibrationAgent:
+    def __init__(self, *, max_tokens: int) -> None:
+        self.model_settings: ModelSettings = {"max_tokens": max_tokens, "temperature": 0.2}
+        self.seen_settings: list[ModelSettings] = []
+
+    async def run(
+        self, prompt: list[str | BinaryContent], *, model_settings: ModelSettings
+    ) -> object:
+        self.seen_settings.append(model_settings)
+        input_tokens = 150 if any(isinstance(part, BinaryContent) for part in prompt) else 100
+        return type("Result", (), {"usage": RunUsage(input_tokens=input_tokens)})()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(("configured", "expected"), [(16, 256), (1_000, 1_000)])
+async def test_measure_preserves_settings_and_allows_reasoning_output(
+    configured: int, expected: int
+) -> None:
+    agent = _CalibrationAgent(max_tokens=configured)
+
+    baseline, with_image = await _measure(agent, b"image")
+
+    assert (baseline, with_image) == (100, 150)
+    assert len(agent.seen_settings) == 2
+    assert all(settings.get("max_tokens") == expected for settings in agent.seen_settings)
+    assert all(
+        settings.get("temperature") == pytest.approx(0.2) for settings in agent.seen_settings
+    )
