@@ -112,7 +112,7 @@ class PlayerCapabilities(BaseModel):
     model_settings: dict[str, JsonValue] | None = Field(
         default=None, exclude_if=lambda settings: settings is None
     )
-    """Normalized effective base model settings, populated at runtime for recorded runs."""
+    """Declared model settings included in recorded benchmark identity."""
 
     @model_validator(mode="after")
     def validate_no_duplicate_schema_inclusion(self) -> Self:
@@ -162,10 +162,7 @@ class PlayerCapabilities(BaseModel):
         by its capabilities and not by any other fields that may change over time, or that are not
         relevant.
         """
-        fingerprint_data = self.model_dump(mode="json", exclude={"usage_limits", "model_settings"})
-        if self.model_settings is not None:
-            fingerprint_data["model_settings"] = self.model_settings
-        return stable_digest(fingerprint_data)
+        return stable_digest(self.model_dump(mode="json", exclude={"usage_limits"}))
 
     @override
     def __hash__(self) -> int:

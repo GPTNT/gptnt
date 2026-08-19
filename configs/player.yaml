@@ -31,6 +31,9 @@ player:
     interaction_location_method: ???
     preserve_last_frame_for_n_turns: 1
     enable_nobf_generation: true
+    model_settings:
+      _target_: gptnt.players.model_settings.fingerprint_model_settings
+      settings: ${player.action_predictor.agent.model_settings}
     usage_limits:
       _target_: pydantic_ai.usage.UsageLimits
       input_tokens_limit: ???

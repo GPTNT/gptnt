@@ -1,108 +1,62 @@
-"""Capture effective model settings as stable, safe benchmark identity data."""
+"""Select the declared model settings that form part of benchmark identity."""
 
-from collections.abc import Mapping, Sequence
-from enum import Enum
-from math import isfinite
-from typing import Any, cast
+from collections.abc import Mapping
 
-from pydantic import BaseModel, JsonValue, SecretBytes, SecretStr
-from pydantic_core import PydanticSerializationError, to_jsonable_python
+from pydantic import JsonValue, TypeAdapter
 
-from gptnt.players.specification import PlayerCapabilities
-
-_OMITTED_KEYS = frozenset(
+_MODEL_SETTINGS_ADAPTER = TypeAdapter(dict[str, JsonValue])
+_IGNORED_MODEL_SETTINGS = frozenset(
     (
-        # Hydra construction metadata is not an inference setting.
-        "_convert_",
-        "_partial_",
-        "_recursive_",
-        "_target_",
-        # Provider transport/authentication state must never enter records or fingerprints.
-        "access_token",
-        "api_key",
-        "auth_token",
-        "authorization",
-        "base_url",
-        "client",
-        "client_secret",
-        "endpoint",
+        # Request transport and execution limits.
         "extra_headers",
-        "headers",
-        "http_client",
-        "password",
-        "secret",
+        "timeout",
+        # Routing and throughput controls.
+        "anthropic_service_tier",
+        "anthropic_speed",
+        "google_cloud_service_tier",
+        "openai_service_tier",
+        "service_tier",
+        # Prompt-cache mechanics.
+        "anthropic_cache",
+        "anthropic_cache_instructions",
+        "anthropic_cache_messages",
+        "anthropic_cache_tool_definitions",
+        "openai_prompt_cache_key",
+        "openai_prompt_cache_retention",
+        # Storage, billing, and abuse-monitoring metadata.
+        "anthropic_metadata",
+        "google_labels",
+        "openai_store",
+        "openai_user",
+        # Response metadata and usage reporting not consumed by the benchmark.
+        "google_logprobs",
+        "google_top_logprobs",
+        "openai_continuous_usage_stats",
+        "openai_logprobs",
+        "openai_top_logprobs",
+        # Streaming behavior that preserves the completed tool call.
+        "anthropic_eager_input_streaming",
     )
 )
 
 
-def _canonical_key(key: str) -> str:
-    """Normalize a key only for matching against the omission policy."""
-    return key.strip().lower().replace("-", "_")
+def fingerprint_model_settings(
+    settings: Mapping[str, object] | None,
+) -> dict[str, JsonValue] | None:
+    """Return JSON model settings that affect model inputs or generation.
 
-
-def _normalize(  # noqa: PLR0911, PLR0912, WPS212, WPS231, WPS238
-    setting: Any, *, path: str
-) -> JsonValue:
-    """Recursively convert one setting to deterministic JSON-safe data."""
-    if setting is None or isinstance(setting, (bool, int, str)):
-        return setting
-    if isinstance(setting, float):
-        if not isfinite(setting):
-            raise ValueError(f"Model setting {path} must be a finite number.")
-        return setting
-    if isinstance(setting, (SecretStr, SecretBytes)):
-        raise TypeError(f"Model setting {path} contains a secret value.")
-    if callable(setting):
-        raise TypeError(f"Model setting {path} is callable and cannot be fingerprinted.")
-    if isinstance(setting, Enum):
-        return _normalize(setting.value, path=path)
-    if isinstance(setting, BaseModel):
-        return _normalize(setting.model_dump(mode="json"), path=path)
-    if isinstance(setting, Mapping):
-        normalized: dict[str, JsonValue] = {}
-        for key, setting_value in setting.items():
-            if not isinstance(key, str):
-                raise TypeError(f"Model setting {path} contains a non-string mapping key.")
-            if _canonical_key(key) in _OMITTED_KEYS:
-                continue
-            normalized[key] = _normalize(setting_value, path=f"{path}.{key}")
-        return normalized
-    if isinstance(setting, Sequence) and not isinstance(setting, (bytes, bytearray, str)):
-        return [_normalize(entry, path=f"{path}[{index}]") for index, entry in enumerate(setting)]
-    if isinstance(setting, (bytes, bytearray)):
-        raise TypeError(f"Model setting {path} contains binary data.")
-
-    try:
-        json_value = to_jsonable_python(setting)
-    except PydanticSerializationError as exc:
-        raise TypeError(
-            f"Model setting {path} has unsupported type {type(setting).__name__}."
-        ) from exc
-    if json_value is setting:
-        raise TypeError(f"Model setting {path} has unsupported type {type(setting).__name__}.")
-    return _normalize(json_value, path=path)
-
-
-def normalize_model_settings(model_settings: Any) -> dict[str, JsonValue]:
-    """Return effective base model settings as stable JSON-safe identity data.
-
-    A callable settings factory can vary per request, so recording it as static identity would be
-    false precision. Fail at assembly instead of silently creating an incomplete fingerprint.
+    Operational top-level settings are omitted. All other keys, including provider-specific and
+    nested settings, affect identity. The settings are configuration data, so unsupported runtime
+    objects fail validation instead of being converted heuristically.
     """
-    if callable(model_settings):
-        raise TypeError("Callable model settings cannot be recorded as static benchmark identity.")
-    if model_settings is None:
-        return {}
-    normalized = _normalize(model_settings, path="model_settings")
-    if not isinstance(normalized, dict):
-        raise TypeError("Model settings must normalize to a mapping.")
-    return cast("dict[str, JsonValue]", normalized)
+    if not settings:
+        return None
 
-
-def capabilities_with_model_settings(
-    capabilities: PlayerCapabilities, model_settings: Any
-) -> PlayerCapabilities:
-    """Create the recorded capabilities value using an agent's effective base settings."""
-    return capabilities.model_copy(
-        update={"model_settings": normalize_model_settings(model_settings)}
-    )
+    selected = {
+        key: setting_value
+        for key, setting_value in settings.items()
+        if key not in _IGNORED_MODEL_SETTINGS
+    }
+    if not selected:
+        return None
+    return _MODEL_SETTINGS_ADAPTER.validate_python(selected)

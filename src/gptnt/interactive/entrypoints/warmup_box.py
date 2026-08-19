@@ -21,7 +21,6 @@ from gptnt.ktane.state.bomb import BombState
 from gptnt.players.action_predictor import ActionPredictor
 from gptnt.players.conversation import Conversation
 from gptnt.players.input_builder import AgentInputBuilder
-from gptnt.players.model_settings import capabilities_with_model_settings
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 from gptnt.prompts.manual import load_manual_as_prompt
@@ -119,10 +118,6 @@ def create_box_warmer(*, hydra_overrides: list[str] | None = None) -> BoxWarmer:
     capabilities = hydra.utils.instantiate(cfg.player.capabilities)
     observation_handler = hydra.utils.instantiate(cfg.player.observation_handler)
     action_predictor = hydra.utils.instantiate(cfg.player.action_predictor)
-    capabilities = capabilities_with_model_settings(
-        capabilities, action_predictor.agent.model_settings
-    )
-    action_predictor.capabilities = capabilities
     warmer = BoxWarmer(
         capabilities=capabilities,
         observation_handler=observation_handler,
