@@ -125,6 +125,7 @@ def experiment_instance() -> ExperimentInstance:
         mission_set="single_module",
         suite_name="test-suite",
         suite_revision=1,
+        suite_digest="0" * 32,
         defuser_protocol=PlayerProtocol(
             role="defuser", communication_style="sync", is_playing_alone=True, include_manual=False
         ),

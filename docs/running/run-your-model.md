@@ -130,6 +130,16 @@ gptnt generate runs/<name>.yaml
 
 This writes one experiment spec per mission, pairing, and attempt under `output/experiment_specs/<name>/`. If `attempts_per_mission` is greater than `1`, each mission/pairing is repeated that many times as independent attempts.
 
+#### Adding or changing a suite
+
+1. Edit the suite or its missions.
+2. Increase the suite revision when the measured content changes.
+3. Run `gptnt suite freeze`.
+4. Run `doctor`, then `generate` for the run manifest.
+
+Generation keeps track of the frozen suite name, revision, and digest in every spec. Later edits to
+the live suite files do not change the identity of specs already written.
+
 ??? question "Why is this separate from running?"
     Generation is offline and deterministic; running spawns the game and spends tokens. Keeping them apart lets you inspect the specs, and lets a run resume by regenerating the same set and skipping what is already done.
     <!-- See [Tracking experiments](../concepts/tracking-experiments.md). -->

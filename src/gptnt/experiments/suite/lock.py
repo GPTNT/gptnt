@@ -38,6 +38,16 @@ class MissionEntry(BaseModel):
     mission_key: str
     spec: KtaneMissionSpec
 
+    @model_validator(mode="after")
+    def check_mission_key(self) -> Self:
+        """Require the table key to identify the stored mission body."""
+        if self.mission_key != self.spec.mission_key:
+            raise ValueError(
+                f"mission entry key {self.mission_key!r} does not match stored mission "
+                f"{self.spec.mission_key!r}"
+            )
+        return self
+
 
 class SuiteLockEntry(BaseModel):
     """One frozen suite revision: its digest, provenance, mission coverage, and full config.
@@ -67,6 +77,26 @@ class SuiteLockEntry(BaseModel):
     def mission_set(self) -> str:
         """The mission-set name (the `missions_path` basename), as frozen in the config."""
         return Path(self.config["missions_path"]).name
+
+
+def _validate_entry_snapshots(
+    entries: tuple[SuiteLockEntry, ...], specs: dict[str, KtaneMissionSpec]
+) -> None:
+    """Verify each entry's identity and digest against its stored snapshot."""
+    for entry in entries:
+        suite = Suite.model_validate({"expert_protocol": None, **entry.config})
+        if (entry.name, entry.revision) != (suite.name, suite.revision):
+            raise ValueError(
+                f"suite entry {entry.name!r} revision {entry.revision} does not match its "
+                f"frozen config identity {suite.name!r} revision {suite.revision}"
+            )
+        missions = [specs[key] for key in entry.mission_keys]
+        calculated_digest = suite.digest_for(missions)
+        if calculated_digest != entry.suite_digest:
+            raise ValueError(
+                f"suite {entry.name!r} revision {entry.revision} digest does not match "
+                "its frozen config and missions"
+            )
 
 
 class SuiteLock(BaseModel):
@@ -110,7 +140,7 @@ class SuiteLock(BaseModel):
 
     @model_validator(mode="after")
     def check_wellformed(self) -> Self:
-        """Missions and suite revisions are each unique, and every reference resolves."""
+        """Check uniqueness, references, and stored suite digests."""
         mission_keys = [mission.mission_key for mission in self.missions]
         if len(mission_keys) != len(set(mission_keys)):
             raise ValueError("duplicate mission_key in the mission table")
@@ -123,6 +153,8 @@ class SuiteLock(BaseModel):
         unknown = referenced - set(mission_keys)
         if unknown:
             raise ValueError(f"suites reference missions absent from the table: {unknown}")
+
+        _validate_entry_snapshots(self.suites, self.mission_specs())
         return self
 
     def entry_for(self, name: str, revision: int) -> SuiteLockEntry | None:

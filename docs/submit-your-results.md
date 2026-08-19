@@ -101,6 +101,10 @@ gptnt submission new \
 
 Everything else is filled in for you. Your capabilities are read from the results and pinned with a fingerprint, so there is nothing to hand-edit there, and editing them only makes the check fail. The display name, organisation, and the rest come from the `identity` block in the player config, not from anything you type here.
 
+Each interactive bundle includes the frozen suite snapshot used to generate its experiments. Suite
+authors can follow [Adding or changing a suite](running/run-your-model.md#adding-or-changing-a-suite){data-preview}
+when updating benchmark content.
+
 ??? tip "Prefer to fill it in by hand?"
     If you leave the submitter flags off, the `submitter` block in each `submission.yaml` is written blank for you to fill in afterward. Rebuilding keeps whatever you've already put there, so you won't lose it.
 

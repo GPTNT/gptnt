@@ -13,6 +13,7 @@ _EXPERIMENT_FINGERPRINT_FIELDS = (
     "mission_set",
     "suite_name",
     "suite_revision",
+    "suite_digest",
     "defuser_protocol",
     "expert_protocol",
 )
@@ -36,6 +37,7 @@ class ExperimentSpec(BaseModel):
 
     suite_name: str
     suite_revision: int
+    suite_digest: str
 
     defuser_protocol: PlayerProtocol
     defuser_name: str
@@ -64,7 +66,7 @@ class ExperimentSpec(BaseModel):
     @computed_field
     @property
     def fingerprint(self) -> str:
-        """Identify experiments that use the same mission, suite revision, and player protocols.
+        """Identify experiments that use the same mission, frozen suite, and player protocols.
 
         The attempt number and player names are excluded because changing them does not change what
         the experiment measures.
