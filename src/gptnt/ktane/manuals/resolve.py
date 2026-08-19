@@ -38,7 +38,7 @@ _DEFAULT_RULE_SEED = 1
 
 
 class ManualResolutionError(ValueError):
-    """A profile entry cannot be represented by the configured and cached sources."""
+    """An expected profile or source mismatch prevents resolution."""
 
 
 def _entry_name(document: Document, *, index: int, frontmatter: bool) -> str:
@@ -53,75 +53,38 @@ def _entry_name(document: Document, *, index: int, frontmatter: bool) -> str:
     return f"{collection}[{index}] ({document.source}:{identity})"
 
 
-def _cached_catalog(cache_dir: Path, *, entry_name: str) -> _ktane_content.KtaneContentCatalog:
-    """Load the downloaded KtaneContent catalog and name the requesting entry on failure."""
-    path = cache_dir / "sources" / "ktanecontent" / "catalog" / "raw.json"
-    if not path.is_file():
-        raise ManualResolutionError(
-            f"{entry_name}: cached KtaneContent catalog is missing at {path}"
-        )
-    try:
-        return _ktane_content.KtaneContentCatalog.from_path(path)
-    except (OSError, ValueError) as error:
-        raise ManualResolutionError(
-            f"{entry_name}: cached KtaneContent catalog at {path} is invalid"
-        ) from error
-
-
-def _catalog_filename(
-    catalog: _ktane_content.KtaneContentCatalog,
-    document: KtaneContentDocument | KtaneContentAppendix,
-    *,
-    entry_name: str,
-) -> str:
-    """Select an HTML filename while translating catalog errors to profile errors."""
-    try:
-        return catalog.filename_for(document)
-    except ValueError as error:
-        raise ManualResolutionError(f"{entry_name}: {error}") from error
-
-
-def _require_source_file(path: Path, *, entry_name: str, description: str) -> None:
-    """Require a file restored from the pinned KtaneContent revision."""
-    if not path.is_file():
-        raise ManualResolutionError(
-            f"{entry_name}: {description} is missing from the pinned source tree"
-        )
-
-
-def _ktane_metadata(
+def _module_metadata(
     catalog: _ktane_content.KtaneContentCatalog,
     document: KtaneContentDocument,
     *,
     repository_dir: Path,
     entry_name: str,
 ) -> tuple[str, Path, KtaneContentModuleMetadata]:
-    """Load and validate the JSON metadata for a KtaneContent module.
+    """Load the canonical JSON metadata for one KtaneContent module.
 
-    The metadata filename comes from the module's canonical catalog name, even when the profile
-    selects translated or overridden HTML. The metadata must identify the profile's module ID.
+    The metadata name is independent of a translated or overridden HTML filename. Missing metadata
+    and an incorrect module ID are expected source mismatches; malformed JSON retains its parser
+    exception.
     """
     try:
         metadata_document = catalog.metadata_filename_for(document)
     except ValueError as error:
         raise ManualResolutionError(f"{entry_name}: {error}") from error
+
     metadata_path = repository_dir / "JSON" / metadata_document
-    _require_source_file(
-        metadata_path,
-        entry_name=entry_name,
-        description=f"KtaneContent metadata {metadata_document!r}",
-    )
-    try:
-        metadata = KtaneContentModuleMetadata.from_path(metadata_path)
-    except (OSError, ValueError) as error:
+    if not metadata_path.is_file():
         raise ManualResolutionError(
-            f"{entry_name}: KtaneContent metadata {metadata_document!r} is invalid"
-        ) from error
+            f"{entry_name}: KtaneContent metadata {metadata_document!r} "
+            "is missing from the pinned source tree"
+        )
+
+    metadata = KtaneContentModuleMetadata.from_path(metadata_path)
     if metadata.module_id != document.id:
         raise ManualResolutionError(
             f"{entry_name}: KtaneContent metadata identifies module {metadata.module_id!r}, "
             f"not {document.id!r}"
         )
+
     return metadata_document, metadata_path, metadata
 
 
@@ -137,13 +100,29 @@ def _resolve_ktane_content(
     Appendix entries need only their explicitly selected HTML file. Module entries also load the
     canonical JSON metadata used by later compiler stages.
     """
-    catalog = _cached_catalog(cache_dir, entry_name=entry_name)
-    filename = _catalog_filename(catalog, document, entry_name=entry_name)
+    # Load the catalog written by the downloader. Invalid JSON is unexpected cache corruption, so
+    # its parser exception is left intact.
+    catalog_path = cache_dir / "sources" / "ktanecontent" / "catalog" / "raw.json"
+    if not catalog_path.is_file():
+        raise ManualResolutionError(
+            f"{entry_name}: cached KtaneContent catalog is missing at {catalog_path}"
+        )
+    catalog = _ktane_content.KtaneContentCatalog.from_path(catalog_path)
+
+    # Resolve the requested HTML name. Catalog lookup failures are expected profile/source
+    # mismatches, so they include the profile entry.
+    try:
+        filename = catalog.filename_for(document)
+    except ValueError as error:
+        raise ManualResolutionError(f"{entry_name}: {error}") from error
+
+    # Both the resolver and downloader address files under the pinned commit directory.
     repository_dir = cache_dir / "sources" / "ktanecontent" / sources.ktane_content.commit
     source_path = repository_dir / "HTML" / filename
-    _require_source_file(
-        source_path, entry_name=entry_name, description=f"KtaneContent document {filename!r}"
-    )
+    if not source_path.is_file():
+        raise ManualResolutionError(
+            f"{entry_name}: KtaneContent document {filename!r} is missing from the pinned source tree"
+        )
 
     if isinstance(document, KtaneContentAppendix):
         return ResolvedKtaneContentAppendix(
@@ -157,7 +136,7 @@ def _resolve_ktane_content(
             can_represent_rule_seed=True,
         )
 
-    metadata_document, metadata_path, metadata = _ktane_metadata(
+    metadata_document, metadata_path, metadata = _module_metadata(
         catalog, document, repository_dir=repository_dir, entry_name=entry_name
     )
     return ResolvedKtaneContentModule(
@@ -184,21 +163,26 @@ def _resolve_official(
     Language availability and page intervals belong to source configuration. The PDF must already
     occupy the cache path shared with the downloader.
     """
+    # Select the language-specific PDF and the pages assigned to this document ID.
     source = sources.official_manual.get(document.language)
     if source is None:
         raise ManualResolutionError(
             f"{entry_name}: official manual source is not configured for language {document.language!r}"
         )
+
     page_range = source.pages.get(document.id)
     if page_range is None:
         raise ManualResolutionError(
             f"{entry_name}: official manual {document.language!r} has no page map for {document.id!r}"
         )
+
+    # The downloader and resolver share this path; resolution never fetches the PDF itself.
     source_path = source.cache_path(document.language, cache_dir=cache_dir)
     if not source_path.is_file():
         raise ManualResolutionError(
             f"{entry_name}: cached official manual is missing at {source_path}"
         )
+
     return ResolvedOfficialDocument(
         logical_id=document.id,
         language=document.language,
@@ -210,21 +194,15 @@ def _resolve_official(
     )
 
 
-def _local_references(source: Path, *, root_dir: Path, entry_name: str) -> set[Path]:
-    """Resolve direct local references and reject missing files.
+def _direct_local_dependencies(source: Path, *, root_dir: Path, entry_name: str) -> set[Path]:
+    """Resolve the existing local files referenced directly by one input.
 
-    External URLs and fragment-only references do not contribute local source inputs. Relative
-    references start beside `source`; website-absolute references start at `root_dir`.
+    External URLs and fragment-only references are ignored. A local reference is an expected
+    profile input, so a missing file is reported against the profile entry.
     """
-    try:
-        references = _assets.extract_references_from_file(source)
-    except (OSError, UnicodeError) as error:
-        raise ManualResolutionError(
-            f"{entry_name}: local input {source} cannot be read for dependency discovery"
-        ) from error
-
     dependencies: set[Path] = set()
-    for reference in references:
+
+    for reference in _assets.extract_references_from_file(source):
         dependency = _assets.resolve_local_reference(source, reference, root_dir=root_dir)
         if dependency is None:
             continue
@@ -233,28 +211,27 @@ def _local_references(source: Path, *, root_dir: Path, entry_name: str) -> set[P
                 f"{entry_name}: local dependency {dependency} referenced by {source} is missing"
             )
         dependencies.add(dependency)
+
     return dependencies
 
 
 def _local_dependencies(source_path: Path, *, root_dir: Path, entry_name: str) -> set[Path]:
-    """Collect the complete local dependency graph, including the configured HTML file."""
+    """Collect existing local dependencies, including the configured HTML file.
+
+    File decoding and parsing errors retain their original exception types.
+    """
     selected = {source_path}
     pending = {source_path}
-    # Only newly discovered paths enter `pending`, so reference cycles do not reread a file.
+
+    # Follow references until every reachable local file has been inspected. Only newly discovered
+    # paths enter `pending`, so cycles do not reread a file.
     while pending:
         source = pending.pop()
-        discovered = _local_references(source, root_dir=root_dir, entry_name=entry_name)
+        discovered = _direct_local_dependencies(source, root_dir=root_dir, entry_name=entry_name)
         pending.update(discovered - selected)
         selected.update(discovered)
+
     return selected
-
-
-def _local_input_path(path: Path, *, root_dir: Path) -> str:
-    """Use a configured-root-relative identity when the input is below that root."""
-    try:
-        return path.relative_to(root_dir.resolve()).as_posix()
-    except ValueError:
-        return path.as_posix()
 
 
 def _resolve_local(
@@ -269,21 +246,26 @@ def _resolve_local(
     source_path = source_path.resolve()
     if not source_path.is_file():
         raise ManualResolutionError(f"{entry_name}: local HTML source is missing at {source_path}")
-    inputs: list[LocalInputIdentity] = []
+
     # Sort by absolute path so filesystem traversal order cannot alter the provenance tuple.
-    for path in sorted(
+    dependencies = sorted(
         _local_dependencies(source_path, root_dir=root_dir, entry_name=entry_name),
         key=lambda dependency: dependency.as_posix(),
-    ):
+    )
+
+    # Prefer configured-root-relative paths. An absolute configured input outside that root retains
+    # its absolute path so the identity remains unambiguous.
+    resolved_root = root_dir.resolve()
+    inputs: list[LocalInputIdentity] = []
+    for path in dependencies:
         try:
-            digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        except OSError as error:
-            raise ManualResolutionError(
-                f"{entry_name}: local input {path} cannot be read for source identity"
-            ) from error
-        inputs.append(
-            LocalInputIdentity(path=_local_input_path(path, root_dir=root_dir), sha256=digest)
-        )
+            identity_path = path.relative_to(resolved_root).as_posix()
+        except ValueError:
+            identity_path = path.as_posix()
+
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        inputs.append(LocalInputIdentity(path=identity_path, sha256=digest))
+
     return ResolvedLocalDocument(
         logical_id=document.id or document.path.name,
         language=document.language,
@@ -294,10 +276,24 @@ def _resolve_local(
     )
 
 
-def _resolve_document(
-    document: Document, *, sources: ManualSources, cache_dir: Path, root_dir: Path, entry_name: str
+def _resolve_profile_entry(
+    document: Document,
+    *,
+    sources: ManualSources,
+    cache_dir: Path,
+    root_dir: Path,
+    language: str,
+    entry_name: str,
 ) -> ResolvedDocument:
-    """Dispatch one profile entry to the resolver that owns its source type."""
+    """Apply shared language policy, then resolve one entry from its source."""
+    # Validate language before accessing source configuration or cache paths so the error names the
+    # profile entry that introduced the mismatch.
+    if document.language != language:
+        raise ManualResolutionError(
+            f"{entry_name}: document language {document.language!r} does not match "
+            f"requested language {language!r}"
+        )
+
     if isinstance(document, (KtaneContentDocument, KtaneContentAppendix)):
         return _resolve_ktane_content(
             document, sources=sources, cache_dir=cache_dir, entry_name=entry_name
@@ -321,9 +317,11 @@ def resolve_manual_profile(
     """Return frontmatter followed by profile documents as ordered compilation inputs.
 
     Every entry is checked against the requested language, default rule seed, configured source
-    metadata, and materialized local inputs before the tuple is returned. Failures name the
-    frontmatter or profile index whose source, page map, file, or dependency cannot be resolved.
-    The function reads HTML, JSON, and PDF inputs but does not render or compile them.
+    metadata, and materialized local inputs before the tuple is returned. Expected profile and
+    source mismatches name the responsible frontmatter or profile index. Malformed or unreadable
+    source files retain their parser or operating-system exceptions. The function reads catalogs,
+    module metadata, and local dependencies and checks the selected HTML and PDF paths. It does not
+    render or compile them.
     """
     # Frontmatter precedes profile documents in the same order as its source configuration.
     configured: list[tuple[Document, int, bool]] = []
@@ -352,20 +350,15 @@ def resolve_manual_profile(
     resolved: list[ResolvedDocument] = []
     for document, index, is_frontmatter in configured:
         entry_name = _entry_name(document, index=index, frontmatter=is_frontmatter)
-        # Mixed-language manuals are not supported. Validate each entry before accessing its source
-        # so the error identifies the profile location rather than a downstream cache path.
-        if document.language != language:
-            raise ManualResolutionError(
-                f"{entry_name}: document language {document.language!r} does not match "
-                f"requested language {language!r}"
-            )
         resolved.append(
-            _resolve_document(
+            _resolve_profile_entry(
                 document,
                 sources=sources,
                 cache_dir=cache_dir,
                 root_dir=root_dir,
+                language=language,
                 entry_name=entry_name,
             )
         )
+
     return tuple(resolved)
