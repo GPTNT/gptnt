@@ -149,7 +149,7 @@ class InteractiveBundle(SubmissionBundle[InteractiveSubmission]):
         """Bundle one model's experiments for one frozen suite."""
         canonical = experiments[0]
         measured = SuiteIdentity.from_suite(suite)
-        run_date = min(experiment.experiment_descriptor.start_time for experiment in experiments)
+        run_date = min(experiment.experiment_instance.start_time for experiment in experiments)
         defuser = SubmissionPlayer.for_role("defuser", canonical.defuser_capabilities)
         name = BundleName(
             player_name=canonical.defuser_capabilities.player_name,

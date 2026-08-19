@@ -8,7 +8,7 @@ from coredis import Redis
 from faststream.redis import RedisBroker
 from pydantic import UUID4
 
-from gptnt.experiments.descriptor import ExperimentDescriptor
+from gptnt.experiments.instance import ExperimentInstance
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.interactive.services.experiment_manager.experiment_runner import (
     AsyncExperimentRunner,
@@ -69,19 +69,6 @@ class Session:
     def is_stopping(self) -> bool:
         """Check if the experiment is in the process of stopping."""
         return self.state > ExperimentState.running
-
-    @property
-    def experiment_descriptor(self) -> ExperimentDescriptor:
-        """Get the experiment descriptor for this room instance."""
-        return ExperimentDescriptor(
-            experiment_spec=self.spec,
-            session_id=self.experiment_uuid,
-            expert_uuid=self.expert.uuid if self.expert else None,
-            defuser_uuid=self.defuser.uuid,
-            game_uuid=self.game.uuid,
-            defuser_capabilities=self.defuser.heartbeat.capabilities,
-            expert_capabilities=self.expert.heartbeat.capabilities if self.expert else None,
-        )
 
     @property
     def service_uuids(self) -> list[UUID4]:
@@ -147,16 +134,23 @@ class Session:
 
     def _create_runner(self) -> ExperimentRunner:
         """Create an experiment runner based on the communication style."""
-        match self.spec.communication_style:
+        instance = ExperimentInstance.model_validate(
+            self.spec.model_dump()
+            | {
+                "session_id": self.experiment_uuid,
+                "expert_uuid": self.expert.uuid if self.expert else None,
+                "defuser_uuid": self.defuser.uuid,
+                "game_uuid": self.game.uuid,
+                "defuser_capabilities": self.defuser.heartbeat.capabilities,
+                "expert_capabilities": self.expert.heartbeat.capabilities if self.expert else None,
+            }
+        )
+        match instance.communication_style:
             case "sync":
                 return SyncExperimentRunner(
-                    experiment=self.experiment_descriptor,
-                    redis=self.redis,
-                    redis_broker=self.redis_broker,
+                    experiment=instance, redis=self.redis, redis_broker=self.redis_broker
                 )
             case "async":
                 return AsyncExperimentRunner(
-                    experiment=self.experiment_descriptor,
-                    redis=self.redis,
-                    redis_broker=self.redis_broker,
+                    experiment=instance, redis=self.redis, redis_broker=self.redis_broker
                 )

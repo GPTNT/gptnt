@@ -14,6 +14,7 @@ from anyio.to_thread import run_sync as run_sync_in_thread
 from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.experiments.models import ExperimentOutcome
 from gptnt.experiments.recorder.local import ExperimentPlayerRecorder
+from gptnt.experiments.spec import ExperimentSpec
 from gptnt.players.observation_handler import Observation
 
 if TYPE_CHECKING:
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
     from pydantic_ai import ModelMessage
     from whenever import Instant
 
-    from gptnt.experiments.descriptor import ExperimentDescriptor
+    from gptnt.experiments.instance import ExperimentInstance
     from gptnt.experiments.models import ExperimentStep
     from gptnt.ktane.actions import KtaneGameplayInput
     from gptnt.players.actions import PlayerOutputType
@@ -94,27 +95,27 @@ class WandbExperimentPlayerRecorder(ExperimentPlayerRecorder):
     async def configure_for_experiment(
         self,
         *,
-        experiment_descriptor: ExperimentDescriptor,
+        experiment_instance: ExperimentInstance,
         protocol: PlayerProtocol,
         player_uuid: UUID4,
     ) -> None:
         await super().configure_for_experiment(
-            experiment_descriptor=experiment_descriptor, protocol=protocol, player_uuid=player_uuid
+            experiment_instance=experiment_instance, protocol=protocol, player_uuid=player_uuid
         )
         func = partial(
             wandb.init,
             config={
-                "session_id": experiment_descriptor.session_id,
-                "game_uuid": experiment_descriptor.game_uuid,
+                "session_id": experiment_instance.session_id,
+                "game_uuid": experiment_instance.game_uuid,
                 "player_uuid": self.player_uuid,
-                "experiment_name": experiment_descriptor.experiment_spec.experiment_name,
-                "attempt": experiment_descriptor.experiment_spec.attempt,
-                "attempt_name": experiment_descriptor.experiment_spec.attempt_name,
+                "experiment_name": experiment_instance.experiment_name,
+                "attempt": experiment_instance.attempt,
+                "attempt_name": experiment_instance.attempt_name,
                 **protocol.model_dump(mode="json"),
-                **experiment_descriptor.experiment_spec.model_dump(mode="json"),
-                **experiment_descriptor.experiment_spec.mission_spec.model_dump(
-                    mode="json", by_alias=False
+                **experiment_instance.model_dump(
+                    mode="json", include=set(ExperimentSpec.model_fields)
                 ),
+                **experiment_instance.mission_spec.model_dump(mode="json", by_alias=False),
             },
             resume="never",
             **self.wandb_init_kwargs,
@@ -188,7 +189,7 @@ class WandbExperimentPlayerRecorder(ExperimentPlayerRecorder):
         """
         player_record = self.build_player_record(is_hard_crash=is_hard_crash)
         data_to_send = player_record.model_dump(
-            mode="json", exclude={"step_records", "experiment_descriptor", "player_content"}
+            mode="json", exclude={"step_records", "experiment_instance", "player_content"}
         )
 
         final_bomb_state = player_record.final_bomb_state

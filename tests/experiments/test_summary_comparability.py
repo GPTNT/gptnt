@@ -1,4 +1,4 @@
-"""The comparability fields `ExperimentSummary` derives from a descriptor.
+"""The comparability fields `ExperimentSummary` derives from an experiment instance.
 
 `suite_name`/`suite_revision` come straight off the spec; each side's `capability_fingerprint` is a
 digest of that player's full capabilities, so any setup change shifts its fingerprint.
@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from whenever import Instant
 
-from gptnt.experiments.descriptor import ExperimentDescriptor
+from gptnt.experiments.instance import ExperimentInstance
 from gptnt.experiments.models import ExperimentSummary
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
@@ -54,8 +54,8 @@ def _solved_bomb() -> BombState:
     )
 
 
-def _paired_descriptor() -> ExperimentDescriptor:
-    """A two-player descriptor whose spec pins a suite, with distinct per-side capabilities."""
+def _paired_instance() -> ExperimentInstance:
+    """A two-player instance with a pinned suite and distinct capabilities for each role."""
     spec = ExperimentSpec(
         mission_spec=KtaneMissionSpec(
             seed=1, time_limit=300, num_strikes_allowed=3, components=["Wires"], optional_widgets=1
@@ -75,21 +75,23 @@ def _paired_descriptor() -> ExperimentDescriptor:
         ),
         expert_name="e",
     )
-    return ExperimentDescriptor(
-        experiment_spec=spec,
-        session_id=uuid4(),
-        defuser_uuid=uuid4(),
-        expert_uuid=uuid4(),
-        game_uuid=uuid4(),
-        start_time=Instant.now(),
-        defuser_capabilities=_DEFUSER_CAPS,
-        expert_capabilities=_EXPERT_CAPS,
+    return ExperimentInstance.model_validate(
+        spec.model_dump()
+        | {
+            "session_id": uuid4(),
+            "defuser_uuid": uuid4(),
+            "expert_uuid": uuid4(),
+            "game_uuid": uuid4(),
+            "start_time": Instant.now(),
+            "defuser_capabilities": _DEFUSER_CAPS,
+            "expert_capabilities": _EXPERT_CAPS,
+        }
     )
 
 
 def _summary() -> ExperimentSummary:
-    return ExperimentSummary.from_descriptor_and_bomb_state(
-        descriptor=_paired_descriptor(), final_bomb_state=_solved_bomb(), is_hard_crash=False
+    return ExperimentSummary.from_instance_and_bomb_state(
+        instance=_paired_instance(), final_bomb_state=_solved_bomb(), is_hard_crash=False
     )
 
 

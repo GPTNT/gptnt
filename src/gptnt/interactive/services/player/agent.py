@@ -6,7 +6,7 @@ from uuid import uuid4
 import structlog
 from pydantic import UUID4
 
-from gptnt.experiments.descriptor import ExperimentDescriptor
+from gptnt.experiments.instance import ExperimentInstance
 from gptnt.experiments.recorder.local import ExperimentPlayerRecorder
 from gptnt.interactive.services.game.client import GameClient
 from gptnt.interactive.services.heartbeat.base import PlayerState
@@ -51,7 +51,7 @@ class PlayerAgent(HeartbeatBroadcaster):
     nobf_generator: NaughtyOutputBehaviourFeedbackGenerator
 
     # This is set when the player is configured for an experiment
-    experiment_descriptor: ExperimentDescriptor = field(init=False, repr=False)
+    experiment_instance: ExperimentInstance = field(init=False, repr=False)
     protocol: PlayerProtocol = field(init=False, repr=False)
     conversation: Conversation = field(init=False, repr=False)
     input_builder: AgentInputBuilder = field(init=False, repr=False)

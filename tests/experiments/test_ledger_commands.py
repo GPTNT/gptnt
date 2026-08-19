@@ -22,7 +22,7 @@ from gptnt.experiments.recorder.parquet import (
 from gptnt.ktane.state.bomb import BombState
 
 from tests._cli_runner import invoke_cli
-from tests._factories.experiments import make_experiment_descriptor, make_experiment_spec
+from tests._factories.experiments import make_experiment_instance, make_experiment_spec
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -35,11 +35,11 @@ def _write_record(
 ) -> Path:
     """Write a parquet record whose footer carries the spec's outcome the ledger/cleanup read.
 
-    The attempt name lives only in the footer descriptor (built from `spec`), not the filename, so
+    The attempt name lives only in the footer instance built from `spec`, not the filename, so
     these exercises prove the ledger/cleanup key off the footer.
     """
     footer_model = RecordFooter(
-        descriptor=make_experiment_descriptor(spec),
+        instance=make_experiment_instance(spec),
         final_bomb_state=final_bomb_state,
         is_hard_crash=crash,
         role="defuser",

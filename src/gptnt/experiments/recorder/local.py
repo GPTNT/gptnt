@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from pydantic_ai import ModelMessage
 
     from gptnt.common.image_ops import PNGBytes
-    from gptnt.experiments.descriptor import ExperimentDescriptor
+    from gptnt.experiments.instance import ExperimentInstance
     from gptnt.ktane.actions import KtaneGameplayInput
     from gptnt.ktane.state.bomb import BombState
     from gptnt.players.actions import PlayerOutputType
@@ -42,7 +42,7 @@ class ExperimentPlayerRecorder:
     capabilities: PlayerCapabilities
     player_uuid: UUID4 = field(init=False, repr=False)
 
-    experiment_descriptor: ExperimentDescriptor | None = field(default=None, init=False)
+    experiment_instance: ExperimentInstance | None = field(default=None, init=False)
     protocol: PlayerProtocol | None = field(default=None, init=False)
 
     start_time: Instant = field(init=False, repr=False)
@@ -68,18 +68,18 @@ class ExperimentPlayerRecorder:
     async def configure_for_experiment(
         self,
         *,
-        experiment_descriptor: ExperimentDescriptor,
+        experiment_instance: ExperimentInstance,
         protocol: PlayerProtocol,
         player_uuid: UUID4,
     ) -> None:
         """Start tracking an experiment."""
-        self.experiment_descriptor = experiment_descriptor
+        self.experiment_instance = experiment_instance
         self.protocol = protocol
         self.player_uuid = player_uuid
-        self.start_time = experiment_descriptor.start_time
+        self.start_time = experiment_instance.start_time
         logger.debug(
             "Configured experiment logger",
-            attempt_name=experiment_descriptor.name,
+            attempt_name=experiment_instance.attempt_name,
             protocol=protocol,
             player_uuid=str(player_uuid),
         )
@@ -121,7 +121,7 @@ class ExperimentPlayerRecorder:
         This is called after the agent responds and output has been stored. Combines buffered
         bomb_state, observation_path, and output into one record.
         """
-        assert self.experiment_descriptor is not None, "Must configure experiment before tracking"
+        assert self.experiment_instance is not None, "Must configure experiment before tracking"
         assert self.protocol is not None, "Must configure experiment before tracking"
 
         self.num_steps += 1
@@ -130,7 +130,7 @@ class ExperimentPlayerRecorder:
             # The timestamp should be relative to the start of the experiment.
             timestamp=(event_time - self.start_time).in_seconds(),
             role=self.protocol.role,
-            session_id=self.experiment_descriptor.session_id,
+            session_id=self.experiment_instance.session_id,
             player_uuid=self.player_uuid,
             player_name=self.capabilities.player_name,
             step=self.num_steps,
@@ -177,13 +177,13 @@ class ExperimentPlayerRecorder:
 
     def build_player_record(self, *, is_hard_crash: bool = False) -> ExperimentPlayerRecord:
         """Build the ExperimentPlayerRecord from the current state."""
-        assert self.experiment_descriptor is not None, "Must configure experiment before building"
+        assert self.experiment_instance is not None, "Must configure experiment before building"
         assert self.protocol is not None, "Must configure experiment before building"
-        player_content = self.experiment_descriptor.get_player_content_by_role(
+        player_content = self.experiment_instance.get_player_content_by_role(
             role=self.protocol.role
         )
         return ExperimentPlayerRecord(
-            experiment_descriptor=self.experiment_descriptor,
+            experiment_instance=self.experiment_instance,
             player_content=player_content,
             step_records=self.step_records,
             is_hard_crash=is_hard_crash,
@@ -204,7 +204,7 @@ class ExperimentPlayerRecorder:
             player_record = await player_record.rebuild_with_observations()
 
         output_path = self.output_dir.joinpath(
-            f"experiment-{player_record.experiment_descriptor.name}"
+            f"experiment-{player_record.experiment_instance.attempt_name}"
             f"-{player_record.player_content.uuid}.parquet"
         )
         self.output_dir.mkdir(parents=True, exist_ok=True)

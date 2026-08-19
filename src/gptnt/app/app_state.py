@@ -70,7 +70,7 @@ class AppState:
         if record:
             logger.info(
                 "Loaded experiment",
-                session_id=record.experiment_descriptor.session_id,
+                session_id=record.experiment_instance.session_id,
                 num_steps=len(record.step_records),
             )
         return record

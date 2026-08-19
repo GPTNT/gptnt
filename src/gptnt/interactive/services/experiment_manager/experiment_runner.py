@@ -14,7 +14,7 @@ from coredis import Redis
 from faststream.redis import RedisBroker
 
 from gptnt.common.async_ops import Event
-from gptnt.experiments.descriptor import ExperimentDescriptor
+from gptnt.experiments.instance import ExperimentInstance
 from gptnt.interactive.services.game.client import GameClient
 from gptnt.interactive.services.heartbeat.watcher import GameStateWatcher, PlayerStateWatcher
 from gptnt.interactive.services.player.client import PlayerClient
@@ -41,7 +41,7 @@ class ExperimentState(IntEnum):
 class ExperimentRunner(abc.ABC):
     """Handle the lifecycle of the experiment."""
 
-    experiment: ExperimentDescriptor
+    experiment: ExperimentInstance
     game_client: GameClient = field(init=False)
     """Game client to interact with the game service."""
 
@@ -188,13 +188,12 @@ class ExperimentRunner(abc.ABC):
     async def configure_services(self) -> None:
         """Setup the services for the experiment."""
         _ = await self.defuser_player_client.configure_player(
-            player_protocol=self.experiment.experiment_spec.defuser_protocol,
-            experiment_descriptor=self.experiment,
+            player_protocol=self.experiment.defuser_protocol, experiment_instance=self.experiment
         )
         if self.experiment.expert and self.expert_player_client:
             _ = await self.expert_player_client.configure_player(
                 player_protocol=self.experiment.expert.protocol,
-                experiment_descriptor=self.experiment,
+                experiment_instance=self.experiment,
             )
         await self.game_client.configure_game(
             spec=self.experiment.mission_spec, session_id=self.experiment.session_id
@@ -441,10 +440,7 @@ class SyncExperimentRunner(ExperimentRunner):
             else:
                 await anyio.sleep(0.5)
 
-        logger.debug(
-            "Experiment sync loop completed",
-            experiment=self.experiment.experiment_spec.attempt_name,
-        )
+        logger.debug("Experiment sync loop completed", experiment=self.experiment.attempt_name)
 
     async def run_single_sync_step(self) -> None:
         """Run a single step of the sync experiment loop.
@@ -484,7 +480,7 @@ class SyncExperimentRunner(ExperimentRunner):
         doing anything.
         """
         # If we don't want feedback, then we can skip this context manager entirely.
-        if not self.experiment.experiment_spec.some_player_wants_feedback:
+        if not self.experiment.some_player_wants_feedback:
             yield
             return
 
@@ -494,7 +490,7 @@ class SyncExperimentRunner(ExperimentRunner):
 
     async def send_feedback_to_players(self, *, previous_bomb_state: BombState) -> None:  # noqa: ARG002
         """Send the feedback to the players, if needed/wanted."""
-        if not self.experiment.experiment_spec.some_player_wants_feedback:
+        if not self.experiment.some_player_wants_feedback:
             return
 
         # If we cannot get the bomb state, do we assume that the game has crashed?
@@ -528,7 +524,7 @@ class AsyncExperimentRunner(ExperimentRunner):
     @override
     async def run_experiment_loop(self) -> None:
         """Run the experiment loop in async mode."""
-        if self.experiment.experiment_spec.some_player_wants_feedback:
+        if self.experiment.some_player_wants_feedback:
             logger.warning("Feedback is not supported in async mode, ignoring.")
 
         # Unpause the game and let them run
@@ -547,9 +543,7 @@ class AsyncExperimentRunner(ExperimentRunner):
                         self.run_player_loop, self.expert_player_client, "expert", name="expert"
                     )
 
-            logger.debug(
-                "Experiment loop started", experiment=self.experiment.experiment_spec.attempt_name
-            )
+            logger.debug("Experiment loop started", experiment=self.experiment.attempt_name)
 
     async def run_player_loop(self, player_client: PlayerClient, role: PlayerRole) -> None:
         """Run the player loop in async mode."""
@@ -566,6 +560,4 @@ class AsyncExperimentRunner(ExperimentRunner):
 
                     await anyio.sleep(0.5)
 
-        logger.debug(
-            "Player loop completed", experiment=self.experiment.experiment_spec.attempt_name
-        )
+        logger.debug("Player loop completed", experiment=self.experiment.attempt_name)
