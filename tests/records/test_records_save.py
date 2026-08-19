@@ -29,6 +29,8 @@ from gptnt.players.observation_handler import Observation
 from gptnt.players.result import AgentCallResult
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
+from tests._factories.experiments import make_manual_profile
+
 
 @fixture
 def tiny_image_bytes() -> bytes:
@@ -126,6 +128,7 @@ def experiment_instance() -> ExperimentInstance:
         suite_name="test-suite",
         suite_revision=1,
         suite_digest="0" * 32,
+        manual_profile=make_manual_profile(),
         defuser_protocol=PlayerProtocol(
             role="defuser", communication_style="sync", is_playing_alone=True, include_manual=False
         ),

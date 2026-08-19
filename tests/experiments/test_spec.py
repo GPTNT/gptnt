@@ -1,8 +1,10 @@
-"""The `ExperimentSpec.fingerprint` property that identifies what an experiment measures."""
-
 from gptnt.experiments.spec import ExperimentSpec
 
-from tests._factories.experiments import make_experiment_spec
+from tests._factories.experiments import (
+    make_experiment_instance,
+    make_experiment_spec,
+    make_manual_profile,
+)
 
 
 def test_fingerprint_ignores_attempt_and_player_names() -> None:
@@ -14,11 +16,23 @@ def test_fingerprint_ignores_attempt_and_player_names() -> None:
     assert spec.fingerprint == same_experiment.fingerprint
 
 
-def test_fingerprint_changes_when_the_experiment_changes() -> None:
-    """A different mission is a different experiment, so its fingerprint must shift."""
-    spec = make_experiment_spec(seed=1)
-    different_mission = make_experiment_spec(seed=2)
-    assert spec.fingerprint != different_mission.fingerprint
+def test_fingerprint_tracks_manual_profile_not_player_dimensions() -> None:
+    """The frozen manual changes the experiment; runtime image dimensions do not."""
+    spec = make_experiment_spec()
+    different_manual = spec.model_copy(
+        update={"manual_profile": make_manual_profile(document_id="BigButton")}
+    )
+    instance = make_experiment_instance(spec)
+    resized_instance = instance.model_copy(
+        update={
+            "defuser_capabilities": instance.defuser_capabilities.model_copy(
+                update={"image_dimensions": (640, 480)}
+            )
+        }
+    )
+
+    assert spec.fingerprint != different_manual.fingerprint
+    assert spec.fingerprint == instance.fingerprint == resized_instance.fingerprint
 
 
 def test_fingerprint_is_stable_across_a_serialisation_round_trip() -> None:

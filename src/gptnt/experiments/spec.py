@@ -5,6 +5,7 @@ from typing import Self
 from pydantic import BaseModel, ConfigDict, computed_field, model_validator
 
 from gptnt.common.hashing import stable_digest
+from gptnt.ktane.manuals.profile import ManualProfile
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.specification import CommunicationStyle, PlayerProtocol, PlayerRole
 
@@ -14,6 +15,7 @@ _EXPERIMENT_FINGERPRINT_FIELDS = (
     "suite_name",
     "suite_revision",
     "suite_digest",
+    "manual_profile",
     "defuser_protocol",
     "expert_protocol",
 )
@@ -22,9 +24,9 @@ _EXPERIMENT_FINGERPRINT_FIELDS = (
 class ExperimentSpec(BaseModel):
     """The mission and player setup for one experiment attempt.
 
-    A spec says which suite mission to run, which player protocols and model names to use, and
-    which attempt this is. It does not contain runtime service identities, resolved capabilities,
-    or the result.
+    A spec says which frozen suite mission and manual profile to run, which player protocols and
+    model names to use, and which attempt this is. It does not contain runtime service identities,
+    resolved capabilities, or the result.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -38,6 +40,7 @@ class ExperimentSpec(BaseModel):
     suite_name: str
     suite_revision: int
     suite_digest: str
+    manual_profile: ManualProfile
 
     defuser_protocol: PlayerProtocol
     defuser_name: str
