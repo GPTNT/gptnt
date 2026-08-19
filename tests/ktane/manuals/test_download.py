@@ -223,31 +223,6 @@ async def test_downloader_and_resolver_share_ktanecontent_filename_selection(
 
 
 @pytest.mark.anyio
-async def test_download_reports_an_unknown_ktanecontent_module(
-    tmp_path: Path, respx_mock: respx.MockRouter
-) -> None:
-    """Report an unknown module ID as a catalog resolution error."""
-    repository, commit = _source_repository(tmp_path)
-    _ = respx_mock.get("https://catalog.test/raw").mock(
-        return_value=httpx.Response(200, content=CATALOG)
-    )
-    profile = ManualProfile(
-        include_frontmatter=False,
-        documents=(KtaneContentDocument(source="ktanecontent", id="Unknown", language="en"),),
-    )
-
-    async with httpx.AsyncClient() as client:
-        with pytest.raises(ValueError, match="catalog has no module 'Unknown'"):
-            _ = await download_manual_assets(
-                [profile],
-                sources=_sources(repository, commit),
-                cache_dir=tmp_path / "cache",
-                root_dir=tmp_path,
-                client=client,
-            )
-
-
-@pytest.mark.anyio
 async def test_download_fetches_one_official_manual_per_language_and_reuses_it(
     tmp_path: Path, respx_mock: respx.MockRouter
 ) -> None:

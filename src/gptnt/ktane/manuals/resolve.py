@@ -64,11 +64,7 @@ def _module_metadata(
     and an incorrect module ID are expected source mismatches; malformed JSON retains its parser
     exception.
     """
-    try:
-        metadata_document = catalog.metadata_filename_for(document)
-    except ValueError as error:
-        raise ManualResolutionError(f"{entry_name}: {error}") from error
-
+    metadata_document = f"{catalog.module_names[document.id]}.json"
     metadata_path = repository_dir / "JSON" / metadata_document
     if not metadata_path.is_file():
         raise ManualResolutionError(
@@ -76,7 +72,7 @@ def _module_metadata(
             "is missing from the pinned source tree"
         )
 
-    metadata = KtaneContentModuleMetadata.from_path(metadata_path)
+    metadata = KtaneContentModuleMetadata.model_validate_json(metadata_path.read_bytes())
     if metadata.module_id != document.id:
         raise ManualResolutionError(
             f"{entry_name}: KtaneContent metadata identifies module {metadata.module_id!r}, "
@@ -107,12 +103,9 @@ def _resolve_ktane_content(
         )
     catalog = _ktane_content.KtaneContentCatalog.from_path(catalog_path)
 
-    # Resolve the requested HTML name. Catalog lookup failures are expected profile/source
-    # mismatches, so they include the profile entry.
-    try:
-        filename = catalog.filename_for(document)
-    except ValueError as error:
-        raise ManualResolutionError(f"{entry_name}: {error}") from error
+    # Resolve the requested HTML name. Catalog lookup and language-policy exceptions retain their
+    # native types and messages.
+    filename = catalog.filename_for(document)
 
     # Both the resolver and downloader address files under the pinned commit directory.
     repository_dir = cache_dir / "sources" / "ktanecontent" / sources.ktane_content.commit
@@ -315,11 +308,11 @@ def resolve_manual_profile(
     """Return frontmatter followed by profile documents as ordered compilation inputs.
 
     Every entry is checked against the requested language, default rule seed, configured source
-    metadata, and materialized local inputs before the tuple is returned. Expected profile and
-    source mismatches name the responsible frontmatter or profile index. Malformed or unreadable
-    source files retain their parser or operating-system exceptions. The function reads catalogs,
-    module metadata, and local dependencies and checks the selected HTML and PDF paths. It does not
-    render or compile them.
+    metadata, and materialized local inputs before the tuple is returned. `ManualResolutionError`
+    conditions name the responsible frontmatter or profile index. Catalog lookups and malformed or
+    unreadable source files retain their native exceptions. The function reads catalogs, module
+    metadata, and local dependencies and checks the selected HTML and PDF paths. It does not render
+    or compile them.
     """
     # Frontmatter precedes profile documents in the same order as its source configuration.
     configured: list[tuple[Document, int, bool]] = []

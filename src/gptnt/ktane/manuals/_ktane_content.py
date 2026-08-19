@@ -64,13 +64,6 @@ class KtaneContentCatalog(BaseModel):
         """Map nonempty module identifiers to their document titles."""
         return {module.module_id: module.name for module in self.modules if module.module_id}
 
-    def module_name_for(self, module_id: str) -> str:
-        """Resolve a module ID to the canonical KtaneContent name used by its JSON metadata."""
-        module_name = self.module_names.get(module_id)
-        if module_name is None:
-            raise ValueError(f"KtaneContent catalog has no module {module_id!r}")
-        return module_name
-
     def filename_for(self, requirement: KtaneContentRequirement) -> str:
         """Resolve an appendix, override, or English module ID to its repository filename."""
         if isinstance(requirement, KtaneContentAppendix):
@@ -81,15 +74,11 @@ class KtaneContentCatalog(BaseModel):
         # The aggregate catalog supplies the default English title. Translated documents can use
         # different filenames, so their profiles must name the repository page explicitly.
         if requirement.language == "en":
-            return f"{self.module_name_for(requirement.id)}.html"
+            return f"{self.module_names[requirement.id]}.html"
         raise ValueError(
             f"KtaneContent document {requirement.id!r} needs an explicit page for "
             f"language {requirement.language!r}"
         )
-
-    def metadata_filename_for(self, requirement: KtaneContentDocument) -> str:
-        """Resolve module metadata independently of an HTML translation or override filename."""
-        return f"{self.module_name_for(requirement.id)}.json"
 
 
 async def _download_catalog(
@@ -139,7 +128,7 @@ def _paths_for_requirement(
         raise ValueError(f"KtaneContent has no document {filename!r}")
     selected = {document_path}
     if isinstance(requirement, KtaneContentDocument):
-        metadata_path = f"JSON/{catalog.metadata_filename_for(requirement)}"
+        metadata_path = f"JSON/{catalog.module_names[requirement.id]}.json"
         if metadata_path not in repository_paths:
             raise ValueError(f"KtaneContent has no metadata {metadata_path!r}")
         selected.add(metadata_path)

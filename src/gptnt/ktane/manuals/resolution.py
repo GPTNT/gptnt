@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal, Self
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -40,11 +40,6 @@ class KtaneContentModuleMetadata(BaseModel):
     origin: str = Field(alias="Origin")
     sort_key: str = Field(alias="SortKey")
     rule_seed_support: str | None = Field(alias="RuleSeedSupport", default=None)
-
-    @classmethod
-    def from_path(cls, path: Path) -> Self:
-        """Parse the selected module's metadata from the pinned repository tree."""
-        return cls.model_validate_json(path.read_bytes())
 
 
 @dataclass(frozen=True, kw_only=True)

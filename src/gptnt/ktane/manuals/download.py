@@ -81,11 +81,6 @@ class _ProfileSelection:
                 selection.update_document(document, root_dir=root_dir)
         return selection
 
-    def include_frontmatter(self, documents: Sequence[Document], *, root_dir: Path) -> None:
-        """Include configured frontmatter required by at least one selected profile."""
-        for document in documents:
-            self.update_document(document, root_dir=root_dir)
-
     @property
     def ordered_ktane_documents(self) -> tuple[_ktane_content.KtaneContentRequirement, ...]:
         """Return selected KtaneContent documents in deterministic order."""
@@ -133,7 +128,8 @@ class _DownloadPlan:
                 raise ValueError(
                     "include_frontmatter is enabled but no frontmatter source is configured"
                 )
-            selection.include_frontmatter(sources.frontmatter, root_dir=root_dir)
+            for document in sources.frontmatter:
+                selection.update_document(document, root_dir=root_dir)
         unknown_languages = selection.official_languages - set(sources.official_manual)
         if unknown_languages:
             raise ValueError(
