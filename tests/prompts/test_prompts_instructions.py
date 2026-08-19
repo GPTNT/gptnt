@@ -7,6 +7,8 @@ from gptnt.players.actions import InteractGameAction
 from gptnt.players.deps import PlayerDeps
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
+from tests._factories.players import TEST_MODEL_CONFIGURATION
+
 
 def _iter_titles(schema: dict[str, Any]) -> list[str]:
     titles = [schema["title"]] if "title" in schema else []
@@ -21,7 +23,7 @@ def player_deps_strategy(draw: st.DrawFn) -> PlayerDeps:
     except ValidationError:
         return draw(player_deps_strategy())
     try:
-        capabilities = draw(st.builds(PlayerCapabilities))
+        capabilities = draw(st.builds(PlayerCapabilities, model=st.just(TEST_MODEL_CONFIGURATION)))
     except ValidationError:
         return draw(player_deps_strategy())
 
@@ -44,6 +46,7 @@ def test_structured_output_type_does_not_mutate_action_class_names() -> None:
     capabilities = PlayerCapabilities(
         player_name="test-player",
         player_type="ai",
+        model=TEST_MODEL_CONFIGURATION,
         interaction_location_method="coordinates",
         coordinate_mode="absolute",
     )

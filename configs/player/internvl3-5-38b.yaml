@@ -7,6 +7,9 @@ identity:
   url: https://huggingface.co/OpenGVLab/InternVL3_5-38B
 
 capabilities:
+  model:
+    name: internvl35
+    provider: openai
   player_name: internvl3-5-38b
   tokens_per_image: 267
   structured_output_mode: null
@@ -27,7 +30,7 @@ action_predictor:
   agent:
     model:
       _target_: pydantic_ai.models.openai.OpenAIChatModel
-      model_name: internvl35
+      model_name: ${player.capabilities.model.name}
 
     model_settings:
       _target_: pydantic_ai.models.openai.OpenAIChatModelSettings

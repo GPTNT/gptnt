@@ -1,11 +1,13 @@
 from collections.abc import Callable
 from dataclasses import dataclass
+from functools import cached_property
 
 import hydra
 from omegaconf import DictConfig
 from pydantic_ai import Agent
 
 from gptnt.common.hydra import compose_player_config
+from gptnt.players.configuration import ResolvedPlayerConfig, resolve_player_config
 from gptnt.players.specification import PlayerCapabilities, PlayerRole
 from gptnt.processors.image_resizer import ImageResizer
 
@@ -18,15 +20,20 @@ class ConfigLoader:
     provider: str | None
     role: PlayerRole
 
-    @property
+    @cached_property
     def config(self) -> DictConfig:
         """Compose the Hydra player config for this player."""
         return compose_player_config(self.player, self.provider)
 
+    @cached_property
+    def resolved(self) -> ResolvedPlayerConfig:
+        """Resolve the shared capability identity from the composed config."""
+        return resolve_player_config(self.config)
+
     @property
     def capabilities(self) -> PlayerCapabilities:
-        """Instantiate PlayerCapabilities from config."""
-        return hydra.utils.instantiate(self.config.player.capabilities)
+        """Return the resolved capabilities used for this evaluation."""
+        return self.resolved.capabilities
 
     @property
     def image_resizer(self) -> ImageResizer:

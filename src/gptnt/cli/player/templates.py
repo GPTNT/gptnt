@@ -15,6 +15,12 @@ defaults:
 # What this player is and what it can do. The Experiment Manager uses this for
 # matchmaking; the runtime uses it to shape prompts, images and output parsing.
 capabilities:
+  # Model identity recorded with this player's capabilities. Evaluation-affecting settings from
+  # the runtime agent are selected into this block when the player config resolves.
+  model:
+    name: claude-sonnet-4-6
+    provider: anthropic
+
   # Name for this player in specs, rosters and recordings.
   player_name: <NAME>
 
@@ -55,14 +61,13 @@ identity:
   is_os_model: false
   url: null
 
-# --- Model ------------------------------------------------------------------
 action_predictor:
   agent:
     # Option 1 (recommended): a pydantic-ai model string "<provider>:<model-name>".
     # The provider class + default endpoint are inferred and the API key is read
     # from that provider's standard env var (e.g. ANTHROPIC_API_KEY). Full list:
     # https://ai.pydantic.dev/models/
-    model: anthropic:claude-sonnet-4-6
+    model: ${player.capabilities.model.provider}:${player.capabilities.model.name}
 
     # Option 2 (custom endpoint/self-hosted/vLLM): a bare string can't carry a
     # base_url, so use the explicit form below AND attach an endpoint with
@@ -70,7 +75,7 @@ action_predictor:
     # entry in your run.yaml `players:` list. Comment out the Option 1 line above.
     # model:
     #   _target_: pydantic_ai.models.openai.OpenAIChatModel
-    #   model_name: <your-served-model-name>
+    #   model_name: ${player.capabilities.model.name}
 
     # Option 3 (model settings): `thinking` controls the model's own reasoning, unified across
     # providers. GPTNT scores ReAct-style reasoning in the message, so this defaults it off.
@@ -90,7 +95,7 @@ action_predictor:
 """
 
 
-PROVIDER_TEMPLATE = """# @package player.action_predictor.agent.model
+PROVIDER_TEMPLATE = """# @package player
 #
 # Endpoint override for "<NAME>".
 # Used to attach a custom provider (base_url + key) to whichever model selects it. Also used for
@@ -100,15 +105,22 @@ PROVIDER_TEMPLATE = """# @package player.action_predictor.agent.model
 #   players: [{player: <player>, provider: <NAME>}]
 # The player config it attaches to should use the explicit (Option 2) `_target_` form.
 
-provider:
-  # OpenAI-compatible provider is the common case (vLLM, LM Studio, many proxies).
-  # For other backends (Anthropic/Google/Azure/Bedrock/...), swap this
-  # _target_ — see https://ai.pydantic.dev/models/ for the provider classes.
-  _target_: pydantic_ai.providers.openai.OpenAIProvider
+capabilities:
+  model:
+    provider: <NAME>
 
-  # Endpoint base URL (include the trailing /v1 for OpenAI-compatible servers).
-  base_url: https://your-endpoint.example/v1
+action_predictor:
+  agent:
+    model:
+      provider:
+        # OpenAI-compatible provider is the common case (vLLM, LM Studio, many proxies).
+        # For other backends (Anthropic/Google/Azure/Bedrock/...), swap this
+        # _target_ — see https://ai.pydantic.dev/models/ for the provider classes.
+        _target_: pydantic_ai.providers.openai.OpenAIProvider
 
-  # API key. Prefer an env var (mise-managed) over hard-coding!!!!!! But if you need to...
-  # api_key: ${oc.env:YOUR_ENDPOINT_API_KEY}
+        # Endpoint base URL (include the trailing /v1 for OpenAI-compatible servers).
+        base_url: https://your-endpoint.example/v1
+
+        # API key. Prefer an env var (mise-managed) over hard-coding!!!!!! But if you need to...
+        # api_key: ${oc.env:YOUR_ENDPOINT_API_KEY}
 """

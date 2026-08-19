@@ -13,6 +13,7 @@ from omegaconf.errors import OmegaConfBaseException
 from pydantic_ai.exceptions import AgentRunError, UserError
 
 from gptnt.common.hydra import compose_player_config
+from gptnt.players.configuration import PlayerConfigResolutionError, resolve_player_config
 
 if TYPE_CHECKING:
     from gptnt.players.specification import PlayerCapabilities
@@ -101,9 +102,26 @@ def _validate_agent(
         )
 
     model = agent.model
-    resolved = model if isinstance(model, str) else model.model_name
+    runtime_name = model if isinstance(model, str) else model.model_name
+    configured_names = {capabilities.model.name, capabilities.model.name.partition(":")[2]}
+    if runtime_name not in configured_names:
+        return ModelValidationResult(
+            model_name,
+            provider,
+            ok=False,
+            capabilities=capabilities,
+            error_stage="agent",
+            error=(
+                f"Configured model identity {capabilities.model.name!r} does not match runtime "
+                f"model name {runtime_name!r}."
+            ),
+        )
     return ModelValidationResult(
-        model_name, provider, ok=True, capabilities=capabilities, resolved_model_name=resolved
+        model_name,
+        provider,
+        ok=True,
+        capabilities=capabilities,
+        resolved_model_name=capabilities.model.name,
     )
 
 
@@ -120,23 +138,17 @@ def validate_model_config(model_name: str, provider: str | None = None) -> Model
         )
 
     try:
-        capabilities = instantiate(cfg.player.capabilities)
-    except (InstantiationException, OmegaConfBaseException) as exc:
-        return ModelValidationResult(
-            model_name, provider, ok=False, error_stage="capabilities", error=str(exc)
-        )
-
-    try:
-        instantiate(cfg.player.identity)
-    except (InstantiationException, OmegaConfBaseException) as exc:
+        resolved = resolve_player_config(cfg)
+    except PlayerConfigResolutionError as exc:
         return ModelValidationResult(
             model_name,
             provider,
             ok=False,
-            capabilities=capabilities,
-            error_stage="identity",
+            capabilities=exc.capabilities,
+            error_stage=exc.component,
             error=str(exc),
         )
+    capabilities = resolved.capabilities
 
     pairing_error = _provider_pairing_error(cfg, model_name, provider)
     if pairing_error is not None:
@@ -159,9 +171,11 @@ async def live_check_model_config(model_name: str, provider: str | None = None) 
     """
     try:
         agent = instantiate(
-            compose_player_config(model_name, provider).player.action_predictor.agent
+            resolve_player_config(
+                compose_player_config(model_name, provider)
+            ).config.player.action_predictor.agent
         )
-    except (HydraException, OmegaConfBaseException) as exc:
+    except (HydraException, OmegaConfBaseException, PlayerConfigResolutionError) as exc:
         return LiveCheckResult(ok=False, error=str(exc))
 
     start = time.perf_counter()

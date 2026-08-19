@@ -15,6 +15,8 @@ from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.actions import DoNothingAction
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
+from tests._factories.players import TEST_MODEL_CONFIGURATION
+
 if TYPE_CHECKING:
     from uuid import UUID
 
@@ -48,9 +50,11 @@ def _instance() -> ExperimentInstance:
             "expert_uuid": uuid4(),
             "game_uuid": uuid4(),
             "defuser_capabilities": PlayerCapabilities(
-                player_name="test-defuser", player_type="ai"
+                player_name="test-defuser", player_type="ai", model=TEST_MODEL_CONFIGURATION
             ),
-            "expert_capabilities": PlayerCapabilities(player_name="test-expert", player_type="ai"),
+            "expert_capabilities": PlayerCapabilities(
+                player_name="test-expert", player_type="ai", model=TEST_MODEL_CONFIGURATION
+            ),
         }
     )
 
@@ -86,7 +90,9 @@ def _player_record(
         protocol=instance.defuser_protocol,
         name=f"test-{role}",
         uuid=player_uuid,
-        capabilities=PlayerCapabilities(player_name=f"test-{role}", player_type="ai"),
+        capabilities=PlayerCapabilities(
+            player_name=f"test-{role}", player_type="ai", model=TEST_MODEL_CONFIGURATION
+        ),
     )
     steps = [
         _step(

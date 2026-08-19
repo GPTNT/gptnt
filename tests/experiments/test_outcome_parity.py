@@ -24,6 +24,7 @@ from gptnt.players.actions import DoNothingAction
 from gptnt.players.specification import PlayerCapabilities
 
 from tests._factories.experiments import make_experiment_instance
+from tests._factories.players import TEST_MODEL_CONFIGURATION
 
 # Names retired by the convergence — must never reappear as summary columns or logged metrics.
 _RETIRED_NAMES = frozenset(
@@ -131,7 +132,9 @@ def test_wandb_recorder_logs_canonical_outcome_names() -> None:
     bomb = _bomb(solved=False, detonated=True, seconds=0)
 
     recorder = WandbExperimentPlayerRecorder(
-        capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai")
+        capabilities=PlayerCapabilities(
+            player_name="test-defuser", player_type="ai", model=TEST_MODEL_CONFIGURATION
+        )
     )
     recorder.experiment_instance = instance
     recorder.protocol = instance.defuser_protocol

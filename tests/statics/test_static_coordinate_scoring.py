@@ -23,6 +23,8 @@ from gptnt.statics.scorers import (
     CoordinateValidatorResult,
 )
 
+from tests._factories.players import TEST_MODEL_CONFIGURATION
+
 
 def create_binary_mask(
     width: int, height: int, regions: list[tuple[int, int, int, int]] | None = None
@@ -410,7 +412,9 @@ def test_normalised_coordinate_conversion_uses_model_scale() -> None:
 
 def test_coordinate_scored_output_is_canonical_and_used_without_array_wrapper() -> None:
     """The persisted scorer input exposes the coordinate actually evaluated."""
-    capabilities = PlayerCapabilities(player_name="test-player", player_type="ai")
+    capabilities = PlayerCapabilities(
+        player_name="test-player", player_type="ai", model=TEST_MODEL_CONFIGURATION
+    )
     canonicalize = _build_coordinate_scored_output_func(capabilities)
 
     assert (

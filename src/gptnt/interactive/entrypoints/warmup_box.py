@@ -10,7 +10,7 @@ from rich.table import Table
 from structlog import get_logger
 from whenever import Instant
 
-from gptnt.common.hydra import get_hydra_overrides
+from gptnt.common.hydra import compose_player_config, get_hydra_overrides
 from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
@@ -19,6 +19,7 @@ from gptnt.ktane.client import FrameBuffer
 from gptnt.ktane.manuals.legacy import KtaneManualPaths
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.action_predictor import ActionPredictor
+from gptnt.players.configuration import resolve_player_config
 from gptnt.players.conversation import Conversation
 from gptnt.players.input_builder import AgentInputBuilder
 from gptnt.players.observation_handler import ObservationHandler
@@ -112,10 +113,10 @@ def create_box_warmer(*, hydra_overrides: list[str] | None = None) -> BoxWarmer:
     """Warmup the box."""
     hydra_overrides = hydra_overrides or get_hydra_overrides()
     logger.info("Creating box warmer", hydra_overrides=hydra_overrides)
-    with hydra.initialize_config_dir(version_base="1.3", config_dir=str(paths.configs)):
-        cfg = hydra.compose(config_name="player.yaml", overrides=hydra_overrides)
+    resolved = resolve_player_config(compose_player_config(overrides=hydra_overrides))
+    cfg = resolved.config
 
-    capabilities = hydra.utils.instantiate(cfg.player.capabilities)
+    capabilities = resolved.capabilities
     observation_handler = hydra.utils.instantiate(cfg.player.observation_handler)
     action_predictor = hydra.utils.instantiate(cfg.player.action_predictor)
     warmer = BoxWarmer(

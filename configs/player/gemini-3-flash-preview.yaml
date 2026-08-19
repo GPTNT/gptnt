@@ -2,7 +2,6 @@
 
 defaults:
   - _self_
-  - provider: google
 
 identity:
   display_name: Gemini 3 Flash (Preview)
@@ -11,6 +10,9 @@ identity:
   url: https://deepmind.google/models/gemini/flash/
 
 capabilities:
+  model:
+    name: gemini-3-flash-preview
+    provider: google
   player_name: gemini-3-flash-preview
   tokens_per_image: 541
   structured_output_mode: null
@@ -27,7 +29,7 @@ action_predictor:
   agent:
     model:
       _target_: pydantic_ai.models.google.GoogleModel
-      model_name: gemini-3-flash-preview
+      model_name: ${player.capabilities.model.name}
 
     # GoogleModelSettings stays for the Google-only safety and video-resolution fields, which have no
     # unified equivalent. `thinking: false` floors gemini-3 to thinking_level=MINIMAL (it always

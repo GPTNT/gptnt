@@ -1,4 +1,5 @@
-from typing import Literal, Self, override
+from collections.abc import Mapping
+from typing import Any, Literal, Self, override
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, PositiveInt
 from pydantic.fields import computed_field
@@ -30,24 +31,6 @@ type ThinkingMethod = Literal["inner-monologue", "thinking-out-loud"]
 """
 
 
-_CAPABILITY_FINGERPRINT_FIELDS = (
-    "player_name",
-    "player_type",
-    "thinking_method",
-    "structured_output_mode",
-    "include_schema_in_instructions",
-    "max_observations_per_request",
-    "image_dimensions",
-    "tokens_per_image",
-    "interaction_location_method",
-    "coordinate_mode",
-    "coordinate_scale",
-    "preserve_last_frame_for_n_turns",
-    "enable_nobf_generation",
-    "model_settings",
-)
-
-
 class PlayerIdentity(BaseModel):
     """Presentation metadata for a model/player."""
 
@@ -66,6 +49,41 @@ class PlayerIdentity(BaseModel):
     """Link to the player's model page, or `None` if there is none."""
 
 
+class PlayerModelConfiguration(BaseModel):
+    """Non-secret model configuration that contributes to player identity."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    name: str
+    """Model name qualified by its configured provider."""
+
+    provider: str
+    """Configured provider identity without connection credentials."""
+
+    settings: dict[str, JsonValue] = Field(default_factory=dict)
+    """JSON-compatible settings passed to the model for each request."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def qualify_model_name(cls, data: Any) -> Any:
+        """Qualify a source model name and reject a conflicting explicit qualification."""
+        if not isinstance(data, Mapping):
+            return data
+        resolved_data = dict(data)
+        name = resolved_data.get("name")
+        provider = resolved_data.get("provider")
+        if not isinstance(name, str) or not isinstance(provider, str):
+            return data
+        qualified_provider, separator, _ = name.partition(":")
+        if not separator:
+            resolved_data["name"] = f"{provider}:{name}"
+        elif qualified_provider != provider:
+            raise ValueError(
+                f"Model name provider {qualified_provider!r} does not match {provider!r}."
+            )
+        return resolved_data
+
+
 class PlayerCapabilities(BaseModel):
     """The capabilities of a player, that is set once on instantiation.
 
@@ -79,6 +97,8 @@ class PlayerCapabilities(BaseModel):
 
     player_type: PlayerType
     """The type of player (AI or human)."""
+
+    model: PlayerModelConfiguration
 
     thinking_method: ThinkingMethod = "inner-monologue"
     """The thinking method of the player."""
@@ -132,11 +152,6 @@ class PlayerCapabilities(BaseModel):
 
     enable_nobf_generation: bool = True
     """Whether to generate Naughty Output Behaviour Feedback for each action."""
-
-    model_settings: dict[str, JsonValue] | None = Field(
-        default=None, exclude_if=lambda settings: settings is None
-    )
-    """Declared model settings included in recorded benchmark identity."""
 
     @model_validator(mode="after")
     def validate_no_duplicate_schema_inclusion(self) -> Self:
@@ -195,16 +210,14 @@ class PlayerCapabilities(BaseModel):
                 return coordinate_flavour
 
     @property
-    def fingerprint(self) -> str:
-        """A stable digest of this exact model setup.
+    def identity_payload(self) -> dict[str, JsonValue]:
+        """Return all serialized capability data that identifies benchmark behaviour."""
+        return self.model_dump(mode="json")
 
-        We exclude several fields to ensure that the fingerprint of the model is only represented
-        by its capabilities and not by any other fields that may change over time, or that are not
-        relevant.
-        """
-        return stable_digest(
-            self.model_dump(mode="json", include=set(_CAPABILITY_FINGERPRINT_FIELDS))
-        )
+    @property
+    def fingerprint(self) -> str:
+        """Return the stable digest of the serialized capability identity."""
+        return stable_digest(self.identity_payload)
 
     @override
     def __hash__(self) -> int:

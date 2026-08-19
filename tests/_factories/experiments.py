@@ -14,6 +14,8 @@ from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombOutcome, BombState
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
+from tests._factories.players import TEST_MODEL_CONFIGURATION
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
@@ -75,7 +77,9 @@ def make_experiment_instance(spec: ExperimentSpec | None = None) -> ExperimentIn
     if experiment_spec.expert_name is not None:
         expert_uuid = uuid4()
         expert_capabilities = PlayerCapabilities(
-            player_name=experiment_spec.expert_name, player_type="ai"
+            player_name=experiment_spec.expert_name,
+            player_type="ai",
+            model=TEST_MODEL_CONFIGURATION,
         )
 
     return ExperimentInstance.model_validate(
@@ -87,7 +91,9 @@ def make_experiment_instance(spec: ExperimentSpec | None = None) -> ExperimentIn
             "game_uuid": uuid4(),
             "start_time": Instant.now(),
             "defuser_capabilities": PlayerCapabilities(
-                player_name=experiment_spec.defuser_name, player_type="ai"
+                player_name=experiment_spec.defuser_name,
+                player_type="ai",
+                model=TEST_MODEL_CONFIGURATION,
             ),
             "expert_capabilities": expert_capabilities,
         }
@@ -147,7 +153,9 @@ def make_experiment_summary(
     expert_capabilities = None
     if expert_name is not None:
         expert_uuid = uuid4()
-        expert_capabilities = PlayerCapabilities(player_name=expert_name, player_type="ai")
+        expert_capabilities = PlayerCapabilities(
+            player_name=expert_name, player_type="ai", model=TEST_MODEL_CONFIGURATION
+        )
 
     instance = ExperimentInstance.model_validate(
         spec.model_dump()
@@ -157,7 +165,9 @@ def make_experiment_summary(
             "expert_uuid": expert_uuid,
             "game_uuid": uuid4(),
             "start_time": Instant.now(),
-            "defuser_capabilities": PlayerCapabilities(player_name=defuser_name, player_type="ai"),
+            "defuser_capabilities": PlayerCapabilities(
+                player_name=defuser_name, player_type="ai", model=TEST_MODEL_CONFIGURATION
+            ),
             "expert_capabilities": expert_capabilities,
         }
     )

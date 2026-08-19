@@ -30,6 +30,7 @@ from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cli_runner import CliResult, invoke_cli
 from tests._factories.experiments import make_experiment_spec, make_solved_bomb
+from tests._factories.players import TEST_MODEL_CONFIGURATION
 from tests._factories.statics import write_statics_run
 
 if TYPE_CHECKING:
@@ -63,7 +64,9 @@ def _instance(*, seed: int, model: str, expert: str | None = None) -> Experiment
             }
         )
         expert_uuid = uuid4()
-        expert_capabilities = PlayerCapabilities(player_name=expert, player_type="ai")
+        expert_capabilities = PlayerCapabilities(
+            player_name=expert, player_type="ai", model=TEST_MODEL_CONFIGURATION
+        )
     return ExperimentInstance.model_validate(
         spec.model_dump()
         | {
@@ -71,7 +74,9 @@ def _instance(*, seed: int, model: str, expert: str | None = None) -> Experiment
             "defuser_uuid": uuid4(),
             "expert_uuid": expert_uuid,
             "game_uuid": uuid4(),
-            "defuser_capabilities": PlayerCapabilities(player_name=model, player_type="ai"),
+            "defuser_capabilities": PlayerCapabilities(
+                player_name=model, player_type="ai", model=TEST_MODEL_CONFIGURATION
+            ),
             "expert_capabilities": expert_capabilities,
         }
     )

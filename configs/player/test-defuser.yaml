@@ -4,6 +4,9 @@ defaults:
   - _self_
 
 capabilities:
+  model:
+    name: "function:function:dummy_action:"
+    provider: function
   player_name: test-defuser
   tokens_per_image: 200
   structured_output_mode: native

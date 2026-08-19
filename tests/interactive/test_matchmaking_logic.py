@@ -12,6 +12,8 @@ from gptnt.interactive.services.registry.manifest import PlayerServiceManifest, 
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
+from tests._factories.players import TEST_MODEL_CONFIGURATION
+
 
 def make_player(
     player_name: str, *, state: PlayerState = PlayerState.idle
@@ -21,7 +23,9 @@ def make_player(
         uuid=uuid4(),
         service_name=player_name,
         ready_state=ReadyState.ready,
-        capabilities=PlayerCapabilities(player_name=player_name, player_type="ai"),
+        capabilities=PlayerCapabilities(
+            player_name=player_name, player_type="ai", model=TEST_MODEL_CONFIGURATION
+        ),
         state=state,
     )
     return ServiceManifest(heartbeat=heartbeat)

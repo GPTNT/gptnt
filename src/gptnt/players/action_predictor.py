@@ -4,7 +4,6 @@ from typing import Any
 import logfire
 import structlog
 from pydantic_ai import Agent, ModelMessage, ModelSettings, capture_run_messages
-from pydantic_ai.models import Model
 
 from gptnt.players.actions import PlayerOutputType, SendMessageAction
 from gptnt.players.conversation import Conversation
@@ -99,12 +98,8 @@ class ActionPredictor:
 
     @property
     def model_name(self) -> str:
-        """Get the name of the model."""
-        if isinstance(self.agent.model, str):
-            return self.agent.model
-        if isinstance(self.agent.model, Model):
-            return self.agent.model.model_name
-        raise ValueError("Model name not found")
+        """Return the qualified model name carried in the resolved capabilities."""
+        return self.capabilities.model.name
 
     def configure_for_experiment(
         self, *, protocol: PlayerProtocol, conversation: Conversation

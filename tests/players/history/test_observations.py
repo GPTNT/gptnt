@@ -27,6 +27,7 @@ from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cases.messages import TEST_TOKENS_PER_IMAGE, image_count
 from tests._cases.protocol import ProtocolCases
+from tests._factories.players import TEST_MODEL_CONFIGURATION
 
 _FIXED_TIMESTAMP = datetime.datetime(2025, 1, 1, 12, 0, 0, tzinfo=datetime.UTC)
 
@@ -47,6 +48,7 @@ def _capabilities(window: int) -> PlayerCapabilities:
     return PlayerCapabilities(
         player_name="test-player",
         player_type="ai",
+        model=TEST_MODEL_CONFIGURATION,
         structured_output_mode="prompted",
         interaction_location_method="coordinates",
         preserve_last_frame_for_n_turns=window,

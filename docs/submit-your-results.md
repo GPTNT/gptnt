@@ -88,6 +88,8 @@ submissions/
 3. A bundle for a static evaluation. Same naming, ending in the static's name and the dataset revision it ran against.
 4. The aggregated scorer outputs for the static, copied across as-is.
 
+The hash in each bundle name identifies the [resolved model and evaluation-affecting capabilities](running/add-new-player.md#capabilities-have-fingerprints){data-preview} recorded by the run.
+
 To build them, run:
 
 ```bash

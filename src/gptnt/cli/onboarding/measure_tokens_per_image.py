@@ -9,6 +9,7 @@ from rich.table import Table
 from gptnt.cli._params import PlayerOption, ProviderOption
 from gptnt.common.hydra import compose_player_config
 from gptnt.common.paths import Paths
+from gptnt.players.configuration import resolve_player_config
 from gptnt.players.specification import PlayerCapabilities
 from gptnt.processors.image_resizer import ImageResizer
 from gptnt.prompts.manual import load_manual_image
@@ -39,9 +40,9 @@ async def measure_tokens_per_image(player: PlayerOption, provider: ProviderOptio
     measures the per-image input-token cost, writes it into `configs/player/<player>.yaml`, and
     prints the result. SPENDS MONEY.
     """
-    cfg = compose_player_config(player, provider)
-    capabilities: PlayerCapabilities = instantiate(cfg.player.capabilities)
-    agent: Agent = instantiate(cfg.player.action_predictor.agent)
+    resolved = resolve_player_config(compose_player_config(player, provider))
+    capabilities = resolved.capabilities
+    agent: Agent = instantiate(resolved.config.player.action_predictor.agent)
 
     image_bytes = _load_first_manual_page(capabilities)
     baseline, with_image = await _measure(agent, image_bytes)

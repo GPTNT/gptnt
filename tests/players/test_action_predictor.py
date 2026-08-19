@@ -13,6 +13,7 @@ from gptnt.players.exceptions import AIResponseErrorType
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cases.messages import image_count
+from tests._factories.players import TEST_MODEL_CONFIGURATION
 from tests.players._models import (
     InvalidStringOutputModel,
     MaxTokensExceededModel,
@@ -24,6 +25,7 @@ def _capabilities() -> PlayerCapabilities:
     return PlayerCapabilities(
         player_name="test-player",
         player_type="ai",
+        model=TEST_MODEL_CONFIGURATION,
         structured_output_mode="prompted",
         max_observations_per_request=16,
         interaction_location_method="coordinates",

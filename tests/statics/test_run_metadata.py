@@ -13,6 +13,8 @@ from pydantic import ValidationError
 from gptnt.players.specification import PlayerCapabilities
 from gptnt.statics import run_metadata
 
+from tests._factories.players import TEST_MODEL_CONFIGURATION
+
 
 class _StubHfApi:
     """Zero-arg stand-in for `HfApi` whose `dataset_info` raises."""
@@ -49,7 +51,9 @@ def test_missing_provenance_or_run_date_is_rejected() -> None:
         requested_revision="v1",
         resolved_revision="a1b2c3d4e5f6",
     )
-    capabilities = PlayerCapabilities(player_name="p", player_type="ai")
+    capabilities = PlayerCapabilities(
+        player_name="p", player_type="ai", model=TEST_MODEL_CONFIGURATION
+    )
     partial_run_meta = {
         "model_name": "m",
         "statics": statics.model_dump(),

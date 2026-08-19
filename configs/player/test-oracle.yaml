@@ -4,6 +4,9 @@ defaults:
   - _self_
 
 capabilities:
+  model:
+    name: "function:function:magic_function:"
+    provider: function
   player_name: test-oracle
   tokens_per_image: 200
   structured_output_mode: native

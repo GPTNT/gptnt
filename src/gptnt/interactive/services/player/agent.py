@@ -61,6 +61,8 @@ class PlayerAgent(HeartbeatBroadcaster):
     def __post_init__(self) -> None:
         """Setup the service."""
         self.service_name = self.capabilities.player_name
+        self.action_predictor.capabilities = self.capabilities
+        self.experiment_recorder.capabilities = self.capabilities
 
         self.action_dispatcher = ActionDispatcher(
             observation_handler=self.observation_handler,

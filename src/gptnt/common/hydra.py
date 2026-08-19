@@ -46,31 +46,35 @@ def _strip_hydra_metadata(full_cfg: DictConfig) -> DictConfig:
     return OmegaConf.masked_copy(full_cfg, app_keys)
 
 
-def compose_player_config(player: str, provider: str | None = None) -> DictConfig:
-    """Compose the `player` Hydra config for a player (and optional provider).
+def compose_player_config(
+    player: str | None = None, provider: str | None = None, *, overrides: list[str] | None = None
+) -> DictConfig:
+    """Compose the `player` Hydra config from named selections and runtime overrides.
 
-    The single shared player-config composition seam: both `gptnt-core`'s model
-    validation and `gptnt-statics`'s `ConfigLoader` go through here so they cannot
-    diverge. Uses the absolute, context-managed Hydra form (`initialize_config_dir`),
-    which works regardless of the current working directory. The returned config is
-    composed but **not** resolved or stripped of Hydra metadata; callers instantiate
-    subtrees and `OmegaConf.select` directly off it.
+    Doctor validation, player services, and statics use this composition seam before passing the
+    result to `resolve_player_config`. The absolute, context-managed Hydra form works regardless of
+    the current working directory. The returned config retains interpolations and Hydra metadata.
 
     Args:
-        player: The player config name to compose (`player=<player>`).
+        player: Optional player config name to compose (`player=<player>`).
         provider: Optional provider config name (`player/provider=<provider>`).
+        overrides: Additional Hydra overrides, including the player selection used by service
+            entrypoints.
 
     Returns:
         The composed (un-resolved) `player` config.
     """
-    overrides = [f"player={player}"]
+    config_overrides = []
+    if player is not None:
+        config_overrides.append(f"player={player}")
     if provider is not None:
-        overrides.append(f"player/provider={provider}")
+        config_overrides.append(f"player/provider={provider}")
+    config_overrides.extend(overrides or [])
     # Clear any leftover global Hydra state so the context-managed init below cannot raise "already
     # initialized" if a prior caller left the singleton dirty.
     GlobalHydra.instance().clear()
     with hydra.initialize_config_dir(version_base="1.3", config_dir=str(_paths.configs)):
-        return hydra.compose(config_name="player", overrides=overrides)
+        return hydra.compose(config_name="player", overrides=config_overrides)
 
 
 def load_config(*, config_name: str, overrides: list[str] | None = None) -> DictConfig:

@@ -1,7 +1,7 @@
 import pytest
 from hydra.utils import instantiate
 from omegaconf import open_dict
-from pydantic import BaseModel, JsonValue, SecretBytes, SecretStr, ValidationError
+from pydantic import BaseModel, SecretBytes, SecretStr, ValidationError
 from pydantic_ai import ModelSettings
 from pydantic_ai.models.anthropic import AnthropicModelSettings
 from pydantic_ai.models.google import GoogleModelSettings
@@ -9,7 +9,6 @@ from pydantic_ai.models.openai import OpenAIChatModelSettings
 
 from gptnt.common.hydra import compose_player_config
 from gptnt.players.model_settings import _IGNORED_MODEL_SETTINGS, fingerprint_model_settings
-from gptnt.players.specification import PlayerCapabilities
 
 
 class _UnsupportedSettingsModel(BaseModel):
@@ -239,48 +238,6 @@ def test_selecting_fingerprint_settings_does_not_mutate_agent_settings() -> None
     }
 
 
-def test_declared_model_settings_change_the_capability_fingerprint() -> None:
-    low_effort = PlayerCapabilities(
-        player_name="test-player", player_type="ai", model_settings={"thinking": "low"}
-    )
-    high_effort = PlayerCapabilities(
-        player_name="test-player", player_type="ai", model_settings={"thinking": "high"}
-    )
-
-    assert low_effort.fingerprint != high_effort.fingerprint
-
-
-@pytest.mark.parametrize(
-    "model_setting",
-    [
-        pytest.param({"openai_reasoning_effort": "high"}, id="openai"),
-        pytest.param(
-            {"anthropic_thinking": {"type": "enabled", "budget_tokens": 1_000}}, id="anthropic"
-        ),
-        pytest.param(
-            {
-                "google_safety_settings": [
-                    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"}
-                ]
-            },
-            id="google",
-        ),
-        pytest.param(
-            {"extra_body": {"chat_template": "model-specific-template"}}, id="nested-extra-body"
-        ),
-    ],
-)
-def test_provider_specific_settings_change_the_capability_fingerprint(
-    model_setting: dict[str, JsonValue],
-) -> None:
-    without_setting = PlayerCapabilities(player_name="test-player", player_type="ai")
-    with_setting = PlayerCapabilities(
-        player_name="test-player", player_type="ai", model_settings=model_setting
-    )
-
-    assert without_setting.fingerprint != with_setting.fingerprint
-
-
 @pytest.mark.parametrize("ignored_setting", sorted(_EXPECTED_IGNORED_MODEL_SETTINGS))
 def test_ignored_settings_do_not_change_selected_model_settings(ignored_setting: str) -> None:
     without_ignored_setting = fingerprint_model_settings({"thinking": "low"})
@@ -289,21 +246,6 @@ def test_ignored_settings_do_not_change_selected_model_settings(ignored_setting:
     )
 
     assert without_ignored_setting == with_ignored_setting
-
-
-def test_capability_fingerprint_is_independent_of_model_setting_order() -> None:
-    first = PlayerCapabilities(
-        player_name="test-player",
-        player_type="ai",
-        model_settings={"temperature": 0.6, "thinking": "low"},
-    )
-    reordered = PlayerCapabilities(
-        player_name="test-player",
-        player_type="ai",
-        model_settings={"thinking": "low", "temperature": 0.6},
-    )
-
-    assert first.fingerprint == reordered.fingerprint
 
 
 def test_hydra_constructs_capabilities_with_fingerprint_settings() -> None:
@@ -319,6 +261,6 @@ def test_hydra_constructs_capabilities_with_fingerprint_settings() -> None:
     experiment_recorder = player.keywords["experiment_recorder"]
 
     assert action_predictor.agent.model_settings["extra_headers"] == {"Authorization": "secret"}
-    assert capabilities.model_settings == {"max_tokens": 1_000, "temperature": 0.6}
+    assert capabilities.model.settings == {"max_tokens": 1_000, "temperature": 0.6}
     assert action_predictor.capabilities == capabilities
     assert experiment_recorder.capabilities == capabilities

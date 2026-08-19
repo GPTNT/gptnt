@@ -1,11 +1,18 @@
-# @package player.action_predictor.agent.model
+# @package player
 
-provider:
-  _target_: pydantic_ai.providers.openai.OpenAIProvider
-  openai_client:
-    _target_: openai.AsyncOpenAI
-    base_url: https://box2.gptnt.space/v1
-    api_key: ${oc.env:VLLM_API_KEY,EMPTY}
-    default_headers:
-      CF-Access-Client-Id: ${oc.env:CF_ACCESS_CLIENT_ID}
-      CF-Access-Client-Secret: ${oc.env:CF_ACCESS_CLIENT_SECRET}
+capabilities:
+  model:
+    provider: vllm_box2
+
+action_predictor:
+  agent:
+    model:
+      provider:
+        _target_: pydantic_ai.providers.openai.OpenAIProvider
+        openai_client:
+          _target_: openai.AsyncOpenAI
+          base_url: https://box2.gptnt.space/v1
+          api_key: ${oc.env:VLLM_API_KEY,EMPTY}
+          default_headers:
+            CF-Access-Client-Id: ${oc.env:CF_ACCESS_CLIENT_ID}
+            CF-Access-Client-Secret: ${oc.env:CF_ACCESS_CLIENT_SECRET}

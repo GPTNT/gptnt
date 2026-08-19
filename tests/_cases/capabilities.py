@@ -6,6 +6,8 @@ from gptnt.players.actions import InteractGameAction, PlayerOutputType
 from gptnt.players.locations import PixelLocation, ScaledLocation
 from gptnt.players.specification import PlayerCapabilities
 
+from tests._factories.players import TEST_MODEL_CONFIGURATION
+
 interaction_location_method = param_fixture(
     "interaction_location_method", ["set-of-marks", "coordinates"]
 )
@@ -17,6 +19,7 @@ def capabilities(interaction_location_method: str) -> PlayerCapabilities:
     return PlayerCapabilities(
         player_name="test-player",
         player_type="ai",
+        model=TEST_MODEL_CONFIGURATION,
         structured_output_mode="prompted",
         max_observations_per_request=16,
         interaction_location_method=interaction_location_method,
@@ -28,6 +31,7 @@ class CapabilitiesCases:
         return PlayerCapabilities(
             player_name="test-player",
             player_type="ai",
+            model=TEST_MODEL_CONFIGURATION,
             structured_output_mode="prompted",
             interaction_location_method="set-of-marks",
             thinking_method="inner-monologue",
@@ -37,6 +41,7 @@ class CapabilitiesCases:
         return PlayerCapabilities(
             player_name="test-player",
             player_type="ai",
+            model=TEST_MODEL_CONFIGURATION,
             structured_output_mode="prompted",
             interaction_location_method="coordinates",
             thinking_method="inner-monologue",
@@ -47,6 +52,7 @@ class CapabilitiesCases:
         return PlayerCapabilities(
             player_name="test-player",
             player_type="ai",
+            model=TEST_MODEL_CONFIGURATION,
             structured_output_mode="prompted",
             interaction_location_method="coordinates",
             thinking_method="inner-monologue",
@@ -58,6 +64,7 @@ class CapabilitiesCases:
         return PlayerCapabilities(
             player_name="test-player",
             player_type="ai",
+            model=TEST_MODEL_CONFIGURATION,
             structured_output_mode=None,
             interaction_location_method="set-of-marks",
             thinking_method="thinking-out-loud",
@@ -67,6 +74,7 @@ class CapabilitiesCases:
         return PlayerCapabilities(
             player_name="test-player",
             player_type="ai",
+            model=TEST_MODEL_CONFIGURATION,
             structured_output_mode=None,
             interaction_location_method="coordinates",
             thinking_method="thinking-out-loud",
@@ -77,6 +85,7 @@ class CapabilitiesCases:
         return PlayerCapabilities(
             player_name="test-player",
             player_type="ai",
+            model=TEST_MODEL_CONFIGURATION,
             structured_output_mode=None,
             interaction_location_method="coordinates",
             thinking_method="thinking-out-loud",

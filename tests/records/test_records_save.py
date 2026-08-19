@@ -29,6 +29,8 @@ from gptnt.players.observation_handler import Observation
 from gptnt.players.result import AgentCallResult
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
+from tests._factories.players import TEST_MODEL_CONFIGURATION
+
 
 @fixture
 def tiny_image_bytes() -> bytes:
@@ -105,7 +107,9 @@ def player_content() -> PlayerContent:
         ),
         name="test-player",
         uuid=uuid4(),
-        capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai"),
+        capabilities=PlayerCapabilities(
+            player_name="test-defuser", player_type="ai", model=TEST_MODEL_CONFIGURATION
+        ),
     )
 
 
@@ -143,7 +147,7 @@ def experiment_instance() -> ExperimentInstance:
             "game_uuid": uuid4(),
             "start_time": Instant.now(),
             "defuser_capabilities": PlayerCapabilities(
-                player_name="test-defuser", player_type="ai"
+                player_name="test-defuser", player_type="ai", model=TEST_MODEL_CONFIGURATION
             ),
             "expert_capabilities": None,
         }
@@ -206,7 +210,9 @@ async def test_recorder_saves_parquet_roundtrips(
     player_record = _build_player_record(experiment_instance, player_content, step_record)
 
     recorder = ExperimentPlayerRecorder(
-        capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai")
+        capabilities=PlayerCapabilities(
+            player_name="test-defuser", player_type="ai", model=TEST_MODEL_CONFIGURATION
+        )
     )
     recorder.output_dir = tmp_path
     await recorder.save_player_record_to_disk(player_record=player_record)
@@ -272,7 +278,9 @@ async def test_recorder_skips_empty_record(
         is_hard_crash=False,
     )
     recorder = ExperimentPlayerRecorder(
-        capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai")
+        capabilities=PlayerCapabilities(
+            player_name="test-defuser", player_type="ai", model=TEST_MODEL_CONFIGURATION
+        )
     )
     recorder.output_dir = tmp_path
     await recorder.save_player_record_to_disk(player_record=empty_record)

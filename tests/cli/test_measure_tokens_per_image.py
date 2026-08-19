@@ -6,6 +6,8 @@ from gptnt.cli.checks.validation import ModelValidationResult
 from gptnt.cli.onboarding.measure_tokens_per_image import _insert_tokens_per_image, _measure
 from gptnt.players.specification import PlayerCapabilities
 
+from tests._factories.players import TEST_MODEL_CONFIGURATION
+
 _CONFIG_WITH_COMMENT = """# @package player
 
 capabilities:
@@ -48,7 +50,10 @@ def test_insert_without_capabilities_block_raises() -> None:
 
 def _detail(label: str, tokens_per_image: int) -> PlayerDetail:
     capabilities = PlayerCapabilities(
-        player_name=label, player_type="ai", tokens_per_image=tokens_per_image
+        player_name=label,
+        player_type="ai",
+        model=TEST_MODEL_CONFIGURATION,
+        tokens_per_image=tokens_per_image,
     )
     return PlayerDetail(
         report=PlayerReport(label, "pass", "pass", "skip", ""),

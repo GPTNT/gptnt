@@ -1,12 +1,14 @@
+from functools import partial
+
 import anyio
-import hydra
 import logfire
 from coredis import Redis
 from faststream import FastStream
+from hydra.utils import instantiate
 from pydantic import RedisDsn
 from structlog import get_logger
 
-from gptnt.common.hydra import get_hydra_overrides
+from gptnt.common.hydra import compose_player_config, get_hydra_overrides
 from gptnt.common.logger import configure_logging, create_faststream_logger
 from gptnt.common.paths import Paths, remove_empty_experiment_recorder_outputs
 from gptnt.interactive.services.broker import create_redis_broker
@@ -15,6 +17,7 @@ from gptnt.interactive.services.player.message_handler import IncomingMessageHan
 from gptnt.interactive.services.player.service import PlayerService
 from gptnt.ktane.manuals.legacy import KtaneManualPaths
 from gptnt.observability.settings import ObservabilitySettings
+from gptnt.players.configuration import ResolvedPlayerConfig, resolve_player_config
 
 logger = get_logger()
 
@@ -22,6 +25,21 @@ paths = Paths()
 ktane_manual_paths = KtaneManualPaths()
 
 observability_settings = ObservabilitySettings()
+
+
+def load_player_config(hydra_overrides: list[str] | None = None) -> ResolvedPlayerConfig:
+    """Compose and resolve the player configuration used by this service process."""
+    return resolve_player_config(
+        compose_player_config(overrides=hydra_overrides or get_hydra_overrides())
+    )
+
+
+def _instantiate_player_partial(resolved: ResolvedPlayerConfig) -> partial[PlayerService]:
+    """Instantiate runtime components before replacing their recorded identity objects."""
+    player_partial: partial[PlayerService] = instantiate(resolved.config.player)
+    player_partial.keywords["capabilities"] = resolved.capabilities
+    player_partial.keywords["identity"] = resolved.identity
+    return player_partial
 
 
 def main(
@@ -33,11 +51,9 @@ def main(
     hydra_overrides = hydra_overrides or get_hydra_overrides()
 
     logger.info("Starting player instance", hydra_overrides=hydra_overrides)
-    with hydra.initialize_config_dir(version_base="1.3", config_dir=str(paths.configs)):
-        config = hydra.compose(config_name="player.yaml", overrides=hydra_overrides)
+    resolved = load_player_config(hydra_overrides)
 
-    # Instantiate the player from the class
-    player_partial = hydra.utils.instantiate(config.player)
+    player_partial = _instantiate_player_partial(resolved)
 
     faststream_logger = create_faststream_logger()
 

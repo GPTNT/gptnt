@@ -55,6 +55,10 @@ gptnt new player <player-name>
         # What this player is and what it can do. The Experiment Manager uses this for
         # matchmaking; the runtime uses it to shape prompts, images and output parsing.
         capabilities:
+          model:
+            name: claude-sonnet-5
+            provider: anthropic
+
           # Name for this player in specs, rosters and recordings.
           player_name: claude-sonnet-5 # (1)!
 
@@ -84,7 +88,7 @@ gptnt new player <player-name>
           agent:
             model:
               _target_: pydantic_ai.models.anthropic.AnthropicModel
-              model_name: claude-sonnet-5 # (2)!
+              model_name: ${player.capabilities.model.name} # (2)!
             model_settings:
               thinking: false
         ```
@@ -111,11 +115,14 @@ gptnt new player <player-name>
           url: https://huggingface.co/zai-org/GLM-5.2
           is_os_model: true
 
-
         # --- Capabilities -----------------------------------------------------------
         # What this player is and what it can do. The Experiment Manager uses this for
         # matchmaking; the runtime uses it to shape prompts, images and output parsing.
         capabilities:
+          model:
+            name: my-v-nice-glm-model # (4)!
+            provider: openai
+
           # Name for this player in specs, rosters and recordings.
           player_name: glm-5-2 # (1)!
 
@@ -145,7 +152,7 @@ gptnt new player <player-name>
           agent:
             model:
               _target_: pydantic_ai.models.openai.OpenAIChatModel # (3)!
-              model_name: my-v-nice-glm-model # (4)!
+              model_name: ${player.capabilities.model.name}
             model_settings:
               _target_: pydantic_ai.models.openai.OpenAIChatModelSettings
               _convert_: all
@@ -229,23 +236,28 @@ On top of choosing the name, you can add identity metadata for the player. GPTNT
 
 ### Configuring a model
 
-If you look at one of the existing model configs, you'll see that the "model" part (that says which model will be used) looks like this:
+If you look at one of the existing model configs, its model identity is declared with the capabilities and the runtime settings stay on the Pydantic AI agent:
 
 ```yaml linenums="1"
+capabilities:
+  model:
+    name: claude-sonnet-4-6 # (1)!
+    provider: anthropic # (2)!
+
 action_predictor:
   agent:
     model:
-      _target_: pydantic_ai.models.anthropic.AnthropicModel # (1)!
-      model_name: claude-sonnet-4-6 # (2)!
-
-    model_settings: # (3)!
-      thinking: false # (4)!
+      _target_: pydantic_ai.models.anthropic.AnthropicModel # (3)!
+      model_name: ${player.capabilities.model.name}
+    model_settings: # (4)!
+      thinking: false # (5)!
 ```
 
-1. The model class, [`pydantic_ai.models.anthropic.AnthropicModel`][pydantic_ai.models.anthropic.AnthropicModel]
-2. The official ID of the model to use. Feel free to reuse the `model_name` as the `player_name`.
-3. The model settings, which can be the generic ones, or more specific.
-4. Turn the model's own reasoning off. [`thinking`][pydantic_ai.settings.ModelSettings.thinking] is a setting that works across every model. GPTNT uses ReAct-style reasoning that lives in the output itself, so there's no point the model spending reasoning tokens on top of it.
+1. The official ID of the model to use. Feel free to reuse the `name` as the `player_name`.
+2. The non-secret provider identity.
+3. The model class, [`pydantic_ai.models.anthropic.AnthropicModel`][pydantic_ai.models.anthropic.AnthropicModel].
+4. The model settings, which can be the generic ones, or more specific. Settings that affect evaluation are recorded under `capabilities.model.settings` by the shared resolver.
+5. Turn the model's own reasoning off. [`thinking`][pydantic_ai.settings.ModelSettings.thinking] is a setting that works across every model. GPTNT uses ReAct-style reasoning that lives in the output itself, so there's no point the model spending reasoning tokens on top of it.
 
 
 There are several footguns here that you need to be aware of.
@@ -261,16 +273,22 @@ The model class is important otherwise you won't instantiate the right model. Py
 
     <a id="example-model-config"></a>
 
-    ```yaml title="Example model config" hl_lines="7 8 9"
-    agent:
+    ```yaml title="Example model config"
+    capabilities:
       model:
-        _target_: pydantic_ai.models.openai.OpenAIChatModel # (1)!
-        model_name: my-model # (2)!
-      model_settings:
-        max_tokens: 1000
-      provider:
-        _target_: pydantic_ai.providers.openai.OpenAIProvider # (3)!
-        base_url: http://<url>/v1 # (4)!
+        name: my-model # (2)!
+        provider: local-vllm
+
+    action_predictor:
+      agent:
+        model:
+          _target_: pydantic_ai.models.openai.OpenAIChatModel # (1)!
+          model_name: ${player.capabilities.model.name}
+        model_settings:
+          max_tokens: 1000
+        provider:
+          _target_: pydantic_ai.providers.openai.OpenAIProvider # (3)!
+          base_url: http://<url>/v1 # (4)!
     ```
 
     1. The model class, [`pydantic_ai.models.openai.OpenAIChatModel`][pydantic_ai.models.openai.OpenAIChatModel]
@@ -305,11 +323,16 @@ This benchmark uses the word "bomb" a lot. Some APIs have safety settings that w
     Pydantic AI has a [`GoogleModelSettings`][pydantic_ai.models.google.GoogleModelSettings] class that allows you to control the safety settings. This is what we did for Gemini 3.
 
     ```yaml title="configs/player/gemini-3-flash-preview.yaml"
+    capabilities:
+      model:
+        name: gemini-3-flash-preview
+        provider: google
+
     action_predictor:
       agent:
         model:
           _target_: pydantic_ai.models.google.GoogleModel
-          model_name: gemini-3-flash-preview
+          model_name: ${player.capabilities.model.name}
 
         model_settings:
           _target_: pydantic_ai.models.google.GoogleModelSettings
@@ -327,6 +350,7 @@ This benchmark uses the word "bomb" a lot. Some APIs have safety settings that w
               threshold: BLOCK_NONE
             - category: HARM_CATEGORY_CIVIC_INTEGRITY
               threshold: BLOCK_NONE
+
     ```
 
 ??? example "Guardrails from Azure's OpenAI service"
@@ -397,7 +421,24 @@ The `capabilities` block at the top of your config is where you say what your mo
 
 ### Capabilities have fingerprints
 
-Capabilities are incredibly important for comparing models together. We want to know if two models are using the same capabilities, or if two models are interacting and reasoning differently. This is because changing the capabilities can drastically change the results. As shown in the [GPTNT paper](https://arxiv.org/abs/2606.28514), changing the action space from set-of-marks to coordinates can affect models' ability to play the game.
+Each result records a fingerprint for the resolved model, its non-secret provider identity, model settings, usage limits, and the other capabilities that can affect a run. Changing one of those values creates a different player identity in results and submission paths. For example, these values from the existing GPT-5.2 player contribute to its fingerprint:
+
+```yaml
+capabilities:
+  model:
+    name: gpt-5.2
+    provider: openai
+    settings:
+      temperature: 0.6
+      max_tokens: 1000
+      thinking: minimal
+```
+
+The resolver records the qualified model name as `openai:gpt-5.2`.
+
+The `identity` block contains leaderboard presentation metadata and does not affect the fingerprint. Provider credentials are still used to connect to the model, but they are not included in the recorded capabilities.
+
+Capabilities matter when comparing models because settings such as the interaction method can change benchmark results. As shown in the [GPTNT paper](https://arxiv.org/abs/2606.28514), changing the action space from set-of-marks to coordinates can affect models' ability to play the game.
 
 
 ## Finding out how many tokens per image

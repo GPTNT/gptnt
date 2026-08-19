@@ -7,6 +7,9 @@ identity:
   url: https://huggingface.co/Qwen/Qwen3.5-27B
 
 capabilities:
+  model:
+    name: qwen35
+    provider: openai
   player_name: qwen3-5-27b
   tokens_per_image: 266
   structured_output_mode: null
@@ -27,7 +30,7 @@ action_predictor:
   agent:
     model:
       _target_: pydantic_ai.models.openai.OpenAIChatModel
-      model_name: qwen35
+      model_name: ${player.capabilities.model.name}
     model_settings:
       _target_: pydantic_ai.models.openai.OpenAIChatModelSettings
       _convert_: all

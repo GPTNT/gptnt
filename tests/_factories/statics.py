@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any
 
 from gptnt.players.specification import PlayerCapabilities
 
+from tests._factories.players import TEST_MODEL_CONFIGURATION
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -32,7 +34,9 @@ def write_statics_run(
     """
     out = root / f"{task}_predictions" / model_dir
     out.mkdir(parents=True)
-    capabilities = PlayerCapabilities(player_name=player_name, player_type="ai")
+    capabilities = PlayerCapabilities(
+        player_name=player_name, player_type="ai", model=TEST_MODEL_CONFIGURATION
+    )
     _ = (out / "run_meta.json").write_text(
         json.dumps(
             {
