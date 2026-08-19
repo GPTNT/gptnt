@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from whenever import Instant
 
 from gptnt.common.paths import Paths
-from gptnt.experiments.descriptor import ExperimentDescriptor
+from gptnt.experiments.instance import ExperimentInstance
 from gptnt.interactive.services.game.client import BombIsDetonatedError
 from gptnt.interactive.services.heartbeat.base import PlayerState
 from gptnt.interactive.services.player.agent import PlayerAgent
@@ -44,7 +44,7 @@ PlayerCommand = Literal[
 
 class _ConfigureExperimentPayload(BaseModel):
     protocol: PlayerProtocol
-    experiment_descriptor: ExperimentDescriptor
+    experiment_instance: ExperimentInstance
 
 
 @dataclass(kw_only=True)
@@ -121,10 +121,10 @@ class PlayerService(PlayerAgent, BaseRPCService[PlayerCommand]):
         )
 
         self.protocol = data.protocol
-        self.experiment_descriptor = data.experiment_descriptor
+        self.experiment_instance = data.experiment_instance
 
         await self.experiment_recorder.configure_for_experiment(
-            experiment_descriptor=self.experiment_descriptor,
+            experiment_instance=self.experiment_instance,
             protocol=self.protocol,
             player_uuid=self.uuid,
         )
@@ -143,20 +143,20 @@ class PlayerService(PlayerAgent, BaseRPCService[PlayerCommand]):
             protocol=self.protocol, conversation=self.conversation
         )
         self.action_dispatcher.configure_for_experiment(
-            protocol=self.protocol, experiment_descriptor=self.experiment_descriptor
+            protocol=self.protocol, experiment_instance=self.experiment_instance
         )
 
         if self.protocol.role == "defuser":
-            self.game_client.game_uuid = self.experiment_descriptor.game_uuid
+            self.game_client.game_uuid = self.experiment_instance.game_uuid
 
         await self.incoming_message_handler.start_subscriber()
 
         self.state = PlayerState.waiting_for_turn
         _ = structlog.contextvars.bind_contextvars(
-            session_id=self.experiment_descriptor.session_id, player_role=self.protocol.role
+            session_id=self.experiment_instance.session_id, player_role=self.protocol.role
         )
         set_timing_identity(
-            session_id=str(self.experiment_descriptor.session_id),
+            session_id=str(self.experiment_instance.session_id),
             player_role=self.protocol.role,
             player_name=self.capabilities.player_name,
             model_name=self.action_predictor.model_name,

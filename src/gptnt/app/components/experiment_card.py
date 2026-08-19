@@ -65,8 +65,6 @@ def render_experiment_card(  # noqa: WPS231
                 _ = st.markdown(f":small[Expert: **{experiment.expert_name!s}**]")
             with st.container(horizontal=True, gap=None, width="content"):
                 _ = st.markdown(f":small[Modules: **{', '.join(experiment.modules_str or [])}**]")
-            for tag in experiment.tags or []:
-                _ = st.badge(tag, color="red")
             with st.container(gap="xsmall", horizontal=True):
                 _ = st.markdown(
                     f":small[:violet[:material/record_voice_over: {(experiment.communication_style or '').title()}]]",

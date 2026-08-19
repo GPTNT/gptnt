@@ -29,6 +29,8 @@ player:
     structured_output_mode: ???
     thinking_method: ???
     interaction_location_method: ???
+    coordinate_mode: absolute
+    coordinate_scale: null
     preserve_last_frame_for_n_turns: 1
     enable_nobf_generation: true
     model_settings:
@@ -78,6 +80,7 @@ player:
   observation_handler:
     _target_: gptnt.players.observation_handler.ObservationHandler
     interaction_location_method: ${player.capabilities.interaction_location_method}
+    coordinate_scale: ${player.capabilities.coordinate_scale}
 
     image_resizer:
       _target_: gptnt.processors.image_resizer.ImageResizer

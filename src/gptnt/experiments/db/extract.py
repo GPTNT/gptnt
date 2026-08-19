@@ -72,8 +72,8 @@ def extract_metadata_from_paths(paths: list[Path]) -> DumpedExperimentMetadata:
     assert final_bomb_state is not None, "No bomb state found in any of the provided files"
 
     canonical = footers[0]
-    return ExperimentSummary.from_descriptor_and_bomb_state(
-        descriptor=canonical.descriptor,
+    return ExperimentSummary.from_instance_and_bomb_state(
+        instance=canonical.instance,
         final_bomb_state=final_bomb_state,
         is_hard_crash=any(footer.is_hard_crash for footer in footers),
         gptnt_version=canonical.gptnt_version,

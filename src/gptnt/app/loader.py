@@ -78,37 +78,6 @@ class ExperimentLoader:
 
         return ExperimentRecord.from_player_records(player_records=player_records)
 
-    def save_tags(self, metadata: ExperimentSummary, tags: list[str]) -> None:
-        """Persist tag changes for an experiment to DuckDB and update in-memory state."""
-        _ = self.connection().execute(
-            f"""
-            UPDATE {ExperimentSummary.table_name()}
-            SET tags = ?
-            WHERE attempt_name = ?
-            """,  # noqa: S608
-            [tags, metadata.attempt_name],
-        )
-
-        # Mirror change in memory so the UI reflects it without a full refresh
-        for exp in self.filtered_experiments:
-            if exp.attempt_name == metadata.attempt_name:
-                exp.tags = tags
-                break
-
-        if (
-            self.selected_experiment is not None
-            and self.selected_experiment.attempt_name == metadata.attempt_name
-        ):
-            self.selected_experiment.tags = tags
-
-    @property
-    def all_tags(self) -> set[str]:
-        """All unique tags across all loaded experiments."""
-        output = self.connection().execute(
-            f"SELECT DISTINCT unnest(tags) AS tag FROM {ExperimentSummary.table_name()}"  # noqa: S608
-        )
-        return {row[0] for row in output.fetchall()}
-
     @property
     def db_exists(self) -> bool:
         """True if the DuckDB file is present on disk."""

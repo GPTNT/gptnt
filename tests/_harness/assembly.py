@@ -113,12 +113,12 @@ class AssembledExperiment:
         self, spec: ExperimentSpec, *, fail_after: float = 60.0
     ) -> Session:
         """Submit `spec` and wait for the matched session to reach `ExperimentState.done`."""
-        self.experiment_manager.specs.add(spec)
+        self.experiment_manager.specs.append(spec)
         session: Session | None = None
         with anyio.fail_after(fail_after):
             while True:
-                if session is None and self.experiment_manager.active_sessions:
-                    session = next(iter(self.experiment_manager.active_sessions))
+                if session is None and self.experiment_manager.sessions:
+                    session = next(iter(self.experiment_manager.sessions))
                 if session is not None and session.state == ExperimentState.done:
                     return session
                 await anyio.sleep(_POLL)

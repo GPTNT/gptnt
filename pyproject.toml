@@ -242,6 +242,8 @@ per-file-ignores = [
     # members) with one fix-hint string each (many literals)
     "src/gptnt/cli/doctor/checks.py:WPS202,WPS226",
     "src/gptnt/cli/submission/_checks.py:WPS202",
+    # Exception recovery is a registry of protocol-specific recovery handlers.
+    "src/gptnt/players/exception_recovery.py:WPS202",
     "src/gptnt/processors/*:WPS203",
     "src/gptnt/experiments/db/schema.py:WPS110,WPS111,WPS430",
 ]

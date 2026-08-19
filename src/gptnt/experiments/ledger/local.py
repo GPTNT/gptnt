@@ -44,7 +44,7 @@ class LocalLedger(CompletionLedger):
     def _scan(self) -> dict[str, ExperimentStatus]:
         """Group every output footer by its attempt name and classify each group by validity.
 
-        Reads each file's footer once and keys off `descriptor.name` — robust to whatever the
+        Reads each file's footer once and keys off `instance.attempt_name` — robust to whatever the
         filename happens to be — then reuses the same footer-based validity the DB ingestion uses.
         """
         if not self.output_dir.exists():
@@ -53,7 +53,7 @@ class LocalLedger(CompletionLedger):
         grouped: dict[str, list[RecordFooter]] = defaultdict(list)
         for path in self.output_dir.rglob(_RECORD_GLOB):
             footer = read_record_footer(path)
-            grouped[footer.descriptor.name].append(footer)
+            grouped[footer.instance.attempt_name].append(footer)
 
         return {
             attempt_name: ("done" if validity_from_footers(footers) else "failed")

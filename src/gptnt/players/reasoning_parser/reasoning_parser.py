@@ -13,6 +13,27 @@ from gptnt.players.result import AgentCallResult
 
 logger = structlog.get_logger()
 
+BEGIN_OF_BOX = "<|begin_of_box|>"
+END_OF_BOX = "<|end_of_box|>"
+BEGIN_OF_ACTION = "<action>"
+END_OF_ACTION = "</action>"
+
+
+def strip_box_envelope(output: str) -> str:
+    """Strip GLM's box delimiters when they wrap the complete response."""
+    stripped = output.strip()
+    if stripped.startswith(BEGIN_OF_BOX) and stripped.endswith(END_OF_BOX):
+        return stripped[len(BEGIN_OF_BOX) : -len(END_OF_BOX)].strip()
+    return output
+
+
+def strip_action_envelope(output: str) -> str:
+    """Strip action tags when they wrap the complete non-structured response."""
+    stripped = output.strip()
+    if stripped.startswith(BEGIN_OF_ACTION) and stripped.endswith(END_OF_ACTION):
+        return stripped[len(BEGIN_OF_ACTION) : -len(END_OF_ACTION)].strip()
+    return output
+
 
 def _extract_from_nested_output_dict(output: dict[str, Any] | Any) -> dict[str, Any]:
     """Extract the actual output from nested dict.

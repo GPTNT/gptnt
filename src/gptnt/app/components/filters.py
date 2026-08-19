@@ -5,7 +5,6 @@ from typing import Any, Literal, Self, get_args, override
 import streamlit as st
 import yaml
 from caseconverter import titlecase
-from more_itertools import flatten
 
 from gptnt.common.paths import Paths
 from gptnt.experiments.db.connection import DuckDBConnection
@@ -46,7 +45,6 @@ class Filters:
     attempt_name: Sequence[str] = field(default_factory=list)
     strikes: Sequence[int] = field(default_factory=list)
     outcome: Sequence[OutcomeType] = field(default_factory=list)
-    tags: Sequence[str] = field(default_factory=list)
     modules_filter_type: ModuleFilterType = field(default="Include All")
     seconds_remaining: float = field(default=0)
     defuser_has_manual: bool | None = field(default=None)
@@ -65,7 +63,6 @@ class Filters:
                 tuple(self.attempt_name),
                 tuple(self.strikes),
                 tuple(self.outcome),
-                tuple(self.tags),
                 self.modules_filter_type,
                 self.seconds_remaining,
                 self.defuser_has_manual,
@@ -102,7 +99,6 @@ class Filters:
             seed=seed,
             modules_filter_type="Include All",
             attempt_name=[exp.attempt_name for exp in experiments],
-            tags=list(set(flatten(exp.tags for exp in experiments if exp.tags))),
         )
 
 
@@ -201,13 +197,6 @@ def render_filter_pills(options: Filters, *, default: Filters) -> Filters:
             min_value=0.0,  # noqa: WPS358
         )
 
-    with st.container(horizontal=True, width="content", gap="medium"):
-        filters.tags = st.pills(
-            "**Tags**",
-            options=sorted(options.tags),
-            selection_mode="multi",
-            default=default.tags or None,
-        )
     return filters
 
 
@@ -258,7 +247,6 @@ def load_options_for_filters(connection: DuckDBConnection) -> Filters:
         expert=list(map(str, distinct(connection, "expert_name"))),
         seed=distinct(connection, "seed"),
         attempt_name=distinct(connection, "attempt_name"),
-        tags=distinct_unnested(connection, "tags"),
     )
 
 
@@ -269,7 +257,7 @@ OUTCOME_SQL: dict[OutcomeType, str] = {  # noqa: WPS407
 }
 
 
-def _build_sql_filters(filters: Filters) -> tuple[str, list[Any]]:  # noqa: PLR0912, WPS210, WPS213, WPS231
+def _build_sql_filters(filters: Filters) -> tuple[str, list[Any]]:  # noqa: WPS210, WPS213, WPS231
     """Translate a Filters object into a parameterised SQL WHERE clause."""
     clauses: list[str] = []
     params: list[Any] = []
@@ -304,10 +292,6 @@ def _build_sql_filters(filters: Filters) -> tuple[str, list[Any]]:  # noqa: PLR0
         fn = "list_has_all" if filters.modules_filter_type == "Include All" else "list_has_any"
         clauses.append(f"{fn}(modules, ?)")
         params.append(list(filters.modules))
-
-    if filters.tags:
-        clauses.append("list_has_any(tags, ?)")
-        params.append(list(filters.tags))
 
     for part in filters.attempt_name:
         clauses.append("lower(attempt_name) LIKE ?")

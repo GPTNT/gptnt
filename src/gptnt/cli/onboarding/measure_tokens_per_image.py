@@ -18,10 +18,12 @@ console = Console()
 _PROMPT = "Reply with the single word: OK."
 """Identical text for both measurement requests, so the input-token delta is only the image."""
 
-_CALIBRATION_MAX_TOKENS = 16
-"""Cap output on both requests.
+_CALIBRATION_MIN_MAX_TOKENS = 256
+"""Minimum output allowance for both requests.
 
-Output tokens don't affect the input count we read, but a low cap keeps each call fast and cheap.
+Reasoning models may spend dozens of tokens in their private reasoning channel before producing the
+requested one-word response. Use at least this much room while preserving a larger player-
+configured limit. Output tokens do not affect the input-token delta being measured.
 """
 
 _MANUAL_FIRST_PAGE = 1
@@ -79,8 +81,15 @@ async def _measure(agent: Agent, image_bytes: bytes) -> tuple[int, int]:
     between them is the image part — a plain-string baseline could tokenise differently and skew
     the delta.
     """
-    base = None if callable(agent.model_settings) else agent.model_settings
-    settings = merge_model_settings(base, {"max_tokens": _CALIBRATION_MAX_TOKENS})
+    base = None if callable(agent.model_settings) else agent.model_settings  # noqa: WPS504
+    configured_max_tokens = (
+        base.get("max_tokens") if base is not None else None  # noqa: WPS504
+    )
+    calibration_max_tokens = max(
+        _CALIBRATION_MIN_MAX_TOKENS,
+        configured_max_tokens if isinstance(configured_max_tokens, int) else 0,  # noqa: WPS504
+    )
+    settings = merge_model_settings(base, {"max_tokens": calibration_max_tokens})
     baseline = (await agent.run([_PROMPT], model_settings=settings)).usage.input_tokens
     with_image = (
         await agent.run(

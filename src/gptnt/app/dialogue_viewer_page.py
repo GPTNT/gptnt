@@ -95,28 +95,6 @@ def dialogue_viewer_page() -> None:
     if not state.loaded_experiment:
         st.stop()
 
-    with st.sidebar:
-        _ = st.divider()
-
-        new_tags = st.multiselect(
-            ":material/tag: Tags",
-            options=sorted(state.loader.all_tags),
-            default=state.loader.selected_experiment.tags,
-            accept_new_options=True,
-        )
-        if "None" in new_tags:
-            _ = st.error("The tag 'None' is reserved and cannot be used.")
-            st.stop()
-
-        save_button = st.button(
-            "Save annotations",
-            icon=":material/save:",
-            disabled=state.loader.selected_experiment.tags == new_tags,
-        )
-
-        if save_button and new_tags != state.loader.selected_experiment.tags:
-            state.loader.save_tags(state.loader.selected_experiment, new_tags)
-
     with tw.container(classes="max-w-3xl"):
         render_player_cards(state.loaded_experiment)
         render_dialogue_view(state.loaded_experiment.step_records)

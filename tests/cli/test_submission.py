@@ -18,7 +18,7 @@ from gptnt.cli.__main__ import build_app
 from gptnt.cli.submission._schema import SubmissionExperiment
 from gptnt.experiments.db.ingest import ingest_player_records
 from gptnt.experiments.db.typed_parquet import read_typed_parquet
-from gptnt.experiments.descriptor import ExperimentDescriptor
+from gptnt.experiments.instance import ExperimentInstance
 from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep
 from gptnt.experiments.recorder.parquet import (
     blob_step,
@@ -35,15 +35,15 @@ from tests._factories.statics import write_statics_run
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from gptnt.experiments.descriptor import PlayerContent
+    from gptnt.experiments.instance import PlayerContent
 
 SUITE = "single-parametric-sync"
 DEFUSER_STEP_INPUT_TOKENS = 100
 EXPERT_STEP_INPUT_TOKENS = 7
 
 
-def _descriptor(*, seed: int, model: str, expert: str | None = None) -> ExperimentDescriptor:
-    """A descriptor for `model` (defuser_name and player_name kept identical), plus any expert."""
+def _instance(*, seed: int, model: str, expert: str | None = None) -> ExperimentInstance:
+    """An experiment instance for `model`, plus an optional expert."""
     spec = make_experiment_spec(seed=seed).model_copy(update={"defuser_name": model})
     expert_uuid = None
     expert_capabilities = None
@@ -64,18 +64,20 @@ def _descriptor(*, seed: int, model: str, expert: str | None = None) -> Experime
         )
         expert_uuid = uuid4()
         expert_capabilities = PlayerCapabilities(player_name=expert, player_type="ai")
-    return ExperimentDescriptor(
-        experiment_spec=spec,
-        session_id=uuid4(),
-        defuser_uuid=uuid4(),
-        expert_uuid=expert_uuid,
-        game_uuid=uuid4(),
-        defuser_capabilities=PlayerCapabilities(player_name=model, player_type="ai"),
-        expert_capabilities=expert_capabilities,
+    return ExperimentInstance.model_validate(
+        spec.model_dump()
+        | {
+            "session_id": uuid4(),
+            "defuser_uuid": uuid4(),
+            "expert_uuid": expert_uuid,
+            "game_uuid": uuid4(),
+            "defuser_capabilities": PlayerCapabilities(player_name=model, player_type="ai"),
+            "expert_capabilities": expert_capabilities,
+        }
     )
 
 
-def _steps(descriptor: ExperimentDescriptor, player: PlayerContent) -> list[ExperimentStep]:
+def _steps(instance: ExperimentInstance, player: PlayerContent) -> list[ExperimentStep]:
     """Two steps for one player's record; only the defuser's steps carry a bomb state."""
     role = player.protocol.role
     is_defuser = role == "defuser"
@@ -83,7 +85,7 @@ def _steps(descriptor: ExperimentDescriptor, player: PlayerContent) -> list[Expe
         step=1,
         timestamp=1.0,
         role=role,
-        session_id=descriptor.session_id,
+        session_id=instance.session_id,
         player_uuid=player.uuid,
         player_name=player.name,
         output=DoNothingAction(),
@@ -104,15 +106,15 @@ def _write_record(
     outputs: Path, *, seed: int, model: str = "test-defuser", expert: str | None = None
 ) -> None:
     """Write one completed record per player of one experiment (they share the session id)."""
-    descriptor = _descriptor(seed=seed, model=model, expert=expert)
-    players = [descriptor.defuser]
-    if descriptor.expert is not None:
-        players.append(descriptor.expert)
+    instance = _instance(seed=seed, model=model, expert=expert)
+    players = [instance.defuser]
+    if instance.expert is not None:
+        players.append(instance.expert)
     for player in players:
         record = ExperimentPlayerRecord(
-            experiment_descriptor=descriptor,
+            experiment_instance=instance,
             player_content=player,
-            step_records=_steps(descriptor, player),
+            step_records=_steps(instance, player),
             is_hard_crash=False,
         )
         write_player_record_parquet(

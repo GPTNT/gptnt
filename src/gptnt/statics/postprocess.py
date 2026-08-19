@@ -5,6 +5,8 @@ from collections.abc import Callable
 import json_repair
 from pydantic_core import from_json
 
+from gptnt.statics.coordinates import select_coordinate_candidate
+
 type PostProcessModelOutputsFunc = Callable[[str], str]
 
 
@@ -35,13 +37,14 @@ def expert_ocr_postprocess(output: str) -> str:
 def convert_normalised_to_absolute(
     model_output: str, *, image_width: int, image_height: int, normalised_upper_bound: int = 1000
 ) -> str:
-    """Convert normalised coordinate output to absolute coordinate."""
+    """Convert valid normalised coordinates, leaving malformed output for scorer validation."""
     model_output = default_postprocess(model_output)
-    try:
-        normalised_coord = from_json(json_repair.repair_json(model_output))
-    except ValueError:
+    coordinate_candidate = select_coordinate_candidate(model_output)
+    try:  # noqa: WPS229
+        normalised_coord = from_json(json_repair.repair_json(coordinate_candidate))
+        absolute_x = int(normalised_coord["x"] * image_width / normalised_upper_bound)
+        absolute_y = int(normalised_coord["y"] * image_height / normalised_upper_bound)
+    except (KeyError, TypeError, ValueError, OverflowError):  # noqa: WPS239
         return model_output
 
-    absolute_x = int(normalised_coord["x"] * image_width / normalised_upper_bound)
-    absolute_y = int(normalised_coord["y"] * image_height / normalised_upper_bound)
     return json.dumps({"x": absolute_x, "y": absolute_y})

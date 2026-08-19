@@ -113,7 +113,7 @@ async def test_send_request_returns_do_nothing_when_structuring_fails() -> None:
     call_result = await predictor.send_request_to_agent(message_input="Test message")
 
     assert isinstance(call_result.output, DoNothingAction)
-    assert call_result.ai_response_error == [AIResponseErrorType.unknown]
+    assert call_result.ai_response_error == [AIResponseErrorType.action_parsing_failed]
     assert call_result.raw_output == "not valid json at all"
 
 

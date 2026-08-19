@@ -1,6 +1,6 @@
 from typing import Literal, Self, override
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, PositiveInt
 from pydantic.fields import computed_field
 from pydantic.functional_validators import model_validator
 from pydantic_ai.output import StructuredOutputMode
@@ -24,10 +24,28 @@ type ThinkingMethod = Literal["inner-monologue", "thinking-out-loud"]
 """Thinking method used by players.
 
 - "inner-monologue": Model reasoning is kept separate from the user-visible message (parsed as
-                    `ThinkingPart` from the model output; the prompt format uses a dedicated
-                    `<think>` section).
+                    `ThinkingPart` from the model output); the prompt does not prescribe a
+                    provider-specific reasoning tag.
 - "thinking-out-loud": Reasoning is part of the normal message flow (ReAct-style).
 """
+
+
+_CAPABILITY_FINGERPRINT_FIELDS = (
+    "player_name",
+    "player_type",
+    "thinking_method",
+    "structured_output_mode",
+    "include_schema_in_instructions",
+    "max_observations_per_request",
+    "image_dimensions",
+    "tokens_per_image",
+    "interaction_location_method",
+    "coordinate_mode",
+    "coordinate_scale",
+    "preserve_last_frame_for_n_turns",
+    "enable_nobf_generation",
+    "model_settings",
+)
 
 
 class PlayerIdentity(BaseModel):
@@ -98,9 +116,15 @@ class PlayerCapabilities(BaseModel):
     coordinate_mode: CoordinateMode = "absolute"
     """The flavour of coordinates that the model supports.
 
-    Normalised coordinates are on a scale from 0 to 1000, while absolute coordinates are in pixel
-    values based on the image dimensions. You can change the ranges of normalised coordinates in
-    the ScaledLocation class var.
+    Normalised coordinates use `coordinate_scale` as their per-axis denominator, while absolute
+    coordinates are pixel values based on the image dimensions.
+    """
+
+    coordinate_scale: PositiveInt | None = None
+    """Per-axis denominator for normalised coordinates, otherwise `None`.
+
+    Every normalised model declares its native scale explicitly. Absolute coordinates have no
+    scale, so combining `coordinate_mode="absolute"` with a value here is invalid.
     """
 
     preserve_last_frame_for_n_turns: int = 0
@@ -123,6 +147,22 @@ class PlayerCapabilities(BaseModel):
                 "included in the instructions, so 'include_schema_in_instructions' cannot be False."
             )
         return self
+
+    @model_validator(mode="after")
+    def validate_coordinate_scale_matches_mode(self) -> Self:
+        """Require a scale exactly when the coordinate mode is normalised."""
+        if self.coordinate_mode == "normalised" and self.coordinate_scale is None:
+            raise ValueError("Normalised coordinates require coordinate_scale.")
+        if self.coordinate_mode == "absolute" and self.coordinate_scale is not None:
+            raise ValueError("Absolute coordinates must not define coordinate_scale.")
+        return self
+
+    @property
+    def normalised_coordinate_scale(self) -> PositiveInt:
+        """Return the validated scale for normalised-coordinate code paths."""
+        if self.coordinate_mode != "normalised" or self.coordinate_scale is None:
+            raise ValueError("Player does not use normalised coordinates.")
+        return self.coordinate_scale
 
     @model_validator(mode="after")
     def validate_thinking_mode_output_compatibility(self) -> Self:
@@ -162,11 +202,16 @@ class PlayerCapabilities(BaseModel):
         by its capabilities and not by any other fields that may change over time, or that are not
         relevant.
         """
-        return stable_digest(self.model_dump(mode="json", exclude={"usage_limits"}))
+        return stable_digest(
+            self.model_dump(mode="json", include=set(_CAPABILITY_FINGERPRINT_FIELDS))
+        )
 
     @override
     def __hash__(self) -> int:
-        """Manually provide the hash function."""
+        """Return a hash of the complete capabilities model.
+
+        We do this so that we can use the LRU cache when loading things.
+        """
         return hash(self.model_dump_json())
 
 

@@ -47,6 +47,7 @@ class ObservationHandler:
     """
 
     interaction_location_method: InteractionLocationMethod
+    coordinate_scale: int | None = None
     image_resizer: ImageResizer | None = None
     set_of_marks_painter: SetOfMarksHandler | None = None
 
@@ -143,10 +144,12 @@ class ObservationHandler:
             )
 
         if self.image_resizer and isinstance(action_location, ScaledLocation):
+            if self.coordinate_scale is None:
+                raise ValueError("Normalised action received without a coordinate scale.")
             logger.info(f"Converting normalised coordinate {action_location} to relative.")
             action_location = RelativeCoordinate(
-                x_pos=action_location.x / ScaledLocation.upper_bound,
-                y_pos=action_location.y / ScaledLocation.upper_bound,
+                x_pos=action_location.x / self.coordinate_scale,
+                y_pos=action_location.y / self.coordinate_scale,
             )
 
         return KtaneGameplayInput.model_validate(

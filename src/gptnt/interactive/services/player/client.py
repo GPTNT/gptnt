@@ -7,7 +7,7 @@ import structlog
 from faststream.redis import RedisBroker
 from pydantic import UUID4
 
-from gptnt.experiments.descriptor import ExperimentDescriptor
+from gptnt.experiments.instance import ExperimentInstance
 from gptnt.interactive.services.player.commands import PlayerMessage, StopPlayerEvent
 from gptnt.interactive.services.rpc import BaseRPCClient
 from gptnt.interactive.services.timeouts import ServiceTimeouts
@@ -43,12 +43,12 @@ class PlayerClient(BaseRPCClient):
 
     @logfire.instrument("Configure player ({player_protocol.role})")
     async def configure_player(
-        self, *, player_protocol: PlayerProtocol, experiment_descriptor: ExperimentDescriptor
+        self, *, player_protocol: PlayerProtocol, experiment_instance: ExperimentInstance
     ) -> bool:
         """Configure the player with the given protocol."""
         payload = {
             "protocol": player_protocol.model_dump(mode="json"),
-            "experiment_descriptor": experiment_descriptor.model_dump(mode="json"),
+            "experiment_instance": experiment_instance.model_dump(mode="json"),
         }
         return await self._send_command("configure_for_experiment", payload)
 

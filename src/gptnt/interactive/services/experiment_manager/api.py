@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Annotated
 
 import logfire
 import structlog
-from fastapi import APIRouter, Depends, FastAPI, Request
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from pydantic import BaseModel
 
 from gptnt.experiments.spec import ExperimentSpec
@@ -59,9 +59,25 @@ async def health() -> bool:
 
 @router.post("/add-specs")
 async def add_experiment_specs(specs: Specs, experiment_manager: ExperimentManagerDep) -> None:
-    """Add new experiment specifications."""
+    """Add new attempts and reject a name already bound to different inputs."""
     logger.info("Adding new experiment specs", total_specs=len(specs.specs))
-    experiment_manager.specs.update(specs.specs)
+    known_attempts = {spec.attempt_name: spec for spec in experiment_manager.specs}
+    known_attempts.update(
+        (session.spec.attempt_name, session.spec) for session in experiment_manager.sessions
+    )
+    new_specs = []
+    for spec in specs.specs:
+        existing = known_attempts.get(spec.attempt_name)
+        if existing is None:
+            known_attempts[spec.attempt_name] = spec
+            new_specs.append(spec)
+        elif existing != spec:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Experiment attempt {spec.attempt_name!r} has conflicting specifications.",
+            )
+
+    experiment_manager.specs.extend(new_specs)
     logger.info("Experiment specs added", total_specs=len(experiment_manager.specs))
 
 
@@ -73,6 +89,6 @@ async def active_experiments(experiment_manager: ExperimentManagerDep) -> Active
     without W&B.
     """
     return ActiveExperiments(
-        running=[session.spec.attempt_name for session in experiment_manager.active_sessions],
+        running=[session.spec.attempt_name for session in experiment_manager.sessions],
         queued=[spec.attempt_name for spec in experiment_manager.specs],
     )

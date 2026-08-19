@@ -16,6 +16,7 @@ from gptnt.players.exceptions import (
 )
 from gptnt.players.reasoning_parser.reasoning_parser import (
     ReasoningParser,
+    strip_box_envelope,
     structure_string_output,
 )
 from gptnt.players.result import AgentCallResult
@@ -833,10 +834,11 @@ class ReactStyleReasoningParser[OutputT](ReasoningParser[str, OutputT]):
         parser = ReactTagOutputParser(reasoning_tag=self.reasoning_tag, act_tag=self.act_tag)
 
         # Check for pre-existing malformed tags (missing >) and fix them
-        cleaned_output = _check_for_missing_right_arrow(model_output)
+        normalized_output = strip_box_envelope(model_output)
+        cleaned_output = _check_for_missing_right_arrow(normalized_output)
         cleaned_output = _check_for_placeholders(cleaned_output)
         cleaned_output = _check_for_extraneous_braces(cleaned_output)
-        if cleaned_output != model_output:
+        if cleaned_output != normalized_output:
             parser.output.pre_existing_errors.append(AIResponseErrorType.malformed_tag_structure)
 
         with parser:

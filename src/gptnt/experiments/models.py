@@ -19,20 +19,27 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+from pydantic.functional_serializers import field_serializer
 from pydantic_ai import ModelMessage, ModelMessagesTypeAdapter, RunUsage
+from whenever import Instant
 
 from gptnt.common.logger import monkey_patch_binary_content_repr
 from gptnt.common.provenance import Provenance
 from gptnt.experiments.db.schema import AsBlob, AsJSON, AsVarchar, DuckDBSchemaMixin
-from gptnt.experiments.descriptor import ExperimentDescriptor, PlayerContent
+from gptnt.experiments.instance import ExperimentInstance, PlayerContent
 from gptnt.ktane.actions import KtaneBaseAction, KtaneGameplayInput
-from gptnt.ktane.mission_spec import compute_mission_key
+from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombOutcome, BombState
 from gptnt.ktane.state.modules import KtaneModuleId
 from gptnt.players.actions import DoNothingAction, PlayerOutputType, SendMessageAction
 from gptnt.players.exceptions import AIResponseErrorType
 from gptnt.players.observation_handler import Observation
-from gptnt.players.specification import CommunicationStyle, PlayerCapabilities, PlayerRole
+from gptnt.players.specification import (
+    CommunicationStyle,
+    PlayerCapabilities,
+    PlayerProtocol,
+    PlayerRole,
+)
 
 logger = structlog.get_logger()
 
@@ -216,7 +223,7 @@ class StepRecordsMetricsMixin(BaseModel):
 class ExperimentPlayerRecord(Provenance, StepRecordsMetricsMixin):
     """Records for a single player in an experiment."""
 
-    experiment_descriptor: ExperimentDescriptor
+    experiment_instance: ExperimentInstance
     player_content: PlayerContent
     step_records: SortedStepRecords
     is_hard_crash: bool = False
@@ -253,10 +260,10 @@ class ExperimentPlayerRecord(Provenance, StepRecordsMetricsMixin):
             raise ValueError("Cannot construct ExperimentPlayerRecord with no step records.")
 
         role = step_records[0].role
-        player_content = summary.experiment_descriptor.get_player_content_by_role(role)
+        player_content = summary.get_player_content_by_role(role)
 
         return cls(
-            experiment_descriptor=summary.experiment_descriptor,
+            experiment_instance=summary,
             player_content=player_content,
             step_records=step_records,
             is_hard_crash=summary.is_hard_crash,
@@ -298,36 +305,52 @@ class ExperimentOutcome(BaseModel):
         return self.outcome in {BombOutcome.timeout, BombOutcome.strikeout, BombOutcome.detonated}
 
 
-class ExperimentSummary(Provenance, ExperimentOutcome, DuckDBSchemaMixin):
-    """Experiment-level summary — one per experiment."""
+class ExperimentSummary(ExperimentInstance, Provenance, ExperimentOutcome, DuckDBSchemaMixin):  # noqa: WPS215
+    """The recorded result of one experiment execution.
 
-    model_config = ConfigDict(populate_by_name=True, frozen=False)
+    It combines the experiment instance with its provenance, bomb outcome, and crash state.
+    """
 
-    attempt_name: Annotated[str, Field(alias="name")]
-    session_id: UUID4
-
-    mission_set: str
-    suite_name: str = "unknown"
-    suite_revision: int = 0
-
-    seed: int
-    pairing: str
-    defuser_name: Annotated[str, Field(alias="defuser")]
-    expert_name: Annotated[str | None, Field(alias="expert")]
-    communication_style: CommunicationStyle
-    attempt: int
-
-    modules: list[KtaneModuleId]
+    model_config = ConfigDict(populate_by_name=True, frozen=True)
 
     is_hard_crash: bool
 
-    experiment_descriptor: Annotated[ExperimentDescriptor, AsJSON]
-
+    mission_spec: Annotated[KtaneMissionSpec, AsJSON]
+    defuser_protocol: Annotated[PlayerProtocol, AsJSON]
+    expert_protocol: Annotated[PlayerProtocol | None, AsJSON]
     defuser_capabilities: Annotated[PlayerCapabilities, AsJSON]
     expert_capabilities: Annotated[PlayerCapabilities | None, AsJSON]
 
-    # Any custom tags to describe the experiment
-    tags: list[str] = Field(default_factory=list)
+    @field_serializer("start_time")
+    def serialize_start_time(self, start_time: Instant) -> str:
+        """Serialize the instance start time as an ISO-8601 DuckDB value."""
+        return str(start_time)
+
+    @computed_field(alias="name")
+    @property
+    @override
+    def attempt_name(self) -> str:
+        """Name of this experiment attempt."""
+        return super().attempt_name
+
+    @computed_field
+    @property
+    def seed(self) -> int:
+        """Mission seed used by this experiment instance."""
+        return self.mission_spec.seed
+
+    @computed_field
+    @property
+    @override
+    def communication_style(self) -> CommunicationStyle:
+        """Communication style used by the players."""
+        return super().communication_style
+
+    @computed_field
+    @property
+    def modules(self) -> list[KtaneModuleId]:
+        """KTANE modules used by this experiment instance."""
+        return self.mission_spec.components
 
     @computed_field
     @property
@@ -343,62 +366,17 @@ class ExperimentSummary(Provenance, ExperimentOutcome, DuckDBSchemaMixin):
             return ""
         return self.expert_capabilities.fingerprint
 
-    @classmethod
-    def from_descriptor_and_bomb_state(
-        cls,
-        *,
-        descriptor: ExperimentDescriptor,
-        final_bomb_state: BombState,
-        is_hard_crash: bool,
-        gptnt_version: str | None = None,
-        git_sha: str | None = None,
-    ) -> Self:
-        """Construct ExperimentSummary from an ExperimentDescriptor and final BombState."""
-        spec = descriptor.experiment_spec
-        outcome = ExperimentOutcome.model_validate(final_bomb_state)
-        # Omit gptnt_version when not supplied so the Provenance default_factory resolves the
-        # live version, rather than passing a placeholder the field validator rejects.
-        provenance: dict[str, Any] = {"git_sha": git_sha}
-        if gptnt_version is not None:
-            provenance["gptnt_version"] = gptnt_version
-        return cls(
-            attempt_name=spec.attempt_name,
-            session_id=descriptor.session_id,
-            mission_set=spec.mission_set,
-            suite_name=spec.suite_name,
-            suite_revision=spec.suite_revision,
-            communication_style=spec.communication_style,
-            modules=spec.mission_spec.components,
-            pairing=spec.pairing,
-            defuser_name=spec.defuser_name,
-            expert_name=spec.expert_name,
-            attempt=spec.attempt,
-            seed=spec.mission_spec.seed,
-            **outcome.model_dump(),
-            is_hard_crash=is_hard_crash,
-            experiment_descriptor=descriptor,
-            defuser_capabilities=descriptor.defuser_capabilities,
-            expert_capabilities=descriptor.expert_capabilities,
-            **provenance,
-        )
-
-    @override
-    def __hash__(self) -> int:
-        """Hash on the experiment's full identity: attempt, session, and its player uuids.
-
-        The player uuids matter — same attempt+session but different players are distinct
-        experiments — so identity must include them (read off the descriptor, the SSOT for who
-        played).
-        """
-        return hash(
-            (self.attempt_name, self.session_id, tuple(self.experiment_descriptor.player_uuids))
-        )
-
     @computed_field
     @property
     def defuser_has_manual(self) -> bool:
-        """True when the defuser player was given the physical manual."""
-        return "+manual" in (self.pairing or "")
+        """True when the defuser player was explicitly given the manual."""
+        return self.defuser_protocol.include_manual
+
+    @computed_field
+    @property
+    def mission_key(self) -> str:
+        """Identity of this experiment's mission (modules + seed), for grouping/seeding."""
+        return self.mission_spec.mission_key
 
     @property
     def modules_str(self) -> list[str]:
@@ -410,11 +388,30 @@ class ExperimentSummary(Provenance, ExperimentOutcome, DuckDBSchemaMixin):
         """Whether this is a valid, completed run, decided by the shared `is_valid_outcome`."""
         return is_valid_outcome(outcome=self.outcome, is_hard_crash=self.is_hard_crash)
 
-    @computed_field
-    @property
-    def mission_key(self) -> str:
-        """Stable identity of this experiment's mission (modules + seed), for grouping/seeding."""
-        return compute_mission_key(self.modules, self.seed)
+    @classmethod
+    def from_instance_and_bomb_state(
+        cls,
+        *,
+        instance: ExperimentInstance,
+        final_bomb_state: BombState,
+        is_hard_crash: bool,
+        gptnt_version: str | None = None,
+        git_sha: str | None = None,
+    ) -> Self:
+        """Construct a summary from an experiment instance and its final bomb state."""
+        outcome = ExperimentOutcome.model_validate(final_bomb_state)
+        # Omit gptnt_version when not supplied so the Provenance default_factory resolves the
+        # live version, rather than passing a placeholder the field validator rejects.
+        provenance: dict[str, Any] = {"git_sha": git_sha}
+        if gptnt_version is not None:
+            provenance["gptnt_version"] = gptnt_version
+
+        return cls.model_validate(
+            instance.model_dump(exclude_computed_fields=True)
+            | outcome.model_dump()
+            | {"is_hard_crash": is_hard_crash}
+            | provenance
+        )
 
 
 class ExperimentRecord(StepRecordsMetricsMixin):
@@ -422,18 +419,18 @@ class ExperimentRecord(StepRecordsMetricsMixin):
 
     player_records: list[ExperimentPlayerRecord]
 
-    experiment_descriptor: ExperimentDescriptor
+    experiment_instance: ExperimentInstance
     step_records: SortedStepRecords = Field(default_factory=list)
     is_hard_crash: bool
 
     @classmethod
     def from_player_records(cls, *, player_records: list[ExperimentPlayerRecord]) -> Self:
         """Create an ExperimentRecord from a list of ExperimentPlayerRecords."""
-        experiment_descriptor = player_records[0].experiment_descriptor
+        experiment_instance = player_records[0].experiment_instance
         is_hard_crash = any(player_record.is_hard_crash for player_record in player_records)
         return cls(
             player_records=player_records,
-            experiment_descriptor=experiment_descriptor,
+            experiment_instance=experiment_instance,
             is_hard_crash=is_hard_crash,
         )
 

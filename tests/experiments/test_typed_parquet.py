@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 def test_round_trips_summaries_through_json_columns(tmp_path: Path) -> None:
-    """The AsJSON fields (descriptor, capabilities) parse back into models after a write/read."""
+    """The AsJSON experiment run parses back into a model after a write/read."""
     summaries = [
         make_experiment_summary(defuser_name="model-a", seed=1),
         make_experiment_summary(defuser_name="model-b", outcome=BombOutcome.incomplete, seed=2),

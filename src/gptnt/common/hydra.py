@@ -1,4 +1,5 @@
 import sys
+from math import floor
 
 import hydra
 import structlog
@@ -11,6 +12,24 @@ from gptnt.common.paths import Paths
 logger = structlog.get_logger()
 
 _paths = Paths()
+
+
+def _equal(left: object, right: object) -> bool:
+    """Return whether two interpolated config values are equal."""
+    return left == right
+
+
+def _floor_multiply(number: int, multiplier: float) -> int:
+    """Multiply a config integer and round down to the nearest integer."""
+    return floor(number * multiplier)
+
+
+# Player configs use this to derive provider-specific switches from benchmark capabilities, while
+# keeping the capability itself as the single source of truth.
+if not OmegaConf.has_resolver("gptnt.eq"):
+    OmegaConf.register_new_resolver("gptnt.eq", _equal)
+if not OmegaConf.has_resolver("gptnt.floor_mul"):
+    OmegaConf.register_new_resolver("gptnt.floor_mul", _floor_multiply)
 
 
 def get_hydra_overrides() -> list[str]:
