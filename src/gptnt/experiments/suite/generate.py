@@ -34,7 +34,9 @@ def generate_specs(overrides: list[str] | None = None) -> list[ExperimentSpec]:
     overrides. Raises `SuiteNotFrozenError` if the selected suite is not frozen.
     """
     cfg = load_config(config_name=CONFIG_NAME, overrides=overrides)
-    suite, missions = SuiteLock.from_lock_path().load_suite(cfg.suite.name)
+    lock = SuiteLock.from_lock_path()
+    entry = lock.select_entry(cfg.suite.name, None)
+    suite, missions = lock.load_suite(entry.name, entry.revision)
 
     pairings = list(
         PairingGenerator(
@@ -45,8 +47,9 @@ def generate_specs(overrides: list[str] | None = None) -> list[ExperimentSpec]:
     )
     generator = ExperimentGenerator(
         mission_set=suite.mission_set,
-        suite_name=suite.name,
-        suite_revision=suite.revision,
+        suite_name=entry.name,
+        suite_revision=entry.revision,
+        suite_digest=entry.suite_digest,
         defuser_protocol=suite.defuser_protocol,
         expert_protocol=suite.expert_protocol,
         attempts_per_mission=cfg.attempts_per_mission,

@@ -16,6 +16,7 @@ class ExperimentGenerator(BaseModel):
     mission_set: str
     suite_name: str
     suite_revision: int
+    suite_digest: str
     defuser_protocol: PlayerProtocol
     expert_protocol: Annotated[
         PlayerProtocol | None, BeforeValidator(lambda expert: expert or None)
@@ -37,6 +38,7 @@ class ExperimentGenerator(BaseModel):
                     mission_set=self.mission_set,
                     suite_name=self.suite_name,
                     suite_revision=self.suite_revision,
+                    suite_digest=self.suite_digest,
                     defuser_protocol=self.defuser_protocol,
                     defuser_name=pairing.defuser,
                     expert_protocol=self.expert_protocol,

@@ -5,10 +5,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
+from pydantic import ValidationError
 
 from gptnt.experiments.suite.compose import compose_suite
 from gptnt.experiments.suite.freeze import FreezeReport, FreezeStamp
-from gptnt.experiments.suite.lock import SuiteLock, SuiteNotFrozenError
+from gptnt.experiments.suite.generate import generate_specs
+from gptnt.experiments.suite.lock import MissionEntry, SuiteLock, SuiteNotFrozenError
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -67,28 +69,43 @@ def test_reconcile_dedups_missions_shared_across_suites() -> None:
     assert stored == sorted(set(stored)) == sorted(pairwise.mission_keys)
 
 
-def test_reconcile_flags_digest_change_without_revision_bump() -> None:
-    """A different digest at the same revision is a blocking mismatch, and nothing is appended."""
+def test_reconcile_requires_revision_bump_for_changed_content() -> None:
+    """Changed suite content is blocked at one revision and accepted at the next revision."""
     suite = _a_suite()
     frozen = FreezeReport.reconcile([suite], None, _STAMP).updated_lock
-    tampered_entry = frozen.suites[0].model_copy(update={"suite_digest": "0" * 32})
-    tampered = frozen.model_copy(update={"suites": (tampered_entry,)})
+    changed = suite.model_copy(update={"modality": ("audio", "language")})
 
-    report = FreezeReport.reconcile([suite], tampered, _STAMP)
+    report = FreezeReport.reconcile([changed], frozen, _STAMP)
     assert [outcome.action for outcome in report.outcomes] == ["digest_mismatch"]
     assert report.has_blocking_errors
-    assert report.updated_lock.suites == tampered.suites
+    assert report.updated_lock.suites == frozen.suites
+
+    bumped = changed.model_copy(update={"revision": suite.revision + 1})
+    bumped_report = FreezeReport.reconcile([bumped], frozen, _STAMP)
+    assert [outcome.action for outcome in bumped_report.outcomes] == ["append"]
+    assert bumped_report.updated_lock.suites[-1].suite_digest != frozen.suites[0].suite_digest
 
 
-def test_load_suite_from_lock_rebuilds_suite_and_missions() -> None:
-    """The stored config + mission table rebuild a suite that recomputes the same digest."""
+def test_load_suite_from_lock_rebuilds_suite_and_missions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The stored config and mission table rebuild the suite without reading live missions."""
     suite = _a_suite()
+    expected_digest = suite.suite_digest
+    expected_mission_keys = suite.mission_keys
     lock = FreezeReport.reconcile([suite], None, _STAMP).updated_lock
+    path = tmp_path / "suites.lock"
+    lock.dump_to_path(path)
+    monkeypatch.setattr(
+        "gptnt.experiments.suite.core.load_missions",
+        lambda _path: pytest.fail("lock loading read the live mission files"),
+    )
 
+    lock = SuiteLock.from_lock_path(path)
     rebuilt, missions = lock.load_suite(suite.name)
-    assert rebuilt.suite_digest == suite.suite_digest
+    assert rebuilt.digest_for(missions) == expected_digest
     assert rebuilt.expert_protocol is None  # a solo suite omits its expert (TOML has no null)
-    assert [mission.mission_key for mission in missions] == list(suite.mission_keys)
+    assert [mission.mission_key for mission in missions] == list(expected_mission_keys)
 
 
 def test_load_suite_from_lock_errors_when_unfrozen() -> None:
@@ -101,8 +118,50 @@ def test_load_suite_from_lock_errors_when_unfrozen() -> None:
 
 
 def test_lock_roundtrips_through_toml(tmp_path: Path) -> None:
-    """A written lock reads back identical, mission table and array-of-tables and all."""
+    """A written lock reads back identically and rejects inconsistent frozen entries."""
     lock = FreezeReport.reconcile([_a_suite()], None, _STAMP).updated_lock
     path = tmp_path / "suites.lock"
     lock.dump_to_path(path)
     assert SuiteLock.from_lock_path(path) == lock
+
+    entry = lock.suites[0]
+    mismatched = entry.model_copy(
+        update={"config": entry.config | {"revision": entry.revision + 1}}
+    )
+    with pytest.raises(ValidationError, match="does not match its frozen config identity"):
+        _ = SuiteLock.model_validate({"suites": (mismatched,), "missions": lock.missions})
+
+    wrong_digest = entry.model_copy(update={"suite_digest": "0" * 32})
+    with pytest.raises(ValidationError, match="digest does not match"):
+        _ = SuiteLock.model_validate({"suites": (wrong_digest,), "missions": lock.missions})
+
+    mission = lock.missions[0]
+    with pytest.raises(ValidationError, match="does not match stored mission"):
+        _ = MissionEntry(mission_key="999999|Fake", spec=mission.spec)
+
+
+def test_freeze_reload_and_generate_pins_suite_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The public freeze and generation path has one stable suite and experiment identity."""
+    suite = _a_suite()
+    lock = FreezeReport.reconcile([suite], None, _STAMP).updated_lock
+    path = tmp_path / "suites.lock"
+    lock.dump_to_path(path)
+    monkeypatch.setattr("gptnt.experiments.suite.lock.default_lock_path", lambda: path)
+    assert SuiteLock.from_lock_path() == lock
+
+    experiments = generate_specs(["suites=single-solo-player-sync", "players.all=[test-defuser]"])
+    experiment = experiments[0]
+
+    assert (
+        experiment.suite_name,
+        experiment.suite_revision,
+        experiment.suite_digest,
+        experiment.fingerprint,
+    ) == (
+        "single-solo-player-sync",
+        1,
+        "c3eb87f851b818141f2decb4a9f5bf70",
+        "e4a0c422f1e408ec81a610434270f647",
+    )

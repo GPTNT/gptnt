@@ -98,6 +98,7 @@ class AssembledExperiment:
             mission_set=mission_set,
             suite_name="test-suite",
             suite_revision=1,
+            suite_digest="0" * 32,
             defuser_protocol=PlayerProtocol(
                 role="defuser",
                 communication_style=communication_style,

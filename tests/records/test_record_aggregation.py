@@ -32,6 +32,7 @@ def _instance() -> ExperimentInstance:
         mission_set="single_module",
         suite_name="test-suite",
         suite_revision=1,
+        suite_digest="0" * 32,
         defuser_protocol=protocol,
         defuser_name="test-defuser",
         expert_protocol=PlayerProtocol(

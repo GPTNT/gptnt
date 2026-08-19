@@ -3,31 +3,41 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from gptnt.experiments.spec import load_specs_from_dir, write_specs_to_dir
+from gptnt.experiments.suite.compose import compose_suite
+from gptnt.experiments.suite.generate import generate_specs
 
 from tests._factories.experiments import make_experiment_spec
 
 if TYPE_CHECKING:
     from pathlib import Path
 
+    import pytest
 
-def test_write_then_load_round_trips_specs(tmp_path: Path) -> None:
-    """Specs written to a dir load back identically (order doesn't matter), one JSON file each."""
-    specs = [
-        make_experiment_spec(seed=1),
-        make_experiment_spec(seed=2),
-        make_experiment_spec(seed=3),
-    ]
+
+def test_write_then_load_preserves_frozen_suite_digest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A generated spec keeps its frozen digest after the live mission contents change."""
+    specs = generate_specs(["suites=single-solo-player-sync", "players.all=[test-defuser]"])
+    spec = specs[0]
     out = tmp_path / "my-run"
 
-    written = write_specs_to_dir(specs, out)
+    written = write_specs_to_dir([spec], out)
 
-    assert len(written) == 3
-    assert {path.name for path in written} == {f"{spec.attempt_name}.json" for spec in specs}
+    live_suite = compose_suite(spec.suite_name)
+    changed_missions = [
+        mission.model_copy(update={"seed": mission.seed + 1})
+        for mission in live_suite.loaded_missions
+    ]
+
+    monkeypatch.setattr(
+        "gptnt.experiments.suite.core.load_missions", lambda _path: changed_missions
+    )
+    assert live_suite.suite_digest != spec.suite_digest
+
+    assert written == [out / f"{spec.attempt_name}.json"]
     loaded = load_specs_from_dir(out)
-    # Loading is unordered (dir glob), which is fine — compare by attempt_name.
-    assert {spec.attempt_name: spec for spec in loaded} == {
-        spec.attempt_name: spec for spec in specs
-    }
+    assert loaded == [spec]
 
 
 def test_load_from_missing_dir_is_empty(tmp_path: Path) -> None:

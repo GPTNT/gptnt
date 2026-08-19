@@ -41,6 +41,7 @@ def make_spec(*, defuser_name: str, expert_name: str | None = None) -> Experimen
         mission_set="single_module",
         suite_name="test-suite",
         suite_revision=1,
+        suite_digest="0" * 32,
         defuser_protocol=PlayerProtocol(
             role="defuser",
             communication_style="sync",

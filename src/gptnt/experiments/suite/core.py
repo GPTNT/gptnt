@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Annotated, Literal, Self
 
@@ -91,27 +92,21 @@ class Suite(BaseModel):
         payload = self.model_dump(mode="json", exclude={"name", "revision", "config_digest"})
         return stable_digest(payload)
 
-    @property
-    def missions_digest(self) -> str:
-        """A stable digest of the resolved mission file contents.
-
-        Reads the files from disk, so it changes when a mission in the set is edited even if the
-        suite config is untouched.
-        """
+    def digest_for(self, missions: Sequence[KtaneMissionSpec]) -> str:
+        """Calculate this suite's digest from an explicit mission snapshot."""
         # sort the payloads using the digest so that the ordering is stable too.
-        payloads = sorted(
-            [mission.model_dump_json() for mission in self.loaded_missions], key=stable_digest
-        )
-        return stable_digest(payloads)
+        payloads = sorted([mission.model_dump_json() for mission in missions], key=stable_digest)
+        missions_digest = stable_digest(payloads)
+        return stable_digest([self.config_digest, missions_digest])
 
     @property
     def suite_digest(self) -> str:
-        """A stable digest of the whole suite: its `config_digest` and `missions_digest` combined.
+        """A stable digest of the suite config and the current mission files.
 
-        The full fingerprint of what the suite measures. Frozen lock entries store it alongside
-        the suite revision.
+        The full fingerprint of what the suite measures. Frozen lock entries store it alongside the
+        suite revision.
         """
-        return stable_digest([self.config_digest, self.missions_digest])
+        return self.digest_for(self.loaded_missions)
 
 
 class SuiteIdentity(BaseModel):
