@@ -17,7 +17,11 @@ class PlayerContent(NamedTuple):
 
 
 class ExperimentInstance(ExperimentSpec):
-    """An experiment specification bound to the services executing it."""
+    """An experiment specification bound to one runtime execution.
+
+    The instance adds session and service UUIDs, resolved player capabilities, and the shared start
+    time. Recording adds provenance and outcome in `ExperimentSummary`.
+    """
 
     model_config = ConfigDict(frozen=True)
 

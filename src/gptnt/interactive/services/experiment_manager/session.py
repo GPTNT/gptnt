@@ -134,15 +134,21 @@ class Session:
 
     def _create_runner(self) -> ExperimentRunner:
         """Create an experiment runner based on the communication style."""
+        expert_uuid = None
+        expert_capabilities = None
+        if self.expert is not None:
+            expert_uuid = self.expert.uuid
+            expert_capabilities = self.expert.heartbeat.capabilities
+
         instance = ExperimentInstance.model_validate(
             self.spec.model_dump()
             | {
                 "session_id": self.experiment_uuid,
-                "expert_uuid": self.expert.uuid if self.expert else None,
+                "expert_uuid": expert_uuid,
                 "defuser_uuid": self.defuser.uuid,
                 "game_uuid": self.game.uuid,
                 "defuser_capabilities": self.defuser.heartbeat.capabilities,
-                "expert_capabilities": self.expert.heartbeat.capabilities if self.expert else None,
+                "expert_capabilities": expert_capabilities,
             }
         )
         match instance.communication_style:

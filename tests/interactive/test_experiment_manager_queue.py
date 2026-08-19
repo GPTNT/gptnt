@@ -1,6 +1,7 @@
 """The Experiment Manager queue's attempt-name deduplication."""
 
 import pytest
+from fastapi import HTTPException
 from pytest_mock import MockerFixture
 
 from gptnt.interactive.services.experiment_manager.api import Specs, add_experiment_specs
@@ -14,8 +15,18 @@ def _manager(mocker: MockerFixture) -> ExperimentManager:
 
 
 @pytest.mark.anyio
-async def test_repeated_attempt_names_are_ignored(mocker: MockerFixture) -> None:
-    """The first submitted spec wins when a request repeats its attempt name."""
+async def test_repeated_spec_is_idempotent(mocker: MockerFixture) -> None:
+    manager = _manager(mocker)
+    spec = make_experiment_spec()
+
+    await add_experiment_specs(Specs(specs=[spec, spec]), manager)
+    await add_experiment_specs(Specs(specs=[spec]), manager)
+
+    assert manager.specs == [spec]
+
+
+@pytest.mark.anyio
+async def test_conflicting_spec_for_attempt_is_rejected(mocker: MockerFixture) -> None:
     manager = _manager(mocker)
     spec = make_experiment_spec()
     conflicting = spec.model_copy(
@@ -26,6 +37,9 @@ async def test_repeated_attempt_names_are_ignored(mocker: MockerFixture) -> None
         }
     )
 
-    await add_experiment_specs(Specs(specs=[spec, conflicting]), manager)
+    with pytest.raises(HTTPException) as error:
+        await add_experiment_specs(Specs(specs=[spec, conflicting]), manager)
 
-    assert manager.specs == [spec]
+    assert error.value.status_code == 409
+    assert spec.attempt_name in str(error.value.detail)
+    assert manager.specs == []

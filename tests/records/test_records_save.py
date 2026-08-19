@@ -116,7 +116,7 @@ def experiment_instance() -> ExperimentInstance:
         seed=12345,
         time_limit=300,
         num_strikes_allowed=3,
-        components=["Wires"],
+        components=["Wires", "CommunityModule"],
         optional_widgets=1,
         needy_time=60,
     )
@@ -330,21 +330,35 @@ def test_ingest_recorder_parquet_into_duckdb(
     )
     _write_record_parquet(record, record_path)
 
+    loaded = load_player_record_from_parquet(record_path)
+    assert loaded.experiment_instance.attempt_name == experiment_instance.attempt_name
+    assert loaded.experiment_instance.mission_spec.components == ["Wires", "CommunityModule"]
+
     db_path = tmp_path / "test.duckdb"
     ingest_kwargs = {"player_record_paths": [record_path], "db_path": db_path, "max_workers": 1}
     ingest_player_records(**ingest_kwargs)
 
     with duckdb.connect(db_path) as con:
         step_count = con.execute("SELECT COUNT(*) FROM experiment_step").fetchone()
-        meta = con.execute(
-            "SELECT session_id, gptnt_version, num_modules_solved FROM experiment_summary"
-        ).fetchall()
+        summary = con.execute(
+            """SELECT session_id, attempt_name, suite_name, suite_revision, mission_set, modules,
+                      defuser_name, gptnt_version
+               FROM experiment_summary"""
+        ).fetchone()
 
     assert step_count is not None
     assert step_count[0] == 2
-    assert len(meta) == 1
-    assert str(meta[0][0]) == str(experiment_instance.session_id)
-    assert meta[0][1] == record.gptnt_version
+    assert summary is not None
+    assert str(summary[0]) == str(experiment_instance.session_id)
+    assert summary[1:] == (
+        experiment_instance.attempt_name,
+        "test-suite",
+        1,
+        "single_module",
+        ["Wires", "CommunityModule"],
+        "test-defuser",
+        record.gptnt_version,
+    )
 
     # Idempotent: a second ingest of the same file adds nothing.
     ingest_player_records(**ingest_kwargs)

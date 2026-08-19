@@ -69,22 +69,26 @@ def make_experiment_spec(seed: int = 12345) -> ExperimentSpec:
 def make_experiment_instance(spec: ExperimentSpec | None = None) -> ExperimentInstance:
     """A single-player experiment instance."""
     experiment_spec = spec or make_experiment_spec()
+    expert_uuid = None
+    expert_capabilities = None
+    if experiment_spec.expert_name is not None:
+        expert_uuid = uuid4()
+        expert_capabilities = PlayerCapabilities(
+            player_name=experiment_spec.expert_name, player_type="ai"
+        )
+
     return ExperimentInstance.model_validate(
         experiment_spec.model_dump()
         | {
             "session_id": uuid4(),
             "defuser_uuid": uuid4(),
-            "expert_uuid": uuid4() if experiment_spec.expert_name else None,
+            "expert_uuid": expert_uuid,
             "game_uuid": uuid4(),
             "start_time": Instant.now(),
             "defuser_capabilities": PlayerCapabilities(
                 player_name=experiment_spec.defuser_name, player_type="ai"
             ),
-            "expert_capabilities": (
-                PlayerCapabilities(player_name=experiment_spec.expert_name, player_type="ai")
-                if experiment_spec.expert_name
-                else None
-            ),
+            "expert_capabilities": expert_capabilities,
         }
     )
 
@@ -137,20 +141,22 @@ def make_experiment_summary(
         expert_protocol=expert_protocol,
         expert_name=expert_name,
     )
+    expert_uuid = None
+    expert_capabilities = None
+    if expert_name is not None:
+        expert_uuid = uuid4()
+        expert_capabilities = PlayerCapabilities(player_name=expert_name, player_type="ai")
+
     instance = ExperimentInstance.model_validate(
         spec.model_dump()
         | {
             "session_id": uuid4(),
             "defuser_uuid": uuid4(),
-            "expert_uuid": uuid4() if expert_name else None,
+            "expert_uuid": expert_uuid,
             "game_uuid": uuid4(),
             "start_time": Instant.now(),
             "defuser_capabilities": PlayerCapabilities(player_name=defuser_name, player_type="ai"),
-            "expert_capabilities": (
-                PlayerCapabilities(player_name=expert_name, player_type="ai")
-                if expert_name
-                else None
-            ),
+            "expert_capabilities": expert_capabilities,
         }
     )
     return ExperimentSummary.model_validate(

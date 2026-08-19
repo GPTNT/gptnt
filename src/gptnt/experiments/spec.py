@@ -19,9 +19,10 @@ _EXPERIMENT_FINGERPRINT_FIELDS = (
 
 
 class ExperimentSpec(BaseModel):
-    """Specification for a single experiment.
+    """Immutable inputs selected before an experiment is scheduled.
 
-    This contains everything that the Experiment Manager will need to run the experiment.
+    The Experiment Manager binds these inputs to runtime services and resolved player capabilities
+    in an `ExperimentInstance`.
     """
 
     model_config = ConfigDict(frozen=True)

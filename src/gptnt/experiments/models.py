@@ -16,10 +16,10 @@ from pydantic import (
     PlainSerializer,
     ValidationInfo,
     computed_field,
-    field_serializer,
     field_validator,
     model_validator,
 )
+from pydantic.functional_serializers import field_serializer
 from pydantic_ai import ModelMessage, ModelMessagesTypeAdapter, RunUsage
 from whenever import Instant
 
@@ -306,7 +306,7 @@ class ExperimentOutcome(BaseModel):
 
 
 class ExperimentSummary(ExperimentInstance, Provenance, ExperimentOutcome, DuckDBSchemaMixin):  # noqa: WPS215
-    """Experiment-level summary — one per experiment."""
+    """Recorded outcome and provenance for one experiment instance."""
 
     model_config = ConfigDict(populate_by_name=True, frozen=True)
 
@@ -409,6 +409,7 @@ class ExperimentSummary(ExperimentInstance, Provenance, ExperimentOutcome, DuckD
             | {"is_hard_crash": is_hard_crash}
             | provenance
         )
+
 
 class ExperimentRecord(StepRecordsMetricsMixin):
     """Records for an entire experiment."""
