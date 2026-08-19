@@ -16,14 +16,13 @@ def test_fingerprint_ignores_attempt_and_player_names() -> None:
     assert spec.fingerprint == same_experiment.fingerprint
 
 
-def test_fingerprint_tracks_manual_profile_not_player_dimensions() -> None:
-    """The frozen manual changes the experiment; runtime image dimensions do not."""
-    spec = make_experiment_spec()
-    different_manual = spec.model_copy(
+def test_fingerprint_includes_manual_profile_but_not_player_image_dimensions() -> None:
+    """The profile is spec identity; image dimensions are resolved runtime state."""
+    instance = make_experiment_instance()
+    different_manual = instance.model_copy(
         update={"manual_profile": make_manual_profile(document_id="BigButton")}
     )
-    instance = make_experiment_instance(spec)
-    resized_instance = instance.model_copy(
+    different_image_dimensions = instance.model_copy(
         update={
             "defuser_capabilities": instance.defuser_capabilities.model_copy(
                 update={"image_dimensions": (640, 480)}
@@ -31,8 +30,8 @@ def test_fingerprint_tracks_manual_profile_not_player_dimensions() -> None:
         }
     )
 
-    assert spec.fingerprint != different_manual.fingerprint
-    assert spec.fingerprint == instance.fingerprint == resized_instance.fingerprint
+    assert instance.fingerprint != different_manual.fingerprint
+    assert instance.fingerprint == different_image_dimensions.fingerprint
 
 
 def test_fingerprint_is_stable_across_a_serialisation_round_trip() -> None:

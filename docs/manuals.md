@@ -152,8 +152,7 @@ suite:
 
 Changing the defaults entry from `vanilla` to another profile name selects the corresponding YAML
 file under `configs/manual/`. Suite freezing stores that profile in `suites.lock`, and experiment
-generation copies the frozen profile into each generated spec. Changing the live profile or suite
-configuration does not alter specs that have already been generated.
+generation copies the frozen profile into each generated spec.
 
 ## Download and cache source assets
 
