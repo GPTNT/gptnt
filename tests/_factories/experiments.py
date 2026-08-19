@@ -103,7 +103,7 @@ def make_experiment_summary(
     mission_set: str = "multiple_modules_2",
     seed: int = 12345,
 ) -> ExperimentSummary:
-    """A real ExperimentSummary; defaults to a valid, fully-solved multi-module mission."""
+    """An ExperimentSummary defaulting to a valid, fully-solved multi-module mission."""
     is_single_player = expert_name is None
     defuser_protocol = PlayerProtocol(
         role="defuser",
@@ -153,13 +153,15 @@ def make_experiment_summary(
             ),
         }
     )
-    return ExperimentSummary(
-        outcome=outcome,
-        seconds_remaining=seconds_remaining,
-        strike_count=strike_count,
-        num_modules_solved=num_modules_solved,
-        is_hard_crash=is_hard_crash,
-        experiment_instance=instance,
-        gptnt_version="0.1.0",
-        git_sha=None,
+    return ExperimentSummary.model_validate(
+        instance.model_dump(exclude_computed_fields=True)
+        | {
+            "outcome": outcome,
+            "seconds_remaining": seconds_remaining,
+            "strike_count": strike_count,
+            "num_modules_solved": num_modules_solved,
+            "is_hard_crash": is_hard_crash,
+            "gptnt_version": "0.1.0",
+            "git_sha": None,
+        }
     )

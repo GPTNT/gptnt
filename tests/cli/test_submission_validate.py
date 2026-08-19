@@ -162,11 +162,9 @@ def test_duplicate_mission_fails(bundle_copy: Path, capsys: pytest.CaptureFixtur
 def test_unknown_mission_fails(bundle_copy: Path, capsys: pytest.CaptureFixture[str]) -> None:
     experiments = read_typed_parquet(SubmissionExperiment, bundle_copy / "experiments.parquet")
     original = experiments[0]
-    instance = original.experiment_instance
     foreign_seed = 999_999_999
-    foreign_mission = instance.mission_spec.model_copy(update={"seed": foreign_seed})
-    foreign_instance = instance.model_copy(update={"mission_spec": foreign_mission})
-    foreign = original.model_copy(update={"experiment_instance": foreign_instance})
+    foreign_mission = original.mission_spec.model_copy(update={"seed": foreign_seed})
+    foreign = original.model_copy(update={"mission_spec": foreign_mission})
     write_typed_parquet([*experiments[1:], foreign], file_path=bundle_copy / "experiments.parquet")
 
     _assert_validate_fails(bundle_copy)
@@ -278,10 +276,9 @@ def _make_pairwise_experiment(
 ) -> SubmissionExperiment:
     """One valid, solved run of `mission` played by the defuser paired with `expert_name`."""
     experiment = _make_experiment(mission, suite)
-    instance = experiment.experiment_instance
-    paired_instance = instance.model_copy(
+    return experiment.model_copy(
         update={
-            "defuser_protocol": instance.defuser_protocol.model_copy(
+            "defuser_protocol": experiment.defuser_protocol.model_copy(
                 update={"is_playing_alone": False}
             ),
             "expert_name": expert_name,
@@ -295,7 +292,6 @@ def _make_pairwise_experiment(
             "expert_capabilities": PlayerCapabilities(player_name=expert_name, player_type="ai"),
         }
     )
-    return experiment.model_copy(update={"experiment_instance": paired_instance})
 
 
 @pytest.fixture(scope="module")

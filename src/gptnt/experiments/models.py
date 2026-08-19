@@ -16,22 +16,30 @@ from pydantic import (
     PlainSerializer,
     ValidationInfo,
     computed_field,
+    field_serializer,
     field_validator,
     model_validator,
 )
 from pydantic_ai import ModelMessage, ModelMessagesTypeAdapter, RunUsage
+from whenever import Instant
 
 from gptnt.common.logger import monkey_patch_binary_content_repr
 from gptnt.common.provenance import Provenance
 from gptnt.experiments.db.schema import AsBlob, AsJSON, AsVarchar, DuckDBSchemaMixin
 from gptnt.experiments.instance import ExperimentInstance, PlayerContent
 from gptnt.ktane.actions import KtaneBaseAction, KtaneGameplayInput
+from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombOutcome, BombState
 from gptnt.ktane.state.modules import KtaneModuleId
 from gptnt.players.actions import DoNothingAction, PlayerOutputType, SendMessageAction
 from gptnt.players.exceptions import AIResponseErrorType
 from gptnt.players.observation_handler import Observation
-from gptnt.players.specification import CommunicationStyle, PlayerCapabilities, PlayerRole
+from gptnt.players.specification import (
+    CommunicationStyle,
+    PlayerCapabilities,
+    PlayerProtocol,
+    PlayerRole,
+)
 
 logger = structlog.get_logger()
 
@@ -252,10 +260,10 @@ class ExperimentPlayerRecord(Provenance, StepRecordsMetricsMixin):
             raise ValueError("Cannot construct ExperimentPlayerRecord with no step records.")
 
         role = step_records[0].role
-        player_content = summary.experiment_instance.get_player_content_by_role(role)
+        player_content = summary.get_player_content_by_role(role)
 
         return cls(
-            experiment_instance=summary.experiment_instance,
+            experiment_instance=summary,
             player_content=player_content,
             step_records=step_records,
             is_hard_crash=summary.is_hard_crash,
@@ -297,101 +305,49 @@ class ExperimentOutcome(BaseModel):
         return self.outcome in {BombOutcome.timeout, BombOutcome.strikeout, BombOutcome.detonated}
 
 
-class ExperimentSummary(Provenance, ExperimentOutcome, DuckDBSchemaMixin):
+class ExperimentSummary(ExperimentInstance, Provenance, ExperimentOutcome, DuckDBSchemaMixin):  # noqa: WPS215
     """Experiment-level summary — one per experiment."""
 
-    model_config = ConfigDict(populate_by_name=True, frozen=False)
+    model_config = ConfigDict(populate_by_name=True, frozen=True)
 
     is_hard_crash: bool
 
-    experiment_instance: Annotated[ExperimentInstance, AsJSON]
+    mission_spec: Annotated[KtaneMissionSpec, AsJSON]
+    defuser_protocol: Annotated[PlayerProtocol, AsJSON]
+    expert_protocol: Annotated[PlayerProtocol | None, AsJSON]
+    defuser_capabilities: Annotated[PlayerCapabilities, AsJSON]
+    expert_capabilities: Annotated[PlayerCapabilities | None, AsJSON]
 
-    # Any custom tags to describe the experiment
-    tags: list[str] = Field(default_factory=list)
+    @field_serializer("start_time")
+    def serialize_start_time(self, start_time: Instant) -> str:
+        """Serialize the instance start time as an ISO-8601 DuckDB value."""
+        return str(start_time)
 
     @computed_field(alias="name")
     @property
+    @override
     def attempt_name(self) -> str:
         """Name of this experiment attempt."""
-        return self.experiment_instance.attempt_name
-
-    @computed_field
-    @property
-    def session_id(self) -> UUID4:
-        """UUID assigned to this experiment instance."""
-        return self.experiment_instance.session_id
-
-    @computed_field
-    @property
-    def mission_set(self) -> str:
-        """Mission set used by this experiment instance."""
-        return self.experiment_instance.mission_set
-
-    @computed_field
-    @property
-    def suite_name(self) -> str:
-        """Suite containing this experiment instance."""
-        return self.experiment_instance.suite_name
-
-    @computed_field
-    @property
-    def suite_revision(self) -> int:
-        """Revision of the suite containing this experiment instance."""
-        return self.experiment_instance.suite_revision
+        return super().attempt_name
 
     @computed_field
     @property
     def seed(self) -> int:
         """Mission seed used by this experiment instance."""
-        return self.experiment_instance.mission_spec.seed
+        return self.mission_spec.seed
 
     @computed_field
     @property
-    def pairing(self) -> str:
-        """Player pairing used by this experiment instance."""
-        return self.experiment_instance.pairing
-
-    @computed_field(alias="defuser")
-    @property
-    def defuser_name(self) -> str:
-        """Name of the defuser."""
-        return self.experiment_instance.defuser_name
-
-    @computed_field(alias="expert")
-    @property
-    def expert_name(self) -> str | None:
-        """Name of the expert, if configured."""
-        return self.experiment_instance.expert_name
-
-    @computed_field
-    @property
+    @override
     def communication_style(self) -> CommunicationStyle:
         """Communication style used by the players."""
-        return self.experiment_instance.communication_style
-
-    @computed_field
-    @property
-    def attempt(self) -> int:
-        """Attempt number of this experiment instance."""
-        return self.experiment_instance.attempt
+        return super().communication_style
 
     @computed_field
     @property
     def modules(self) -> list[KtaneModuleId]:
         """KTANE modules used by this experiment instance."""
-        return self.experiment_instance.mission_spec.components
-
-    @computed_field
-    @property
-    def defuser_capabilities(self) -> Annotated[PlayerCapabilities, AsJSON]:
-        """Capabilities reported by the defuser service."""
-        return self.experiment_instance.defuser_capabilities
-
-    @computed_field
-    @property
-    def expert_capabilities(self) -> Annotated[PlayerCapabilities | None, AsJSON]:
-        """Capabilities reported by the expert service, if configured."""
-        return self.experiment_instance.expert_capabilities
+        return self.mission_spec.components
 
     @computed_field
     @property
@@ -406,6 +362,28 @@ class ExperimentSummary(Provenance, ExperimentOutcome, DuckDBSchemaMixin):
         if self.expert_capabilities is None:
             return ""
         return self.expert_capabilities.fingerprint
+
+    @computed_field
+    @property
+    def defuser_has_manual(self) -> bool:
+        """True when the defuser player was explicitly given the manual."""
+        return self.defuser_protocol.include_manual
+
+    @computed_field
+    @property
+    def mission_key(self) -> str:
+        """Identity of this experiment's mission (modules + seed), for grouping/seeding."""
+        return self.mission_spec.mission_key
+
+    @property
+    def modules_str(self) -> list[str]:
+        """Module names for display."""
+        return list(self.modules)
+
+    @property
+    def is_valid(self) -> bool:
+        """Whether this is a valid, completed run, decided by the shared `is_valid_outcome`."""
+        return is_valid_outcome(outcome=self.outcome, is_hard_crash=self.is_hard_crash)
 
     @classmethod
     def from_instance_and_bomb_state(
@@ -424,35 +402,13 @@ class ExperimentSummary(Provenance, ExperimentOutcome, DuckDBSchemaMixin):
         provenance: dict[str, Any] = {"git_sha": git_sha}
         if gptnt_version is not None:
             provenance["gptnt_version"] = gptnt_version
-        return cls(
-            **outcome.model_dump(),
-            is_hard_crash=is_hard_crash,
-            experiment_instance=instance,
-            **provenance,
+
+        return cls.model_validate(
+            instance.model_dump(exclude_computed_fields=True)
+            | outcome.model_dump()
+            | {"is_hard_crash": is_hard_crash}
+            | provenance
         )
-
-    @computed_field
-    @property
-    def defuser_has_manual(self) -> bool:
-        """True when the defuser player was given the physical manual."""
-        return self.experiment_instance.defuser_protocol.include_manual
-
-    @property
-    def modules_str(self) -> list[str]:
-        """Module names for display."""
-        return list(self.modules)
-
-    @property
-    def is_valid(self) -> bool:
-        """Whether this is a valid, completed run, decided by the shared `is_valid_outcome`."""
-        return is_valid_outcome(outcome=self.outcome, is_hard_crash=self.is_hard_crash)
-
-    @computed_field
-    @property
-    def mission_key(self) -> str:
-        """Identity of this experiment's mission (modules + seed), for grouping/seeding."""
-        return self.experiment_instance.mission_spec.mission_key
-
 
 class ExperimentRecord(StepRecordsMetricsMixin):
     """Records for an entire experiment."""

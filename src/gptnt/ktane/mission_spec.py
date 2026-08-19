@@ -20,7 +20,7 @@ class KtaneMissionSpec(BaseModel):
     """Configuration for a mission in KTANE."""
 
     model_config = ConfigDict(
-        validate_by_name=True, validate_by_alias=True, serialize_by_alias=True
+        validate_by_name=True, validate_by_alias=True, serialize_by_alias=True, frozen=True
     )
 
     seed: int = Field(ge=0, description="Random seed for mission generation")

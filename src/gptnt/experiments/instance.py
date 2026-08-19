@@ -1,6 +1,6 @@
 from typing import NamedTuple
 
-from pydantic import UUID4, Field
+from pydantic import UUID4, ConfigDict, Field
 from whenever import Instant
 
 from gptnt.experiments.spec import ExperimentSpec
@@ -16,8 +16,10 @@ class PlayerContent(NamedTuple):
     capabilities: PlayerCapabilities
 
 
-class ExperimentInstance(ExperimentSpec, frozen=True):
+class ExperimentInstance(ExperimentSpec):
     """An experiment specification bound to the services executing it."""
+
+    model_config = ConfigDict(frozen=True)
 
     session_id: UUID4
 

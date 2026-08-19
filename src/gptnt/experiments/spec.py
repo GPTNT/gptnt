@@ -2,7 +2,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Self
 
-from pydantic import BaseModel, computed_field, model_validator
+from pydantic import BaseModel, ConfigDict, computed_field, model_validator
 
 from gptnt.common.hashing import stable_digest
 from gptnt.ktane.mission_spec import KtaneMissionSpec
@@ -18,11 +18,13 @@ _EXPERIMENT_FINGERPRINT_FIELDS = (
 )
 
 
-class ExperimentSpec(BaseModel, frozen=True):
+class ExperimentSpec(BaseModel):
     """Specification for a single experiment.
 
     This contains everything that the Experiment Manager will need to run the experiment.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     mission_spec: KtaneMissionSpec
     mission_set: str
