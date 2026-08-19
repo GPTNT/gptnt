@@ -7,10 +7,14 @@ from typing import TYPE_CHECKING
 import pytest
 from pydantic import ValidationError
 
+from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentSummary
+from gptnt.experiments.recorder.parquet import KEY_FOOTER, RecordFooter, footer_from_player_record
 from gptnt.experiments.suite.compose import compose_suite
 from gptnt.experiments.suite.freeze import FreezeReport, FreezeStamp
 from gptnt.experiments.suite.generate import generate_specs
 from gptnt.experiments.suite.lock import MissionEntry, SuiteLock, SuiteNotFrozenError
+
+from tests._factories.experiments import make_experiment_instance, make_solved_bomb
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -143,16 +147,34 @@ def test_lock_roundtrips_through_toml(tmp_path: Path) -> None:
 def test_freeze_reload_and_generate_pins_suite_identity(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The public freeze and generation path has one stable suite and experiment identity."""
+    """The public freeze, generation, object, and record path retains the manual profile."""
     suite = _a_suite()
     lock = FreezeReport.reconcile([suite], None, _STAMP).updated_lock
     path = tmp_path / "suites.lock"
     lock.dump_to_path(path)
     monkeypatch.setattr("gptnt.experiments.suite.lock.default_lock_path", lambda: path)
-    assert SuiteLock.from_lock_path() == lock
+    loaded_lock = SuiteLock.from_lock_path()
+    frozen_suite, _ = loaded_lock.load_suite(suite.name)
+    assert loaded_lock == lock
 
     experiments = generate_specs(["suites=single-solo-player-sync", "players.all=[test-defuser]"])
     experiment = experiments[0]
+    instance = make_experiment_instance(experiment)
+    summary = ExperimentSummary.from_instance_and_bomb_state(
+        instance=instance, final_bomb_state=make_solved_bomb(), is_hard_crash=False
+    )
+    record = ExperimentPlayerRecord(
+        experiment_instance=instance, player_content=instance.defuser, step_records=[]
+    )
+    record_footer = RecordFooter.model_validate_json(footer_from_player_record(record)[KEY_FOOTER])
+
+    assert (
+        frozen_suite.manual_profile
+        == experiment.manual_profile
+        == instance.manual_profile
+        == summary.manual_profile
+        == record_footer.instance.manual_profile
+    )
 
     assert (
         experiment.suite_name,
@@ -163,5 +185,5 @@ def test_freeze_reload_and_generate_pins_suite_identity(
         "single-solo-player-sync",
         1,
         "c3eb87f851b818141f2decb4a9f5bf70",
-        "e4a0c422f1e408ec81a610434270f647",
+        "982f9f41c51f5d3011b0ddea5bc59816",
     )

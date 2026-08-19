@@ -6,6 +6,7 @@ from pydantic import BaseModel, BeforeValidator
 
 from gptnt.experiments.generation.pairing import Pairing
 from gptnt.experiments.spec import ExperimentSpec
+from gptnt.ktane.manuals.profile import ManualProfile
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.specification import PlayerProtocol
 
@@ -17,6 +18,7 @@ class ExperimentGenerator(BaseModel):
     suite_name: str
     suite_revision: int
     suite_digest: str
+    manual_profile: ManualProfile
     defuser_protocol: PlayerProtocol
     expert_protocol: Annotated[
         PlayerProtocol | None, BeforeValidator(lambda expert: expert or None)
@@ -39,6 +41,7 @@ class ExperimentGenerator(BaseModel):
                     suite_name=self.suite_name,
                     suite_revision=self.suite_revision,
                     suite_digest=self.suite_digest,
+                    manual_profile=self.manual_profile,
                     defuser_protocol=self.defuser_protocol,
                     defuser_name=pairing.defuser,
                     expert_protocol=self.expert_protocol,

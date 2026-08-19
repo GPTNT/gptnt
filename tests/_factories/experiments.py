@@ -10,6 +10,7 @@ from whenever import Instant
 from gptnt.experiments.instance import ExperimentInstance
 from gptnt.experiments.models import ExperimentSummary
 from gptnt.experiments.spec import ExperimentSpec
+from gptnt.ktane.manuals.profile import KtaneContentDocument, ManualProfile
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombOutcome, BombState
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
@@ -18,6 +19,14 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from gptnt.players.specification import CommunicationStyle
+
+
+def make_manual_profile(document_id: str = "Wires") -> ManualProfile:
+    """A minimal English manual profile for experiment tests."""
+    return ManualProfile(
+        include_frontmatter=False,
+        documents=(KtaneContentDocument(source="ktanecontent", id=document_id, language="en"),),
+    )
 
 
 def make_solved_bomb() -> BombState:
@@ -58,6 +67,7 @@ def make_experiment_spec(seed: int = 12345) -> ExperimentSpec:
         suite_name="single-parametric-sync",
         suite_revision=1,
         suite_digest="0" * 32,
+        manual_profile=make_manual_profile(),
         defuser_protocol=PlayerProtocol(
             role="defuser", communication_style="sync", is_playing_alone=True, include_manual=False
         ),
@@ -138,6 +148,7 @@ def make_experiment_summary(
         suite_name="single-parametric-sync",
         suite_revision=1,
         suite_digest="0" * 32,
+        manual_profile=make_manual_profile(),
         defuser_protocol=defuser_protocol,
         defuser_name=defuser_name,
         expert_protocol=expert_protocol,

@@ -28,6 +28,7 @@ from gptnt.common.provenance import Provenance
 from gptnt.experiments.db.schema import AsBlob, AsJSON, AsVarchar, DuckDBSchemaMixin
 from gptnt.experiments.instance import ExperimentInstance, PlayerContent
 from gptnt.ktane.actions import KtaneBaseAction, KtaneGameplayInput
+from gptnt.ktane.manuals.profile import ManualProfile
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombOutcome, BombState
 from gptnt.ktane.state.modules import KtaneModuleId
@@ -316,6 +317,7 @@ class ExperimentSummary(ExperimentInstance, Provenance, ExperimentOutcome, DuckD
     is_hard_crash: bool
 
     mission_spec: Annotated[KtaneMissionSpec, AsJSON]
+    manual_profile: Annotated[ManualProfile, AsJSON]
     defuser_protocol: Annotated[PlayerProtocol, AsJSON]
     expert_protocol: Annotated[PlayerProtocol | None, AsJSON]
     defuser_capabilities: Annotated[PlayerCapabilities, AsJSON]

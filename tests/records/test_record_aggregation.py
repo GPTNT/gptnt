@@ -15,6 +15,8 @@ from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.actions import DoNothingAction
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
+from tests._factories.experiments import make_manual_profile
+
 if TYPE_CHECKING:
     from uuid import UUID
 
@@ -33,6 +35,7 @@ def _instance() -> ExperimentInstance:
         suite_name="test-suite",
         suite_revision=1,
         suite_digest="0" * 32,
+        manual_profile=make_manual_profile(),
         defuser_protocol=protocol,
         defuser_name="test-defuser",
         expert_protocol=PlayerProtocol(
