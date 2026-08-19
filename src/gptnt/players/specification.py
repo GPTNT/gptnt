@@ -1,6 +1,6 @@
 from typing import Literal, Self, override
 
-from pydantic import BaseModel, ConfigDict, Field, PositiveInt
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, PositiveInt
 from pydantic.fields import computed_field
 from pydantic.functional_validators import model_validator
 from pydantic_ai.output import StructuredOutputMode
@@ -44,6 +44,7 @@ _CAPABILITY_FINGERPRINT_FIELDS = (
     "coordinate_scale",
     "preserve_last_frame_for_n_turns",
     "enable_nobf_generation",
+    "model_settings",
 )
 
 
@@ -131,6 +132,11 @@ class PlayerCapabilities(BaseModel):
 
     enable_nobf_generation: bool = True
     """Whether to generate Naughty Output Behaviour Feedback for each action."""
+
+    model_settings: dict[str, JsonValue] | None = Field(
+        default=None, exclude_if=lambda settings: settings is None
+    )
+    """Declared model settings included in recorded benchmark identity."""
 
     @model_validator(mode="after")
     def validate_no_duplicate_schema_inclusion(self) -> Self:
