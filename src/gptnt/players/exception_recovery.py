@@ -178,11 +178,7 @@ class GuardrailViolationRecovery(SendMessageRecoveryStrategy[AgentRunError]):
         return AgentCallResult(
             output=model_output,
             thoughts=response.thinking if response is not None else None,  # noqa: WPS504
-            raw_output=(
-                raw_model_output  # noqa: WPS504
-                if raw_model_output is not None
-                else response_raw_output(response)
-            ),
+            raw_output=raw_model_output or response_raw_output(response),
             usage=usage_from_model_responses(new_messages),
             # Do not add a refused prompt to conversation history, or it may be refused again.
             new_messages=[],
@@ -500,11 +496,7 @@ class ReflectionBrokenFormRecovery(SendMessageRecoveryStrategy[InvalidResponseEr
         return AgentCallResult(
             output=model_output,
             thoughts=response.thinking if response is not None else None,  # noqa: WPS504
-            raw_output=(
-                raw_model_output  # noqa: WPS504
-                if raw_model_output is not None
-                else response_raw_output(response)
-            ),
+            raw_output=raw_model_output or response_raw_output(response),
             usage=usage,
             new_messages=new_messages,
             ai_response_error=exception.response_error or [AIResponseErrorType.unknown],
@@ -562,11 +554,7 @@ class ReflectionOverrideRecovery(SendMessageRecoveryStrategy[Any]):
         return AgentCallResult(
             output=model_output,
             thoughts=response.thinking if response is not None else None,  # noqa: WPS504
-            raw_output=(
-                raw_model_output  # noqa: WPS504
-                if raw_model_output is not None
-                else response_raw_output(response)
-            ),
+            raw_output=raw_model_output or response_raw_output(response),
             usage=usage,
             new_messages=new_messages,
             ai_response_error=response_error,
