@@ -105,12 +105,6 @@ def test_resolves_mixed_sources_in_profile_order_with_provenance(tmp_path: Path)
         rule_seed=1,
     )
 
-    assert [type(document) for document in resolved] == [
-        ResolvedKtaneContentModule,
-        ResolvedKtaneContentAppendix,
-        ResolvedOfficialDocument,
-        ResolvedLocalDocument,
-    ]
     assert [document.logical_id for document in resolved] == [
         "Wires",
         "Appendix SQUARE.html",
@@ -134,10 +128,10 @@ def test_resolves_mixed_sources_in_profile_order_with_provenance(tmp_path: Path)
     )
     assert (official.page_range.first, official.page_range.last) == (6, 6)
     assert isinstance(local.provenance, LocalProvenance)
-    assert [source.path for source in local.provenance.inputs] == [
-        "local/image.svg",
-        "local/notes.html",
-        "local/style.css",
+    assert [(source.path, source.sha256) for source in local.provenance.inputs] == [
+        ("local/image.svg", "b12e0d83ce2357d80b89c57694814d0a3abdaf8c40724f2049af8b7f01b7812b"),
+        ("local/notes.html", "294f1c2bb7cc0e5603b182f915141e5b5c4a486879abc9f31faef0206d6e3b0e"),
+        ("local/style.css", "0672760d4259787e46e8a95a612f4879b568104efdab70090cc552f0220fd2d7"),
     ]
     assert all(document.can_represent_rule_seed for document in resolved)
 

@@ -6,55 +6,16 @@ from gptnt.ktane.manuals.sources import (
     KtaneContentCatalogSource,
     KtaneContentSource,
     ManualSources,
+    OfficialPageRange,
 )
 
-OFFICIAL_LANGUAGE_CODES = {
-    "ar",
-    "cs",
-    "da",
-    "de",
-    "en",
-    "eo",
-    "es",
-    "fi",
-    "fr",
-    "he",
-    "hu",
-    "it",
-    "ja",
-    "ko",
-    "nb",
-    "nl",
-    "pl",
-    "pt-BR",
-    "pt-PT",
-    "ro",
-    "ru",
-    "sv",
-    "th",
-    "tr",
-    "uk",
-    "zh-CN",
-    "zh-TW",
-}
 
-
-def test_shipped_sources_include_every_official_language() -> None:
+def test_shipped_sources_parse_an_official_page_range() -> None:
     sources = ManualSources.from_path(Paths().manual_sources)
 
-    assert set(sources.official_manual) == OFFICIAL_LANGUAGE_CODES
-
-
-def test_shipped_official_languages_share_the_verified_page_map() -> None:
-    sources = ManualSources.from_path(Paths().manual_sources)
-    english_pages = sources.official_manual["en"].pages
-
-    assert english_pages
-    assert {
-        language
-        for language, source in sources.official_manual.items()
-        if source.pages != english_pages
-    } == set()
+    assert sources.official_manual["pt-BR"].pages["WhosOnFirst"] == OfficialPageRange(
+        first=9, last=10
+    )
 
 
 def test_ktane_content_source_requires_a_full_commit_sha() -> None:

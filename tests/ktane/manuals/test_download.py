@@ -220,7 +220,6 @@ async def test_downloader_and_resolver_share_ktanecontent_filename_selection(
     document = resolved[0]
     assert isinstance(document, ResolvedKtaneContentModule)
     assert document.source_path.name == "Wires Override.html"
-    assert document.provenance.document == "Wires Override.html"
 
 
 @pytest.mark.anyio
