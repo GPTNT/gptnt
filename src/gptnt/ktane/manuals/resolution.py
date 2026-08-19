@@ -65,14 +65,14 @@ class LocalProvenance:
 class ResolvedKtaneContentModule:
     """Module HTML and JSON metadata selected from a pinned KtaneContent revision."""
 
-    logical_id: str
+    document_id: str
     language: str
     source: Literal["ktanecontent"]
     source_path: Path
     metadata_path: Path
     metadata: KtaneContentModuleMetadata
     provenance: KtaneContentProvenance
-    can_represent_rule_seed: bool
+    supports_requested_rule_seed: bool
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -82,37 +82,37 @@ class ResolvedKtaneContentAppendix:
     Appendices have no module ID and therefore do not require a module JSON file.
     """
 
-    logical_id: str
+    document_id: str
     language: str
     source: Literal["ktanecontent"]
     source_path: Path
     provenance: KtaneContentProvenance
-    can_represent_rule_seed: bool
+    supports_requested_rule_seed: bool
 
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedOfficialDocument:
     """Official manual PDF and configured page interval for one profile document."""
 
-    logical_id: str
+    document_id: str
     language: str
     source: Literal["official"]
     source_path: Path
     page_range: OfficialPageRange
     provenance: OfficialManualProvenance
-    can_represent_rule_seed: bool
+    supports_requested_rule_seed: bool
 
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedLocalDocument:
     """Local HTML and the path and digest of every file in its dependency graph."""
 
-    logical_id: str
+    document_id: str
     language: str
     source: Literal["local"]
     source_path: Path
     provenance: LocalProvenance
-    can_represent_rule_seed: bool
+    supports_requested_rule_seed: bool
 
 
 type ResolvedDocument = (

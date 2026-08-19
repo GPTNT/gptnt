@@ -117,21 +117,21 @@ def _resolve_ktane_content(
 
     if isinstance(document, KtaneContentAppendix):
         return ResolvedKtaneContentAppendix(
-            logical_id=document.document,
+            document_id=document.document,
             language=document.language,
             source="ktanecontent",
             source_path=source_path,
             provenance=KtaneContentProvenance(
                 commit=sources.ktane_content.commit, document=filename
             ),
-            can_represent_rule_seed=True,
+            supports_requested_rule_seed=True,
         )
 
     metadata_document, metadata_path, metadata = _module_metadata(
         catalog, document, repository_dir=repository_dir, entry_name=entry_name
     )
     return ResolvedKtaneContentModule(
-        logical_id=document.id,
+        document_id=document.id,
         language=document.language,
         source="ktanecontent",
         source_path=source_path,
@@ -142,7 +142,7 @@ def _resolve_ktane_content(
             document=filename,
             metadata_document=metadata_document,
         ),
-        can_represent_rule_seed=True,
+        supports_requested_rule_seed=True,
     )
 
 
@@ -175,13 +175,13 @@ def _resolve_official(
         )
 
     return ResolvedOfficialDocument(
-        logical_id=document.id,
+        document_id=document.id,
         language=document.language,
         source="official",
         source_path=source_path,
         page_range=page_range,
         provenance=OfficialManualProvenance(version=source.version, url=str(source.url)),
-        can_represent_rule_seed=True,
+        supports_requested_rule_seed=True,
     )
 
 
@@ -258,12 +258,12 @@ def _resolve_local(
         inputs.append(LocalInputIdentity(path=identity_path, sha256=digest))
 
     return ResolvedLocalDocument(
-        logical_id=document.id or document.path.name,
+        document_id=document.id or document.path.name,
         language=document.language,
         source="local",
         source_path=source_path,
         provenance=LocalProvenance(inputs=tuple(inputs)),
-        can_represent_rule_seed=True,
+        supports_requested_rule_seed=True,
     )
 
 

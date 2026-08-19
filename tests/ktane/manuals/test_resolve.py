@@ -116,7 +116,7 @@ def test_resolves_mixed_sources_in_profile_order_with_provenance(tmp_path: Path)
         rule_seed=1,
     )
 
-    assert [document.logical_id for document in resolved] == [
+    assert [document.document_id for document in resolved] == [
         "Wires",
         "Appendix SQUARE.html",
         "BigButton",
@@ -144,7 +144,7 @@ def test_resolves_mixed_sources_in_profile_order_with_provenance(tmp_path: Path)
         ("local/notes.html", "294f1c2bb7cc0e5603b182f915141e5b5c4a486879abc9f31faef0206d6e3b0e"),
         ("local/style.css", "0672760d4259787e46e8a95a612f4879b568104efdab70090cc552f0220fd2d7"),
     ]
-    assert all(document.can_represent_rule_seed for document in resolved)
+    assert all(document.supports_requested_rule_seed for document in resolved)
 
 
 @pytest.mark.parametrize(
