@@ -30,6 +30,22 @@ type ThinkingMethod = Literal["inner-monologue", "thinking-out-loud"]
 """
 
 
+_CAPABILITY_FINGERPRINT_FIELDS = (
+    "player_name",
+    "player_type",
+    "thinking_method",
+    "structured_output_mode",
+    "include_schema_in_instructions",
+    "max_observations_per_request",
+    "image_dimensions",
+    "tokens_per_image",
+    "interaction_location_method",
+    "coordinate_mode",
+    "preserve_last_frame_for_n_turns",
+    "enable_nobf_generation",
+)
+
+
 class PlayerIdentity(BaseModel):
     """Presentation metadata for a model/player."""
 
@@ -179,11 +195,16 @@ class PlayerCapabilities(BaseModel):
         by its capabilities and not by any other fields that may change over time, or that are not
         relevant.
         """
-        return stable_digest(self.model_dump(mode="json", exclude={"usage_limits"}))
+        return stable_digest(
+            self.model_dump(mode="json", include=set(_CAPABILITY_FINGERPRINT_FIELDS))
+        )
 
     @override
     def __hash__(self) -> int:
-        """Manually provide the hash function."""
+        """Return a hash of the complete capabilities model.
+
+        We do this so that we have can use the LRU cache when loading things.
+        """
         return hash(self.model_dump_json())
 
 

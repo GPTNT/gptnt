@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import override
 from uuid import uuid4
 
 import anyio
@@ -50,10 +49,6 @@ class Session:
     def __post_init__(self) -> None:
         """Initialise the room instance."""
         self.experiment_runner = self._create_runner()
-
-    @override
-    def __hash__(self) -> int:
-        return hash((*self.service_uuids, self.experiment_uuid, hash(self.spec)))
 
     @property
     def name(self) -> str:

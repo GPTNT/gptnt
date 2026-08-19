@@ -34,14 +34,9 @@ class ExperimentManager(ObservableServiceRegistry):
 
     redis_broker: RedisBroker
 
-    specs: set[ExperimentSpec] = field(default_factory=set, init=False)
-    _sessions: set[Session] = field(default_factory=set, init=False, repr=False)
+    specs: list[ExperimentSpec] = field(default_factory=list, init=False)
+    sessions: list[Session] = field(default_factory=list, init=False, repr=False)
     _lifespan_task_group: TaskGroup | None = field(default=None, init=False, repr=False)
-
-    @property
-    def active_sessions(self) -> frozenset[Session]:
-        """Get the currently active sessions."""
-        return frozenset(self._sessions)
 
     @override
     @asynccontextmanager
@@ -83,7 +78,7 @@ class ExperimentManager(ObservableServiceRegistry):
                 redis=self.redis,
                 redis_broker=self.redis_broker,
             )
-            self._sessions.add(session)
+            self.sessions.append(session)
             for uuid in session.service_uuids:
                 self.connected_services[uuid].state = ServiceState.in_experiment
 
@@ -111,14 +106,14 @@ class ExperimentManager(ObservableServiceRegistry):
                 "Trying to match experiments",
                 ready_players=len(ready_players),
                 ready_games=len(ready_games),
-                running_sessions=len(self._sessions),
+                running_sessions=len(self.sessions),
             )
         if not ready_games:
             return  # Need at least one game
 
         # Find possible pairings
         playable_pairings = get_playable_pairings(
-            available_players=ready_players, available_experiments=list(self.specs)
+            available_players=ready_players, available_experiments=self.specs
         )
 
         for pairing in playable_pairings:
@@ -136,7 +131,7 @@ class ExperimentManager(ObservableServiceRegistry):
     async def cleanup_finished_sessions(self) -> None:
         """Check for finished sessions and clean them up."""
         finished_sessions = [
-            session for session in self._sessions if session.state == ExperimentState.done
+            session for session in self.sessions if session.state == ExperimentState.done
         ]
         if not finished_sessions:
             return
@@ -150,8 +145,8 @@ class ExperimentManager(ObservableServiceRegistry):
                     self.completed_experiments_counter.add(1)
                 tg.start_soon(session.cleanup)
 
-        self._sessions.difference_update(finished_sessions)
         for session in finished_sessions:
+            self.sessions.remove(session)
             logger.debug("Room removed from running sessions", experiment=session.name)
 
     @override
@@ -190,7 +185,7 @@ class ExperimentManager(ObservableServiceRegistry):
 
     def _find_session_by_service_uuid(self, service_uuid: UUID4) -> Session | None:
         """Find an experiment by service UUID."""
-        session = iter(exp for exp in self._sessions if service_uuid in exp.service_uuids)
+        session = iter(exp for exp in self.sessions if service_uuid in exp.service_uuids)
         if not (session := next(session, None)):
             return None
         return session
@@ -201,5 +196,5 @@ class ExperimentManager(ObservableServiceRegistry):
         super()._update_all_metrics()
         self.available_experiments_gauge.set(len(self.specs))
         self.running_experiments_gauge.set(
-            len([session for session in self._sessions if session.state < ExperimentState.done])
+            len([session for session in self.sessions if session.state < ExperimentState.done])
         )

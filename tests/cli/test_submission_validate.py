@@ -160,7 +160,16 @@ def test_duplicate_mission_fails(bundle_copy: Path, capsys: pytest.CaptureFixtur
 
 def test_unknown_mission_fails(bundle_copy: Path, capsys: pytest.CaptureFixture[str]) -> None:
     experiments = read_typed_parquet(SubmissionExperiment, bundle_copy / "experiments.parquet")
-    foreign = experiments[0].model_copy(update={"seed": 999_999_999})
+    original = experiments[0]
+    descriptor = original.experiment_descriptor
+    spec = descriptor.experiment_spec
+    foreign_seed = 999_999_999
+    foreign_mission = spec.mission_spec.model_copy(update={"seed": foreign_seed})
+    foreign_spec = spec.model_copy(update={"mission_spec": foreign_mission})
+    foreign_descriptor = descriptor.model_copy(update={"experiment_spec": foreign_spec})
+    foreign = original.model_copy(
+        update={"seed": foreign_seed, "experiment_descriptor": foreign_descriptor}
+    )
     write_typed_parquet([*experiments[1:], foreign], file_path=bundle_copy / "experiments.parquet")
 
     _assert_validate_fails(bundle_copy)

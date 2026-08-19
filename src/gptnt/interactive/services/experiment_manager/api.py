@@ -59,9 +59,13 @@ async def health() -> bool:
 
 @router.post("/add-specs")
 async def add_experiment_specs(specs: Specs, experiment_manager: ExperimentManagerDep) -> None:
-    """Add new experiment specifications."""
+    """Add experiment specifications while keeping the first one for each attempt name."""
     logger.info("Adding new experiment specs", total_specs=len(specs.specs))
-    experiment_manager.specs.update(specs.specs)
+    known_attempts = {spec.attempt_name for spec in experiment_manager.specs}
+    for spec in specs.specs:
+        if spec.attempt_name not in known_attempts:
+            experiment_manager.specs.append(spec)
+            known_attempts.add(spec.attempt_name)
     logger.info("Experiment specs added", total_specs=len(experiment_manager.specs))
 
 
@@ -73,6 +77,6 @@ async def active_experiments(experiment_manager: ExperimentManagerDep) -> Active
     without W&B.
     """
     return ActiveExperiments(
-        running=[session.spec.attempt_name for session in experiment_manager.active_sessions],
+        running=[session.spec.attempt_name for session in experiment_manager.sessions],
         queued=[spec.attempt_name for spec in experiment_manager.specs],
     )

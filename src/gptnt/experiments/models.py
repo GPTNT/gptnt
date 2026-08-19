@@ -26,7 +26,6 @@ from gptnt.common.provenance import Provenance
 from gptnt.experiments.db.schema import AsBlob, AsJSON, AsVarchar, DuckDBSchemaMixin
 from gptnt.experiments.descriptor import ExperimentDescriptor, PlayerContent
 from gptnt.ktane.actions import KtaneBaseAction, KtaneGameplayInput
-from gptnt.ktane.mission_spec import compute_mission_key
 from gptnt.ktane.state.bomb import BombOutcome, BombState
 from gptnt.ktane.state.modules import KtaneModuleId
 from gptnt.players.actions import DoNothingAction, PlayerOutputType, SendMessageAction
@@ -382,18 +381,6 @@ class ExperimentSummary(Provenance, ExperimentOutcome, DuckDBSchemaMixin):
             **provenance,
         )
 
-    @override
-    def __hash__(self) -> int:
-        """Hash on the experiment's full identity: attempt, session, and its player uuids.
-
-        The player uuids matter — same attempt+session but different players are distinct
-        experiments — so identity must include them (read off the descriptor, the SSOT for who
-        played).
-        """
-        return hash(
-            (self.attempt_name, self.session_id, tuple(self.experiment_descriptor.player_uuids))
-        )
-
     @computed_field
     @property
     def defuser_has_manual(self) -> bool:
@@ -413,8 +400,8 @@ class ExperimentSummary(Provenance, ExperimentOutcome, DuckDBSchemaMixin):
     @computed_field
     @property
     def mission_key(self) -> str:
-        """Stable identity of this experiment's mission (modules + seed), for grouping/seeding."""
-        return compute_mission_key(self.modules, self.seed)
+        """Identity of this experiment's mission (modules + seed), for grouping/seeding."""
+        return self.experiment_descriptor.experiment_spec.mission_spec.mission_key
 
 
 class ExperimentRecord(StepRecordsMetricsMixin):
