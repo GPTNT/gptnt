@@ -41,6 +41,7 @@ _CAPABILITY_FINGERPRINT_FIELDS = (
     "tokens_per_image",
     "interaction_location_method",
     "coordinate_mode",
+    "coordinate_scale",
     "preserve_last_frame_for_n_turns",
     "enable_nobf_generation",
 )
@@ -203,7 +204,7 @@ class PlayerCapabilities(BaseModel):
     def __hash__(self) -> int:
         """Return a hash of the complete capabilities model.
 
-        We do this so that we have can use the LRU cache when loading things.
+        We do this so that we can use the LRU cache when loading things.
         """
         return hash(self.model_dump_json())
 
