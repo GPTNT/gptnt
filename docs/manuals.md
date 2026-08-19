@@ -15,8 +15,8 @@ manual. A suite selects one profile through Hydra.
 
 The **source configuration** in `configs/manual/sources.toml` identifies the remote inputs available
 to every profile. It contains a pinned KtaneContent Git commit, the aggregate KtaneContent catalog
-URL, the configured frontmatter, and the version, URL, and module page ranges for supported official
-manual languages.
+URL, the configured frontmatter, and the version, URL, and module page ranges for every configured
+official manual language.
 
 The **manual cache** under `output/manual_cache/` contains downloaded remote inputs and the
 aggregate catalog. Local documents remain at their configured paths after validation.
@@ -129,10 +129,12 @@ The shipped source configuration selects pages 1–4 of the English official man
 frontmatter is enabled but no frontmatter source is configured, resolution stops and names the
 missing frontmatter configuration.
 
-Each official-manual language has its own `pages` table under `official_manual.<language>`. Add or
-update the module ID and inclusive `first` and `last` pages when selecting another official manual
-version. A profile entry cannot use an official module until that language's source owns a page
-range for the module ID. The resolver reports the profile index, language, and missing module map.
+The configured official PDFs currently share the same 23-page layout, verified across all 27
+languages. Each language still owns a `pages` table under `official_manual.<language>` so a later
+translation can use a different layout. When selecting another official manual version, verify and
+update that language's module IDs and inclusive `first` and `last` pages. A profile entry cannot use
+an official module until that language's source owns its page range. The resolver reports the
+profile index, language, and missing module map.
 
 ### Assign a profile to a suite
 

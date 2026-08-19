@@ -45,6 +45,18 @@ def test_shipped_sources_include_every_official_language() -> None:
     assert set(sources.official_manual) == OFFICIAL_LANGUAGE_CODES
 
 
+def test_shipped_official_languages_share_the_verified_page_map() -> None:
+    sources = ManualSources.from_path(Paths().manual_sources)
+    english_pages = sources.official_manual["en"].pages
+
+    assert english_pages
+    assert {
+        language
+        for language, source in sources.official_manual.items()
+        if source.pages != english_pages
+    } == set()
+
+
 def test_ktane_content_source_requires_a_full_commit_sha() -> None:
     with pytest.raises(ValidationError):
         _ = KtaneContentSource(

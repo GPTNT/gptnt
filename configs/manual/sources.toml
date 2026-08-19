@@ -17,20 +17,100 @@ url = "https://ktane.timwi.de/json/raw"
 version = "3-ar"
 url = "https://www.bombmanual.com/ar/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v3-ar.pdf"
 
+[official_manual.ar.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
+
 # Čeština
 [official_manual.cs]
 version = "2-cs"
 url = "https://www.bombmanual.com/cs/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v2-cs.pdf"
+
+[official_manual.cs.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
 
 # Dansk
 [official_manual.da]
 version = "1-da"
 url = "https://www.bombmanual.com/da/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-da.pdf"
 
+[official_manual.da.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
+
 # Deutsch
 [official_manual.de]
 version = "1-de"
 url = "https://www.bombmanual.com/de/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-de.pdf"
+
+[official_manual.de.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
 
 # English
 [official_manual.en]
@@ -62,15 +142,75 @@ PortWidget = {first = 23, last = 23}
 version = "2-eo"
 url = "https://www.bombmanual.com/eo/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v2-eo.pdf"
 
+[official_manual.eo.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
+
 # Español
 [official_manual.es]
 version = "1-es"
 url = "https://www.bombmanual.com/es/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-es.pdf"
 
+[official_manual.es.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
+
 # Suomi
 [official_manual.fi]
 version = "1-fi"
 url = "https://www.bombmanual.com/fi/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-fi.pdf"
+
+[official_manual.fi.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
 
 # Français
 [official_manual.fr]
@@ -78,6 +218,7 @@ version = "1-fr"
 url = "https://www.bombmanual.com/fr/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-fr.pdf"
 
 [official_manual.fr.pages]
+Frontmatter = {first = 1, last = 4}
 Wires = {first = 5, last = 5}
 BigButton = {first = 6, last = 6}
 Keypad = {first = 7, last = 7}
@@ -101,87 +242,447 @@ PortWidget = {first = 23, last = 23}
 version = "2-he"
 url = "https://www.bombmanual.com/he/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v2-he.pdf"
 
+[official_manual.he.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
+
 # Magyar
 [official_manual.hu]
 version = "2-hu"
 url = "https://www.bombmanual.com/hu/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v2-hu.pdf"
+
+[official_manual.hu.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
 
 # Italiano
 [official_manual.it]
 version = "1-it"
 url = "https://www.bombmanual.com/it/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-it.pdf"
 
+[official_manual.it.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
+
 # 日本語
 [official_manual.ja]
 version = "1-ja"
 url = "https://www.bombmanual.com/ja/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-ja.pdf"
+
+[official_manual.ja.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
 
 # 한국어
 [official_manual.ko]
 version = "1-ko"
 url = "https://www.bombmanual.com/ko/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-ko.pdf"
 
+[official_manual.ko.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
+
 # Norsk
 [official_manual.nb]
 version = "2-nb"
 url = "https://www.bombmanual.com/nb/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v2-nb.pdf"
+
+[official_manual.nb.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
 
 # Nederlands
 [official_manual.nl]
 version = "2-nl"
 url = "https://www.bombmanual.com/nl/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v2-nl.pdf"
 
+[official_manual.nl.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
+
 # Polski
 [official_manual.pl]
 version = "2-pl"
 url = "https://www.bombmanual.com/pl/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v2-pl.pdf"
+
+[official_manual.pl.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
 
 # Português-Brasil
 [official_manual.pt-BR]
 version = "2-pt-BR"
 url = "https://www.bombmanual.com/pt-BR/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v2-pt-BR.pdf"
 
+[official_manual.pt-BR.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
+
 # Português-Portugal
 [official_manual.pt-PT]
 version = "3-pt-PT"
 url = "https://www.bombmanual.com/pt-PT/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v3-pt-PT.pdf"
+
+[official_manual.pt-PT.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
 
 # Română
 [official_manual.ro]
 version = "1-ro"
 url = "https://www.bombmanual.com/ro/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-ro.pdf"
 
+[official_manual.ro.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
+
 # Русский
 [official_manual.ru]
 version = "2-ru"
 url = "https://www.bombmanual.com/ru/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v2-ru.pdf"
+
+[official_manual.ru.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
 
 # Svenska
 [official_manual.sv]
 version = "1-sv"
 url = "https://www.bombmanual.com/sv/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-sv.pdf"
 
+[official_manual.sv.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
+
 # Thai (ภาษาไทย)
 [official_manual.th]
 version = "1-th"
 url = "https://www.bombmanual.com/th/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-th.pdf"
+
+[official_manual.th.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
 
 # Türkçe
 [official_manual.tr]
 version = "1-tr"
 url = "https://www.bombmanual.com/tr/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-tr.pdf"
 
+[official_manual.tr.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
+
 # Українська
 [official_manual.uk]
 version = "1-uk"
 url = "https://www.bombmanual.com/uk/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-uk.pdf"
+
+[official_manual.uk.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
 
 # 简体中文
 [official_manual.zh-CN]
 version = "1-zh-CN"
 url = "https://www.bombmanual.com/zh-CN/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-zh-CN.pdf"
 
+[official_manual.zh-CN.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
+
 # 繁體中文
 [official_manual.zh-TW]
 version = "1-zh-TW"
 url = "https://www.bombmanual.com/zh-TW/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-zh-TW.pdf"
+
+[official_manual.zh-TW.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
