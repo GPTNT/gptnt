@@ -155,6 +155,7 @@ def test_resolves_mixed_sources_in_profile_order_with_provenance(tmp_path: Path)
         ("unsupported_rule_seed", r"documents\[0\].*rule seed 2 is unsupported"),
         ("incompatible_language", r"documents\[0\].*language 'fr'.*language 'en'"),
         ("missing_local_dependency", r"documents\[0\].*missing\.css.*is missing"),
+        ("escaping_local_dependency", r"documents\[0\].*escapes the configured source root"),
     ],
 )
 def test_resolution_policy_reports_the_profile_entry(
@@ -183,8 +184,11 @@ def test_resolution_policy_reports_the_profile_entry(
     elif policy == "incompatible_language":
         _write(tmp_path / "local.html", "local")
         profile = _profile({"source": "local", "path": "local.html", "language": "fr"})
-    else:
+    elif policy == "missing_local_dependency":
         _write(tmp_path / "local.html", '<link rel="stylesheet" href="missing.css">')
+        profile = _profile({"source": "local", "path": "local.html", "language": "en"})
+    else:
+        _write(tmp_path / "local.html", '<link rel="stylesheet" href="/%2e%2e/outside.css">')
         profile = _profile({"source": "local", "path": "local.html", "language": "en"})
 
     with pytest.raises(ManualResolutionError, match=match):

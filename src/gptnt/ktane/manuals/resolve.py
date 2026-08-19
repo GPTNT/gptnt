@@ -192,16 +192,25 @@ def _direct_local_dependencies(source: Path, *, root_dir: Path, entry_name: str)
     profile input, so a missing file is reported against the profile entry.
     """
     dependencies: set[Path] = set()
+    references = _assets.extract_references_from_file(source)
 
-    for reference in _assets.extract_references_from_file(source):
-        dependency = _assets.resolve_local_reference(source, reference, root_dir=root_dir)
-        if dependency is None:
-            continue
+    # Resolve references as one block so path-boundary errors gain profile context without adding
+    # exception handling to each loop iteration.
+    try:
+        for reference in references:
+            dependency = _assets.resolve_local_reference(source, reference, root_dir=root_dir)
+            if dependency is not None:
+                dependencies.add(dependency)
+    except ValueError as error:
+        raise ManualResolutionError(f"{entry_name}: {error}") from error
+
+    # Missing resolved files are a separate profile-policy failure from references that leave the
+    # configured source root.
+    for dependency in dependencies:
         if not dependency.is_file():
             raise ManualResolutionError(
                 f"{entry_name}: local dependency {dependency} referenced by {source} is missing"
             )
-        dependencies.add(dependency)
 
     return dependencies
 
