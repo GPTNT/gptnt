@@ -29,7 +29,7 @@ from gptnt.players.actions import DoNothingAction
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cli_runner import CliResult, invoke_cli
-from tests._factories.experiments import make_experiment_spec, make_solved_bomb
+from tests._factories.experiments import make_experiment_spec, make_provenance, make_solved_bomb
 from tests._factories.statics import write_statics_run
 
 if TYPE_CHECKING:
@@ -116,6 +116,7 @@ def _write_record(
             player_content=player,
             step_records=_steps(instance, player),
             is_hard_crash=False,
+            **make_provenance().model_dump(),
         )
         write_player_record_parquet(
             blobbed_steps=[blob_step(each) for each in record.step_records],

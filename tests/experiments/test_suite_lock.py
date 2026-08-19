@@ -14,7 +14,11 @@ from gptnt.experiments.suite.freeze import FreezeReport, FreezeStamp
 from gptnt.experiments.suite.generate import generate_specs
 from gptnt.experiments.suite.lock import MissionEntry, SuiteLock, SuiteNotFrozenError
 
-from tests._factories.experiments import make_experiment_instance, make_solved_bomb
+from tests._factories.experiments import (
+    make_experiment_instance,
+    make_provenance,
+    make_solved_bomb,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -160,11 +164,18 @@ def test_freeze_reload_and_generate_pins_suite_identity(
     experiments = generate_specs(["suites=single-solo-player-sync", "players.all=[test-defuser]"])
     experiment = experiments[0]
     instance = make_experiment_instance(experiment)
+    provenance = make_provenance()
     summary = ExperimentSummary.from_instance_and_bomb_state(
-        instance=instance, final_bomb_state=make_solved_bomb(), is_hard_crash=False
+        instance=instance,
+        final_bomb_state=make_solved_bomb(),
+        is_hard_crash=False,
+        provenance=provenance,
     )
     record = ExperimentPlayerRecord(
-        experiment_instance=instance, player_content=instance.defuser, step_records=[]
+        experiment_instance=instance,
+        player_content=instance.defuser,
+        step_records=[],
+        **provenance.model_dump(),
     )
     record_footer = RecordFooter.model_validate_json(footer_from_player_record(record)[KEY_FOOTER])
 

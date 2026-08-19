@@ -28,6 +28,7 @@ from gptnt.players.result import AgentCallResult
 from gptnt.players.specification import PlayerProtocol
 from gptnt.prompts.manual import load_manual_as_prompt
 from gptnt.prompts.prompt_cache import PromptCache
+from gptnt.provenance import Provenance
 
 logger = structlog.get_logger()
 
@@ -45,6 +46,7 @@ PlayerCommand = Literal[
 class _ConfigureExperimentPayload(BaseModel):
     protocol: PlayerProtocol
     experiment_instance: ExperimentInstance
+    provenance: Provenance
 
 
 @dataclass(kw_only=True)
@@ -127,6 +129,7 @@ class PlayerService(PlayerAgent, BaseRPCService[PlayerCommand]):
             experiment_instance=self.experiment_instance,
             protocol=self.protocol,
             player_uuid=self.uuid,
+            provenance=data.provenance,
         )
 
         self.conversation = Conversation.begin(

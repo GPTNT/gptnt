@@ -14,6 +14,7 @@ from gptnt.ktane.manuals.profile import KtaneContentDocument, ManualProfile
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombOutcome, BombState
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.provenance import Provenance
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -49,6 +50,16 @@ def make_solved_bomb() -> BombState:
             "widgets": [],
             "modules": [],
         }
+    )
+
+
+def make_provenance() -> Provenance:
+    """Synthetic release provenance for tests that construct stored records."""
+    return Provenance(
+        gptnt_version="2.0.0",
+        release_commit="a1b2c3d4",
+        release_tag="v0.15.0",
+        protected_content_modified=False,
     )
 
 
@@ -180,7 +191,6 @@ def make_experiment_summary(
             "strike_count": strike_count,
             "num_modules_solved": num_modules_solved,
             "is_hard_crash": is_hard_crash,
-            "gptnt_version": "0.1.0",
-            "git_sha": None,
+            **make_provenance().model_dump(),
         }
     )

@@ -13,6 +13,7 @@ from gptnt.interactive.services.experiment_manager.experiment_runner import (
 from gptnt.ktane.state.bomb import BombOutcome
 
 from tests._cli_runner import invoke_cli
+from tests._factories.experiments import make_provenance
 from tests._harness.records import wait_for_record_footers, wait_for_recorded_outcome
 
 if TYPE_CHECKING:
@@ -41,7 +42,12 @@ async def test_services_register_and_matchmake(
     assembled: AssembledExperiment, mocker: MockerFixture
 ) -> None:
     """EM + game + 2 players register over fake Redis; a submitted spec is matched to a session."""
-    # Mock the experiment run itself — this test only covers assembly + registration + matchmaking.
+    # Keep this matchmaking test independent of the checkout's release tag.
+    _ = mocker.patch(
+        "gptnt.provenance.model.check_benchmark_integrity", return_value=make_provenance()
+    )
+
+    # Mock the experiment run itself because this test ends at session matchmaking.
     _ = mocker.patch(
         "gptnt.interactive.services.experiment_manager.session.Session.run", autospec=True
     )

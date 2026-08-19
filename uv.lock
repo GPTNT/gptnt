@@ -1232,6 +1232,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-ai" },
     { name = "pydantic-settings" },
+    { name = "pygit2" },
     { name = "rich" },
     { name = "scikit-image" },
     { name = "sentence-transformers" },
@@ -1246,7 +1247,6 @@ dependencies = [
 
 [package.optional-dependencies]
 submission = [
-    { name = "pygit2" },
     { name = "pygithub" },
 ]
 wandb = [
@@ -1327,7 +1327,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.10.6" },
     { name = "pydantic-ai", specifier = ">=2,<3" },
     { name = "pydantic-settings", specifier = ">=2.11.0" },
-    { name = "pygit2", marker = "extra == 'submission'", specifier = ">=1.19.3" },
+    { name = "pygit2", specifier = ">=1.19.3" },
     { name = "pygithub", marker = "extra == 'submission'", specifier = ">=2.9.1" },
     { name = "rich", specifier = ">=13.9.4" },
     { name = "scikit-image", specifier = ">=0.25.2" },

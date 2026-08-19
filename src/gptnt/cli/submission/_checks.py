@@ -34,8 +34,8 @@ from gptnt.cli.submission._schema import (
     SubmissionPairingKey,
     describe_pairing,
 )
-from gptnt.common.provenance import is_dirty_sha, is_valid_version
 from gptnt.experiments.db.typed_parquet import read_typed_parquet
+from gptnt.provenance import Provenance, is_valid_version
 
 if TYPE_CHECKING:
     from gptnt.experiments.suite.lock import SuiteLockEntry
@@ -79,13 +79,28 @@ class LoadedBundle:
         return [CheckResult.passed("submitter", f"{submitter.name} ({submitter.contact})")]
 
     def check_provenance(self) -> list[CheckResult]:
-        """Provenance is present; hygiene issues (dirty tree, unpinned dataset) only warn."""
         provenance = self.manifest.provenance
         findings = [
             _check_gptnt_version(provenance.gptnt_version),
-            _check_git_sha(provenance.git_sha),
+            CheckResult.passed("release_commit", provenance.release_commit),
         ]
-        if isinstance(self.bundle, StaticsBundle):
+        if isinstance(self.bundle, InteractiveBundle):
+            manifest_provenance = provenance.model_dump()
+            mismatched_rows = [
+                index
+                for index, experiment in enumerate(self.bundle.experiments)
+                if experiment.model_dump(include=set(Provenance.model_fields))
+                != manifest_provenance
+            ]
+            if mismatched_rows:
+                findings.append(
+                    CheckResult.failed(
+                        "provenance",
+                        f"payload rows {mismatched_rows} do not match submission.yaml",
+                        hint=REBUILD_HINT,
+                    )
+                )
+        else:
             findings.append(_check_dataset_pin(self.bundle.manifest.measured))
         return findings
 
@@ -367,16 +382,6 @@ def _check_gptnt_version(version: str) -> CheckResult:
         return CheckResult.passed("gptnt_version", version)
     detail = f"{version!r} is not a valid version" if version.strip() else "missing"
     return CheckResult.failed("gptnt_version", detail, hint=REBUILD_HINT)
-
-
-def _check_git_sha(git_sha: str | None) -> CheckResult:
-    if git_sha is None:
-        return CheckResult.warned("git_sha", "not recorded (git unavailable at run time)")
-    if is_dirty_sha(git_sha):
-        return CheckResult.warned(
-            "git_sha", f"{git_sha} — the tree had uncommitted changes at run time"
-        )
-    return CheckResult.passed("git_sha", git_sha)
 
 
 def _check_dataset_pin(statics: StaticsIdentity) -> CheckResult:

@@ -15,6 +15,7 @@ from gptnt.experiments.recorder.parquet import (
     read_record_footer,
     read_session_id_from_parquet,
 )
+from gptnt.provenance import Provenance
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -71,13 +72,24 @@ def extract_metadata_from_paths(paths: list[Path]) -> DumpedExperimentMetadata:
     )
     assert final_bomb_state is not None, "No bomb state found in any of the provided files"
 
+    canonical_path = paths[0]
     canonical = footers[0]
+    canonical_provenance = Provenance.model_validate(canonical.model_dump())
+
+    # Both player files belong to one output set and must carry the same capture snapshot.
+    for record_path, peer_footer in zip(paths[1:], footers[1:], strict=True):
+        footer_provenance = Provenance.model_validate(peer_footer.model_dump())
+        if footer_provenance != canonical_provenance:
+            raise ValueError(
+                "Conflicting provenance in grouped experiment files "
+                f"{canonical_path} and {record_path}"
+            )
+
     return ExperimentSummary.from_instance_and_bomb_state(
         instance=canonical.instance,
         final_bomb_state=final_bomb_state,
         is_hard_crash=any(footer.is_hard_crash for footer in footers),
-        gptnt_version=canonical.gptnt_version,
-        git_sha=canonical.git_sha,
+        provenance=canonical_provenance,
     ).model_dump(context={"mode": EXPORT_CONTEXT_MARKER})
 
 

@@ -8,10 +8,10 @@ from whenever import Instant
 from gptnt.cli.checks.render import render_report
 from gptnt.cli.checks.result import CheckResult
 from gptnt.cli.config_discovery import discover_suites
-from gptnt.common.provenance import git_sha, gptnt_version
 from gptnt.experiments.suite.compose import compose_suite
 from gptnt.experiments.suite.freeze import FreezeReport, FreezeStamp, SuiteFreezeOutcome
 from gptnt.experiments.suite.lock import SuiteLock, SuiteNotFrozenError
+from gptnt.provenance import git_sha, gptnt_version
 
 console = Console()
 

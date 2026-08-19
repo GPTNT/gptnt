@@ -13,6 +13,7 @@ from gptnt.interactive.services.rpc import BaseRPCClient
 from gptnt.interactive.services.timeouts import ServiceTimeouts
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.specification import PlayerProtocol
+from gptnt.provenance import Provenance
 
 logger = structlog.get_logger()
 
@@ -43,12 +44,17 @@ class PlayerClient(BaseRPCClient):
 
     @logfire.instrument("Configure player ({player_protocol.role})")
     async def configure_player(
-        self, *, player_protocol: PlayerProtocol, experiment_instance: ExperimentInstance
+        self,
+        *,
+        player_protocol: PlayerProtocol,
+        experiment_instance: ExperimentInstance,
+        provenance: Provenance,
     ) -> bool:
         """Configure the player with the given protocol."""
         payload = {
             "protocol": player_protocol.model_dump(mode="json"),
             "experiment_instance": experiment_instance.model_dump(mode="json"),
+            "provenance": provenance.model_dump(mode="json"),
         }
         return await self._send_command("configure_for_experiment", payload)
 

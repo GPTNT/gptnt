@@ -30,9 +30,9 @@ from gptnt.cli.submission._schema import (
     Submitter,
     parse_submission_manifest,
 )
-from gptnt.common.provenance import Provenance
 from gptnt.experiments.db.typed_parquet import read_typed_parquet, write_typed_parquet
 from gptnt.experiments.suite.core import SuiteIdentity
+from gptnt.provenance import Provenance
 from gptnt.statics.run_metadata import StaticsRunMetadata
 
 if TYPE_CHECKING:
@@ -148,6 +148,15 @@ class InteractiveBundle(SubmissionBundle[InteractiveSubmission]):
     ) -> Self:
         """Bundle one model's experiments for one frozen suite."""
         canonical = experiments[0]
+        canonical_provenance = canonical.model_dump(include=set(Provenance.model_fields))
+
+        # One manifest cannot describe rows captured from different benchmark states.
+        if any(
+            experiment.model_dump(include=set(Provenance.model_fields)) != canonical_provenance
+            for experiment in experiments[1:]
+        ):
+            raise ValueError("Cannot bundle experiments with conflicting provenance")
+
         measured = SuiteIdentity.from_suite(suite)
         run_date = min(experiment.start_time for experiment in experiments)
         defuser = SubmissionPlayer.for_role("defuser", canonical.defuser_capabilities)
@@ -169,9 +178,7 @@ class InteractiveBundle(SubmissionBundle[InteractiveSubmission]):
                     for capabilities in _collect_distinct_experts(experiments)
                 ),
             ],
-            provenance=Provenance(
-                gptnt_version=canonical.gptnt_version, git_sha=canonical.git_sha
-            ),
+            provenance=Provenance.model_validate(canonical_provenance),
             run_date=run_date,
         )
         return cls(manifest=manifest, experiments=experiments)
