@@ -1,5 +1,3 @@
-from typing import override
-
 from httpx import QueryParams
 from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator
 
@@ -22,7 +20,7 @@ class KtaneMissionSpec(BaseModel):
     """Configuration for a mission in KTANE."""
 
     model_config = ConfigDict(
-        validate_by_name=True, validate_by_alias=True, serialize_by_alias=True
+        validate_by_name=True, validate_by_alias=True, serialize_by_alias=True, frozen=True
     )
 
     seed: int = Field(ge=0, description="Random seed for mission generation")
@@ -109,22 +107,6 @@ class KtaneMissionSpec(BaseModel):
         specification_dict = self.model_dump(by_alias=True)
         specification_dict["components"] = (",".join(specification_dict["components"]),)
         return QueryParams(specification_dict)
-
-    @override
-    def __hash__(self) -> int:
-        return hash(
-            (
-                self.seed,
-                self.time_limit,
-                self.num_strikes_allowed,
-                tuple(self.components),
-                self.optional_widgets,
-                self.needy_time,
-                self.force_modules_to_front,
-                self.time_scale,
-                self.time_step_size,
-            )
-        )
 
 
 class KtaneMissionConfig(KtaneMissionSpec):

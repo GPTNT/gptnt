@@ -1,19 +1,32 @@
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Self, override
+from typing import Self
 
-from pydantic import BaseModel, computed_field, model_validator
+from pydantic import BaseModel, ConfigDict, computed_field, model_validator
 
 from gptnt.common.hashing import stable_digest
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.specification import CommunicationStyle, PlayerProtocol, PlayerRole
 
+_EXPERIMENT_FINGERPRINT_FIELDS = (
+    "mission_spec",
+    "mission_set",
+    "suite_name",
+    "suite_revision",
+    "defuser_protocol",
+    "expert_protocol",
+)
 
-class ExperimentSpec(BaseModel, frozen=True):
-    """Specification for a single experiment.
 
-    This contains everything that the Experiment Manager will need to run the experiment.
+class ExperimentSpec(BaseModel):
+    """The mission and player setup for one experiment attempt.
+
+    A spec says which suite mission to run, which player protocols and model names to use, and
+    which attempt this is. It does not contain runtime service identities, resolved capabilities,
+    or the result.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     mission_spec: KtaneMissionSpec
     mission_set: str
@@ -51,17 +64,13 @@ class ExperimentSpec(BaseModel, frozen=True):
     @computed_field
     @property
     def fingerprint(self) -> str:
-        """Stable fingerprint for experiment spec.
+        """Identify experiments that use the same mission, suite revision, and player protocols.
 
-        This makes it easier to compare experiments across players to see what is and isn't the
-        same. Importantly, we need to exclude the attempt, the defuser name, and the expert name,
-        because those are not part of the experiment itself. We also exclude `fingerprint` itself,
-        since it is a computed field that `model_dump` would otherwise recurse into.
+        The attempt number and player names are excluded because changing them does not change what
+        the experiment measures.
         """
         return stable_digest(
-            self.model_dump(
-                mode="json", exclude={"attempt", "defuser_name", "expert_name", "fingerprint"}
-            )
+            self.model_dump(mode="json", include=set(_EXPERIMENT_FINGERPRINT_FIELDS))
         )
 
     @property
@@ -115,18 +124,6 @@ class ExperimentSpec(BaseModel, frozen=True):
             self.expert_protocol.receive_feedback_after_action if self.expert_protocol else False
         )
         return defuser_wants_feedback or expert_wants_feedback
-
-    @override
-    def __hash__(self) -> int:
-        return hash(
-            (
-                self.mission_spec,
-                self.pairing,
-                self.mission_set,
-                self.communication_style,
-                self.attempt,
-            )
-        )
 
     def get_player_protocol(self, role: PlayerRole) -> PlayerProtocol | None:
         """Get the player protocol for the given role."""

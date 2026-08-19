@@ -49,10 +49,10 @@ async def test_services_register_and_matchmake(
     await assembled.wait_until_ready(timeout=8)
 
     spec = assembled.build_spec()
-    assembled.experiment_manager.specs.add(spec)
+    assembled.experiment_manager.specs.append(spec)
     await assembled.experiment_manager.try_match_experiments()
 
-    sessions = assembled.experiment_manager.active_sessions
+    sessions = assembled.experiment_manager.sessions
     assert len(sessions) == 1, "matchmaking did not create a session"
     session = next(iter(sessions))
     assert session.spec == spec
@@ -194,13 +194,13 @@ async def test_player_crash_midrun(
     answers the stop and its record saves too; a truly unrecoverable player is a separate case.
     """
     spec = assembled.build_spec(communication_style="async")
-    assembled.experiment_manager.specs.add(spec)
+    assembled.experiment_manager.specs.append(spec)
 
     # Wait until the run is matched, running, and the defuser has acted once (so it has a step).
     session = None
     with anyio.fail_after(20):
         while True:
-            sessions = assembled.experiment_manager.active_sessions
+            sessions = assembled.experiment_manager.sessions
             session = next(iter(sessions)) if sessions else None
             if (
                 session is not None

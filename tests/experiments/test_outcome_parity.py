@@ -23,7 +23,7 @@ from gptnt.ktane.state.bomb import BombOutcome, BombState
 from gptnt.players.actions import DoNothingAction
 from gptnt.players.specification import PlayerCapabilities
 
-from tests._factories.experiments import make_experiment_descriptor
+from tests._factories.experiments import make_experiment_instance
 
 # Names retired by the convergence — must never reappear as summary columns or logged metrics.
 _RETIRED_NAMES = frozenset(
@@ -94,9 +94,9 @@ def test_outcome_and_validity_parity(
     bomb: BombState, is_hard_crash: bool, expected_valid: bool
 ) -> None:
     """The DB summary, the W&B run summary, and both validity checks all agree per outcome."""
-    descriptor = make_experiment_descriptor()
-    summary = ExperimentSummary.from_descriptor_and_bomb_state(
-        descriptor=descriptor, final_bomb_state=bomb, is_hard_crash=is_hard_crash
+    instance = make_experiment_instance()
+    summary = ExperimentSummary.from_instance_and_bomb_state(
+        instance=instance, final_bomb_state=bomb, is_hard_crash=is_hard_crash
     )
 
     # The DuckDB summary carries every outcome field under the same name and value.
@@ -127,22 +127,22 @@ def test_outcome_field_names_are_shared_and_drift_free() -> None:
 
 def test_wandb_recorder_logs_canonical_outcome_names() -> None:
     """The W&B recorder logs the outcome under the canonical names, not the old drifting ones."""
-    descriptor = make_experiment_descriptor()
+    instance = make_experiment_instance()
     bomb = _bomb(solved=False, detonated=True, seconds=0)
 
     recorder = WandbExperimentPlayerRecorder(
         capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai")
     )
-    recorder.experiment_descriptor = descriptor
-    recorder.protocol = descriptor.experiment_spec.defuser_protocol
-    recorder.player_uuid = descriptor.defuser_uuid
+    recorder.experiment_instance = instance
+    recorder.protocol = instance.defuser_protocol
+    recorder.player_uuid = instance.defuser_uuid
     recorder.step_records = [
         ExperimentStep(
             step=1,
             timestamp=1.0,
             role="defuser",
-            session_id=descriptor.session_id,
-            player_uuid=descriptor.defuser_uuid,
+            session_id=instance.session_id,
+            player_uuid=instance.defuser_uuid,
             player_name="test-defuser",
             output=DoNothingAction(),
             raw_output="DoNothing",

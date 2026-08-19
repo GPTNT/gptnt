@@ -4,7 +4,7 @@ from typing import Any, override
 import logfire
 import structlog
 
-from gptnt.experiments.descriptor import ExperimentDescriptor
+from gptnt.experiments.instance import ExperimentInstance
 from gptnt.interactive.services.game.client import GameClient
 from gptnt.interactive.services.player.message_handler import IncomingMessageHandler
 from gptnt.ktane.actions import KtaneGameplayInput
@@ -29,18 +29,14 @@ class ActionDispatcher(BaseActionDispatcher):
 
     @override
     def configure_for_experiment(
-        self,
-        *,
-        protocol: PlayerProtocol,
-        experiment_descriptor: ExperimentDescriptor,
-        **kwargs: Any,
+        self, *, protocol: PlayerProtocol, experiment_instance: ExperimentInstance, **kwargs: Any
     ) -> None:
         """Configure for experiment and set up Redis channels."""
         super().configure_for_experiment(protocol=protocol)
         self.incoming_message_handler.configure_for_experiment(
-            experiment_descriptor=experiment_descriptor, my_role=protocol.role
+            experiment_instance=experiment_instance, my_role=protocol.role
         )
-        self.game_client.game_uuid = experiment_descriptor.game_uuid
+        self.game_client.game_uuid = experiment_instance.game_uuid
 
     @override
     @logfire.instrument("Send dialogue message")

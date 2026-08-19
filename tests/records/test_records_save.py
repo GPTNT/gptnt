@@ -10,7 +10,7 @@ from pytest_cases import fixture
 from whenever import Instant
 
 from gptnt.experiments.db.ingest import ingest_player_records
-from gptnt.experiments.descriptor import ExperimentDescriptor, PlayerContent
+from gptnt.experiments.instance import ExperimentInstance, PlayerContent
 from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep
 from gptnt.experiments.recorder.local import ExperimentPlayerRecorder
 from gptnt.experiments.recorder.parquet import (
@@ -110,13 +110,13 @@ def player_content() -> PlayerContent:
 
 
 @fixture
-def experiment_descriptor() -> ExperimentDescriptor:
-    """Create a minimal experiment descriptor."""
+def experiment_instance() -> ExperimentInstance:
+    """Create a minimal experiment instance."""
     mission_spec = KtaneMissionSpec(
         seed=12345,
         time_limit=300,
         num_strikes_allowed=3,
-        components=["Wires"],
+        components=["Wires", "CommunityModule"],
         optional_widgets=1,
         needy_time=60,
     )
@@ -133,21 +133,25 @@ def experiment_descriptor() -> ExperimentDescriptor:
         expert_name=None,
     )
 
-    return ExperimentDescriptor(
-        experiment_spec=experiment_spec,
-        session_id=uuid4(),
-        defuser_uuid=uuid4(),
-        expert_uuid=None,
-        game_uuid=uuid4(),
-        start_time=Instant.now(),
-        defuser_capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai"),
-        expert_capabilities=None,
+    return ExperimentInstance.model_validate(
+        experiment_spec.model_dump()
+        | {
+            "session_id": uuid4(),
+            "defuser_uuid": uuid4(),
+            "expert_uuid": None,
+            "game_uuid": uuid4(),
+            "start_time": Instant.now(),
+            "defuser_capabilities": PlayerCapabilities(
+                player_name="test-defuser", player_type="ai"
+            ),
+            "expert_capabilities": None,
+        }
     )
 
 
 @fixture
 def step_record(
-    experiment_descriptor: ExperimentDescriptor,
+    experiment_instance: ExperimentInstance,
     player_content: PlayerContent,
     simple_model_messages: list[ModelMessage],
     bomb_state: BombState,
@@ -158,7 +162,7 @@ def step_record(
         step=1,
         timestamp=1.0,
         role="defuser",
-        session_id=experiment_descriptor.session_id,
+        session_id=experiment_instance.session_id,
         player_uuid=player_content.uuid,
         player_name=player_content.name,
         output=DoNothingAction(),
@@ -176,14 +180,14 @@ def step_record(
 
 
 def _build_player_record(
-    descriptor: ExperimentDescriptor, content: PlayerContent, step: ExperimentStep
+    instance: ExperimentInstance, content: PlayerContent, step: ExperimentStep
 ) -> ExperimentPlayerRecord:
     # The recorder stamps every step with the player's own uuid; mirror that so the footer's
     # player_uuid matches the step rows (the basis for ingest idempotency).
     step1 = step.model_copy(update={"player_uuid": content.uuid})
     step2 = step1.model_copy(update={"step": 2, "timestamp": 2.0, "thoughts": "Second step"})
     return ExperimentPlayerRecord(
-        experiment_descriptor=descriptor,
+        experiment_instance=instance,
         player_content=content,
         step_records=[step1, step2],
         is_hard_crash=False,
@@ -193,12 +197,12 @@ def _build_player_record(
 @pytest.mark.anyio
 async def test_recorder_saves_parquet_roundtrips(
     tmp_path: Path,
-    experiment_descriptor: ExperimentDescriptor,
+    experiment_instance: ExperimentInstance,
     player_content: PlayerContent,
     step_record: ExperimentStep,
 ) -> None:
     """The real recorder method writes a parquet file that round-trips back to the same record."""
-    player_record = _build_player_record(experiment_descriptor, player_content, step_record)
+    player_record = _build_player_record(experiment_instance, player_content, step_record)
 
     recorder = ExperimentPlayerRecorder(
         capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai")
@@ -207,7 +211,7 @@ async def test_recorder_saves_parquet_roundtrips(
     await recorder.save_player_record_to_disk(player_record=player_record)
 
     output_path = (
-        tmp_path / f"experiment-{experiment_descriptor.name}-{player_content.uuid}.parquet"
+        tmp_path / f"experiment-{experiment_instance.attempt_name}-{player_content.uuid}.parquet"
     )
     assert output_path.exists()
 
@@ -235,12 +239,12 @@ async def test_recorder_saves_parquet_roundtrips(
 
 def test_record_footer_rejects_unknown_format_version(
     tmp_path: Path,
-    experiment_descriptor: ExperimentDescriptor,
+    experiment_instance: ExperimentInstance,
     player_content: PlayerContent,
     step_record: ExperimentStep,
 ) -> None:
     """An unknown footer format_version fails loudly rather than silently mis-parsing."""
-    record = _build_player_record(experiment_descriptor, player_content, step_record)
+    record = _build_player_record(experiment_instance, player_content, step_record)
     footer = footer_from_player_record(record)
     footer[KEY_FORMAT_VERSION] = b"this-is-not-a-known-version"
 
@@ -257,11 +261,11 @@ def test_record_footer_rejects_unknown_format_version(
 
 @pytest.mark.anyio
 async def test_recorder_skips_empty_record(
-    tmp_path: Path, experiment_descriptor: ExperimentDescriptor, player_content: PlayerContent
+    tmp_path: Path, experiment_instance: ExperimentInstance, player_content: PlayerContent
 ) -> None:
     """A record with no steps writes nothing (no empty parquet file)."""
     empty_record = ExperimentPlayerRecord(
-        experiment_descriptor=experiment_descriptor,
+        experiment_instance=experiment_instance,
         player_content=player_content,
         step_records=[],
         is_hard_crash=False,
@@ -278,7 +282,7 @@ async def test_recorder_skips_empty_record(
 
 @pytest.mark.anyio
 async def test_recorder_uses_shared_origin_and_supplied_dispatch_timestamp(
-    experiment_descriptor: ExperimentDescriptor,
+    experiment_instance: ExperimentInstance,
     player_content: PlayerContent,
     simple_model_messages: list[ModelMessage],
 ) -> None:
@@ -287,15 +291,15 @@ async def test_recorder_uses_shared_origin_and_supplied_dispatch_timestamp(
 
     for recorder in (first, second):
         await recorder.configure_for_experiment(
-            experiment_descriptor=experiment_descriptor,
+            experiment_instance=experiment_instance,
             protocol=player_content.protocol,
             player_uuid=player_content.uuid,
         )
 
-    assert first.start_time == second.start_time == experiment_descriptor.start_time
+    assert first.start_time == second.start_time == experiment_instance.start_time
 
     first.track_step(
-        event_time=experiment_descriptor.start_time.add(seconds=2.75),
+        event_time=experiment_instance.start_time.add(seconds=2.75),
         agent_call_result=AgentCallResult(
             output=DoNothingAction(), thoughts=None, usage=RunUsage(), new_messages=[]
         ),
@@ -315,14 +319,20 @@ def _write_record_parquet(record: ExperimentPlayerRecord, path: Path) -> None:
 
 
 def test_ingest_recorder_parquet_into_duckdb(
-    tmp_path: Path, experiment_descriptor: ExperimentDescriptor, step_record: ExperimentStep
+    tmp_path: Path, experiment_instance: ExperimentInstance, step_record: ExperimentStep
 ) -> None:
     """Recorder parquet merges straight into DuckDB; metadata comes from the footer; idempotent."""
-    # Derive the player from the descriptor (as the recorder does) so identity keys line up.
-    content = experiment_descriptor.get_player_content_by_role("defuser")
-    record = _build_player_record(experiment_descriptor, content, step_record)
-    record_path = tmp_path / f"experiment-{experiment_descriptor.name}-{content.uuid}.parquet"
+    # Derive the player from the instance (as the recorder does) so identity keys line up.
+    content = experiment_instance.get_player_content_by_role("defuser")
+    record = _build_player_record(experiment_instance, content, step_record)
+    record_path = (
+        tmp_path / f"experiment-{experiment_instance.attempt_name}-{content.uuid}.parquet"
+    )
     _write_record_parquet(record, record_path)
+
+    loaded = load_player_record_from_parquet(record_path)
+    assert loaded.experiment_instance.attempt_name == experiment_instance.attempt_name
+    assert loaded.experiment_instance.mission_spec.components == ["Wires", "CommunityModule"]
 
     db_path = tmp_path / "test.duckdb"
     ingest_kwargs = {"player_record_paths": [record_path], "db_path": db_path, "max_workers": 1}
@@ -330,15 +340,25 @@ def test_ingest_recorder_parquet_into_duckdb(
 
     with duckdb.connect(db_path) as con:
         step_count = con.execute("SELECT COUNT(*) FROM experiment_step").fetchone()
-        meta = con.execute(
-            "SELECT session_id, gptnt_version, num_modules_solved FROM experiment_summary"
-        ).fetchall()
+        summary = con.execute(
+            """SELECT session_id, attempt_name, suite_name, suite_revision, mission_set, modules,
+                      defuser_name, gptnt_version
+               FROM experiment_summary"""
+        ).fetchone()
 
     assert step_count is not None
     assert step_count[0] == 2
-    assert len(meta) == 1
-    assert str(meta[0][0]) == str(experiment_descriptor.session_id)
-    assert meta[0][1] == record.gptnt_version
+    assert summary is not None
+    assert str(summary[0]) == str(experiment_instance.session_id)
+    assert summary[1:] == (
+        experiment_instance.attempt_name,
+        "test-suite",
+        1,
+        "single_module",
+        ["Wires", "CommunityModule"],
+        "test-defuser",
+        record.gptnt_version,
+    )
 
     # Idempotent: a second ingest of the same file adds nothing.
     ingest_player_records(**ingest_kwargs)

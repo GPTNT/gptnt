@@ -76,18 +76,27 @@ def render_player_cards(experiment_record: ExperimentRecord) -> None:
         None,
     )
 
-    spec = experiment_record.experiment_descriptor.experiment_spec
-    if spec.expert_name and spec.expert_protocol:
+    instance = experiment_record.experiment_instance
+    if instance.expert_name and instance.expert_protocol:
         cols = st.columns(2)
         with cols[0]:
             render_player_card(
-                spec.defuser_name, spec.defuser_protocol, "Defuser", reflection=defuser_reflection
+                instance.defuser_name,
+                instance.defuser_protocol,
+                "Defuser",
+                reflection=defuser_reflection,
             )
         with cols[1]:
             render_player_card(
-                spec.expert_name, spec.expert_protocol, "Expert", reflection=expert_reflection
+                instance.expert_name,
+                instance.expert_protocol,
+                "Expert",
+                reflection=expert_reflection,
             )
     else:
         render_player_card(
-            spec.defuser_name, spec.defuser_protocol, "Defuser", reflection=defuser_reflection
+            instance.defuser_name,
+            instance.defuser_protocol,
+            "Defuser",
+            reflection=defuser_reflection,
         )

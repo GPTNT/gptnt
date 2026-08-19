@@ -240,17 +240,18 @@ def parse_experiment_outputs_from_directory(
 ) -> set[tuple[str, str, Path]]:
     """Scan for experiment output files and extract (attempt_name, player_uuid, path) tuples.
 
-    Identity comes from each file's footer (`descriptor.name` + the role's player uuid), the same
-    footer-based identity the rest of the system uses — independent of the filename, so a renamed
-    file still matches its W&B run. The footer is parsed once per file and both values read off it.
+    Identity comes from each file's footer (`instance.attempt_name` + the role's player UUID), the
+    same footer-based identity the rest of the system uses — independent of the filename, so a
+    renamed file still matches its W&B run. The footer is parsed once per file and both values read
+    off it.
     """
     experiments_to_check: set[tuple[str, str, Path]] = set()
     for path in progress.track(
         list(directory.rglob("experiment-*.parquet")), description="Scanning output files"
     ):
         footer = read_record_footer(path)
-        attempt_name = footer.descriptor.name
-        player_uuid = str(footer.descriptor.get_player_content_by_role(footer.role).uuid)
+        attempt_name = footer.instance.attempt_name
+        player_uuid = str(footer.instance.get_player_content_by_role(footer.role).uuid)
         experiments_to_check.add((attempt_name, player_uuid, path))
     return experiments_to_check
 

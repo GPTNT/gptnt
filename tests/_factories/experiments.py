@@ -1,4 +1,4 @@
-"""Factories for experiment-shaped test objects (descriptors, specs, summaries)."""
+"""Factories for experiment specs, instances, and summaries."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from whenever import Instant
 
-from gptnt.experiments.descriptor import ExperimentDescriptor
+from gptnt.experiments.instance import ExperimentInstance
 from gptnt.experiments.models import ExperimentSummary
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
@@ -66,17 +66,30 @@ def make_experiment_spec(seed: int = 12345) -> ExperimentSpec:
     )
 
 
-def make_experiment_descriptor(spec: ExperimentSpec | None = None) -> ExperimentDescriptor:
-    """A real single-player ExperimentDescriptor (no expert)."""
-    return ExperimentDescriptor(
-        experiment_spec=spec or make_experiment_spec(),
-        session_id=uuid4(),
-        defuser_uuid=uuid4(),
-        expert_uuid=None,
-        game_uuid=uuid4(),
-        start_time=Instant.now(),
-        defuser_capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai"),
-        expert_capabilities=None,
+def make_experiment_instance(spec: ExperimentSpec | None = None) -> ExperimentInstance:
+    """A single-player experiment instance."""
+    experiment_spec = spec or make_experiment_spec()
+    expert_uuid = None
+    expert_capabilities = None
+    if experiment_spec.expert_name is not None:
+        expert_uuid = uuid4()
+        expert_capabilities = PlayerCapabilities(
+            player_name=experiment_spec.expert_name, player_type="ai"
+        )
+
+    return ExperimentInstance.model_validate(
+        experiment_spec.model_dump()
+        | {
+            "session_id": uuid4(),
+            "defuser_uuid": uuid4(),
+            "expert_uuid": expert_uuid,
+            "game_uuid": uuid4(),
+            "start_time": Instant.now(),
+            "defuser_capabilities": PlayerCapabilities(
+                player_name=experiment_spec.defuser_name, player_type="ai"
+            ),
+            "expert_capabilities": expert_capabilities,
+        }
     )
 
 
@@ -94,27 +107,67 @@ def make_experiment_summary(
     mission_set: str = "multiple_modules_2",
     seed: int = 12345,
 ) -> ExperimentSummary:
-    """A real ExperimentSummary; defaults to a valid, fully-solved multi-module mission."""
-    descriptor = make_experiment_descriptor()
-    return ExperimentSummary(
-        attempt_name=f"{mission_set}_{defuser_name}_{seed}",
-        session_id=descriptor.session_id,
-        mission_set=mission_set,
-        seed=seed,
-        pairing=f"(defuser={defuser_name})",
-        defuser_name=defuser_name,
-        expert_name=expert_name,
+    """An ExperimentSummary defaulting to a valid, fully-solved multi-module mission."""
+    is_single_player = expert_name is None
+    defuser_protocol = PlayerProtocol(
+        role="defuser",
         communication_style=communication_style,
-        attempt=1,
-        modules=list(modules),
-        outcome=outcome,
-        seconds_remaining=seconds_remaining,
-        strike_count=strike_count,
-        num_modules_solved=num_modules_solved,
-        is_hard_crash=is_hard_crash,
-        experiment_descriptor=descriptor,
-        defuser_capabilities=descriptor.defuser_capabilities,
-        expert_capabilities=None,
-        gptnt_version="0.1.0",
-        git_sha=None,
+        is_playing_alone=is_single_player,
+        include_manual=False,
+    )
+    expert_protocol = (
+        None
+        if expert_name is None
+        else PlayerProtocol(
+            role="expert",
+            communication_style=communication_style,
+            is_playing_alone=False,
+            include_manual=True,
+        )
+    )
+    spec = ExperimentSpec(
+        mission_spec=KtaneMissionSpec(
+            seed=seed,
+            time_limit=300,
+            num_strikes_allowed=3,
+            components=list(modules),
+            optional_widgets=1,
+        ),
+        mission_set=mission_set,
+        suite_name="single-parametric-sync",
+        suite_revision=1,
+        defuser_protocol=defuser_protocol,
+        defuser_name=defuser_name,
+        expert_protocol=expert_protocol,
+        expert_name=expert_name,
+    )
+    expert_uuid = None
+    expert_capabilities = None
+    if expert_name is not None:
+        expert_uuid = uuid4()
+        expert_capabilities = PlayerCapabilities(player_name=expert_name, player_type="ai")
+
+    instance = ExperimentInstance.model_validate(
+        spec.model_dump()
+        | {
+            "session_id": uuid4(),
+            "defuser_uuid": uuid4(),
+            "expert_uuid": expert_uuid,
+            "game_uuid": uuid4(),
+            "start_time": Instant.now(),
+            "defuser_capabilities": PlayerCapabilities(player_name=defuser_name, player_type="ai"),
+            "expert_capabilities": expert_capabilities,
+        }
+    )
+    return ExperimentSummary.model_validate(
+        instance.model_dump(exclude_computed_fields=True)
+        | {
+            "outcome": outcome,
+            "seconds_remaining": seconds_remaining,
+            "strike_count": strike_count,
+            "num_modules_solved": num_modules_solved,
+            "is_hard_crash": is_hard_crash,
+            "gptnt_version": "0.1.0",
+            "git_sha": None,
+        }
     )

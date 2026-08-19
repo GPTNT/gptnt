@@ -13,7 +13,7 @@ from gptnt.experiments.recorder.parquet import (
 )
 from gptnt.ktane.state.bomb import BombState
 
-from tests._factories.experiments import make_experiment_descriptor, make_experiment_spec
+from tests._factories.experiments import make_experiment_instance, make_experiment_spec
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -45,7 +45,7 @@ def _completed_bomb_state() -> BombState:
 def _write_completed(output_dir: Path, *, seed: int, is_hard_crash: bool = False) -> str:
     """Write a recorded output that reached a final (completed) bomb state.
 
-    Returns the attempt name the ledger will key off (read from the footer's descriptor).
+    Returns the attempt name the ledger will key off from the footer's instance.
     """
     return _write(
         output_dir, seed=seed, final_bomb_state=_completed_bomb_state(), crash=is_hard_crash
@@ -60,20 +60,17 @@ def _write_never_completed(output_dir: Path, *, seed: int) -> str:
 def _write(output_dir: Path, *, seed: int, final_bomb_state: BombState | None, crash: bool) -> str:
     """Write a parquet record whose footer carries the attempt name and outcome the ledger reads.
 
-    The seed makes each descriptor's `attempt_name` distinct; the filename intentionally does *not*
+    The seed makes each instance's `attempt_name` distinct; the filename intentionally does *not*
     encode it, so these tests prove the ledger keys off the footer, not the filename.
     """
-    descriptor = make_experiment_descriptor(make_experiment_spec(seed=seed))
+    instance = make_experiment_instance(make_experiment_spec(seed=seed))
     footer_model = RecordFooter(
-        descriptor=descriptor,
-        final_bomb_state=final_bomb_state,
-        is_hard_crash=crash,
-        role="defuser",
+        instance=instance, final_bomb_state=final_bomb_state, is_hard_crash=crash, role="defuser"
     )
     footer = build_footer(footer_model, player_uuid=str(uuid4()))
     path = output_dir / f"experiment-{uuid4()}.parquet"
     write_player_record_parquet(blobbed_steps=[], footer=footer, output_path=path)
-    return descriptor.name
+    return instance.attempt_name
 
 
 def test_status_for_classifies_each_outcome(tmp_path: Path) -> None:

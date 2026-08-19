@@ -5,7 +5,7 @@ from faststream.redis import RedisBroker
 from faststream.redis.subscriber.usecases import ChannelSubscriber
 from pydantic import UUID4
 
-from gptnt.experiments.descriptor import ExperimentDescriptor
+from gptnt.experiments.instance import ExperimentInstance
 from gptnt.players.actions import NO_NEW_MESSAGES_SENTINEL
 from gptnt.players.specification import PlayerRole
 
@@ -33,15 +33,15 @@ class IncomingMessageHandler:
     _unpulled_feedback: list[str] = field(default_factory=list, init=False)
 
     def configure_for_experiment(
-        self, *, experiment_descriptor: ExperimentDescriptor, my_role: PlayerRole
+        self, *, experiment_instance: ExperimentInstance, my_role: PlayerRole
     ) -> None:
         """Configure the message handler for a specific experiment.
 
         Args:
-            experiment_descriptor: The experiment configuration
+            experiment_instance: The running experiment
             my_role: This player's role ('defuser' or 'expert')
         """
-        self.session_id = experiment_descriptor.session_id
+        self.session_id = experiment_instance.session_id
         self.my_role = my_role
         self.other_role = "expert" if my_role == "defuser" else "defuser"
 

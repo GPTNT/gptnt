@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import shutil
 from typing import TYPE_CHECKING, Any
+from uuid import uuid4
 
 import pytest
 import yaml
@@ -30,11 +31,11 @@ from gptnt.experiments.db.typed_parquet import read_typed_parquet, write_typed_p
 from gptnt.experiments.generation.missions import load_missions
 from gptnt.experiments.models import ExperimentSummary
 from gptnt.experiments.suite.compose import compose_suite
-from gptnt.players.specification import PlayerCapabilities
+from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cli_runner import invoke_cli
 from tests._factories.experiments import (
-    make_experiment_descriptor,
+    make_experiment_instance,
     make_experiment_spec,
     make_solved_bomb,
 )
@@ -59,8 +60,8 @@ def _make_experiment(mission: KtaneMissionSpec, suite: Suite) -> SubmissionExper
             "suite_revision": suite.revision,
         }
     )
-    summary = ExperimentSummary.from_descriptor_and_bomb_state(
-        descriptor=make_experiment_descriptor(spec),
+    summary = ExperimentSummary.from_instance_and_bomb_state(
+        instance=make_experiment_instance(spec),
         final_bomb_state=make_solved_bomb(),
         is_hard_crash=False,
         gptnt_version="0.15.0",
@@ -160,7 +161,10 @@ def test_duplicate_mission_fails(bundle_copy: Path, capsys: pytest.CaptureFixtur
 
 def test_unknown_mission_fails(bundle_copy: Path, capsys: pytest.CaptureFixture[str]) -> None:
     experiments = read_typed_parquet(SubmissionExperiment, bundle_copy / "experiments.parquet")
-    foreign = experiments[0].model_copy(update={"seed": 999_999_999})
+    original = experiments[0]
+    foreign_seed = 999_999_999
+    foreign_mission = original.mission_spec.model_copy(update={"seed": foreign_seed})
+    foreign = original.model_copy(update={"mission_spec": foreign_mission})
     write_typed_parquet([*experiments[1:], foreign], file_path=bundle_copy / "experiments.parquet")
 
     _assert_validate_fails(bundle_copy)
@@ -271,9 +275,20 @@ def _make_pairwise_experiment(
     mission: KtaneMissionSpec, suite: Suite, expert_name: str
 ) -> SubmissionExperiment:
     """One valid, solved run of `mission` played by the defuser paired with `expert_name`."""
-    return _make_experiment(mission, suite).model_copy(
+    experiment = _make_experiment(mission, suite)
+    return experiment.model_copy(
         update={
+            "defuser_protocol": experiment.defuser_protocol.model_copy(
+                update={"is_playing_alone": False}
+            ),
             "expert_name": expert_name,
+            "expert_protocol": PlayerProtocol(
+                role="expert",
+                communication_style="sync",
+                is_playing_alone=False,
+                include_manual=True,
+            ),
+            "expert_uuid": uuid4(),
             "expert_capabilities": PlayerCapabilities(player_name=expert_name, player_type="ai"),
         }
     )

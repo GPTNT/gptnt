@@ -2,7 +2,7 @@
 
 One `experiment-{name}-{uuid}.parquet` file per player: step records are the rows (in the
 `mode="db"` representation, so they merge straight into DuckDB), and the experiment-level facts —
-descriptor, final bomb state, provenance, crash flag, role — live in the parquet footer as a single
+instance, final bomb state, provenance, crash flag, role — live in the parquet footer as a single
 validated `RecordFooter` model. A few flat scalar keys (`session_id`, `player_uuid`,
 `format_version`) sit alongside it so identity/version reads don't have to parse the whole footer.
 """
@@ -17,7 +17,7 @@ from pydantic import ConfigDict
 
 from gptnt.common.provenance import Provenance
 from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER, arrow_schema_for
-from gptnt.experiments.descriptor import ExperimentDescriptor  # noqa: TC001
+from gptnt.experiments.instance import ExperimentInstance  # noqa: TC001
 from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep
 from gptnt.ktane.state.bomb import BombState  # noqa: TC001
 from gptnt.players.specification import PlayerRole  # noqa: TC001
@@ -33,7 +33,7 @@ KEY_FORMAT_VERSION = b"format_version"
 KEY_SESSION_ID = b"session_id"  # flat, for cheap identity reads (idempotency / grouping)
 KEY_PLAYER_UUID = b"player_uuid"
 
-FORMAT_VERSION = b"2"
+FORMAT_VERSION = b"3"
 _ROW_GROUP_SIZE = 64
 
 _STEP_SCHEMA = arrow_schema_for(ExperimentStep)
@@ -47,7 +47,7 @@ class RecordFooter(Provenance):
 
     model_config = ConfigDict(frozen=True)
 
-    descriptor: ExperimentDescriptor
+    instance: ExperimentInstance
     final_bomb_state: BombState | None
     is_hard_crash: bool
     role: PlayerRole
@@ -58,7 +58,7 @@ def build_footer(footer: RecordFooter, *, player_uuid: str) -> dict[bytes, bytes
     return {
         KEY_FOOTER: footer.model_dump_json().encode(),
         KEY_FORMAT_VERSION: FORMAT_VERSION,
-        KEY_SESSION_ID: str(footer.descriptor.session_id).encode(),
+        KEY_SESSION_ID: str(footer.instance.session_id).encode(),
         KEY_PLAYER_UUID: player_uuid.encode(),
     }
 
@@ -66,7 +66,7 @@ def build_footer(footer: RecordFooter, *, player_uuid: str) -> dict[bytes, bytes
 def footer_from_player_record(record: ExperimentPlayerRecord) -> dict[bytes, bytes]:
     """Build the footer KV directly from a (rebuilt) player record."""
     footer = RecordFooter(
-        descriptor=record.experiment_descriptor,
+        instance=record.experiment_instance,
         final_bomb_state=record.final_bomb_state,
         is_hard_crash=record.is_hard_crash,
         role=record.role,
@@ -135,7 +135,7 @@ def read_session_id_from_parquet(path: Path) -> str:
 
 
 def load_player_record_from_parquet(path: Path) -> ExperimentPlayerRecord:
-    """Reconstruct a full ExperimentPlayerRecord (steps + descriptor + provenance) from parquet."""
+    """Reconstruct a full player record from its steps, instance, and provenance."""
     footer = read_record_footer(path)
 
     table = pq.read_table(path)
@@ -146,9 +146,9 @@ def load_player_record_from_parquet(path: Path) -> ExperimentPlayerRecord:
     if not steps:
         raise ValueError(f"Parquet record has no step rows: {path}")
 
-    player_content = footer.descriptor.get_player_content_by_role(steps[0].role)
+    player_content = footer.instance.get_player_content_by_role(steps[0].role)
     return ExperimentPlayerRecord(
-        experiment_descriptor=footer.descriptor,
+        experiment_instance=footer.instance,
         player_content=player_content,
         step_records=steps,
         is_hard_crash=footer.is_hard_crash,
