@@ -19,10 +19,11 @@ _EXPERIMENT_FINGERPRINT_FIELDS = (
 
 
 class ExperimentSpec(BaseModel):
-    """Immutable inputs selected before an experiment is scheduled.
+    """The mission and player setup for one experiment attempt.
 
-    The Experiment Manager binds these inputs to runtime services and resolved player capabilities
-    in an `ExperimentInstance`.
+    A spec says which suite mission to run, which player protocols and model names to use, and
+    which attempt this is. It does not contain runtime service identities, resolved capabilities,
+    or the result.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -63,11 +64,10 @@ class ExperimentSpec(BaseModel):
     @computed_field
     @property
     def fingerprint(self) -> str:
-        """Stable fingerprint for experiment spec.
+        """Identify experiments that use the same mission, suite revision, and player protocols.
 
-        This makes it easier to compare experiments across players to see what is and isn't the
-        same. Attempt and player names are assignments, rather than part of the measured condition.
-        An explicit projection keeps this meaning stable if the specification gains other fields.
+        The attempt number and player names are excluded because changing them does not change what
+        the experiment measures.
         """
         return stable_digest(
             self.model_dump(mode="json", include=set(_EXPERIMENT_FINGERPRINT_FIELDS))

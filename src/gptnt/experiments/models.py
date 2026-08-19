@@ -306,7 +306,10 @@ class ExperimentOutcome(BaseModel):
 
 
 class ExperimentSummary(ExperimentInstance, Provenance, ExperimentOutcome, DuckDBSchemaMixin):  # noqa: WPS215
-    """Recorded outcome and provenance for one experiment instance."""
+    """The recorded result of one experiment execution.
+
+    It combines the experiment instance with its provenance, bomb outcome, and crash state.
+    """
 
     model_config = ConfigDict(populate_by_name=True, frozen=True)
 
