@@ -50,6 +50,7 @@ def generate_specs(overrides: list[str] | None = None) -> list[ExperimentSpec]:
         suite_name=entry.name,
         suite_revision=entry.revision,
         suite_digest=entry.suite_digest,
+        manual_build=suite.manual_build,
         defuser_protocol=suite.defuser_protocol,
         expert_protocol=suite.expert_protocol,
         attempts_per_mission=cfg.attempts_per_mission,

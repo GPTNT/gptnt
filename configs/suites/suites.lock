@@ -112,6 +112,135 @@ id = "PortWidget"
 language = "en"
 
 [[suite]]
+name = "multi-self-async"
+revision = 2
+suite_digest = "42c45efae796b024f6588ecce37f40a1"
+frozen_at = "2026-08-19T13:02:15.637998Z"
+gptnt_version = "1.1.2.dev27+e9a4a560"
+git_sha = "e9a4a560520336dc78e3b079e992d83f61d7d6a9-dirty"
+mission_keys = ["1028|Keypad,Maze,Password,WireSequence", "110|Keypad,Maze,Wires", "286|Memory,Password,WhosOnFirst", "337|BigButton,Simon,Venn", "412|Keypad,Simon,WhosOnFirst", "526|Maze,Memory,Wires", "619|BigButton,Memory,WhosOnFirst", "798|BigButton,Keypad,Memory,Wires", "851|Keypad,Simon,WhosOnFirst,Wires", "990|Morse,Venn,WhosOnFirst,Wires"]
+
+[suite.config]
+name = "multi-self-async"
+revision = 2
+modality = ["language", "vision"]
+missions_path = "configs/missions/multiple_module_n"
+
+[suite.config.defuser_protocol]
+role = "defuser"
+communication_style = "async"
+is_playing_alone = false
+include_manual = false
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = true
+
+[suite.config.expert_protocol]
+role = "expert"
+communication_style = "async"
+is_playing_alone = false
+include_manual = true
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = true
+
+[suite.config.matchup]
+pairing_type = "with_self"
+
+[suite.config.manual_build]
+language = "en"
+rule_seed = 1
+compiler_schema = "gptnt.manual.v1"
+
+[suite.config.manual_build.profile]
+include_frontmatter = false
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Wires"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "BigButton"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Keypad"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Simon"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "WhosOnFirst"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Memory"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Morse"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Venn"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "WireSequence"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Maze"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Password"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "IndicatorWidget"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "BatteryWidget"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "PortWidget"
+language = "en"
+
+[suite.config.manual_build.sources]
+version = 1
+frontmatter = []
+
+[suite.config.manual_build.sources.ktane_content]
+repository = "https://github.com/Timwi/KtaneContent.git"
+commit = "137cc181b37038ccefeddcb095b402aab8dff5de"
+
+[suite.config.manual_build.sources.ktane_content.catalog]
+url = "https://ktane.timwi.de/json/raw"
+
+[suite.config.manual_build.sources.official_manual]
+
+[[suite]]
 name = "multi-self-sync"
 revision = 1
 suite_digest = "06154c6a709d8db1746828bec71c6a47"
@@ -221,6 +350,135 @@ language = "en"
 source = "ktanecontent"
 id = "PortWidget"
 language = "en"
+
+[[suite]]
+name = "multi-self-sync"
+revision = 2
+suite_digest = "d5d442e563db069ef8b851a8e73d2bc8"
+frozen_at = "2026-08-19T13:02:15.637998Z"
+gptnt_version = "1.1.2.dev27+e9a4a560"
+git_sha = "e9a4a560520336dc78e3b079e992d83f61d7d6a9-dirty"
+mission_keys = ["1028|Keypad,Maze,Password,WireSequence", "110|Keypad,Maze,Wires", "286|Memory,Password,WhosOnFirst", "337|BigButton,Simon,Venn", "412|Keypad,Simon,WhosOnFirst", "526|Maze,Memory,Wires", "619|BigButton,Memory,WhosOnFirst", "798|BigButton,Keypad,Memory,Wires", "851|Keypad,Simon,WhosOnFirst,Wires", "990|Morse,Venn,WhosOnFirst,Wires"]
+
+[suite.config]
+name = "multi-self-sync"
+revision = 2
+modality = ["language", "vision"]
+missions_path = "configs/missions/multiple_module_n"
+
+[suite.config.defuser_protocol]
+role = "defuser"
+communication_style = "sync"
+is_playing_alone = false
+include_manual = false
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = true
+
+[suite.config.expert_protocol]
+role = "expert"
+communication_style = "sync"
+is_playing_alone = false
+include_manual = true
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = true
+
+[suite.config.matchup]
+pairing_type = "with_self"
+
+[suite.config.manual_build]
+language = "en"
+rule_seed = 1
+compiler_schema = "gptnt.manual.v1"
+
+[suite.config.manual_build.profile]
+include_frontmatter = false
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Wires"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "BigButton"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Keypad"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Simon"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "WhosOnFirst"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Memory"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Morse"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Venn"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "WireSequence"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Maze"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Password"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "IndicatorWidget"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "BatteryWidget"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "PortWidget"
+language = "en"
+
+[suite.config.manual_build.sources]
+version = 1
+frontmatter = []
+
+[suite.config.manual_build.sources.ktane_content]
+repository = "https://github.com/Timwi/KtaneContent.git"
+commit = "137cc181b37038ccefeddcb095b402aab8dff5de"
+
+[suite.config.manual_build.sources.ktane_content.catalog]
+url = "https://ktane.timwi.de/json/raw"
+
+[suite.config.manual_build.sources.official_manual]
 
 [[suite]]
 name = "single-pairwise-sync"
@@ -334,6 +592,135 @@ id = "PortWidget"
 language = "en"
 
 [[suite]]
+name = "single-pairwise-sync"
+revision = 2
+suite_digest = "97dec111a605984a6a8ec78b9bf2ec0b"
+frozen_at = "2026-08-19T13:02:15.637998Z"
+gptnt_version = "1.1.2.dev27+e9a4a560"
+git_sha = "e9a4a560520336dc78e3b079e992d83f61d7d6a9-dirty"
+mission_keys = ["234|BigButton", "234|Keypad", "234|Maze", "234|Memory", "234|Morse", "234|Password", "234|Simon", "234|Venn", "234|WhosOnFirst", "234|WireSequence", "234|Wires", "286|BigButton", "286|Keypad", "286|Maze", "286|Memory", "286|Morse", "286|Password", "286|Simon", "286|Venn", "286|WhosOnFirst", "286|WireSequence", "286|Wires", "337|BigButton", "337|Keypad", "337|Maze", "337|Memory", "337|Morse", "337|Password", "337|Simon", "337|Venn", "337|WhosOnFirst", "337|WireSequence", "337|Wires", "561|BigButton", "561|Keypad", "561|Maze", "561|Memory", "561|Morse", "561|Password", "561|Simon", "561|Venn", "561|WhosOnFirst", "561|WireSequence", "561|Wires", "563|BigButton", "563|Keypad", "563|Maze", "563|Memory", "563|Morse", "563|Password", "563|Simon", "563|Venn", "563|WhosOnFirst", "563|WireSequence", "563|Wires", "798|BigButton", "798|Keypad", "798|Maze", "798|Memory", "798|Morse", "798|Password", "798|Simon", "798|Venn", "798|WhosOnFirst", "798|WireSequence", "798|Wires", "813|BigButton", "813|Keypad", "813|Maze", "813|Memory", "813|Morse", "813|Password", "813|Simon", "813|Venn", "813|WhosOnFirst", "813|WireSequence", "813|Wires", "845|BigButton", "845|Keypad", "845|Maze", "845|Memory", "845|Morse", "845|Password", "845|Simon", "845|Venn", "845|WhosOnFirst", "845|WireSequence", "845|Wires", "849|BigButton", "849|Keypad", "849|Maze", "849|Memory", "849|Morse", "849|Password", "849|Simon", "849|Venn", "849|WhosOnFirst", "849|WireSequence", "849|Wires", "960|BigButton", "960|Keypad", "960|Maze", "960|Memory", "960|Morse", "960|Password", "960|Simon", "960|Venn", "960|WhosOnFirst", "960|WireSequence", "960|Wires"]
+
+[suite.config]
+name = "single-pairwise-sync"
+revision = 2
+modality = ["language", "vision"]
+missions_path = "configs/missions/single_module"
+
+[suite.config.defuser_protocol]
+role = "defuser"
+communication_style = "sync"
+is_playing_alone = false
+include_manual = false
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = true
+
+[suite.config.expert_protocol]
+role = "expert"
+communication_style = "sync"
+is_playing_alone = false
+include_manual = true
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = true
+
+[suite.config.matchup]
+pairing_type = "pairwise"
+
+[suite.config.manual_build]
+language = "en"
+rule_seed = 1
+compiler_schema = "gptnt.manual.v1"
+
+[suite.config.manual_build.profile]
+include_frontmatter = false
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Wires"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "BigButton"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Keypad"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Simon"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "WhosOnFirst"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Memory"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Morse"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Venn"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "WireSequence"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Maze"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Password"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "IndicatorWidget"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "BatteryWidget"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "PortWidget"
+language = "en"
+
+[suite.config.manual_build.sources]
+version = 1
+frontmatter = []
+
+[suite.config.manual_build.sources.ktane_content]
+repository = "https://github.com/Timwi/KtaneContent.git"
+commit = "137cc181b37038ccefeddcb095b402aab8dff5de"
+
+[suite.config.manual_build.sources.ktane_content.catalog]
+url = "https://ktane.timwi.de/json/raw"
+
+[suite.config.manual_build.sources.official_manual]
+
+[[suite]]
 name = "single-parametric-sync"
 revision = 1
 suite_digest = "fd93cad54687706b9b3ba2549acecfda"
@@ -433,6 +820,125 @@ language = "en"
 source = "ktanecontent"
 id = "PortWidget"
 language = "en"
+
+[[suite]]
+name = "single-parametric-sync"
+revision = 2
+suite_digest = "9f382ac6138bb2224619d3faee036918"
+frozen_at = "2026-08-19T13:02:15.637998Z"
+gptnt_version = "1.1.2.dev27+e9a4a560"
+git_sha = "e9a4a560520336dc78e3b079e992d83f61d7d6a9-dirty"
+mission_keys = ["234|BigButton", "234|Keypad", "234|Maze", "234|Memory", "234|Morse", "234|Password", "234|Simon", "234|Venn", "234|WhosOnFirst", "234|WireSequence", "234|Wires", "286|BigButton", "286|Keypad", "286|Maze", "286|Memory", "286|Morse", "286|Password", "286|Simon", "286|Venn", "286|WhosOnFirst", "286|WireSequence", "286|Wires", "337|BigButton", "337|Keypad", "337|Maze", "337|Memory", "337|Morse", "337|Password", "337|Simon", "337|Venn", "337|WhosOnFirst", "337|WireSequence", "337|Wires", "561|BigButton", "561|Keypad", "561|Maze", "561|Memory", "561|Morse", "561|Password", "561|Simon", "561|Venn", "561|WhosOnFirst", "561|WireSequence", "561|Wires", "563|BigButton", "563|Keypad", "563|Maze", "563|Memory", "563|Morse", "563|Password", "563|Simon", "563|Venn", "563|WhosOnFirst", "563|WireSequence", "563|Wires", "798|BigButton", "798|Keypad", "798|Maze", "798|Memory", "798|Morse", "798|Password", "798|Simon", "798|Venn", "798|WhosOnFirst", "798|WireSequence", "798|Wires", "813|BigButton", "813|Keypad", "813|Maze", "813|Memory", "813|Morse", "813|Password", "813|Simon", "813|Venn", "813|WhosOnFirst", "813|WireSequence", "813|Wires", "845|BigButton", "845|Keypad", "845|Maze", "845|Memory", "845|Morse", "845|Password", "845|Simon", "845|Venn", "845|WhosOnFirst", "845|WireSequence", "845|Wires", "849|BigButton", "849|Keypad", "849|Maze", "849|Memory", "849|Morse", "849|Password", "849|Simon", "849|Venn", "849|WhosOnFirst", "849|WireSequence", "849|Wires", "960|BigButton", "960|Keypad", "960|Maze", "960|Memory", "960|Morse", "960|Password", "960|Simon", "960|Venn", "960|WhosOnFirst", "960|WireSequence", "960|Wires"]
+
+[suite.config]
+name = "single-parametric-sync"
+revision = 2
+modality = ["language", "vision"]
+missions_path = "configs/missions/single_module"
+
+[suite.config.defuser_protocol]
+role = "defuser"
+communication_style = "sync"
+is_playing_alone = true
+include_manual = false
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = false
+
+[suite.config.matchup]
+pairing_type = "no_expert"
+
+[suite.config.manual_build]
+language = "en"
+rule_seed = 1
+compiler_schema = "gptnt.manual.v1"
+
+[suite.config.manual_build.profile]
+include_frontmatter = false
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Wires"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "BigButton"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Keypad"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Simon"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "WhosOnFirst"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Memory"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Morse"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Venn"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "WireSequence"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Maze"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Password"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "IndicatorWidget"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "BatteryWidget"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "PortWidget"
+language = "en"
+
+[suite.config.manual_build.sources]
+version = 1
+frontmatter = []
+
+[suite.config.manual_build.sources.ktane_content]
+repository = "https://github.com/Timwi/KtaneContent.git"
+commit = "137cc181b37038ccefeddcb095b402aab8dff5de"
+
+[suite.config.manual_build.sources.ktane_content.catalog]
+url = "https://ktane.timwi.de/json/raw"
+
+[suite.config.manual_build.sources.official_manual]
 
 [[suite]]
 name = "single-self-async"
@@ -546,6 +1052,135 @@ id = "PortWidget"
 language = "en"
 
 [[suite]]
+name = "single-self-async"
+revision = 2
+suite_digest = "8f983325c2e443642a81e7b0d9b9e203"
+frozen_at = "2026-08-19T13:02:15.637998Z"
+gptnt_version = "1.1.2.dev27+e9a4a560"
+git_sha = "e9a4a560520336dc78e3b079e992d83f61d7d6a9-dirty"
+mission_keys = ["234|BigButton", "234|Keypad", "234|Maze", "234|Memory", "234|Morse", "234|Password", "234|Simon", "234|Venn", "234|WhosOnFirst", "234|WireSequence", "234|Wires", "286|BigButton", "286|Keypad", "286|Maze", "286|Memory", "286|Morse", "286|Password", "286|Simon", "286|Venn", "286|WhosOnFirst", "286|WireSequence", "286|Wires", "337|BigButton", "337|Keypad", "337|Maze", "337|Memory", "337|Morse", "337|Password", "337|Simon", "337|Venn", "337|WhosOnFirst", "337|WireSequence", "337|Wires", "561|BigButton", "561|Keypad", "561|Maze", "561|Memory", "561|Morse", "561|Password", "561|Simon", "561|Venn", "561|WhosOnFirst", "561|WireSequence", "561|Wires", "563|BigButton", "563|Keypad", "563|Maze", "563|Memory", "563|Morse", "563|Password", "563|Simon", "563|Venn", "563|WhosOnFirst", "563|WireSequence", "563|Wires", "798|BigButton", "798|Keypad", "798|Maze", "798|Memory", "798|Morse", "798|Password", "798|Simon", "798|Venn", "798|WhosOnFirst", "798|WireSequence", "798|Wires", "813|BigButton", "813|Keypad", "813|Maze", "813|Memory", "813|Morse", "813|Password", "813|Simon", "813|Venn", "813|WhosOnFirst", "813|WireSequence", "813|Wires", "845|BigButton", "845|Keypad", "845|Maze", "845|Memory", "845|Morse", "845|Password", "845|Simon", "845|Venn", "845|WhosOnFirst", "845|WireSequence", "845|Wires", "849|BigButton", "849|Keypad", "849|Maze", "849|Memory", "849|Morse", "849|Password", "849|Simon", "849|Venn", "849|WhosOnFirst", "849|WireSequence", "849|Wires", "960|BigButton", "960|Keypad", "960|Maze", "960|Memory", "960|Morse", "960|Password", "960|Simon", "960|Venn", "960|WhosOnFirst", "960|WireSequence", "960|Wires"]
+
+[suite.config]
+name = "single-self-async"
+revision = 2
+modality = ["language", "vision"]
+missions_path = "configs/missions/single_module"
+
+[suite.config.defuser_protocol]
+role = "defuser"
+communication_style = "async"
+is_playing_alone = false
+include_manual = false
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = true
+
+[suite.config.expert_protocol]
+role = "expert"
+communication_style = "async"
+is_playing_alone = false
+include_manual = true
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = true
+
+[suite.config.matchup]
+pairing_type = "with_self"
+
+[suite.config.manual_build]
+language = "en"
+rule_seed = 1
+compiler_schema = "gptnt.manual.v1"
+
+[suite.config.manual_build.profile]
+include_frontmatter = false
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Wires"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "BigButton"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Keypad"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Simon"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "WhosOnFirst"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Memory"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Morse"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Venn"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "WireSequence"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Maze"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Password"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "IndicatorWidget"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "BatteryWidget"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "PortWidget"
+language = "en"
+
+[suite.config.manual_build.sources]
+version = 1
+frontmatter = []
+
+[suite.config.manual_build.sources.ktane_content]
+repository = "https://github.com/Timwi/KtaneContent.git"
+commit = "137cc181b37038ccefeddcb095b402aab8dff5de"
+
+[suite.config.manual_build.sources.ktane_content.catalog]
+url = "https://ktane.timwi.de/json/raw"
+
+[suite.config.manual_build.sources.official_manual]
+
+[[suite]]
 name = "single-solo-player-sync"
 revision = 1
 suite_digest = "c3eb87f851b818141f2decb4a9f5bf70"
@@ -645,6 +1280,125 @@ language = "en"
 source = "ktanecontent"
 id = "PortWidget"
 language = "en"
+
+[[suite]]
+name = "single-solo-player-sync"
+revision = 2
+suite_digest = "f10885bbae7d8f111d7563abe82e5d70"
+frozen_at = "2026-08-19T13:02:15.637998Z"
+gptnt_version = "1.1.2.dev27+e9a4a560"
+git_sha = "e9a4a560520336dc78e3b079e992d83f61d7d6a9-dirty"
+mission_keys = ["234|BigButton", "234|Keypad", "234|Maze", "234|Memory", "234|Morse", "234|Password", "234|Simon", "234|Venn", "234|WhosOnFirst", "234|WireSequence", "234|Wires", "286|BigButton", "286|Keypad", "286|Maze", "286|Memory", "286|Morse", "286|Password", "286|Simon", "286|Venn", "286|WhosOnFirst", "286|WireSequence", "286|Wires", "337|BigButton", "337|Keypad", "337|Maze", "337|Memory", "337|Morse", "337|Password", "337|Simon", "337|Venn", "337|WhosOnFirst", "337|WireSequence", "337|Wires", "561|BigButton", "561|Keypad", "561|Maze", "561|Memory", "561|Morse", "561|Password", "561|Simon", "561|Venn", "561|WhosOnFirst", "561|WireSequence", "561|Wires", "563|BigButton", "563|Keypad", "563|Maze", "563|Memory", "563|Morse", "563|Password", "563|Simon", "563|Venn", "563|WhosOnFirst", "563|WireSequence", "563|Wires", "798|BigButton", "798|Keypad", "798|Maze", "798|Memory", "798|Morse", "798|Password", "798|Simon", "798|Venn", "798|WhosOnFirst", "798|WireSequence", "798|Wires", "813|BigButton", "813|Keypad", "813|Maze", "813|Memory", "813|Morse", "813|Password", "813|Simon", "813|Venn", "813|WhosOnFirst", "813|WireSequence", "813|Wires", "845|BigButton", "845|Keypad", "845|Maze", "845|Memory", "845|Morse", "845|Password", "845|Simon", "845|Venn", "845|WhosOnFirst", "845|WireSequence", "845|Wires", "849|BigButton", "849|Keypad", "849|Maze", "849|Memory", "849|Morse", "849|Password", "849|Simon", "849|Venn", "849|WhosOnFirst", "849|WireSequence", "849|Wires", "960|BigButton", "960|Keypad", "960|Maze", "960|Memory", "960|Morse", "960|Password", "960|Simon", "960|Venn", "960|WhosOnFirst", "960|WireSequence", "960|Wires"]
+
+[suite.config]
+name = "single-solo-player-sync"
+revision = 2
+modality = ["language", "vision"]
+missions_path = "configs/missions/single_module"
+
+[suite.config.defuser_protocol]
+role = "defuser"
+communication_style = "sync"
+is_playing_alone = true
+include_manual = true
+receive_feedback_after_action = false
+allow_magic_actions = false
+allow_lottery_actions = false
+allow_message_output = false
+
+[suite.config.matchup]
+pairing_type = "no_expert"
+
+[suite.config.manual_build]
+language = "en"
+rule_seed = 1
+compiler_schema = "gptnt.manual.v1"
+
+[suite.config.manual_build.profile]
+include_frontmatter = false
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Wires"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "BigButton"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Keypad"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Simon"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "WhosOnFirst"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Memory"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Morse"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Venn"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "WireSequence"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Maze"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "Password"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "IndicatorWidget"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "BatteryWidget"
+language = "en"
+
+[[suite.config.manual_build.profile.documents]]
+source = "ktanecontent"
+id = "PortWidget"
+language = "en"
+
+[suite.config.manual_build.sources]
+version = 1
+frontmatter = []
+
+[suite.config.manual_build.sources.ktane_content]
+repository = "https://github.com/Timwi/KtaneContent.git"
+commit = "137cc181b37038ccefeddcb095b402aab8dff5de"
+
+[suite.config.manual_build.sources.ktane_content.catalog]
+url = "https://ktane.timwi.de/json/raw"
+
+[suite.config.manual_build.sources.official_manual]
 
 [[mission]]
 mission_key = "1028|Keypad,Maze,Password,WireSequence"

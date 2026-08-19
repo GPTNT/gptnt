@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
+from pydantic import ValidationError
+
 from gptnt.experiments.spec import load_specs_from_dir, write_specs_to_dir
 from gptnt.experiments.suite.compose import compose_suite
 from gptnt.experiments.suite.generate import generate_specs
@@ -10,8 +13,6 @@ from tests._factories.experiments import make_experiment_spec
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-    import pytest
 
 
 def test_write_then_load_preserves_frozen_suite_digest(
@@ -43,6 +44,17 @@ def test_write_then_load_preserves_frozen_suite_digest(
 def test_load_from_missing_dir_is_empty(tmp_path: Path) -> None:
     """An absent spec dir yields no specs (the caller turns this into a clear 'generate first')."""
     assert load_specs_from_dir(tmp_path / "never-generated") == []
+
+
+def test_loading_spec_without_manual_build_tells_user_to_regenerate(tmp_path: Path) -> None:
+    """A pre-definition generated spec cannot select a manual from current configuration."""
+    spec_path = tmp_path / "old.json"
+    _ = spec_path.write_text(
+        make_experiment_spec().model_dump_json(exclude={"manual_build"}), encoding="utf-8"
+    )
+
+    with pytest.raises(ValidationError, match="regenerate the experiment specs"):
+        _ = load_specs_from_dir(tmp_path)
 
 
 def test_hand_editing_a_spec_set_is_picked_up(tmp_path: Path) -> None:

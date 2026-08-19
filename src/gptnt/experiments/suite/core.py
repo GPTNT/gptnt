@@ -9,7 +9,7 @@ from gptnt.common.hashing import stable_digest
 from gptnt.common.paths import Paths
 from gptnt.experiments.generation.missions import load_missions
 from gptnt.experiments.generation.pairing import PairingType
-from gptnt.ktane.manuals.profile import ManualProfile
+from gptnt.ktane.manuals.definition import ManualBuildDefinition
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.specification import PlayerProtocol
 
@@ -27,8 +27,8 @@ class SuiteMatchup(BaseModel):
 class Suite(BaseModel):
     """One frozen benchmark configuration that defines a comparable set of results.
 
-    This is a frozen definition of what is measured: its mission set, the per-role interaction
-    protocol, the matchup that pairs players, the required modalities, and a revision.
+    Suite composition reads the current manual profile and source pins. Suite freeze stores the
+    resulting manual build definition with the remaining configuration and mission files.
 
     `suite_digest` fingerprints the config and the mission files together, so a change without a
     `revision` bump is caught.
@@ -60,8 +60,8 @@ class Suite(BaseModel):
 
     matchup: SuiteMatchup
 
-    manual_profile: ManualProfile
-    """The manual required for the mission in this Suite."""
+    manual_build: ManualBuildDefinition
+    """Suite freeze stores this definition; spec generation copies it unchanged."""
 
     @model_validator(mode="after")
     def validate_roles(self) -> Self:

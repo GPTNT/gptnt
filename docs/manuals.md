@@ -11,7 +11,9 @@ prepares the source files for those profiles before a run.
 ## Concepts
 
 A **manual profile** lists the modules, widgets, appendices, and local documents that belong in a
-manual. A suite selects one profile through Hydra.
+manual. A suite selects one profile through Hydra. Freezing a suite stores the profile and source
+pins in its **manual build definition**. Later profile or source changes apply only to a new suite
+revision.
 
 The **source configuration** in `configs/manual/sources.toml` identifies the remote inputs available
 to every profile. It contains a pinned KtaneContent Git commit, the aggregate KtaneContent catalog
@@ -138,20 +140,16 @@ profile index, language, and missing module map.
 
 ### Assign a profile to a suite
 
-Select the profile in the suite's Hydra defaults and retain the `ManualProfile` target under
-`suite.manual_profile`:
+Select the profile in the suite's Hydra defaults under the manual build definition:
 
 ```yaml
 defaults:
-  - /manual@suite.manual_profile: vanilla
-
-suite:
-  manual_profile:
-    _target_: gptnt.ktane.manuals.profile.ManualProfile
+  - /manual@suite.manual_build.profile: vanilla
 ```
 
 Changing the defaults entry from `vanilla` to another profile name selects the corresponding YAML
-file under `configs/manual/`.
+file under `configs/manual/`. Generated specs and benchmark records keep the manual build definition
+stored by suite freeze; they do not read the current profile or source configuration.
 
 ## Download and cache source assets
 

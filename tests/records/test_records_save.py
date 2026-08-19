@@ -29,6 +29,8 @@ from gptnt.players.observation_handler import Observation
 from gptnt.players.result import AgentCallResult
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
+from tests._factories.experiments import make_manual_build_definition
+
 
 @fixture
 def tiny_image_bytes() -> bytes:
@@ -126,6 +128,7 @@ def experiment_instance() -> ExperimentInstance:
         suite_name="test-suite",
         suite_revision=1,
         suite_digest="0" * 32,
+        manual_build=make_manual_build_definition(),
         defuser_protocol=PlayerProtocol(
             role="defuser", communication_style="sync", is_playing_alone=True, include_manual=False
         ),
@@ -217,6 +220,7 @@ async def test_recorder_saves_parquet_roundtrips(
     assert output_path.exists()
 
     loaded = load_player_record_from_parquet(output_path)
+    assert loaded.experiment_instance.manual_build == experiment_instance.manual_build
     assert len(loaded.step_records) == 2
     assert loaded.num_steps == 2
     assert [step.step for step in loaded.step_records] == [1, 2]

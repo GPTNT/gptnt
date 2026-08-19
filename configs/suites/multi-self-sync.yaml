@@ -1,12 +1,12 @@
 # @package _global_
 
 defaults:
-  - /manual@suite.manual_profile: vanilla
+  - /manual@suite.manual_build.profile: vanilla
 
 suite:
   _target_: gptnt.experiments.suite.core.Suite
   name: multi-self-sync
-  revision: 1
+  revision: 2
   modality: [vision, language]
   missions_path: configs/missions/multiple_module_n
   defuser_protocol:
@@ -24,5 +24,10 @@ suite:
   matchup:
     _target_: gptnt.experiments.suite.core.SuiteMatchup
     pairing_type: with_self
-  manual_profile:
-    _target_: gptnt.ktane.manuals.profile.ManualProfile
+  manual_build:
+    _target_: gptnt.ktane.manuals.definition.compose_manual_build_definition
+    language: en
+    rule_seed: 1
+    compiler_schema: gptnt.manual.v1
+    profile:
+      _target_: gptnt.ktane.manuals.profile.ManualProfile

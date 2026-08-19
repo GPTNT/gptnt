@@ -121,6 +121,6 @@ def _select_suite_manual_profiles(suites: SuitesOption) -> tuple[list[ManualProf
     if not suite_names:
         raise ValueError("no suites were selected or configured")
     return (
-        [compose_suite(suite_name).manual_profile for suite_name in suite_names],
+        [compose_suite(suite_name).manual_build.profile for suite_name in suite_names],
         f"{len(suite_names)} suite(s)",
     )

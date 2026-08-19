@@ -24,6 +24,8 @@ from gptnt.interactive.services.experiment_manager.experiment_runner import Expe
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.specification import PlayerProtocol
 
+from tests._factories.experiments import make_manual_build_definition
+
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
@@ -99,6 +101,7 @@ class AssembledExperiment:
             suite_name="test-suite",
             suite_revision=1,
             suite_digest="0" * 32,
+            manual_build=make_manual_build_definition(),
             defuser_protocol=PlayerProtocol(
                 role="defuser",
                 communication_style=communication_style,

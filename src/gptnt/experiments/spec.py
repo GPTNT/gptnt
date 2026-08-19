@@ -1,10 +1,11 @@
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Self
+from typing import Any, Self
 
 from pydantic import BaseModel, ConfigDict, computed_field, model_validator
 
 from gptnt.common.hashing import stable_digest
+from gptnt.ktane.manuals.definition import ManualBuildDefinition
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.specification import CommunicationStyle, PlayerProtocol, PlayerRole
 
@@ -14,6 +15,7 @@ _EXPERIMENT_FINGERPRINT_FIELDS = (
     "suite_name",
     "suite_revision",
     "suite_digest",
+    "manual_build",
     "defuser_protocol",
     "expert_protocol",
 )
@@ -22,9 +24,8 @@ _EXPERIMENT_FINGERPRINT_FIELDS = (
 class ExperimentSpec(BaseModel):
     """The mission and player setup for one experiment attempt.
 
-    A spec says which suite mission to run, which player protocols and model names to use, and
-    which attempt this is. It does not contain runtime service identities, resolved capabilities,
-    or the result.
+    The spec stores the suite identity and manual build definition selected during generation. It
+    does not contain runtime service identities, resolved capabilities, or the result.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -38,12 +39,23 @@ class ExperimentSpec(BaseModel):
     suite_name: str
     suite_revision: int
     suite_digest: str
+    manual_build: ManualBuildDefinition
 
     defuser_protocol: PlayerProtocol
     defuser_name: str
 
     expert_protocol: PlayerProtocol | None
     expert_name: str | None
+
+    @model_validator(mode="before")
+    @classmethod
+    def require_manual_build(cls, data: Any) -> Any:
+        """Reject generated specs from before manual identity was part of the spec."""
+        if isinstance(data, dict) and "manual_build" not in data:
+            raise ValueError(
+                "spec has no manual build definition; regenerate the experiment specs"
+            )
+        return data
 
     @model_validator(mode="after")
     def verify_expert_has_both_spec_and_name(self) -> Self:

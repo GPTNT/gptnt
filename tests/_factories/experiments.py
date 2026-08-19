@@ -10,6 +10,13 @@ from whenever import Instant
 from gptnt.experiments.instance import ExperimentInstance
 from gptnt.experiments.models import ExperimentSummary
 from gptnt.experiments.spec import ExperimentSpec
+from gptnt.ktane.manuals.definition import MANUAL_COMPILER_SCHEMA, ManualBuildDefinition
+from gptnt.ktane.manuals.profile import KtaneContentDocument, ManualProfile
+from gptnt.ktane.manuals.sources import (
+    KtaneContentCatalogSource,
+    KtaneContentSource,
+    ManualSources,
+)
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombOutcome, BombState
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
@@ -18,6 +25,27 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from gptnt.players.specification import CommunicationStyle
+
+
+def make_manual_build_definition() -> ManualBuildDefinition:
+    """A small English manual build definition for experiment-model tests."""
+    return ManualBuildDefinition(
+        profile=ManualProfile(
+            include_frontmatter=False,
+            documents=(KtaneContentDocument(source="ktanecontent", id="Wires", language="en"),),
+        ),
+        sources=ManualSources(
+            ktane_content=KtaneContentSource(
+                repository="https://manual.test/content.git",
+                commit="0" * 40,
+                catalog=KtaneContentCatalogSource(url="https://manual.test/catalog.json"),
+            ),
+            official_manual={},
+        ),
+        language="en",
+        rule_seed=1,
+        compiler_schema=MANUAL_COMPILER_SCHEMA,
+    )
 
 
 def make_solved_bomb() -> BombState:
@@ -56,8 +84,9 @@ def make_experiment_spec(seed: int = 12345) -> ExperimentSpec:
         ),
         mission_set="single_module",
         suite_name="single-parametric-sync",
-        suite_revision=1,
+        suite_revision=2,
         suite_digest="0" * 32,
+        manual_build=make_manual_build_definition(),
         defuser_protocol=PlayerProtocol(
             role="defuser", communication_style="sync", is_playing_alone=True, include_manual=False
         ),
@@ -136,8 +165,9 @@ def make_experiment_summary(
         ),
         mission_set=mission_set,
         suite_name="single-parametric-sync",
-        suite_revision=1,
+        suite_revision=2,
         suite_digest="0" * 32,
+        manual_build=make_manual_build_definition(),
         defuser_protocol=defuser_protocol,
         defuser_name=defuser_name,
         expert_protocol=expert_protocol,

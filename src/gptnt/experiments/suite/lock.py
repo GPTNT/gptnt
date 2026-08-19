@@ -79,24 +79,44 @@ class SuiteLockEntry(BaseModel):
         return Path(self.config["missions_path"]).name
 
 
+def _validate_stored_identity(entry: SuiteLockEntry) -> None:
+    """Validate a revision that predates manual build definitions.
+
+    These entries remain in the append-only lock but can no longer be reconstructed as `Suite`.
+    """
+    if (entry.name, entry.revision) != (entry.config["name"], entry.config["revision"]):
+        raise ValueError(
+            f"suite entry {entry.name!r} revision {entry.revision} does not match its "
+            "stored config identity"
+        )
+
+
+def _validate_current_entry(entry: SuiteLockEntry, specs: dict[str, KtaneMissionSpec]) -> None:
+    """Validate a revision that contains a manual build definition."""
+    suite = Suite.model_validate({"expert_protocol": None, **entry.config})
+    if (entry.name, entry.revision) != (suite.name, suite.revision):
+        raise ValueError(
+            f"suite entry {entry.name!r} revision {entry.revision} does not match its "
+            f"frozen config identity {suite.name!r} revision {suite.revision}"
+        )
+    missions = [specs[key] for key in entry.mission_keys]
+    calculated_digest = suite.digest_for(missions)
+    if calculated_digest != entry.suite_digest:
+        raise ValueError(
+            f"suite {entry.name!r} revision {entry.revision} digest does not match "
+            "its frozen config and missions"
+        )
+
+
 def _validate_entry_snapshots(
     entries: tuple[SuiteLockEntry, ...], specs: dict[str, KtaneMissionSpec]
 ) -> None:
     """Verify each entry's identity and digest against its stored snapshot."""
     for entry in entries:
-        suite = Suite.model_validate({"expert_protocol": None, **entry.config})
-        if (entry.name, entry.revision) != (suite.name, suite.revision):
-            raise ValueError(
-                f"suite entry {entry.name!r} revision {entry.revision} does not match its "
-                f"frozen config identity {suite.name!r} revision {suite.revision}"
-            )
-        missions = [specs[key] for key in entry.mission_keys]
-        calculated_digest = suite.digest_for(missions)
-        if calculated_digest != entry.suite_digest:
-            raise ValueError(
-                f"suite {entry.name!r} revision {entry.revision} digest does not match "
-                "its frozen config and missions"
-            )
+        if "manual_build" in entry.config:
+            _validate_current_entry(entry, specs)
+        else:
+            _validate_stored_identity(entry)
 
 
 class SuiteLock(BaseModel):
@@ -197,6 +217,11 @@ class SuiteLock(BaseModel):
         reconstructs as None.
         """
         entry = self.select_entry(name, revision)
+        if "manual_build" not in entry.config:
+            raise SuiteNotFrozenError(
+                f"suite {entry.name!r} revision {entry.revision} has no manual build definition; "
+                "freeze a new suite revision"
+            )
         suite = Suite.model_validate({"expert_protocol": None, **entry.config})
         specs = self.mission_specs()
         missions = [specs[key] for key in entry.mission_keys]

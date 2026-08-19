@@ -7,10 +7,15 @@ from typing import TYPE_CHECKING
 import pytest
 from pydantic import ValidationError
 
+from gptnt.experiments.models import ExperimentSummary
+from gptnt.experiments.spec import ExperimentSpec
 from gptnt.experiments.suite.compose import compose_suite
 from gptnt.experiments.suite.freeze import FreezeReport, FreezeStamp
 from gptnt.experiments.suite.generate import generate_specs
 from gptnt.experiments.suite.lock import MissionEntry, SuiteLock, SuiteNotFrozenError
+from gptnt.ktane.manuals.profile import KtaneContentDocument
+
+from tests._factories.experiments import make_experiment_instance, make_solved_bomb
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -143,16 +148,24 @@ def test_lock_roundtrips_through_toml(tmp_path: Path) -> None:
 def test_freeze_reload_and_generate_pins_suite_identity(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The public freeze and generation path has one stable suite and experiment identity."""
+    """Freeze, lock I/O, spec I/O, and v2 experiment models retain one manual identity."""
     suite = _a_suite()
+    expected_manual = suite.manual_build
     lock = FreezeReport.reconcile([suite], None, _STAMP).updated_lock
     path = tmp_path / "suites.lock"
     lock.dump_to_path(path)
     monkeypatch.setattr("gptnt.experiments.suite.lock.default_lock_path", lambda: path)
-    assert SuiteLock.from_lock_path() == lock
+    loaded_lock = SuiteLock.from_lock_path()
+    assert loaded_lock == lock
+    rebuilt, _ = loaded_lock.load_suite(suite.name)
+    assert rebuilt.manual_build == expected_manual
 
     experiments = generate_specs(["suites=single-solo-player-sync", "players.all=[test-defuser]"])
-    experiment = experiments[0]
+    experiment = ExperimentSpec.model_validate_json(experiments[0].model_dump_json())
+    instance = make_experiment_instance(experiment)
+    summary = ExperimentSummary.from_instance_and_bomb_state(
+        instance=instance, final_bomb_state=make_solved_bomb(), is_hard_crash=False
+    )
 
     assert (
         experiment.suite_name,
@@ -161,7 +174,16 @@ def test_freeze_reload_and_generate_pins_suite_identity(
         experiment.fingerprint,
     ) == (
         "single-solo-player-sync",
-        1,
-        "c3eb87f851b818141f2decb4a9f5bf70",
-        "e4a0c422f1e408ec81a610434270f647",
+        2,
+        "f10885bbae7d8f111d7563abe82e5d70",
+        "aac96531ff2e76e24d7baa0139924c51",
+    )
+    assert (
+        experiment.manual_build == instance.manual_build == summary.manual_build == expected_manual
+    )
+    first_document = expected_manual.profile.documents[0]
+    assert isinstance(first_document, KtaneContentDocument)
+    assert first_document.id == "Wires"
+    assert expected_manual.sources.ktane_content.commit == (
+        "137cc181b37038ccefeddcb095b402aab8dff5de"
     )

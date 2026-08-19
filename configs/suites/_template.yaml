@@ -1,7 +1,7 @@
 # @package _global_
 
 defaults:
-  - /manual@suite.manual_profile: ???
+  - /manual@suite.manual_build.profile: ???
 
 suite:
   _target_: gptnt.experiments.suite.core.Suite
@@ -24,3 +24,10 @@ suite:
   matchup:
     _target_: gptnt.experiments.suite.core.SuiteMatchup
     pairing_type: ???
+  manual_build:
+    _target_: gptnt.ktane.manuals.definition.compose_manual_build_definition
+    language: ???
+    rule_seed: 1
+    compiler_schema: gptnt.manual.v1
+    profile:
+      _target_: gptnt.ktane.manuals.profile.ManualProfile

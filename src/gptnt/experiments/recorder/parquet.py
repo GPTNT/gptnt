@@ -33,7 +33,7 @@ KEY_FORMAT_VERSION = b"format_version"
 KEY_SESSION_ID = b"session_id"  # flat, for cheap identity reads (idempotency / grouping)
 KEY_PLAYER_UUID = b"player_uuid"
 
-FORMAT_VERSION = b"3"
+FORMAT_VERSION = b"4"
 _ROW_GROUP_SIZE = 64
 
 _STEP_SCHEMA = arrow_schema_for(ExperimentStep)
@@ -42,7 +42,7 @@ _STEP_SCHEMA = arrow_schema_for(ExperimentStep)
 class RecordFooter(Provenance):
     """The experiment-level footer of one player's parquet record.
 
-    The recorder's per-player view of the experiment at write time.
+    The embedded instance carries the generated spec's manual build definition into the record.
     """
 
     model_config = ConfigDict(frozen=True)

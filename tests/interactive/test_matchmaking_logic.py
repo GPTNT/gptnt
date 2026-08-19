@@ -12,6 +12,8 @@ from gptnt.interactive.services.registry.manifest import PlayerServiceManifest, 
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
+from tests._factories.experiments import make_manual_build_definition
+
 
 def make_player(
     player_name: str, *, state: PlayerState = PlayerState.idle
@@ -42,6 +44,7 @@ def make_spec(*, defuser_name: str, expert_name: str | None = None) -> Experimen
         suite_name="test-suite",
         suite_revision=1,
         suite_digest="0" * 32,
+        manual_build=make_manual_build_definition(),
         defuser_protocol=PlayerProtocol(
             role="defuser",
             communication_style="sync",

@@ -38,7 +38,7 @@ class _SuiteComposer:
 
     def __call__(self, suite_name: str) -> SimpleNamespace:
         self.composed.append(suite_name)
-        return SimpleNamespace(manual_profile=self.profiles[suite_name])
+        return SimpleNamespace(manual_build=SimpleNamespace(profile=self.profiles[suite_name]))
 
 
 @dataclass(kw_only=True)

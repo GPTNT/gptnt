@@ -19,8 +19,8 @@ class PlayerContent(NamedTuple):
 class ExperimentInstance(ExperimentSpec):
     """One execution of an experiment spec.
 
-    It combines the requested mission and players with the service identities, resolved player
-    capabilities, and start time used for that execution.
+    It adds service identities, resolved player capabilities, and a start time to the generated
+    spec. The inherited manual build definition remains unchanged.
     """
 
     model_config = ConfigDict(frozen=True)
