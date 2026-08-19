@@ -1,4 +1,4 @@
-"""Manual profile validation and planned document-resolution behaviour."""
+"""Manual profile configuration validation."""
 
 from pathlib import Path
 
@@ -77,28 +77,3 @@ def test_local_document_rejects_a_non_html_path() -> None:
 def test_profile_requires_at_least_one_document() -> None:
     with pytest.raises(ValidationError):
         _ = ManualProfile(include_frontmatter=False, documents=())
-
-
-# --- resolve: executable specification (not implemented) ---------------------------------------
-
-
-@pytest.mark.xfail(raises=NotImplementedError, strict=True, reason="resolve() not implemented yet")
-def test_resolve_raises_when_the_source_lacks_the_document() -> None:
-    # A French vanilla page does not exist in KtaneContent; resolving this valid-but-unsatisfiable
-    # document must raise a clear error rather than silently substituting or skipping it.
-    _document = KtaneContentDocument(source="ktanecontent", id="Wires", language="fr")
-    raise NotImplementedError("resolve() must raise when a source has no page for a document")
-
-
-@pytest.mark.xfail(raises=NotImplementedError, strict=True, reason="resolve() not implemented yet")
-def test_resolve_reads_ktanecontent_metadata_for_a_module() -> None:
-    # name, sort_key, origin and rule-seed support come from KtaneContent's per-module JSON, not
-    # from the profile.
-    raise NotImplementedError("resolve() must fill ManualPage metadata from KtaneContent JSON")
-
-
-@pytest.mark.xfail(raises=NotImplementedError, strict=True, reason="resolve() not implemented yet")
-def test_resolve_locates_an_official_page_by_module_id_and_language() -> None:
-    # An official document names a module id; resolve finds its page(s) in the official PDF for the
-    # requested language via a per-language module -> page map.
-    raise NotImplementedError("resolve() must map an official module id to PDF pages by language")

@@ -59,12 +59,7 @@ class _OfficialAsset:
         return cls(
             language=language,
             url=str(source.url),
-            destination=cache_dir
-            / "sources"
-            / "official"
-            / language
-            / source.version
-            / "manual.pdf",
+            destination=source.cache_path(language, cache_dir=cache_dir),
         )
 
 
@@ -81,6 +76,11 @@ class _ProfileSelection:
             for document in profile.documents:
                 selection.update_document(document, root_dir=root_dir)
         return selection
+
+    def include_frontmatter(self, documents: Sequence[Document], *, root_dir: Path) -> None:
+        """Include configured frontmatter required by at least one selected profile."""
+        for document in documents:
+            self.update_document(document, root_dir=root_dir)
 
     @property
     def ordered_ktane_documents(self) -> tuple[_ktane_content.KtaneContentRequirement, ...]:
@@ -120,6 +120,12 @@ class _DownloadPlan:
             raise ValueError("at least one manual profile is required")
 
         selection = _ProfileSelection.from_profiles(profiles, root_dir=root_dir)
+        if any(profile.include_frontmatter for profile in profiles):
+            if not sources.frontmatter:
+                raise ValueError(
+                    "include_frontmatter is enabled but no frontmatter source is configured"
+                )
+            selection.include_frontmatter(sources.frontmatter, root_dir=root_dir)
         unknown_languages = selection.official_languages - set(sources.official_manual)
         if unknown_languages:
             raise ValueError(

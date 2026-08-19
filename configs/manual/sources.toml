@@ -1,5 +1,10 @@
 version = 1
 
+[[frontmatter]]
+source = "official"
+id = "Frontmatter"
+language = "en"
+
 [ktane_content]
 repository = "https://github.com/Timwi/KtaneContent.git"
 commit = "137cc181b37038ccefeddcb095b402aab8dff5de"
@@ -32,6 +37,26 @@ url = "https://www.bombmanual.com/de/print/KeepTalkingAndNobodyExplodes-BombDefu
 version = "1"
 url = "https://www.bombmanual.com/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1.pdf"
 
+[official_manual.en.pages]
+Frontmatter = {first = 1, last = 4}
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
+
 # Esperanto
 [official_manual.eo]
 version = "2-eo"
@@ -51,6 +76,25 @@ url = "https://www.bombmanual.com/fi/print/KeepTalkingAndNobodyExplodes-BombDefu
 [official_manual.fr]
 version = "1-fr"
 url = "https://www.bombmanual.com/fr/print/KeepTalkingAndNobodyExplodes-BombDefusalManual-v1-fr.pdf"
+
+[official_manual.fr.pages]
+Wires = {first = 5, last = 5}
+BigButton = {first = 6, last = 6}
+Keypad = {first = 7, last = 7}
+Simon = {first = 8, last = 8}
+WhosOnFirst = {first = 9, last = 10}
+Memory = {first = 11, last = 11}
+Morse = {first = 12, last = 12}
+Venn = {first = 13, last = 13}
+WireSequence = {first = 14, last = 14}
+Maze = {first = 15, last = 15}
+Password = {first = 16, last = 16}
+NeedyVentGas = {first = 18, last = 18}
+NeedyCapacitor = {first = 19, last = 19}
+NeedyKnob = {first = 20, last = 20}
+IndicatorWidget = {first = 21, last = 21}
+BatteryWidget = {first = 22, last = 22}
+PortWidget = {first = 23, last = 23}
 
 # עברית
 [official_manual.he]

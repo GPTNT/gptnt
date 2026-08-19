@@ -47,7 +47,7 @@ class _CatalogEntry(BaseModel):
     name: str = Field(alias="Name")
 
 
-class _Catalog(BaseModel):
+class KtaneContentCatalog(BaseModel):
     """The aggregate catalog used to translate module IDs into HTML filenames."""
 
     model_config = ConfigDict(frozen=True, extra="ignore")
@@ -64,6 +64,13 @@ class _Catalog(BaseModel):
         """Map nonempty module identifiers to their document titles."""
         return {module.module_id: module.name for module in self.modules if module.module_id}
 
+    def module_name_for(self, module_id: str) -> str:
+        """Resolve a module ID to the canonical KtaneContent name used by its JSON metadata."""
+        module_name = self.module_names.get(module_id)
+        if module_name is None:
+            raise ValueError(f"KtaneContent catalog has no module {module_id!r}")
+        return module_name
+
     def filename_for(self, requirement: KtaneContentRequirement) -> str:
         """Resolve an appendix, override, or English module ID to its repository filename."""
         if isinstance(requirement, KtaneContentAppendix):
@@ -74,14 +81,15 @@ class _Catalog(BaseModel):
         # The aggregate catalog supplies the default English title. Translated documents can use
         # different filenames, so their profiles must name the repository page explicitly.
         if requirement.language == "en":
-            module_name = self.module_names.get(requirement.id)
-            if module_name is None:
-                raise ValueError(f"KtaneContent catalog has no module {requirement.id!r}")
-            return f"{module_name}.html"
+            return f"{self.module_name_for(requirement.id)}.html"
         raise ValueError(
             f"KtaneContent document {requirement.id!r} needs an explicit page for "
             f"language {requirement.language!r}"
         )
+
+    def metadata_filename_for(self, requirement: KtaneContentDocument) -> str:
+        """Resolve module metadata independently of an HTML translation or override filename."""
+        return f"{self.module_name_for(requirement.id)}.json"
 
 
 async def _download_catalog(
@@ -90,7 +98,7 @@ async def _download_catalog(
     cache_dir: Path,
     reporter: ProgressReporter,
     client: httpx.AsyncClient,
-) -> tuple[KtaneContentDownload, _Catalog]:
+) -> tuple[KtaneContentDownload, KtaneContentCatalog]:
     """Load the cached aggregate catalog, downloading it once when absent."""
     destination = cache_dir / "sources" / "ktanecontent" / "catalog" / "raw.json"
     if destination.is_file():
@@ -101,9 +109,9 @@ async def _download_catalog(
             completed=size,
             total=size,
         )
-        return KtaneContentDownload(cached_files=1, cached_bytes=size), _Catalog.from_path(
-            destination
-        )
+        return KtaneContentDownload(
+            cached_files=1, cached_bytes=size
+        ), KtaneContentCatalog.from_path(destination)
 
     size = await download_to_cache(
         client=client,
@@ -113,24 +121,43 @@ async def _download_catalog(
         progress_description="Downloading KtaneContent module catalog",
         reporter=reporter,
     )
-    return KtaneContentDownload(added_files=1, added_bytes=size), _Catalog.from_path(destination)
+    return KtaneContentDownload(added_files=1, added_bytes=size), KtaneContentCatalog.from_path(
+        destination
+    )
+
+
+def _paths_for_requirement(
+    requirement: KtaneContentRequirement,
+    *,
+    catalog: KtaneContentCatalog,
+    repository_paths: set[str],
+) -> set[str]:
+    """Resolve one profile document and its metadata in the pinned repository tree."""
+    filename = catalog.filename_for(requirement)
+    document_path = f"HTML/{filename}"
+    if document_path not in repository_paths:
+        raise ValueError(f"KtaneContent has no document {filename!r}")
+    selected = {document_path}
+    if isinstance(requirement, KtaneContentDocument):
+        metadata_path = f"JSON/{catalog.metadata_filename_for(requirement)}"
+        if metadata_path not in repository_paths:
+            raise ValueError(f"KtaneContent has no metadata {metadata_path!r}")
+        selected.add(metadata_path)
+    return selected
 
 
 def _resolve_document_paths(
     requirements: Sequence[KtaneContentRequirement],
     *,
-    catalog: _Catalog,
+    catalog: KtaneContentCatalog,
     repository_paths: set[str],
 ) -> set[str]:
     """Resolve requested profile documents and confirm they exist in the pinned tree."""
     selected: set[str] = set()
     for requirement in requirements:
-        filename = catalog.filename_for(requirement)
-        repository_path = f"HTML/{filename}"
-        if repository_path in repository_paths:
-            selected.add(repository_path)
-            continue
-        raise ValueError(f"KtaneContent has no document {filename!r}")
+        selected.update(
+            _paths_for_requirement(requirement, catalog=catalog, repository_paths=repository_paths)
+        )
     return selected
 
 

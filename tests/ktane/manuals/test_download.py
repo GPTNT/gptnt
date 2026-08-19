@@ -15,6 +15,8 @@ from gptnt.ktane.manuals.profile import (
     ManualProfile,
     OfficialDocument,
 )
+from gptnt.ktane.manuals.resolution import ResolvedKtaneContentModule
+from gptnt.ktane.manuals.resolve import resolve_manual_profile
 from gptnt.ktane.manuals.sources import (
     KtaneContentCatalogSource,
     KtaneContentSource,
@@ -50,6 +52,12 @@ def _source_repository(tmp_path: Path) -> tuple[Path, str]:
     _write(repository / "HTML" / "css" / "main.css", "url('../font/manual.woff2')")
     _write(repository / "HTML" / "font" / "manual.woff2", b"font")
     _write(repository / "HTML" / "img" / "Wires.svg", "<svg></svg>")
+    _write(
+        repository / "JSON" / "Wires.json",
+        '{"ModuleID":"Wires","Name":"Wires","Origin":"Vanilla",'
+        '"SortKey":"WIRES","RuleSeedSupport":"Supported"}',
+    )
+    _write(repository / "HTML" / "Wires Override.html", "override")
 
     # The downloader can see this path in the Git tree but must not materialize it into the cache.
     _write(repository / "HTML" / "Unrelated.html", "unused")
@@ -162,16 +170,57 @@ async def test_download_caches_selected_ktanecontent_files_and_recursive_referen
         "HTML/css/main.css",
         "HTML/font/manual.woff2",
         "HTML/img/Wires.svg",
+        "JSON/Wires.json",
     }
     # The catalog is requested once; the local Git remote supplies only the selected blobs.
     assert catalog_route.call_count == 1
-    assert (added.added_files, added.cached_files) == (5, 0)
-    assert (cached.added_files, cached.cached_files) == (0, 5)
+    assert (added.added_files, added.cached_files) == (6, 0)
+    assert (cached.added_files, cached.cached_files) == (0, 6)
     assert any(
         update.description == "Selected KtaneContent assets are cached"
-        and update.completed == update.total == 4
+        and update.completed == update.total == 5
         for update in updates
     )
+
+
+@pytest.mark.anyio
+async def test_downloader_and_resolver_share_ktanecontent_filename_selection(
+    tmp_path: Path, respx_mock: respx.MockRouter
+) -> None:
+    """Use an explicit override instead of the catalog default in both stages."""
+    repository, commit = _source_repository(tmp_path)
+    _ = respx_mock.get("https://catalog.test/raw").mock(
+        return_value=httpx.Response(200, content=CATALOG)
+    )
+    profile = ManualProfile(
+        include_frontmatter=False,
+        documents=(
+            KtaneContentDocument(
+                source="ktanecontent", id="Wires", language="en", document="Wires Override.html"
+            ),
+        ),
+    )
+    sources = _sources(repository, commit)
+    cache_dir = tmp_path / "cache"
+
+    async with httpx.AsyncClient() as client:
+        _ = await download_manual_assets(
+            [profile], sources=sources, cache_dir=cache_dir, root_dir=tmp_path, client=client
+        )
+    resolved = resolve_manual_profile(
+        profile,
+        sources=sources,
+        cache_dir=cache_dir,
+        root_dir=tmp_path,
+        language="en",
+        rule_seed=1,
+    )
+
+    assert len(resolved) == 1
+    document = resolved[0]
+    assert isinstance(document, ResolvedKtaneContentModule)
+    assert document.source_path.name == "Wires Override.html"
+    assert document.provenance.document == "Wires Override.html"
 
 
 @pytest.mark.anyio
