@@ -1,3 +1,5 @@
+"""Manual source configuration validation."""
+
 import pytest
 from pydantic import ValidationError
 
@@ -6,46 +8,21 @@ from gptnt.ktane.manuals.sources import (
     KtaneContentCatalogSource,
     KtaneContentSource,
     ManualSources,
+    OfficialPageRange,
 )
 
-OFFICIAL_LANGUAGE_CODES = {
-    "ar",
-    "cs",
-    "da",
-    "de",
-    "en",
-    "eo",
-    "es",
-    "fi",
-    "fr",
-    "he",
-    "hu",
-    "it",
-    "ja",
-    "ko",
-    "nb",
-    "nl",
-    "pl",
-    "pt-BR",
-    "pt-PT",
-    "ro",
-    "ru",
-    "sv",
-    "th",
-    "tr",
-    "uk",
-    "zh-CN",
-    "zh-TW",
-}
 
-
-def test_shipped_sources_include_every_official_language() -> None:
+def test_shipped_sources_parse_an_official_page_range() -> None:
+    """Load one nested language and multi-page interval through the shipped TOML schema."""
     sources = ManualSources.from_path(Paths().manual_sources)
 
-    assert set(sources.official_manual) == OFFICIAL_LANGUAGE_CODES
+    assert sources.official_manual["pt-BR"].pages["WhosOnFirst"] == OfficialPageRange(
+        first=9, last=10
+    )
 
 
 def test_ktane_content_source_requires_a_full_commit_sha() -> None:
+    """Reject moving revisions and paths where a pinned Git commit is required."""
     with pytest.raises(ValidationError):
         _ = KtaneContentSource(
             repository="https://content.test/repository.git",

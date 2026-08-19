@@ -146,3 +146,29 @@ def resolve_repository_reference(
             return corrected
 
     raise ValueError(f"KtaneContent asset {resolved!r}, referenced by {source!r}, does not exist")
+
+
+def resolve_local_reference(source: Path, reference: str, *, root_dir: Path) -> Path | None:
+    """Resolve one local document reference against its file or configured source root.
+
+    External and fragment-only references return `None`. Website-absolute paths start at
+    `root_dir` and cannot leave it after URL decoding and path normalization; other paths start
+    beside `source`. Existence is checked by the caller so it can name the profile entry that
+    introduced a missing dependency.
+    """
+    parsed = urlsplit(reference.strip())
+    if parsed.scheme or parsed.netloc or not parsed.path:
+        return None
+    decoded = unquote(parsed.path)
+    if decoded.startswith("/"):
+        # A leading slash selects the configured website root, not the host filesystem root. Keep
+        # decoded parent segments and symlinks from turning that syntax into access outside it.
+        resolved_root = root_dir.resolve()
+        dependency = (resolved_root / decoded.lstrip("/")).resolve()
+        if not dependency.is_relative_to(resolved_root):
+            raise ValueError(
+                f"local asset reference {reference!r} from {source} "
+                "escapes the configured source root"
+            )
+        return dependency
+    return (source.parent / decoded).resolve()

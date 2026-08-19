@@ -5,8 +5,8 @@ prepares the source files for those profiles before a run.
 
 !!! info "Current scope"
     `gptnt manual download` selects profiles, validates local documents, and caches remote source
-    files. Resolving those sources into pages, applying Rule Seed Modifier rules, and assembling an
-    Expert manual are planned stages. The download command does not perform those stages yet.
+    files. The manual resolver turns that cache and one profile into ordered compilation inputs. It
+    does not render pages, apply Rule Seed Modifier rules, or assemble an Expert manual.
 
 ## Concepts
 
@@ -15,7 +15,8 @@ manual. A suite selects one profile through Hydra.
 
 The **source configuration** in `configs/manual/sources.toml` identifies the remote inputs available
 to every profile. It contains a pinned KtaneContent Git commit, the aggregate KtaneContent catalog
-URL, and the version and URL of each official manual language.
+URL, the configured frontmatter, and the version, URL, and module page ranges for every configured
+official manual language.
 
 The **manual cache** under `output/manual_cache/` contains downloaded remote inputs and the
 aggregate catalog. Local documents remain at their configured paths after validation.
@@ -56,17 +57,17 @@ Profiles are YAML files under `configs/manual/`. Each profile contains:
 - `include_frontmatter`, which records whether the assembled manual should include frontmatter.
 - `documents`, an ordered, nonempty list of source documents.
 
-Document order is part of the profile. The later resolver and assembler must preserve it unless a
-document type defines a more specific ordering rule.
+Document order is part of the profile. Resolution preserves that order. When frontmatter is enabled,
+its configured source documents appear first in their configured order.
 
 ### Document sources
 
-| Source | Profile fields | Current download behavior | Planned resolution behavior |
+| Source | Profile fields | Download behavior | Resolution behavior |
 | --- | --- | --- | --- |
-| KtaneContent module | `source`, `id`, `language`, optional `document` | Resolve the HTML filename, then cache it and every recursively referenced repository asset | Load module metadata and select or generate the page for the requested rules |
-| KtaneContent appendix | `source`, `language`, `document` | Cache the explicitly named HTML file and its referenced assets | Include the static appendix page |
-| Official manual | `source`, `id`, `language` | Download one complete PDF for the language | Locate the page or pages belonging to the module ID |
-| Local document | `source`, `path`, `language`, optional `id` | Check that the HTML file exists; do not copy it into the cache | Include the supplied HTML, subject to an explicit future rule-seed policy |
+| KtaneContent module | `source`, `id`, `language`, optional `document` | Resolve the HTML filename, then cache its metadata and recursively referenced repository assets | Select the HTML and module metadata from the pinned repository revision |
+| KtaneContent appendix | `source`, `language`, `document` | Cache the explicitly named HTML file and its referenced assets | Select the named appendix in profile order |
+| Official manual | `source`, `id`, `language` | Download one complete PDF for the language | Select the configured one-based inclusive page range for the module ID |
+| Local document | `source`, `path`, `language`, optional `id` | Check that the HTML file exists; do not copy it into the cache | Select the HTML and include each referenced local file in its source identity |
 
 An English KtaneContent module can omit `document`; the aggregate catalog maps its `id` to the
 default HTML filename. A translated KtaneContent module must provide `document` because translated
@@ -119,6 +120,21 @@ directories. Relative local paths are resolved from the GPTNT repository root.
 
 The shipped profiles are available in `configs/manual/`, including `vanilla.yaml`,
 `vanilla_with_needy.yaml`, and `vanilla_fr.yaml`.
+
+### Configure frontmatter and official pages
+
+`include_frontmatter: true` uses the ordered `frontmatter` entries in `configs/manual/sources.toml`.
+The shipped source configuration selects pages 1–4 of the English official manual. Set
+`include_frontmatter: false` when a profile should start with its first document instead. If
+frontmatter is enabled but no frontmatter source is configured, resolution stops and names the
+missing frontmatter configuration.
+
+The configured official PDFs currently share the same 23-page layout, verified across all 27
+languages. Each language still owns a `pages` table under `official_manual.<language>` so a later
+translation can use a different layout. When selecting another official manual version, verify and
+update that language's module IDs and inclusive `first` and `last` pages. A profile entry cannot use
+an official module until that language's source owns its page range. The resolver reports the
+profile index, language, and missing module map.
 
 ### Assign a profile to a suite
 
@@ -175,7 +191,8 @@ stylesheets, fonts, scripts, frames, and other repository files they reference r
 
 For official documents, the command downloads one PDF for each language present in the selected
 profiles. `configs/manual/sources.toml` contains all 27 official languages published by
-`bombmanual.com`, but unselected languages are not downloaded.
+`bombmanual.com`, but unselected languages are not downloaded. Configured frontmatter can add a
+language when at least one selected profile enables it.
 
 Local documents are validated in their configured locations. They are not copied into
 `output/manual_cache/` and do not contribute to downloaded or cached file counts.
@@ -202,49 +219,29 @@ directory.
     path on the offline machine.
 
 
-## Planned manual resolution for rule seeds
+## Resolve compilation inputs
 
-The later manual-building pipeline should operate in this order:
+Manual-building code resolves inputs in this order:
 
 ```mermaid
 graph LR
   P[Manual profile] --> D[Downloaded source inputs]
   M[Mission context] --> R[Resolve documents]
   D --> R
-  R --> S[Apply rule-seed transformations where supported]
+  R --> S[Render or transform in a later stage]
   S --> A[Assemble Expert manual]
 ```
 
-The mission context provides the game language and `rule_seed`. The resolver should produce
-concrete pages with the metadata needed for ordering, rendering, and provenance. KtaneContent
-module metadata will be needed for fields such as module name, sort key, origin, and rule-seed
-capability. The aggregate catalog currently downloaded is sufficient for filename lookup but not
-for all of that future resolution work.
+The requested language and every configured document language must match. Mixed-language profiles
+stop at the first incompatible profile entry. The current resolver accepts only default rule seed
+`1`; any other value stops before source files are rendered. KtaneContent module metadata still
+records upstream rule-seed support so a later transformation stage can define additional policy.
 
-Rule-seed eligibility belongs to resolved document metadata, not to the manual profile. A profile
-describes which logical documents a suite uses; the mission context determines which rule variant
-must be rendered.
-
-### Planned compatibility policy
-
-The following table describes intended policy, not behavior currently enforced by the downloader:
-
-!!! warning "Rule seed values above 1 require generated pages"
-    Official PDFs contain only default rules. A mission using a non-default `rule_seed` must use
-    rule-seed-capable KtaneContent pages once the resolver and generator are implemented.
-
-| Rules | Game language | Manual inputs | Planned result |
-| --- | --- | --- | --- |
-| Default | English | Explicitly selected supported language and source | Resolve the selected profile |
-| Default | Non-English | Manual language matches the game language | Resolve the selected profile |
-| Default | Non-English | Manual language differs from the game language | Reject the combination |
-| Non-default rule seed | English | Rule-seed-capable KtaneContent pages | Generate the seeded pages |
-| Non-default rule seed | Any | Official PDF | Reject because a static PDF cannot represent changed rules |
-| Non-default rule seed | Non-English | Any current source | Reject until the game, mod, and manual sources support the combination |
-
-Appendices and local documents need an explicit policy before rule-seed generation is implemented.
-A static appendix may be valid for every rule seed, while a local module page may describe rules
-that must change. The resolver should not infer this distinction from the source type alone.
+Resolution also checks that every input prepared by the download step is present. An absent
+KtaneContent HTML or metadata file, official PDF, official page map, local HTML file, or referenced
+local dependency is reported with the frontmatter or profile index that selected it. Run
+`gptnt manual download` when a configured remote input is missing. Correct the profile or source
+configuration when the named document, language, page map, or local dependency is invalid.
 
 <!--
 ### Future generated-manual caching
