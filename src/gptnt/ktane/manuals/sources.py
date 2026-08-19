@@ -33,7 +33,7 @@ class OfficialManualSource(BaseModel):
     version: str
     url: HttpUrl
     pages: dict[str, "OfficialPageRange"] = Field(default_factory=dict)
-    """One-based inclusive page ranges keyed by the profile document ID."""
+    """Pages to extract for each profile document ID available in this PDF."""
 
     def cache_path(self, language: str, *, cache_dir: Path) -> Path:
         """Return the cache location shared by download and profile resolution."""
@@ -41,7 +41,11 @@ class OfficialManualSource(BaseModel):
 
 
 class OfficialPageRange(BaseModel):
-    """One-based inclusive pages occupied by one logical official-manual document."""
+    """First and last PDF pages to extract for one profile document.
+
+    PDF page numbering starts at 1. Both `first` and `last` are included, so a document contained
+    on one page uses the same value for both fields.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -50,6 +54,7 @@ class OfficialPageRange(BaseModel):
 
     @model_validator(mode="after")
     def _require_ordered_pages(self) -> Self:
+        """Reject an interval whose final page precedes its first page."""
         if self.last < self.first:
             raise ValueError("last page must be greater than or equal to first page")
         return self

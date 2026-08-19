@@ -27,7 +27,11 @@ __all__ = [
 
 
 class KtaneContentModuleMetadata(BaseModel):
-    """Compiler-facing fields loaded from a KtaneContent module JSON file."""
+    """Module fields read from the JSON file beside a KtaneContent HTML document.
+
+    KtaneContent publishes additional fields that the compiler does not consume. Those fields are
+    ignored so additions to the upstream catalog do not change the resolved input contract.
+    """
 
     model_config = ConfigDict(frozen=True, extra="ignore")
 
@@ -77,7 +81,7 @@ class LocalProvenance:
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedKtaneContentModule:
-    """HTML and module metadata selected from a pinned KtaneContent revision."""
+    """Module HTML and JSON metadata selected from a pinned KtaneContent revision."""
 
     logical_id: str
     language: str
@@ -91,7 +95,10 @@ class ResolvedKtaneContentModule:
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedKtaneContentAppendix:
-    """Explicit appendix HTML selected from a pinned KtaneContent revision."""
+    """Appendix HTML selected by filename from a pinned KtaneContent revision.
+
+    Appendices have no module ID and therefore do not require a module JSON file.
+    """
 
     logical_id: str
     language: str
@@ -103,7 +110,7 @@ class ResolvedKtaneContentAppendix:
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedOfficialDocument:
-    """One logical document mapped to inclusive pages in an official PDF."""
+    """Official manual PDF and configured page interval for one profile document."""
 
     logical_id: str
     language: str
@@ -116,7 +123,7 @@ class ResolvedOfficialDocument:
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedLocalDocument:
-    """Local HTML input with the identity of every recursively referenced file."""
+    """Local HTML and the path and digest of every file in its dependency graph."""
 
     logical_id: str
     language: str

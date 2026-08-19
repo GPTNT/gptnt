@@ -28,6 +28,7 @@ COMMIT = "1" * 40
 
 
 def _write(path: Path, content: str | bytes) -> None:
+    """Materialize one source-cache or local-dependency fixture."""
     path.parent.mkdir(parents=True, exist_ok=True)
     if isinstance(content, bytes):
         _ = path.write_bytes(content)
@@ -36,6 +37,7 @@ def _write(path: Path, content: str | bytes) -> None:
 
 
 def _sources(*, frontmatter: tuple[LocalDocument, ...] = ()) -> ManualSources:
+    """Build the smallest source configuration that covers every resolver branch."""
     return ManualSources(
         ktane_content=KtaneContentSource(
             repository="https://content.test/repository.git",
@@ -54,6 +56,7 @@ def _sources(*, frontmatter: tuple[LocalDocument, ...] = ()) -> ManualSources:
 
 
 def _cache_ktane_content(cache_dir: Path) -> None:
+    """Create the catalog, HTML, appendix, and JSON files expected from the downloader."""
     catalog = {"KtaneModules": [{"ModuleID": "Wires", "Name": "Wires"}]}
     _write(cache_dir / "sources" / "ktanecontent" / "catalog" / "raw.json", json.dumps(catalog))
     revision = cache_dir / "sources" / "ktanecontent" / COMMIT
@@ -74,15 +77,23 @@ def _cache_ktane_content(cache_dir: Path) -> None:
 
 
 def _profile(*documents: object, include_frontmatter: bool = False) -> ManualProfile:
+    """Parse serialized document variants through the public profile model."""
     return ManualProfile.model_validate(
         {"include_frontmatter": include_frontmatter, "documents": list(documents)}
     )
 
 
 def test_resolves_mixed_sources_in_profile_order_with_provenance(tmp_path: Path) -> None:
+    """Preserve profile order while selecting each source type and its provenance.
+
+    The local HTML references CSS that references an image. The resulting identity must therefore
+    include the complete two-level dependency graph, not only the configured HTML file.
+    """
     cache_dir = tmp_path / "cache"
+    # Remote inputs must occupy the cache paths produced by the downloader.
     _cache_ktane_content(cache_dir)
     _write(cache_dir / "sources" / "official" / "en" / "1" / "manual.pdf", b"PDF")
+    # Local inputs remain under the configured root and may reference one another recursively.
     _write(
         tmp_path / "local" / "notes.html",
         '<link rel="stylesheet" href="style.css"><main>Notes.</main>',
@@ -149,6 +160,11 @@ def test_resolves_mixed_sources_in_profile_order_with_provenance(tmp_path: Path)
 def test_resolution_policy_reports_the_profile_entry(
     tmp_path: Path, policy: str, match: str
 ) -> None:
+    """Name the responsible profile entry for each unsupported pre-render condition.
+
+    Each parameter selects a separate resolver branch and supplies only the files needed to reach
+    that branch. The assertions target GPTNT's error context rather than dependency error text.
+    """
     cache_dir = tmp_path / "cache"
     _cache_ktane_content(cache_dir)
     sources = _sources()
@@ -183,6 +199,7 @@ def test_resolution_policy_reports_the_profile_entry(
 
 
 def test_frontmatter_is_inserted_only_when_enabled(tmp_path: Path) -> None:
+    """Prepend configured frontmatter without changing the profile document order."""
     _write(tmp_path / "frontmatter.html", "Frontmatter")
     _write(tmp_path / "body.html", "Body")
     frontmatter = LocalDocument(source="local", path=Path("frontmatter.html"), language="en")

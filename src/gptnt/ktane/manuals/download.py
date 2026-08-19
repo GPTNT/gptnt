@@ -49,6 +49,8 @@ class DownloadResult:
 
 @dataclass(frozen=True, kw_only=True)
 class _OfficialAsset:
+    """Official PDF URL and cache destination selected for one language."""
+
     language: str
     url: str
     destination: Path
@@ -65,6 +67,8 @@ class _OfficialAsset:
 
 @dataclass(kw_only=True)
 class _ProfileSelection:
+    """Distinct remote sources and validated local files required by a profile set."""
+
     ktane_documents: set[_ktane_content.KtaneContentRequirement] = field(default_factory=set)
     official_languages: set[str] = field(default_factory=set)
 
@@ -101,6 +105,8 @@ class _ProfileSelection:
 
 @dataclass(frozen=True, kw_only=True)
 class _DownloadPlan:
+    """Remote assets to cache before any selected profile can be resolved."""
+
     cache_dir: Path
     ktane_source: KtaneContentSource
     ktane_documents: tuple[_ktane_content.KtaneContentRequirement, ...]
@@ -120,6 +126,8 @@ class _DownloadPlan:
             raise ValueError("at least one manual profile is required")
 
         selection = _ProfileSelection.from_profiles(profiles, root_dir=root_dir)
+        # Frontmatter lives in source configuration rather than each profile, so include it once
+        # when at least one selected profile requests it.
         if any(profile.include_frontmatter for profile in profiles):
             if not sources.frontmatter:
                 raise ValueError(
@@ -152,6 +160,8 @@ class _DownloadPlan:
 
 @dataclass(frozen=True, kw_only=True)
 class _OfficialDownload:
+    """Cache status and byte size for one official PDF."""
+
     cached: bool
     size: int
 
@@ -159,6 +169,7 @@ class _OfficialDownload:
 async def _download_official_manual(
     asset: _OfficialAsset, *, reporter: ProgressReporter, client: httpx.AsyncClient
 ) -> _OfficialDownload:
+    """Reuse or download one official PDF and report its complete byte count."""
     if asset.destination.is_file():
         size = asset.destination.stat().st_size
         reporter.update(
@@ -183,6 +194,7 @@ async def _download_official_manual(
 async def _execute_plan(
     plan: _DownloadPlan, *, reporter: ProgressReporter, client: httpx.AsyncClient
 ) -> DownloadResult:
+    """Cache a plan and combine KtaneContent and official PDF file and byte counts."""
     ktane_download = await _ktane_content.download_ktane_content(
         plan.ktane_documents,
         source=plan.ktane_source,
