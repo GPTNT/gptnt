@@ -5,8 +5,9 @@ prepares the source files for those profiles before a run.
 
 !!! info "Current scope"
     `gptnt manual download` selects profiles, validates local documents, and caches remote source
-    files. The manual resolver turns that cache and one profile into ordered compilation inputs. It
-    does not render pages, apply Rule Seed Modifier rules, or assemble an Expert manual.
+    files. The manual resolver turns that source cache and one profile into ordered compilation
+    inputs. The compiler turns those inputs into validated text and PNG pages. It does not apply
+    Rule Seed Modifier rules; only rule seed `1` can currently be resolved.
 
 ## Concepts
 
@@ -18,8 +19,13 @@ to every profile. It contains a pinned KtaneContent Git commit, the aggregate Kt
 URL, the configured frontmatter, and the version, URL, and module page ranges for every configured
 official manual language.
 
-The **manual cache** under `output/manual_cache/` contains downloaded remote inputs and the
+The **source cache** under `output/manual_cache/sources/` contains downloaded remote inputs and the
 aggregate catalog. Local documents remain at their configured paths after validation.
+
+The **compiled cache** under `output/manual_cache/compiled/` contains content-addressed canonical
+manual artifacts. Each artifact has ordered UTF-8 page text, canonical PNG page images, and a
+validated manifest. Prepared image-dimension variants live beneath their canonical artifact and
+refer back to its text instead of copying it.
 
 Two kinds of seeds are part of a mission:
 
@@ -197,7 +203,7 @@ language when at least one selected profile enables it.
 Local documents are validated in their configured locations. They are not copied into
 `output/manual_cache/` and do not contribute to downloaded or cached file counts.
 
-### Cache behavior
+### Source-cache behavior
 
 Existing catalog, KtaneContent, and official-manual files are reused based on their presence in the
 cache. The downloader does not inspect an existing PDF or compare remote content with a checksum.
@@ -215,8 +221,10 @@ directory.
 
 
 ??? question "How do I prepare an offline machine?"
-    Run the download command on a connected machine, then copy `output/manual_cache/` to the same
-    path on the offline machine.
+    Run the download command and compile the manuals you need on a connected machine. Then copy
+    `output/manual_cache/` to the same path on the offline machine. Copying the complete directory
+    retains both the inputs needed for a rebuild and compiled artifacts that can be reused without
+    parsing source HTML or PDF in a player process.
 
 
 ## Resolve compilation inputs
@@ -228,8 +236,8 @@ graph LR
   P[Manual profile] --> D[Downloaded source inputs]
   M[Mission context] --> R[Resolve documents]
   D --> R
-  R --> S[Render or transform in a later stage]
-  S --> A[Assemble Expert manual]
+  R --> C[Compile ordered text and canonical PNG pages]
+  C --> A[Validated content-addressed artifact]
 ```
 
 The requested language and every configured document language must match. Mixed-language profiles
@@ -243,18 +251,30 @@ local dependency is reported with the frontmatter or profile index that selected
 `gptnt manual download` when a configured remote input is missing. Correct the profile or source
 configuration when the named document, language, page map, or local dependency is invalid.
 
-<!--
-### Future generated-manual caching
+## Compile and reuse model-ready artifacts
 
-Downloaded source inputs and generated manuals should use separate caches. A generated-manual cache
-key will need to include every input that can change its content, including:
+Compilation creates one canonical artifact from the selected profile, ordered resolved inputs,
+source contents, and private compiler and renderer identity. Repeating the same build returns the
+existing artifact after its manifest, file hashes, and PNG files validate. A profile change, source
+content or pin change, document language, supported rule-seed behavior, compiler schema, or renderer
+version selects a different canonical cache entry.
 
-- Manual profile identity
-- KtaneContent commit and other source versions
-- Rule seed
-- Game and document languages
-- Selected modules and appendices
-- Manual generator or renderer version
+Player image dimensions are not part of canonical identity. Requesting another width and height
+creates or reuses a prepared image variant beneath the canonical artifact. The variant contains
+only resized PNG pages. It continues to use the canonical page text.
 
-This separation allows several rule seeds to reuse the same downloaded HTML, assets, and metadata
-without confusing a generated manual with its upstream inputs. -->
+A missing file, malformed manifest, hash mismatch, or undecodable PNG prevents cache reuse. The
+compiler rebuilds that artifact from the already validated source inputs and publishes the result
+only after all new files validate. Concurrent requests for the same content wait for the same
+published artifact instead of returning an intermediate directory.
+
+Users may delete compiled artifact directories while no compilation is running; an artifact will
+be regenerated when the same manual is compiled again, provided its downloaded and local source
+inputs remain available. Deleting `output/manual_cache/sources/` removes remote inputs required for
+a rebuild, so run `gptnt manual download` again before compiling. Retaining the complete manual
+cache is the simplest option when moving experiments to an offline machine.
+
+Renderer versions are included in artifact identity because output is not expected to remain
+pixel-identical across renderer releases. HTML documents use the repository's pinned PyMuPDF Story
+path, and PDF pages use PyMuPDF extraction. The compiled manifest records the effective renderer
+version used for an artifact.
