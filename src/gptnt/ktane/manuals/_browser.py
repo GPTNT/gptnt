@@ -8,6 +8,7 @@ import json
 import threading
 from http import HTTPStatus, server as http_server
 from importlib import metadata
+from importlib.resources import files
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, override
 from urllib.parse import unquote, urlparse
@@ -17,7 +18,6 @@ import pymupdf
 from playwright.sync_api import Error as PlaywrightError, Frame, Page, Route, sync_playwright
 
 from gptnt.ktane.manuals.compiler_sources import KTANE_CONTENT_COMMIT, keypad_assets_identity
-from gptnt.ktane.manuals._javascript import load_javascript
 from gptnt.ktane.manuals.resolution import (
     ResolvedKtaneContentAppendix,
     ResolvedKtaneContentModule,
@@ -147,12 +147,19 @@ def _catalog_entry(document: HtmlDocument, *, index: int) -> tuple[dict[str, str
     )
 
 
+@functools.cache
+def _load_javascript(name: str) -> str:
+    """Read and cache one packaged browser expression by filename."""
+    # importlib.resources works for both editable source trees and installed wheels.
+    return files("gptnt.ktane.manuals").joinpath("_js", name).read_text(encoding="utf-8")
+
+
 def _wait_for_document(frame: Frame) -> tuple[int, list[str]]:
     """Wait for stable font/image state and return printable and broken-image counts."""
     # A loaded frame is not printable until font substitution and image decoding have settled.
-    _ = frame.wait_for_function(load_javascript("fonts-loaded.js"))
-    _ = frame.wait_for_function(load_javascript("images-complete.js"))
-    broken_images = frame.evaluate(load_javascript("broken-images.js"))
+    _ = frame.wait_for_function(_load_javascript("fonts-loaded.js"))
+    _ = frame.wait_for_function(_load_javascript("images-complete.js"))
+    broken_images = frame.evaluate(_load_javascript("broken-images.js"))
     page_count = frame.locator(".section > .page").count()
     if page_count == 0:
         raise ManualBrowserError(f"manual HTML produced no printable pages: {frame.url}")
@@ -197,12 +204,12 @@ def _managed_browser(playwright: Playwright) -> Iterator[Browser]:
 
 def _clean_print_document(frame: Frame) -> None:
     """Remove merger-only rule-seed chrome from one printable document frame."""
-    frame.evaluate(load_javascript("clean-print-document.js"))
+    frame.evaluate(_load_javascript("clean-print-document.js"))
 
 
 def _flatten_document(frame: Frame) -> tuple[tuple[str, ...], str]:
     """Clone one rendered frame into self-contained head and section HTML fragments."""
-    flattened = frame.evaluate(load_javascript("flatten-document.js"))
+    flattened = frame.evaluate(_load_javascript("flatten-document.js"))
     # Playwright values cross a dynamic JSON boundary, so validate the expected result shape.
     if not isinstance(flattened, dict):
         raise ManualBrowserError(f"manual HTML could not be flattened for print: {frame.url}")
@@ -380,7 +387,7 @@ class _ManualRenderer:
 
         # Profile processing is complete once the merger has created one frame per token.
         _ = page.wait_for_function(
-            load_javascript("manual-frames-loaded.js"), arg=len(self._documents)
+            _load_javascript("manual-frames-loaded.js"), arg=len(self._documents)
         )
 
     def _flatten_frames(self, page: Page) -> FlattenedFrames:
