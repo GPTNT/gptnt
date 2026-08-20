@@ -21,6 +21,7 @@ from gptnt.cli.checks.result import CheckResult
 from gptnt.cli.checks.services import check_em_port, check_observability, check_redis
 from gptnt.cli.config_discovery import discover_players
 from gptnt.cli.doctor.run_plan import RunPlanResult, analyze_run_plan
+from gptnt.cli.integrity import AllowModifiedBenchmarkOption, diagnose_benchmark_integrity
 from gptnt.cli.run.manifest import RunManifest
 
 if TYPE_CHECKING:
@@ -45,6 +46,16 @@ LiveOption = Annotated[
         name="--live", help="Make ONE real request per model (SPENDS MONEY) to test endpoints."
     ),
 ]
+ConfigOnlyOption = Annotated[
+    bool,
+    Parameter(
+        name="--config-only",
+        help=(
+            "Check benchmark integrity, player configuration, and an optional run plan without "
+            "requiring Redis, KTANE, a display, or local services."
+        ),
+    ),
+]
 
 
 @dataclass(frozen=True)
@@ -56,6 +67,7 @@ class DiagnoseResult:
     """
 
     failed: bool
+    benchmark_failed: bool
     player_reports: list[PlayerReport]
     run_plan: RunPlanResult | None
 
@@ -65,6 +77,8 @@ async def doctor(
     *,
     check_mod_load: CheckModLoadOption = False,
     live: LiveOption = False,
+    config_only: ConfigOnlyOption = False,
+    allow_modified_benchmark: AllowModifiedBenchmarkOption = False,
 ) -> None:
     """Check that this machine is ready to run the benchmark, and print exact fixes for what isn't.
 
@@ -75,7 +89,13 @@ async def doctor(
     run = None
     if manifest is not None:
         run = RunManifest.from_path(manifest)
-    diagnosis = await diagnose(run, check_mod_load=check_mod_load, live=live)
+    diagnosis = await diagnose(
+        run,
+        check_mod_load=check_mod_load,
+        live=live,
+        include_infra=not config_only,
+        allow_modified_benchmark=allow_modified_benchmark,
+    )
     if diagnosis.failed:
         raise RuntimeError("Doctor found problems; fix the rows above.")
 
@@ -87,6 +107,7 @@ async def diagnose(
     live: bool = False,
     specs: list[ExperimentSpec] | None = None,
     include_infra: bool = True,
+    allow_modified_benchmark: bool = False,
 ) -> DiagnoseResult:
     """Run + render the full doctor report against an already-loaded manifest (or None).
 
@@ -95,9 +116,12 @@ async def diagnose(
 
     `include_infra=False` skips the redis/game/display/machine checks.
     """
+    benchmark = diagnose_benchmark_integrity(allow_modified_benchmark=allow_modified_benchmark)
     matrix = await check_players(_doctor_targets(run), live=live)
     render_players(console, matrix.details)
-    failed = not matrix.details or any(report.failed for report in matrix.reports)
+    failed = (
+        benchmark.failed or not matrix.details or any(report.failed for report in matrix.reports)
+    )
 
     system_failed, run_plan_result = await _render_system_checks(
         run,
@@ -105,11 +129,17 @@ async def diagnose(
         tokens_per_image=check_tokens_per_image(matrix.details),
         check_mod_load=check_mod_load,
         specs=specs,
-        include_infra=include_infra,
+        # A failed integrity gate cannot reach the only spawning doctor check (`--check-mod-load`).
+        include_infra=include_infra and not benchmark.failed,
     )
     failed = system_failed or failed
 
-    return DiagnoseResult(failed=failed, player_reports=matrix.reports, run_plan=run_plan_result)
+    return DiagnoseResult(
+        failed=failed,
+        benchmark_failed=benchmark.failed,
+        player_reports=matrix.reports,
+        run_plan=run_plan_result,
+    )
 
 
 def _doctor_targets(run: RunManifest | None) -> list[tuple[str, str | None]]:

@@ -6,6 +6,7 @@ from cyclopts.types import ExistingFile
 from rich.console import Console
 
 from gptnt.cli.doctor.command import diagnose
+from gptnt.cli.integrity import AllowModifiedBenchmarkOption
 from gptnt.cli.run.manifest import RunManifest
 from gptnt.common.paths import Paths
 from gptnt.experiments.spec import write_specs_to_dir
@@ -18,6 +19,8 @@ async def generate(
     output_dir: Annotated[
         Path | None, Parameter(help="Directory to write specs to.", env_var="EXPERIMENT_SPECS_DIR")
     ] = None,
+    *,
+    allow_modified_benchmark: AllowModifiedBenchmarkOption = False,
 ) -> None:
     """Generate experiment specs from a run.yaml into output/experiment_specs/<manifest-stem>/.
 
@@ -27,7 +30,9 @@ async def generate(
     loaded = RunManifest.from_path(manifest)
 
     # Offline gate: validate the roster + compose the specs, but skip run-time infra checks.
-    diagnosis = await diagnose(loaded, include_infra=False)
+    diagnosis = await diagnose(
+        loaded, include_infra=False, allow_modified_benchmark=allow_modified_benchmark
+    )
     if diagnosis.failed:
         console.print(
             "\n[bold red]Doctor found problems.[/bold red] Fix the ✗ rows above before generating."

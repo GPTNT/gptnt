@@ -9,6 +9,19 @@ Creating an asynchronous, real-time, multi-agent benchmark is not trivial. We've
 
 There are some things we cannot provide for you through Python dependencies so you need to run them yourself. We've tried to keep them to a minimum.
 
+### Check an extracted release before installing infrastructure
+
+If you are checking an extracted release bundle before KTANE, Redis, and the other local services
+are available, run:
+
+```bash
+gptnt doctor --config-only
+```
+
+This skips infrastructure while still checking player configuration and benchmark integrity. The
+[validation guide](running/run-your-model.md#validate-it) shows how GPTNT reports protected content
+and permitted input changes.
+
 ### Bring your own game
 
 !!! danger "You must provide the game yourself"

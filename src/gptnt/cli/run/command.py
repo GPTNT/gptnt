@@ -4,6 +4,7 @@ from typing import Annotated
 from cyclopts import Parameter
 from cyclopts.types import ExistingFile
 
+from gptnt.cli.integrity import AllowModifiedBenchmarkOption
 from gptnt.cli.run.manifest import RunManifest
 from gptnt.cli.run.pipeline import run_pipeline
 
@@ -15,9 +16,13 @@ async def run(
         bool,
         Parameter(
             name="--force",
-            help="Run even if doctor reports problems (does NOT bypass the roster cross-check).",
+            help=(
+                "Run despite ordinary doctor failures. This cannot bypass protected-content or "
+                "run-roster failures."
+            ),
         ),
     ] = False,
+    allow_modified_benchmark: AllowModifiedBenchmarkOption = False,
     interactive: Annotated[
         bool,
         Parameter(
@@ -33,5 +38,9 @@ async def run(
     """
     loaded = RunManifest.from_path(manifest)
     await run_pipeline(
-        loaded, manifest_stem=Path(manifest).stem, force=force, interactive=interactive
+        loaded,
+        manifest_stem=Path(manifest).stem,
+        force=force,
+        interactive=interactive,
+        allow_modified_benchmark=allow_modified_benchmark,
     )
