@@ -20,18 +20,19 @@ def suite_identity_from_experiments(experiments: Sequence[ExperimentSummary]) ->
     """Return the shared recorded suite identity, rejecting a mixed selection."""
     if not experiments:
         raise ValueError("Cannot identify a suite from an empty experiment selection")
-    canonical = SuiteIdentity(
-        suite_name=experiments[0].suite_name,
-        suite_revision=experiments[0].suite_revision,
-        suite_digest=experiments[0].suite_digest,
-    )
-    if any(
+    identities = {
         (experiment.suite_name, experiment.suite_revision, experiment.suite_digest)
-        != (canonical.suite_name, canonical.suite_revision, canonical.suite_digest)
-        for experiment in experiments[1:]
-    ):
-        raise ValueError("Cannot bundle experiments with conflicting suite identities")
-    return canonical
+        for experiment in experiments
+    }
+    if len(identities) != 1:
+        found = ", ".join(
+            f"{name}@{revision} ({digest})" for name, revision, digest in sorted(identities)
+        )
+        raise ValueError(f"Cannot bundle experiments with conflicting suite identities: {found}")
+    suite_name, suite_revision, suite_digest = next(iter(identities))
+    return SuiteIdentity(
+        suite_name=suite_name, suite_revision=suite_revision, suite_digest=suite_digest
+    )
 
 
 def gather_experiments_for_suite(

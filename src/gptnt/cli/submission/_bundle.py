@@ -169,7 +169,7 @@ class InteractiveBundle(SubmissionBundle[InteractiveSubmission]):
                 f"Recorded suite {measured.target} digest {measured.suite_digest} does not match "
                 f"the snapshot digest {entry.suite_digest}"
             )
-        if set(entry.mission_keys) != set(suite_lock.mission_specs()):
+        if set(entry.mission_keys) != set(suite_lock.mission_specs().keys()):
             raise ValueError("An interactive bundle requires exactly the suite's missions")
         run_date = min(experiment.start_time for experiment in experiments)
         defuser = SubmissionPlayer.for_role("defuser", canonical.defuser_capabilities)

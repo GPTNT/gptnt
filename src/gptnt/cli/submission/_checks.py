@@ -165,7 +165,7 @@ def check_suite(bundle: InteractiveBundle) -> list[CheckResult]:
     findings.append(_check_suite_digest(declared.suite_digest, entry.suite_digest))
 
     referenced = set(entry.mission_keys)
-    stored = set(bundle.suite_lock.mission_specs())
+    stored = set(bundle.suite_lock.mission_specs().keys())
     if referenced == stored:
         findings.append(
             CheckResult.passed("snapshot missions", f"exactly {len(referenced)} missions")
