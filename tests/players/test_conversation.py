@@ -1,6 +1,11 @@
 import datetime
 import json
+from pathlib import Path
 
+import orjson
+import pymupdf
+import pytest
+from pydantic import ValidationError
 from pydantic_ai import (
     BinaryContent,
     ModelMessage,
@@ -14,10 +19,18 @@ from pydantic_ai import (
 )
 from pydantic_ai.usage import UsageLimits
 
+from gptnt.common.image_ops import load_observation_from_bytes
+from gptnt.common.runtime_settings import MANUAL_ARTIFACTS_ENV
+from gptnt.interactive.entrypoints.run_player import main as build_player_app
+from gptnt.ktane.manuals.artifacts import ManualArtifact
+from gptnt.ktane.manuals.compiler import compile_manual
+from gptnt.ktane.manuals.resolution import OfficialManualProvenance, ResolvedOfficialDocument
+from gptnt.ktane.manuals.sources import OfficialPageRange
 from gptnt.players.conversation import Conversation
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cases.messages import TEST_TOKENS_PER_IMAGE, image_count
+from tests._factories.experiments import make_manual_profile
 
 _FIXED_TIMESTAMP = datetime.datetime(2025, 1, 1, 12, 0, 0, tzinfo=datetime.UTC)
 
@@ -32,6 +45,136 @@ def _capabilities() -> PlayerCapabilities:
         tokens_per_image=TEST_TOKENS_PER_IMAGE,
         usage_limits=UsageLimits(input_tokens_limit=6000),
     )
+
+
+def _compiled_manual(tmp_path: Path, *, name: str, text: str) -> ManualArtifact:
+    """Compile one single-page official-PDF fixture without invoking Chromium."""
+    source = tmp_path / f"{name}.pdf"
+    with pymupdf.open() as document:
+        page = document.new_page(width=612, height=792)
+        _ = page.insert_text((72, 72), text, fontsize=18)
+        document.save(source)
+    resolved = ResolvedOfficialDocument(
+        document_id=name,
+        language="en",
+        source="official",
+        source_path=source,
+        page_range=OfficialPageRange(first=1, last=1),
+        provenance=OfficialManualProvenance(
+            version="fixture", url=f"https://manual.test/{name}.pdf"
+        ),
+        supports_requested_rule_seed=True,
+    )
+    return compile_manual([resolved], cache_dir=tmp_path / "cache")
+
+
+def _manual_protocol(*, include_manual: bool) -> PlayerProtocol:
+    """Build the solo protocol used by prepared-manual conversation tests."""
+    return PlayerProtocol(
+        role="defuser",
+        communication_style="sync",
+        is_playing_alone=True,
+        include_manual=include_manual,
+    )
+
+
+def _manual_prompt_text(conversation: Conversation) -> list[str]:
+    """Return text parts from the pinned manual request."""
+    request = conversation.entries[0].messages[0]
+    assert isinstance(request, ModelRequest)
+    part = request.parts[0]
+    assert isinstance(part, UserPromptPart)
+    assert isinstance(part.content, list)
+    return [content for content in part.content if isinstance(content, str)]
+
+
+def _manual_prompt_image(conversation: Conversation) -> BinaryContent:
+    """Return the image from the pinned single-page manual request."""
+    request = conversation.entries[0].messages[0]
+    assert isinstance(request, ModelRequest)
+    part = request.parts[0]
+    assert isinstance(part, UserPromptPart)
+    assert isinstance(part.content, list)
+    return next(content for content in part.content if isinstance(content, BinaryContent))
+
+
+def test_profiles_select_their_prepared_prompts_and_no_manual_reads_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Select profile-specific manual content and skip every read for a no-manual protocol."""
+    first_profile = make_manual_profile("Wires")
+    second_profile = make_manual_profile("BigButton")
+    first_artifact = _compiled_manual(tmp_path, name="wires", text="FIRST PROFILE")
+    second_artifact = _compiled_manual(tmp_path, name="button", text="SECOND PROFILE")
+    artifacts = dict(
+        zip((first_profile, second_profile), (first_artifact, second_artifact), strict=True)
+    )
+    monkeypatch.setenv(
+        MANUAL_ARTIFACTS_ENV,
+        orjson.dumps(
+            {
+                profile.runtime_digest: str(artifact.path)
+                for profile, artifact in artifacts.items()
+            },
+            option=orjson.OPT_SORT_KEYS,
+        ).decode(),
+    )
+    player_app = build_player_app(hydra_overrides=["player=test-defuser"])
+    player_service = player_app.context.get("player_service")
+    assert player_service is not None
+    runtime_artifacts = player_service.manual_artifacts
+    capabilities = _capabilities()
+
+    first = Conversation.begin(
+        capabilities=capabilities,
+        protocol=_manual_protocol(include_manual=True),
+        manual_artifact=ManualArtifact.load(runtime_artifacts[first_profile.runtime_digest]),
+    )
+    second = Conversation.begin(
+        capabilities=capabilities,
+        protocol=_manual_protocol(include_manual=True),
+        manual_artifact=ManualArtifact.load(runtime_artifacts[second_profile.runtime_digest]),
+    )
+
+    assert any("FIRST PROFILE" in text for text in _manual_prompt_text(first))
+    assert any("SECOND PROFILE" in text for text in _manual_prompt_text(second))
+    assert image_count(first.entries[0].messages) == 1
+    assert image_count(second.entries[0].messages) == 1
+    first_image = load_observation_from_bytes(_manual_prompt_image(first).data)
+    assert first_image.size == (
+        capabilities.image_dimensions.short_side,
+        capabilities.image_dimensions.long_side,
+    )
+
+    def forbidden_read(*_args: object, **_kwargs: object) -> object:  # noqa: WPS430
+        raise AssertionError("a no-manual conversation must not read an artifact")
+
+    monkeypatch.setattr(
+        "gptnt.players.conversation.conversation.load_prepared_manual_as_prompt", forbidden_read
+    )
+    no_manual = Conversation.begin(
+        capabilities=_capabilities(),
+        protocol=_manual_protocol(include_manual=False),
+        manual_artifact=None,
+    )
+    assert not no_manual.entries
+
+
+def test_missing_prepared_artifact_has_no_fallback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A missing player artifact raises without preparation or tracked-manual loading."""
+
+    def forbidden(*_args: object, **_kwargs: object) -> object:  # noqa: WPS430
+        raise AssertionError("player attempted to prepare or load the tracked manual")
+
+    monkeypatch.setattr("gptnt.ktane.manuals.artifacts.compile_manual", forbidden)
+    monkeypatch.setattr("gptnt.ktane.manuals.download.download_manual_assets", forbidden)
+    monkeypatch.setattr("gptnt.ktane.manuals.resolve.resolve_manual_profile", forbidden)
+    monkeypatch.setattr("gptnt.players.conversation.conversation.load_manual_as_prompt", forbidden)
+
+    with pytest.raises(ValidationError, match="manual artifact could not be read"):
+        _ = ManualArtifact.load(tmp_path / "absent-artifact")
 
 
 def _turn(index: int, *, input_tokens: int, text_chars: int = 0) -> list[ModelMessage]:
@@ -211,7 +354,9 @@ def test_recorded_usage_truncates_the_render() -> None:
     prefix of non-pinned turns.
     """
     capabilities, protocol = _capabilities_and_protocol(limit=5000, window=1, include_manual=True)
-    conversation = Conversation.begin(capabilities=capabilities, protocol=protocol)
+    conversation = Conversation.begin(
+        capabilities=capabilities, protocol=protocol, legacy_manual=True
+    )
     for index in range(40):
         conversation.record(_turn(index, input_tokens=100 * (index + 1), text_chars=400))
 

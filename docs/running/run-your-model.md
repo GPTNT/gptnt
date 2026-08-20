@@ -177,6 +177,11 @@ and players, submits the specs, and streams progress until the run finishes. Add
 doctor failures, but protected-content and run-roster failures always stop the run. The
 [validation section](#validate-it) explains how protected and permitted changes differ.
 
+After doctor and resume filtering, `run` automatically downloads missing manual inputs and compiles
+each distinct manual required by the remaining experiments. This finishes before any process is
+spawned. A preparation failure stops the run even with `--force`; see [Manuals](../manuals.md){data-preview}
+for cache, offline, and repair guidance.
+
 With a display, the game window opens. Headless, it runs in the background and you watch the logs.
 
 ### Read the results

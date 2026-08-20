@@ -45,7 +45,11 @@ class BoxWarmer:
         """Run a simple prompt through the model to warm it up."""
         self.action_predictor.configure_for_experiment(
             protocol=protocol,
-            conversation=Conversation.begin(capabilities=self.capabilities, protocol=protocol),
+            conversation=Conversation.begin(
+                capabilities=self.capabilities,
+                protocol=protocol,
+                legacy_manual=protocol.include_manual,
+            ),
         )
         input_builder = AgentInputBuilder(
             capabilities=self.capabilities,

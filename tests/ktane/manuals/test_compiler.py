@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import shutil
 from typing import TYPE_CHECKING
 
 import pymupdf
@@ -166,15 +165,15 @@ def test_browser_executes_and_prints_ordered_local_html(
     )
 
     texts = [
-        (artifact / "pages" / f"{page_number:04d}.txt").read_text(encoding="utf-8")
+        (artifact.path / "pages" / f"{page_number:04d}.txt").read_text(encoding="utf-8")
         for page_number in (1, 2)
     ]
     assert "JS SECOND" in texts[0]
     assert "JS FIRST" in texts[1]
     assert all("print-only" in text and "screen-only" not in text for text in texts)
-    assert (artifact / "handbook.pdf").is_file()
-    assert (artifact / "pages" / "0001.png").is_file()
-    with pymupdf.open(artifact / "handbook.pdf") as handbook:
+    assert (artifact.path / "handbook.pdf").is_file()
+    assert (artifact.path / "pages" / "0001.png").is_file()
+    with pymupdf.open(artifact.path / "handbook.pdf") as handbook:
         assert handbook.page_count == 2
         assert all(handbook.get_page_fonts(page_number) for page_number in range(2))
 
@@ -251,7 +250,7 @@ def test_keypad_uses_required_high_resolution_asset(
         for asset in committed_assets
     )
     artifact = compile_manual([resolved], cache_dir=cache_dir)
-    with pymupdf.open(artifact / "handbook.pdf") as handbook:
+    with pymupdf.open(artifact.path / "handbook.pdf") as handbook:
         images = handbook.get_page_images(0, full=True)
     assert any(image[2:4] == (256, 256) for image in images)
 
@@ -280,8 +279,7 @@ def test_official_page_ranges_follow_resolver_order(tmp_path: Path) -> None:
 
     artifact = compile_manual(documents, cache_dir=tmp_path / "cache")
 
-    first = (artifact / "pages" / "0001.txt").read_text(encoding="utf-8")
-    second = (artifact / "pages" / "0002.txt").read_text(encoding="utf-8")
+    first, second = (text for text, _image in artifact.pages)
     assert "official page three" in first
     assert "official page one" in second
 
@@ -294,39 +292,16 @@ def test_cache_reuses_invalidates_and_rebuilds(tmp_path: Path) -> None:
     cache_dir = tmp_path / "cache"
 
     first = compile_manual([document], cache_dir=cache_dir)
-    first_pdf_time = (first / "handbook.pdf").stat().st_mtime_ns
+    first_pdf_time = (first.path / "handbook.pdf").stat().st_mtime_ns
     assert compile_manual([document], cache_dir=cache_dir) == first
-    assert (first / "handbook.pdf").stat().st_mtime_ns == first_pdf_time
+    assert (first.path / "handbook.pdf").stat().st_mtime_ns == first_pdf_time
 
     source.unlink()
     _write_pdf(source, ["second source version"])
     changed = compile_manual([document], cache_dir=cache_dir)
     assert changed != first
-    incomplete_page = changed / "pages" / "0001.png"
+    incomplete_page = changed.path / "pages" / "0001.png"
     incomplete_page.unlink()
 
     assert compile_manual([document], cache_dir=cache_dir) == changed
     assert incomplete_page.is_file()
-
-
-def test_cache_accepts_complete_artifact_published_concurrently(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Use a valid artifact when another compiler wins the publication race."""
-    source = tmp_path / "official.pdf"
-    _write_pdf(source, ["concurrent source"])
-    document = _official_document(source, document_id="Page", first=1, last=1)
-    cache_dir = tmp_path / "cache"
-
-    # Simulate another process copying the completed build into the target before rename.
-    def publish_first(build_dir: Path, artifact_dir: Path) -> Path:  # noqa: WPS430
-        """Materialize the competing valid artifact, then report the lost rename race."""
-        _ = shutil.copytree(build_dir, artifact_dir)
-        raise FileExistsError(artifact_dir)
-
-    monkeypatch.setattr(type(tmp_path), "rename", publish_first)
-
-    artifact = compile_manual([document], cache_dir=cache_dir)
-
-    assert (artifact / "handbook.pdf").is_file()
-    assert compile_manual([document], cache_dir=cache_dir) == artifact

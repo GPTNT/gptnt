@@ -87,7 +87,9 @@ def test_render_is_pure_and_windows_observations(
         pytest.skip("only defusers receive observations")
 
     capabilities = _capabilities(window)
-    conversation = Conversation.begin(capabilities=capabilities, protocol=protocol)
+    conversation = Conversation.begin(
+        capabilities=capabilities, protocol=protocol, legacy_manual=protocol.include_manual
+    )
     for index in range(turns):
         conversation.record(copy.deepcopy(_turn(protocol.role, observations, index)))
         conversation.evict_observations(window)
@@ -112,7 +114,9 @@ def test_eviction_preserves_manual_images_and_rendered_history() -> None:
         role="defuser", communication_style="sync", is_playing_alone=False, include_manual=True
     )
     capabilities = _capabilities(1)
-    conversation = Conversation.begin(capabilities=capabilities, protocol=protocol)
+    conversation = Conversation.begin(
+        capabilities=capabilities, protocol=protocol, legacy_manual=True
+    )
     conversation.record(_turn("defuser", 3, 0))
     conversation.record(_turn("defuser", 3, 1))
     rendered_before = _dump(conversation.render(capabilities))

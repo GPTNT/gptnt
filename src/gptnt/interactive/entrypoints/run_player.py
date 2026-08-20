@@ -9,17 +9,16 @@ from structlog import get_logger
 from gptnt.common.hydra import get_hydra_overrides
 from gptnt.common.logger import configure_logging, create_faststream_logger
 from gptnt.common.paths import Paths, remove_empty_experiment_recorder_outputs
+from gptnt.common.runtime_settings import RuntimeSettings
 from gptnt.interactive.services.broker import create_redis_broker
 from gptnt.interactive.services.game.client import GameClient
 from gptnt.interactive.services.player.message_handler import IncomingMessageHandler
 from gptnt.interactive.services.player.service import PlayerService
-from gptnt.ktane.manuals.legacy import KtaneManualPaths
 from gptnt.observability.settings import ObservabilitySettings
 
 logger = get_logger()
 
 paths = Paths()
-ktane_manual_paths = KtaneManualPaths()
 
 observability_settings = ObservabilitySettings()
 
@@ -50,7 +49,11 @@ def main(
     player_partial.keywords["game_client"] = GameClient(broker=broker)
     player_partial.keywords["incoming_message_handler"] = IncomingMessageHandler(broker=broker)
 
-    player_service = PlayerService(broker=broker, **player_partial.keywords)
+    player_service = PlayerService(
+        broker=broker,
+        manual_artifacts=RuntimeSettings().manual_artifacts,
+        **player_partial.keywords,
+    )
 
     app = FastStream(
         broker,

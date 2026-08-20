@@ -17,8 +17,8 @@ async def run(
         Parameter(
             name="--force",
             help=(
-                "Run despite ordinary doctor failures. This cannot bypass protected-content or "
-                "run-roster failures."
+                "Run despite ordinary doctor failures; does not bypass protected-content, roster, "
+                "or manual-preparation failures."
             ),
         ),
     ] = False,
@@ -31,10 +31,11 @@ async def run(
         ),
     ] = False,
 ) -> None:
-    """Run a benchmark end-to-end from a run.yaml: doctor → spawn → submit → monitor.
+    """Run a benchmark: doctor, prepare required manuals, spawn, submit, and monitor.
 
     Specs are NOT generated here — run them with `gptnt generate <manifest>` first; this command
-    loads the pre-generated specs from `output/experiment_specs/<manifest-stem>/`.
+    loads the pre-generated specs from `output/experiment_specs/<manifest-stem>/`. Manual
+    preparation occurs after resume filtering and before any process starts.
     """
     loaded = RunManifest.from_path(manifest)
     await run_pipeline(

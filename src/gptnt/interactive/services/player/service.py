@@ -1,6 +1,7 @@
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Mapping
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Literal, override
 
 import anyio
@@ -19,14 +20,13 @@ from gptnt.interactive.services.heartbeat.base import PlayerState
 from gptnt.interactive.services.player.agent import PlayerAgent
 from gptnt.interactive.services.player.commands import PlayerMessage, StopPlayerEvent
 from gptnt.interactive.services.rpc import BaseRPCService
-from gptnt.ktane.manuals.legacy import KtaneManualPaths
+from gptnt.ktane.manuals.artifacts import ManualArtifact
 from gptnt.observability.span_timing import set_timing_identity
 from gptnt.players.base_action_dispatcher import DispatchedAgentCall
 from gptnt.players.conversation import Conversation
 from gptnt.players.input_builder import AgentInputBuilder
 from gptnt.players.result import AgentCallResult
 from gptnt.players.specification import PlayerProtocol
-from gptnt.prompts.manual import load_manual_as_prompt
 from gptnt.prompts.prompt_cache import PromptCache
 from gptnt.provenance import Provenance
 
@@ -58,6 +58,7 @@ class PlayerService(PlayerAgent, BaseRPCService[PlayerCommand]):
     """
 
     broker: RedisBroker
+    manual_artifacts: Mapping[str, Path] = field(default_factory=dict)
 
     _task_group: TaskGroup | None = field(default=None, init=False, repr=False)
 
@@ -84,12 +85,8 @@ class PlayerService(PlayerAgent, BaseRPCService[PlayerCommand]):
         return f"player:{self.uuid}:commands"
 
     def prepare_prompt_cache(self) -> None:
-        """Prepare the prompt cache for the player."""
-        paths = Paths()
-        manual_paths = KtaneManualPaths()
-        PromptCache.initialise(paths.prompts, manual_paths.text_dir, manual_paths.images_small_dir)
-        # also load the manual too so that it's cached and ready
-        _ = load_manual_as_prompt(image_dimensions=self.capabilities.image_dimensions)
+        """Load the shared prompt files without reading any manual artifact."""
+        PromptCache.initialise(Paths().prompts)
 
     @asynccontextmanager
     async def lifespan(self) -> AsyncGenerator[None]:
@@ -132,8 +129,16 @@ class PlayerService(PlayerAgent, BaseRPCService[PlayerCommand]):
             provenance=data.provenance,
         )
 
+        manual_artifact = None
+        if self.protocol.include_manual:
+            manual_artifact = ManualArtifact.load(
+                self.manual_artifacts[self.experiment_instance.manual_profile.runtime_digest]
+            )
         self.conversation = Conversation.begin(
-            capabilities=self.capabilities, protocol=self.protocol, prior_messages=None
+            capabilities=self.capabilities,
+            protocol=self.protocol,
+            prior_messages=None,
+            manual_artifact=manual_artifact,
         )
         self.input_builder = AgentInputBuilder(
             capabilities=self.capabilities,
