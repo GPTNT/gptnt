@@ -200,28 +200,6 @@ def _clean_print_document(frame: Frame) -> None:
     frame.evaluate(load_javascript("clean-print-document.js"))
 
 
-# One check reports four distinct browser failure categories with category-specific messages.
-def _raise_render_errors(  # noqa: WPS238
-    *,
-    broken_images: list[str],
-    blocked_urls: list[str],
-    page_errors: list[str],
-    missing_keypad_assets: set[str],
-) -> None:
-    """Raise the most actionable accumulated browser validation failure, if any."""
-    # Asset failures take priority because later broken-image errors are often their consequence.
-    if missing_keypad_assets:
-        raise ManualBrowserError(
-            f"High-resolution Keypad assets are unavailable: {sorted(missing_keypad_assets)}"
-        )
-    if broken_images:
-        raise ManualBrowserError(f"manual HTML contains broken images: {broken_images}")
-    if blocked_urls:
-        raise ManualBrowserError(f"manual HTML attempted non-loopback requests: {blocked_urls}")
-    if page_errors:
-        raise ManualBrowserError(f"manual HTML raised JavaScript errors: {page_errors}")
-
-
 def _flatten_document(frame: Frame) -> tuple[tuple[str, ...], str]:
     """Clone one rendered frame into self-contained head and section HTML fragments."""
     flattened = frame.evaluate(load_javascript("flatten-document.js"))
@@ -428,14 +406,23 @@ class _ManualRenderer:
 
         return page_counts, flattened_documents, broken_images
 
-    def _raise_errors(self, *, broken_images: list[str]) -> None:
-        """Validate accumulated network, page, image, and replacement-asset failures."""
-        _raise_render_errors(
-            broken_images=broken_images,
-            blocked_urls=self._blocked_urls,
-            page_errors=self._page_errors,
-            missing_keypad_assets=self._missing_keypad_assets,
-        )
+    # One check reports four distinct browser failure categories with category-specific messages.
+    def _raise_errors(self, *, broken_images: list[str]) -> None:  # noqa: WPS238
+        """Raise the most actionable accumulated browser validation failure, if any."""
+        # Asset failures take priority because broken images are often their consequence.
+        if self._missing_keypad_assets:
+            raise ManualBrowserError(
+                "High-resolution Keypad assets are unavailable: "
+                f"{sorted(self._missing_keypad_assets)}"
+            )
+        if broken_images:
+            raise ManualBrowserError(f"manual HTML contains broken images: {broken_images}")
+        if self._blocked_urls:
+            raise ManualBrowserError(
+                f"manual HTML attempted non-loopback requests: {self._blocked_urls}"
+            )
+        if self._page_errors:
+            raise ManualBrowserError(f"manual HTML raised JavaScript errors: {self._page_errors}")
 
     def _render_in_browser(self, browser: Browser, *, base_url: str) -> tuple[int, ...]:
         """Run the load, frame capture, flat print, and final validation phases."""
