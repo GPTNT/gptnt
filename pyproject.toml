@@ -106,6 +106,10 @@ docs = [
     "zensical>=0.0.46",
     "mkdocstrings-python>=1.11.0",
 ]
+release = [
+    "repro-tarfile>=0.2.1",
+    "repro-zipfile>=0.4.1",
+]
 
 [tool.uv]
 override-dependencies = ["streamlit>=1.40.0"]

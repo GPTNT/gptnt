@@ -1,5 +1,37 @@
 # Get Started
 
+## Download GPTNT
+
+Download the latest release, verify it, and extract it:
+
+```bash
+curl -fLO https://github.com/GPTNT/gptnt/releases/latest/download/gptnt.tar.gz
+curl -fLO https://github.com/GPTNT/gptnt/releases/latest/download/gptnt.tar.gz.sha256
+sha256sum --check gptnt.tar.gz.sha256
+tar -xzf gptnt.tar.gz
+cd gptnt
+```
+
+Do not remove the bundled `.git` directory. GPTNT reads the release tag and the protected-content
+baseline from it.
+
+To use ZIP instead, download `gptnt.zip` and `gptnt.zip.sha256`, verify the
+checksum, then extract the archive:
+
+```bash
+curl -fLO https://github.com/GPTNT/gptnt/releases/latest/download/gptnt.zip
+curl -fLO https://github.com/GPTNT/gptnt/releases/latest/download/gptnt.zip.sha256
+sha256sum --check gptnt.zip.sha256
+unzip gptnt.zip
+cd gptnt
+```
+
+For a pinned release, replace `latest/download` with `download/v0.16.0`:
+
+```bash
+curl -fLO https://github.com/GPTNT/gptnt/releases/download/v0.16.0/gptnt.tar.gz
+```
+
 Creating an asynchronous, real-time, multi-agent benchmark is not trivial. We've tried to make the process of running things as simple and clear as possible to ensure that no logs or information is lost in the async hell that can happen.
 
 
