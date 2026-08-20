@@ -74,6 +74,7 @@ def diagnose_benchmark_integrity(
     render: bool = True,
 ) -> BenchmarkDiagnosis:
     """Check the release baseline, render its state, and classify protected modifications."""
+    # Establish the release identity before classifying changes in the checkout.
     try:
         integrity = check_benchmark_integrity(_PACKAGE_DIR)
     except BenchmarkIntegrityError as error:
@@ -84,6 +85,7 @@ def diagnose_benchmark_integrity(
             protected_content_modified=False,
         )
     else:
+        # Keep protected benchmark changes separate from permitted user inputs.
         protected_paths = (*integrity.protected_changes, *integrity.untracked_protected_files)
         protected_finding, failed = _protected_content_finding(
             protected_paths=protected_paths,
@@ -106,8 +108,10 @@ def diagnose_benchmark_integrity(
             protected_content_modified=integrity.protected_content_modified,
         )
 
+    # Let callers defer rendering when the diagnosis belongs in a larger command report.
     if render:
         render_benchmark_diagnosis(diagnosis)
+    # Make the contributor override visible whenever it changes the outcome of the gate.
     if allow_modified_benchmark and diagnosis.protected_content_modified:
         console.print(
             "\n[bold yellow]WARNING: protected benchmark content is modified.[/bold yellow] "
