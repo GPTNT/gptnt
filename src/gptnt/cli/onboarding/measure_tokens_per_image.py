@@ -1,5 +1,9 @@
+import io
 from pathlib import Path
+from typing import Annotated
 
+from cyclopts import Parameter
+from cyclopts.types import ExistingFile
 from hydra.utils import instantiate
 from pydantic_ai import Agent, BinaryContent
 from pydantic_ai.settings import merge_model_settings
@@ -8,10 +12,10 @@ from rich.table import Table
 
 from gptnt.cli._params import PlayerOption, ProviderOption
 from gptnt.common.hydra import compose_player_config
+from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.common.paths import Paths
 from gptnt.players.specification import PlayerCapabilities
 from gptnt.processors.image_resizer import ImageResizer
-from gptnt.prompts.manual import load_manual_image
 
 console = Console()
 
@@ -26,24 +30,29 @@ requested one-word response. Use at least this much room while preserving a larg
 configured limit. Output tokens do not affect the input-token delta being measured.
 """
 
-_MANUAL_FIRST_PAGE = 1
 
-
-async def measure_tokens_per_image(player: PlayerOption, provider: ProviderOption = None) -> None:
+async def measure_tokens_per_image(
+    player: PlayerOption,
+    calibration_image: Annotated[
+        ExistingFile,
+        Parameter(help="Manual-page PNG used to measure the player's per-image token cost."),
+    ],
+    provider: ProviderOption = None,
+) -> None:
     """Measure player's per-image token cost from the model and update config.
 
     We do this so that we do not need to guess how much each image is worth in tokens, which is
     important for truncation and context accounting.
 
-    Composes the player config, resizes the first manual page exactly as the player sees it,
-    measures the per-image input-token cost, writes it into `configs/player/<player>.yaml`, and
-    prints the result. SPENDS MONEY.
+    Composes the player config, resizes the supplied PNG to the portrait dimensions used for manual
+    pages, measures the per-image input-token cost, writes it into `configs/player/<player>.yaml`,
+    and prints the result. SPENDS MONEY.
     """
     cfg = compose_player_config(player, provider)
     capabilities: PlayerCapabilities = instantiate(cfg.player.capabilities)
     agent: Agent = instantiate(cfg.player.action_predictor.agent)
 
-    image_bytes = _load_first_manual_page(capabilities)
+    image_bytes = _load_calibration_image(calibration_image, capabilities=capabilities)
     baseline, with_image = await _measure(agent, image_bytes)
     tokens_per_image = with_image - baseline
 
@@ -57,17 +66,16 @@ async def measure_tokens_per_image(player: PlayerOption, provider: ProviderOptio
     _render(player, capabilities, baseline, with_image, tokens_per_image, path)
 
 
-def _load_first_manual_page(capabilities: PlayerCapabilities) -> bytes:
-    """The first manual page, resized to what the model reads (portrait: short x long side).
-
-    This is the transform `load_manual_as_prompt` applies to every manual page. `image_dimensions`
-    defaults to the KTANE settings unless the player config overrides it.
-    """
+def _load_calibration_image(path: Path, *, capabilities: PlayerCapabilities) -> bytes:
+    """Load and resize the explicit calibration PNG to the manual prompt's portrait dimensions."""
     resizer = ImageResizer(
         target_width=capabilities.image_dimensions.short_side,
         target_height=capabilities.image_dimensions.long_side,
     )
-    return load_manual_image(_MANUAL_FIRST_PAGE, image_kind="small", image_resizer=resizer)
+    image = resizer.resize_image(load_observation_from_bytes(path.read_bytes()))
+    with io.BytesIO() as output:
+        image.save(output, format="PNG")
+        return output.getvalue()
 
 
 async def _measure(agent: Agent, image_bytes: bytes) -> tuple[int, int]:

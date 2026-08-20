@@ -405,10 +405,10 @@ Capabilities are incredibly important for comparing models together. We want to 
 One of the biggest footguns is that we send images to the model, and we try to make sure that the model has enough tokens to process the input we are about to give it. The number of tokens per image depends on the model and the image size. To ensure that the number is calculated correctly, run:
 
 ```bash
-gptnt measure-tokens-per-image <player-name> # (1)!
+gptnt measure-tokens-per-image <player-name> <calibration-image.png> # (1)!
 ```
 
-1. This uses Hydra under the hood. Replace `<player-name>` with the file name of your config in `configs/player/` (without the `.yaml` extension). For instance, if your config is `configs/player/claude-sonnet-5.yaml`, you would run `gptnt measure-tokens-per-image claude-sonnet-5`.
+1. This uses Hydra under the hood. Replace `<player-name>` with the file name of your config in `configs/player/` (without the `.yaml` extension), and provide a representative manual-page PNG. GPTNT resizes that explicit calibration image to the portrait dimensions used for manual prompts before measuring its token cost. For instance, if your config is `configs/player/claude-sonnet-5.yaml`, you would run `gptnt measure-tokens-per-image claude-sonnet-5 calibration.png`.
 
 This command will use the capabilities you have already setup, especially for the image dimensions. If you have not provided any, it uses the default image dimensions of 640×480. It will then send two requests to the model: one request send a short text prompt to elicit a short response _with the image_, and the second sends the same text prompt _without the image_. The difference in the number of input tokens is the number of tokens that image takes up.
 

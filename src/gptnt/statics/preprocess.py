@@ -8,12 +8,9 @@ import structlog
 from numpy.typing import NDArray
 from PIL import Image
 
-from gptnt.ktane.manuals.legacy import MODULE_TO_PAGE_NUM_MAP
-from gptnt.prompts.manual import KtaneManualLoader
+from gptnt.ktane.manuals.artifacts import ManualArtifact
 
 logger = structlog.get_logger()
-
-ktane_manual_paths = KtaneManualLoader()
 
 type PostprocessInputsFunc = Callable[[dict[str, Any]], dict[str, Any]]
 
@@ -133,13 +130,12 @@ def preprocess_defuser_vqa_mcq_instance(instance: dict[str, Any]) -> dict[str, A
 
 
 def preprocess_expert_ocr_instance(
-    instance: dict[str, Any], *, include_manual_text: bool = False
+    instance: dict[str, Any], *, manual_artifact: ManualArtifact | None = None
 ) -> dict[str, Any]:
     """Convert the instance to rename the fields to match the model (manual OCR)."""
-    manual_content: list[str | Image.Image] = []
-    if include_manual_text:
-        pages = MODULE_TO_PAGE_NUM_MAP[instance["module"]]
-        manual_content.extend(ktane_manual_paths.load_text(page_num) for page_num in pages)
+    manual_content: list[str | Image.Image] = (
+        [text for text, _image in manual_artifact.pages] if manual_artifact else []
+    )
 
     manual_image = load_image(instance["image"])
     manual_content.append(manual_image)

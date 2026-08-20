@@ -1,4 +1,9 @@
 from functools import partial
+from pathlib import Path
+from typing import Annotated
+
+from cyclopts import Parameter
+from cyclopts.types import ExistingDirectory
 
 from gptnt.cli._params import PlayerOption, ProviderOption
 from gptnt.cli.integrity import AllowModifiedBenchmarkOption
@@ -11,6 +16,7 @@ from gptnt.cli.statics._params import (
     ThrowOption,
     UploadOption,
 )
+from gptnt.ktane.manuals.artifacts import ManualArtifact
 from gptnt.statics.postprocess import expert_ocr_postprocess
 from gptnt.statics.preprocess import preprocess_expert_ocr_instance
 from gptnt.statics.prompts import OCR_INSTRUCTION, format_instruction_with_reasoning
@@ -58,6 +64,13 @@ async def run_expert_ocr_evaluation(
 async def run_expert_ocr_with_text_evaluation(
     *,
     player: PlayerOption,
+    manual_artifact: Annotated[
+        ExistingDirectory,
+        Parameter(
+            name="--manual-artifact",
+            help="Prepared manual artifact whose page text is supplied to every dataset row.",
+        ),
+    ],
     provider: ProviderOption = None,
     should_download: DownloadOption = False,
     should_throw: ThrowOption = False,
@@ -68,6 +81,7 @@ async def run_expert_ocr_with_text_evaluation(
     allow_modified_benchmark: AllowModifiedBenchmarkOption = False,
 ) -> None:
     """Expert OCR evaluation with the image AND the text."""
+    artifact = ManualArtifact.load(Path(manual_artifact))
     await create_and_run_evaluation(
         player=player,
         provider=provider,
@@ -75,7 +89,7 @@ async def run_expert_ocr_with_text_evaluation(
         hf_repo_id="GPTNT/expert-element-ocr",
         task_name="expert-ocr-with-text",
         weave_project="gptnt/expert-ocr-with-text",
-        preprocess_instance_func=partial(preprocess_expert_ocr_instance, include_manual_text=True),
+        preprocess_instance_func=partial(preprocess_expert_ocr_instance, manual_artifact=artifact),
         build_instruction=lambda capabilities: format_instruction_with_reasoning(
             OCR_INSTRUCTION,
             allow_thinking=allow_thinking,

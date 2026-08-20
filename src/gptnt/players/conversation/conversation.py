@@ -13,7 +13,7 @@ from gptnt.players.conversation._observations import (
 )
 from gptnt.players.conversation._truncation import drop_oldest_non_pinned, turns_to_drop
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
-from gptnt.prompts.manual import load_manual_as_prompt, load_prepared_manual_as_prompt
+from gptnt.prompts.manual import load_prepared_manual_as_prompt
 
 
 @dataclass(kw_only=True)
@@ -37,12 +37,10 @@ class Conversation:
         protocol: PlayerProtocol,
         prior_messages: list[ModelMessage] | None = None,
         manual_artifact: ManualArtifact | None = None,
-        legacy_manual: bool = False,
     ) -> Self:
         """Seed the manual from an artifact, then append any pinned prior-episode messages.
 
-        `legacy_manual` supports calibration callers that still own the tracked manual assets.
-        Player services provide `manual_artifact` and never select that compatibility path.
+        A manual-bearing protocol requires the prepared artifact selected for its experiment.
         """
         entries: list[Entry] = []
 
@@ -50,10 +48,6 @@ class Conversation:
             if manual_artifact:
                 manual_parts = load_prepared_manual_as_prompt(
                     manual_artifact, image_dimensions=capabilities.image_dimensions
-                )
-            elif legacy_manual:
-                manual_parts = load_manual_as_prompt(
-                    image_dimensions=capabilities.image_dimensions
                 )
             else:
                 raise RuntimeError("a prepared manual artifact is required for this conversation")

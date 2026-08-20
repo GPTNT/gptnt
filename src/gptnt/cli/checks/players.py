@@ -155,7 +155,7 @@ def check_tokens_per_image(details: Sequence[PlayerDetail]) -> list[CheckResult]
                 CheckResult.failed(
                     config_name,
                     "uncalibrated (0 tokens/image)",
-                    f"Run: gptnt measure-tokens-per-image {config_name}",
+                    f"Run: gptnt measure-tokens-per-image {config_name} <calibration-image.png>",
                 )
             )
     return rows

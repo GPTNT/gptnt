@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import os
-from collections.abc import AsyncIterator
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -8,8 +10,14 @@ from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
 from gptnt.common.servers import get_available_port
 from gptnt.ktane.client import KtaneClient
-from gptnt.ktane.manuals.legacy import KtaneManualPaths
 from gptnt.prompts.prompt_cache import PromptCache
+
+from tests._factories.manuals import make_compiled_manual
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
+    from gptnt.ktane.manuals.artifacts import ManualArtifact
 
 configure_logging(enable_logfire=False)
 
@@ -79,5 +87,12 @@ async def ktane_client(host: str, port: int) -> AsyncIterator[KtaneClient]:
 def prompt_cache() -> None:
     """Fixture to set up the prompt cache before running tests."""
     paths = Paths()
-    ktane_manual = KtaneManualPaths()
-    PromptCache.initialise(paths.prompts, ktane_manual.text_dir, ktane_manual.images_small_dir)
+    PromptCache.initialise(paths.prompts)
+
+
+@pytest.fixture(scope="session")
+def prepared_manual_artifact(tmp_path_factory: pytest.TempPathFactory) -> ManualArtifact:
+    """Compile one shared single-page artifact for manual-bearing behavior tests."""
+    return make_compiled_manual(
+        tmp_path_factory.mktemp("prepared-manual"), text="SHARED PREPARED MANUAL"
+    )
