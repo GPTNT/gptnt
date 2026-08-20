@@ -254,10 +254,10 @@ async def test_run_force_does_not_bypass_roster_failure(monkeypatch: pytest.Monk
         "submission-validate",
     ],
 )
-def test_score_entry_points_stop_before_effects_when_integrity_fails(
+def test_score_producing_commands_fail_integrity_before_writing_or_spawning(
     entry_point: str, monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
-    """Every public boundary reaches the protected-content failure before writing or spawning."""
+    """Each public command fails integrity before its first write or process spawn."""
     monkeypatch.setattr(
         integrity,
         "check_benchmark_integrity",
