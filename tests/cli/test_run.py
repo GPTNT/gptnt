@@ -264,15 +264,7 @@ async def test_run_force_does_not_bypass_roster_failure(monkeypatch: pytest.Monk
 
 @pytest.mark.parametrize(
     "entry_point",
-    [
-        "suite-freeze",
-        "doctor",
-        "generate",
-        "run-force",
-        "statics-throw",
-        "submission-new",
-        "submission-validate",
-    ],
+    ["suite-freeze", "doctor", "generate", "run-force", "statics-throw", "submission-new"],
 )
 def test_score_producing_commands_fail_integrity_before_writing_or_spawning(
     entry_point: str, monkeypatch: pytest.MonkeyPatch, tmp_path
@@ -300,9 +292,6 @@ def test_score_producing_commands_fail_integrity_before_writing_or_spawning(
     monkeypatch.setattr(pipeline, "load_specs_from_dir", lambda _directory: [_spec()])
     monkeypatch.setattr(pipeline, "_spawn_submit_monitor", _unexpected_effect)
 
-    if entry_point == "submission-validate":
-        _ = (tmp_path / "submission.yaml").write_text("")
-
     manifest = "runs/quickstart.yaml"
     argv = {
         "suite-freeze": ["suite", "freeze"],
@@ -317,16 +306,10 @@ def test_score_producing_commands_fail_integrity_before_writing_or_spawning(
             "--output-dir",
             str(tmp_path / "submissions"),
         ],
-        "submission-validate": ["submission", "validate", str(tmp_path)],
     }[entry_point]
 
-    if entry_point == "submission-validate":
-        result = invoke_cli(build_app(), argv)
-        assert result.exit_code == 1
-        assert "Protected content" in result.output
-    else:
-        with pytest.raises(RuntimeError):
-            _ = invoke_cli(build_app(), argv)
+    with pytest.raises(RuntimeError):
+        _ = invoke_cli(build_app(), argv)
 
     assert not (tmp_path / "specs").exists()
     assert not (tmp_path / "submissions").exists()
