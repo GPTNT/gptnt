@@ -24,6 +24,33 @@ logger = structlog.get_logger()
 
 # (summary row dict, the group's step files) — what one worker returns for a valid experiment.
 type _GroupResult = tuple[dict[str, Any], list[Path]]
+type _DatabaseSchema = tuple[tuple[str, str, str, str], ...]
+
+
+def _read_database_schema(connection: duckdb.DuckDBPyConnection) -> _DatabaseSchema:
+    """Return the ordered schemas of every application table in the main database."""
+    return tuple(
+        connection.execute(
+            """SELECT columns.table_name, columns.column_name, columns.data_type,
+                      columns.is_nullable
+               FROM information_schema.columns AS columns
+               JOIN information_schema.tables AS tables
+                 ON columns.table_catalog = tables.table_catalog
+                AND columns.table_schema = tables.table_schema
+                AND columns.table_name = tables.table_name
+              WHERE columns.table_schema = 'main'
+                AND tables.table_type = 'BASE TABLE'
+              ORDER BY columns.table_name, columns.ordinal_position"""
+        ).fetchall()
+    )
+
+
+def _build_expected_database_schema() -> _DatabaseSchema:
+    """Build the expected DuckDB schema through the model path used for a new database."""
+    with duckdb.connect(":memory:") as connection:
+        ExperimentSummary.create_table(connection)
+        ExperimentStep.create_table(connection)
+        return _read_database_schema(connection)
 
 
 def _build_group_summary(file_paths: list[Path]) -> _GroupResult | None:
@@ -90,11 +117,15 @@ def _execute_merge(
 
 
 def ensure_schema(db_path: Path) -> None:
-    """Create all tables in the database if they do not already exist.
-
-    Safe to call repeatedly — all statements use IF NOT EXISTS.
-    """
+    """Create a fresh database or reject an incompatible existing schema."""
     with duckdb.connect(db_path) as con:
+        existing_schema = _read_database_schema(con)
+        if existing_schema and existing_schema != _build_expected_database_schema():
+            raise ValueError(
+                f"DuckDB database {db_path} uses a v1 or incompatible schema. "
+                "Rebuild it from current records with "
+                f"`gptnt build-db <outputs-dir> -o {db_path} --delete-existing-db`."
+            )
         ExperimentSummary.create_table(con)
         ExperimentStep.create_table(con)
 

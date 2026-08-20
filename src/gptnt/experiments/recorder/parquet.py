@@ -110,20 +110,25 @@ def blob_step(step: ExperimentStep) -> dict[str, Any]:
 
 
 def read_footer_kv(path: Path) -> dict[bytes, bytes]:
-    """Read the raw footer KV metadata (no row data) — for cheap flat-key lookups."""
+    """Read supported footer KV metadata without loading row data."""
     metadata = pq.read_schema(path).metadata
-    return dict(metadata) if metadata else {}
-
-
-def read_record_footer(path: Path) -> RecordFooter:
-    """Read and validate the typed `RecordFooter`, failing loudly on an unknown format version."""
-    raw = read_footer_kv(path)
+    raw = dict(metadata) if metadata else {}
     version = raw.get(KEY_FORMAT_VERSION)
+    if version == b"2":
+        raise ValueError(
+            f"Record footer format_version 2 is a v1 artifact and requires v1 tooling: {path}"
+        )
     if version != FORMAT_VERSION:
         raise ValueError(
             f"Unsupported record footer format_version {version!r} "
             f"(expected {FORMAT_VERSION!r}): {path}"
         )
+    return raw
+
+
+def read_record_footer(path: Path) -> RecordFooter:
+    """Read and validate the typed `RecordFooter`."""
+    raw = read_footer_kv(path)
     return RecordFooter.model_validate_json(raw[KEY_FOOTER])
 
 
