@@ -397,7 +397,21 @@ The `capabilities` block at the top of your config is where you say what your mo
 
 ### Capabilities have fingerprints
 
-Capabilities are incredibly important for comparing models together. We want to know if two models are using the same capabilities, or if two models are interacting and reasoning differently. This is because changing the capabilities can drastically change the results. As shown in the [GPTNT paper](https://arxiv.org/abs/2606.28514), changing the action space from set-of-marks to coordinates can affect models' ability to play the game.
+A **player fingerprint** is the stable digest recorded for one player setup. It lets GPTNT distinguish
+results produced with different player behavior even when the display name is the same. The digest
+includes `player_name`, `player_type`, the capability fields that shape play, and the selected
+non-secret `model_settings` that affect model inputs or generation.
+
+Credentials, provider connection details, leaderboard display metadata, and operational settings
+such as request routing or caching do not participate. `usage_limits` are also intentionally
+excluded: they bound execution but do not identify the selected model behavior. GPTNT does not add
+provider or model identifiers beyond the player identity and model settings already represented by
+this policy.
+
+Changing the reasoning method, structured-output mode, image handling, action space, or a selected
+generation setting changes the player fingerprint. This matters when comparing results. For
+example, the [GPTNT paper](https://arxiv.org/abs/2606.28514) shows that changing the action space from
+set-of-marks to coordinates can affect a model's ability to play the game.
 
 
 ## Finding out how many tokens per image
