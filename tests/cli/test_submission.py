@@ -8,9 +8,11 @@ blank on build and preserved across a rebuild.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
+import pytest
 import yaml
 from pydantic_ai import RunUsage
 
@@ -25,6 +27,8 @@ from gptnt.experiments.recorder.parquet import (
     footer_from_player_record,
     write_player_record_parquet,
 )
+from gptnt.experiments.suite.core import Suite, SuiteIdentity, SuiteMatchup
+from gptnt.experiments.suite.lock import MissionEntry, SuiteLock, SuiteLockEntry
 from gptnt.players.actions import DoNothingAction
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
@@ -33,18 +37,73 @@ from tests._factories.experiments import make_experiment_spec, make_provenance, 
 from tests._factories.statics import write_statics_run
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from gptnt.experiments.instance import PlayerContent
 
-SUITE = "single-parametric-sync"
+SUITE = "custom-submission-suite"
 DEFUSER_STEP_INPUT_TOKENS = 100
 EXPERT_STEP_INPUT_TOKENS = 7
+
+_BASE_SPEC = make_experiment_spec()
+_MISSIONS = tuple(make_experiment_spec(seed=seed).mission_spec for seed in (1, 2, 3))
+_SUITE = Suite(
+    name=SUITE,
+    revision=7,
+    modality=("language", "vision"),
+    missions_path=Path("configs/missions/custom-submission"),
+    defuser_protocol=_BASE_SPEC.defuser_protocol,
+    expert_protocol=None,
+    matchup=SuiteMatchup(pairing_type="no_expert"),
+    manual_profile=_BASE_SPEC.manual_profile,
+)
+_SUITE_DIGEST = _SUITE.digest_for(_MISSIONS)
+_SUITE_ENTRY = SuiteLockEntry(
+    name=_SUITE.name,
+    revision=_SUITE.revision,
+    suite_digest=_SUITE_DIGEST,
+    frozen_at="2026-08-20T00:00:00Z",
+    gptnt_version="2.0.0",
+    git_sha="a1b2c3d4",
+    mission_keys=tuple(mission.mission_key for mission in _MISSIONS),
+    config=_SUITE.model_dump(mode="json", exclude_none=True, exclude={"config_digest"}),
+)
+_SUITE_LOCK = SuiteLock.model_validate(
+    {
+        "suites": (_SUITE_ENTRY,),
+        "missions": tuple(
+            MissionEntry(mission_key=mission.mission_key, spec=mission) for mission in _MISSIONS
+        ),
+    }
+)
+_SUITE_IDENTITY = SuiteIdentity(
+    suite_name=_SUITE.name, suite_revision=_SUITE.revision, suite_digest=_SUITE_DIGEST
+)
+_MISSIONS_BY_SEED = {mission.seed: mission for mission in _MISSIONS}
+
+
+@pytest.fixture(autouse=True)
+def local_suite_lock(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make every interactive build select the custom frozen suite used by its records."""
+    lock_path = tmp_path / "source-suite.lock"
+    _SUITE_LOCK.dump_to_path(lock_path)
+    monkeypatch.setattr("gptnt.experiments.suite.lock.default_lock_path", lambda: lock_path)
+
+
+def _fail_live_access(*_args: object, **_kwargs: object) -> None:
+    pytest.fail("validation read live suite or mission configuration")
 
 
 def _instance(*, seed: int, model: str, expert: str | None = None) -> ExperimentInstance:
     """An experiment instance for `model`, plus an optional expert."""
-    spec = make_experiment_spec(seed=seed).model_copy(update={"defuser_name": model})
+    spec = make_experiment_spec(seed=seed).model_copy(
+        update={
+            "mission_spec": _MISSIONS_BY_SEED[seed],
+            "mission_set": _SUITE.mission_set,
+            "suite_name": _SUITE_IDENTITY.suite_name,
+            "suite_revision": _SUITE_IDENTITY.suite_revision,
+            "suite_digest": _SUITE_IDENTITY.suite_digest,
+            "defuser_name": model,
+        }
+    )
     expert_uuid = None
     expert_capabilities = None
     if expert is not None:
@@ -161,7 +220,9 @@ def _read_manifest(bundle_dir: Path) -> dict[str, Any]:
     return yaml.safe_load((bundle_dir / "submission.yaml").read_text())
 
 
-def test_new_writes_a_bundle_with_blank_human_fields(tmp_path: Path) -> None:
+def test_new_builds_a_self_contained_bundle_that_validates_offline(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     db_path = _build_db(tmp_path, [(1, "test-defuser"), (2, "test-defuser"), (3, "test-defuser")])
 
     _run_new(db_path, tmp_path / "submissions")
@@ -183,6 +244,19 @@ def test_new_writes_a_bundle_with_blank_human_fields(tmp_path: Path) -> None:
     assert defuser["identity"]["organisation"] == "GPTNT"  # configs/player/test-defuser.yaml
     assert manifest["measured"]["suite_name"] == SUITE
     assert manifest["submitter"] == {"name": "", "contact": "", "affiliation": None}
+
+    snapshot = SuiteLock.from_lock_path(bundle_dir / "suite.lock")
+    assert snapshot.suites == (_SUITE_ENTRY,)
+    assert set(snapshot.mission_specs()) == set(_SUITE_ENTRY.mission_keys)
+
+    manifest["submitter"] = {"name": "Ada Lovelace", "contact": "@ada", "affiliation": None}
+    _ = (bundle_dir / "submission.yaml").write_text(yaml.safe_dump(manifest, sort_keys=False))
+
+    monkeypatch.setattr("gptnt.experiments.suite.lock.default_lock_path", _fail_live_access)
+    monkeypatch.setattr("gptnt.experiments.suite.compose.compose_suite", _fail_live_access)
+    monkeypatch.setattr("gptnt.experiments.suite.core.load_missions", _fail_live_access)
+    result = invoke_cli(build_app(), ["submission", "validate", str(bundle_dir)])
+    assert result.exit_code == 0, result.output
 
 
 def test_two_player_usage_is_split_per_role(tmp_path: Path) -> None:

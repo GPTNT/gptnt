@@ -4,6 +4,7 @@ A bundle is one flat directory per (model, target):
 
     <output>/YYYYMMDD_<display-slug>_<capfp8>_<suite>_<ver>/
         submission.yaml       # the manifest; every derived field regenerated on rebuild
+        suite.lock            # interactive suite and its referenced missions
         experiments.parquet   # interactive payload, or
         metrics.json          # statics payload
 
@@ -22,6 +23,7 @@ from typing import TYPE_CHECKING, ClassVar, Self, override
 
 import yaml
 
+from gptnt.cli.submission._interactive import suite_identity_from_experiments
 from gptnt.cli.submission._schema import (
     InteractiveSubmission,
     StaticsSubmission,
@@ -31,14 +33,13 @@ from gptnt.cli.submission._schema import (
     parse_submission_manifest,
 )
 from gptnt.experiments.db.typed_parquet import read_typed_parquet, write_typed_parquet
-from gptnt.experiments.suite.core import SuiteIdentity
+from gptnt.experiments.suite.lock import SuiteLock
 from gptnt.provenance import Provenance
 from gptnt.statics.run_metadata import StaticsRunMetadata
 
 if TYPE_CHECKING:
     from whenever import Instant
 
-    from gptnt.experiments.suite.core import Suite
     from gptnt.players.specification import PlayerCapabilities
 
 _SHORT_FINGERPRINT_LENGTH = 8
@@ -133,17 +134,19 @@ class SubmissionBundle[ManifestT: InteractiveSubmission | StaticsSubmission]:
 
 @dataclass(kw_only=True, frozen=True)
 class InteractiveBundle(SubmissionBundle[InteractiveSubmission]):
-    """An interactive submission: the manifest plus its `experiments.parquet` payload."""
+    """An interactive manifest, experiment payload, and reduced suite lock."""
 
     experiments: list[SubmissionExperiment]
+    suite_lock: SuiteLock
 
     payload_filename: ClassVar[str] = "experiments.parquet"
+    snapshot_filename: ClassVar[str] = "suite.lock"
 
     @classmethod
     def from_experiments(
         cls,
         experiments: list[SubmissionExperiment],
-        suite: Suite,
+        suite_lock: SuiteLock,
         submitter: Submitter | None = None,
     ) -> Self:
         """Bundle one model's experiments for one frozen suite."""
@@ -157,7 +160,17 @@ class InteractiveBundle(SubmissionBundle[InteractiveSubmission]):
         ):
             raise ValueError("Cannot bundle experiments with conflicting provenance")
 
-        measured = SuiteIdentity.from_suite(suite)
+        measured = suite_identity_from_experiments(experiments)
+        if len(suite_lock.suites) != 1:
+            raise ValueError("An interactive bundle requires exactly one suite lock entry")
+        entry = suite_lock.select_entry(measured.suite_name, measured.suite_revision)
+        if entry.suite_digest != measured.suite_digest:
+            raise ValueError(
+                f"Recorded suite {measured.target} digest {measured.suite_digest} does not match "
+                f"the snapshot digest {entry.suite_digest}"
+            )
+        if set(entry.mission_keys) != set(suite_lock.mission_specs()):
+            raise ValueError("An interactive bundle requires exactly the suite's missions")
         run_date = min(experiment.start_time for experiment in experiments)
         defuser = SubmissionPlayer.for_role("defuser", canonical.defuser_capabilities)
         name = BundleName(
@@ -181,11 +194,12 @@ class InteractiveBundle(SubmissionBundle[InteractiveSubmission]):
             provenance=Provenance.model_validate(canonical_provenance),
             run_date=run_date,
         )
-        return cls(manifest=manifest, experiments=experiments)
+        return cls(manifest=manifest, experiments=experiments, suite_lock=suite_lock)
 
     @override
     def _write_payload(self, bundle_dir: Path) -> None:
         write_typed_parquet(self.experiments, file_path=bundle_dir / self.payload_filename)
+        self.suite_lock.dump_to_path(bundle_dir / self.snapshot_filename)
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -249,7 +263,8 @@ def load_submission_bundle(bundle_dir: Path) -> InteractiveBundle | StaticsBundl
         payload = read_typed_parquet(
             SubmissionExperiment, bundle_dir / InteractiveBundle.payload_filename
         )
-        return InteractiveBundle(manifest=manifest, experiments=payload)
+        suite_lock = SuiteLock.from_lock_path(bundle_dir / InteractiveBundle.snapshot_filename)
+        return InteractiveBundle(manifest=manifest, experiments=payload, suite_lock=suite_lock)
     metrics_text = (bundle_dir / StaticsBundle.payload_filename).read_text()
     return StaticsBundle(manifest=manifest, metrics_text=metrics_text)
 

@@ -77,16 +77,18 @@ The submission is a bundle of your results, pinned so anyone can tell how they w
 submissions/
 ├── 20260711_claude-sonnet-5_3f2a1b8c_multi-self-async_1/ # (1)!
 │   ├── submission.yaml
-│   └── experiments.parquet # (2)!
-└── 20260711_claude-sonnet-5_3f2a1b8c_expert-vqa-no-manual_9f8e7d6c/ # (3)!
+│   ├── suite.lock # (2)!
+│   └── experiments.parquet # (3)!
+└── 20260711_claude-sonnet-5_3f2a1b8c_expert-vqa-no-manual_9f8e7d6c/ # (4)!
     ├── submission.yaml
-    └── metrics.json # (4)!
+    └── metrics.json # (5)!
 ```
 
 1. The build date, the model's display-name slug, an 8-character hash of the capabilities used, the suite, and its revision.
-2. An `ExperimentSummary` for every experiment in the suite. This is _not_ the trajectory data.
-3. A bundle for a static evaluation. Same naming, ending in the static's name and the dataset revision it ran against.
-4. The aggregated scorer outputs for the static, copied across as-is.
+2. The complete frozen suite config and only the missions used by that revision. Validation reads this snapshot instead of the current files under `configs/suites` or `configs/missions`.
+3. An `ExperimentSummary` for every experiment in the suite. This is _not_ the trajectory data.
+4. A bundle for a static evaluation. Same naming, ending in the static's name and the dataset revision it ran against.
+5. The aggregated scorer outputs for the static, copied across as-is.
 
 To build them, run:
 
@@ -101,10 +103,6 @@ gptnt submission new \
 
 Everything else is filled in for you. Your capabilities are read from the results and pinned with a fingerprint, so there is nothing to hand-edit there, and editing them only makes the check fail. The display name, organisation, and the rest come from the `identity` block in the player config, not from anything you type here.
 
-Each interactive bundle includes the frozen suite snapshot used to generate its experiments. Suite
-authors can follow [Adding or changing a suite](running/run-your-model.md#adding-or-changing-a-suite){data-preview}
-when updating benchmark content.
-
 ??? tip "Prefer to fill it in by hand?"
     If you leave the submitter flags off, the `submitter` block in each `submission.yaml` is written blank for you to fill in afterward. Rebuilding keeps whatever you've already put there, so you won't lose it.
 
@@ -116,6 +114,8 @@ gptnt submission validate
 ```
 
 Once you're ready to go, run the validation command to check that everything is in order. It checks that each bundle is structured and named correctly, that the `submitter` block is filled, that the suite is frozen, and that every mission was run exactly once and ended cleanly. If it passes, you're ready to open the pull request. If it fails, fix the issues it lists before you submit.
+
+Missing, changed, or unrelated missions in the bundled suite snapshot block the submission.
 
 A couple of things only warn, and won't block you: a static whose dataset revision wasn't pinned at run time (pin it with `--dataset-revision` when you run statics, for a reproducible submission), and a git tree that had uncommitted changes when the results were produced.
 

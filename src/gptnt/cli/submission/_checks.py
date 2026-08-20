@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING
 
 import yaml
 from pydantic import ValidationError
+from tomlkit.exceptions import TOMLKitError
 
 from gptnt.cli.checks.result import CheckResult
 from gptnt.cli.submission._bundle import (
@@ -35,10 +36,13 @@ from gptnt.cli.submission._schema import (
     describe_pairing,
 )
 from gptnt.experiments.db.typed_parquet import read_typed_parquet
+from gptnt.experiments.suite.lock import SuiteLock, SuiteNotFrozenError
 from gptnt.provenance import Provenance, is_valid_version
 
 if TYPE_CHECKING:
+    from gptnt.experiments.suite.core import Suite
     from gptnt.experiments.suite.lock import SuiteLockEntry
+    from gptnt.ktane.mission_spec import KtaneMissionSpec
     from gptnt.statics.run_metadata import StaticsIdentity
 
 REBUILD_HINT = "Rebuild with `gptnt submission new`."
@@ -135,17 +139,47 @@ class LoadedBundle:
         return CheckResult.failed("submission_id", detail, hint=REBUILD_HINT)
 
 
-def check_suite(
-    bundle: InteractiveBundle, entry: SuiteLockEntry | None, *, lookup_error: str = ""
-) -> list[CheckResult]:
-    """The declared suite revision is frozen in the lock and unchanged since the bundle built."""
-    if entry is None:
-        return [CheckResult.failed("suite", lookup_error)]
+def check_suite(bundle: InteractiveBundle) -> list[CheckResult]:
+    """The bundled lock contains one matching entry and exactly its missions."""
+    if len(bundle.suite_lock.suites) != 1:
+        return [
+            CheckResult.failed(
+                "suite snapshot",
+                f"expected one suite entry, found {len(bundle.suite_lock.suites)}",
+                hint=REBUILD_HINT,
+            )
+        ]
+    entry = bundle.suite_lock.suites[0]
     declared = bundle.manifest.measured
-    return [
-        CheckResult.passed("suite", f"{entry.name}@{entry.revision}"),
-        _check_suite_digest(declared.suite_digest, entry.suite_digest),
-    ]
+    findings = []
+    if (declared.suite_name, declared.suite_revision) == (entry.name, entry.revision):
+        findings.append(CheckResult.passed("suite", declared.target))
+    else:
+        findings.append(
+            CheckResult.failed(
+                "suite",
+                f"snapshot has {entry.name}@{entry.revision}, manifest says {declared.target}",
+                hint=REBUILD_HINT,
+            )
+        )
+    findings.append(_check_suite_digest(declared.suite_digest, entry.suite_digest))
+
+    referenced = set(entry.mission_keys)
+    stored = set(bundle.suite_lock.mission_specs())
+    if referenced == stored:
+        findings.append(
+            CheckResult.passed("snapshot missions", f"exactly {len(referenced)} missions")
+        )
+    else:
+        parts = []
+        if missing := sorted(referenced - stored):
+            parts.append(f"missing: {', '.join(missing)}")
+        if extra := sorted(stored - referenced):
+            parts.append(f"extra: {', '.join(extra)}")
+        findings.append(
+            CheckResult.failed("snapshot missions", "; ".join(parts), hint=REBUILD_HINT)
+        )
+    return findings
 
 
 def check_mission_coverage(bundle: InteractiveBundle, entry: SuiteLockEntry) -> list[CheckResult]:
@@ -163,7 +197,7 @@ def check_mission_coverage(bundle: InteractiveBundle, entry: SuiteLockEntry) -> 
         for mission_key in entry.mission_keys
     }
     return [
-        _check_experiments_belong_to_suite(entry, experiments),
+        _check_experiments_belong_to_suite(bundle, entry),
         *_check_one_run_per_mission_per_pairing(expected, experiments),
         _check_experiment_outcomes(experiments),
     ]
@@ -188,8 +222,8 @@ def load_bundle(bundle_dir: Path) -> tuple[LoadedBundle | None, list[CheckResult
     manifest, manifest_finding = _load_manifest(bundle_dir)
     if manifest is None:
         return None, [manifest_finding]
-    bundle, payload_finding = _load_payload(bundle_dir, manifest)
-    findings = [manifest_finding, payload_finding]
+    bundle, payload_findings = _load_payload(bundle_dir, manifest)
+    findings = [manifest_finding, *payload_findings]
     if bundle is None:
         return None, findings
     return LoadedBundle(bundle_dir=bundle_dir, bundle=bundle), findings
@@ -224,7 +258,7 @@ def _load_manifest(
 
 def _load_payload(
     bundle_dir: Path, manifest: InteractiveSubmission | StaticsSubmission
-) -> tuple[InteractiveBundle | StaticsBundle | None, CheckResult]:
+) -> tuple[InteractiveBundle | StaticsBundle | None, list[CheckResult]]:
     """Read the payload file the manifest's kind demands, into a full bundle."""
     if isinstance(manifest, StaticsSubmission):
         return _load_statics_payload(bundle_dir, manifest)
@@ -233,39 +267,65 @@ def _load_payload(
 
 def _load_statics_payload(
     bundle_dir: Path, manifest: StaticsSubmission
-) -> tuple[StaticsBundle | None, CheckResult]:
+) -> tuple[StaticsBundle | None, list[CheckResult]]:
     payload_path = bundle_dir / StaticsBundle.payload_filename
     if not payload_path.exists():
-        return None, CheckResult.failed("payload", "metrics.json not found", hint=REBUILD_HINT)
+        return None, [CheckResult.failed("payload", "metrics.json not found", hint=REBUILD_HINT)]
     metrics_text = payload_path.read_text()
     try:
         json.loads(metrics_text)
     except json.JSONDecodeError as error:
-        return None, CheckResult.failed("payload", f"metrics.json is not valid JSON: {error}")
+        return None, [CheckResult.failed("payload", f"metrics.json is not valid JSON: {error}")]
     bundle = StaticsBundle(manifest=manifest, metrics_text=metrics_text)
-    return bundle, CheckResult.passed("payload", "metrics.json")
+    return bundle, [CheckResult.passed("payload", "metrics.json")]
 
 
 def _load_interactive_payload(
     bundle_dir: Path, manifest: InteractiveSubmission
-) -> tuple[InteractiveBundle | None, CheckResult]:
+) -> tuple[InteractiveBundle | None, list[CheckResult]]:
     payload_path = bundle_dir / InteractiveBundle.payload_filename
     if not payload_path.exists():
-        return None, CheckResult.failed(
-            "payload", "experiments.parquet not found", hint=REBUILD_HINT
-        )
+        return None, [
+            CheckResult.failed("payload", "experiments.parquet not found", hint=REBUILD_HINT)
+        ]
     try:
         experiments = read_typed_parquet(SubmissionExperiment, payload_path)
     except Exception as error:  # noqa: BLE001 — pyarrow/pydantic raise many kinds; all mean a broken payload
-        return None, CheckResult.failed(
-            "payload", f"experiments.parquet did not read back: {error}"
-        )
+        return None, [
+            CheckResult.failed("payload", f"experiments.parquet did not read back: {error}")
+        ]
     if not experiments:
-        return None, CheckResult.failed("payload", "experiments.parquet is empty")
-    bundle = InteractiveBundle(manifest=manifest, experiments=experiments)
-    return bundle, CheckResult.passed(
+        return None, [CheckResult.failed("payload", "experiments.parquet is empty")]
+
+    payload_finding = CheckResult.passed(
         "payload", f"experiments.parquet ({len(experiments)} experiments)"
     )
+    snapshot, snapshot_finding = _load_suite_snapshot(bundle_dir)
+    if snapshot is None:
+        return None, [payload_finding, snapshot_finding]
+    bundle = InteractiveBundle(manifest=manifest, experiments=experiments, suite_lock=snapshot)
+    return bundle, [payload_finding, snapshot_finding]
+
+
+def _load_suite_snapshot(bundle_dir: Path) -> tuple[SuiteLock | None, CheckResult]:
+    """Read the bundled `suite.lock` and classify malformed snapshot content."""
+    snapshot_path = bundle_dir / InteractiveBundle.snapshot_filename
+    if not snapshot_path.exists():
+        return None, CheckResult.failed(
+            "suite snapshot", "suite.lock not found", hint=REBUILD_HINT
+        )
+    try:
+        snapshot = SuiteLock.from_lock_path(snapshot_path)
+    except (SuiteNotFrozenError, TOMLKitError, ValidationError) as error:
+        detail = str(error)
+        if "digest does not match" in detail:
+            name = "snapshot digest"
+        elif "missions absent from the table" in detail:
+            name = "snapshot missions"
+        else:
+            name = "suite snapshot"
+        return None, CheckResult.failed(name, f"suite.lock is not valid: {detail}")
+    return snapshot, CheckResult.passed("suite snapshot", "suite.lock")
 
 
 def _check_suite_digest(declared_digest: str, frozen_digest: str) -> CheckResult:
@@ -280,24 +340,54 @@ def _check_suite_digest(declared_digest: str, frozen_digest: str) -> CheckResult
 
 
 def _check_experiments_belong_to_suite(
-    entry: SuiteLockEntry, experiments: list[SubmissionExperiment]
+    bundle: InteractiveBundle, entry: SuiteLockEntry
 ) -> CheckResult:
-    """Every experiment must have been recorded against this suite (and its mission set)."""
-    suite_key = (entry.name, entry.revision, entry.mission_set)
-    strays = sorted(
-        {
-            experiment.mission_key
-            for experiment in experiments
-            if (experiment.suite_name, experiment.suite_revision, experiment.mission_set)
-            != suite_key
-        }
+    """Every experiment must match the manifest identity and frozen suite content."""
+    declared = bundle.manifest.measured
+    suite, missions = bundle.suite_lock.load_suite(entry.name, entry.revision)
+    mission_specs = {mission.mission_key: mission for mission in missions}
+    suite_key = (
+        declared.suite_name,
+        declared.suite_revision,
+        declared.suite_digest,
+        entry.mission_set,
     )
-    if strays:
-        detail = f"{len(strays)} experiment(s) not from {entry.name}@{entry.revision}: {', '.join(strays)}"
+    mismatched = [
+        index
+        for index, experiment in enumerate(bundle.experiments)
+        if not _experiment_matches_snapshot(
+            experiment, suite_key=suite_key, mission_specs=mission_specs, suite=suite
+        )
+    ]
+    if mismatched:
+        detail = f"payload rows {mismatched} do not match {declared.target} and its snapshot"
         return CheckResult.failed("experiments", detail)
     return CheckResult.passed(
-        "experiments", f"all {len(experiments)} experiments from {entry.name}@{entry.revision}"
+        "experiments", f"all {len(bundle.experiments)} experiments match {declared.target}"
     )
+
+
+def _experiment_matches_snapshot(
+    experiment: SubmissionExperiment,
+    *,
+    suite_key: tuple[str, int, str, str],
+    mission_specs: dict[str, KtaneMissionSpec],
+    suite: Suite,
+) -> bool:
+    """Whether one payload row matches every frozen suite field it records."""
+    identity_matches = (
+        experiment.suite_name,
+        experiment.suite_revision,
+        experiment.suite_digest,
+        experiment.mission_set,
+    ) == suite_key
+    content_matches = (
+        experiment.mission_spec == mission_specs.get(experiment.mission_key)
+        and experiment.manual_profile == suite.manual_profile
+        and experiment.defuser_protocol == suite.defuser_protocol
+        and experiment.expert_protocol == suite.expert_protocol
+    )
+    return identity_matches and content_matches
 
 
 def _check_one_run_per_mission_per_pairing(

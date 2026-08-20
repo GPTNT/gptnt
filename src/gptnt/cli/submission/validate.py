@@ -1,11 +1,11 @@
-"""`gptnt submission validate` — check built bundles against the frozen `suites.lock`.
+"""`gptnt submission validate` — check built bundles against their suite snapshots.
 
 The doctor-style gate before a bundle goes to gptnt-submissions: the manifest parses (the schema
 itself rejects unknown versions, tampered fingerprints, and blank identities), the submitter block
-is filled in, the declared suite revision is frozen in the lock with a matching digest, every
-mission the lock records is covered by exactly one valid run, and the payload players match the
+is filled in, the bundled suite snapshot matches its manifest and digest, every snapshot mission
+is covered by exactly one valid run, and the payload players match the
 manifest. Modified protected benchmark content fails validation; an unpinned statics dataset warns.
-Its reference is `suites.lock`, which ships in the wheel, so it needs no live configs.
+Interactive validation reads no live suite or mission configuration.
 
 `gptnt submission new` bundles every recorded experiment for a (suite, model) group, so a retried
 mission surfaces here as a duplicate — validate is the curation signal, not a bug in the build.
@@ -30,7 +30,6 @@ from gptnt.cli.submission._checks import (
 )
 from gptnt.cli.submission._report import render_reports
 from gptnt.common.paths import Paths
-from gptnt.experiments.suite.lock import SuiteLock, SuiteLockEntry, SuiteNotFrozenError
 
 paths = Paths()
 console = Console()
@@ -61,11 +60,10 @@ def validate_submission(
     if not bundle_dirs:
         raise RuntimeError(f"No bundles under {path}: nothing contains a submission.yaml.")
 
-    lock = SuiteLock.from_lock_path()
     reports = [
         Report(
             heading=str(bundle_dir if bundle_dir == path else bundle_dir.relative_to(path)),
-            checks=_run_bundle_checks(bundle_dir, lock),
+            checks=_run_bundle_checks(bundle_dir),
         )
         for bundle_dir in bundle_dirs
     ]
@@ -74,7 +72,7 @@ def validate_submission(
         sys.exit(1)
 
 
-def _run_bundle_checks(bundle_dir: Path, lock: SuiteLock) -> list[CheckResult]:
+def _run_bundle_checks(bundle_dir: Path) -> list[CheckResult]:
     """Run every applicable check for one bundle; empty sections simply don't render."""
     sections: list[CheckResult] = []
 
@@ -87,28 +85,16 @@ def _run_bundle_checks(bundle_dir: Path, lock: SuiteLock) -> list[CheckResult]:
     sections.extend(loaded.check_submitter())
 
     if isinstance(loaded.bundle, InteractiveBundle):
-        sections.extend(_interactive_sections(loaded.bundle, lock))
+        sections.extend(_interactive_sections(loaded.bundle))
     sections.extend(loaded.check_provenance())
     return sections
 
 
-def _interactive_sections(bundle: InteractiveBundle, lock: SuiteLock) -> list[CheckResult]:
+def _interactive_sections(bundle: InteractiveBundle) -> list[CheckResult]:
     """The suite-dependent sections; coverage is meaningless against a wrong suite, so it skips."""
-    measured = bundle.manifest.measured
-    entry, lookup_error = _lookup_entry(lock, measured.suite_name, measured.suite_revision)
-    suite_findings = check_suite(bundle, entry, lookup_error=lookup_error)
-    if entry is None or any(finding.status == "fail" for finding in suite_findings):
+    suite_findings = check_suite(bundle)
+    if any(finding.status == "fail" for finding in suite_findings):
         coverage_findings = [CheckResult.skipped("coverage", "suite checks failed; not assessed")]
     else:
-        coverage_findings = check_mission_coverage(bundle, entry)
+        coverage_findings = check_mission_coverage(bundle, bundle.suite_lock.suites[0])
     return [*suite_findings, *coverage_findings, *check_players(bundle)]
-
-
-def _lookup_entry(
-    lock: SuiteLock, suite_name: str, suite_revision: int
-) -> tuple[SuiteLockEntry | None, str]:
-    """The lock entry for this exact `(name, revision)`, or `None` and why it isn't frozen."""
-    try:
-        return lock.select_entry(suite_name, suite_revision), ""
-    except SuiteNotFrozenError as error:
-        return None, str(error)
