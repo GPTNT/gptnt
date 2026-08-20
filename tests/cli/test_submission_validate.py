@@ -16,6 +16,7 @@ from uuid import uuid4
 import pytest
 import yaml
 from pydantic_ai import RunUsage
+from tomlkit import dumps
 
 from gptnt.cli.__main__ import build_app
 from gptnt.cli.submission._bundle import (
@@ -31,6 +32,7 @@ from gptnt.experiments.db.typed_parquet import read_typed_parquet, write_typed_p
 from gptnt.experiments.generation.missions import load_missions
 from gptnt.experiments.models import ExperimentSummary
 from gptnt.experiments.suite.compose import compose_suite
+from gptnt.experiments.suite.lock import SuiteLock
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cli_runner import invoke_cli
@@ -51,7 +53,9 @@ if TYPE_CHECKING:
 SUITE = "single-parametric-sync"
 
 
-def _make_experiment(mission: KtaneMissionSpec, suite: Suite) -> SubmissionExperiment:
+def _make_experiment(
+    mission: KtaneMissionSpec, suite: Suite, suite_digest: str
+) -> SubmissionExperiment:
     """One valid, solved run of `mission` recorded against `suite`."""
     spec = make_experiment_spec(seed=mission.seed).model_copy(
         update={
@@ -59,6 +63,8 @@ def _make_experiment(mission: KtaneMissionSpec, suite: Suite) -> SubmissionExper
             "mission_set": suite.mission_set,
             "suite_name": suite.name,
             "suite_revision": suite.revision,
+            "suite_digest": suite_digest,
+            "manual_profile": suite.manual_profile,
         }
     )
     summary = ExperimentSummary.from_instance_and_bomb_state(
@@ -92,12 +98,20 @@ def suite() -> Suite:
 
 
 @pytest.fixture(scope="module")
-def valid_bundle_root(tmp_path_factory: pytest.TempPathFactory, suite: Suite) -> Path:
+def suite_snapshot(suite: Suite) -> SuiteLock:
+    return SuiteLock.from_lock_path().snapshot(suite.name, suite.revision)
+
+
+@pytest.fixture(scope="module")
+def valid_bundle_root(
+    tmp_path_factory: pytest.TempPathFactory, suite: Suite, suite_snapshot: SuiteLock
+) -> Path:
     """A submissions root holding one fully covering, submitter-filled interactive bundle."""
     root = tmp_path_factory.mktemp("submissions")
     missions = load_missions(Paths().root / suite.missions_path)
-    experiments = [_make_experiment(mission, suite) for mission in missions]
-    _fill_submitter(InteractiveBundle.from_experiments(experiments, suite).save(root))
+    suite_digest = suite_snapshot.suites[0].suite_digest
+    experiments = [_make_experiment(mission, suite, suite_digest) for mission in missions]
+    _fill_submitter(InteractiveBundle.from_experiments(experiments, suite_snapshot).save(root))
     return root
 
 
@@ -142,7 +156,7 @@ def test_valid_bundle_passes(bundle_copy: Path) -> None:
 
 
 def test_interactive_bundle_rejects_mixed_provenance_at_build_and_validation(
-    bundle_copy: Path, suite: Suite, capsys: pytest.CaptureFixture[str]
+    bundle_copy: Path, suite_snapshot: SuiteLock, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """Construction and validation both reject payload rows from another benchmark state."""
     payload = bundle_copy / "experiments.parquet"
@@ -152,7 +166,7 @@ def test_interactive_bundle_rejects_mixed_provenance_at_build_and_validation(
 
     # New bundles reject a mixed output set before writing its singular manifest provenance.
     with pytest.raises(ValueError, match="conflicting provenance"):
-        _ = InteractiveBundle.from_experiments(mixed_experiments, suite)
+        _ = InteractiveBundle.from_experiments(mixed_experiments, suite_snapshot)
 
     # Validation also catches a payload changed after a valid manifest was written.
     write_typed_parquet(mixed_experiments, file_path=payload)
@@ -235,6 +249,45 @@ def test_tampered_suite_digest_fails(bundle_copy: Path) -> None:
     _assert_validate_fails(bundle_copy)
 
 
+@pytest.mark.parametrize(
+    ("mutation", "expected_name", "expected_detail"),
+    [
+        ("digest", "snapshot digest", "digest does not match"),
+        ("missing", "snapshot missions", "missions absent from the table"),
+        ("extra", "snapshot missions", "extra:"),
+    ],
+)
+def test_snapshot_mutations_fail(
+    bundle_copy: Path,
+    mutation: str,
+    expected_name: str,
+    expected_detail: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    snapshot_path = bundle_copy / "suite.lock"
+    snapshot = SuiteLock.from_lock_path(snapshot_path)
+    raw = snapshot.model_dump(mode="json", by_alias=True)
+
+    if mutation == "digest":
+        raw["suite"][0]["suite_digest"] = "deadbeef"
+    elif mutation == "missing":
+        raw["mission"] = raw["mission"][1:]
+    else:
+        extra_spec = snapshot.missions[0].spec.model_copy(update={"seed": 999_999_999})
+        raw["mission"].append(
+            {"mission_key": extra_spec.mission_key, "spec": extra_spec.model_dump(mode="json")}
+        )
+    _ = snapshot_path.write_text(dumps(raw))
+
+    with pytest.raises(SystemExit) as exit_info:
+        validate_submission(bundle_copy, report_format="json")
+    assert exit_info.value.code == 1
+    report = json.loads(capsys.readouterr().out)["bundles"][0]["checks"]
+    assert any(
+        check["name"] == expected_name and expected_detail in check["detail"] for check in report
+    )
+
+
 def test_tampered_written_fingerprint_fails(bundle_copy: Path) -> None:
     manifest = _read_manifest(bundle_copy)
     manifest["players"][0]["fingerprint"] = "deadbeef"
@@ -301,10 +354,10 @@ PAIRWISE_EXPERTS = ("test-expert", "test-oracle")
 
 
 def _make_pairwise_experiment(
-    mission: KtaneMissionSpec, suite: Suite, expert_name: str
+    mission: KtaneMissionSpec, suite: Suite, suite_digest: str, expert_name: str
 ) -> SubmissionExperiment:
     """One valid, solved run of `mission` played by the defuser paired with `expert_name`."""
-    experiment = _make_experiment(mission, suite)
+    experiment = _make_experiment(mission, suite, suite_digest)
     return experiment.model_copy(
         update={
             "defuser_protocol": experiment.defuser_protocol.model_copy(
@@ -329,16 +382,24 @@ def pairwise_suite() -> Suite:
 
 
 @pytest.fixture(scope="module")
-def valid_pairwise_root(tmp_path_factory: pytest.TempPathFactory, pairwise_suite: Suite) -> Path:
+def pairwise_snapshot(pairwise_suite: Suite) -> SuiteLock:
+    return SuiteLock.from_lock_path().snapshot(pairwise_suite.name, pairwise_suite.revision)
+
+
+@pytest.fixture(scope="module")
+def valid_pairwise_root(
+    tmp_path_factory: pytest.TempPathFactory, pairwise_suite: Suite, pairwise_snapshot: SuiteLock
+) -> Path:
     """A submissions root with a covering pairwise bundle: every mission run once per expert."""
     root = tmp_path_factory.mktemp("pairwise-submissions")
     missions = load_missions(Paths().root / pairwise_suite.missions_path)
+    suite_digest = pairwise_snapshot.suites[0].suite_digest
     experiments = [
-        _make_pairwise_experiment(mission, pairwise_suite, expert)
+        _make_pairwise_experiment(mission, pairwise_suite, suite_digest, expert)
         for mission in missions
         for expert in PAIRWISE_EXPERTS
     ]
-    _fill_submitter(InteractiveBundle.from_experiments(experiments, pairwise_suite).save(root))
+    _fill_submitter(InteractiveBundle.from_experiments(experiments, pairwise_snapshot).save(root))
     return root
 
 

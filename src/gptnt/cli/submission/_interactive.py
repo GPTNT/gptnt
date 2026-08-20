@@ -7,23 +7,42 @@ from typing import TYPE_CHECKING
 
 from gptnt.cli.submission._schema import SubmissionExperiment
 from gptnt.experiments.db.read import load_experiment_summaries, load_final_states_and_usage
+from gptnt.experiments.suite.core import SuiteIdentity
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Sequence
     from pathlib import Path
 
-    from gptnt.experiments.suite.core import Suite
+    from gptnt.experiments.models import ExperimentSummary
+
+
+def suite_identity_from_experiments(experiments: Sequence[ExperimentSummary]) -> SuiteIdentity:
+    """Return the shared recorded suite identity, rejecting a mixed selection."""
+    if not experiments:
+        raise ValueError("Cannot identify a suite from an empty experiment selection")
+    identities = {
+        (experiment.suite_name, experiment.suite_revision, experiment.suite_digest)
+        for experiment in experiments
+    }
+    if len(identities) != 1:
+        found = ", ".join(
+            f"{name}@{revision} ({digest})" for name, revision, digest in sorted(identities)
+        )
+        raise ValueError(f"Cannot bundle experiments with conflicting suite identities: {found}")
+    suite_name, suite_revision, suite_digest = next(iter(identities))
+    return SuiteIdentity(
+        suite_name=suite_name, suite_revision=suite_revision, suite_digest=suite_digest
+    )
 
 
 def gather_experiments_for_suite(
-    db_path: Path, suite: Suite, model_names: Iterable[str] | None = None
-) -> list[SubmissionExperiment]:
-    """Collate all the experiments for a given suite, filtered by model names if provided."""
-    summaries = load_experiment_summaries(
-        db_path, suite_name=suite.name, suite_revision=suite.revision, model_names=model_names
-    )
+    db_path: Path, suite_name: str, model_names: Iterable[str] | None = None
+) -> tuple[SuiteIdentity | None, list[SubmissionExperiment]]:
+    """Collate one suite's experiments and their shared recorded identity."""
+    summaries = load_experiment_summaries(db_path, suite_name=suite_name, model_names=model_names)
     if not summaries:
-        return []
+        return None, []
+    identity = suite_identity_from_experiments(summaries)
 
     final_states = load_final_states_and_usage(
         db_path, [summary.session_id for summary in summaries]
@@ -37,7 +56,7 @@ def gather_experiments_for_suite(
                 summary=summary, final_bomb_state=final_bomb_state, usage_by_role=usage_by_role
             )
         )
-    return all_experiments
+    return identity, all_experiments
 
 
 def group_experiments_by_model(

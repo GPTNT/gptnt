@@ -202,6 +202,15 @@ class SuiteLock(BaseModel):
         missions = [specs[key] for key in entry.mission_keys]
         return suite, missions
 
+    def snapshot(self, name: str, revision: int) -> Self:
+        """Reduce this lock to one suite entry and exactly its referenced missions."""
+        entry = self.select_entry(name, revision)
+        mission_keys = set(entry.mission_keys)
+        missions = tuple(
+            mission for mission in self.missions if mission.mission_key in mission_keys
+        )
+        return self.model_validate({"suites": (entry,), "missions": missions})
+
     def append(self, new_entries: list[SuiteLockEntry], new_missions: list[MissionEntry]) -> Self:
         """Return a new lock with the given entries and missions appended.
 

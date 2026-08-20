@@ -21,7 +21,7 @@ from gptnt.cli.submission._interactive import (
 )
 from gptnt.cli.submission._schema import Submitter
 from gptnt.common.paths import Paths
-from gptnt.experiments.suite.compose import compose_suite
+from gptnt.experiments.suite.lock import SuiteLock
 from gptnt.statics.run_metadata import StaticsRunMetadata
 
 logger = structlog.get_logger()
@@ -64,6 +64,38 @@ def _statics_runs(
     return runs
 
 
+def _build_interactive_bundles(
+    *,
+    experiments_db: Path,
+    output_dir: Path,
+    suites: list[str],
+    model: list[str] | None,
+    submitter: Submitter | None,
+) -> int:
+    """Build each selected interactive bundle from recorded suite identities."""
+    if not suites:
+        return 0
+    suite_lock = SuiteLock.from_lock_path()
+    built = 0
+    for suite_name in suites:
+        console.print(f"[bold]suite {suite_name}[/bold]")
+        identity, experiments = gather_experiments_for_suite(experiments_db, suite_name, model)
+        if identity is None:
+            continue
+        snapshot = suite_lock.snapshot(identity.suite_name, identity.suite_revision)
+        if snapshot.suites[0].suite_digest != identity.suite_digest:
+            raise ValueError(
+                f"Recorded suite {identity.target} digest {identity.suite_digest} does not match "
+                f"the frozen lock digest {snapshot.suites[0].suite_digest}"
+            )
+        for _, model_experiments in group_experiments_by_model(experiments):
+            _ = InteractiveBundle.from_experiments(
+                model_experiments, snapshot, submitter=submitter
+            ).save(output_dir)
+            built += 1
+    return built
+
+
 def build_submission(
     experiments_db: Annotated[
         Path, Parameter(help="Path to the experiments.duckdb file.", env_var="EXPERIMENTS_DB")
@@ -97,17 +129,13 @@ def build_submission(
 ) -> None:
     """Build every submission bundle from the DuckDB."""
     require_benchmark_integrity(contributor_override_available=False)
-    built = 0
-
-    for suite_name in suites:
-        console.print(f"[bold]suite {suite_name}[/bold]")
-        suite = compose_suite(suite_name)
-        experiments = gather_experiments_for_suite(experiments_db, suite, model)
-        for _, model_experiments in group_experiments_by_model(experiments):
-            _ = InteractiveBundle.from_experiments(
-                model_experiments, suite, submitter=submitter
-            ).save(output_dir)
-            built += 1
+    built = _build_interactive_bundles(
+        experiments_db=experiments_db,
+        output_dir=output_dir,
+        suites=suites,
+        model=model,
+        submitter=submitter,
+    )
 
     for run_dir, metadata in _statics_runs(
         statics=statics, statics_output_dir=statics_output_dir, model_filter=set(model or [])

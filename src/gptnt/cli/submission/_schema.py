@@ -21,7 +21,7 @@ from gptnt.players.specification import PlayerCapabilities, PlayerIdentity, Play
 from gptnt.provenance import Provenance
 from gptnt.statics.run_metadata import StaticsIdentity
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 class Submitter(BaseModel):
