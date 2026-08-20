@@ -113,14 +113,12 @@ Everything else is filled in for you. Your capabilities are read from the result
 gptnt submission validate
 ```
 
-Once you're ready to go, run the validation command to check that everything is in order. It checks that each bundle is structured and named correctly, that the `submitter` block is filled, that the suite is frozen, and that every mission was run exactly once and ended cleanly. If it passes, you're ready to open the pull request. If it fails, fix the issues it lists before you submit.
+First, run local validation. It does not use the network. It checks the bundle's recorded GPTNT release, player fingerprints, suite snapshot, mission coverage, and outcomes.
 
-Missing, changed, or unrelated missions in the bundled suite snapshot block the submission.
-
-A couple of things only warn, and won't block you: a static whose dataset revision wasn't pinned at run time (pin it with `--dataset-revision` when you run statics, for a reproducible submission), and a git tree that had uncommitted changes when the results were produced.
+Next, the pull-request check downloads the recorded published release, verifies the archive checksum and release commit, and runs that release's submission validator. A failed check names the identity that disagrees. Rebuild the bundle, or rerun the benchmark when the recorded results disagree.
 
 !!! note
-    We run this same command when we validate your submission on our end.
+    Schema-v1 bundles require the matching v1 checkout. The schema-v2 validator does not convert them.
 
 
 ## Open the pull request

@@ -20,7 +20,6 @@ from rich.console import Console
 
 from gptnt.cli.checks.formats import Report, ReportFormat
 from gptnt.cli.checks.result import CheckResult
-from gptnt.cli.integrity import diagnose_benchmark_integrity
 from gptnt.cli.submission._bundle import InteractiveBundle
 from gptnt.cli.submission._checks import (
     check_mission_coverage,
@@ -48,13 +47,6 @@ def validate_submission(
     ] = "rich",
 ) -> None:
     """Validate submission bundle(s); any failed check exits non-zero (warnings never fail)."""
-    benchmark = diagnose_benchmark_integrity(contributor_override_available=False, render=False)
-    if benchmark.failed:
-        render_reports(
-            [Report(heading="Benchmark", checks=benchmark.findings)], report_format, console
-        )
-        sys.exit(1)
-
     # A bundle dir matches itself: rglob's implicit `**` also matches zero directories deep.
     bundle_dirs = [manifest.parent for manifest in path.rglob("submission.yaml")]
     if not bundle_dirs:

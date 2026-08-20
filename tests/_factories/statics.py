@@ -48,8 +48,8 @@ def write_statics_run(
                 "capabilities": capabilities.model_dump(mode="json"),
                 "provenance": {
                     "gptnt_version": "2.0.0",
-                    "release_commit": "a1b2c3d4",
-                    "release_tag": "v0.15.0",
+                    "release_commit": "a1b2c3d4" * 5,
+                    "release_tag": "v2.0.0",
                     "protected_content_modified": False,
                 },
             }
