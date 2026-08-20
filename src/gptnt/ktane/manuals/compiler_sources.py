@@ -1,4 +1,4 @@
-"""Pinned and committed sources used only while compiling manual pages."""
+"""Public preparation of pinned source files required by the HTML compiler."""
 
 import hashlib
 from importlib.resources import files

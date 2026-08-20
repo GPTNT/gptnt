@@ -11,8 +11,8 @@ from rich.console import Console
 from gptnt.cli.manual.selection import AllProfilesOption, SuitesOption, select_manual_profiles
 from gptnt.common.paths import Paths
 from gptnt.ktane.manuals.compiler import compile_manual
+from gptnt.ktane.manuals.compiler_sources import prepare_compiler_sources
 from gptnt.ktane.manuals.download import download_manual_assets
-from gptnt.ktane.manuals.preparation import prepare_compiler_sources
 from gptnt.ktane.manuals.resolution import ResolvedOfficialDocument
 from gptnt.ktane.manuals.resolve import resolve_manual_profile
 from gptnt.ktane.manuals.sources import ManualSources

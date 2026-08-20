@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 import pymupdf
 
 from gptnt.ktane.manuals import _browser
-from gptnt.ktane.manuals._compiler_sources import (
+from gptnt.ktane.manuals.compiler_sources import (
     KTANE_CONTENT_COMMIT,
     keypad_assets_root,
     ktane_content_root,

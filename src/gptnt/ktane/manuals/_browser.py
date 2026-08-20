@@ -16,7 +16,7 @@ import playwright
 import pymupdf
 from playwright.sync_api import Error as PlaywrightError, Frame, Page, Route, sync_playwright
 
-from gptnt.ktane.manuals._compiler_sources import KTANE_CONTENT_COMMIT, keypad_assets_identity
+from gptnt.ktane.manuals.compiler_sources import KTANE_CONTENT_COMMIT, keypad_assets_identity
 from gptnt.ktane.manuals._javascript import load_javascript
 from gptnt.ktane.manuals.resolution import (
     ResolvedKtaneContentAppendix,

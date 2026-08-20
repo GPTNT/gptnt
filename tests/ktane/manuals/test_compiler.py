@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING
 import pymupdf
 import pytest
 
-from gptnt.ktane.manuals._compiler_sources import keypad_assets_root, ktane_content_root
 from gptnt.ktane.manuals.compiler import ManualCompileError, compile_manual
+from gptnt.ktane.manuals.compiler_sources import keypad_assets_root, ktane_content_root
 from gptnt.ktane.manuals.resolution import (
     LocalInputIdentity,
     LocalProvenance,
