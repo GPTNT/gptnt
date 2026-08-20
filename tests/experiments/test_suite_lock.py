@@ -195,6 +195,6 @@ def test_freeze_reload_and_generate_pins_suite_identity(
     ) == (
         "single-solo-player-sync",
         1,
-        "c3eb87f851b818141f2decb4a9f5bf70",
-        "982f9f41c51f5d3011b0ddea5bc59816",
+        "cd8d0f434673435dda9c9a3840e309b9",
+        "a2f6889b8fd4c0b0ec6531b4dda54f3b",
     )
