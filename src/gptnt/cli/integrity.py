@@ -62,7 +62,7 @@ def _protected_content_finding(
 
     detail = f"modified: {', '.join(protected_paths)}"
     restore_hint = _RESTORE_HINT if contributor_override_available else _RESTORE_ONLY_HINT
-    if allow_modified_benchmark:
+    if allow_modified_benchmark and contributor_override_available:
         return CheckResult.warned("Protected content", detail, restore_hint), False
     return CheckResult.failed("Protected content", detail, restore_hint), True
 
@@ -112,7 +112,11 @@ def diagnose_benchmark_integrity(
     if render:
         render_benchmark_diagnosis(diagnosis)
     # Make the contributor override visible whenever it changes the outcome of the gate.
-    if allow_modified_benchmark and diagnosis.protected_content_modified:
+    if (
+        allow_modified_benchmark
+        and contributor_override_available
+        and diagnosis.protected_content_modified
+    ):
         console.print(
             "\n[bold yellow]WARNING: protected benchmark content is modified.[/bold yellow] "
             "The contributor override is enabled. Records will be marked "

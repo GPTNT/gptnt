@@ -171,7 +171,7 @@ the live suite files do not change the identity of specs already written.
 gptnt run runs/<name>.yaml
 ```
 
-`run` verifies everything is setup with the `doctor`, spawns the experiment manager, game rooms,
+`run` verifies everything is set up with the `doctor`, spawns the experiment manager, game rooms,
 and players, submits the specs, and streams progress until the run finishes. Add
 `-i`/`--interactive` to stream process logs instead of the status table. `--force` can pass ordinary
 doctor failures, but protected-content and run-roster failures always stop the run. The

@@ -312,6 +312,30 @@ def test_score_producing_commands_fail_integrity_before_writing_or_spawning(
     assert not (tmp_path / "submissions").exists()
 
 
+def test_unavailable_contributor_override_keeps_modified_benchmark_fatal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        integrity,
+        "check_benchmark_integrity",
+        lambda _repository: SimpleNamespace(
+            release_tag="v2.0.0",
+            release_commit="abc123456789",
+            protected_changes=("src/gptnt/prompts/manual.py",),
+            untracked_protected_files=(),
+            permitted_input_changes=(),
+            protected_content_modified=True,
+        ),
+    )
+
+    diagnosis = integrity.diagnose_benchmark_integrity(
+        allow_modified_benchmark=True, contributor_override_available=False, render=False
+    )
+
+    assert diagnosis.failed is True
+    assert diagnosis.findings[-1].status == "fail"
+
+
 def test_statics_contributor_override_warns_and_stamps_modified_provenance(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
