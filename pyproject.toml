@@ -27,6 +27,7 @@ dependencies = [
     "orjson>=3.11.5",
     "pillow>=11.1.0",
     "polars>=1.28.1",
+    "playwright>=1.55.0",
     "psutil>=7.0.0",
     "pyarrow>=19.0.1",
     "pybase64>=1.4.3",
@@ -34,6 +35,7 @@ dependencies = [
     "pydantic-ai>=2,<3",
     "pydantic-settings>=2.11.0",
     "pygit2>=1.19.3",
+    "pymupdf>=1.26.6",
     "rich>=13.9.4",
     "scikit-image>=0.25.2",
     "sentence-transformers>=4.1.0",
@@ -93,7 +95,6 @@ lint = [
     "wemake-python-styleguide>=1.0.0",
 ]
 visualisation = [
-    "pymupdf>=1.26.6",
     "streamlit-drawable-canvas>=0.9.3",
 ]
 # Dev/CI only: keeps W&B installed so the optional W&B modules type-check and run locally.
@@ -237,6 +238,13 @@ per-file-ignores = [
     # cli/__main__.py is the root command-assembly module: one flat list of `app.command(...)`
     # registrations, so it trips the "too many expressions" check (same shape as interactive's).
     "src/gptnt/cli/__main__.py:WPS213",
+    # Manual compilation intentionally completes one content-addressed artifact before printing it.
+    "src/gptnt/cli/manual/compile.py:WPS476",
+    # Browser rendering is one private lifecycle boundary around server, browser, frame, and print
+    # cleanup; splitting it would obscure error propagation without creating reusable components.
+    "src/gptnt/ktane/manuals/_browser.py:WPS210,WPS213,WPS220,WPS229,WPS231,WPS238,WPS243,WPS324,WPS430,WPS441,WPS501",
+    # Artifact validation and mixed HTML/PDF assembly keep their invariants in one private module.
+    "src/gptnt/ktane/manuals/compiler.py:WPS210,WPS221,WPS229,WPS231,WPS238,WPS243,WPS501,WPS504",
     "src/gptnt/ktane/state/*:WPS202,WPS226",
     # doctor/checks.py and submission/_checks.py are registries of small check functions (many
     # members) with one fix-hint string each (many literals)
@@ -246,6 +254,9 @@ per-file-ignores = [
     "src/gptnt/players/exception_recovery.py:WPS202",
     "src/gptnt/processors/*:WPS203",
     "src/gptnt/experiments/db/schema.py:WPS110,WPS111,WPS430",
+    # These orchestration tests use small local fakes so browser and network work cannot start.
+    "tests/cli/test_manual_compile.py:WPS110,WPS2,WPS118,WPS123,WPS407,WPS411,WPS430,WPS432,WPS435,WPS444,WPS476",
+    "tests/ktane/manuals/test_compiler.py:WPS110,WPS2,WPS118,WPS407,WPS411,WPS430,WPS432,WPS435,WPS444,WPS476",
 ]
 select = ["WPS"]
 max-line-length = 99
@@ -278,6 +289,7 @@ allowed-module-metadata = ["__all__"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "configs" = "gptnt/_configs"
+"storage/manual/keypad" = "gptnt/_manual_keypad"
 
 [tool.hatch.version]
 source = "uv-dynamic-versioning"

@@ -21,8 +21,8 @@ description = "Cut a release: cz bump derives the next SemVer from commits, tags
 run = "uv run cz bump"
 
 [tasks.sync]
-description = "Install dependencies"
-run = "uv sync --all-groups --all-extras"
+description = "Install dependencies and Playwright-managed Chromium"
+run = ["uv sync --all-groups --all-extras", "uv run playwright install chromium"]
 
 [tasks.tests]
 description = "Run all tests"

@@ -126,7 +126,9 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install deps
-        run: uv sync --all-groups --all-extras
+        run: |
+          uv sync --all-groups --all-extras
+          uv run playwright install chromium
 
       - name: Run tests
         env:

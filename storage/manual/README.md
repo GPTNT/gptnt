@@ -14,3 +14,8 @@ awk '/^8\/28\/2020/{filename="section_"++i".txt";}{print > filename}' input.txt
 
 1. Each page was converted into a PNG using a PDF reader and saved in `storage/manual/images/raw`
 2. The images were then resized to 512x512, forcing them to be square, and saved in `storage/manual/images/512_512`
+
+## Keypad assets
+
+`storage/manual/keypad/` contains the 256-by-256 Keypad symbols used by `gptnt manual compile`.
+They are committed so compilation does not fetch a separate image repository.

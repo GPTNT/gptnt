@@ -1,12 +1,12 @@
 # Manuals
 
-Manual profiles describe the documents required by a suite. The manual download command
-prepares the source files for those profiles before a run.
+Manual profiles describe the documents required by a suite. The manual commands download their
+source files and compile cached handbook artifacts explicitly.
 
 !!! info "Current scope"
-    `gptnt manual download` selects profiles, validates local documents, and caches remote source
-    files. The manual resolver turns that cache and one profile into ordered compilation inputs. It
-    does not render pages, apply Rule Seed Modifier rules, or assemble an Expert manual.
+    `gptnt manual compile` builds handbook artifacts for review or later processing. `gptnt run`
+    does not consume them yet. Runs continue to use the legacy manual until the manual integration
+    work is complete.
 
 ## Concepts
 
@@ -18,8 +18,9 @@ to every profile. It contains a pinned KtaneContent Git commit, the aggregate Kt
 URL, the configured frontmatter, and the version, URL, and module page ranges for every configured
 official manual language.
 
-The **manual cache** under `output/manual_cache/` contains downloaded remote inputs and the
-aggregate catalog. Local documents remain at their configured paths after validation.
+The **manual cache** under `output/manual_cache/` contains downloaded remote inputs, the aggregate
+catalog, the pinned Manual Merger checkout, and compiled artifacts. Local documents remain at their
+configured paths after validation. The compiler's 256-pixel Keypad symbols are committed with GPTNT.
 
 Two kinds of seeds are part of a mission:
 
@@ -216,8 +217,46 @@ directory.
 
 
 ??? question "How do I prepare an offline machine?"
-    Run the download command on a connected machine, then copy `output/manual_cache/` to the same
-    path on the offline machine.
+    Run the compile command on a connected machine, then copy `output/manual_cache/` to the same
+    path on the offline machine. Copy the complete directory so the downloaded inputs, compiler
+    sources, and validated compiled artifacts remain together.
+
+## Compile handbook artifacts
+
+Install the Python dependencies and Playwright-managed Chromium before compiling:
+
+```bash
+mise run sync
+```
+
+`mise run sync` runs `uv run playwright install chromium` after dependency installation. If the
+matching browser build is absent, the compile command reports that exact installation action.
+
+The compile command uses the same profile selection rules as the download command:
+
+```bash
+gptnt manual compile
+gptnt manual compile --suite single-pairwise-sync --suite multi-self-sync
+gptnt manual compile --all-profiles
+```
+
+With no flags, the command selects profiles used by every configured suite. Repeated `--suite`
+options narrow the selection. `--all-profiles` selects every configured profile and cannot be
+combined with `--suite`. Profiles shared by several suites are compiled once.
+
+Compilation first downloads missing source inputs, then resolves each profile for default rule seed
+`1`. The compiler runs the pinned KtaneContent Manual Merger with Playwright-managed Chromium over
+loopback. It executes the manual JavaScript, waits for fonts and images, substitutes the committed
+256-pixel Keypad symbols, prints HTML pages, and imports configured official PDF page ranges with
+PyMuPDF. The command prints the artifact directory for each distinct profile.
+
+Each directory under `output/manual_cache/artifacts/` is addressed by its ordered input and renderer
+identity. It contains `handbook.pdf`, one UTF-8 text file and PNG for each page, and `manifest.json`.
+A complete artifact is reused. An incomplete artifact is rebuilt. Delete an artifact directory to
+force a rebuild after inspecting or changing upstream cache contents.
+
+Compilation is an explicit preparation step. `gptnt run` does not invoke this command or read these
+artifacts yet.
 
 
 ## Resolve compilation inputs
@@ -243,19 +282,3 @@ KtaneContent HTML or metadata file, official PDF, official page map, local HTML 
 local dependency is reported with the frontmatter or profile index that selected it. Run
 `gptnt manual download` when a configured remote input is missing. Correct the profile or source
 configuration when the named document, language, page map, or local dependency is invalid.
-
-<!--
-### Future generated-manual caching
-
-Downloaded source inputs and generated manuals should use separate caches. A generated-manual cache
-key will need to include every input that can change its content, including:
-
-- Manual profile identity
-- KtaneContent commit and other source versions
-- Rule seed
-- Game and document languages
-- Selected modules and appendices
-- Manual generator or renderer version
-
-This separation allows several rule seeds to reuse the same downloaded HTML, assets, and metadata
-without confusing a generated manual with its upstream inputs. -->

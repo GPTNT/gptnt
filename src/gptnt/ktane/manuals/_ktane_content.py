@@ -212,6 +212,29 @@ async def _restore_dependency_batch(
     )
 
 
+async def restore_repository_dependencies(
+    repository_dir: Path,
+    *,
+    commit: str,
+    paths: set[str],
+    repository_paths: set[str],
+    reporter: ProgressReporter,
+) -> set[str]:
+    """Restore selected files and every local repository dependency they reference."""
+    missing = paths - repository_paths
+    if missing:
+        raise ValueError(f"KtaneContent repository paths do not exist: {sorted(missing)}")
+    return await _restore_dependency_batch(
+        repository_dir,
+        commit=commit,
+        selected=set(paths),
+        pending=set(paths),
+        restored=set(),
+        repository_paths=repository_paths,
+        reporter=reporter,
+    )
+
+
 def _materialized_repository_paths(repository_dir: Path) -> set[str]:
     """List materialized working-tree files without counting Git's internal files."""
     return {
