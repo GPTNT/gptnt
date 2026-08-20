@@ -27,6 +27,7 @@ dependencies = [
     "orjson>=3.11.5",
     "pillow>=11.1.0",
     "polars>=1.28.1",
+    "playwright>=1.55.0",
     "psutil>=7.0.0",
     "pyarrow>=19.0.1",
     "pybase64>=1.4.3",
@@ -34,6 +35,7 @@ dependencies = [
     "pydantic-ai>=2,<3",
     "pydantic-settings>=2.11.0",
     "pygit2>=1.19.3",
+    "pymupdf>=1.26.6",
     "rich>=13.9.4",
     "scikit-image>=0.25.2",
     "sentence-transformers>=4.1.0",
@@ -93,7 +95,6 @@ lint = [
     "wemake-python-styleguide>=1.0.0",
 ]
 visualisation = [
-    "pymupdf>=1.26.6",
     "streamlit-drawable-canvas>=0.9.3",
 ]
 # Dev/CI only: keeps W&B installed so the optional W&B modules type-check and run locally.
@@ -278,6 +279,7 @@ allowed-module-metadata = ["__all__"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "configs" = "gptnt/_configs"
+"storage/manual/keypad" = "gptnt/_manual_keypad"
 
 [tool.hatch.version]
 source = "uv-dynamic-versioning"

@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import pytest
 import yaml
 
-from gptnt.cli.manual import download as command
+from gptnt.cli.manual import download as command, selection
 from gptnt.ktane.manuals.download import DownloadResult
 from gptnt.ktane.manuals.profile import KtaneContentAppendix, ManualProfile
 
@@ -37,6 +37,7 @@ class _SuiteComposer:
     composed: list[str] = field(default_factory=list)
 
     def __call__(self, suite_name: str) -> SimpleNamespace:
+        """Record and compose one requested suite name."""
         self.composed.append(suite_name)
         return SimpleNamespace(manual_profile=self.profiles[suite_name])
 
@@ -56,6 +57,7 @@ class _DownloadRecorder:
         root_dir: Path,
         progress: ProgressCallback,
     ) -> DownloadResult:
+        """Record selected profiles and return a deterministic download summary."""
         _ = sources, root_dir, progress
         self.captured_profiles.extend(profiles)
         return DownloadResult(
@@ -78,8 +80,8 @@ async def test_download_without_suite_uses_all_suites_and_deduplicates_profiles(
     )
     download = _DownloadRecorder()
 
-    monkeypatch.setattr(command, "discover_suites", lambda: ["one", "two", "three"])
-    monkeypatch.setattr(command, "compose_suite", composer)
+    monkeypatch.setattr(selection, "discover_suites", lambda: ["one", "two", "three"])
+    monkeypatch.setattr(selection, "compose_suite", composer)
     monkeypatch.setattr(command, "download_manual_assets", download)
 
     await command.download()
@@ -97,8 +99,8 @@ async def test_download_with_suites_only_composes_selected_suites(
     composer = _SuiteComposer(profiles={"one": selected_profile, "two": selected_profile})
     download = _DownloadRecorder()
 
-    monkeypatch.setattr(command, "discover_suites", lambda: ["one", "two"])
-    monkeypatch.setattr(command, "compose_suite", composer)
+    monkeypatch.setattr(selection, "discover_suites", lambda: ["one", "two"])
+    monkeypatch.setattr(selection, "compose_suite", composer)
     monkeypatch.setattr(command, "download_manual_assets", download)
 
     # Repeating "two" verifies suite names are deduplicated before composition.
@@ -135,7 +137,7 @@ async def test_download_all_profiles_includes_profiles_unused_by_suites(
         ),
     )
     monkeypatch.setattr(
-        command,
+        selection,
         "discover_suites",
         # All-profile selection must still work when suite discovery is unavailable.
         lambda: pytest.fail("suite discovery must not run with --all-profiles"),
@@ -151,7 +153,7 @@ async def test_download_all_profiles_includes_profiles_unused_by_suites(
 @pytest.mark.anyio
 async def test_download_rejects_unknown_suite(monkeypatch: pytest.MonkeyPatch) -> None:
     """Reject unknown suite names and report the suites available to the user."""
-    monkeypatch.setattr(command, "discover_suites", lambda: ["known"])
+    monkeypatch.setattr(selection, "discover_suites", lambda: ["known"])
 
     with pytest.raises(ValueError, match=r"unknown suites \['missing'\]; available: \['known'\]"):
         await command.download(suites=["known", "missing"])
