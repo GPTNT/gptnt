@@ -47,8 +47,10 @@ graph TD
   L --> V[Validate files in place]
 ```
 
-!!! important "You need to run the command manually."
-    We do not automatically download/cache the manual content (yet). Therefore you must run the download command to populate the cache.
+!!! important "Runs do not prepare manual content."
+    `gptnt run` does not download or compile manuals. Run `gptnt manual compile` to download missing
+    sources and build handbook artifacts, or run `gptnt manual download` to populate only the source
+    cache.
 
 
 ## Manual profiles
