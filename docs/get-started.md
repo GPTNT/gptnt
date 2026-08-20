@@ -145,7 +145,7 @@ To make sure that you can run the game and the benchmark, we have "dummy models"
     gptnt run runs/quickstart.yaml
     ```
 
-    1. Runs `uv sync --all-groups` to install dependencies. All tasks are defined in `mise.toml` so you can check them yourself.
+    1. Installs the project dependencies and Playwright-managed Chromium. See [Manuals](manuals.md){data-preview} for manual profiles, caching, and offline preparation.
     2. Obviously, you can skip this if you already have Redis and the OpenTelemetry collector running.
 
 === "Without `mise`"
@@ -157,17 +157,21 @@ To make sure that you can run the game and the benchmark, we have "dummy models"
     # 2. Install dependencies
     uv sync --all-groups
 
-    # 3. Run Redis and OTEL Collector (if not running)
-    docker compose up -d # (1)!
+    # 3. Install Playwright-managed Chromium
+    uv run playwright install chromium # (1)!
 
-    # 4. Verify your setup works
+    # 4. Run Redis and OTEL Collector (if not running)
+    docker compose up -d # (2)!
+
+    # 5. Verify your setup works
     gptnt doctor runs/quickstart.yaml
 
-    # 5. Run the benchmark with the dummy models
+    # 6. Run the benchmark with the dummy models
     gptnt run runs/quickstart.yaml
     ```
 
-    1. Obviously, you can skip this if you already have Redis and the OpenTelemetry collector running.
+    1. See [Manuals](manuals.md){data-preview} for manual profiles, caching, and offline preparation.
+    2. Obviously, you can skip this if you already have Redis and the OpenTelemetry collector running.
 
 ??? tip "What is `mise`?"
     During development, we use [mise-en-place](https://mise.jdx.dev) to manage the toolchain and secrets. It simplifies the installation of python versions, uv versions, and other tool dependencies. It also manages environment variables and secrets for you. You can use it if you want, but it is not required.
