@@ -5,15 +5,14 @@ from gptnt.ktane.state.module_registry import module_registry
 from gptnt.ktane.state.modules import KtaneModuleId
 
 
-def compute_mission_key(components: list[KtaneModuleId], seed: int) -> str:
-    """Stable, human-readable identity for a *mission* (its modules + seed).
+def compute_mission_key(components: list[KtaneModuleId], *, seed: int, rule_seed: int) -> str:
+    """Stable, human-readable identity for a mission and its generated rules.
 
-    Just `"{seed}|{sorted module names}"` — order-independent, collision-free, and readable (you
-    can see which mission a row is at a glance), so experiments of the same mission group together
-    for querying/seeding. e.g. `"12345|BigButton,Wires"`.
+    The component order does not affect identity. The two seeds remain visible so records using the
+    same bomb layout but different generated rules do not share a key.
     """
     sorted_modules = ",".join(sorted(str(component) for component in components))
-    return f"{seed}|{sorted_modules}"
+    return f"{seed}|{rule_seed}|{sorted_modules}"
 
 
 class KtaneMissionSpec(BaseModel):
@@ -24,6 +23,13 @@ class KtaneMissionSpec(BaseModel):
     )
 
     seed: int = Field(ge=0, description="Random seed for mission generation")
+    rule_seed: int = Field(
+        default=1,
+        ge=1,
+        validation_alias="ruleSeed",
+        serialization_alias="ruleSeed",
+        description="Random seed for manual rule generation",
+    )
     time_limit: int = Field(
         gt=0,
         validation_alias="timeLimit",
@@ -79,8 +85,8 @@ class KtaneMissionSpec(BaseModel):
 
     @property
     def mission_key(self) -> str:
-        """Stable identity for this mission (modules + seed)."""
-        return compute_mission_key(self.components, self.seed)
+        """Stable identity for this mission's modules and both seeds."""
+        return compute_mission_key(self.components, seed=self.seed, rule_seed=self.rule_seed)
 
     @property
     def requires_multiple_images_per_observation(self) -> bool:

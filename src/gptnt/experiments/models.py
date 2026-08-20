@@ -381,7 +381,7 @@ class ExperimentSummary(ExperimentInstance, Provenance, ExperimentOutcome, DuckD
     @computed_field
     @property
     def mission_key(self) -> str:
-        """Identity of this experiment's mission (modules + seed), for grouping/seeding."""
+        """Identity of this experiment's modules, mission seed, and rule seed."""
         return self.mission_spec.mission_key
 
     @property

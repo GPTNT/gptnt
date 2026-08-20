@@ -34,6 +34,22 @@ def test_fingerprint_includes_manual_profile_but_not_player_image_dimensions() -
     assert instance.fingerprint == different_image_dimensions.fingerprint
 
 
+def test_rule_seed_changes_mission_and_experiment_identity() -> None:
+    """Generated rules distinguish mission keys, fingerprints, and spec output paths."""
+    spec = make_experiment_spec()
+    different_rules = spec.model_copy(
+        update={
+            "mission_spec": spec.mission_spec.model_copy(
+                update={"rule_seed": spec.mission_spec.rule_seed + 1}
+            )
+        }
+    )
+
+    assert spec.mission_spec.mission_key != different_rules.mission_spec.mission_key
+    assert spec.fingerprint != different_rules.fingerprint
+    assert spec.attempt_name != different_rules.attempt_name
+
+
 def test_fingerprint_is_stable_across_a_serialisation_round_trip() -> None:
     """Serialising the spec computes the fingerprint without recursing, and it survives reload."""
     spec = make_experiment_spec()

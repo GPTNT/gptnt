@@ -3,11 +3,11 @@ version = 2
 [[suite]]
 name = "multi-self-async"
 revision = 1
-suite_digest = "f907fad5824dfe2345765938a364e62e"
-frozen_at = "2026-08-13T13:46:33.20135Z"
-gptnt_version = "1.0.1.dev20+7456d5b0"
-git_sha = "74755a7718ed0bcdf34fc3c8d54e3f116416a357-dirty"
-mission_keys = ["1028|Keypad,Maze,Password,WireSequence", "110|Keypad,Maze,Wires", "286|Memory,Password,WhosOnFirst", "337|BigButton,Simon,Venn", "412|Keypad,Simon,WhosOnFirst", "526|Maze,Memory,Wires", "619|BigButton,Memory,WhosOnFirst", "798|BigButton,Keypad,Memory,Wires", "851|Keypad,Simon,WhosOnFirst,Wires", "990|Morse,Venn,WhosOnFirst,Wires"]
+suite_digest = "c44ca594b2e5a7dc3695741014529021"
+frozen_at = "2026-08-20T17:25:04.998132Z"
+gptnt_version = "1.0.1.dev47+23b58e1f"
+git_sha = "23b58e1f7cbb5e33acc0518484a7d8af2c315829"
+mission_keys = ["1028|1|Keypad,Maze,Password,WireSequence", "110|1|Keypad,Maze,Wires", "286|1|Memory,Password,WhosOnFirst", "337|1|BigButton,Simon,Venn", "412|1|Keypad,Simon,WhosOnFirst", "526|1|Maze,Memory,Wires", "619|1|BigButton,Memory,WhosOnFirst", "798|1|BigButton,Keypad,Memory,Wires", "851|1|Keypad,Simon,WhosOnFirst,Wires", "990|1|Morse,Venn,WhosOnFirst,Wires"]
 
 [suite.config]
 name = "multi-self-async"
@@ -114,11 +114,11 @@ language = "en"
 [[suite]]
 name = "multi-self-sync"
 revision = 1
-suite_digest = "06154c6a709d8db1746828bec71c6a47"
-frozen_at = "2026-08-13T13:46:33.20135Z"
-gptnt_version = "1.0.1.dev20+7456d5b0"
-git_sha = "74755a7718ed0bcdf34fc3c8d54e3f116416a357-dirty"
-mission_keys = ["1028|Keypad,Maze,Password,WireSequence", "110|Keypad,Maze,Wires", "286|Memory,Password,WhosOnFirst", "337|BigButton,Simon,Venn", "412|Keypad,Simon,WhosOnFirst", "526|Maze,Memory,Wires", "619|BigButton,Memory,WhosOnFirst", "798|BigButton,Keypad,Memory,Wires", "851|Keypad,Simon,WhosOnFirst,Wires", "990|Morse,Venn,WhosOnFirst,Wires"]
+suite_digest = "2ce9a8dd8635f6c75109dfb924c8df80"
+frozen_at = "2026-08-20T17:25:04.998132Z"
+gptnt_version = "1.0.1.dev47+23b58e1f"
+git_sha = "23b58e1f7cbb5e33acc0518484a7d8af2c315829"
+mission_keys = ["1028|1|Keypad,Maze,Password,WireSequence", "110|1|Keypad,Maze,Wires", "286|1|Memory,Password,WhosOnFirst", "337|1|BigButton,Simon,Venn", "412|1|Keypad,Simon,WhosOnFirst", "526|1|Maze,Memory,Wires", "619|1|BigButton,Memory,WhosOnFirst", "798|1|BigButton,Keypad,Memory,Wires", "851|1|Keypad,Simon,WhosOnFirst,Wires", "990|1|Morse,Venn,WhosOnFirst,Wires"]
 
 [suite.config]
 name = "multi-self-sync"
@@ -225,11 +225,11 @@ language = "en"
 [[suite]]
 name = "single-pairwise-sync"
 revision = 1
-suite_digest = "38ca6193516a8ef8491823897fee3869"
-frozen_at = "2026-08-13T13:46:33.20135Z"
-gptnt_version = "1.0.1.dev20+7456d5b0"
-git_sha = "74755a7718ed0bcdf34fc3c8d54e3f116416a357-dirty"
-mission_keys = ["234|BigButton", "234|Keypad", "234|Maze", "234|Memory", "234|Morse", "234|Password", "234|Simon", "234|Venn", "234|WhosOnFirst", "234|WireSequence", "234|Wires", "286|BigButton", "286|Keypad", "286|Maze", "286|Memory", "286|Morse", "286|Password", "286|Simon", "286|Venn", "286|WhosOnFirst", "286|WireSequence", "286|Wires", "337|BigButton", "337|Keypad", "337|Maze", "337|Memory", "337|Morse", "337|Password", "337|Simon", "337|Venn", "337|WhosOnFirst", "337|WireSequence", "337|Wires", "561|BigButton", "561|Keypad", "561|Maze", "561|Memory", "561|Morse", "561|Password", "561|Simon", "561|Venn", "561|WhosOnFirst", "561|WireSequence", "561|Wires", "563|BigButton", "563|Keypad", "563|Maze", "563|Memory", "563|Morse", "563|Password", "563|Simon", "563|Venn", "563|WhosOnFirst", "563|WireSequence", "563|Wires", "798|BigButton", "798|Keypad", "798|Maze", "798|Memory", "798|Morse", "798|Password", "798|Simon", "798|Venn", "798|WhosOnFirst", "798|WireSequence", "798|Wires", "813|BigButton", "813|Keypad", "813|Maze", "813|Memory", "813|Morse", "813|Password", "813|Simon", "813|Venn", "813|WhosOnFirst", "813|WireSequence", "813|Wires", "845|BigButton", "845|Keypad", "845|Maze", "845|Memory", "845|Morse", "845|Password", "845|Simon", "845|Venn", "845|WhosOnFirst", "845|WireSequence", "845|Wires", "849|BigButton", "849|Keypad", "849|Maze", "849|Memory", "849|Morse", "849|Password", "849|Simon", "849|Venn", "849|WhosOnFirst", "849|WireSequence", "849|Wires", "960|BigButton", "960|Keypad", "960|Maze", "960|Memory", "960|Morse", "960|Password", "960|Simon", "960|Venn", "960|WhosOnFirst", "960|WireSequence", "960|Wires"]
+suite_digest = "b36dafc5241e27a25660757b96cc3d2f"
+frozen_at = "2026-08-20T17:25:04.998132Z"
+gptnt_version = "1.0.1.dev47+23b58e1f"
+git_sha = "23b58e1f7cbb5e33acc0518484a7d8af2c315829"
+mission_keys = ["234|1|BigButton", "234|1|Keypad", "234|1|Maze", "234|1|Memory", "234|1|Morse", "234|1|Password", "234|1|Simon", "234|1|Venn", "234|1|WhosOnFirst", "234|1|WireSequence", "234|1|Wires", "286|1|BigButton", "286|1|Keypad", "286|1|Maze", "286|1|Memory", "286|1|Morse", "286|1|Password", "286|1|Simon", "286|1|Venn", "286|1|WhosOnFirst", "286|1|WireSequence", "286|1|Wires", "337|1|BigButton", "337|1|Keypad", "337|1|Maze", "337|1|Memory", "337|1|Morse", "337|1|Password", "337|1|Simon", "337|1|Venn", "337|1|WhosOnFirst", "337|1|WireSequence", "337|1|Wires", "561|1|BigButton", "561|1|Keypad", "561|1|Maze", "561|1|Memory", "561|1|Morse", "561|1|Password", "561|1|Simon", "561|1|Venn", "561|1|WhosOnFirst", "561|1|WireSequence", "561|1|Wires", "563|1|BigButton", "563|1|Keypad", "563|1|Maze", "563|1|Memory", "563|1|Morse", "563|1|Password", "563|1|Simon", "563|1|Venn", "563|1|WhosOnFirst", "563|1|WireSequence", "563|1|Wires", "798|1|BigButton", "798|1|Keypad", "798|1|Maze", "798|1|Memory", "798|1|Morse", "798|1|Password", "798|1|Simon", "798|1|Venn", "798|1|WhosOnFirst", "798|1|WireSequence", "798|1|Wires", "813|1|BigButton", "813|1|Keypad", "813|1|Maze", "813|1|Memory", "813|1|Morse", "813|1|Password", "813|1|Simon", "813|1|Venn", "813|1|WhosOnFirst", "813|1|WireSequence", "813|1|Wires", "845|1|BigButton", "845|1|Keypad", "845|1|Maze", "845|1|Memory", "845|1|Morse", "845|1|Password", "845|1|Simon", "845|1|Venn", "845|1|WhosOnFirst", "845|1|WireSequence", "845|1|Wires", "849|1|BigButton", "849|1|Keypad", "849|1|Maze", "849|1|Memory", "849|1|Morse", "849|1|Password", "849|1|Simon", "849|1|Venn", "849|1|WhosOnFirst", "849|1|WireSequence", "849|1|Wires", "960|1|BigButton", "960|1|Keypad", "960|1|Maze", "960|1|Memory", "960|1|Morse", "960|1|Password", "960|1|Simon", "960|1|Venn", "960|1|WhosOnFirst", "960|1|WireSequence", "960|1|Wires"]
 
 [suite.config]
 name = "single-pairwise-sync"
@@ -336,11 +336,11 @@ language = "en"
 [[suite]]
 name = "single-parametric-sync"
 revision = 1
-suite_digest = "fd93cad54687706b9b3ba2549acecfda"
-frozen_at = "2026-08-13T13:46:33.20135Z"
-gptnt_version = "1.0.1.dev20+7456d5b0"
-git_sha = "74755a7718ed0bcdf34fc3c8d54e3f116416a357-dirty"
-mission_keys = ["234|BigButton", "234|Keypad", "234|Maze", "234|Memory", "234|Morse", "234|Password", "234|Simon", "234|Venn", "234|WhosOnFirst", "234|WireSequence", "234|Wires", "286|BigButton", "286|Keypad", "286|Maze", "286|Memory", "286|Morse", "286|Password", "286|Simon", "286|Venn", "286|WhosOnFirst", "286|WireSequence", "286|Wires", "337|BigButton", "337|Keypad", "337|Maze", "337|Memory", "337|Morse", "337|Password", "337|Simon", "337|Venn", "337|WhosOnFirst", "337|WireSequence", "337|Wires", "561|BigButton", "561|Keypad", "561|Maze", "561|Memory", "561|Morse", "561|Password", "561|Simon", "561|Venn", "561|WhosOnFirst", "561|WireSequence", "561|Wires", "563|BigButton", "563|Keypad", "563|Maze", "563|Memory", "563|Morse", "563|Password", "563|Simon", "563|Venn", "563|WhosOnFirst", "563|WireSequence", "563|Wires", "798|BigButton", "798|Keypad", "798|Maze", "798|Memory", "798|Morse", "798|Password", "798|Simon", "798|Venn", "798|WhosOnFirst", "798|WireSequence", "798|Wires", "813|BigButton", "813|Keypad", "813|Maze", "813|Memory", "813|Morse", "813|Password", "813|Simon", "813|Venn", "813|WhosOnFirst", "813|WireSequence", "813|Wires", "845|BigButton", "845|Keypad", "845|Maze", "845|Memory", "845|Morse", "845|Password", "845|Simon", "845|Venn", "845|WhosOnFirst", "845|WireSequence", "845|Wires", "849|BigButton", "849|Keypad", "849|Maze", "849|Memory", "849|Morse", "849|Password", "849|Simon", "849|Venn", "849|WhosOnFirst", "849|WireSequence", "849|Wires", "960|BigButton", "960|Keypad", "960|Maze", "960|Memory", "960|Morse", "960|Password", "960|Simon", "960|Venn", "960|WhosOnFirst", "960|WireSequence", "960|Wires"]
+suite_digest = "269d1eb53e973946f42d7489689cb950"
+frozen_at = "2026-08-20T17:25:04.998132Z"
+gptnt_version = "1.0.1.dev47+23b58e1f"
+git_sha = "23b58e1f7cbb5e33acc0518484a7d8af2c315829"
+mission_keys = ["234|1|BigButton", "234|1|Keypad", "234|1|Maze", "234|1|Memory", "234|1|Morse", "234|1|Password", "234|1|Simon", "234|1|Venn", "234|1|WhosOnFirst", "234|1|WireSequence", "234|1|Wires", "286|1|BigButton", "286|1|Keypad", "286|1|Maze", "286|1|Memory", "286|1|Morse", "286|1|Password", "286|1|Simon", "286|1|Venn", "286|1|WhosOnFirst", "286|1|WireSequence", "286|1|Wires", "337|1|BigButton", "337|1|Keypad", "337|1|Maze", "337|1|Memory", "337|1|Morse", "337|1|Password", "337|1|Simon", "337|1|Venn", "337|1|WhosOnFirst", "337|1|WireSequence", "337|1|Wires", "561|1|BigButton", "561|1|Keypad", "561|1|Maze", "561|1|Memory", "561|1|Morse", "561|1|Password", "561|1|Simon", "561|1|Venn", "561|1|WhosOnFirst", "561|1|WireSequence", "561|1|Wires", "563|1|BigButton", "563|1|Keypad", "563|1|Maze", "563|1|Memory", "563|1|Morse", "563|1|Password", "563|1|Simon", "563|1|Venn", "563|1|WhosOnFirst", "563|1|WireSequence", "563|1|Wires", "798|1|BigButton", "798|1|Keypad", "798|1|Maze", "798|1|Memory", "798|1|Morse", "798|1|Password", "798|1|Simon", "798|1|Venn", "798|1|WhosOnFirst", "798|1|WireSequence", "798|1|Wires", "813|1|BigButton", "813|1|Keypad", "813|1|Maze", "813|1|Memory", "813|1|Morse", "813|1|Password", "813|1|Simon", "813|1|Venn", "813|1|WhosOnFirst", "813|1|WireSequence", "813|1|Wires", "845|1|BigButton", "845|1|Keypad", "845|1|Maze", "845|1|Memory", "845|1|Morse", "845|1|Password", "845|1|Simon", "845|1|Venn", "845|1|WhosOnFirst", "845|1|WireSequence", "845|1|Wires", "849|1|BigButton", "849|1|Keypad", "849|1|Maze", "849|1|Memory", "849|1|Morse", "849|1|Password", "849|1|Simon", "849|1|Venn", "849|1|WhosOnFirst", "849|1|WireSequence", "849|1|Wires", "960|1|BigButton", "960|1|Keypad", "960|1|Maze", "960|1|Memory", "960|1|Morse", "960|1|Password", "960|1|Simon", "960|1|Venn", "960|1|WhosOnFirst", "960|1|WireSequence", "960|1|Wires"]
 
 [suite.config]
 name = "single-parametric-sync"
@@ -437,11 +437,11 @@ language = "en"
 [[suite]]
 name = "single-self-async"
 revision = 1
-suite_digest = "f16316ba02d5c95ca50a79e1df18ed2d"
-frozen_at = "2026-08-13T13:46:33.20135Z"
-gptnt_version = "1.0.1.dev20+7456d5b0"
-git_sha = "74755a7718ed0bcdf34fc3c8d54e3f116416a357-dirty"
-mission_keys = ["234|BigButton", "234|Keypad", "234|Maze", "234|Memory", "234|Morse", "234|Password", "234|Simon", "234|Venn", "234|WhosOnFirst", "234|WireSequence", "234|Wires", "286|BigButton", "286|Keypad", "286|Maze", "286|Memory", "286|Morse", "286|Password", "286|Simon", "286|Venn", "286|WhosOnFirst", "286|WireSequence", "286|Wires", "337|BigButton", "337|Keypad", "337|Maze", "337|Memory", "337|Morse", "337|Password", "337|Simon", "337|Venn", "337|WhosOnFirst", "337|WireSequence", "337|Wires", "561|BigButton", "561|Keypad", "561|Maze", "561|Memory", "561|Morse", "561|Password", "561|Simon", "561|Venn", "561|WhosOnFirst", "561|WireSequence", "561|Wires", "563|BigButton", "563|Keypad", "563|Maze", "563|Memory", "563|Morse", "563|Password", "563|Simon", "563|Venn", "563|WhosOnFirst", "563|WireSequence", "563|Wires", "798|BigButton", "798|Keypad", "798|Maze", "798|Memory", "798|Morse", "798|Password", "798|Simon", "798|Venn", "798|WhosOnFirst", "798|WireSequence", "798|Wires", "813|BigButton", "813|Keypad", "813|Maze", "813|Memory", "813|Morse", "813|Password", "813|Simon", "813|Venn", "813|WhosOnFirst", "813|WireSequence", "813|Wires", "845|BigButton", "845|Keypad", "845|Maze", "845|Memory", "845|Morse", "845|Password", "845|Simon", "845|Venn", "845|WhosOnFirst", "845|WireSequence", "845|Wires", "849|BigButton", "849|Keypad", "849|Maze", "849|Memory", "849|Morse", "849|Password", "849|Simon", "849|Venn", "849|WhosOnFirst", "849|WireSequence", "849|Wires", "960|BigButton", "960|Keypad", "960|Maze", "960|Memory", "960|Morse", "960|Password", "960|Simon", "960|Venn", "960|WhosOnFirst", "960|WireSequence", "960|Wires"]
+suite_digest = "c434fb99784acaa5b83dc73bf5f9dc68"
+frozen_at = "2026-08-20T17:25:04.998132Z"
+gptnt_version = "1.0.1.dev47+23b58e1f"
+git_sha = "23b58e1f7cbb5e33acc0518484a7d8af2c315829"
+mission_keys = ["234|1|BigButton", "234|1|Keypad", "234|1|Maze", "234|1|Memory", "234|1|Morse", "234|1|Password", "234|1|Simon", "234|1|Venn", "234|1|WhosOnFirst", "234|1|WireSequence", "234|1|Wires", "286|1|BigButton", "286|1|Keypad", "286|1|Maze", "286|1|Memory", "286|1|Morse", "286|1|Password", "286|1|Simon", "286|1|Venn", "286|1|WhosOnFirst", "286|1|WireSequence", "286|1|Wires", "337|1|BigButton", "337|1|Keypad", "337|1|Maze", "337|1|Memory", "337|1|Morse", "337|1|Password", "337|1|Simon", "337|1|Venn", "337|1|WhosOnFirst", "337|1|WireSequence", "337|1|Wires", "561|1|BigButton", "561|1|Keypad", "561|1|Maze", "561|1|Memory", "561|1|Morse", "561|1|Password", "561|1|Simon", "561|1|Venn", "561|1|WhosOnFirst", "561|1|WireSequence", "561|1|Wires", "563|1|BigButton", "563|1|Keypad", "563|1|Maze", "563|1|Memory", "563|1|Morse", "563|1|Password", "563|1|Simon", "563|1|Venn", "563|1|WhosOnFirst", "563|1|WireSequence", "563|1|Wires", "798|1|BigButton", "798|1|Keypad", "798|1|Maze", "798|1|Memory", "798|1|Morse", "798|1|Password", "798|1|Simon", "798|1|Venn", "798|1|WhosOnFirst", "798|1|WireSequence", "798|1|Wires", "813|1|BigButton", "813|1|Keypad", "813|1|Maze", "813|1|Memory", "813|1|Morse", "813|1|Password", "813|1|Simon", "813|1|Venn", "813|1|WhosOnFirst", "813|1|WireSequence", "813|1|Wires", "845|1|BigButton", "845|1|Keypad", "845|1|Maze", "845|1|Memory", "845|1|Morse", "845|1|Password", "845|1|Simon", "845|1|Venn", "845|1|WhosOnFirst", "845|1|WireSequence", "845|1|Wires", "849|1|BigButton", "849|1|Keypad", "849|1|Maze", "849|1|Memory", "849|1|Morse", "849|1|Password", "849|1|Simon", "849|1|Venn", "849|1|WhosOnFirst", "849|1|WireSequence", "849|1|Wires", "960|1|BigButton", "960|1|Keypad", "960|1|Maze", "960|1|Memory", "960|1|Morse", "960|1|Password", "960|1|Simon", "960|1|Venn", "960|1|WhosOnFirst", "960|1|WireSequence", "960|1|Wires"]
 
 [suite.config]
 name = "single-self-async"
@@ -548,11 +548,11 @@ language = "en"
 [[suite]]
 name = "single-solo-player-sync"
 revision = 1
-suite_digest = "c3eb87f851b818141f2decb4a9f5bf70"
-frozen_at = "2026-08-13T13:46:33.20135Z"
-gptnt_version = "1.0.1.dev20+7456d5b0"
-git_sha = "74755a7718ed0bcdf34fc3c8d54e3f116416a357-dirty"
-mission_keys = ["234|BigButton", "234|Keypad", "234|Maze", "234|Memory", "234|Morse", "234|Password", "234|Simon", "234|Venn", "234|WhosOnFirst", "234|WireSequence", "234|Wires", "286|BigButton", "286|Keypad", "286|Maze", "286|Memory", "286|Morse", "286|Password", "286|Simon", "286|Venn", "286|WhosOnFirst", "286|WireSequence", "286|Wires", "337|BigButton", "337|Keypad", "337|Maze", "337|Memory", "337|Morse", "337|Password", "337|Simon", "337|Venn", "337|WhosOnFirst", "337|WireSequence", "337|Wires", "561|BigButton", "561|Keypad", "561|Maze", "561|Memory", "561|Morse", "561|Password", "561|Simon", "561|Venn", "561|WhosOnFirst", "561|WireSequence", "561|Wires", "563|BigButton", "563|Keypad", "563|Maze", "563|Memory", "563|Morse", "563|Password", "563|Simon", "563|Venn", "563|WhosOnFirst", "563|WireSequence", "563|Wires", "798|BigButton", "798|Keypad", "798|Maze", "798|Memory", "798|Morse", "798|Password", "798|Simon", "798|Venn", "798|WhosOnFirst", "798|WireSequence", "798|Wires", "813|BigButton", "813|Keypad", "813|Maze", "813|Memory", "813|Morse", "813|Password", "813|Simon", "813|Venn", "813|WhosOnFirst", "813|WireSequence", "813|Wires", "845|BigButton", "845|Keypad", "845|Maze", "845|Memory", "845|Morse", "845|Password", "845|Simon", "845|Venn", "845|WhosOnFirst", "845|WireSequence", "845|Wires", "849|BigButton", "849|Keypad", "849|Maze", "849|Memory", "849|Morse", "849|Password", "849|Simon", "849|Venn", "849|WhosOnFirst", "849|WireSequence", "849|Wires", "960|BigButton", "960|Keypad", "960|Maze", "960|Memory", "960|Morse", "960|Password", "960|Simon", "960|Venn", "960|WhosOnFirst", "960|WireSequence", "960|Wires"]
+suite_digest = "cd8d0f434673435dda9c9a3840e309b9"
+frozen_at = "2026-08-20T17:25:04.998132Z"
+gptnt_version = "1.0.1.dev47+23b58e1f"
+git_sha = "23b58e1f7cbb5e33acc0518484a7d8af2c315829"
+mission_keys = ["234|1|BigButton", "234|1|Keypad", "234|1|Maze", "234|1|Memory", "234|1|Morse", "234|1|Password", "234|1|Simon", "234|1|Venn", "234|1|WhosOnFirst", "234|1|WireSequence", "234|1|Wires", "286|1|BigButton", "286|1|Keypad", "286|1|Maze", "286|1|Memory", "286|1|Morse", "286|1|Password", "286|1|Simon", "286|1|Venn", "286|1|WhosOnFirst", "286|1|WireSequence", "286|1|Wires", "337|1|BigButton", "337|1|Keypad", "337|1|Maze", "337|1|Memory", "337|1|Morse", "337|1|Password", "337|1|Simon", "337|1|Venn", "337|1|WhosOnFirst", "337|1|WireSequence", "337|1|Wires", "561|1|BigButton", "561|1|Keypad", "561|1|Maze", "561|1|Memory", "561|1|Morse", "561|1|Password", "561|1|Simon", "561|1|Venn", "561|1|WhosOnFirst", "561|1|WireSequence", "561|1|Wires", "563|1|BigButton", "563|1|Keypad", "563|1|Maze", "563|1|Memory", "563|1|Morse", "563|1|Password", "563|1|Simon", "563|1|Venn", "563|1|WhosOnFirst", "563|1|WireSequence", "563|1|Wires", "798|1|BigButton", "798|1|Keypad", "798|1|Maze", "798|1|Memory", "798|1|Morse", "798|1|Password", "798|1|Simon", "798|1|Venn", "798|1|WhosOnFirst", "798|1|WireSequence", "798|1|Wires", "813|1|BigButton", "813|1|Keypad", "813|1|Maze", "813|1|Memory", "813|1|Morse", "813|1|Password", "813|1|Simon", "813|1|Venn", "813|1|WhosOnFirst", "813|1|WireSequence", "813|1|Wires", "845|1|BigButton", "845|1|Keypad", "845|1|Maze", "845|1|Memory", "845|1|Morse", "845|1|Password", "845|1|Simon", "845|1|Venn", "845|1|WhosOnFirst", "845|1|WireSequence", "845|1|Wires", "849|1|BigButton", "849|1|Keypad", "849|1|Maze", "849|1|Memory", "849|1|Morse", "849|1|Password", "849|1|Simon", "849|1|Venn", "849|1|WhosOnFirst", "849|1|WireSequence", "849|1|Wires", "960|1|BigButton", "960|1|Keypad", "960|1|Maze", "960|1|Memory", "960|1|Morse", "960|1|Password", "960|1|Simon", "960|1|Venn", "960|1|WhosOnFirst", "960|1|WireSequence", "960|1|Wires"]
 
 [suite.config]
 name = "single-solo-player-sync"
@@ -647,10 +647,11 @@ id = "PortWidget"
 language = "en"
 
 [[mission]]
-mission_key = "1028|Keypad,Maze,Password,WireSequence"
+mission_key = "1028|1|Keypad,Maze,Password,WireSequence"
 
 [mission.spec]
 seed = 1028
+ruleSeed = 1
 timeLimit = 300
 numStrikes = 3
 components = ["Keypad", "Maze", "Password", "WireSequence"]
@@ -661,10 +662,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "110|Keypad,Maze,Wires"
+mission_key = "110|1|Keypad,Maze,Wires"
 
 [mission.spec]
 seed = 110
+ruleSeed = 1
 timeLimit = 300
 numStrikes = 3
 components = ["Keypad", "Wires", "Maze"]
@@ -675,10 +677,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "234|BigButton"
+mission_key = "234|1|BigButton"
 
 [mission.spec]
 seed = 234
+ruleSeed = 1
 timeLimit = 144
 numStrikes = 3
 components = ["BigButton"]
@@ -689,10 +692,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "234|Keypad"
+mission_key = "234|1|Keypad"
 
 [mission.spec]
 seed = 234
+ruleSeed = 1
 timeLimit = 90
 numStrikes = 3
 components = ["Keypad"]
@@ -703,10 +707,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "234|Maze"
+mission_key = "234|1|Maze"
 
 [mission.spec]
 seed = 234
+ruleSeed = 1
 timeLimit = 183
 numStrikes = 3
 components = ["Maze"]
@@ -717,10 +722,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "234|Memory"
+mission_key = "234|1|Memory"
 
 [mission.spec]
 seed = 234
+ruleSeed = 1
 timeLimit = 105
 numStrikes = 3
 components = ["Memory"]
@@ -731,10 +737,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "234|Morse"
+mission_key = "234|1|Morse"
 
 [mission.spec]
 seed = 234
+ruleSeed = 1
 timeLimit = 144
 numStrikes = 3
 components = ["Morse"]
@@ -745,10 +752,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "234|Password"
+mission_key = "234|1|Password"
 
 [mission.spec]
 seed = 234
+ruleSeed = 1
 timeLimit = 231
 numStrikes = 3
 components = ["Password"]
@@ -759,10 +767,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "234|Simon"
+mission_key = "234|1|Simon"
 
 [mission.spec]
 seed = 234
+ruleSeed = 1
 timeLimit = 135
 numStrikes = 3
 components = ["Simon"]
@@ -773,10 +782,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "234|Venn"
+mission_key = "234|1|Venn"
 
 [mission.spec]
 seed = 234
+ruleSeed = 1
 timeLimit = 126
 numStrikes = 3
 components = ["Venn"]
@@ -787,10 +797,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "234|WhosOnFirst"
+mission_key = "234|1|WhosOnFirst"
 
 [mission.spec]
 seed = 234
+ruleSeed = 1
 timeLimit = 93
 numStrikes = 3
 components = ["WhosOnFirst"]
@@ -801,10 +812,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "234|WireSequence"
+mission_key = "234|1|WireSequence"
 
 [mission.spec]
 seed = 234
+ruleSeed = 1
 timeLimit = 135
 numStrikes = 3
 components = ["WireSequence"]
@@ -815,10 +827,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "234|Wires"
+mission_key = "234|1|Wires"
 
 [mission.spec]
 seed = 234
+ruleSeed = 1
 timeLimit = 81
 numStrikes = 3
 components = ["Wires"]
@@ -829,10 +842,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "286|BigButton"
+mission_key = "286|1|BigButton"
 
 [mission.spec]
 seed = 286
+ruleSeed = 1
 timeLimit = 144
 numStrikes = 3
 components = ["BigButton"]
@@ -843,10 +857,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "286|Keypad"
+mission_key = "286|1|Keypad"
 
 [mission.spec]
 seed = 286
+ruleSeed = 1
 timeLimit = 90
 numStrikes = 3
 components = ["Keypad"]
@@ -857,10 +872,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "286|Maze"
+mission_key = "286|1|Maze"
 
 [mission.spec]
 seed = 286
+ruleSeed = 1
 timeLimit = 183
 numStrikes = 3
 components = ["Maze"]
@@ -871,10 +887,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "286|Memory"
+mission_key = "286|1|Memory"
 
 [mission.spec]
 seed = 286
+ruleSeed = 1
 timeLimit = 105
 numStrikes = 3
 components = ["Memory"]
@@ -885,10 +902,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "286|Memory,Password,WhosOnFirst"
+mission_key = "286|1|Memory,Password,WhosOnFirst"
 
 [mission.spec]
 seed = 286
+ruleSeed = 1
 timeLimit = 300
 numStrikes = 3
 components = ["WhosOnFirst", "Memory", "Password"]
@@ -899,10 +917,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "286|Morse"
+mission_key = "286|1|Morse"
 
 [mission.spec]
 seed = 286
+ruleSeed = 1
 timeLimit = 144
 numStrikes = 3
 components = ["Morse"]
@@ -913,10 +932,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "286|Password"
+mission_key = "286|1|Password"
 
 [mission.spec]
 seed = 286
+ruleSeed = 1
 timeLimit = 231
 numStrikes = 3
 components = ["Password"]
@@ -927,10 +947,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "286|Simon"
+mission_key = "286|1|Simon"
 
 [mission.spec]
 seed = 286
+ruleSeed = 1
 timeLimit = 135
 numStrikes = 3
 components = ["Simon"]
@@ -941,10 +962,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "286|Venn"
+mission_key = "286|1|Venn"
 
 [mission.spec]
 seed = 286
+ruleSeed = 1
 timeLimit = 126
 numStrikes = 3
 components = ["Venn"]
@@ -955,10 +977,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "286|WhosOnFirst"
+mission_key = "286|1|WhosOnFirst"
 
 [mission.spec]
 seed = 286
+ruleSeed = 1
 timeLimit = 93
 numStrikes = 3
 components = ["WhosOnFirst"]
@@ -969,10 +992,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "286|WireSequence"
+mission_key = "286|1|WireSequence"
 
 [mission.spec]
 seed = 286
+ruleSeed = 1
 timeLimit = 135
 numStrikes = 3
 components = ["WireSequence"]
@@ -983,10 +1007,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "286|Wires"
+mission_key = "286|1|Wires"
 
 [mission.spec]
 seed = 286
+ruleSeed = 1
 timeLimit = 81
 numStrikes = 3
 components = ["Wires"]
@@ -997,10 +1022,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "337|BigButton"
+mission_key = "337|1|BigButton"
 
 [mission.spec]
 seed = 337
+ruleSeed = 1
 timeLimit = 144
 numStrikes = 3
 components = ["BigButton"]
@@ -1011,10 +1037,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "337|BigButton,Simon,Venn"
+mission_key = "337|1|BigButton,Simon,Venn"
 
 [mission.spec]
 seed = 337
+ruleSeed = 1
 timeLimit = 300
 numStrikes = 3
 components = ["BigButton", "Simon", "Venn"]
@@ -1025,10 +1052,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "337|Keypad"
+mission_key = "337|1|Keypad"
 
 [mission.spec]
 seed = 337
+ruleSeed = 1
 timeLimit = 90
 numStrikes = 3
 components = ["Keypad"]
@@ -1039,10 +1067,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "337|Maze"
+mission_key = "337|1|Maze"
 
 [mission.spec]
 seed = 337
+ruleSeed = 1
 timeLimit = 183
 numStrikes = 3
 components = ["Maze"]
@@ -1053,10 +1082,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "337|Memory"
+mission_key = "337|1|Memory"
 
 [mission.spec]
 seed = 337
+ruleSeed = 1
 timeLimit = 105
 numStrikes = 3
 components = ["Memory"]
@@ -1067,10 +1097,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "337|Morse"
+mission_key = "337|1|Morse"
 
 [mission.spec]
 seed = 337
+ruleSeed = 1
 timeLimit = 144
 numStrikes = 3
 components = ["Morse"]
@@ -1081,10 +1112,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "337|Password"
+mission_key = "337|1|Password"
 
 [mission.spec]
 seed = 337
+ruleSeed = 1
 timeLimit = 231
 numStrikes = 3
 components = ["Password"]
@@ -1095,10 +1127,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "337|Simon"
+mission_key = "337|1|Simon"
 
 [mission.spec]
 seed = 337
+ruleSeed = 1
 timeLimit = 135
 numStrikes = 3
 components = ["Simon"]
@@ -1109,10 +1142,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "337|Venn"
+mission_key = "337|1|Venn"
 
 [mission.spec]
 seed = 337
+ruleSeed = 1
 timeLimit = 126
 numStrikes = 3
 components = ["Venn"]
@@ -1123,10 +1157,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "337|WhosOnFirst"
+mission_key = "337|1|WhosOnFirst"
 
 [mission.spec]
 seed = 337
+ruleSeed = 1
 timeLimit = 93
 numStrikes = 3
 components = ["WhosOnFirst"]
@@ -1137,10 +1172,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "337|WireSequence"
+mission_key = "337|1|WireSequence"
 
 [mission.spec]
 seed = 337
+ruleSeed = 1
 timeLimit = 135
 numStrikes = 3
 components = ["WireSequence"]
@@ -1151,10 +1187,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "337|Wires"
+mission_key = "337|1|Wires"
 
 [mission.spec]
 seed = 337
+ruleSeed = 1
 timeLimit = 81
 numStrikes = 3
 components = ["Wires"]
@@ -1165,10 +1202,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "412|Keypad,Simon,WhosOnFirst"
+mission_key = "412|1|Keypad,Simon,WhosOnFirst"
 
 [mission.spec]
 seed = 412
+ruleSeed = 1
 timeLimit = 180
 numStrikes = 3
 components = ["Keypad", "Simon", "WhosOnFirst"]
@@ -1179,10 +1217,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "526|Maze,Memory,Wires"
+mission_key = "526|1|Maze,Memory,Wires"
 
 [mission.spec]
 seed = 526
+ruleSeed = 1
 timeLimit = 180
 numStrikes = 3
 components = ["Wires", "Maze", "Memory"]
@@ -1193,10 +1232,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "561|BigButton"
+mission_key = "561|1|BigButton"
 
 [mission.spec]
 seed = 561
+ruleSeed = 1
 timeLimit = 144
 numStrikes = 3
 components = ["BigButton"]
@@ -1207,10 +1247,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "561|Keypad"
+mission_key = "561|1|Keypad"
 
 [mission.spec]
 seed = 561
+ruleSeed = 1
 timeLimit = 90
 numStrikes = 3
 components = ["Keypad"]
@@ -1221,10 +1262,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "561|Maze"
+mission_key = "561|1|Maze"
 
 [mission.spec]
 seed = 561
+ruleSeed = 1
 timeLimit = 183
 numStrikes = 3
 components = ["Maze"]
@@ -1235,10 +1277,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "561|Memory"
+mission_key = "561|1|Memory"
 
 [mission.spec]
 seed = 561
+ruleSeed = 1
 timeLimit = 105
 numStrikes = 3
 components = ["Memory"]
@@ -1249,10 +1292,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "561|Morse"
+mission_key = "561|1|Morse"
 
 [mission.spec]
 seed = 561
+ruleSeed = 1
 timeLimit = 144
 numStrikes = 3
 components = ["Morse"]
@@ -1263,10 +1307,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "561|Password"
+mission_key = "561|1|Password"
 
 [mission.spec]
 seed = 561
+ruleSeed = 1
 timeLimit = 231
 numStrikes = 3
 components = ["Password"]
@@ -1277,10 +1322,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "561|Simon"
+mission_key = "561|1|Simon"
 
 [mission.spec]
 seed = 561
+ruleSeed = 1
 timeLimit = 135
 numStrikes = 3
 components = ["Simon"]
@@ -1291,10 +1337,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "561|Venn"
+mission_key = "561|1|Venn"
 
 [mission.spec]
 seed = 561
+ruleSeed = 1
 timeLimit = 126
 numStrikes = 3
 components = ["Venn"]
@@ -1305,10 +1352,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "561|WhosOnFirst"
+mission_key = "561|1|WhosOnFirst"
 
 [mission.spec]
 seed = 561
+ruleSeed = 1
 timeLimit = 93
 numStrikes = 3
 components = ["WhosOnFirst"]
@@ -1319,10 +1367,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "561|WireSequence"
+mission_key = "561|1|WireSequence"
 
 [mission.spec]
 seed = 561
+ruleSeed = 1
 timeLimit = 135
 numStrikes = 3
 components = ["WireSequence"]
@@ -1333,10 +1382,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "561|Wires"
+mission_key = "561|1|Wires"
 
 [mission.spec]
 seed = 561
+ruleSeed = 1
 timeLimit = 81
 numStrikes = 3
 components = ["Wires"]
@@ -1347,10 +1397,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "563|BigButton"
+mission_key = "563|1|BigButton"
 
 [mission.spec]
 seed = 563
+ruleSeed = 1
 timeLimit = 144
 numStrikes = 3
 components = ["BigButton"]
@@ -1361,10 +1412,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "563|Keypad"
+mission_key = "563|1|Keypad"
 
 [mission.spec]
 seed = 563
+ruleSeed = 1
 timeLimit = 90
 numStrikes = 3
 components = ["Keypad"]
@@ -1375,10 +1427,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "563|Maze"
+mission_key = "563|1|Maze"
 
 [mission.spec]
 seed = 563
+ruleSeed = 1
 timeLimit = 183
 numStrikes = 3
 components = ["Maze"]
@@ -1389,10 +1442,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "563|Memory"
+mission_key = "563|1|Memory"
 
 [mission.spec]
 seed = 563
+ruleSeed = 1
 timeLimit = 105
 numStrikes = 3
 components = ["Memory"]
@@ -1403,10 +1457,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "563|Morse"
+mission_key = "563|1|Morse"
 
 [mission.spec]
 seed = 563
+ruleSeed = 1
 timeLimit = 144
 numStrikes = 3
 components = ["Morse"]
@@ -1417,10 +1472,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "563|Password"
+mission_key = "563|1|Password"
 
 [mission.spec]
 seed = 563
+ruleSeed = 1
 timeLimit = 231
 numStrikes = 3
 components = ["Password"]
@@ -1431,10 +1487,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "563|Simon"
+mission_key = "563|1|Simon"
 
 [mission.spec]
 seed = 563
+ruleSeed = 1
 timeLimit = 135
 numStrikes = 3
 components = ["Simon"]
@@ -1445,10 +1502,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "563|Venn"
+mission_key = "563|1|Venn"
 
 [mission.spec]
 seed = 563
+ruleSeed = 1
 timeLimit = 126
 numStrikes = 3
 components = ["Venn"]
@@ -1459,10 +1517,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "563|WhosOnFirst"
+mission_key = "563|1|WhosOnFirst"
 
 [mission.spec]
 seed = 563
+ruleSeed = 1
 timeLimit = 93
 numStrikes = 3
 components = ["WhosOnFirst"]
@@ -1473,10 +1532,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "563|WireSequence"
+mission_key = "563|1|WireSequence"
 
 [mission.spec]
 seed = 563
+ruleSeed = 1
 timeLimit = 135
 numStrikes = 3
 components = ["WireSequence"]
@@ -1487,10 +1547,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "563|Wires"
+mission_key = "563|1|Wires"
 
 [mission.spec]
 seed = 563
+ruleSeed = 1
 timeLimit = 81
 numStrikes = 3
 components = ["Wires"]
@@ -1501,10 +1562,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "619|BigButton,Memory,WhosOnFirst"
+mission_key = "619|1|BigButton,Memory,WhosOnFirst"
 
 [mission.spec]
 seed = 619
+ruleSeed = 1
 timeLimit = 180
 numStrikes = 3
 components = ["BigButton", "Memory", "WhosOnFirst"]
@@ -1515,10 +1577,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "798|BigButton"
+mission_key = "798|1|BigButton"
 
 [mission.spec]
 seed = 798
+ruleSeed = 1
 timeLimit = 144
 numStrikes = 3
 components = ["BigButton"]
@@ -1529,10 +1592,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "798|BigButton,Keypad,Memory,Wires"
+mission_key = "798|1|BigButton,Keypad,Memory,Wires"
 
 [mission.spec]
 seed = 798
+ruleSeed = 1
 timeLimit = 300
 numStrikes = 3
 components = ["Wires", "BigButton", "Keypad", "Memory"]
@@ -1543,10 +1607,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "798|Keypad"
+mission_key = "798|1|Keypad"
 
 [mission.spec]
 seed = 798
+ruleSeed = 1
 timeLimit = 90
 numStrikes = 3
 components = ["Keypad"]
@@ -1557,10 +1622,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "798|Maze"
+mission_key = "798|1|Maze"
 
 [mission.spec]
 seed = 798
+ruleSeed = 1
 timeLimit = 183
 numStrikes = 3
 components = ["Maze"]
@@ -1571,10 +1637,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "798|Memory"
+mission_key = "798|1|Memory"
 
 [mission.spec]
 seed = 798
+ruleSeed = 1
 timeLimit = 105
 numStrikes = 3
 components = ["Memory"]
@@ -1585,10 +1652,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "798|Morse"
+mission_key = "798|1|Morse"
 
 [mission.spec]
 seed = 798
+ruleSeed = 1
 timeLimit = 144
 numStrikes = 3
 components = ["Morse"]
@@ -1599,10 +1667,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "798|Password"
+mission_key = "798|1|Password"
 
 [mission.spec]
 seed = 798
+ruleSeed = 1
 timeLimit = 231
 numStrikes = 3
 components = ["Password"]
@@ -1613,10 +1682,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "798|Simon"
+mission_key = "798|1|Simon"
 
 [mission.spec]
 seed = 798
+ruleSeed = 1
 timeLimit = 135
 numStrikes = 3
 components = ["Simon"]
@@ -1627,10 +1697,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "798|Venn"
+mission_key = "798|1|Venn"
 
 [mission.spec]
 seed = 798
+ruleSeed = 1
 timeLimit = 126
 numStrikes = 3
 components = ["Venn"]
@@ -1641,10 +1712,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "798|WhosOnFirst"
+mission_key = "798|1|WhosOnFirst"
 
 [mission.spec]
 seed = 798
+ruleSeed = 1
 timeLimit = 93
 numStrikes = 3
 components = ["WhosOnFirst"]
@@ -1655,10 +1727,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "798|WireSequence"
+mission_key = "798|1|WireSequence"
 
 [mission.spec]
 seed = 798
+ruleSeed = 1
 timeLimit = 135
 numStrikes = 3
 components = ["WireSequence"]
@@ -1669,10 +1742,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "798|Wires"
+mission_key = "798|1|Wires"
 
 [mission.spec]
 seed = 798
+ruleSeed = 1
 timeLimit = 81
 numStrikes = 3
 components = ["Wires"]
@@ -1683,10 +1757,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "813|BigButton"
+mission_key = "813|1|BigButton"
 
 [mission.spec]
 seed = 813
+ruleSeed = 1
 timeLimit = 144
 numStrikes = 3
 components = ["BigButton"]
@@ -1697,10 +1772,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "813|Keypad"
+mission_key = "813|1|Keypad"
 
 [mission.spec]
 seed = 813
+ruleSeed = 1
 timeLimit = 90
 numStrikes = 3
 components = ["Keypad"]
@@ -1711,10 +1787,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "813|Maze"
+mission_key = "813|1|Maze"
 
 [mission.spec]
 seed = 813
+ruleSeed = 1
 timeLimit = 183
 numStrikes = 3
 components = ["Maze"]
@@ -1725,10 +1802,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "813|Memory"
+mission_key = "813|1|Memory"
 
 [mission.spec]
 seed = 813
+ruleSeed = 1
 timeLimit = 105
 numStrikes = 3
 components = ["Memory"]
@@ -1739,10 +1817,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "813|Morse"
+mission_key = "813|1|Morse"
 
 [mission.spec]
 seed = 813
+ruleSeed = 1
 timeLimit = 144
 numStrikes = 3
 components = ["Morse"]
@@ -1753,10 +1832,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "813|Password"
+mission_key = "813|1|Password"
 
 [mission.spec]
 seed = 813
+ruleSeed = 1
 timeLimit = 231
 numStrikes = 3
 components = ["Password"]
@@ -1767,10 +1847,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "813|Simon"
+mission_key = "813|1|Simon"
 
 [mission.spec]
 seed = 813
+ruleSeed = 1
 timeLimit = 135
 numStrikes = 3
 components = ["Simon"]
@@ -1781,10 +1862,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "813|Venn"
+mission_key = "813|1|Venn"
 
 [mission.spec]
 seed = 813
+ruleSeed = 1
 timeLimit = 126
 numStrikes = 3
 components = ["Venn"]
@@ -1795,10 +1877,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "813|WhosOnFirst"
+mission_key = "813|1|WhosOnFirst"
 
 [mission.spec]
 seed = 813
+ruleSeed = 1
 timeLimit = 93
 numStrikes = 3
 components = ["WhosOnFirst"]
@@ -1809,10 +1892,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "813|WireSequence"
+mission_key = "813|1|WireSequence"
 
 [mission.spec]
 seed = 813
+ruleSeed = 1
 timeLimit = 135
 numStrikes = 3
 components = ["WireSequence"]
@@ -1823,10 +1907,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "813|Wires"
+mission_key = "813|1|Wires"
 
 [mission.spec]
 seed = 813
+ruleSeed = 1
 timeLimit = 81
 numStrikes = 3
 components = ["Wires"]
@@ -1837,10 +1922,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "845|BigButton"
+mission_key = "845|1|BigButton"
 
 [mission.spec]
 seed = 845
+ruleSeed = 1
 timeLimit = 144
 numStrikes = 3
 components = ["BigButton"]
@@ -1851,10 +1937,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "845|Keypad"
+mission_key = "845|1|Keypad"
 
 [mission.spec]
 seed = 845
+ruleSeed = 1
 timeLimit = 90
 numStrikes = 3
 components = ["Keypad"]
@@ -1865,10 +1952,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "845|Maze"
+mission_key = "845|1|Maze"
 
 [mission.spec]
 seed = 845
+ruleSeed = 1
 timeLimit = 183
 numStrikes = 3
 components = ["Maze"]
@@ -1879,10 +1967,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "845|Memory"
+mission_key = "845|1|Memory"
 
 [mission.spec]
 seed = 845
+ruleSeed = 1
 timeLimit = 105
 numStrikes = 3
 components = ["Memory"]
@@ -1893,10 +1982,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "845|Morse"
+mission_key = "845|1|Morse"
 
 [mission.spec]
 seed = 845
+ruleSeed = 1
 timeLimit = 144
 numStrikes = 3
 components = ["Morse"]
@@ -1907,10 +1997,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "845|Password"
+mission_key = "845|1|Password"
 
 [mission.spec]
 seed = 845
+ruleSeed = 1
 timeLimit = 231
 numStrikes = 3
 components = ["Password"]
@@ -1921,10 +2012,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "845|Simon"
+mission_key = "845|1|Simon"
 
 [mission.spec]
 seed = 845
+ruleSeed = 1
 timeLimit = 135
 numStrikes = 3
 components = ["Simon"]
@@ -1935,10 +2027,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "845|Venn"
+mission_key = "845|1|Venn"
 
 [mission.spec]
 seed = 845
+ruleSeed = 1
 timeLimit = 126
 numStrikes = 3
 components = ["Venn"]
@@ -1949,10 +2042,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "845|WhosOnFirst"
+mission_key = "845|1|WhosOnFirst"
 
 [mission.spec]
 seed = 845
+ruleSeed = 1
 timeLimit = 93
 numStrikes = 3
 components = ["WhosOnFirst"]
@@ -1963,10 +2057,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "845|WireSequence"
+mission_key = "845|1|WireSequence"
 
 [mission.spec]
 seed = 845
+ruleSeed = 1
 timeLimit = 135
 numStrikes = 3
 components = ["WireSequence"]
@@ -1977,10 +2072,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "845|Wires"
+mission_key = "845|1|Wires"
 
 [mission.spec]
 seed = 845
+ruleSeed = 1
 timeLimit = 81
 numStrikes = 3
 components = ["Wires"]
@@ -1991,10 +2087,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "849|BigButton"
+mission_key = "849|1|BigButton"
 
 [mission.spec]
 seed = 849
+ruleSeed = 1
 timeLimit = 144
 numStrikes = 3
 components = ["BigButton"]
@@ -2005,10 +2102,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "849|Keypad"
+mission_key = "849|1|Keypad"
 
 [mission.spec]
 seed = 849
+ruleSeed = 1
 timeLimit = 90
 numStrikes = 3
 components = ["Keypad"]
@@ -2019,10 +2117,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "849|Maze"
+mission_key = "849|1|Maze"
 
 [mission.spec]
 seed = 849
+ruleSeed = 1
 timeLimit = 183
 numStrikes = 3
 components = ["Maze"]
@@ -2033,10 +2132,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "849|Memory"
+mission_key = "849|1|Memory"
 
 [mission.spec]
 seed = 849
+ruleSeed = 1
 timeLimit = 105
 numStrikes = 3
 components = ["Memory"]
@@ -2047,10 +2147,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "849|Morse"
+mission_key = "849|1|Morse"
 
 [mission.spec]
 seed = 849
+ruleSeed = 1
 timeLimit = 144
 numStrikes = 3
 components = ["Morse"]
@@ -2061,10 +2162,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "849|Password"
+mission_key = "849|1|Password"
 
 [mission.spec]
 seed = 849
+ruleSeed = 1
 timeLimit = 231
 numStrikes = 3
 components = ["Password"]
@@ -2075,10 +2177,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "849|Simon"
+mission_key = "849|1|Simon"
 
 [mission.spec]
 seed = 849
+ruleSeed = 1
 timeLimit = 135
 numStrikes = 3
 components = ["Simon"]
@@ -2089,10 +2192,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "849|Venn"
+mission_key = "849|1|Venn"
 
 [mission.spec]
 seed = 849
+ruleSeed = 1
 timeLimit = 126
 numStrikes = 3
 components = ["Venn"]
@@ -2103,10 +2207,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "849|WhosOnFirst"
+mission_key = "849|1|WhosOnFirst"
 
 [mission.spec]
 seed = 849
+ruleSeed = 1
 timeLimit = 93
 numStrikes = 3
 components = ["WhosOnFirst"]
@@ -2117,10 +2222,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "849|WireSequence"
+mission_key = "849|1|WireSequence"
 
 [mission.spec]
 seed = 849
+ruleSeed = 1
 timeLimit = 135
 numStrikes = 3
 components = ["WireSequence"]
@@ -2131,10 +2237,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "849|Wires"
+mission_key = "849|1|Wires"
 
 [mission.spec]
 seed = 849
+ruleSeed = 1
 timeLimit = 81
 numStrikes = 3
 components = ["Wires"]
@@ -2145,10 +2252,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "851|Keypad,Simon,WhosOnFirst,Wires"
+mission_key = "851|1|Keypad,Simon,WhosOnFirst,Wires"
 
 [mission.spec]
 seed = 851
+ruleSeed = 1
 timeLimit = 300
 numStrikes = 3
 components = ["Wires", "Keypad", "Simon", "WhosOnFirst"]
@@ -2159,10 +2267,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "960|BigButton"
+mission_key = "960|1|BigButton"
 
 [mission.spec]
 seed = 960
+ruleSeed = 1
 timeLimit = 144
 numStrikes = 3
 components = ["BigButton"]
@@ -2173,10 +2282,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "960|Keypad"
+mission_key = "960|1|Keypad"
 
 [mission.spec]
 seed = 960
+ruleSeed = 1
 timeLimit = 90
 numStrikes = 3
 components = ["Keypad"]
@@ -2187,10 +2297,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "960|Maze"
+mission_key = "960|1|Maze"
 
 [mission.spec]
 seed = 960
+ruleSeed = 1
 timeLimit = 183
 numStrikes = 3
 components = ["Maze"]
@@ -2201,10 +2312,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "960|Memory"
+mission_key = "960|1|Memory"
 
 [mission.spec]
 seed = 960
+ruleSeed = 1
 timeLimit = 105
 numStrikes = 3
 components = ["Memory"]
@@ -2215,10 +2327,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "960|Morse"
+mission_key = "960|1|Morse"
 
 [mission.spec]
 seed = 960
+ruleSeed = 1
 timeLimit = 144
 numStrikes = 3
 components = ["Morse"]
@@ -2229,10 +2342,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "960|Password"
+mission_key = "960|1|Password"
 
 [mission.spec]
 seed = 960
+ruleSeed = 1
 timeLimit = 231
 numStrikes = 3
 components = ["Password"]
@@ -2243,10 +2357,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "960|Simon"
+mission_key = "960|1|Simon"
 
 [mission.spec]
 seed = 960
+ruleSeed = 1
 timeLimit = 135
 numStrikes = 3
 components = ["Simon"]
@@ -2257,10 +2372,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "960|Venn"
+mission_key = "960|1|Venn"
 
 [mission.spec]
 seed = 960
+ruleSeed = 1
 timeLimit = 126
 numStrikes = 3
 components = ["Venn"]
@@ -2271,10 +2387,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "960|WhosOnFirst"
+mission_key = "960|1|WhosOnFirst"
 
 [mission.spec]
 seed = 960
+ruleSeed = 1
 timeLimit = 93
 numStrikes = 3
 components = ["WhosOnFirst"]
@@ -2285,10 +2402,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "960|WireSequence"
+mission_key = "960|1|WireSequence"
 
 [mission.spec]
 seed = 960
+ruleSeed = 1
 timeLimit = 135
 numStrikes = 3
 components = ["WireSequence"]
@@ -2299,10 +2417,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "960|Wires"
+mission_key = "960|1|Wires"
 
 [mission.spec]
 seed = 960
+ruleSeed = 1
 timeLimit = 81
 numStrikes = 3
 components = ["Wires"]
@@ -2313,10 +2432,11 @@ timeScale = 1.0
 timeStepSize = 3000
 
 [[mission]]
-mission_key = "990|Morse,Venn,WhosOnFirst,Wires"
+mission_key = "990|1|Morse,Venn,WhosOnFirst,Wires"
 
 [mission.spec]
 seed = 990
+ruleSeed = 1
 timeLimit = 300
 numStrikes = 3
 components = ["Morse", "Venn", "WhosOnFirst", "Wires"]

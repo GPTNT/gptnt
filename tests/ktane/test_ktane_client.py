@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 def mission_config() -> KtaneMissionConfig:
     return KtaneMissionConfig(
         seed=123,
+        rule_seed=47,
         time_limit=300,
         num_strikes_allowed=3,
         needy_time=90,
@@ -56,11 +57,12 @@ async def test_healthcheck_returns_false_and_no_exception(
 async def test_start_mission_returns_true_on_success(
     ktane_client: KtaneClient, mission_config: KtaneMissionConfig, mocker: MockerFixture
 ) -> None:
-    _ = mocker.patch.object(
+    request = mocker.patch.object(
         ktane_client.client, "get", new=AsyncMock(return_value=_response(httpx.codes.OK))
     )
 
     assert await ktane_client.start_mission(mission_config) is True
+    assert request.await_args_list[0].kwargs["params"].get("ruleSeed") == "47"
 
 
 @pytest.mark.anyio

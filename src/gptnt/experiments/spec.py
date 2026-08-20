@@ -112,6 +112,7 @@ class ExperimentSpec(BaseModel):
                 self.communication_style,
                 module_names,
                 str(self.mission_spec.seed),
+                str(self.mission_spec.rule_seed),
                 f"({self.pairing})",
             ]
         )
