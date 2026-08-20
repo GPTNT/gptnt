@@ -11,8 +11,9 @@ from whenever import Instant
 
 from gptnt.experiments.db.extract import extract_metadata_from_paths
 from gptnt.experiments.db.ingest import ingest_player_records
+from gptnt.experiments.db.read import load_experiment_summaries
 from gptnt.experiments.instance import ExperimentInstance, PlayerContent
-from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep
+from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep, ExperimentSummary
 from gptnt.experiments.recorder.local import ExperimentPlayerRecorder
 from gptnt.experiments.recorder.parquet import (
     KEY_FORMAT_VERSION,
@@ -30,7 +31,12 @@ from gptnt.players.observation_handler import Observation
 from gptnt.players.result import AgentCallResult
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
-from tests._factories.experiments import make_manual_profile, make_provenance
+from tests._factories.experiments import (
+    make_experiment_instance,
+    make_experiment_spec,
+    make_manual_profile,
+    make_provenance,
+)
 
 
 @fixture
@@ -189,7 +195,14 @@ def _build_player_record(
 ) -> ExperimentPlayerRecord:
     # The recorder stamps every step with the player's own uuid; mirror that so the footer's
     # player_uuid matches the step rows (the basis for ingest idempotency).
-    step1 = step.model_copy(update={"player_uuid": content.uuid})
+    step1 = step.model_copy(
+        update={
+            "role": content.protocol.role,
+            "session_id": instance.session_id,
+            "player_uuid": content.uuid,
+            "player_name": content.name,
+        }
+    )
     step2 = step1.model_copy(update={"step": 2, "timestamp": 2.0, "thoughts": "Second step"})
     return ExperimentPlayerRecord(
         experiment_instance=instance,
@@ -243,16 +256,16 @@ async def test_recorder_saves_parquet_roundtrips(
     assert loaded.release_commit == player_record.release_commit
 
 
-def test_record_footer_rejects_unknown_format_version(
+def test_record_footer_rejects_v1_format_version(
     tmp_path: Path,
     experiment_instance: ExperimentInstance,
     player_content: PlayerContent,
     step_record: ExperimentStep,
 ) -> None:
-    """An unknown footer format_version fails loudly rather than silently mis-parsing."""
+    """A format-2 footer directs the caller to v1 tooling instead of inferring missing fields."""
     record = _build_player_record(experiment_instance, player_content, step_record)
     footer = footer_from_player_record(record)
-    footer[KEY_FORMAT_VERSION] = b"this-is-not-a-known-version"
+    footer[KEY_FORMAT_VERSION] = b"2"
 
     path = tmp_path / "bad-version.parquet"
     write_player_record_parquet(
@@ -261,7 +274,9 @@ def test_record_footer_rejects_unknown_format_version(
         output_path=path,
     )
 
-    with pytest.raises(ValueError, match="format_version"):
+    with pytest.raises(
+        ValueError, match="format_version 2 is a v1 artifact and requires v1 tooling"
+    ):
         _ = read_record_footer(path)
 
 
@@ -352,23 +367,44 @@ async def test_recorder_reuses_the_experiment_provenance_snapshot(
     assert recorder.build_player_record().protected_content_modified is True
 
 
-def test_grouped_player_files_reject_conflicting_provenance(
-    tmp_path: Path,
-    experiment_instance: ExperimentInstance,
-    player_content: PlayerContent,
-    step_record: ExperimentStep,
-) -> None:
-    """Ingestion must not choose one player's provenance for a conflicting output set."""
-    first_record = _build_player_record(experiment_instance, player_content, step_record)
-    second_content = PlayerContent(
-        protocol=player_content.protocol,
-        name=player_content.name,
-        uuid=uuid4(),
-        capabilities=player_content.capabilities,
+def _two_player_instance() -> ExperimentInstance:
+    spec = make_experiment_spec().model_copy(
+        update={
+            "suite_name": "storage-contract",
+            "suite_revision": 7,
+            "suite_digest": "7" * 32,
+            "defuser_protocol": PlayerProtocol(
+                role="defuser",
+                communication_style="sync",
+                is_playing_alone=False,
+                include_manual=False,
+            ),
+            "expert_protocol": PlayerProtocol(
+                role="expert",
+                communication_style="sync",
+                is_playing_alone=False,
+                include_manual=True,
+            ),
+            "expert_name": "test-expert",
+        }
     )
+    return make_experiment_instance(spec)
+
+
+def test_grouped_player_files_report_every_identity_disagreement(
+    tmp_path: Path, step_record: ExperimentStep
+) -> None:
+    """Aggregation reports all identity conflicts instead of selecting one player's footer."""
+    instance = _two_player_instance()
+    first_record = _build_player_record(instance, instance.defuser, step_record)
+    peer_instance = instance.model_copy(
+        update={"suite_revision": 8, "suite_digest": "f" * 32, "defuser_uuid": uuid4()}
+    )
+    peer_expert = peer_instance.expert
+    assert peer_expert is not None
     second_record = _build_player_record(
-        experiment_instance, second_content, step_record
-    ).model_copy(update={"protected_content_modified": True})
+        peer_instance, peer_expert, step_record.model_copy(update={"bomb_state": None})
+    ).model_copy(update={"release_commit": "different-commit", "protected_content_modified": True})
 
     # Write two player files for the same session with different captured benchmark states.
     first_path = tmp_path / "defuser.parquet"
@@ -376,7 +412,14 @@ def test_grouped_player_files_reject_conflicting_provenance(
     _write_record_parquet(first_record, first_path)
     _write_record_parquet(second_record, second_path)
 
-    with pytest.raises(ValueError, match="Conflicting provenance"):
+    with pytest.raises(
+        ValueError,
+        match=(
+            "Grouped experiment files disagree on summary identity: release_commit, "
+            "protected_content_modified, suite_revision, suite_digest, "
+            "defuser_uuid, ExperimentSpec fingerprint"
+        ),
+    ):
         _ = extract_metadata_from_paths([first_path, second_path])
 
 
@@ -388,51 +431,48 @@ def _write_record_parquet(record: ExperimentPlayerRecord, path: Path) -> None:
     )
 
 
-def test_ingest_recorder_parquet_into_duckdb(
-    tmp_path: Path, experiment_instance: ExperimentInstance, step_record: ExperimentStep
-) -> None:
-    """Recorder parquet merges straight into DuckDB; metadata comes from the footer; idempotent."""
-    # Derive the player from the instance (as the recorder does) so identity keys line up.
-    content = experiment_instance.get_player_content_by_role("defuser")
-    record = _build_player_record(experiment_instance, content, step_record)
-    record_path = (
-        tmp_path / f"experiment-{experiment_instance.attempt_name}-{content.uuid}.parquet"
+def test_ingest_recorder_parquet_into_duckdb(tmp_path: Path, step_record: ExperimentStep) -> None:
+    """Two player footers reconstruct one summary with the complete recorded identity."""
+    instance = _two_player_instance()
+    provenance = make_provenance()
+    defuser_record = _build_player_record(instance, instance.defuser, step_record)
+    expert = instance.expert
+    assert expert is not None
+    expert_record = _build_player_record(
+        instance, expert, step_record.model_copy(update={"bomb_state": None})
     )
-    _write_record_parquet(record, record_path)
-
-    loaded = load_player_record_from_parquet(record_path)
-    assert loaded.experiment_instance.attempt_name == experiment_instance.attempt_name
-    assert loaded.experiment_instance.mission_spec.components == ["Wires", "CommunityModule"]
+    defuser_path = tmp_path / f"experiment-{instance.attempt_name}-{instance.defuser.uuid}.parquet"
+    expert_path = tmp_path / f"experiment-{instance.attempt_name}-{expert.uuid}.parquet"
+    _write_record_parquet(defuser_record, defuser_path)
+    _write_record_parquet(expert_record, expert_path)
 
     db_path = tmp_path / "test.duckdb"
-    ingest_kwargs = {"player_record_paths": [record_path], "db_path": db_path, "max_workers": 1}
+    ingest_kwargs = {
+        "player_record_paths": [defuser_path, expert_path],
+        "db_path": db_path,
+        "max_workers": 1,
+    }
     ingest_player_records(**ingest_kwargs)
 
     with duckdb.connect(db_path) as con:
         step_count = con.execute("SELECT COUNT(*) FROM experiment_step").fetchone()
-        summary = con.execute(
-            """SELECT session_id, attempt_name, suite_name, suite_revision, mission_set, modules,
-                      defuser_name, gptnt_version
-               FROM experiment_summary"""
-        ).fetchone()
 
     assert step_count is not None
-    assert step_count[0] == 2
-    assert summary is not None
-    assert str(summary[0]) == str(experiment_instance.session_id)
-    assert summary[1:] == (
-        experiment_instance.attempt_name,
-        "test-suite",
-        1,
-        "single_module",
-        ["Wires", "CommunityModule"],
-        "test-defuser",
-        record.gptnt_version,
-    )
+    assert step_count[0] == 4
+    final_bomb_state = defuser_record.final_bomb_state
+    assert final_bomb_state is not None
+    assert load_experiment_summaries(db_path) == [
+        ExperimentSummary.from_instance_and_bomb_state(
+            instance=instance,
+            final_bomb_state=final_bomb_state,
+            is_hard_crash=False,
+            provenance=provenance,
+        )
+    ]
 
-    # Idempotent: a second ingest of the same file adds nothing.
+    # Idempotent: a second ingest of both player files adds nothing.
     ingest_player_records(**ingest_kwargs)
     with duckdb.connect(db_path) as con:
         again = con.execute("SELECT COUNT(*) FROM experiment_step").fetchone()
     assert again is not None
-    assert again[0] == 2
+    assert again[0] == 4

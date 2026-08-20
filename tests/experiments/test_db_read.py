@@ -7,10 +7,11 @@ from uuid import uuid4
 
 import duckdb
 import pyarrow as pa
+import pytest
 from pydantic_ai import RunUsage
 
 from gptnt.experiments.db.ingest import ensure_schema
-from gptnt.experiments.db.read import load_final_states_and_usage
+from gptnt.experiments.db.read import load_experiment_summaries, load_final_states_and_usage
 from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER
 from gptnt.experiments.models import ExperimentStep
 from gptnt.ktane.state.bomb import BombState
@@ -82,6 +83,19 @@ def _write_steps(db_path: Path, steps: list[ExperimentStep]) -> None:
         _ = con.register("new_steps", pa.Table.from_pylist(rows))
         _ = con.execute("INSERT INTO experiment_step BY NAME SELECT * FROM new_steps")
         _ = con.unregister("new_steps")
+
+
+def test_schema_policy_creates_fresh_database_and_rejects_v1_database(tmp_path: Path) -> None:
+    fresh_path = tmp_path / "fresh.duckdb"
+    ensure_schema(fresh_path)
+    assert load_experiment_summaries(fresh_path) == []
+
+    v1_path = tmp_path / "v1.duckdb"
+    with duckdb.connect(v1_path) as connection:
+        _ = connection.execute("CREATE TABLE experiment_summary (gptnt_version VARCHAR)")
+
+    with pytest.raises(ValueError, match=r"v1 or incompatible schema.*--delete-existing-db"):
+        ensure_schema(v1_path)
 
 
 def test_load_final_states_and_usage_takes_last_bomb_state_and_sums_per_role(

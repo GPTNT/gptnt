@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     import duckdb
+    from pydantic import BaseModel
     from rich.progress import Progress
 
     from gptnt.experiments.recorder.parquet import RecordFooter
@@ -28,6 +29,32 @@ if TYPE_CHECKING:
 logger = structlog.get_logger()
 
 type DumpedExperimentMetadata = dict[str, Any]
+
+
+def _find_conflicting_fields(canonical: BaseModel, peers: list[BaseModel]) -> list[str]:
+    """Name fields whose Pydantic values differ from the canonical model."""
+    canonical_fields = canonical.model_dump(exclude_computed_fields=True)
+    peer_fields = [peer.model_dump(exclude_computed_fields=True) for peer in peers]
+    return [
+        field_name
+        for field_name, canonical_value in canonical_fields.items()
+        if any(peer[field_name] != canonical_value for peer in peer_fields)
+    ]
+
+
+def _find_conflicting_summary_fields(footers: list[RecordFooter]) -> list[str]:
+    """Name every summary identity field that differs among player footers."""
+    canonical, *peers = footers
+    conflicting_fields = _find_conflicting_fields(
+        Provenance.model_validate(canonical.model_dump()),
+        [Provenance.model_validate(peer.model_dump()) for peer in peers],
+    )
+    conflicting_fields.extend(
+        _find_conflicting_fields(canonical.instance, [peer.instance for peer in peers])
+    )
+    if any(peer.instance.fingerprint != canonical.instance.fingerprint for peer in peers):
+        conflicting_fields.append("ExperimentSpec fingerprint")
+    return conflicting_fields
 
 
 def validity_from_footers(footers: list[RecordFooter]) -> bool:
@@ -72,18 +99,15 @@ def extract_metadata_from_paths(paths: list[Path]) -> DumpedExperimentMetadata:
     )
     assert final_bomb_state is not None, "No bomb state found in any of the provided files"
 
-    canonical_path = paths[0]
     canonical = footers[0]
     canonical_provenance = Provenance.model_validate(canonical.model_dump())
 
-    # Both player files belong to one output set and must carry the same capture snapshot.
-    for record_path, peer_footer in zip(paths[1:], footers[1:], strict=True):
-        footer_provenance = Provenance.model_validate(peer_footer.model_dump())
-        if footer_provenance != canonical_provenance:
-            raise ValueError(
-                "Conflicting provenance in grouped experiment files "
-                f"{canonical_path} and {record_path}"
-            )
+    conflicting_fields = _find_conflicting_summary_fields(footers)
+    if conflicting_fields:
+        raise ValueError(
+            "Grouped experiment files disagree on summary identity: "
+            f"{', '.join(conflicting_fields)}"
+        )
 
     return ExperimentSummary.from_instance_and_bomb_state(
         instance=canonical.instance,
