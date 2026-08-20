@@ -1,11 +1,11 @@
 import io
-import json
 import sys
 from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Self, TypedDict
 
+import orjson
 import structlog
 from PIL import Image
 from pydantic import BaseModel
@@ -167,6 +167,4 @@ class EvalModel(BaseModel):
         """Fetch the model answer from the json."""
         prediction_path = self._output_dir.joinpath(f"prediction_{index}.json")
 
-        # Read and return the contents of the file
-        with (prediction_path).open("r", encoding="utf-8") as pred_file:
-            return json.load(fp=pred_file)
+        return orjson.loads(prediction_path.read_bytes())

@@ -1,9 +1,7 @@
 import datetime
-import json
 from pathlib import Path
 
 import orjson
-import pymupdf
 import pytest
 from pydantic import ValidationError
 from pydantic_ai import (
@@ -23,14 +21,12 @@ from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.common.runtime_settings import MANUAL_ARTIFACTS_ENV
 from gptnt.interactive.entrypoints.run_player import main as build_player_app
 from gptnt.ktane.manuals.artifacts import ManualArtifact
-from gptnt.ktane.manuals.compiler import compile_manual
-from gptnt.ktane.manuals.resolution import OfficialManualProvenance, ResolvedOfficialDocument
-from gptnt.ktane.manuals.sources import OfficialPageRange
 from gptnt.players.conversation import Conversation
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
 from tests._cases.messages import TEST_TOKENS_PER_IMAGE, image_count
 from tests._factories.experiments import make_manual_profile
+from tests._factories.manuals import make_compiled_manual
 
 _FIXED_TIMESTAMP = datetime.datetime(2025, 1, 1, 12, 0, 0, tzinfo=datetime.UTC)
 
@@ -45,27 +41,6 @@ def _capabilities() -> PlayerCapabilities:
         tokens_per_image=TEST_TOKENS_PER_IMAGE,
         usage_limits=UsageLimits(input_tokens_limit=6000),
     )
-
-
-def _compiled_manual(tmp_path: Path, *, name: str, text: str) -> ManualArtifact:
-    """Compile one single-page official-PDF fixture without invoking Chromium."""
-    source = tmp_path / f"{name}.pdf"
-    with pymupdf.open() as document:
-        page = document.new_page(width=612, height=792)
-        _ = page.insert_text((72, 72), text, fontsize=18)
-        document.save(source)
-    resolved = ResolvedOfficialDocument(
-        document_id=name,
-        language="en",
-        source="official",
-        source_path=source,
-        page_range=OfficialPageRange(first=1, last=1),
-        provenance=OfficialManualProvenance(
-            version="fixture", url=f"https://manual.test/{name}.pdf"
-        ),
-        supports_requested_rule_seed=True,
-    )
-    return compile_manual([resolved], cache_dir=tmp_path / "cache")
 
 
 def _manual_protocol(*, include_manual: bool) -> PlayerProtocol:
@@ -104,8 +79,8 @@ def test_profiles_select_their_prepared_prompts_and_no_manual_reads_nothing(
     """Select profile-specific manual content and skip every read for a no-manual protocol."""
     first_profile = make_manual_profile("Wires")
     second_profile = make_manual_profile("BigButton")
-    first_artifact = _compiled_manual(tmp_path, name="wires", text="FIRST PROFILE")
-    second_artifact = _compiled_manual(tmp_path, name="button", text="SECOND PROFILE")
+    first_artifact = make_compiled_manual(tmp_path, name="wires", text="FIRST PROFILE")
+    second_artifact = make_compiled_manual(tmp_path, name="button", text="SECOND PROFILE")
     artifacts = dict(
         zip((first_profile, second_profile), (first_artifact, second_artifact), strict=True)
     )
@@ -171,8 +146,6 @@ def test_missing_prepared_artifact_has_no_fallback(
     monkeypatch.setattr("gptnt.ktane.manuals.artifacts.compile_manual", forbidden)
     monkeypatch.setattr("gptnt.ktane.manuals.download.download_manual_assets", forbidden)
     monkeypatch.setattr("gptnt.ktane.manuals.resolve.resolve_manual_profile", forbidden)
-    monkeypatch.setattr("gptnt.players.conversation.conversation.load_manual_as_prompt", forbidden)
-
     with pytest.raises(ValidationError, match="manual artifact could not be read"):
         _ = ManualArtifact.load(tmp_path / "absent-artifact")
 
@@ -309,9 +282,9 @@ def test_render_composes_truncation_windowing_and_coercion() -> None:
         "What should I do on turn 1?",
         "Response for turn 1.",
         "What should I do on turn 2?",
-        json.dumps(
+        orjson.dumps(
             {"result": {"kind": "send_message", "data": {"message": "Cut the blue wire."}}}
-        ),
+        ).decode(),
     ]
     requests = [message for message in rendered if isinstance(message, ModelRequest)]
     assert image_count([requests[0]]) == 0
@@ -347,7 +320,7 @@ def _rendered_turns(messages: list[ModelMessage]) -> int:
     return sum(isinstance(message, ModelResponse) for message in messages)
 
 
-def test_recorded_usage_truncates_the_render() -> None:
+def test_recorded_usage_truncates_the_render(prepared_manual_artifact: ManualArtifact) -> None:
     """Recorded provider usage truncates the history returned by `render`.
 
     The store retains all 40 turns and the pinned manual. The rendered history omits only an old
@@ -355,7 +328,7 @@ def test_recorded_usage_truncates_the_render() -> None:
     """
     capabilities, protocol = _capabilities_and_protocol(limit=5000, window=1, include_manual=True)
     conversation = Conversation.begin(
-        capabilities=capabilities, protocol=protocol, legacy_manual=True
+        capabilities=capabilities, protocol=protocol, manual_artifact=prepared_manual_artifact
     )
     for index in range(40):
         conversation.record(_turn(index, input_tokens=100 * (index + 1), text_chars=400))

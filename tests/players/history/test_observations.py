@@ -17,6 +17,7 @@ from pydantic_ai.messages import ModelMessagesTypeAdapter
 from pydantic_ai.usage import UsageLimits
 from pytest_cases import parametrize, parametrize_with_cases
 
+from gptnt.ktane.manuals.artifacts import ManualArtifact
 from gptnt.players.conversation import Conversation
 from gptnt.players.conversation._entry import Entry
 from gptnt.players.conversation._observations import (
@@ -81,14 +82,20 @@ def _dump(messages: list[ModelMessage]) -> bytes:
 @parametrize("observations", [0, 1, 3])
 @parametrize("turns", [1, 5])
 def test_render_is_pure_and_windows_observations(
-    protocol: PlayerProtocol, window: int, observations: int, turns: int
+    protocol: PlayerProtocol,
+    window: int,
+    observations: int,
+    turns: int,
+    prepared_manual_artifact: ManualArtifact,
 ) -> None:
     if protocol.role != "defuser" and observations:
         pytest.skip("only defusers receive observations")
 
     capabilities = _capabilities(window)
     conversation = Conversation.begin(
-        capabilities=capabilities, protocol=protocol, legacy_manual=protocol.include_manual
+        capabilities=capabilities,
+        protocol=protocol,
+        manual_artifact=prepared_manual_artifact if protocol.include_manual else None,
     )
     for index in range(turns):
         conversation.record(copy.deepcopy(_turn(protocol.role, observations, index)))
@@ -109,13 +116,15 @@ def test_render_is_pure_and_windows_observations(
 
 
 @pytest.mark.usefixtures("frozen_clock")
-def test_eviction_preserves_manual_images_and_rendered_history() -> None:
+def test_eviction_preserves_manual_images_and_rendered_history(
+    prepared_manual_artifact: ManualArtifact,
+) -> None:
     protocol = PlayerProtocol(
         role="defuser", communication_style="sync", is_playing_alone=False, include_manual=True
     )
     capabilities = _capabilities(1)
     conversation = Conversation.begin(
-        capabilities=capabilities, protocol=protocol, legacy_manual=True
+        capabilities=capabilities, protocol=protocol, manual_artifact=prepared_manual_artifact
     )
     conversation.record(_turn("defuser", 3, 0))
     conversation.record(_turn("defuser", 3, 1))

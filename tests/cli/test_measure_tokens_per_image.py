@@ -1,9 +1,17 @@
+from pathlib import Path
+
 import pytest
+from PIL import Image
 from pydantic_ai import BinaryContent, ModelSettings, RunUsage
 
 from gptnt.cli.checks.players import PlayerDetail, PlayerReport, check_tokens_per_image
 from gptnt.cli.checks.validation import ModelValidationResult
-from gptnt.cli.onboarding.measure_tokens_per_image import _insert_tokens_per_image, _measure
+from gptnt.cli.onboarding.measure_tokens_per_image import (
+    _insert_tokens_per_image,
+    _load_calibration_image,
+    _measure,
+)
+from gptnt.common.image_ops import ImageDimensions, load_observation_from_bytes
 from gptnt.players.specification import PlayerCapabilities
 
 _CONFIG_WITH_COMMENT = """# @package player
@@ -59,7 +67,7 @@ def _detail(label: str, tokens_per_image: int) -> PlayerDetail:
 def test_tokens_per_image_fails_uncalibrated_player() -> None:
     finding = check_tokens_per_image([_detail("claude-sonnet-4-6", 0)])[0]
     assert finding.status == "fail"
-    assert "measure-tokens-per-image claude-sonnet-4-6" in finding.hint
+    assert "measure-tokens-per-image claude-sonnet-4-6 <calibration-image.png>" in finding.hint
 
 
 def test_tokens_per_image_passes_calibrated_player() -> None:
@@ -104,3 +112,17 @@ async def test_measure_preserves_settings_and_allows_reasoning_output(
     assert all(
         settings.get("temperature") == pytest.approx(0.2) for settings in agent.seen_settings
     )
+
+
+def test_calibration_resizes_the_explicit_png(tmp_path: Path) -> None:
+    calibration_image = tmp_path / "calibration.png"
+    Image.new("RGB", (2, 3), "red").save(calibration_image)
+    capabilities = PlayerCapabilities(
+        player_name="test-player",
+        player_type="ai",
+        image_dimensions=ImageDimensions(width=6, height=4),
+    )
+
+    resized = _load_calibration_image(calibration_image, capabilities=capabilities)
+
+    assert load_observation_from_bytes(resized).size == (4, 6)

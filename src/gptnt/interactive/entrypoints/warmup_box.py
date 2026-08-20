@@ -1,10 +1,13 @@
 import random
 from dataclasses import dataclass
 from functools import partial
+from typing import Annotated
 
 import anyio
 import hydra
 import orjson
+from cyclopts import Parameter, run
+from cyclopts.types import ExistingDirectory
 from rich.console import Console
 from rich.table import Table
 from structlog import get_logger
@@ -16,21 +19,18 @@ from gptnt.common.logger import configure_logging
 from gptnt.common.paths import Paths
 from gptnt.ktane.actions import GameActionType
 from gptnt.ktane.client import FrameBuffer
-from gptnt.ktane.manuals.legacy import KtaneManualPaths
+from gptnt.ktane.manuals.artifacts import ManualArtifact
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.action_predictor import ActionPredictor
 from gptnt.players.conversation import Conversation
 from gptnt.players.input_builder import AgentInputBuilder
 from gptnt.players.observation_handler import ObservationHandler
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
-from gptnt.prompts.manual import load_manual_as_prompt
-from gptnt.prompts.prompt_cache import PromptCache
 
 console = Console()
 logger = get_logger()
 
 paths = Paths()
-ktane_manual_paths = KtaneManualPaths()
 
 
 @dataclass(kw_only=True)
@@ -40,6 +40,7 @@ class BoxWarmer:
     capabilities: PlayerCapabilities
     observation_handler: ObservationHandler
     action_predictor: ActionPredictor
+    manual_artifact: ManualArtifact
 
     async def run_prompt(self, *, protocol: PlayerProtocol) -> None:
         """Run a simple prompt through the model to warm it up."""
@@ -48,7 +49,7 @@ class BoxWarmer:
             conversation=Conversation.begin(
                 capabilities=self.capabilities,
                 protocol=protocol,
-                legacy_manual=protocol.include_manual,
+                manual_artifact=self.manual_artifact,
             ),
         )
         input_builder = AgentInputBuilder(
@@ -112,8 +113,10 @@ def generate_protocol() -> PlayerProtocol:
     )
 
 
-def create_box_warmer(*, hydra_overrides: list[str] | None = None) -> BoxWarmer:
-    """Warmup the box."""
+def create_box_warmer(
+    manual_artifact: ManualArtifact, *, hydra_overrides: list[str] | None = None
+) -> BoxWarmer:
+    """Warm up the configured player with an explicitly prepared manual."""
     hydra_overrides = hydra_overrides or get_hydra_overrides()
     logger.info("Creating box warmer", hydra_overrides=hydra_overrides)
     with hydra.initialize_config_dir(version_base="1.3", config_dir=str(paths.configs)):
@@ -126,14 +129,8 @@ def create_box_warmer(*, hydra_overrides: list[str] | None = None) -> BoxWarmer:
         capabilities=capabilities,
         observation_handler=observation_handler,
         action_predictor=action_predictor,
+        manual_artifact=manual_artifact,
     )
-
-    # Build prompt cache up front
-    PromptCache.initialise(
-        paths.prompts, ktane_manual_paths.text_dir, ktane_manual_paths.images_small_dir
-    )
-    _ = load_manual_as_prompt(image_dimensions=capabilities.image_dimensions)
-
     return warmer
 
 
@@ -194,9 +191,14 @@ def collate_results(times: list[tuple[PlayerProtocol, float]]) -> None:  # noqa:
         )
 
 
-if __name__ == "__main__":
+def main(
+    manual_artifact: Annotated[
+        ExistingDirectory, Parameter(help="Path to a prepared manual artifact directory.")
+    ],
+) -> None:
+    """Warm up a player using an explicitly prepared manual artifact."""
     configure_logging()
-    warmer = create_box_warmer()
+    warmer = create_box_warmer(ManualArtifact.load(manual_artifact))
 
     all_times: list[tuple[PlayerProtocol, float]] = []
 
@@ -215,3 +217,7 @@ if __name__ == "__main__":
         all_times.append((protocol, duration.in_seconds()))
 
     collate_results(all_times)
+
+
+if __name__ == "__main__":
+    run(main)

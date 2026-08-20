@@ -6,6 +6,7 @@ from pydantic_ai.models import Model
 from pydantic_ai.models.test import TestModel
 from pytest_cases import parametrize
 
+from gptnt.ktane.manuals.artifacts import ManualArtifact
 from gptnt.players.action_predictor import ActionPredictor
 from gptnt.players.actions import DoNothingAction, SendMessageAction
 from gptnt.players.conversation import Conversation
@@ -40,11 +41,15 @@ def _protocol(*, include_manual: bool = False) -> PlayerProtocol:
 
 
 def create_action_predictor(
-    agent: Agent[Any, Any], capabilities: PlayerCapabilities, protocol: PlayerProtocol
+    agent: Agent[Any, Any],
+    capabilities: PlayerCapabilities,
+    protocol: PlayerProtocol,
+    *,
+    manual_artifact: ManualArtifact | None = None,
 ) -> ActionPredictor:
     """Create an action predictor configured for one experiment."""
     conversation = Conversation.begin(
-        capabilities=capabilities, protocol=protocol, legacy_manual=protocol.include_manual
+        capabilities=capabilities, protocol=protocol, manual_artifact=manual_artifact
     )
     predictor = ActionPredictor(agent=agent, capabilities=capabilities)
     predictor.configure_for_experiment(protocol=protocol, conversation=conversation)
@@ -67,12 +72,19 @@ async def test_send_request_returns_valid_output_when_model_responds_correctly()
 
 
 @pytest.mark.anyio
-async def test_send_request_does_not_include_manual_in_new_messages() -> None:
+async def test_send_request_does_not_include_manual_in_new_messages(
+    prepared_manual_artifact: ManualArtifact,
+) -> None:
     capabilities = _capabilities()
     protocol = _protocol(include_manual=True)
     expected_action = SendMessageAction(message="This is a test message")
     agent = Agent(TestModel(custom_output_text=expected_action.text_part_dump()), retries=0)
-    predictor = create_action_predictor(agent=agent, capabilities=capabilities, protocol=protocol)
+    predictor = create_action_predictor(
+        agent=agent,
+        capabilities=capabilities,
+        protocol=protocol,
+        manual_artifact=prepared_manual_artifact,
+    )
 
     manual_entry = predictor.conversation.entries[0]
     assert manual_entry.pinned

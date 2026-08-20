@@ -1,6 +1,6 @@
-import json
 from typing import Any
 
+import orjson
 import structlog
 from pydantic_ai import TextPart
 from pydantic_ai.messages import ModelMessage, ModelResponse
@@ -74,7 +74,7 @@ class DummyDefuserModel(FunctionModel):
         model_response["action"] = action_to_perform.action.name
         return_as_dict = {"result": {"kind": "interact_game", "data": model_response}}
 
-        return ModelResponse(parts=[TextPart(content=json.dumps(return_as_dict))])
+        return ModelResponse(parts=[TextPart(content=orjson.dumps(return_as_dict).decode())])
 
 
 class DummyExpertModel(FunctionModel):
@@ -92,7 +92,7 @@ class DummyExpertModel(FunctionModel):
                 "data": message.model_dump(exclude_unset=True, exclude_defaults=True, mode="json"),
             }
         }
-        return ModelResponse(parts=[TextPart(content=json.dumps(result_as_dict))])
+        return ModelResponse(parts=[TextPart(content=orjson.dumps(result_as_dict).decode())])
 
 
 class MagicDefuserModel(FunctionModel):
@@ -112,7 +112,7 @@ class MagicDefuserModel(FunctionModel):
         )
 
         return_as_dict = {"result": {"kind": "perform_magic", "data": model_response}}
-        return ModelResponse(parts=[TextPart(content=json.dumps(return_as_dict))])
+        return ModelResponse(parts=[TextPart(content=orjson.dumps(return_as_dict).decode())])
 
 
 class LotteryDefuserModel(FunctionModel):
@@ -132,4 +132,4 @@ class LotteryDefuserModel(FunctionModel):
         )
 
         return_as_dict = {"result": {"kind": "perform_lottery", "data": model_response}}
-        return ModelResponse(parts=[TextPart(content=json.dumps(return_as_dict))])
+        return ModelResponse(parts=[TextPart(content=orjson.dumps(return_as_dict).decode())])

@@ -11,13 +11,13 @@ The command layer (`validate.py`) decides section order and rendering, reusing t
 
 from __future__ import annotations
 
-import json
 import re
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import orjson
 import yaml
 from pydantic import ValidationError
 from tomlkit.exceptions import TOMLKitError
@@ -293,8 +293,8 @@ def _load_statics_payload(
         return None, [CheckResult.failed("payload", "metrics.json not found", hint=REBUILD_HINT)]
     metrics_text = payload_path.read_text()
     try:
-        json.loads(metrics_text)
-    except json.JSONDecodeError as error:
+        orjson.loads(metrics_text)
+    except orjson.JSONDecodeError as error:
         return None, [CheckResult.failed("payload", f"metrics.json is not valid JSON: {error}")]
     bundle = StaticsBundle(manifest=manifest, metrics_text=metrics_text)
     return bundle, [CheckResult.passed("payload", "metrics.json")]

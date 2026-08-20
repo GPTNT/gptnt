@@ -8,12 +8,12 @@ per player, splits each forward pass into:
     framework   = duration("player forward pass") - inference   ← harness overhead
 """
 
-import json
 import os
 import platform
 import subprocess
 from typing import Annotated, Any
 
+import orjson
 import polars as pl
 import psutil
 import structlog
@@ -136,7 +136,7 @@ def _query_darwin_gpu() -> str:
         stderr=subprocess.DEVNULL,
         timeout=5,
     )
-    gpus = json.loads(raw).get("SPDisplaysDataType", [])
+    gpus = orjson.loads(raw).get("SPDisplaysDataType", [])
     parts = [_format_darwin_gpu(gpu) for gpu in gpus]
     return " | ".join(parts) if parts else "unknown"
 
