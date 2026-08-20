@@ -27,6 +27,7 @@ _DEFAULT_RULE_SEED = 1
 
 
 def _profile_language(profile: ManualProfile, *, sources: ManualSources) -> str:
+    """Choose the resolver language from frontmatter or the profile's first document."""
     if profile.include_frontmatter and sources.frontmatter:
         return sources.frontmatter[0].language
     return profile.documents[0].language
@@ -36,12 +37,16 @@ async def compile_manuals(
     *, suites: SuitesOption = None, all_profiles: AllProfilesOption = False
 ) -> None:
     """Download, resolve, and compile the selected default-rule manual profiles."""
+    # Download and compile intentionally share selection semantics through this one boundary.
     selection = select_manual_profiles(suites=suites, all_profiles=all_profiles, paths=paths)
     sources = ManualSources.from_path(paths.manual_sources)
+
+    # Compilation is self-preparing: source downloads are not a separate prerequisite for users.
     _ = await download_manual_assets(
         selection.profiles, sources=sources, cache_dir=paths.manual_cache, root_dir=paths.root
     )
 
+    # Resolve before preparing Chromium sources so official-PDF-only profiles avoid that work.
     resolved_profiles = [
         resolve_manual_profile(
             profile,
@@ -54,6 +59,7 @@ async def compile_manuals(
         for profile in selection.profiles
     ]
 
+    # The Manual Merger is needed only when at least one resolved input is HTML.
     if any(
         not isinstance(document, ResolvedOfficialDocument)
         for resolved in resolved_profiles

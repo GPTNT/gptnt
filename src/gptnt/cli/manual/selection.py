@@ -33,6 +33,8 @@ class ManualSelection:
 
 
 def _all_profiles(paths: Paths) -> tuple[list[ManualProfile], str]:
+    """Load every public profile YAML in stable filename order."""
+    # Underscore-prefixed YAML files are shared fragments, not independently selectable profiles.
     profile_paths = sorted(
         profile_path
         for profile_path in paths.manual_profiles.glob("*.yaml")
@@ -50,7 +52,9 @@ def _all_profiles(paths: Paths) -> tuple[list[ManualProfile], str]:
 
 
 def _suite_profiles(suites: SuitesOption) -> tuple[list[ManualProfile], str]:
+    """Compose the default or explicitly selected suites into their manual profiles."""
     available_suites = discover_suites()
+    # dict preserves the user's first occurrence while dropping repeated suite flags.
     suite_names = available_suites if suites is None else list(dict.fromkeys(suites))
     unknown_suites = sorted(set(suite_names) - set(available_suites))
     if unknown_suites:
@@ -67,7 +71,9 @@ def select_manual_profiles(
     *, suites: SuitesOption = None, all_profiles: AllProfilesOption = False, paths: Paths
 ) -> ManualSelection:
     """Select and deduplicate profiles using the commands' common flag semantics."""
+    # These modes describe different universes of profiles and cannot be combined coherently.
     if all_profiles and suites is not None:
         raise ValueError("--all-profiles cannot be combined with --suite")
     profiles, description = _all_profiles(paths) if all_profiles else _suite_profiles(suites)
+    # Multiple suites commonly share a profile; compile or download each distinct value once.
     return ManualSelection(profiles=tuple(dict.fromkeys(profiles)), description=description)

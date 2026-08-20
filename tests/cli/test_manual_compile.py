@@ -56,11 +56,13 @@ async def test_compile_reuses_selection_and_orders_pipeline(
 
     # Local fakes record the orchestration order without crossing browser or network boundaries.
     def compose_suite(_: str) -> SimpleNamespace:  # noqa: WPS430
+        """Return the one configured profile used by this orchestration fixture."""
         return SimpleNamespace(manual_profile=profile)
 
     async def download(  # noqa: WPS430
         profiles: Sequence[ManualProfile], **_kwargs: object
     ) -> DownloadResult:
+        """Record download order and the profiles selected by the command."""
         operations.append("download")
         captured_profiles.extend(profiles)
         return DownloadResult(
@@ -70,16 +72,20 @@ async def test_compile_reuses_selection_and_orders_pipeline(
     def resolve(  # noqa: WPS430
         *_args: object, **_kwargs: object
     ) -> tuple[ResolvedOfficialDocument, ...]:
+        """Record resolution and return an official-only resolved profile."""
         operations.append("resolve")
         return (resolved,)
 
     def compile_manual(*_args: object, **_kwargs: object) -> Path:  # noqa: WPS430
+        """Record compilation without creating a browser or artifact."""
         operations.append("compile")
         return tmp_path / "artifact"
 
     async def run_sync(function: Callable[[], Path]) -> Path:  # noqa: WPS430
+        """Execute the supplied synchronous compiler callable in the test task."""
         return function()
 
+    # Patch every external boundary so the assertion isolates CLI selection and ordering.
     monkeypatch.setattr(selection, "discover_suites", lambda: ["one", "two"])
     monkeypatch.setattr(selection, "compose_suite", compose_suite)
     monkeypatch.setattr(

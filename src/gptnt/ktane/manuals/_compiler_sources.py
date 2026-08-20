@@ -22,6 +22,7 @@ def ktane_content_root(cache_dir: Path) -> Path:
 
 def keypad_assets_root() -> Path:
     """Return the committed 256-pixel Keypad image directory."""
+    # Editable checkouts keep assets under storage; built wheels relocate them into the package.
     checkout_root = Path(__file__).resolve().parents[4]
     checkout_assets = checkout_root / "storage" / "manual" / "keypad"
     if checkout_assets.is_dir():
@@ -34,6 +35,7 @@ def keypad_assets_identity() -> str:
     assets = sorted(keypad_assets_root().glob("*.png"))
     if not assets:
         raise ValueError("the committed Keypad asset directory contains no PNG images")
+    # Include filenames and separators so renamed or ambiguously concatenated assets invalidate.
     digest = hashlib.sha256()
     for asset in assets:
         digest.update(asset.name.encode())
@@ -45,11 +47,13 @@ def keypad_assets_identity() -> str:
 async def prepare_compiler_sources(cache_dir: Path) -> None:
     """Materialize the pinned Manual Merger source files."""
     ktane_root = ktane_content_root(cache_dir)
+    # The blobless pinned checkout supplies the repository tree without downloading every manual.
     await _git.prepare_repository(
         repository=KTANE_CONTENT_REPOSITORY,
         commit=KTANE_CONTENT_COMMIT,
         destination=anyio.Path(ktane_root),
     )
+    # Restore the merger entrypoint and recursively referenced CSS, JavaScript, fonts, and images.
     ktane_paths = await _git.tree_paths(anyio.Path(ktane_root), commit=KTANE_CONTENT_COMMIT)
     _ = await _ktane_content.restore_repository_dependencies(
         ktane_root,

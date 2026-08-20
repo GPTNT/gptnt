@@ -27,6 +27,7 @@ _MERGER = """<!doctype html>
 <button type="button">Upload profile</button><input type="file" hidden>
 <div class="manuals"></div>
 <script>
+// Mimic only the upstream profile-upload and ordered-iframe behavior used by the compiler.
 const button = document.querySelector('button');
 const input = document.querySelector('input');
 button.addEventListener('click', () => input.click());
@@ -72,7 +73,10 @@ body {{ margin: 0; font-family: fixture, sans-serif; }}
 <p class="screen-only">screen-only</p><p class="print-only">print-only</p>
 <img src="fixture.png" alt="fixture"><p>{body}</p>
 </div></div>
-<script>document.querySelector('#heading').textContent = '{heading}';{script}</script>
+<script>
+// Mutating the heading proves the compiler waits for and captures executed page JavaScript.
+document.querySelector('#heading').textContent = '{heading}';{script}
+</script>
 """
 
 _PNG = (
@@ -88,6 +92,7 @@ def browser_sources() -> Callable[[Path], None]:
 
     # The fixture closure writes into the temporary cache selected by each browser test.
     def create(cache_dir: Path) -> None:  # noqa: WPS430
+        """Write the synthetic merger into the compiler's expected pinned-source path."""
         merger = ktane_content_root(cache_dir) / "More" / "Manual Merger" / "index.html"
         merger.parent.mkdir(parents=True)
         _ = merger.write_text(_MERGER, encoding="utf-8")
@@ -96,6 +101,7 @@ def browser_sources() -> Callable[[Path], None]:
 
 
 def _local_document(path: Path, *, document_id: str) -> ResolvedLocalDocument:
+    """Resolve one fixture HTML file with provenance matching its current bytes."""
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     return ResolvedLocalDocument(
         document_id=document_id,
@@ -110,6 +116,7 @@ def _local_document(path: Path, *, document_id: str) -> ResolvedLocalDocument:
 def _official_document(
     path: Path, *, document_id: str, first: int, last: int
 ) -> ResolvedOfficialDocument:
+    """Resolve one fixture range from an official-style source PDF."""
     return ResolvedOfficialDocument(
         document_id=document_id,
         language="en",
@@ -122,6 +129,7 @@ def _official_document(
 
 
 def _write_pdf(path: Path, texts: list[str]) -> None:
+    """Create a US Letter fixture PDF with one identifying text string per page."""
     document = pymupdf.open()
     for text in texts:
         page = document.new_page(width=612, height=792)
@@ -131,6 +139,7 @@ def _write_pdf(path: Path, texts: list[str]) -> None:
 
 
 def _write_page(path: Path, *, heading: str, body: str, script: str = "") -> None:
+    """Write one executable HTML fixture and its adjacent image dependency."""
     path.parent.mkdir(parents=True, exist_ok=True)
     _ = path.write_text(_PAGE.format(heading=heading, body=body, script=script), encoding="utf-8")
     _ = path.with_name("fixture.png").write_bytes(_PNG)
@@ -199,6 +208,7 @@ def test_browser_executes_and_prints_ordered_local_html(
 def test_browser_rejects_unsafe_or_incomplete_pages(
     tmp_path: Path, browser_sources: Callable[[Path], None], html: str, match: str
 ) -> None:
+    """Reject external requests, uncaught scripts, and images that fail to decode."""
     cache_dir = tmp_path / "cache"
     browser_sources(cache_dir)
     source = tmp_path / "manual.html"
@@ -212,6 +222,7 @@ def test_browser_rejects_unsafe_or_incomplete_pages(
 def test_keypad_uses_required_high_resolution_asset(
     tmp_path: Path, browser_sources: Callable[[Path], None]
 ) -> None:
+    """Replace known Keypad images and reject references to absent committed assets."""
     source = tmp_path / "manual.html"
     _ = source.write_text(
         _PAGE.replace(
@@ -250,6 +261,7 @@ def test_keypad_uses_required_high_resolution_asset(
 
 
 def test_official_page_ranges_follow_resolver_order(tmp_path: Path) -> None:
+    """Insert selected physical PDF pages in resolver order rather than source order."""
     source = tmp_path / "official.pdf"
     _write_pdf(source, ["official page one", "official page two", "official page three"])
     documents = [
@@ -266,6 +278,7 @@ def test_official_page_ranges_follow_resolver_order(tmp_path: Path) -> None:
 
 
 def test_cache_reuses_invalidates_and_rebuilds(tmp_path: Path) -> None:
+    """Reuse valid artifacts and rebuild after input changes or output deletion."""
     source = tmp_path / "official.pdf"
     _write_pdf(source, ["first source version"])
     document = _official_document(source, document_id="Page", first=1, last=1)

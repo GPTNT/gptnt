@@ -37,6 +37,7 @@ class _SuiteComposer:
     composed: list[str] = field(default_factory=list)
 
     def __call__(self, suite_name: str) -> SimpleNamespace:
+        """Record and compose one requested suite name."""
         self.composed.append(suite_name)
         return SimpleNamespace(manual_profile=self.profiles[suite_name])
 
@@ -56,6 +57,7 @@ class _DownloadRecorder:
         root_dir: Path,
         progress: ProgressCallback,
     ) -> DownloadResult:
+        """Record selected profiles and return a deterministic download summary."""
         _ = sources, root_dir, progress
         self.captured_profiles.extend(profiles)
         return DownloadResult(
