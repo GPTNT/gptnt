@@ -3,6 +3,7 @@ from typing import Any
 
 from structlog import get_logger
 
+from gptnt.cli.integrity import require_benchmark_integrity
 from gptnt.cli.statics._config_loader import ConfigLoader
 from gptnt.players.specification import PlayerCapabilities, PlayerRole
 from gptnt.statics.output import static_prediction_answer
@@ -38,6 +39,7 @@ async def create_and_run_evaluation(
     should_throw: bool,
     should_upload: bool,
     limit_instances: int | None,
+    allow_modified_benchmark: bool = False,
 ) -> None:
     """Construct a HuggingFace-dataset evaluation and run the download/throw/upload branches.
 
@@ -65,7 +67,10 @@ async def create_and_run_evaluation(
         should_throw: Whether to actually execute the evaluation.
         should_upload: Whether to upload the evaluation results to Weave.
         limit_instances: Optional cap on the number of instances to evaluate.
+        allow_modified_benchmark: Whether contributor execution may use modified protected content.
     """
+    if should_throw:
+        require_benchmark_integrity(allow_modified_benchmark=allow_modified_benchmark)
     config_loader = ConfigLoader(player=player, provider=provider, role=role)
     capabilities = config_loader.capabilities
     agent = config_loader.agent_fn(instructions=build_instruction(capabilities))

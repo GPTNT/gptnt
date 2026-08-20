@@ -83,6 +83,7 @@ class LoadedBundle:
         findings = [
             _check_gptnt_version(provenance.gptnt_version),
             CheckResult.passed("release_commit", provenance.release_commit),
+            _check_protected_content(modified=provenance.protected_content_modified),
         ]
         if isinstance(self.bundle, InteractiveBundle):
             manifest_provenance = provenance.model_dump()
@@ -192,6 +193,17 @@ def load_bundle(bundle_dir: Path) -> tuple[LoadedBundle | None, list[CheckResult
     if bundle is None:
         return None, findings
     return LoadedBundle(bundle_dir=bundle_dir, bundle=bundle), findings
+
+
+def _check_protected_content(*, modified: bool) -> CheckResult:
+    """Reject records produced while protected benchmark content differed from the release."""
+    if modified:
+        return CheckResult.failed(
+            "protected content",
+            "recorded as modified from the release",
+            "Run the benchmark from an unmodified release checkout, then rebuild the submission.",
+        )
+    return CheckResult.passed("protected content", "matches")
 
 
 def _load_manifest(

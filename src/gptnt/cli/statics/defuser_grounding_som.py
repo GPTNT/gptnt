@@ -1,4 +1,5 @@
 from gptnt.cli._params import PlayerOption, ProviderOption
+from gptnt.cli.integrity import AllowModifiedBenchmarkOption
 from gptnt.cli.statics._evaluation import create_and_run_evaluation
 from gptnt.cli.statics._params import (
     AllowThinkingOption,
@@ -23,6 +24,7 @@ async def run_defuser_set_of_marks_evaluation(
     limit_instances: LimitInstancesOption = None,
     dataset_revision: DatasetRevisionOption = None,
     allow_thinking: AllowThinkingOption = True,
+    allow_modified_benchmark: AllowModifiedBenchmarkOption = False,
 ) -> None:
     """Defuser grounding using Set of Marks."""
     await create_and_run_evaluation(
@@ -47,4 +49,5 @@ async def run_defuser_set_of_marks_evaluation(
         should_upload=should_upload,
         limit_instances=limit_instances,
         dataset_revision=dataset_revision,
+        allow_modified_benchmark=allow_modified_benchmark,
     )

@@ -160,6 +160,26 @@ def test_interactive_bundle_rejects_mixed_provenance_at_build_and_validation(
     assert "✗ provenance" in _unwrap_output(capsys)
 
 
+def test_modified_benchmark_records_cannot_be_submitted(
+    bundle_copy: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    payload = bundle_copy / "experiments.parquet"
+    experiments = read_typed_parquet(SubmissionExperiment, payload)
+    write_typed_parquet(
+        [
+            experiment.model_copy(update={"protected_content_modified": True})
+            for experiment in experiments
+        ],
+        file_path=payload,
+    )
+    manifest = _read_manifest(bundle_copy)
+    manifest["provenance"]["protected_content_modified"] = True
+    _write_manifest(bundle_copy, manifest)
+
+    _assert_validate_fails(bundle_copy)
+    assert "✗ protected content" in _unwrap_output(capsys)
+
+
 def test_missing_mission_fails(bundle_copy: Path, capsys: pytest.CaptureFixture[str]) -> None:
     experiments = read_typed_parquet(SubmissionExperiment, bundle_copy / "experiments.parquet")
     write_typed_parquet(experiments[1:], file_path=bundle_copy / "experiments.parquet")

@@ -8,6 +8,7 @@ from whenever import Instant
 from gptnt.cli.checks.render import render_report
 from gptnt.cli.checks.result import CheckResult
 from gptnt.cli.config_discovery import discover_suites
+from gptnt.cli.integrity import AllowModifiedBenchmarkOption, require_benchmark_integrity
 from gptnt.experiments.suite.compose import compose_suite
 from gptnt.experiments.suite.freeze import FreezeReport, FreezeStamp, SuiteFreezeOutcome
 from gptnt.experiments.suite.lock import SuiteLock, SuiteNotFrozenError
@@ -27,13 +28,16 @@ CheckOption = Annotated[
 
 
 @suite_app.command(name="freeze")
-def freeze(*, check: CheckOption = False) -> None:
+def freeze(
+    *, check: CheckOption = False, allow_modified_benchmark: AllowModifiedBenchmarkOption = False
+) -> None:
     """Record every live suite revision in `suites.lock`, or verify it is complete with `--check`.
 
     A suite whose digest changed without a `revision` bump, or whose missions collide on a
     `mission_key`, is an error and blocks the write. `--check` additionally fails when a live suite
     has no current-revision entry, so CI catches a lock that was never regenerated.
     """
+    require_benchmark_integrity(allow_modified_benchmark=allow_modified_benchmark)
     try:
         existing = SuiteLock.from_lock_path()
     except SuiteNotFrozenError:

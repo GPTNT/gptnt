@@ -13,10 +13,21 @@ import sys
 
 import pytest
 
+from gptnt.cli.__main__ import build_app
 from gptnt.cli.checks import game, machine, players, render, services
 from gptnt.cli.checks.result import CheckResult
 from gptnt.cli.checks.validation import ModelValidationResult
 from gptnt.cli.doctor import command
+
+from tests._cli_runner import invoke_cli
+
+
+async def _unexpected_infrastructure_check(*_args: object, **_kwargs: object) -> object:
+    raise AssertionError("--config-only must not run infrastructure checks")
+
+
+def _unexpected_machine_check() -> object:
+    raise AssertionError("--config-only must not run machine checks")
 
 
 def test_static_boxes_ok_is_exists_and_instantiates() -> None:
@@ -58,6 +69,27 @@ def test_model_report_failed_only_on_fail_box() -> None:
     assert players.PlayerReport("m", "pass", "fail", "skip").failed is True
     assert players.PlayerReport("m", "pass", "warn", "skip").failed is False
     assert players.PlayerReport("m", "pass", "pass", "skip").failed is False
+
+
+def test_doctor_config_only_renders_clean_benchmark_and_checks_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(command, "discover_players", lambda: ["test-random"])
+    monkeypatch.setattr(command, "_infrastructure_checks", _unexpected_infrastructure_check)
+    monkeypatch.setattr(command, "check_machine", _unexpected_machine_check)
+
+    result = invoke_cli(build_app(), ["doctor", "--config-only"])
+
+    assert result.exit_code == 0, result.output
+    assert "Benchmark" in result.output
+    assert "Reference" in result.output
+    assert "v2.0.0" in result.output
+    assert "Release commit" in result.output
+    assert "abc1234" in result.output
+    assert "Protected content" in result.output
+    assert "matches" in result.output
+    assert "test-random" in result.output
+    assert "Infrastructure" not in result.output
 
 
 def test_display_skipped_off_linux(monkeypatch: pytest.MonkeyPatch) -> None:

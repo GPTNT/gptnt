@@ -1,31 +1,37 @@
-"""Tests for the `gptnt run` pipeline.
+"""Tests for the `gptnt run` pipeline and the public score-producing integrity gates.
 
-`run` *composes* existing orchestration (doctor gate, spawn, in-process submit, monitor); the only
-genuinely new logic is the seam between them. So this file covers the deterministic, infra-free
-surface: the small env-builder helpers (observability/wandb), the roster cross-check, and
-`run_pipeline`'s control flow (the gate, the defensive branches, and the resume/early-exit paths).
-
-Everything external is mocked: `diagnose` is replaced with an async stub that hands back a hand-
-built `DiagnoseResult`, resume is driven by `RunPlanResult.remaining_specs` (the gate's single
-WandB query), and the real spawn/submit/monitor (`_spawn_submit_monitor`) is monkeypatched out so
-NO subprocess, network, or wandb call ever happens. The infra it would drive is exercised by
-running `gptnt run` directly.
+The public-boundary group uses `invoke_cli` and stops each command before its first write or spawn.
+The remaining tests cover the run pipeline's deterministic control flow, roster check, resume
+handling, environment construction, and process teardown without starting subprocesses or making
+network requests.
 """
 
 from __future__ import annotations
 
 import functools
 from contextlib import asynccontextmanager
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, ClassVar, cast
 
 import pytest
 
+from gptnt.cli import integrity
+from gptnt.cli.__main__ import build_app
+from gptnt.cli.doctor import command as doctor_command
 from gptnt.cli.doctor.command import DiagnoseResult
 from gptnt.cli.doctor.run_plan import RunPlanResult
+from gptnt.cli.onboarding import generate_specs as generate_command
 from gptnt.cli.run import pipeline
 from gptnt.cli.run.manifest import RunManifest
+from gptnt.cli.statics import _evaluation as statics_evaluation
+from gptnt.cli.submission import new as submission_new
+from gptnt.cli.suite import __main__ as suite_command
+from gptnt.experiments.suite.lock import SuiteLock
 from gptnt.players.specification import PlayerProtocol, PlayerSpec
+from gptnt.provenance import Provenance
+from gptnt.statics import run as statics_run, run_metadata
 
+from tests._cli_runner import invoke_cli
 from tests._factories.experiments import make_experiment_spec
 
 if TYPE_CHECKING:
@@ -138,6 +144,27 @@ async def _boom(*_args: object, **_kwargs: object) -> None:
     raise RuntimeError("EM rejected the specs")
 
 
+def _unexpected_effect(*_args: object, **_kwargs: object) -> None:
+    raise AssertionError("the integrity gate must run before the command's first effect")
+
+
+def _fixed_statics_identity(
+    _cls: type[run_metadata.StaticsIdentity],
+    *,
+    task_name: str,
+    hf_repo_id: str,
+    dataset_split: str | None,
+    revision: str | None,
+) -> run_metadata.StaticsIdentity:
+    return run_metadata.StaticsIdentity(
+        task_name=task_name,
+        hf_repo_id=hf_repo_id,
+        dataset_split=dataset_split,
+        requested_revision=revision,
+        resolved_revision="a1b2c3d4e5f6",
+    )
+
+
 @asynccontextmanager
 async def _fake_signals(_orch: object) -> AsyncIterator[None]:
     """No-op replacement for the signal-handling context manager."""
@@ -189,16 +216,147 @@ def test_observability_env_off_disables_everything() -> None:
 # -------------------------------------------------------------------------------------------------
 
 
-def test_assert_roster_covers_specs_raises_on_missing_player() -> None:
+@pytest.mark.anyio
+async def test_run_force_does_not_bypass_roster_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     specs = [_spec(defuser="claude-sonnet-4-6", expert="ghost")]
-    config_to_player = {"claude-sonnet-4-6": "claude-sonnet-4-6"}  # no entry resolves to "ghost"
-    with pytest.raises(RuntimeError):
-        pipeline._assert_roster_covers_specs(specs, config_to_player)
+    diagnosis = DiagnoseResult(
+        failed=True,
+        benchmark_failed=False,
+        player_reports=[],
+        run_plan=RunPlanResult(
+            findings=[], specs=specs, config_to_player={"claude-sonnet-4-6": "claude-sonnet-4-6"}
+        ),
+    )
+    _patch_diagnose(monkeypatch, diagnosis)
+    _patch_load_specs(monkeypatch, specs)
+    calls = _patch_spawn(monkeypatch)
+
+    with pytest.raises(RuntimeError, match="roster does not cover"):
+        await pipeline.run_pipeline(_manifest(), manifest_stem="m", force=True)
+
+    assert calls == []
 
 
 # -------------------------------------------------------------------------------------------------
 # run_pipeline — control flow
 # -------------------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "entry_point",
+    [
+        "suite-freeze",
+        "doctor",
+        "generate",
+        "run-force",
+        "statics-throw",
+        "submission-new",
+        "submission-validate",
+    ],
+)
+def test_score_entry_points_stop_before_effects_when_integrity_fails(
+    entry_point: str, monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    """Every public boundary reaches the protected-content failure before writing or spawning."""
+    monkeypatch.setattr(
+        integrity,
+        "check_benchmark_integrity",
+        lambda _repository: SimpleNamespace(
+            release_tag="v2.0.0",
+            release_commit="abc123456789",
+            protected_changes=("src/gptnt/prompts/manual.py",),
+            untracked_protected_files=(),
+            permitted_input_changes=(),
+            protected_content_modified=True,
+        ),
+    )
+    monkeypatch.setattr(doctor_command, "_infrastructure_checks", _unexpected_effect)
+    monkeypatch.setattr(doctor_command, "check_machine", _unexpected_effect)
+    monkeypatch.setattr(suite_command, "_finish_write", _unexpected_effect)
+    monkeypatch.setattr(generate_command, "write_specs_to_dir", _unexpected_effect)
+    monkeypatch.setattr(statics_evaluation, "ConfigLoader", _unexpected_effect)
+    monkeypatch.setattr(submission_new, "gather_experiments_for_suite", _unexpected_effect)
+    monkeypatch.setattr(SuiteLock, "from_lock_path", _unexpected_effect)
+    monkeypatch.setattr(pipeline, "load_specs_from_dir", lambda _directory: [_spec()])
+    monkeypatch.setattr(pipeline, "_spawn_submit_monitor", _unexpected_effect)
+
+    if entry_point == "submission-validate":
+        _ = (tmp_path / "submission.yaml").write_text("")
+
+    manifest = "runs/quickstart.yaml"
+    argv = {
+        "suite-freeze": ["suite", "freeze"],
+        "doctor": ["doctor", manifest, "--check-mod-load"],
+        "generate": ["generate", manifest, "--output-dir", str(tmp_path / "specs")],
+        "run-force": ["run", manifest, "--force"],
+        "statics-throw": ["statics", "expert-vqa-no-manual", "--player", "test-random", "--throw"],
+        "submission-new": [
+            "submission",
+            "new",
+            str(tmp_path / "experiments.duckdb"),
+            "--output-dir",
+            str(tmp_path / "submissions"),
+        ],
+        "submission-validate": ["submission", "validate", str(tmp_path)],
+    }[entry_point]
+
+    if entry_point == "submission-validate":
+        result = invoke_cli(build_app(), argv)
+        assert result.exit_code == 1
+        assert "Protected content" in result.output
+    else:
+        with pytest.raises(RuntimeError):
+            _ = invoke_cli(build_app(), argv)
+
+    assert not (tmp_path / "specs").exists()
+    assert not (tmp_path / "submissions").exists()
+
+
+def test_statics_contributor_override_warns_and_stamps_modified_provenance(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    monkeypatch.setattr(
+        integrity,
+        "check_benchmark_integrity",
+        lambda _repository: SimpleNamespace(
+            release_tag="v2.0.0",
+            release_commit="abc123456789",
+            protected_changes=("src/gptnt/prompts/manual.py",),
+            untracked_protected_files=(),
+            permitted_input_changes=("configs/player/test-random.yaml",),
+            protected_content_modified=True,
+        ),
+    )
+    modified_provenance = Provenance(
+        gptnt_version="2.0.0",
+        release_commit="abc123456789",
+        release_tag="v2.0.0",
+        protected_content_modified=True,
+    )
+    monkeypatch.setattr(Provenance, "capture", classmethod(lambda _cls: modified_provenance))
+    monkeypatch.setattr(statics_run, "paths", SimpleNamespace(output=tmp_path))
+    monkeypatch.setattr(
+        run_metadata.StaticsIdentity, "resolve", classmethod(_fixed_statics_identity)
+    )
+    monkeypatch.setattr(statics_run.RunEvaluation, "throw", _noop)
+
+    result = invoke_cli(
+        build_app(),
+        [
+            "statics",
+            "expert-vqa-no-manual",
+            "--player",
+            "test-random",
+            "--throw",
+            "--allow-modified-benchmark",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "WARNING: protected benchmark content is modified" in result.output
+    metadata_path = next(tmp_path.rglob("run_meta.json"))
+    metadata = run_metadata.StaticsRunMetadata.model_validate_json(metadata_path.read_text())
+    assert metadata.provenance.protected_content_modified is True
 
 
 @pytest.mark.anyio
@@ -208,6 +366,7 @@ async def test_run_pipeline_gate_blocks_when_failed_without_force(
     specs: Sequence[object] = [_spec()]
     result = DiagnoseResult(
         failed=True,
+        benchmark_failed=False,
         player_reports=[],
         run_plan=RunPlanResult(
             findings=[],
@@ -232,6 +391,7 @@ async def test_run_pipeline_force_proceeds_despite_failure(
     specs = [_spec()]
     result = DiagnoseResult(
         failed=True,
+        benchmark_failed=False,
         player_reports=[],
         run_plan=RunPlanResult(
             findings=[], specs=specs, config_to_player={"claude-sonnet-4-6": "claude-sonnet-4-6"}
@@ -248,7 +408,7 @@ async def test_run_pipeline_force_proceeds_despite_failure(
 
 @pytest.mark.anyio
 async def test_run_pipeline_aborts_when_run_plan_missing(monkeypatch: pytest.MonkeyPatch) -> None:
-    result = DiagnoseResult(failed=False, player_reports=[], run_plan=None)
+    result = DiagnoseResult(failed=False, benchmark_failed=False, player_reports=[], run_plan=None)
     _patch_diagnose(monkeypatch, result)
     _patch_load_specs(monkeypatch, [_spec()])
     calls = _patch_spawn(monkeypatch)
@@ -281,6 +441,7 @@ async def test_run_pipeline_exits_cleanly_when_everything_already_done(
     # Resume filtering dropped everything → remaining_specs is empty → return without spawning.
     result = DiagnoseResult(
         failed=False,
+        benchmark_failed=False,
         player_reports=[],
         run_plan=RunPlanResult(
             findings=[],
@@ -307,6 +468,7 @@ async def test_run_pipeline_happy_path_spawns_with_resolved_specs(
     specs = [spec_a, spec_b]
     result = DiagnoseResult(
         failed=False,
+        benchmark_failed=False,
         player_reports=[],
         run_plan=RunPlanResult(
             findings=[],

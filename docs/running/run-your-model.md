@@ -122,6 +122,27 @@ gptnt doctor runs/<name>.yaml
 
 This checks the infrastructure and cross-checks the roster against what the suites need, so a missing player surfaces here instead of stalling the run.
 
+Doctor also reports the release identity and protected-content comparison:
+
+```text
+Benchmark
+Reference          v2.0.0
+Release commit     abc123
+Protected content  matches
+```
+
+The command blocks generation and execution when the checkout has no exact release identity or
+protected benchmark content differs from that release. Restore those files or use an unmodified
+release checkout. Changes to user inputs are listed separately under **Permitted input changes**
+and do not fail the benchmark check. For example, `configs/player/my-model.yaml` is a permitted
+input, while `src/gptnt/prompts/manual.py` is protected. Unrelated worktree changes are not reported
+as benchmark failures.
+
+!!! warning "Developing GPTNT with protected changes"
+    Contributors can add `--allow-modified-benchmark` to commands that execute modified benchmark
+    code. The command prints a warning and records
+    `protected_content_modified: true`. Those records cannot be submitted.
+
 ### Generate the specs
 
 ```bash
@@ -150,7 +171,11 @@ the live suite files do not change the identity of specs already written.
 gptnt run runs/<name>.yaml
 ```
 
-`run` verifies everything is setup with the `doctor`, spawns the experiment manager, game rooms, and players, submits the specs, and streams progress until the run finishes. Add `-i`/`--interactive` to stream process logs instead of the status table, or `--force` to proceed past doctor warnings.
+`run` verifies everything is setup with the `doctor`, spawns the experiment manager, game rooms,
+and players, submits the specs, and streams progress until the run finishes. Add
+`-i`/`--interactive` to stream process logs instead of the status table. `--force` can pass ordinary
+doctor failures, but it cannot pass a protected-content failure or a run-roster failure. See
+[Validate it](#validate-it) for the benchmark-content distinction.
 
 With a display, the game window opens. Headless, it runs in the background and you watch the logs.
 

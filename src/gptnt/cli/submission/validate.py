@@ -4,8 +4,8 @@ The doctor-style gate before a bundle goes to gptnt-submissions: the manifest pa
 itself rejects unknown versions, tampered fingerprints, and blank identities), the submitter block
 is filled in, the declared suite revision is frozen in the lock with a matching digest, every
 mission the lock records is covered by exactly one valid run, and the payload players match the
-manifest. Hygiene issues (a dirty tree at run time, an unpinned statics dataset) warn but never
-fail. Its reference is `suites.lock`, which ships in the wheel, so it needs no live configs.
+manifest. Modified protected benchmark content fails validation; an unpinned statics dataset warns.
+Its reference is `suites.lock`, which ships in the wheel, so it needs no live configs.
 
 `gptnt submission new` bundles every recorded experiment for a (suite, model) group, so a retried
 mission surfaces here as a duplicate — validate is the curation signal, not a bug in the build.
@@ -20,6 +20,7 @@ from rich.console import Console
 
 from gptnt.cli.checks.formats import Report, ReportFormat
 from gptnt.cli.checks.result import CheckResult
+from gptnt.cli.integrity import diagnose_benchmark_integrity
 from gptnt.cli.submission._bundle import InteractiveBundle
 from gptnt.cli.submission._checks import (
     check_mission_coverage,
@@ -48,6 +49,13 @@ def validate_submission(
     ] = "rich",
 ) -> None:
     """Validate submission bundle(s); any failed check exits non-zero (warnings never fail)."""
+    benchmark = diagnose_benchmark_integrity(contributor_override_available=False, render=False)
+    if benchmark.failed:
+        render_reports(
+            [Report(heading="Benchmark", checks=benchmark.findings)], report_format, console
+        )
+        sys.exit(1)
+
     # A bundle dir matches itself: rglob's implicit `**` also matches zero directories deep.
     bundle_dirs = [manifest.parent for manifest in path.rglob("submission.yaml")]
     if not bundle_dirs:

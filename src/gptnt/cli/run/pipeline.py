@@ -6,7 +6,8 @@ import anyio
 from rich.console import Console
 from rich.table import Table
 
-from gptnt.cli.doctor.command import diagnose
+from gptnt.cli.doctor.command import DiagnoseResult, diagnose
+from gptnt.cli.doctor.run_plan import RunPlanResult
 from gptnt.cli.interactive.submit import send_experiments
 from gptnt.cli.run.manifest import RunManifest
 from gptnt.cli.run.monitor import monitor_interactive, monitor_status, render_stream
@@ -25,6 +26,31 @@ console = Console()
 paths = Paths()
 
 
+def _require_non_bypassable_checks(diagnosis: DiagnoseResult) -> RunPlanResult:
+    """Return the run plan, rejecting integrity and roster failures regardless of `--force`."""
+    if diagnosis.run_plan is None:
+        console.print("[bold red]Internal error: the run-plan check did not execute.[/bold red]")
+        raise RuntimeError("the run-plan check did not execute")
+
+    run_plan_failed = any(finding.status == "fail" for finding in diagnosis.run_plan.findings)
+    if not (diagnosis.benchmark_failed or run_plan_failed):
+        return diagnosis.run_plan
+
+    failures = []
+    if diagnosis.benchmark_failed:
+        failures.append("Benchmark integrity")
+    if run_plan_failed:
+        failures.append("run roster")
+    failure_text = " and ".join(failures)
+    console.print(
+        f"\n[bold red]Run blocked by {failure_text}.[/bold red] Fix the ✗ rows above. "
+        "[bold]--force cannot bypass these failures.[/bold]"
+    )
+    raise RuntimeError(
+        f"run blocked by {failure_text.lower()}; --force cannot bypass this failure"
+    )
+
+
 async def run_pipeline(
     manifest: RunManifest,
     *,
@@ -32,6 +58,7 @@ async def run_pipeline(
     force: bool = False,
     live: bool = False,
     interactive: bool = False,
+    allow_modified_benchmark: bool = False,
 ) -> None:
     """Execute a run manifest end-to-end: load specs, gate, spawn, submit (cross-checked), monitor.
 
@@ -51,24 +78,29 @@ async def run_pipeline(
 
     # 1. Doctor gate (run-plan mode) against the loaded specs: renders the full report and reports
     #    resume state for exactly the specs that will run.
-    diagnosis = await diagnose(manifest, live=live, specs=specs)
-    if diagnosis.run_plan is None:  # defensive: a manifest always produces a run-plan result
-        console.print("[bold red]Internal error: the run-plan check did not execute.[/bold red]")
-        raise RuntimeError("the run-plan check did not execute")
+    diagnosis = await diagnose(
+        manifest, live=live, specs=specs, allow_modified_benchmark=allow_modified_benchmark
+    )
+    run_plan = _require_non_bypassable_checks(diagnosis)
 
     if diagnosis.failed:
         if not force:
             console.print(
                 "\n[bold red]Doctor found problems.[/bold red] Fix the ✗ rows above, or re-run "
-                "with [bold]--force[/bold] to proceed anyway."
+                "with [bold]--force[/bold] to pass ordinary doctor failures. --force cannot "
+                "bypass Benchmark or run-roster failures."
             )
-            raise RuntimeError("Doctor found problems; fix the rows above or re-run with --force.")
-        console.print("\n[yellow]--force set: proceeding despite the ✗ rows above.[/yellow]")
+            raise RuntimeError(
+                "doctor found problems; fix the rows above or use --force for ordinary failures"
+            )
+        console.print(
+            "\n[yellow]--force set: proceeding despite ordinary doctor failures above.[/yellow]"
+        )
 
     # 2. Resume: reuse the specs the gate's resume check already filtered (one completion query for
     #    the whole run). `None` means resume couldn't be determined, so run all. Exit early if
     #    done.
-    remaining = diagnosis.run_plan.remaining_specs
+    remaining = run_plan.remaining_specs
     specs_to_run = specs if remaining is None else remaining
     if not specs_to_run:
         console.print(
@@ -79,7 +111,7 @@ async def run_pipeline(
 
     # 3. Roster cross-check (the structural fix; enforced even under --force): every player the
     #    specs reference must be in the spawned roster, else the run would silently stall.
-    _assert_roster_covers_specs(specs_to_run, diagnosis.run_plan.config_to_player)
+    _assert_roster_covers_specs(specs_to_run, run_plan.config_to_player)
 
     # 4. Build the spawn environment from the manifest, then spawn → submit → monitor. W&B is not
     #    configured here — the spawned processes inherit the ambient WANDB_* env untouched.
