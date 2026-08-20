@@ -1,12 +1,12 @@
 # Manuals
 
-Manual profiles describe the documents required by a suite. The manual commands download their
-source files and compile cached handbook artifacts explicitly.
+Manual profiles describe the documents required by a suite. `gptnt run` downloads missing source
+files and compiles the manual artifacts required by the experiments it is about to start.
 
-!!! info "Current scope"
-    `gptnt manual compile` builds handbook artifacts for review or later processing. `gptnt run`
-    does not consume them yet. Runs continue to use the legacy manual until the manual integration
-    work is complete.
+!!! info "Automatic run preparation"
+    After doctor and resume checks, `gptnt run` prepares each distinct profile required by the
+    remaining manual-bearing experiments. Preparation completes before the experiment manager,
+    game rooms, or players start.
 
 ## Concepts
 
@@ -47,10 +47,10 @@ graph TD
   L --> V[Validate files in place]
 ```
 
-!!! important "Runs do not prepare manual content."
-    `gptnt run` does not download or compile manuals. Run `gptnt manual compile` to download missing
-    sources and build handbook artifacts, or run `gptnt manual download` to populate only the source
-    cache.
+!!! important "Runs prepare only the manuals they need."
+    Experiments skipped by resume filtering do not trigger preparation. A player whose protocol
+    excludes the manual does not read a manual artifact. If preparation fails, the run stops before any
+    process starts; `--force` does not bypass this step.
 
 
 ## Manual profiles
@@ -223,7 +223,7 @@ directory.
     path on the offline machine. Copy the complete directory so the downloaded inputs, compiler
     sources, and validated compiled artifacts remain together.
 
-## Compile handbook artifacts
+## Compile manual artifacts
 
 Install the Python dependencies and Playwright-managed Chromium before compiling:
 
@@ -234,7 +234,8 @@ mise run sync
 `mise run sync` runs `uv run playwright install chromium` after dependency installation. If the
 matching browser build is absent, the compile command reports that exact installation action.
 
-The compile command uses the same profile selection rules as the download command:
+The compile command remains available when you want to prepare or inspect artifacts before a run.
+It uses the same profile selection rules as the download command:
 
 ```bash
 gptnt manual compile
@@ -257,8 +258,11 @@ identity. It contains `handbook.pdf`, one UTF-8 text file and PNG for each page,
 A complete artifact is reused. An incomplete artifact is rebuilt. Delete an artifact directory to
 force a rebuild after inspecting or changing upstream cache contents.
 
-Compilation is an explicit preparation step. `gptnt run` does not invoke this command or read these
-artifacts yet.
+`gptnt run` performs the same download, resolution, and compilation automatically for the distinct
+profiles required after resume filtering. A complete cached artifact is reused, so copying the
+complete `output/manual_cache/` directory from a connected machine also supports offline runs.
+When an offline run reports a missing input or incomplete artifact, restore the complete cache or
+prepare the selected suites on a connected machine and copy it again.
 
 
 ## Resolve compilation inputs
@@ -283,4 +287,5 @@ Resolution also checks that every input prepared by the download step is present
 KtaneContent HTML or metadata file, official PDF, official page map, local HTML file, or referenced
 local dependency is reported with the frontmatter or profile index that selected it. Run
 `gptnt manual download` when a configured remote input is missing. Correct the profile or source
-configuration when the named document, language, page map, or local dependency is invalid.
+configuration when the named document, language, page map, or local dependency is invalid. During
+`gptnt run`, these failures stop the run before process spawn.

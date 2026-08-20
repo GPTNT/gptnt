@@ -20,6 +20,9 @@ from gptnt.interactive.orchestration import (
     spawn_players,
     spawn_rooms,
 )
+from gptnt.ktane.manuals.artifacts import ManualArtifact, prepare_manual_artifacts
+from gptnt.ktane.manuals.profile import ManualProfile
+from gptnt.ktane.manuals.sources import ManualSources
 from gptnt.observability.settings import ObservabilitySettings
 
 console = Console()
@@ -113,7 +116,11 @@ async def run_pipeline(
     #    specs reference must be in the spawned roster, else the run would silently stall.
     _assert_roster_covers_specs(specs_to_run, run_plan.config_to_player)
 
-    # 4. Build the spawn environment from the manifest, then spawn → submit → monitor. W&B is not
+    # 4. Prepare only the manuals needed by remaining specs. A failure here stops the run before
+    #    any process is spawned, including when --force allowed a failed doctor check.
+    manual_artifacts = await _prepare_run_manuals(specs_to_run)
+
+    # 5. Build the spawn environment from the manifest, then spawn → submit → monitor. W&B is not
     #    configured here — the spawned processes inherit the ambient WANDB_* env untouched.
     env_base = {"PYTHONUNBUFFERED": "1"}
     env_base.update(_observability_env(manifest.observability))
@@ -122,8 +129,38 @@ async def run_pipeline(
     _print_summary(manifest, specs, specs_to_run, output_dir, logs_dir)
 
     await _spawn_submit_monitor(
-        manifest, specs_to_run, env_base, output_dir, logs_dir, interactive=interactive
+        manifest,
+        specs_to_run,
+        manual_artifacts,
+        env_base,
+        output_dir,
+        logs_dir,
+        interactive=interactive,
     )
+
+
+async def _prepare_run_manuals(specs: list[ExperimentSpec]) -> dict[ManualProfile, ManualArtifact]:
+    """Prepare each distinct profile required by a remaining manual-bearing player."""
+    profiles = tuple(
+        dict.fromkeys(
+            spec.manual_profile
+            for spec in specs
+            if spec.defuser_protocol.include_manual
+            or (spec.expert_protocol is not None and spec.expert_protocol.include_manual)
+        )
+    )
+    if not profiles:
+        return {}
+
+    console.print(
+        f"[bold]Preparing {len(profiles)} manual profile(s) before starting processes...[/bold]"
+    )
+    sources = ManualSources.from_path(paths.manual_sources)
+    artifacts = await prepare_manual_artifacts(
+        profiles, sources=sources, cache_dir=paths.manual_cache, root_dir=paths.root
+    )
+    console.print(f"  Prepared {len(artifacts)} manual artifact(s).")
+    return artifacts
 
 
 def _assert_roster_covers_specs(
@@ -216,6 +253,7 @@ def _print_summary(
 async def _spawn_submit_monitor(
     manifest: RunManifest,
     specs: list[ExperimentSpec],
+    manual_artifacts: dict[ManualProfile, ManualArtifact],
     env_base: dict[str, str],
     output_dir: Path,
     logs_dir: Path,
@@ -239,11 +277,11 @@ async def _spawn_submit_monitor(
         if interactive:
             async with anyio.create_task_group() as task_group:
                 orch.on_spawn = lambda tp: task_group.start_soon(render_stream, tp)
-                await _spawn_and_submit(orch, manifest, specs, output_dir)
+                await _spawn_and_submit(orch, manifest, specs, manual_artifacts, output_dir)
                 await monitor_interactive(orch)
                 task_group.cancel_scope.cancel()
         else:
-            await _spawn_and_submit(orch, manifest, specs, output_dir)
+            await _spawn_and_submit(orch, manifest, specs, manual_artifacts, output_dir)
             await monitor_status(orch)
 
     console.print()
@@ -253,13 +291,21 @@ async def _spawn_submit_monitor(
 
 
 async def _spawn_and_submit(
-    orch: ProcessOrchestrator, manifest: RunManifest, specs: list[ExperimentSpec], output_dir: Path
+    orch: ProcessOrchestrator,
+    manifest: RunManifest,
+    specs: list[ExperimentSpec],
+    manual_artifacts: dict[ManualProfile, ManualArtifact],
+    output_dir: Path,
 ) -> None:
     """Spawn EM/rooms/players, submit the specs in-process, and tearing down on fail."""
     await spawn_experiment_manager(orch)
     await spawn_rooms(orch, manifest.rooms, manifest.displays)
     await spawn_players(
-        orch=orch, players=manifest.players, output_dir=output_dir, source=manifest.source
+        orch=orch,
+        players=manifest.players,
+        output_dir=output_dir,
+        source=manifest.source,
+        manual_artifacts=manual_artifacts,
     )
 
     console.print(f"\n[bold]Submitting {len(specs)} experiment spec(s) to the EM...[/bold]")

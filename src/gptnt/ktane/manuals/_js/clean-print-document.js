@@ -1,5 +1,5 @@
 () => {
-	// Rule-seed labels are merger UI annotations, not part of the accepted handbook pages.
+	// Rule-seed labels are merger UI annotations, not part of the accepted manual pages.
 	document.querySelectorAll(".page-header-section-title").forEach((element) => {
 		element.textContent = element.textContent.replace(
 			/\s+—\s+rule seed:\s+\d+$/i,

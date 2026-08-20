@@ -7,10 +7,11 @@ from typing import TYPE_CHECKING
 
 import anyio
 import httpx
+import orjson
 import structlog
 
 from gptnt.common.async_ops import periodic
-from gptnt.common.runtime_settings import RuntimeSettings
+from gptnt.common.runtime_settings import MANUAL_ARTIFACTS_ENV, RuntimeSettings
 from gptnt.experiments.recorder.resolve import resolve_recorder
 from gptnt.interactive.orchestration.orchestrator import (
     ProcessOrchestrator,
@@ -19,10 +20,12 @@ from gptnt.interactive.orchestration.orchestrator import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
+    from collections.abc import AsyncGenerator, Mapping
     from pathlib import Path
 
     from gptnt.experiments.ledger.base import Source
+    from gptnt.ktane.manuals.artifacts import ManualArtifact
+    from gptnt.ktane.manuals.profile import ManualProfile
     from gptnt.players.specification import PlayerSpec
 
 
@@ -128,9 +131,21 @@ def _build_player_command(*, player: PlayerSpec, source: Source) -> list[str]:
 
 
 async def spawn_players(
-    *, orch: ProcessOrchestrator, players: list[PlayerSpec], output_dir: Path, source: Source
+    *,
+    orch: ProcessOrchestrator,
+    players: list[PlayerSpec],
+    output_dir: Path,
+    source: Source,
+    manual_artifacts: Mapping[ManualProfile, ManualArtifact],
 ) -> None:
     """Spawn the requested players, each in its own process to run in parallel."""
+    encoded_manual_artifacts = orjson.dumps(
+        {
+            profile.runtime_digest: str(artifact.path)
+            for profile, artifact in manual_artifacts.items()
+        },
+        option=orjson.OPT_SORT_KEYS,
+    ).decode()
     logger.info("Starting players", count=sum(player.count for player in players))
     player_counters: Counter[str] = Counter()
     for player in players:
@@ -144,7 +159,10 @@ async def spawn_players(
             _ = await orch.spawn(  # noqa: WPS476
                 f"{player.player}__{idx}",
                 _build_player_command(player=player, source=source),
-                extra_env={"EXPERIMENT_RECORDER_OUTPUTS": str(output_dir)},
+                extra_env={
+                    "EXPERIMENT_RECORDER_OUTPUTS": str(output_dir),
+                    MANUAL_ARTIFACTS_ENV: encoded_manual_artifacts,
+                },
             )
             await anyio.sleep(1)  # noqa: WPS476
 

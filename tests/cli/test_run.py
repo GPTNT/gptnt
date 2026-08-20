@@ -1,9 +1,9 @@
 """Tests for the `gptnt run` pipeline and the public score-producing integrity gates.
 
 The public-boundary group uses `invoke_cli` and stops each command before its first write or spawn.
-The remaining tests cover the run pipeline's deterministic control flow, roster check, resume
-handling, environment construction, and process teardown without starting subprocesses or making
-network requests.
+The remaining tests cover the doctor gate, manual preparation, resume filtering, roster check,
+environment construction, and process teardown without starting subprocesses or making network
+requests.
 """
 
 from __future__ import annotations
@@ -32,12 +32,14 @@ from gptnt.provenance import Provenance
 from gptnt.statics import run as statics_run, run_metadata
 
 from tests._cli_runner import invoke_cli
-from tests._factories.experiments import make_experiment_spec
+from tests._factories.experiments import make_experiment_spec, make_manual_profile
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Sequence
+    from collections.abc import AsyncIterator, Callable, Sequence
+    from pathlib import Path
 
     from gptnt.experiments.spec import ExperimentSpec
+    from gptnt.ktane.manuals.profile import ManualProfile
 
 
 def _manifest(**overrides: object) -> RunManifest:
@@ -80,6 +82,7 @@ async def _record_spawn(
     calls: list[dict[str, object]],
     manifest: object,
     specs: object,
+    manual_artifacts: object,
     env_base: object,
     output_dir: object,
     logs_dir: object,
@@ -91,6 +94,7 @@ async def _record_spawn(
         {
             "manifest": manifest,
             "specs": specs,
+            "manual_artifacts": manual_artifacts,
             "env_base": env_base,
             "output_dir": output_dir,
             "logs_dir": logs_dir,
@@ -162,6 +166,22 @@ def _fixed_statics_identity(
         dataset_split=dataset_split,
         requested_revision=revision,
         resolved_revision="a1b2c3d4e5f6",
+    )
+
+
+def _manual_spec(document_id: str, *, seed: int) -> ExperimentSpec:
+    """Build one manual-bearing spec with a selectable profile."""
+    return make_experiment_spec(seed).model_copy(
+        update={
+            "manual_profile": make_manual_profile(document_id),
+            "defuser_protocol": PlayerProtocol(
+                role="defuser",
+                communication_style="sync",
+                is_playing_alone=True,
+                include_manual=True,
+            ),
+            "defuser_name": "claude-sonnet-4-6",
+        }
     )
 
 
@@ -514,6 +534,119 @@ async def test_run_pipeline_happy_path_spawns_with_resolved_specs(
     assert cast("RunManifest", calls[0]["manifest"]).displays == [0, 1]
 
 
+@pytest.mark.anyio
+async def test_run_prepares_distinct_remaining_profiles_before_spawn(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Download, resolve, and compile only distinct remaining profiles before spawn."""
+    first = _manual_spec("Wires", seed=1)
+    repeated = _manual_spec("Wires", seed=2)
+    second = _manual_spec("BigButton", seed=3)
+    completed = _manual_spec("Keypad", seed=4)
+    remaining = [first, repeated, second, _spec()]
+    all_specs = [*remaining, completed]
+    result = DiagnoseResult(
+        failed=False,
+        benchmark_failed=False,
+        player_reports=[],
+        run_plan=RunPlanResult(
+            findings=[],
+            specs=all_specs,
+            config_to_player={"claude-sonnet-4-6": "claude-sonnet-4-6"},
+            remaining_specs=remaining,
+        ),
+    )
+    _patch_diagnose(monkeypatch, result)
+    _patch_load_specs(monkeypatch, all_specs)
+    events: list[object] = []
+    calls: list[dict[str, object]] = []
+
+    async def download(  # noqa: WPS430
+        profiles: Sequence[ManualProfile], **_kwargs: object
+    ) -> object:
+        events.append(("download", profiles))
+        return object()
+
+    def resolve(  # noqa: WPS430
+        profile: ManualProfile, **_kwargs: object
+    ) -> tuple[object, ...]:
+        events.append(("resolve", profile))
+        return (object(),)
+
+    async def compiler_sources(_cache_dir: object) -> None:  # noqa: WPS430
+        events.append("compiler-sources")
+
+    def compile_manual(  # noqa: WPS430
+        resolved: tuple[object, ...], **_kwargs: object
+    ) -> SimpleNamespace:
+        events.append(("compile", resolved))
+        return SimpleNamespace(path=tmp_path / f"artifact-{len(events)}")
+
+    async def run_sync(function: Callable[[], SimpleNamespace]) -> SimpleNamespace:  # noqa: WPS430
+        return function()
+
+    async def spawn_recorder(*args: object, **kwargs: object) -> None:  # noqa: WPS430
+        events.append("spawn")
+        await _record_spawn(calls, *args, **kwargs)
+
+    monkeypatch.setattr(pipeline, "ManualSources", SimpleNamespace(from_path=lambda _: object()))
+    monkeypatch.setattr("gptnt.ktane.manuals.artifacts.download_manual_assets", download)
+    monkeypatch.setattr("gptnt.ktane.manuals.artifacts.resolve_manual_profile", resolve)
+    monkeypatch.setattr("gptnt.ktane.manuals.artifacts.prepare_compiler_sources", compiler_sources)
+    monkeypatch.setattr("gptnt.ktane.manuals.artifacts.compile_manual", compile_manual)
+    monkeypatch.setattr("gptnt.ktane.manuals.artifacts.run_sync", run_sync)
+    monkeypatch.setattr(pipeline, "_spawn_submit_monitor", spawn_recorder)
+
+    await pipeline.run_pipeline(_manifest(), manifest_stem="m")
+
+    expected_profiles = (first.manual_profile, second.manual_profile)
+    assert events[0] == ("download", expected_profiles)
+    assert [event[0] for event in events if isinstance(event, tuple)] == [
+        "download",
+        "resolve",
+        "resolve",
+        "compile",
+        "compile",
+    ]
+    assert events[-1] == "spawn"
+    prepared = cast("dict[ManualProfile, object]", calls[0]["manual_artifacts"])
+    assert set(prepared) == set(expected_profiles)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("resume_filtered", [False, True])
+async def test_manual_preparation_failure_prevents_spawn(
+    monkeypatch: pytest.MonkeyPatch, resume_filtered: bool
+) -> None:
+    """Preparation failure stops before spawn with a filtered or unknown resume result."""
+    spec = _manual_spec("Wires", seed=1)
+    result = DiagnoseResult(
+        failed=not resume_filtered,
+        benchmark_failed=False,
+        player_reports=[],
+        run_plan=RunPlanResult(
+            findings=[],
+            specs=[spec],
+            config_to_player={"claude-sonnet-4-6": "claude-sonnet-4-6"},
+            remaining_specs=[spec] if resume_filtered else None,
+        ),
+    )
+    _patch_diagnose(monkeypatch, result)
+    _patch_load_specs(monkeypatch, [spec])
+    calls = _patch_spawn(monkeypatch)
+
+    async def fail(*_args: object, **_kwargs: object) -> object:  # noqa: WPS430
+        raise RuntimeError("manual preparation failed")
+
+    monkeypatch.setattr(pipeline, "ManualSources", SimpleNamespace(from_path=lambda _: object()))
+    monkeypatch.setattr(pipeline, "prepare_manual_artifacts", fail)
+
+    with pytest.raises(RuntimeError, match="manual preparation failed"):
+        await pipeline.run_pipeline(_manifest(), manifest_stem="m", force=not resume_filtered)
+
+    assert calls == []
+
+
 # -------------------------------------------------------------------------------------------------
 # _spawn_submit_monitor — teardown on submit failure
 # -------------------------------------------------------------------------------------------------
@@ -539,7 +672,12 @@ async def test_spawn_submit_monitor_tears_down_on_submit_failure(
 
     with pytest.raises(RuntimeError):
         await pipeline._spawn_submit_monitor(
-            _manifest(), [_spec()], {"PYTHONUNBUFFERED": "1"}, tmp_path / "out", tmp_path / "logs"
+            _manifest(),
+            [_spec()],
+            {},
+            {"PYTHONUNBUFFERED": "1"},
+            tmp_path / "out",
+            tmp_path / "logs",
         )
 
     assert _FakeOrch.terminate_calls == [True]  # the cluster was torn down on submit failure

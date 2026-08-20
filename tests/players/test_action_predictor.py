@@ -43,7 +43,9 @@ def create_action_predictor(
     agent: Agent[Any, Any], capabilities: PlayerCapabilities, protocol: PlayerProtocol
 ) -> ActionPredictor:
     """Create an action predictor configured for one experiment."""
-    conversation = Conversation.begin(capabilities=capabilities, protocol=protocol)
+    conversation = Conversation.begin(
+        capabilities=capabilities, protocol=protocol, legacy_manual=protocol.include_manual
+    )
     predictor = ActionPredictor(agent=agent, capabilities=capabilities)
     predictor.configure_for_experiment(protocol=protocol, conversation=conversation)
     return predictor

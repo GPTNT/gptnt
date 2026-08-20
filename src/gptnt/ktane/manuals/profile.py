@@ -5,6 +5,8 @@ from typing import Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
+from gptnt.common.hashing import stable_digest
+
 type DocumentName = Annotated[str, Field(pattern=r"^[^/\\]+\.html$")]
 """The name of a single HTML document in the KtaneContent repository, without any directory."""
 
@@ -120,3 +122,8 @@ class ManualProfile(BaseModel):
 
     documents: tuple[Document, ...] = Field(min_length=1)
     """Documents to include, in what order they need to appear."""
+
+    @property
+    def runtime_digest(self) -> str:
+        """Return the stable digest used to address this profile at runtime."""
+        return stable_digest(self.model_dump(mode="json"))
