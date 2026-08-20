@@ -15,14 +15,14 @@ from tqdm import tqdm
 from whenever import Instant
 
 from gptnt.common.paths import Paths
-from gptnt.common.provenance import Provenance
 from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
 from gptnt.players.specification import PlayerCapabilities
 from gptnt.processors.image_resizer import ImageResizer
+from gptnt.provenance import Provenance
 from gptnt.statics.model import EvalModel, ModelOutput
 from gptnt.statics.output import StaticsReasoningParser, static_prediction_answer
 from gptnt.statics.preprocess import PostprocessInputsFunc
-from gptnt.statics.run_metadata import StaticsIdentity, StaticsRunMetadata
+from gptnt.statics.run_metadata import StaticsIdentity, StaticsRunMetadata, bind_run_metadata
 from gptnt.statics.scorers import Instances, Metrics, Predictions, Scorer, score_predictions
 
 logger = structlog.get_logger()
@@ -242,39 +242,44 @@ class RunHFDatasetEvaluation(RunEvaluation):
     dataset_split: str | None = None
 
     revision: str | None = None
-    """Dataset revision to pin (a branch, tag, or commit sha); `None` loads the default branch."""
+    """Requested branch, tag, or commit; the resolved commit is used for predictions."""
+
+    _resolved_revision: str | None = field(default=None, init=False, repr=False)
 
     preprocess_instance_func: PostprocessInputsFunc
     """The function to preprocess the instance before loading into the WeaveDataset."""
 
-    def write_run_metadata(self) -> None:
-        """Stamp `run_meta.json` beside the metrics so the outputs are self-describing."""
+    @override
+    async def throw(self) -> None:
+        """Bind provenance to the output set, then run predictions and metrics."""
+        provenance = Provenance.capture()
+
+        statics = StaticsIdentity.resolve(
+            task_name=self.task_name,
+            hf_repo_id=self.hf_repo_id,
+            dataset_split=self.dataset_split,
+            revision=self.revision,
+        )
         metadata = StaticsRunMetadata(
             model_name=self.model_name,
             run_date=Instant.now(),
-            statics=StaticsIdentity.resolve(
-                task_name=self.task_name,
-                hf_repo_id=self.hf_repo_id,
-                dataset_split=self.dataset_split,
-                revision=self.revision,
-            ),
+            statics=statics,
             capabilities=self.capabilities,
-            provenance=Provenance(),
+            provenance=provenance,
         )
-        metadata_file = self.output_dir.joinpath("run_meta.json")
-        _ = metadata_file.write_text(metadata.model_dump_json(indent=2))
+        bound_metadata = bind_run_metadata(metadata, output_dir=self.output_dir)
 
-    @override
-    async def throw(self) -> None:
-        """Run predictions and metrics, then stamp the run metadata beside them."""
+        # New and resumed predictions use the commit bound before the first prediction.
+        self._resolved_revision = bound_metadata.statics.resolved_revision
         await super().throw()
-        self.write_run_metadata()
 
     @override
     def load_dataset(self) -> list[dict[str, Any]]:
         """Load and preprocess the HuggingFace dataset into a list of instances."""
         dataset = datasets.load_dataset(
-            self.hf_repo_id, split=self.dataset_split, revision=self.revision
+            self.hf_repo_id,
+            split=self.dataset_split,
+            revision=self._resolved_revision or self.revision,
         )
 
         assert isinstance(dataset, (datasets.Dataset, datasets.DatasetDict))

@@ -22,6 +22,7 @@ from gptnt.interactive.services.timeouts import ServiceTimeouts
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.specification import PlayerRole
 from gptnt.prompts.reflection import convert_bomb_state_to_reflection
+from gptnt.provenance import Provenance
 
 logger = structlog.get_logger()
 timeouts = ServiceTimeouts()
@@ -42,6 +43,7 @@ class ExperimentRunner(abc.ABC):
     """Handle the lifecycle of the experiment."""
 
     experiment: ExperimentInstance
+    provenance: Provenance = field(default_factory=Provenance.capture, init=False, repr=False)
     game_client: GameClient = field(init=False)
     """Game client to interact with the game service."""
 
@@ -188,12 +190,15 @@ class ExperimentRunner(abc.ABC):
     async def configure_services(self) -> None:
         """Setup the services for the experiment."""
         _ = await self.defuser_player_client.configure_player(
-            player_protocol=self.experiment.defuser_protocol, experiment_instance=self.experiment
+            player_protocol=self.experiment.defuser_protocol,
+            experiment_instance=self.experiment,
+            provenance=self.provenance,
         )
         if self.experiment.expert and self.expert_player_client:
             _ = await self.expert_player_client.configure_player(
                 player_protocol=self.experiment.expert.protocol,
                 experiment_instance=self.experiment,
+                provenance=self.provenance,
             )
         await self.game_client.configure_game(
             spec=self.experiment.mission_spec, session_id=self.experiment.session_id

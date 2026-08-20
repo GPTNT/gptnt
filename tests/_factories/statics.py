@@ -46,7 +46,12 @@ def write_statics_run(
                     "resolved_revision": resolved_revision,
                 },
                 "capabilities": capabilities.model_dump(mode="json"),
-                "provenance": {"gptnt_version": "0.15.0", "git_sha": "a1b2c3d4"},
+                "provenance": {
+                    "gptnt_version": "2.0.0",
+                    "release_commit": "a1b2c3d4",
+                    "release_tag": "v0.15.0",
+                    "protected_content_modified": False,
+                },
             }
         )
     )

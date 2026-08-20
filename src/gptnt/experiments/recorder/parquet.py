@@ -15,12 +15,12 @@ import pyarrow as pa
 from pyarrow import parquet as pq
 from pydantic import ConfigDict
 
-from gptnt.common.provenance import Provenance
 from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER, arrow_schema_for
 from gptnt.experiments.instance import ExperimentInstance  # noqa: TC001
 from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep
 from gptnt.ktane.state.bomb import BombState  # noqa: TC001
 from gptnt.players.specification import PlayerRole  # noqa: TC001
+from gptnt.provenance import Provenance
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -71,7 +71,9 @@ def footer_from_player_record(record: ExperimentPlayerRecord) -> dict[bytes, byt
         is_hard_crash=record.is_hard_crash,
         role=record.role,
         gptnt_version=record.gptnt_version,
-        git_sha=record.git_sha,
+        release_commit=record.release_commit,
+        release_tag=record.release_tag,
+        protected_content_modified=record.protected_content_modified,
     )
     return build_footer(footer, player_uuid=str(record.player_content.uuid))
 
@@ -153,5 +155,7 @@ def load_player_record_from_parquet(path: Path) -> ExperimentPlayerRecord:
         step_records=steps,
         is_hard_crash=footer.is_hard_crash,
         gptnt_version=footer.gptnt_version,
-        git_sha=footer.git_sha,
+        release_commit=footer.release_commit,
+        release_tag=footer.release_tag,
+        protected_content_modified=footer.protected_content_modified,
     )

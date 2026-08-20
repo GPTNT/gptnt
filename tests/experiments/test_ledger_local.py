@@ -13,7 +13,11 @@ from gptnt.experiments.recorder.parquet import (
 )
 from gptnt.ktane.state.bomb import BombState
 
-from tests._factories.experiments import make_experiment_instance, make_experiment_spec
+from tests._factories.experiments import (
+    make_experiment_instance,
+    make_experiment_spec,
+    make_provenance,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -65,7 +69,11 @@ def _write(output_dir: Path, *, seed: int, final_bomb_state: BombState | None, c
     """
     instance = make_experiment_instance(make_experiment_spec(seed=seed))
     footer_model = RecordFooter(
-        instance=instance, final_bomb_state=final_bomb_state, is_hard_crash=crash, role="defuser"
+        instance=instance,
+        final_bomb_state=final_bomb_state,
+        is_hard_crash=crash,
+        role="defuser",
+        **make_provenance().model_dump(),
     )
     footer = build_footer(footer_model, player_uuid=str(uuid4()))
     path = output_dir / f"experiment-{uuid4()}.parquet"

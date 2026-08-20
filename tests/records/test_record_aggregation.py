@@ -15,7 +15,7 @@ from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.actions import DoNothingAction
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
-from tests._factories.experiments import make_manual_profile
+from tests._factories.experiments import make_manual_profile, make_provenance
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -106,6 +106,7 @@ def _player_record(
         player_content=content,
         step_records=steps,
         is_hard_crash=is_hard_crash,
+        **make_provenance().model_dump(),
     )
 
 

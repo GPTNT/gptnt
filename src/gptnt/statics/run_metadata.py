@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Self
 
 import structlog
@@ -5,8 +6,8 @@ from huggingface_hub import HfApi
 from pydantic import BaseModel
 from whenever import Instant
 
-from gptnt.common.provenance import Provenance
 from gptnt.players.specification import PlayerCapabilities
+from gptnt.provenance import Provenance
 
 logger = structlog.get_logger()
 _UNPINNED = "unpinned"
@@ -91,3 +92,35 @@ class StaticsRunMetadata(BaseModel, frozen=True):
     statics: StaticsIdentity
     capabilities: PlayerCapabilities
     provenance: Provenance
+
+
+def bind_run_metadata(metadata: StaticsRunMetadata, *, output_dir: Path) -> StaticsRunMetadata:
+    """Bind an output directory to its first matching metadata snapshot."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    metadata_file = output_dir / "run_meta.json"
+
+    # A resumed output set retains the metadata and timestamp written before its first prediction.
+    if metadata_file.exists():
+        stored_metadata = StaticsRunMetadata.model_validate_json(metadata_file.read_text())
+        expected_metadata = metadata.model_copy(
+            update={
+                "run_date": stored_metadata.run_date,
+                "statics": metadata.statics.model_copy(
+                    update={"resolved_revision": stored_metadata.statics.resolved_revision}
+                ),
+            }
+        )
+        if stored_metadata != expected_metadata:
+            raise ValueError(
+                f"Stored statics metadata at {metadata_file} does not match the current run"
+            )
+        return stored_metadata
+
+    # Existing predictions cannot be assigned provenance from a later invocation.
+    if any(output_dir.glob("prediction_*.json")):
+        raise ValueError(
+            f"Cannot resume statics outputs from {output_dir}: {metadata_file.name} is missing"
+        )
+
+    _ = metadata_file.write_text(metadata.model_dump_json(indent=2))
+    return metadata

@@ -37,6 +37,7 @@ from tests._cli_runner import invoke_cli
 from tests._factories.experiments import (
     make_experiment_instance,
     make_experiment_spec,
+    make_provenance,
     make_solved_bomb,
 )
 from tests._factories.statics import write_statics_run
@@ -64,8 +65,7 @@ def _make_experiment(mission: KtaneMissionSpec, suite: Suite) -> SubmissionExper
         instance=make_experiment_instance(spec),
         final_bomb_state=make_solved_bomb(),
         is_hard_crash=False,
-        gptnt_version="0.15.0",
-        git_sha="a1b2c3d4",
+        provenance=make_provenance(),
     )
     return SubmissionExperiment.from_summary(
         summary=summary, final_bomb_state=make_solved_bomb(), usage_by_role={"defuser": RunUsage()}
@@ -139,6 +139,25 @@ def test_valid_bundle_passes(bundle_copy: Path) -> None:
     assert result.exit_code == 0, result.output
     assert "✗" not in result.output
     assert "1 ok, 0 failed" in result.output
+
+
+def test_interactive_bundle_rejects_mixed_provenance_at_build_and_validation(
+    bundle_copy: Path, suite: Suite, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Construction and validation both reject payload rows from another benchmark state."""
+    payload = bundle_copy / "experiments.parquet"
+    experiments = read_typed_parquet(SubmissionExperiment, payload)
+    conflicting = experiments[1].model_copy(update={"protected_content_modified": True})
+    mixed_experiments = [experiments[0], conflicting, *experiments[2:]]
+
+    # New bundles reject a mixed output set before writing its singular manifest provenance.
+    with pytest.raises(ValueError, match="conflicting provenance"):
+        _ = InteractiveBundle.from_experiments(mixed_experiments, suite)
+
+    # Validation also catches a payload changed after a valid manifest was written.
+    write_typed_parquet(mixed_experiments, file_path=payload)
+    _assert_validate_fails(bundle_copy)
+    assert "✗ provenance" in _unwrap_output(capsys)
 
 
 def test_missing_mission_fails(bundle_copy: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -215,16 +234,6 @@ def test_missing_payload_fails(bundle_copy: Path) -> None:
     (bundle_copy / "experiments.parquet").unlink()
 
     _assert_validate_fails(bundle_copy)
-
-
-def test_dirty_git_sha_warns_but_passes(bundle_copy: Path) -> None:
-    manifest = _read_manifest(bundle_copy)
-    manifest["provenance"]["git_sha"] = "a1b2c3d4-dirty"
-    _write_manifest(bundle_copy, manifest)
-
-    result = invoke_cli(build_app(), ["submission", "validate", str(bundle_copy)])
-    assert result.exit_code == 0, result.output
-    assert "⚠" in result.output
 
 
 def test_sweep_reports_every_bundle(bundle_copy: Path, capsys: pytest.CaptureFixture[str]) -> None:

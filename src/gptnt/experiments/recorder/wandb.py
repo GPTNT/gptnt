@@ -23,11 +23,12 @@ if TYPE_CHECKING:
     from whenever import Instant
 
     from gptnt.experiments.instance import ExperimentInstance
-    from gptnt.experiments.models import ExperimentStep
+    from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep
     from gptnt.ktane.actions import KtaneGameplayInput
     from gptnt.players.actions import PlayerOutputType
     from gptnt.players.result import AgentCallResult
     from gptnt.players.specification import PlayerProtocol
+    from gptnt.provenance import Provenance
 
 logger = structlog.get_logger()
 
@@ -98,9 +99,13 @@ class WandbExperimentPlayerRecorder(ExperimentPlayerRecorder):
         experiment_instance: ExperimentInstance,
         protocol: PlayerProtocol,
         player_uuid: UUID4,
+        provenance: Provenance,
     ) -> None:
         await super().configure_for_experiment(
-            experiment_instance=experiment_instance, protocol=protocol, player_uuid=player_uuid
+            experiment_instance=experiment_instance,
+            protocol=protocol,
+            player_uuid=player_uuid,
+            provenance=provenance,
         )
         func = partial(
             wandb.init,
@@ -142,7 +147,8 @@ class WandbExperimentPlayerRecorder(ExperimentPlayerRecorder):
             is_reflection=is_reflection,
         )
         # Log step to WandB
-        data_to_send = self._compute_data_to_send()
+        player_record = self.build_player_record()
+        data_to_send = self._compute_data_to_send(player_record)
         with logfire.span("Log with wandb"), suppress(wandb.Error):
             wandb.log(
                 {"step": self.num_steps, **data_to_send, **kwargs},
@@ -157,7 +163,7 @@ class WandbExperimentPlayerRecorder(ExperimentPlayerRecorder):
         player_record = await player_record.rebuild_with_observations()
         await self.save_player_record_to_disk(player_record=player_record)
 
-        data_to_send = self._compute_data_to_send(is_hard_crash=is_hard_crash)
+        data_to_send = self._compute_data_to_send(player_record)
         data_to_send["step_records"] = convert_records_to_wandb_table(player_record.step_records)
 
         wandb.log(data_to_send, commit=False)
@@ -177,7 +183,7 @@ class WandbExperimentPlayerRecorder(ExperimentPlayerRecorder):
                 logger.exception("Error finishing WandB run", error=err)
         logger.debug("WandB run finished")
 
-    def _compute_data_to_send(self, *, is_hard_crash: bool = False) -> dict[str, Any]:
+    def _compute_data_to_send(self, player_record: ExperimentPlayerRecord) -> dict[str, Any]:
         """Compute the data to send to WandB.
 
         The outcome subset is logged under the canonical ExperimentOutcome names, which is shared
@@ -187,7 +193,6 @@ class WandbExperimentPlayerRecorder(ExperimentPlayerRecorder):
         The outcome is logged only when a final bomb state exists (i.e., for the defuser). An
         expert run has no outcome because they never observed the bomb.
         """
-        player_record = self.build_player_record(is_hard_crash=is_hard_crash)
         data_to_send = player_record.model_dump(
             mode="json", exclude={"step_records", "experiment_instance", "player_content"}
         )

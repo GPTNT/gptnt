@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from gptnt.players.actions import PlayerOutputType
     from gptnt.players.result import AgentCallResult
     from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
+    from gptnt.provenance import Provenance
 
 logger = structlog.get_logger()
 
@@ -40,6 +41,7 @@ class ExperimentPlayerRecorder:
     """Record the events of an experiment for a single player."""
 
     capabilities: PlayerCapabilities
+    provenance: Provenance | None = field(default=None, init=False)
     player_uuid: UUID4 = field(init=False, repr=False)
 
     experiment_instance: ExperimentInstance | None = field(default=None, init=False)
@@ -71,12 +73,14 @@ class ExperimentPlayerRecorder:
         experiment_instance: ExperimentInstance,
         protocol: PlayerProtocol,
         player_uuid: UUID4,
+        provenance: Provenance,
     ) -> None:
         """Start tracking an experiment."""
         self.experiment_instance = experiment_instance
         self.protocol = protocol
         self.player_uuid = player_uuid
         self.start_time = experiment_instance.start_time
+        self.provenance = provenance
         logger.debug(
             "Configured experiment logger",
             attempt_name=experiment_instance.attempt_name,
@@ -168,6 +172,7 @@ class ExperimentPlayerRecorder:
         self._current_bomb_state = None
         self._current_observation_path = None
         self.last_output = None
+        self.provenance = None
 
     @logfire.instrument("Stop experiment tracker")
     async def on_experiment_stop(self, *, is_hard_crash: bool = False) -> None:
@@ -179,6 +184,7 @@ class ExperimentPlayerRecorder:
         """Build the ExperimentPlayerRecord from the current state."""
         assert self.experiment_instance is not None, "Must configure experiment before building"
         assert self.protocol is not None, "Must configure experiment before building"
+        assert self.provenance is not None, "Must configure experiment before building"
         player_content = self.experiment_instance.get_player_content_by_role(
             role=self.protocol.role
         )
@@ -187,6 +193,10 @@ class ExperimentPlayerRecorder:
             player_content=player_content,
             step_records=self.step_records,
             is_hard_crash=is_hard_crash,
+            gptnt_version=self.provenance.gptnt_version,
+            release_commit=self.provenance.release_commit,
+            release_tag=self.provenance.release_tag,
+            protected_content_modified=self.provenance.protected_content_modified,
         )
 
     async def save_player_record_to_disk(self, *, player_record: ExperimentPlayerRecord) -> None:

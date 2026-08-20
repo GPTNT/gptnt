@@ -23,7 +23,7 @@ from gptnt.ktane.state.bomb import BombOutcome, BombState
 from gptnt.players.actions import DoNothingAction
 from gptnt.players.specification import PlayerCapabilities
 
-from tests._factories.experiments import make_experiment_instance
+from tests._factories.experiments import make_experiment_instance, make_provenance
 
 # Names retired by the convergence — must never reappear as summary columns or logged metrics.
 _RETIRED_NAMES = frozenset(
@@ -96,7 +96,10 @@ def test_outcome_and_validity_parity(
     """The DB summary, the W&B run summary, and both validity checks all agree per outcome."""
     instance = make_experiment_instance()
     summary = ExperimentSummary.from_instance_and_bomb_state(
-        instance=instance, final_bomb_state=bomb, is_hard_crash=is_hard_crash
+        instance=instance,
+        final_bomb_state=bomb,
+        is_hard_crash=is_hard_crash,
+        provenance=make_provenance(),
     )
 
     # The DuckDB summary carries every outcome field under the same name and value.
@@ -133,6 +136,7 @@ def test_wandb_recorder_logs_canonical_outcome_names() -> None:
     recorder = WandbExperimentPlayerRecorder(
         capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai")
     )
+    recorder.provenance = make_provenance()
     recorder.experiment_instance = instance
     recorder.protocol = instance.defuser_protocol
     recorder.player_uuid = instance.defuser_uuid
@@ -153,7 +157,7 @@ def test_wandb_recorder_logs_canonical_outcome_names() -> None:
         )
     ]
 
-    logged = recorder._compute_data_to_send()
+    logged = recorder._compute_data_to_send(recorder.build_player_record())
 
     assert set(ExperimentOutcome.model_fields) <= set(logged)
     assert {"time_remaining", "total_modules_solved", "total_strikes"}.isdisjoint(logged)
@@ -165,6 +169,6 @@ def test_wandb_recorder_logs_canonical_outcome_names() -> None:
     assert logged["is_timed_out"] is True
     assert logged["is_strike_out"] is False
 
-    crashed = recorder._compute_data_to_send(is_hard_crash=True)
+    crashed = recorder._compute_data_to_send(recorder.build_player_record(is_hard_crash=True))
     assert crashed["outcome"] == BombOutcome.timeout
     assert crashed["is_hard_crash"] is True

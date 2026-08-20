@@ -21,8 +21,8 @@ While `MAJOR` is `0`, a breaking commit bumps **MINOR** (not to `1.0.0`), and a 
 **PATCH**. This is commitizen's `major_version_zero` behaviour and is configured in `pyproject.toml`.
 
 Comparability is judged on **MAJOR** once we are past `1.0.0` (same major ⇒ comparable). The full
-version and git SHA are stamped into every recorded run for exact reproduction (see
-[`provenance.py`](src/gptnt/common/provenance.py)).
+package version, release tag, and release commit are stamped into every recorded run for exact
+reproduction (see [provenance model](src/gptnt/provenance/model.py)).
 
 ### How versions are produced
 

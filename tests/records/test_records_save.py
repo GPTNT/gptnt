@@ -9,6 +9,7 @@ from pydantic_ai.result import RunUsage
 from pytest_cases import fixture
 from whenever import Instant
 
+from gptnt.experiments.db.extract import extract_metadata_from_paths
 from gptnt.experiments.db.ingest import ingest_player_records
 from gptnt.experiments.instance import ExperimentInstance, PlayerContent
 from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep
@@ -29,7 +30,7 @@ from gptnt.players.observation_handler import Observation
 from gptnt.players.result import AgentCallResult
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
-from tests._factories.experiments import make_manual_profile
+from tests._factories.experiments import make_manual_profile, make_provenance
 
 
 @fixture
@@ -195,6 +196,7 @@ def _build_player_record(
         player_content=content,
         step_records=[step1, step2],
         is_hard_crash=False,
+        **make_provenance().model_dump(),
     )
 
 
@@ -238,7 +240,7 @@ async def test_recorder_saves_parquet_roundtrips(
     assert footer.final_bomb_state is not None
     assert footer.is_hard_crash is False
     assert loaded.gptnt_version == player_record.gptnt_version
-    assert loaded.git_sha == player_record.git_sha
+    assert loaded.release_commit == player_record.release_commit
 
 
 def test_record_footer_rejects_unknown_format_version(
@@ -273,6 +275,7 @@ async def test_recorder_skips_empty_record(
         player_content=player_content,
         step_records=[],
         is_hard_crash=False,
+        **make_provenance().model_dump(),
     )
     recorder = ExperimentPlayerRecorder(
         capabilities=PlayerCapabilities(player_name="test-defuser", player_type="ai")
@@ -290,6 +293,7 @@ async def test_recorder_uses_shared_origin_and_supplied_dispatch_timestamp(
     player_content: PlayerContent,
     simple_model_messages: list[ModelMessage],
 ) -> None:
+    provenance = make_provenance()
     first = ExperimentPlayerRecorder(capabilities=player_content.capabilities)
     second = ExperimentPlayerRecorder(capabilities=player_content.capabilities)
 
@@ -298,6 +302,7 @@ async def test_recorder_uses_shared_origin_and_supplied_dispatch_timestamp(
             experiment_instance=experiment_instance,
             protocol=player_content.protocol,
             player_uuid=player_content.uuid,
+            provenance=provenance,
         )
 
     assert first.start_time == second.start_time == experiment_instance.start_time
@@ -312,6 +317,67 @@ async def test_recorder_uses_shared_origin_and_supplied_dispatch_timestamp(
     )
 
     assert first.step_records[0].timestamp == pytest.approx(2.75)
+
+
+@pytest.mark.anyio
+async def test_recorder_reuses_the_experiment_provenance_snapshot(
+    experiment_instance: ExperimentInstance, player_content: PlayerContent
+) -> None:
+    """Repeated record builds use the snapshot supplied by the experiment boundary."""
+    provenance = make_provenance()
+    recorder = ExperimentPlayerRecorder(capabilities=player_content.capabilities)
+
+    # Configuration binds the experiment-wide snapshot to this player's output representations.
+    await recorder.configure_for_experiment(
+        experiment_instance=experiment_instance,
+        protocol=player_content.protocol,
+        player_uuid=player_content.uuid,
+        provenance=provenance,
+    )
+    player_record = recorder.build_player_record()
+    second_record = recorder.build_player_record()
+
+    assert player_record.release_tag == provenance.release_tag
+    assert second_record.protected_content_modified is provenance.protected_content_modified
+
+    # Reset clears the earlier snapshot before the recorder accepts another experiment.
+    recorder.reset()
+    next_provenance = provenance.model_copy(update={"protected_content_modified": True})
+    await recorder.configure_for_experiment(
+        experiment_instance=experiment_instance,
+        protocol=player_content.protocol,
+        player_uuid=player_content.uuid,
+        provenance=next_provenance,
+    )
+    assert recorder.build_player_record().protected_content_modified is True
+
+
+def test_grouped_player_files_reject_conflicting_provenance(
+    tmp_path: Path,
+    experiment_instance: ExperimentInstance,
+    player_content: PlayerContent,
+    step_record: ExperimentStep,
+) -> None:
+    """Ingestion must not choose one player's provenance for a conflicting output set."""
+    first_record = _build_player_record(experiment_instance, player_content, step_record)
+    second_content = PlayerContent(
+        protocol=player_content.protocol,
+        name=player_content.name,
+        uuid=uuid4(),
+        capabilities=player_content.capabilities,
+    )
+    second_record = _build_player_record(
+        experiment_instance, second_content, step_record
+    ).model_copy(update={"protected_content_modified": True})
+
+    # Write two player files for the same session with different captured benchmark states.
+    first_path = tmp_path / "defuser.parquet"
+    second_path = tmp_path / "expert.parquet"
+    _write_record_parquet(first_record, first_path)
+    _write_record_parquet(second_record, second_path)
+
+    with pytest.raises(ValueError, match="Conflicting provenance"):
+        _ = extract_metadata_from_paths([first_path, second_path])
 
 
 def _write_record_parquet(record: ExperimentPlayerRecord, path: Path) -> None:

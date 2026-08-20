@@ -24,7 +24,6 @@ from pydantic_ai import ModelMessage, ModelMessagesTypeAdapter, RunUsage
 from whenever import Instant
 
 from gptnt.common.logger import monkey_patch_binary_content_repr
-from gptnt.common.provenance import Provenance
 from gptnt.experiments.db.schema import AsBlob, AsJSON, AsVarchar, DuckDBSchemaMixin
 from gptnt.experiments.instance import ExperimentInstance, PlayerContent
 from gptnt.ktane.actions import KtaneBaseAction, KtaneGameplayInput
@@ -41,6 +40,7 @@ from gptnt.players.specification import (
     PlayerProtocol,
     PlayerRole,
 )
+from gptnt.provenance import Provenance
 
 logger = structlog.get_logger()
 
@@ -268,6 +268,10 @@ class ExperimentPlayerRecord(Provenance, StepRecordsMetricsMixin):
             player_content=player_content,
             step_records=step_records,
             is_hard_crash=summary.is_hard_crash,
+            gptnt_version=summary.gptnt_version,
+            release_commit=summary.release_commit,
+            release_tag=summary.release_tag,
+            protected_content_modified=summary.protected_content_modified,
         )
 
 
@@ -397,22 +401,17 @@ class ExperimentSummary(ExperimentInstance, Provenance, ExperimentOutcome, DuckD
         instance: ExperimentInstance,
         final_bomb_state: BombState,
         is_hard_crash: bool,
-        gptnt_version: str | None = None,
-        git_sha: str | None = None,
+        provenance: Provenance | None = None,
     ) -> Self:
         """Construct a summary from an experiment instance and its final bomb state."""
         outcome = ExperimentOutcome.model_validate(final_bomb_state)
-        # Omit gptnt_version when not supplied so the Provenance default_factory resolves the
-        # live version, rather than passing a placeholder the field validator rejects.
-        provenance: dict[str, Any] = {"git_sha": git_sha}
-        if gptnt_version is not None:
-            provenance["gptnt_version"] = gptnt_version
+        captured = provenance or Provenance.capture()
 
         return cls.model_validate(
             instance.model_dump(exclude_computed_fields=True)
             | outcome.model_dump()
             | {"is_hard_crash": is_hard_crash}
-            | provenance
+            | captured.model_dump()
         )
 
 
