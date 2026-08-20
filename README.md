@@ -15,6 +15,15 @@ Two AI agents must play the roles of _Defuser_ and _Expert_ in [_Keep Talking an
 - [Leaderboard](https://gptnt.github.io)
 - [Documentation](https://gptnt.github.io/docs/)
 
+## Download
+
+```bash
+curl -fL https://github.com/GPTNT/gptnt/releases/latest/download/gptnt.tar.gz | tar -xzf -
+cd gptnt
+```
+
+Continue with [Get started](https://gptnt.github.io/docs/get-started/).
+
 ## Summary
 
 GPTNT is an AI benchmark built on **KTANE** ("Keep Talking and Nobody Explodes"): a co-op bomb-defusal game where a _Defuser_ who can see the bomb and an _Expert_ who can read the manual must talk to each other to defuse it. Here, the players are AI models. You run **experiments** that pair models against bombs and record how well they do. The job of this repo is to generate those experiments, run them, and collect the results.

@@ -1274,6 +1274,10 @@ lint = [
     { name = "typos" },
     { name = "wemake-python-styleguide" },
 ]
+release = [
+    { name = "repro-tarfile" },
+    { name = "repro-zipfile" },
+]
 tests = [
     { name = "asgi-lifespan" },
     { name = "deepdiff" },
@@ -1364,6 +1368,10 @@ lint = [
     { name = "toml-sort", specifier = ">=0.24.2" },
     { name = "typos", specifier = ">=1.48.0" },
     { name = "wemake-python-styleguide", specifier = ">=1.0.0" },
+]
+release = [
+    { name = "repro-tarfile", specifier = ">=0.2.1" },
+    { name = "repro-zipfile", specifier = ">=0.4.1" },
 ]
 tests = [
     { name = "asgi-lifespan", specifier = ">=2.1.0" },
@@ -3973,6 +3981,24 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/db/ce/06edc89df8f7b83ffd321b6071be4c54dc7332c0f77860edc40ce57d757b/regex-2025.9.18-cp313-cp313t-win32.whl", hash = "sha256:168be0d2f9b9d13076940b1ed774f98595b4e3c7fc54584bba81b3cc4181742e", size = 267281, upload-time = "2025-09-19T00:37:08.568Z" },
     { url = "https://files.pythonhosted.org/packages/83/9a/2b5d9c8b307a451fd17068719d971d3634ca29864b89ed5c18e499446d4a/regex-2025.9.18-cp313-cp313t-win_amd64.whl", hash = "sha256:d59ecf3bb549e491c8104fea7313f3563c7b048e01287db0a90485734a70a730", size = 278724, upload-time = "2025-09-19T00:37:10.023Z" },
     { url = "https://files.pythonhosted.org/packages/3d/70/177d31e8089a278a764f8ec9a3faac8d14a312d622a47385d4b43905806f/regex-2025.9.18-cp313-cp313t-win_arm64.whl", hash = "sha256:dbef80defe9fb21310948a2595420b36c6d641d9bea4c991175829b2cc4bc06a", size = 269771, upload-time = "2025-09-19T00:37:13.041Z" },
+]
+
+[[package]]
+name = "repro-tarfile"
+version = "0.2.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/db/9c/e20ebafa19934cbe82a3aa60b55d73f773aa640d3ed3811ccb6f40c11d5f/repro_tarfile-0.2.1.tar.gz", hash = "sha256:4270205de0f1411fdd332f77156124c1dfe04d922ea1ba399fb50dd370cd04f3", size = 72963, upload-time = "2025-10-06T00:17:56.189Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a8/2d/2abf672eb5cd644e1e704dd7a269a42e9bcea8c868819248c3476c8b2390/repro_tarfile-0.2.1-py3-none-any.whl", hash = "sha256:e44b1d1bc47328deeab210dafcaa9521614c3af8765f53ea66b53ad8e7937444", size = 20730, upload-time = "2025-10-06T00:17:54.952Z" },
+]
+
+[[package]]
+name = "repro-zipfile"
+version = "0.4.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/68/d4/514da0758e1ba5723ad45ff9981c8e3b30f5114516f9ba3968ccae3c0043/repro_zipfile-0.4.1.tar.gz", hash = "sha256:0d5995b4311ed4871cbf6b3210e6a340b0f35f6e4ce2ba27676470bf6987c1db", size = 59691, upload-time = "2025-10-05T23:00:35.721Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/00/e8/1f11d8061c433c5205f1caaa06221fb033beb2d8dd5f8d5aaf21b41742e5/repro_zipfile-0.4.1-py3-none-any.whl", hash = "sha256:3061d5ab47064ce17255e0e7baa3f2f9128873e1ff49946ce13b73f405167763", size = 11649, upload-time = "2025-10-05T23:00:34.595Z" },
 ]
 
 [[package]]
