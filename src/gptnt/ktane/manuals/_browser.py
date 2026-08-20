@@ -307,6 +307,7 @@ class _ManualRenderer:
         self._blocked_urls: list[str] = []
         self._page_errors: list[str] = []
         self._missing_keypad_assets: set[str] = set()
+        self._compiler_origin: tuple[str, str] | None = None
 
     def render(self) -> tuple[int, ...]:
         """Render the prepared selection through the pinned merger and managed Chromium."""
@@ -324,11 +325,12 @@ class _ManualRenderer:
             return self._render_in_browser(browser, base_url=base_url)
 
     def _handle_route(self, route: Route) -> None:
-        """Resolve one request under the merger's loopback-only network policy."""
+        """Resolve one request under the merger's exact-origin network policy."""
         parsed = urlparse(route.request.url)
+        is_compiler_origin = self._compiler_origin == (parsed.scheme, parsed.netloc)
 
-        # The upstream merger obtains its selected module metadata from this endpoint.
-        if parsed.path == "/json/raw":
+        # Only the private compiler origin may use the synthetic catalog endpoint.
+        if is_compiler_origin and parsed.path == "/json/raw":
             route.fulfill(
                 status=200,
                 content_type="application/json",
@@ -336,8 +338,8 @@ class _ManualRenderer:
             )
             return
 
-        # Replace upstream Keypad images with the accepted committed high-resolution assets.
-        if parsed.path.startswith(_KEYPAD_URL_PREFIX):
+        # Only compiler-origin Keypad requests receive committed high-resolution assets.
+        if is_compiler_origin and parsed.path.startswith(_KEYPAD_URL_PREFIX):
             filename = unquote(parsed.path.removeprefix(_KEYPAD_URL_PREFIX))
             asset_path = self._keypad_root / filename
             if asset_path.is_file():
@@ -347,8 +349,8 @@ class _ManualRenderer:
                 route.abort("failed")
             return
 
-        # Browser-internal URLs and the private server are the complete allowed request surface.
-        if parsed.scheme in {"about", "blob", "data"} or parsed.hostname == "127.0.0.1":
+        # Browser-internal URLs and this compiler server are the complete request surface.
+        if parsed.scheme in {"about", "blob", "data"} or is_compiler_origin:
             route.continue_()
             return
 
@@ -426,13 +428,16 @@ class _ManualRenderer:
             raise ManualBrowserError(f"manual HTML contains broken images: {broken_images}")
         if self._blocked_urls:
             raise ManualBrowserError(
-                f"manual HTML attempted non-loopback requests: {self._blocked_urls}"
+                f"manual HTML attempted requests outside the compiler origin: {self._blocked_urls}"
             )
         if self._page_errors:
             raise ManualBrowserError(f"manual HTML raised JavaScript errors: {self._page_errors}")
 
     def _render_in_browser(self, browser: Browser, *, base_url: str) -> tuple[int, ...]:
         """Run the load, frame capture, flat print, and final validation phases."""
+        # Include the ephemeral port so other services on loopback remain inaccessible.
+        compiler_url = urlparse(base_url)
+        self._compiler_origin = (compiler_url.scheme, compiler_url.netloc)
         page = self._new_page(browser)
         self._load_merger(page, base_url=base_url)
 

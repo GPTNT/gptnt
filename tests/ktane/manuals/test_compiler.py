@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import shutil
 from typing import TYPE_CHECKING
 
 import pymupdf
@@ -187,7 +188,15 @@ def test_browser_executes_and_prints_ordered_local_html(
                 body="blocked request",
                 script="fetch('https://example.invalid/input').catch(() => {});",
             ),
-            "non-loopback requests",
+            "outside the compiler origin",
+        ),
+        (
+            _PAGE.format(
+                heading="loopback",
+                body="blocked loopback service",
+                script="fetch('http://127.0.0.1:9/input').catch(() => {});",
+            ),
+            "outside the compiler origin",
         ),
         (
             _PAGE.format(
@@ -208,7 +217,7 @@ def test_browser_executes_and_prints_ordered_local_html(
 def test_browser_rejects_unsafe_or_incomplete_pages(
     tmp_path: Path, browser_sources: Callable[[Path], None], html: str, match: str
 ) -> None:
-    """Reject external requests, uncaught scripts, and images that fail to decode."""
+    """Reject other origins, uncaught scripts, and images that fail to decode."""
     cache_dir = tmp_path / "cache"
     browser_sources(cache_dir)
     source = tmp_path / "manual.html"
@@ -298,3 +307,26 @@ def test_cache_reuses_invalidates_and_rebuilds(tmp_path: Path) -> None:
 
     assert compile_manual([document], cache_dir=cache_dir) == changed
     assert incomplete_page.is_file()
+
+
+def test_cache_accepts_complete_artifact_published_concurrently(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Use a valid artifact when another compiler wins the publication race."""
+    source = tmp_path / "official.pdf"
+    _write_pdf(source, ["concurrent source"])
+    document = _official_document(source, document_id="Page", first=1, last=1)
+    cache_dir = tmp_path / "cache"
+
+    # Simulate another process copying the completed build into the target before rename.
+    def publish_first(build_dir: Path, artifact_dir: Path) -> Path:  # noqa: WPS430
+        """Materialize the competing valid artifact, then report the lost rename race."""
+        _ = shutil.copytree(build_dir, artifact_dir)
+        raise FileExistsError(artifact_dir)
+
+    monkeypatch.setattr(type(tmp_path), "rename", publish_first)
+
+    artifact = compile_manual([document], cache_dir=cache_dir)
+
+    assert (artifact / "handbook.pdf").is_file()
+    assert compile_manual([document], cache_dir=cache_dir) == artifact

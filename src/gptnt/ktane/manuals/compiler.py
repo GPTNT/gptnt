@@ -407,6 +407,13 @@ def compile_manual(documents: Sequence[ResolvedDocument], *, cache_dir: Path) ->
             build_dir, artifact_key=artifact_key, inputs=inputs, renderer=renderer
         ):
             raise ManualCompileError("compiler produced an incomplete artifact")
-        # Same-filesystem rename publishes the complete validated directory atomically.
-        _ = build_dir.rename(artifact_dir)
+        try:
+            # Same-filesystem rename publishes the complete validated directory atomically.
+            _ = build_dir.rename(artifact_dir)
+        except OSError:
+            # A concurrent compiler may have published the same immutable artifact first.
+            if not _valid_artifact(
+                artifact_dir, artifact_key=artifact_key, inputs=inputs, renderer=renderer
+            ):
+                raise
     return artifact_dir
