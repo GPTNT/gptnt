@@ -1,6 +1,6 @@
-import json
 from typing import Generic, Literal
 
+import orjson
 from pydantic import BaseModel, ConfigDict
 
 from gptnt.ktane.actions import GameActionType, KtaneBaseAction
@@ -15,7 +15,7 @@ class ModelOutputDumpsMixin(BaseModel):
 
     def text_part_dump(self) -> str:
         """Dump the model output as a string."""
-        return json.dumps(
+        return orjson.dumps(
             {
                 "result": {
                     "kind": self.model_config.get("title", self.__class__.__name__),
@@ -24,7 +24,7 @@ class ModelOutputDumpsMixin(BaseModel):
                     ),
                 }
             }
-        )
+        ).decode()
 
 
 class DoNothingAction(ModelOutputDumpsMixin):

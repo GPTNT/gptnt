@@ -1,8 +1,8 @@
 """Ordered manual source resolution and pre-render compatibility policy."""
 
-import json
 from pathlib import Path
 
+import orjson
 import pytest
 
 from gptnt.ktane.manuals.profile import LocalDocument, ManualProfile
@@ -58,13 +58,13 @@ def _sources(*, frontmatter: tuple[LocalDocument, ...] = ()) -> ManualSources:
 def _cache_ktane_content(cache_dir: Path) -> None:
     """Create the catalog, HTML, appendix, and JSON files expected from the downloader."""
     catalog = {"KtaneModules": [{"ModuleID": "Wires", "Name": "Wires"}]}
-    _write(cache_dir / "sources" / "ktanecontent" / "catalog" / "raw.json", json.dumps(catalog))
+    _write(cache_dir / "sources" / "ktanecontent" / "catalog" / "raw.json", orjson.dumps(catalog))
     revision = cache_dir / "sources" / "ktanecontent" / COMMIT
     _write(revision / "HTML" / "Wires.html", "<main>Cut a wire.</main>")
     _write(revision / "HTML" / "Appendix SQUARE.html", "<main>Appendix.</main>")
     _write(
         revision / "JSON" / "Wires.json",
-        json.dumps(
+        orjson.dumps(
             {
                 "ModuleID": "Wires",
                 "Name": "Wires",

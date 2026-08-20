@@ -13,11 +13,11 @@ runs are unchanged and the measurement does not affect the wall-clock.
 
 from __future__ import annotations
 
-import json
 import os
 from dataclasses import dataclass, fields
 from typing import TYPE_CHECKING, TextIO, TypedDict, override
 
+import orjson
 import structlog
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor, SpanExporter, SpanExportResult
 from opentelemetry.trace import format_span_id, format_trace_id
@@ -230,7 +230,8 @@ class SpanTimingExporter(SpanExporter):
         """Append `rows` as newline-delimited JSON and flush so they survive a hard exit."""
         writer = self._ensure_writer()
         for row in rows:
-            _ = writer.write(f"{json.dumps(row)}\n")
+            encoded = orjson.dumps(row, option=orjson.OPT_APPEND_NEWLINE)
+            _ = writer.write(encoded.decode())
         writer.flush()
 
 

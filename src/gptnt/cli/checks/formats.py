@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
+
+import orjson
 
 from gptnt.cli.checks.render import GLYPHS, render_report
 
@@ -87,7 +88,8 @@ def _render_json(reports: list[Report], console: Console, *, noun: str) -> None:
         ],
     }
     # markup/highlight off + soft_wrap so rich never mangles the machine-readable output.
-    console.print(json.dumps(payload, indent=2), markup=False, highlight=False, soft_wrap=True)
+    rendered = orjson.dumps(payload, option=orjson.OPT_INDENT_2).decode()
+    console.print(rendered, markup=False, highlight=False, soft_wrap=True)
 
 
 def _render_github(reports: list[Report], console: Console, *, title: str, noun: str) -> None:

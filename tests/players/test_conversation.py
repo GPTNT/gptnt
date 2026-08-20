@@ -1,5 +1,4 @@
 import datetime
-import json
 from pathlib import Path
 
 import orjson
@@ -283,9 +282,9 @@ def test_render_composes_truncation_windowing_and_coercion() -> None:
         "What should I do on turn 1?",
         "Response for turn 1.",
         "What should I do on turn 2?",
-        json.dumps(
+        orjson.dumps(
             {"result": {"kind": "send_message", "data": {"message": "Cut the blue wire."}}}
-        ),
+        ).decode(),
     ]
     requests = [message for message in rendered if isinstance(message, ModelRequest)]
     assert image_count([requests[0]]) == 0

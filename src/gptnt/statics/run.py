@@ -1,5 +1,4 @@
 import abc
-import json
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -7,6 +6,7 @@ from typing import Any, ClassVar, override
 
 import datasets
 import numpy as np
+import orjson
 import polars as pl
 import structlog
 from PIL import Image
@@ -86,7 +86,7 @@ async def run_eval_step(
     prediction = await predict_method(**instance)
     # Add index to prediction content
     prediction_with_index = {"index": instance["index"], **prediction}
-    _ = prediction_output_file.write_text(json.dumps(prediction_with_index))  # noqa: ASYNC240
+    _ = prediction_output_file.write_bytes(orjson.dumps(prediction_with_index))  # noqa: ASYNC240
     return prediction
 
 
@@ -188,10 +188,10 @@ class RunEvaluation(abc.ABC):
         predictions: Predictions = {}
         for instance in instances:
             prediction_file = self.output_dir.joinpath(f"prediction_{instance['index']}.json")
-            predictions[instance["index"]] = json.loads(prediction_file.read_text())
+            predictions[instance["index"]] = orjson.loads(prediction_file.read_bytes())
         metrics = score_predictions(self.scorers, instances, predictions)
         metrics_file = self.output_dir.joinpath("metrics.json")
-        _ = metrics_file.write_text(json.dumps(metrics, indent=2))
+        _ = metrics_file.write_bytes(orjson.dumps(metrics, option=orjson.OPT_INDENT_2))
         logger.info(f"Wrote metrics for {len(predictions)} predictions to {metrics_file}")
         return metrics
 

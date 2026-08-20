@@ -392,7 +392,7 @@ def test_normalised_coordinate_conversion_prefers_valid_candidate() -> None:
     output = '<action>{"x": 500}</action> <action>{"x": 400, "y": 600}</action>'
 
     assert convert_normalised_to_absolute(output, image_width=100, image_height=200) == (
-        '{"x": 40, "y": 120}'
+        '{"x":40,"y":120}'
     )
 
 
@@ -404,7 +404,7 @@ def test_normalised_coordinate_conversion_uses_model_scale() -> None:
         convert_normalised_to_absolute(
             output, image_width=640, image_height=480, normalised_upper_bound=1024
         )
-        == '{"x": 320, "y": 360}'
+        == '{"x":320,"y":360}'
     )
 
 

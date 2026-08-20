@@ -1,4 +1,3 @@
-import json
 from enum import StrEnum
 from functools import partial
 from typing import Annotated, Any, Literal, Self, Union
@@ -45,7 +44,7 @@ def _serialise_states_to_string(
 ) -> str:
     """Either we serialize it to string or let the handler do its job."""
     if info.context and info.context.get("serialize_as_string", False):
-        return json.dumps(TypeAdapter(obj_type).dump_python(input_value, mode="json"))
+        return orjson.dumps(TypeAdapter(obj_type).dump_python(input_value, mode="json")).decode()
     return handler(input_value)
 
 

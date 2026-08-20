@@ -1,6 +1,5 @@
 import asyncio
 import atexit
-import json
 import os
 import shutil
 import sys
@@ -12,8 +11,10 @@ from typing import Any
 
 import anyio
 import numpy as np
+import orjson
 import structlog
 from deepdiff import DeepDiff
+from scripts.seed_state_json import dump_unneeded_info
 from tqdm.asyncio import tqdm
 
 from gptnt.core.common.async_ops import until
@@ -227,8 +228,9 @@ async def run_seed_gathering_process(
         logger.warning(f"Seed {seed} failed to generate missions.")
         return
     # write the seed and difference rating to a file
-    with Path.open(seed_differences_path / f"seed_{seed}_differences.json", "w") as seed_file:
-        json.dump(difference_rating, seed_file)
+    _ = (seed_differences_path / f"seed_{seed}_differences.json").write_bytes(
+        orjson.dumps(difference_rating)
+    )
 
 
 async def main(num_clients: int = 3) -> None:
@@ -274,8 +276,7 @@ def flatten_json(data: list[float | list[float]] | list[float] | float) -> list[
 
 def calculate_average_for_seed(json_file: Path) -> float:
     """Calculates the average of all numerical values in a flattened .json file."""
-    with Path.open(json_file) as json_file_obj:
-        data = json.load(json_file_obj)
+    data = orjson.loads(json_file.read_bytes())
     flattened_values = flatten_json(data)
     return float(np.mean(flattened_values)) if flattened_values else float(0)
 
@@ -500,7 +501,7 @@ def check_modules_on_both_sides(path: Path) -> int | None:
     """Check if the bomb has modules on both sides."""
     all_bombs = list(path.rglob("*.json"))
     for bomb in all_bombs:
-        modules = json.loads(bomb.read_text()).get("modules", [])
+        modules = orjson.loads(bomb.read_bytes()).get("modules", [])
         has_front = any(module.get("onFront") for module in modules)
         has_back = any(not module.get("onFront") for module in modules)
         if not has_front and not has_back:
@@ -513,7 +514,7 @@ def check_modules_on_both_sides(path: Path) -> int | None:
 def check_valid_morse_code_modules(morse_code_path: Path) -> bool:
     """Ensure morse code is different."""
     all_bomb_paths = list(morse_code_path.rglob("*.json"))
-    all_bombs = [json.loads(bomb_path.read_text()) for bomb_path in all_bomb_paths]
+    all_bombs = [orjson.loads(bomb_path.read_bytes()) for bomb_path in all_bomb_paths]
     all_morse_modules = [module for modules in all_bombs for module in modules["modules"]]
     for module in all_morse_modules:
         if module["currentFrequency"] == module["correctFrequency"]:
@@ -525,7 +526,7 @@ def check_valid_morse_code_modules(morse_code_path: Path) -> bool:
 def save(path: Path, seed: int, modules: list[KtaneComponent], bomb_state: dict[str, Any]) -> None:
     """Saves the bomb state to a file."""
     file_name = str(seed) + "".join(f"_{component.name}" for component in modules)
-    file_save = path.joinpath(file_name).with_suffix(".json").write_text(json.dumps(bomb_state))
+    file_save = path.joinpath(file_name).with_suffix(".json").write_bytes(orjson.dumps(bomb_state))
     assert file_save > 0
 
 
@@ -533,62 +534,6 @@ def process_directory(bomb_states: Path) -> None:
     """Recursively process all .json files in a directory and its subdirectories."""
     for json_file in bomb_states.rglob("*.json"):  # Recursively find all .json files
         dump_unneeded_info(json_file)
-
-
-def remove_keys_recursively(data, keys_to_remove: list[str]) -> None:
-    """Recursively remove specified keys from dictionaries and lists."""
-    if isinstance(data, dict):
-        # Remove keys from the current dictionary
-        for key in keys_to_remove:
-            if key in data:
-                del data[key]
-        # Recursively process the remaining values
-        for value_to_be_removed in data.values():
-            remove_keys_recursively(value_to_be_removed, keys_to_remove)
-    elif isinstance(data, list):
-        # Recursively process each item in the list
-        for item_to_be_removed in data:
-            remove_keys_recursively(item_to_be_removed, keys_to_remove)
-
-
-def dump_unneeded_info(file_path: Path) -> None:
-    """Perform an operation on a JSON file."""
-    # Read the JSON file
-    with Path.open(file_path) as file_to_be_cleaned:
-        data = json.load(file_to_be_cleaned)
-
-    # Keys to remove
-    keys_to_remove = [
-        "isHeld",
-        "isSolved",
-        "inFocus",
-        "stage",
-        "numRows",
-        "numColumns",
-        # "currentFrequency",
-        "solveProgress",
-        "panel",
-        "stripColor",
-        "name",
-        "isCut",
-    ]
-    del data["timerModule"]["secondsRemaining"]
-
-    # Apply the recursive removal to the "modules" section
-    if "modules" in data:
-        for module in data["modules"]:
-            remove_keys_recursively(module, keys_to_remove)
-
-            # Check if the module is a Keypad module
-            if all(key in module for key in ["topLeft", "topRight", "bottomLeft", "bottomRight"]):
-                # Remove the `color` attribute from each position
-                for position in ["topLeft", "topRight", "bottomLeft", "bottomRight"]:
-                    if position in module and "color" in position:
-                        del module[position]["color"]
-
-    # Write the updated JSON back to the file
-    with Path.open(file_path, "w") as file_to_write_to:
-        json.dump(data, file_to_write_to, indent=4)
 
 
 def count_unique_attributes(data1, data2) -> int:
@@ -603,10 +548,10 @@ def count_unique_attributes(data1, data2) -> int:
         )
     if isinstance(data1, list) and isinstance(data2, list):
         # Combine unique items from both lists
-        unique_items = set(map(json.dumps, data1)).union(set(map(json.dumps, data2)))
+        unique_items = set(map(orjson.dumps, data1)).union(set(map(orjson.dumps, data2)))
         # Recursively count attributes in each unique item
         return sum(
-            count_unique_attributes(json.loads(item_to_be_counted), {})
+            count_unique_attributes(orjson.loads(item_to_be_counted), {})
             for item_to_be_counted in unique_items
         )
     if isinstance(data1, dict):
@@ -640,8 +585,8 @@ def single_module_difference(single_modules_dir: Path) -> float:
 
         # Perform combinations for the modules in the folder
         for bomb1, bomb2 in combinations(bomb_files, 2):
-            b1 = json.loads(bomb1.read_text())["modules"]
-            b2 = json.loads(bomb2.read_text())["modules"]
+            b1 = orjson.loads(bomb1.read_bytes())["modules"]
+            b2 = orjson.loads(bomb2.read_bytes())["modules"]
 
             # Use DeepDiff to calculate the differences
             diff = DeepDiff(b1, b2)
@@ -662,7 +607,7 @@ def intra_bomb_difference(path: Path) -> float:
     all_bombs = list(path.glob("*.json"))
     avg_diff = []
     for bomb in all_bombs:
-        modules = json.loads(bomb.read_text()).get("modules", [])
+        modules = orjson.loads(bomb.read_bytes()).get("modules", [])
         for module1, module2 in combinations(modules, 2):
             # Use DeepDiff to calculate the differences
             diff = DeepDiff(module1, module2)
@@ -684,8 +629,8 @@ def inter_bomb_difference(path: Path) -> float:
     avg_diff = []
     # check if the bombs themselves are different enough
     for bomb1, bomb2 in combinations(all_bombs, 2):
-        b1 = json.loads(bomb1.read_text())["modules"]
-        b2 = json.loads(bomb2.read_text())["modules"]
+        b1 = orjson.loads(bomb1.read_bytes())["modules"]
+        b2 = orjson.loads(bomb2.read_bytes())["modules"]
 
         diff = DeepDiff(b1, b2)
 

@@ -8,11 +8,11 @@ go through the CLI; failure paths call the command directly and assert the raise
 
 from __future__ import annotations
 
-import json
 import shutil
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
+import orjson
 import pytest
 import yaml
 from pydantic_ai import RunUsage
@@ -175,7 +175,7 @@ def test_identity_disagreement_fails(
         build_app(), ["submission", "validate", str(bundle_copy), "--format", "json"]
     )
     assert result.exit_code == 1
-    checks = json.loads(result.output)["bundles"][0]["checks"]
+    checks = orjson.loads(result.output)["bundles"][0]["checks"]
     assert any(check["name"] == expected_check and check["status"] == "fail" for check in checks)
 
 
@@ -189,7 +189,7 @@ def test_schema_v1_stops_at_version_boundary(bundle_copy: Path) -> None:
         build_app(), ["submission", "validate", str(bundle_copy), "--format", "json"]
     )
     assert result.exit_code == 1
-    checks = json.loads(result.output)["bundles"][0]["checks"]
+    checks = orjson.loads(result.output)["bundles"][0]["checks"]
     assert len(checks) == 1
     assert checks[0]["name"] == "schema_version"
     assert "schema-v1 submissions are not supported" in checks[0]["detail"]
@@ -291,7 +291,7 @@ def test_json_format_is_parseable(bundle_copy: Path) -> None:
         build_app(), ["submission", "validate", str(bundle_copy), "--format", "json"]
     )
     assert result.exit_code == 0, result.output
-    payload = json.loads(result.output)
+    payload = orjson.loads(result.output)
     assert payload["summary"] == {"total": 1, "ok": 1, "failed": 0}
     assert payload["bundles"][0]["ok"] is True
     names = {check["name"] for check in payload["bundles"][0]["checks"]}

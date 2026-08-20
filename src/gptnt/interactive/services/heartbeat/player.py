@@ -1,6 +1,6 @@
-import json
 from typing import Annotated, override
 
+import orjson
 from pydantic import BeforeValidator, PlainSerializer
 
 from gptnt.interactive.services.heartbeat.base import BaseHeartbeat, PlayerState
@@ -14,7 +14,7 @@ class PlayerHeartbeat(BaseHeartbeat, frozen=True):
         PlayerCapabilities,
         BeforeValidator(
             lambda capabilities: (
-                json.loads(capabilities) if isinstance(capabilities, str) else capabilities
+                orjson.loads(capabilities) if isinstance(capabilities, str) else capabilities
             )
         ),
         PlainSerializer(
