@@ -24,6 +24,10 @@ from gptnt.statics.run_metadata import StaticsIdentity
 SCHEMA_VERSION = 2
 
 
+class UnsupportedSubmissionSchemaError(ValueError):
+    """The manifest does not declare the submission schema understood by this validator."""
+
+
 class Submitter(BaseModel):
     """Who is submitting.
 
@@ -188,7 +192,8 @@ class Submission[IdentityT: SuiteIdentity | StaticsIdentity](BaseModel):
         """A manifest written by a different schema can't be reasoned about here."""
         if version != SCHEMA_VERSION:
             raise ValueError(
-                f"schema_version {version} is not supported (this checkout is v{SCHEMA_VERSION})"
+                f"schema_version {version} is not supported "
+                f"(expected submission schema {SCHEMA_VERSION})"
             )
         return version
 
@@ -213,6 +218,18 @@ class StaticsSubmission(Submission[StaticsIdentity]):
 
 def parse_submission_manifest(raw: dict[str, Any]) -> InteractiveSubmission | StaticsSubmission:
     """Validate a raw manifest, discriminated on what its `measured` block describes."""
+    schema_version = raw.get("schema_version")
+    if schema_version is None or schema_version == 1:
+        raise UnsupportedSubmissionSchemaError(
+            "schema-v1 submissions are not supported by the schema-v2 validator; "
+            "use the matching v1 checkout"
+        )
+    if schema_version != SCHEMA_VERSION:
+        raise UnsupportedSubmissionSchemaError(
+            f"submission schema_version {schema_version!r} is not supported; "
+            f"expected {SCHEMA_VERSION}"
+        )
+
     measured = raw.get("measured")
     keys = set(measured) if isinstance(measured, dict) else set()
     if ("suite_name" in keys) == ("task_name" in keys):

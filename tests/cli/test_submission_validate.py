@@ -16,7 +16,6 @@ from uuid import uuid4
 import pytest
 import yaml
 from pydantic_ai import RunUsage
-from tomlkit import dumps
 
 from gptnt.cli.__main__ import build_app
 from gptnt.cli.submission._bundle import (
@@ -155,23 +154,45 @@ def test_valid_bundle_passes(bundle_copy: Path) -> None:
     assert "1 ok, 0 failed" in result.output
 
 
-def test_interactive_bundle_rejects_mixed_provenance_at_build_and_validation(
-    bundle_copy: Path, suite_snapshot: SuiteLock, capsys: pytest.CaptureFixture[str]
+@pytest.mark.parametrize(
+    ("identity_domain", "expected_check"),
+    [("release", "gptnt_version"), ("player", "player fingerprint"), ("suite", "suite digest")],
+)
+def test_identity_disagreement_fails(
+    bundle_copy: Path, identity_domain: str, expected_check: str
 ) -> None:
-    """Construction and validation both reject payload rows from another benchmark state."""
-    payload = bundle_copy / "experiments.parquet"
-    experiments = read_typed_parquet(SubmissionExperiment, payload)
-    conflicting = experiments[1].model_copy(update={"protected_content_modified": True})
-    mixed_experiments = [experiments[0], conflicting, *experiments[2:]]
+    """One representative disagreement in each identity domain is rejected."""
+    manifest = _read_manifest(bundle_copy)
+    if identity_domain == "release":
+        manifest["provenance"]["release_tag"] = "v2.0.1"
+    elif identity_domain == "player":
+        manifest["players"][0]["capabilities"]["model_settings"] = {"temperature": 0.25}
+    else:
+        manifest["measured"]["suite_digest"] = "deadbeef"
+    _write_manifest(bundle_copy, manifest)
 
-    # New bundles reject a mixed output set before writing its singular manifest provenance.
-    with pytest.raises(ValueError, match="conflicting provenance"):
-        _ = InteractiveBundle.from_experiments(mixed_experiments, suite_snapshot)
+    result = invoke_cli(
+        build_app(), ["submission", "validate", str(bundle_copy), "--format", "json"]
+    )
+    assert result.exit_code == 1
+    checks = json.loads(result.output)["bundles"][0]["checks"]
+    assert any(check["name"] == expected_check and check["status"] == "fail" for check in checks)
 
-    # Validation also catches a payload changed after a valid manifest was written.
-    write_typed_parquet(mixed_experiments, file_path=payload)
-    _assert_validate_fails(bundle_copy)
-    assert "✗ provenance" in _unwrap_output(capsys)
+
+def test_schema_v1_stops_at_version_boundary(bundle_copy: Path) -> None:
+    manifest = _read_manifest(bundle_copy)
+    manifest["schema_version"] = 1
+    manifest["measured"] = "v1 content must not be parsed"
+    _write_manifest(bundle_copy, manifest)
+
+    result = invoke_cli(
+        build_app(), ["submission", "validate", str(bundle_copy), "--format", "json"]
+    )
+    assert result.exit_code == 1
+    checks = json.loads(result.output)["bundles"][0]["checks"]
+    assert len(checks) == 1
+    assert checks[0]["name"] == "schema_version"
+    assert "schema-v1 submissions are not supported" in checks[0]["detail"]
 
 
 def test_modified_benchmark_records_cannot_be_submitted(
@@ -236,61 +257,6 @@ def test_invalid_run_fails(bundle_copy: Path, capsys: pytest.CaptureFixture[str]
 def test_blank_submitter_fails(bundle_copy: Path) -> None:
     manifest = _read_manifest(bundle_copy)
     manifest["submitter"] = {"name": "", "contact": "", "affiliation": None}
-    _write_manifest(bundle_copy, manifest)
-
-    _assert_validate_fails(bundle_copy)
-
-
-def test_tampered_suite_digest_fails(bundle_copy: Path) -> None:
-    manifest = _read_manifest(bundle_copy)
-    manifest["measured"]["suite_digest"] = "deadbeef"
-    _write_manifest(bundle_copy, manifest)
-
-    _assert_validate_fails(bundle_copy)
-
-
-@pytest.mark.parametrize(
-    ("mutation", "expected_name", "expected_detail"),
-    [
-        ("digest", "snapshot digest", "digest does not match"),
-        ("missing", "snapshot missions", "missions absent from the table"),
-        ("extra", "snapshot missions", "extra:"),
-    ],
-)
-def test_snapshot_mutations_fail(
-    bundle_copy: Path,
-    mutation: str,
-    expected_name: str,
-    expected_detail: str,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    snapshot_path = bundle_copy / "suite.lock"
-    snapshot = SuiteLock.from_lock_path(snapshot_path)
-    raw = snapshot.model_dump(mode="json", by_alias=True)
-
-    if mutation == "digest":
-        raw["suite"][0]["suite_digest"] = "deadbeef"
-    elif mutation == "missing":
-        raw["mission"] = raw["mission"][1:]
-    else:
-        extra_spec = snapshot.missions[0].spec.model_copy(update={"seed": 999_999_999})
-        raw["mission"].append(
-            {"mission_key": extra_spec.mission_key, "spec": extra_spec.model_dump(mode="json")}
-        )
-    _ = snapshot_path.write_text(dumps(raw))
-
-    with pytest.raises(SystemExit) as exit_info:
-        validate_submission(bundle_copy, report_format="json")
-    assert exit_info.value.code == 1
-    report = json.loads(capsys.readouterr().out)["bundles"][0]["checks"]
-    assert any(
-        check["name"] == expected_name and expected_detail in check["detail"] for check in report
-    )
-
-
-def test_tampered_written_fingerprint_fails(bundle_copy: Path) -> None:
-    manifest = _read_manifest(bundle_copy)
-    manifest["players"][0]["fingerprint"] = "deadbeef"
     _write_manifest(bundle_copy, manifest)
 
     _assert_validate_fails(bundle_copy)

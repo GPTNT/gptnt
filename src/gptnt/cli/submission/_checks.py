@@ -12,6 +12,7 @@ The command layer (`validate.py`) decides section order and rendering, reusing t
 from __future__ import annotations
 
 import json
+import re
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
@@ -33,11 +34,12 @@ from gptnt.cli.submission._schema import (
     StaticsSubmission,
     SubmissionExperiment,
     SubmissionPairingKey,
+    UnsupportedSubmissionSchemaError,
     describe_pairing,
 )
 from gptnt.experiments.db.typed_parquet import read_typed_parquet
 from gptnt.experiments.suite.lock import SuiteLock, SuiteNotFrozenError
-from gptnt.provenance import Provenance, is_valid_version
+from gptnt.provenance import Provenance
 
 if TYPE_CHECKING:
     from gptnt.experiments.suite.core import Suite
@@ -85,8 +87,8 @@ class LoadedBundle:
     def check_provenance(self) -> list[CheckResult]:
         provenance = self.manifest.provenance
         findings = [
-            _check_gptnt_version(provenance.gptnt_version),
-            CheckResult.passed("release_commit", provenance.release_commit),
+            _check_release_version(provenance.gptnt_version, provenance.release_tag),
+            _check_release_commit(provenance.release_commit),
             _check_protected_content(modified=provenance.protected_content_modified),
         ]
         if isinstance(self.bundle, InteractiveBundle):
@@ -240,6 +242,24 @@ def _check_protected_content(*, modified: bool) -> CheckResult:
     return CheckResult.passed("protected content", "matches")
 
 
+def _invalid_manifest_finding(
+    error: yaml.YAMLError | ValidationError | ValueError | TypeError,
+) -> CheckResult:
+    """Classify project-owned manifest identities before reporting other schema failures."""
+    if isinstance(error, ValidationError):
+        fingerprint_error = next(
+            (
+                detail["msg"]
+                for detail in error.errors(include_url=False)
+                if "serialised fingerprint" in detail["msg"]
+            ),
+            None,
+        )
+        if fingerprint_error is not None:
+            return CheckResult.failed("player fingerprint", fingerprint_error, hint=REBUILD_HINT)
+    return CheckResult.failed("manifest", f"submission.yaml is not a valid manifest: {error}")
+
+
 def _load_manifest(
     bundle_dir: Path,
 ) -> tuple[InteractiveSubmission | StaticsSubmission | None, CheckResult]:
@@ -248,10 +268,10 @@ def _load_manifest(
         manifest = load_submission_manifest(bundle_dir)
     except FileNotFoundError:
         return None, CheckResult.failed("manifest", "submission.yaml not found", hint=REBUILD_HINT)
+    except UnsupportedSubmissionSchemaError as error:
+        return None, CheckResult.failed("schema_version", str(error))
     except _MANIFEST_ERRORS as error:
-        return None, CheckResult.failed(
-            "manifest", f"submission.yaml is not a valid manifest: {error}"
-        )
+        return None, _invalid_manifest_finding(error)
     kind = "interactive" if isinstance(manifest, InteractiveSubmission) else "statics"
     return manifest, CheckResult.passed("manifest", f"{kind} manifest")
 
@@ -479,11 +499,25 @@ def _check_experts_match_manifest(
     return CheckResult.passed("experts", detail)
 
 
-def _check_gptnt_version(version: str) -> CheckResult:
-    if is_valid_version(version):
-        return CheckResult.passed("gptnt_version", version)
-    detail = f"{version!r} is not a valid version" if version.strip() else "missing"
-    return CheckResult.failed("gptnt_version", detail, hint=REBUILD_HINT)
+def _check_release_version(version: str, release_tag: str) -> CheckResult:
+    """Require the package version to identify the recorded release tag."""
+    expected = release_tag.removeprefix("v")
+    if version != expected:
+        return CheckResult.failed(
+            "gptnt_version",
+            f"gptnt_version {version!r} does not match release_tag {release_tag!r}",
+            hint=REBUILD_HINT,
+        )
+    return CheckResult.passed("gptnt_version", f"{release_tag} ({version})")
+
+
+def _check_release_commit(release_commit: str) -> CheckResult:
+    """Require the complete lowercase Git SHA-1 written by the release checkout."""
+    if re.fullmatch(r"[0-9a-f]{40}", release_commit):
+        return CheckResult.passed("release_commit", release_commit)
+    return CheckResult.failed(
+        "release_commit", f"{release_commit!r} is not a complete commit SHA", hint=REBUILD_HINT
+    )
 
 
 def _check_dataset_pin(statics: StaticsIdentity) -> CheckResult:
