@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import shutil
@@ -131,7 +132,8 @@ def _manifest_files(artifact_dir: Path) -> list[dict[str, str]]:
     ]
 
 
-def _validate_artifact(
+# One validator checks the complete, compact artifact contract and reports its failing invariant.
+def _validate_artifact(  # noqa: WPS210,WPS231,WPS238
     artifact_dir: Path,
     *,
     artifact_key: str,
@@ -211,30 +213,34 @@ def _insert_official_range(
     return last_page - first_page + 1
 
 
-def _combine_documents(
+# Mixed HTML and official pages must be inserted in the caller's exact document order.
+def _combine_documents(  # noqa: WPS231
     documents: Sequence[ResolvedDocument],
     *,
     html_pdf: Path | None,
     html_page_counts: Sequence[int],
     output_pdf: Path,
 ) -> None:
-    if html_pdf is not None and not any(
+    # The negative form directly identifies the fast path where no official PDF needs opening.
+    if html_pdf is not None and not any(  # noqa: WPS504
         isinstance(document, ResolvedOfficialDocument) for document in documents
     ):
         _ = shutil.copyfile(html_pdf, output_pdf)
         return
 
-    handbook = pymupdf.open()
-    html_source = pymupdf.open(html_pdf) if html_pdf is not None else None
-    official_sources: dict[Path, pymupdf.Document] = {}
-    try:
+    with contextlib.ExitStack() as resources:
+        handbook = resources.enter_context(pymupdf.open())
+        html_source = None
+        if html_pdf is not None:
+            html_source = resources.enter_context(pymupdf.open(html_pdf))
+        official_sources: dict[Path, pymupdf.Document] = {}
         html_page = 0
         html_document = 0
         for document in documents:
             if isinstance(document, ResolvedOfficialDocument):
                 official = official_sources.get(document.source_path)
                 if official is None:
-                    official = pymupdf.open(document.source_path)
+                    official = resources.enter_context(pymupdf.open(document.source_path))
                     official_sources[document.source_path] = official
                 _ = _insert_official_range(handbook, official, document)
                 continue
@@ -252,19 +258,14 @@ def _combine_documents(
             raise ManualCompileError("the selected documents produced an empty handbook")
         handbook.set_metadata({})
         handbook.save(output_pdf, garbage=4, clean=True, deflate=True, no_new_id=True)
-    finally:
-        if html_source is not None:
-            html_source.close()
-        for official in official_sources.values():
-            official.close()
-        handbook.close()
 
 
 def _write_extracted_page(page: pymupdf.Page, *, page_number: int, pages_dir: Path) -> None:
     pixmap = page.get_pixmap(dpi=144, alpha=False)
     pixmap.save(pages_dir / f"{page_number:04d}.png")
     blocks = page.get_text("blocks", sort=True)
-    text = "\n".join(str(block[4]).strip() for block in blocks if str(block[4]).strip())
+    text_blocks = (str(block[4]).strip() for block in blocks)
+    text = "\n".join(block for block in text_blocks if block)
     if not text:
         raise ManualCompileError(f"handbook page {page_number} has no usable text layer")
     _ = (pages_dir / f"{page_number:04d}.txt").write_text(f"{text}\n", encoding="utf-8")

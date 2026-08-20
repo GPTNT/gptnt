@@ -238,13 +238,6 @@ per-file-ignores = [
     # cli/__main__.py is the root command-assembly module: one flat list of `app.command(...)`
     # registrations, so it trips the "too many expressions" check (same shape as interactive's).
     "src/gptnt/cli/__main__.py:WPS213",
-    # Manual compilation intentionally completes one content-addressed artifact before printing it.
-    "src/gptnt/cli/manual/compile.py:WPS476",
-    # Browser rendering is one private lifecycle boundary around server, browser, frame, and print
-    # cleanup; splitting it would obscure error propagation without creating reusable components.
-    "src/gptnt/ktane/manuals/_browser.py:WPS210,WPS213,WPS220,WPS229,WPS231,WPS238,WPS243,WPS324,WPS430,WPS441,WPS501",
-    # Artifact validation and mixed HTML/PDF assembly keep their invariants in one private module.
-    "src/gptnt/ktane/manuals/compiler.py:WPS210,WPS221,WPS229,WPS231,WPS238,WPS243,WPS501,WPS504",
     "src/gptnt/ktane/state/*:WPS202,WPS226",
     # doctor/checks.py and submission/_checks.py are registries of small check functions (many
     # members) with one fix-hint string each (many literals)
@@ -254,9 +247,6 @@ per-file-ignores = [
     "src/gptnt/players/exception_recovery.py:WPS202",
     "src/gptnt/processors/*:WPS203",
     "src/gptnt/experiments/db/schema.py:WPS110,WPS111,WPS430",
-    # These orchestration tests use small local fakes so browser and network work cannot start.
-    "tests/cli/test_manual_compile.py:WPS110,WPS2,WPS118,WPS123,WPS407,WPS411,WPS430,WPS432,WPS435,WPS444,WPS476",
-    "tests/ktane/manuals/test_compiler.py:WPS110,WPS2,WPS118,WPS407,WPS411,WPS430,WPS432,WPS435,WPS444,WPS476",
 ]
 select = ["WPS"]
 max-line-length = 99

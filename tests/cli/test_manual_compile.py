@@ -54,25 +54,30 @@ async def test_compile_reuses_selection_and_orders_pipeline(
     operations: list[str] = []
     captured_profiles: list[ManualProfile] = []
 
-    def compose_suite(_: str) -> SimpleNamespace:
+    # Local fakes record the orchestration order without crossing browser or network boundaries.
+    def compose_suite(_: str) -> SimpleNamespace:  # noqa: WPS430
         return SimpleNamespace(manual_profile=profile)
 
-    async def download(profiles: Sequence[ManualProfile], **_: object) -> DownloadResult:
+    async def download(  # noqa: WPS430
+        profiles: Sequence[ManualProfile], **_kwargs: object
+    ) -> DownloadResult:
         operations.append("download")
         captured_profiles.extend(profiles)
         return DownloadResult(
             cache_dir=tmp_path, added_files=0, added_bytes=0, cached_files=0, cached_bytes=0
         )
 
-    def resolve(*_: object, **__: object) -> tuple[ResolvedOfficialDocument, ...]:
+    def resolve(  # noqa: WPS430
+        *_args: object, **_kwargs: object
+    ) -> tuple[ResolvedOfficialDocument, ...]:
         operations.append("resolve")
         return (resolved,)
 
-    def compile_manual(*_: object, **__: object) -> Path:
+    def compile_manual(*_args: object, **_kwargs: object) -> Path:  # noqa: WPS430
         operations.append("compile")
         return tmp_path / "artifact"
 
-    async def run_sync(function: Callable[[], Path]) -> Path:
+    async def run_sync(function: Callable[[], Path]) -> Path:  # noqa: WPS430
         return function()
 
     monkeypatch.setattr(selection, "discover_suites", lambda: ["one", "two"])

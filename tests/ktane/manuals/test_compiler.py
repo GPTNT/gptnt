@@ -86,7 +86,8 @@ _PNG = (
 def browser_sources() -> Callable[[Path], None]:
     """Create the merger path expected by the compiler without fetching pinned sources."""
 
-    def create(cache_dir: Path) -> None:
+    # The fixture closure writes into the temporary cache selected by each browser test.
+    def create(cache_dir: Path) -> None:  # noqa: WPS430
         merger = ktane_content_root(cache_dir) / "More" / "Manual Merger" / "index.html"
         merger.parent.mkdir(parents=True)
         _ = merger.write_text(_MERGER, encoding="utf-8")

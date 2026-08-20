@@ -61,8 +61,9 @@ async def compile_manuals(
     ):
         await prepare_compiler_sources(paths.manual_cache)
 
+    # Profiles compile sequentially so each artifact owns one Chromium process and output path.
     for resolved in resolved_profiles:
-        artifact = await run_sync(
+        artifact = await run_sync(  # noqa: WPS476
             functools.partial(compile_manual, resolved, cache_dir=paths.manual_cache)
         )
         console.print(artifact)

@@ -17,6 +17,7 @@ import pymupdf
 from playwright.sync_api import Error as PlaywrightError, Frame, Page, Route, sync_playwright
 
 from gptnt.ktane.manuals._compiler_sources import KTANE_CONTENT_COMMIT, keypad_assets_identity
+from gptnt.ktane.manuals._javascript import load_javascript
 from gptnt.ktane.manuals.resolution import (
     ResolvedKtaneContentAppendix,
     ResolvedKtaneContentModule,
@@ -48,8 +49,9 @@ class _RequestHandler(http_server.SimpleHTTPRequestHandler):
     local_documents: ClassVar[dict[str, Path]] = {}
 
     @override
+    # The private loopback server deliberately has no request log sink.
     def log_message(self, format: str, *args: object) -> None:
-        return
+        _ = format, args
 
     @override
     def do_GET(self) -> None:
@@ -91,8 +93,9 @@ def _serve(source_root: Path, *, local_documents: dict[str, Path]) -> Iterator[s
     server = _LoopbackServer(("127.0.0.1", 0), request_handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
-    try:
-        port = int(server.server_address[1])
+    port = int(server.server_address[1])
+    # Generator exit must trigger all three ordered server shutdown operations.
+    try:  # noqa: WPS243
         yield f"http://127.0.0.1:{port}"
     finally:
         server.shutdown()
@@ -138,7 +141,8 @@ def _configure_routes(
 ) -> None:
     symbols_dir = keypad_root
 
-    def handle_route(route: Route) -> None:
+    # This callback closes over the state for one isolated browser render.
+    def handle_route(route: Route) -> None:  # noqa: WPS430
         parsed = urlparse(route.request.url)
         if parsed.path == "/json/raw":
             route.fulfill(
@@ -166,12 +170,9 @@ def _configure_routes(
 
 
 def _wait_for_document(frame: Frame) -> tuple[int, list[str]]:
-    _ = frame.wait_for_function("() => document.fonts.status === 'loaded'")
-    _ = frame.wait_for_function("() => Array.from(document.images).every(image => image.complete)")
-    broken_images = frame.evaluate(
-        "() => Array.from(document.images)"
-        ".filter(image => !image.naturalWidth).map(image => image.src)"
-    )
+    _ = frame.wait_for_function(load_javascript("fonts-loaded.js"))
+    _ = frame.wait_for_function(load_javascript("images-complete.js"))
+    broken_images = frame.evaluate(load_javascript("broken-images.js"))
     page_count = frame.locator(".section > .page").count()
     if page_count == 0:
         raise ManualBrowserError(f"manual HTML produced no printable pages: {frame.url}")
@@ -202,24 +203,11 @@ def _launch_browser(playwright: Playwright) -> Browser:
 
 
 def _clean_print_document(frame: Frame) -> None:
-    frame.evaluate(
-        r"""() => {
-            document.querySelectorAll('.page-header-section-title').forEach(
-                element => {
-                    element.textContent = element.textContent.replace(
-                        /\s+—\s+rule seed:\s+\d+$/i, ''
-                    );
-                    element.classList.remove('ruleseed-seeded');
-                }
-            );
-            document.querySelectorAll('.ruleseed-header,.page-footer').forEach(
-                element => element.remove()
-            );
-        }"""
-    )
+    frame.evaluate(load_javascript("clean-print-document.js"))
 
 
-def _raise_render_errors(
+# One check reports four distinct browser failure categories with category-specific messages.
+def _raise_render_errors(  # noqa: WPS238
     *,
     broken_images: list[str],
     blocked_urls: list[str],
@@ -239,44 +227,7 @@ def _raise_render_errors(
 
 
 def _flatten_document(frame: Frame) -> tuple[tuple[str, ...], str]:
-    flattened = frame.evaluate(
-        r"""() => {
-            const absoluteUrl = (value) => {
-                if (!value || value.startsWith('#') || value.startsWith('data:') ||
-                    value.startsWith('blob:') || value.startsWith('about:')) return value;
-                return new URL(value, document.baseURI).href;
-            };
-            const absoluteCss = (value) => value.replace(
-                /url\(\s*(['"]?)([^'"\)]+)\1\s*\)/g,
-                (_, quote, url) => `url("${absoluteUrl(url)}")`
-            );
-            const clone = document.documentElement.cloneNode(true);
-            const originals = Array.from(document.documentElement.querySelectorAll('*'));
-            const copies = Array.from(clone.querySelectorAll('*'));
-            originals.forEach((original, index) => {
-                const copy = copies[index];
-                for (const name of ['src', 'href', 'poster', 'data']) {
-                    if (original.hasAttribute(name)) {
-                        copy.setAttribute(name, absoluteUrl(original.getAttribute(name)));
-                    }
-                }
-                if (original.hasAttribute('srcset')) copy.setAttribute('srcset', original.srcset);
-                if (original.hasAttribute('style')) {
-                    copy.setAttribute('style', absoluteCss(original.getAttribute('style')));
-                }
-            });
-            clone.querySelectorAll('script').forEach(element => element.remove());
-            clone.querySelectorAll('style').forEach(
-                element => { element.textContent = absoluteCss(element.textContent); }
-            );
-            const head = Array.from(
-                clone.querySelectorAll('head > link[rel~="stylesheet"], head > style')
-            ).map(element => element.outerHTML);
-            const sections = Array.from(clone.querySelectorAll('body > .section'))
-                .map(element => element.outerHTML).join('\n');
-            return {head, sections};
-        }"""
-    )
+    flattened = frame.evaluate(load_javascript("flatten-document.js"))
     if not isinstance(flattened, dict):
         raise ManualBrowserError(f"manual HTML could not be flattened for print: {frame.url}")
     head = flattened.get("head")
@@ -332,7 +283,8 @@ def _print_documents(
     return broken_images
 
 
-def render_html(
+# This boundary owns one server/browser/print lifecycle and its accumulated validation state.
+def render_html(  # noqa: WPS210,WPS213,WPS231
     documents: Sequence[HtmlDocument], *, source_root: Path, keypad_root: Path, output_pdf: Path
 ) -> tuple[int, ...]:
     """Render ordered HTML documents with the pinned merger and managed Chromium."""
@@ -356,10 +308,12 @@ def render_html(
     missing_keypad_assets: set[str] = set()
 
     # Keep the loopback server alive while Playwright starts and shuts down its driver process.
+    # Separate contexts keep server shutdown outside the Playwright driver shutdown.
     with _serve(source_root, local_documents=local_documents) as base_url:  # noqa: SIM117
         with sync_playwright() as playwright:
             browser = _launch_browser(playwright)
-            try:
+            # Chromium must close after every rendering or validation failure.
+            try:  # noqa: WPS229,WPS501
                 page = browser.new_page(viewport={"width": 1280, "height": 960})
                 _configure_routes(
                     page,
@@ -374,7 +328,8 @@ def render_html(
                 )
                 with page.expect_file_chooser() as choice:
                     page.get_by_role("button", name="Upload profile").click()
-                file_chooser = choice.value
+                # Playwright publishes the chooser only after its context exits.
+                file_chooser = choice.value  # noqa: WPS441
                 file_chooser.set_files(
                     {
                         "name": "Bomb Defusal Manual.json",
@@ -383,8 +338,7 @@ def render_html(
                     }
                 )
                 _ = page.wait_for_function(
-                    "count => document.querySelectorAll('.manuals > iframe').length === count",
-                    arg=len(documents),
+                    load_javascript("manual-frames-loaded.js"), arg=len(documents)
                 )
 
                 page_counts: list[int] = []
@@ -394,7 +348,8 @@ def render_html(
                     frame_element = page.locator(".manuals > iframe").nth(index).element_handle()
                     frame = frame_element.content_frame()
                     if frame is None:
-                        raise ManualBrowserError(
+                        # Browser traversal nests lifecycle, document, and frame checks.
+                        raise ManualBrowserError(  # noqa: WPS220
                             f"Manual Merger frame for {document.document_id} is unavailable"
                         )
                     page_count, frame_broken = _wait_for_document(frame)
