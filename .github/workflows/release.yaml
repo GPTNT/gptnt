@@ -5,21 +5,42 @@ on:
     tags:
       - "v*"
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
-  contents: write
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.13"
 
 jobs:
-  release:
-    name: Create GitHub release
+  build:
+    name: Build release assets
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
+          fetch-depth: 0
           persist-credentials: false
 
-      - name: Extract changelog section for this tag
-        id: notes
+      - name: Verify source checkout is clean
+        run: test -z "$(git status --porcelain --untracked-files=all)"
+
+      - name: Validate tag and extract release notes
         run: |
+          set -euo pipefail
+          if [[ ! "${GITHUB_REF_NAME}" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Release tag must match vMAJOR.MINOR.PATCH without leading zeroes" >&2
+            exit 1
+          fi
+
+          # The bundle carries the annotated tag object, so a lightweight tag is not sufficient.
+          test "$(git cat-file -t "refs/tags/${GITHUB_REF_NAME}")" = "tag"
+          test "$(git describe --tags --exact-match)" = "${GITHUB_REF_NAME}"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "${GITHUB_REF_NAME}^{commit}")"
+
           awk -v tag="${GITHUB_REF_NAME}" '
             $0 ~ "^## " tag " " || $0 == "## " tag {found = 1; next}
             found && /^## v/ {exit}
@@ -30,7 +51,203 @@ jobs:
             exit 1
           fi
 
-      - name: Create release
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
+        with:
+          enable-cache: false
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Build release assets
+        run: |
+          uv sync --frozen --group release
+          uv run --frozen --group release python scripts/build_release_bundle.py \
+            --tag "${GITHUB_REF_NAME}" \
+            --repository . \
+            --output-dir dist
+
+      - name: Verify release asset checksums
+        working-directory: dist
+        run: sha256sum --check gptnt.tar.gz.sha256 gptnt.zip.sha256
+
+      - name: Store release candidate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-candidate
+          if-no-files-found: error
+          path: |
+            dist/gptnt.tar.gz
+            dist/gptnt.tar.gz.sha256
+            dist/gptnt.zip
+            dist/gptnt.zip.sha256
+            release-notes.md
+
+  smoke_tar:
+    name: Smoke-test tar bundle
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release candidate
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-candidate
+          path: candidate
+
+      - name: Verify and extract tar bundle
+        run: |
+          set -euo pipefail
+          cd candidate/dist
+          sha256sum --check gptnt.tar.gz.sha256
+          cd ../..
+          mkdir extracted
+          tar -xzf candidate/dist/gptnt.tar.gz -C extracted
+          test "$(find extracted -mindepth 1 -maxdepth 1 -type d -printf '%f\n')" = "gptnt"
+
+      - name: Verify tar Git metadata
+        working-directory: extracted/gptnt
+        run: |
+          set -euo pipefail
+          exact_tag=$(git describe --tags --exact-match)
+          commit_count=$(git rev-list --count HEAD)
+          head_commit=$(git rev-parse HEAD)
+          tag_commit=$(git rev-parse "${GITHUB_REF_NAME}^{commit}")
+
+          test "${exact_tag}" = "${GITHUB_REF_NAME}"
+          test "${commit_count}" = "1"
+          test "${head_commit}" = "${tag_commit}"
+          # Resolving a tag to its commit does not prove that the annotated tag object was retained.
+          test "$(git cat-file -t "refs/tags/${GITHUB_REF_NAME}")" = "tag"
+
+      - name: Install mise
+        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
+        with:
+          cache: false
+          install: false
+          working_directory: extracted/gptnt
+
+      - name: Install and smoke-test tar bundle
+        working-directory: extracted/gptnt
+        run: |
+          set -euo pipefail
+          mise install
+          uv sync --frozen
+
+          installed_version=$(uv run python -c 'from importlib.metadata import version; print(version("gptnt"))')
+          test "${installed_version}" = "${GITHUB_REF_NAME#v}"
+
+          export PATH="${PWD}/.venv/bin:${PATH}"
+          doctor_output=$(gptnt doctor runs/quickstart.yaml --config-only)
+          printf '%s\n' "${doctor_output}"
+          grep -F "${GITHUB_REF_NAME}" <<< "${doctor_output}"
+          grep -F "Protected content" <<< "${doctor_output}"
+          grep -F "matches" <<< "${doctor_output}"
+          gptnt generate runs/quickstart.yaml
+
+  verify_zip_windows:
+    name: Verify ZIP bundle on Windows
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - name: Download release candidate
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-candidate
+          path: candidate
+
+      - name: Verify and extract ZIP bundle
+        shell: pwsh
+        run: |
+          $expected = (Get-Content candidate/dist/gptnt.zip.sha256).Split()[0]
+          $actual = (Get-FileHash candidate/dist/gptnt.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) { throw "ZIP checksum does not match" }
+
+          Expand-Archive candidate/dist/gptnt.zip -DestinationPath extracted
+          $roots = @(Get-ChildItem extracted -Directory)
+          if ($roots.Count -ne 1 -or $roots[0].Name -ne "gptnt") {
+            throw "ZIP must contain one gptnt root directory"
+          }
+          foreach ($path in @(".git", "pyproject.toml", "uv.lock", "runs/quickstart.yaml")) {
+            if (-not (Test-Path "extracted/gptnt/$path")) { throw "ZIP is missing $path" }
+          }
+          if (git -C extracted/gptnt -c core.fileMode=false status --porcelain --untracked-files=all) {
+            throw "ZIP checkout payload differs from its Git index"
+          }
+
+      - name: Verify ZIP Git metadata
+        shell: pwsh
+        run: |
+          $exactTag = git -C extracted/gptnt describe --tags --exact-match
+          $commitCount = git -C extracted/gptnt rev-list --count HEAD
+          $headCommit = git -C extracted/gptnt rev-parse HEAD
+          $tagCommit = git -C extracted/gptnt rev-parse "$env:GITHUB_REF_NAME^{commit}"
+          $tagType = git -C extracted/gptnt cat-file -t "refs/tags/$env:GITHUB_REF_NAME"
+
+          if ($exactTag -ne $env:GITHUB_REF_NAME) { throw "ZIP checkout tag does not match" }
+          if ($commitCount -ne "1") { throw "ZIP checkout is not depth one" }
+          if ($headCommit -ne $tagCommit) { throw "ZIP HEAD does not match the tag commit" }
+          # Keep this explicit because rev-parse also succeeds for lightweight tags.
+          if ($tagType -ne "tag") { throw "ZIP does not contain the annotated tag object" }
+
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
+        with:
+          enable-cache: false
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Verify ZIP package version
+        working-directory: extracted/gptnt
+        shell: pwsh
+        run: |
+          uv sync --frozen
+          $installedVersion = uv run python -c 'from importlib.metadata import version; print(version("gptnt"))'
+          $expectedVersion = $env:GITHUB_REF_NAME.Substring(1)
+          if ($installedVersion -ne $expectedVersion) {
+            throw "Installed version $installedVersion does not match $expectedVersion"
+          }
+
+  publish:
+    name: Publish GitHub release
+    needs: [smoke_tar, verify_zip_windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified release candidate
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-candidate
+          path: candidate
+
+      - name: Create draft, upload assets, and publish release
         env:
+          GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --notes-file release-notes.md
+        run: |
+          set -euo pipefail
+          for asset in \
+            gptnt.tar.gz \
+            gptnt.tar.gz.sha256 \
+            gptnt.zip \
+            gptnt.zip.sha256
+          do
+            test -f "candidate/dist/${asset}"
+          done
+
+          # Never update an existing release. A failed run may leave a draft for inspection.
+          existing_release=$(gh api --paginate \
+            "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            --jq ".[] | select(.tag_name == \"${GITHUB_REF_NAME}\") | .tag_name")
+          if [ -n "${existing_release}" ]; then
+            echo "Release ${GITHUB_REF_NAME} already exists; remove its draft or use release maintenance" >&2
+            exit 1
+          fi
+
+          gh release create "${GITHUB_REF_NAME}" \
+            --draft \
+            --verify-tag \
+            --title "${GITHUB_REF_NAME}" \
+            --notes-file candidate/release-notes.md
+          gh release upload "${GITHUB_REF_NAME}" \
+            candidate/dist/gptnt.tar.gz \
+            candidate/dist/gptnt.tar.gz.sha256 \
+            candidate/dist/gptnt.zip \
+            candidate/dist/gptnt.zip.sha256
+          # Draft assets do not affect /latest/download; publish only after every upload succeeds.
+          gh release edit "${GITHUB_REF_NAME}" --draft=false --latest
