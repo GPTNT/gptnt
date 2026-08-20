@@ -18,9 +18,9 @@ are available, run:
 gptnt doctor --config-only
 ```
 
-This skips infrastructure while retaining player-configuration and benchmark-integrity checks. See
-[Validate it](running/run-your-model.md#validate-it) for the protected-content result and the one
-permitted-input example.
+This skips infrastructure while still checking player configuration and benchmark integrity. The
+[validation guide](running/run-your-model.md#validate-it) shows how GPTNT reports protected content
+and permitted input changes.
 
 ### Bring your own game
 
