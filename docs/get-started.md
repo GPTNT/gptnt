@@ -1,192 +1,186 @@
-# Get Started
+# Get started
 
-## Download GPTNT
+## Choose an installation
 
-Download the latest release, verify it, and extract it:
+Use the latest release for a normal benchmark run. A pinned release is for reproducing a result or
+investigating a submission. Clone the repository only when you intend to contribute to GPTNT.
+
+| Path | Use it for |
+| ---- | ---------- |
+| Latest release | Normal benchmark use |
+| Pinned release | Reproduction and submission investigation |
+| Git clone | Contribution and development |
+
+### Download the latest release
 
 ```bash
-curl -fLO https://github.com/GPTNT/gptnt/releases/latest/download/gptnt.tar.gz
-curl -fLO https://github.com/GPTNT/gptnt/releases/latest/download/gptnt.tar.gz.sha256
+curl -fsSL \
+  https://github.com/GPTNT/gptnt/releases/latest/download/gptnt.tar.gz |
+  tar -xzf -
+
+cd gptnt
+mise install
+mise run sync
+```
+
+The archive contains the source, benchmark data, and the Git metadata used to identify its release.
+You do not need a system Git executable to run the bundled benchmark. Do not remove the bundled
+`.git` directory: GPTNT reads the release tag and protected-content baseline from it.
+
+`mise run sync` installs the project dependencies and Playwright-managed Chromium. See
+[Manuals](manuals.md){data-preview} for manual profiles, caching, offline preparation, and repair.
+
+#### Verify the checksum
+
+Download the archive and its checksum before extracting when you need to verify the bytes:
+
+```bash
+curl -fsSLO https://github.com/GPTNT/gptnt/releases/latest/download/gptnt.tar.gz
+curl -fsSLO https://github.com/GPTNT/gptnt/releases/latest/download/gptnt.tar.gz.sha256
 sha256sum --check gptnt.tar.gz.sha256
 tar -xzf gptnt.tar.gz
+
 cd gptnt
+mise install
+mise run sync
 ```
 
-Do not remove the bundled `.git` directory. GPTNT reads the release tag and the protected-content
-baseline from it.
+On macOS, use `shasum --algorithm 256 --check gptnt.tar.gz.sha256` when `sha256sum` is not
+installed.
 
-To use ZIP instead, download `gptnt.zip` and `gptnt.zip.sha256`, verify the
-checksum, then extract the archive:
+#### Use the ZIP archive
 
 ```bash
-curl -fLO https://github.com/GPTNT/gptnt/releases/latest/download/gptnt.zip
-curl -fLO https://github.com/GPTNT/gptnt/releases/latest/download/gptnt.zip.sha256
+curl -fsSLO https://github.com/GPTNT/gptnt/releases/latest/download/gptnt.zip
+curl -fsSLO https://github.com/GPTNT/gptnt/releases/latest/download/gptnt.zip.sha256
 sha256sum --check gptnt.zip.sha256
 unzip gptnt.zip
+
 cd gptnt
+mise install
+mise run sync
 ```
 
-For a pinned release, replace `latest/download` with `download/v0.16.0`:
+The ZIP contains the same checkout and bundled Git metadata as the tar archive. The macOS checksum
+command above also works with `gptnt.zip.sha256`.
+
+### Download a pinned release
+
+Replace `vX.Y.Z` with the release recorded by the result or submission you are investigating:
 
 ```bash
-curl -fLO https://github.com/GPTNT/gptnt/releases/download/v0.16.0/gptnt.tar.gz
+curl -fsSLO https://github.com/GPTNT/gptnt/releases/download/vX.Y.Z/gptnt.tar.gz
+curl -fsSLO https://github.com/GPTNT/gptnt/releases/download/vX.Y.Z/gptnt.tar.gz.sha256
+sha256sum --check gptnt.tar.gz.sha256
+tar -xzf gptnt.tar.gz
+
+cd gptnt
+mise install
+mise run sync
 ```
 
-Creating an asynchronous, real-time, multi-agent benchmark is not trivial. We've tried to make the process of running things as simple and clear as possible to ensure that no logs or information is lost in the async hell that can happen.
+The version comes from the release tag in the URL. Latest-download instructions do not carry a
+copied version string.
 
+### Clone for contribution and development
 
+```bash
+git clone https://github.com/GPTNT/gptnt.git
+cd gptnt
+mise install
+mise run sync
+```
 
+This path follows the repository branch instead of a published benchmark release. Read
+[Contributing to GPTNT](https://github.com/GPTNT/gptnt/blob/main/CONTRIBUTING.md) before changing the
+benchmark.
 
-## Preconditions
-
-There are some things we cannot provide for you through Python dependencies so you need to run them yourself. We've tried to keep them to a minimum.
-
-### Check an extracted release before installing infrastructure
-
-If you are checking an extracted release bundle before KTANE, Redis, and the other local services
-are available, run:
+## Check configuration without infrastructure
 
 ```bash
 gptnt doctor --config-only
 ```
 
-This skips infrastructure while still checking player configuration and benchmark integrity. The
-[validation guide](running/run-your-model.md#validate-it) shows how GPTNT reports protected content
-and permitted input changes.
+This checks the release identity, protected benchmark content, and player configuration without
+requiring KTANE, Redis, a display, or the local services. Pass a run manifest as well when you want
+to check its roster, for example `gptnt doctor runs/quickstart.yaml --config-only`.
 
-### Bring your own game
+## Provide the game
 
 !!! danger "You must provide the game yourself"
-    We do **not** distribute or provide the game—you must supply it yourself. You can purchase a DRM-free version from the [Humble Bundle store](https://humblebundle.com/store/keep-talking-and-nobody-explodes).
+    We do not distribute KTANE. Purchase a DRM-free copy from the
+    [Humble Bundle store](https://humblebundle.com/store/keep-talking-and-nobody-explodes) and copy
+    it under `storage/ktane`.
 
-Copy-paste your KTANE game that you downloaded under `storage/ktane`.[^game-path] It is discovered by `src/gptnt/ktane/executable.py` (`get_executable_path`), which raises `GameNotFoundError` if it cannot find one.
+GPTNT expects this layout:
 
-| OS      | Expected layout under `storage/ktane`     |
-| ------- | ----------------------------------------- |
-| Linux   | `*.x86_64` plus a `ktane_Data/` directory |
-| macOS   | `*.app`[^funny-vscode]                    |
-| Windows | `*.exe`                                   |
+| OS | Layout under `storage/ktane` |
+| -- | ---------------------------- |
+| Linux | `*.x86_64` plus a `ktane_Data/` directory |
+| macOS | `*.app` |
+| Windows | `*.exe` |
 
-[^game-path]: This path is included in the `.gitignore` so it won't get committed.
-[^funny-vscode]: If you are using VSCode, it may show the `*.app` bundle as a folder. This is normal and expected so there's nothing to worry about. It's just how `*.app` files work.
+The directory is ignored by Git. VS Code may show a macOS `*.app` bundle as a directory; that is
+normal for an application bundle.
 
-### Run the infrastructure (with Docker Compose)
-
-!!! note
-    Docker is only used to run Redis and the OpenTelemetry collector. The game itself is **not** run in Docker.
-
-We use Redis as a message bus between the various services and the players.
-
-<!-- You can find out more about why we use Redis in the [why-redis.md](why-redis.md) document. -->
-
-In addition, we also use an OpenTelemetry collector to collect traces from the various services and send them to [Logfire](https://logfire.pydantic.dev/) (or another backend).
-
-<!-- This is important for debugging and understanding what is happening in the system—more in [Observability]("Coming soon"). -->
-
-Run the following command to start Redis and the OpenTelemetry collector:
+## Start the infrastructure
 
 ```bash
 docker compose up -d
 ```
 
-??? question "What if you don't have Docker?"
-    If you don't have Docker, you can just run Redis yourself. The default configuration is to listen on `localhost:6379` with no password. Check the `docker-compose.yml` file for the exact configuration to copy from.
+Docker Compose starts Redis, which carries messages between the services and players, and the
+OpenTelemetry collector. KTANE itself does not run in Docker.
 
-??? question "Why no password for Redis?"
-    We don't use a password for Redis because it is only accessible from the local machine and there was no one else using the machine and nothing else running on it. Of course, the correct thing to do, especially if you are accessing Redis remotely, is to **set a password and configure the services to use it.**
+??? question "What if you do not have Docker?"
+    Run Redis yourself on `localhost:6379` with no password, or update the service configuration to
+    match your Redis instance. `docker-compose.yml` contains the default setup.
 
-??? question "What if you don't want to use OpenTelemetry?"
-    The most robust option is to set the `COMPOSE_PROFILES` environment variable to `dev` to send all traces to the void. Not using OpenTelemetry will make deubugging harder, so we recommend you keep it enabled unless you know you don't need it.
+??? question "What if you do not want to export traces?"
+    Set `COMPOSE_PROFILES=dev` before starting the services. The development profile keeps the
+    collector available but discards its output. Without traces, diagnosing a failed run is harder.
 
-### Rendering the game: display vs headless
+## Make sure the game can render
 
-The game has to render _somewhere_. If you have a display, like on macOS or Windows, you don't need to do anything. If you are on Linux, you may need to start an X display.
+KTANE must run on a machine with a working graphics and display stack. A desktop on macOS or
+Windows needs no extra setup. A Linux desktop can use its existing `$DISPLAY`.
 
-!!! warning "The game must run on a machine that can render graphics"
-    KTANE is a Unity game. The machine that runs the game needs a working graphics/display stack: for example, a normal desktop/laptop display, a workstation GPU such as an NVIDIA RTX card, or a headless Linux machine with Xorg backed by a graphics-capable GPU.
+!!! warning "Compute accelerators do not imply a game display"
+    A headless machine configured for A100, H100, TPU, or similar model workloads may not provide a
+    display that can render the Unity game. Run KTANE on a graphics-capable machine and point the
+    player configuration at the remote model endpoint when those machines differ.
 
-    This is separate from the GPU you might use for model inference. Common ML accelerator machines with A100, H100, TPU, or similar compute-focused hardware are often configured for batch/model workloads only and may not be able to back an X display for the game. If your model runs on that kind of machine, run KTANE on a graphics-capable machine and point your player config at the remote model endpoint instead.
+On headless Linux, start a GPU-backed Xorg display with `scripts/startx.py`, then export `$DISPLAY`
+or list displays in the [run manifest](running/run-your-model.md#displays){data-preview}:
 
-    When the game machine and model machine are different, the game-running machine must be able to reach the model server's API. That can be a private network address, a VPN, SSH port forwarding, or a tunnel. In our setups, Cloudflare Tunnel has been a convenient way to expose a self-hosted vLLM endpoint as an HTTPS `base_url`.
+```bash
+sudo -E .venv/bin/python scripts/startx.py 3
+export DISPLAY=:3
+```
 
-We have validated the following cases:
+The game-running machine must be able to reach a remote model server. Use a private network, VPN,
+SSH port forwarding, or an HTTPS tunnel that fits your setup.
 
-- **macOS/Windows:** nothing to do.
-- **Linux with a desktop session:** if `$DISPLAY` is already set, the game uses it—nothing to do.
-- **Linux, headless:** start a GPU-backed Xorg with `scripts/startx.py`, then either export `$DISPLAY` for the run to inherit, or name the display(s) in the [run manifest](running/run-your-model.md#displays){data-preview}.
+## Run the quickstart
 
-??? tip "How to run a headless X display on Linux"
-    If you need to use sudo and you still want to use uv/similar, you can use `sudo -E` to preserve the environment variables. For instance, to run an X display on display 3, you can run:
+The quickstart uses dummy players. They do not solve the game, but they exercise configuration,
+generation, the local services, KTANE, and result recording.
 
-    ```bash
-    sudo -E .venv/bin/python scripts/startx.py 3
-    ```
+```bash
+gptnt doctor runs/quickstart.yaml
+gptnt generate runs/quickstart.yaml
+gptnt run runs/quickstart.yaml
+```
 
-## Run the benchmark (using dummy models)
+`doctor` checks the full machine and run plan. `generate` writes the experiment specs. `run` reads
+those specs, prepares their manuals, starts the processes, and records the results. With a display,
+you will see the game window; on a headless machine, follow the process logs.
 
-To make sure that you can run the game and the benchmark, we have "dummy models" that you can run. They don't do anything useful, but they will make sure that the game and the benchmark are working end-to-end.
+## Prior artifacts
 
-=== "With `mise` (recommended)"
-
-    ```bash
-    # 1. Install the toolchain
-    mise install
-
-    # 2. Install dependencies
-    mise run sync # (1)!
-
-    # 3. Run Redis and OTEL Collector (if not running)
-    docker compose up -d # (2)!
-
-    # 4. Verify your setup works
-    gptnt doctor runs/quickstart.yaml
-
-    # 5. Run the benchmark with the dummy models
-    gptnt run runs/quickstart.yaml
-    ```
-
-    1. Installs the project dependencies and Playwright-managed Chromium. See [Manuals](manuals.md){data-preview} for manual profiles, caching, and offline preparation.
-    2. Obviously, you can skip this if you already have Redis and the OpenTelemetry collector running.
-
-=== "Without `mise`"
-
-    ```bash
-    # 1. Find out what tools we used from the `mise.toml` file and install them.
-
-
-    # 2. Install dependencies
-    uv sync --all-groups
-
-    # 3. Install Playwright-managed Chromium
-    uv run playwright install chromium # (1)!
-
-    # 4. Run Redis and OTEL Collector (if not running)
-    docker compose up -d # (2)!
-
-    # 5. Verify your setup works
-    gptnt doctor runs/quickstart.yaml
-
-    # 6. Run the benchmark with the dummy models
-    gptnt run runs/quickstart.yaml
-    ```
-
-    1. See [Manuals](manuals.md){data-preview} for manual profiles, caching, and offline preparation.
-    2. Obviously, you can skip this if you already have Redis and the OpenTelemetry collector running.
-
-??? tip "What is `mise`?"
-    During development, we use [mise-en-place](https://mise.jdx.dev) to manage the toolchain and secrets. It simplifies the installation of python versions, uv versions, and other tool dependencies. It also manages environment variables and secrets for you. You can use it if you want, but it is not required.
-
-??? info "What does `gptnt run` do?"
-    `gptnt run` is conditioned on the `doctor` command being successful (so technically you don't need to explicitly run it separately).
-    It then spawns the experiment manager, game "rooms", and players, submits the generated experiment specs to the experiment manager, and streams progress until the run finishes.
-    If you have a display, you should see the game window pop up and it start to do things. If you don't have a display, the game will run headless and you can watch the logs.
-
-## Versioning Policy
-
-Since this is a benchmark _and_ a library, it is incredibly important that models are compared on an equal footing, but also that we are not constantly breaking or gating results on new versions. From this, we have a 2-tier versioning policy: one for the codebase, and one for the benchmark.
-
-### Codebase versioning
-
-The codebase follows [Semantic Versioning](https://semver.org/), and is automated through [Conventional Commits](https://conventionalcommits.org). All pull requests must ensure that the _title_ follows conventional commits.[^versioning-prs]
-
-[^versioning-prs]: We encourage squashing PR's by default. Therefore, you can make the individual commits whatever you want, but the PR title must follow conventional commits. The CI will check this and complain at you until you fix it.
+!!! warning "Use the matching release and tooling"
+    Current tools do not load or convert submission schema version 1 bundles or prior Parquet and
+    DuckDB layouts, and they do not upgrade prior databases in place. Inspect an artifact with its
+    matching prior release and dependencies. To produce benchmark results under a current release,
+    rerun the benchmark. Player fingerprints from earlier formats are not comparable identifiers
+    because the fingerprint inputs changed at the version boundary.

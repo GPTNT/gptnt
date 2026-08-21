@@ -1,6 +1,7 @@
 # Run your model
 
-To run the benchmark, there are two commands that you will use: `gptnt run` and `gptnt statics`. The first command runs the interactive experiments, while the second command runs the static experiments.
+Interactive runs use `doctor`, `generate`, and `run`. Static evaluations use `gptnt statics` and do
+not start the game.
 
 ## Interactive experiments
 
@@ -68,7 +69,7 @@ Most runs can use the defaults for these fields. Configure them when you need ex
 
 ##### Displays
 
-`displays` spreads game rooms round-robin across X displays on a headless Linux host (see [rendering the game](../get-started.md#rendering-the-game-display-vs-headless){data-preview}). Use one display number per GPU to spread rooms across GPUs, for example `displays: [0, 1]`. Omit it to inherit the ambient `$DISPLAY`.
+`displays` spreads game rooms round-robin across X displays on a headless Linux host (see [Make sure the game can render](../get-started.md#make-sure-the-game-can-render){data-preview}). Use one display number per GPU to spread rooms across GPUs, for example `displays: [0, 1]`. Omit it to inherit the ambient `$DISPLAY`.
 
 ```yaml hl_lines="6"
 spec_version: 2
@@ -114,6 +115,18 @@ rooms: 2
 attempts_per_mission: 3
 ```
 
+### Understand benchmark identity and editable inputs
+
+A **benchmark reference** is the exact release tag recorded in `release_tag`. The accompanying
+`release_commit` identifies the tagged commit. GPTNT compares the checkout with that commit before
+it generates or runs experiments.
+
+Protected inputs define benchmark behavior. They include the GPTNT package, prompts, manual assets,
+and base configuration. Permitted inputs are runner-owned selections such as player configs, suite
+and mission inputs, and run manifests. GPTNT reports permitted changes separately because changing
+them is part of configuring a run; changing protected content means the result no longer matches
+the recorded benchmark reference.
+
 ### Validate it
 
 ```bash
@@ -122,7 +135,7 @@ gptnt doctor runs/<name>.yaml
 
 This checks the infrastructure and cross-checks the roster against what the suites need, so a missing player surfaces here instead of stalling the run.
 
-Doctor also reports the release identity and protected-content comparison:
+Doctor reports the benchmark reference, release commit, and protected-content comparison:
 
 ```text
 Benchmark
@@ -131,12 +144,10 @@ Release commit     abc123
 Protected content  matches
 ```
 
-The command blocks generation and execution when the checkout has no exact release identity or
-protected benchmark content differs from that release. Restore those files or use an unmodified
-release checkout. GPTNT lists user inputs separately under **Permitted input changes** and allows
-them. For example, `configs/player/my-model.yaml` is a permitted input, while
-`src/gptnt/prompts/manual.py` is protected. Unrelated worktree changes are not reported as benchmark
-failures.
+The command blocks generation and execution when the checkout has no exact benchmark reference or
+protected content differs from its release commit. Restore those files or use an unmodified release
+checkout. For example, `configs/player/my-model.yaml` is a permitted input, while
+`src/gptnt/prompts/manual.py` is protected. Unrelated worktree changes are not benchmark failures.
 
 !!! warning "Developing GPTNT with protected changes"
     Contributors can add `--allow-modified-benchmark` to commands that execute modified benchmark
@@ -153,13 +164,24 @@ This writes one experiment spec per mission, pairing, and attempt under `output/
 
 #### Adding or changing a suite
 
+The checked-in `configs/suites/suites.lock` already freezes every published suite. You do not run
+`gptnt suite freeze` when you add a player, select a suite, or execute an existing release.
+
+Run it when you change what a suite measures:
+
 1. Edit the suite or its missions.
 2. Increase the suite revision when the measured content changes.
 3. Run `gptnt suite freeze`.
 4. Run `doctor`, then `generate` for the run manifest.
 
-Generation keeps track of the frozen suite name, revision, and digest in every spec. Later edits to
-the live suite files do not change the identity of specs already written.
+A **suite digest** is the stable digest of a suite configuration and its mission snapshot. Freezing
+stores the suite name, revision, digest, configuration, and missions in `suites.lock`. Generation
+copies the name, revision, and suite digest into every spec. Later edits to live suite files do not
+change the identity of specs already written.
+
+!!! warning "Changing measured content requires a revision bump"
+    `gptnt suite freeze` refuses a changed suite digest at an existing revision. Increase the
+    revision before freezing so results from the two definitions are not grouped together.
 
 ??? question "Why is this separate from running?"
     Generation is offline and deterministic; running spawns the game and spends tokens. Keeping them apart lets you inspect the specs, and lets a run resume by regenerating the same set and skipping what is already done.
