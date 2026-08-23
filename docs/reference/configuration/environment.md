@@ -132,6 +132,33 @@ All values are seconds.
 Changing a timeout changes failure detection and can alter resource retention. Use the default
 unless the deployment has a measured need for another value.
 
+## Generated settings
+
+These generated models document values accepted by the current runtime. Their module paths are not
+supported Python extension interfaces.
+
+::: gptnt.common.runtime_settings.RuntimeSettings
+    options:
+      show_root_heading: true
+      members:
+        - em_host
+        - em_port
+        - redis_dsn
+        - em_base_url
+        - em_health_url
+
+::: gptnt.observability.settings.ObservabilitySettings
+    options:
+      show_root_heading: true
+      members:
+        - instrument_httpx
+        - limited
+        - "off"
+
+::: gptnt.interactive.services.timeouts.ServiceTimeouts
+    options:
+      show_root_heading: true
+
 ## External integrations
 
 GPTNT passes provider, W&B, OpenTelemetry, and submission variables to the external library that

@@ -17,10 +17,16 @@ class RuntimeSettings(BaseSettings):
     """
 
     em_host: str = Field(default="localhost", validation_alias="GPTNT_EM_HOST")
+    """Experiment-manager host read from `GPTNT_EM_HOST` by runtime clients."""
+
     em_port: int = Field(default=8085, validation_alias="GPTNT_EM_PORT")
+    """Experiment-manager HTTP port read from `GPTNT_EM_PORT` by runtime clients."""
+
     redis_dsn: RedisDsn = Field(
         default=RedisDsn("redis://localhost:6379"), validation_alias="REDIS_DSN"
     )
+    """Redis connection string read from `REDIS_DSN` by runtime services."""
+
     manual_artifacts: dict[str, Path] = Field(
         default_factory=dict, validation_alias=MANUAL_ARTIFACTS_ENV
     )

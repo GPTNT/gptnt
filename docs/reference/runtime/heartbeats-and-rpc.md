@@ -56,6 +56,42 @@ tombstone. The tombstone includes the final readiness, failure reason, heartbeat
 | `unexpected_disappearance` | No tombstone or usable remaining heartbeat fields exist. |
 | `never_connected` | Declared enum value that the current context property does not return. |
 
+## Generated heartbeat contracts
+
+These generated models expose fields used by the current service implementation. They do not
+define a supported transport or Python extension interface.
+
+::: gptnt.interactive.services.heartbeat.base.BaseHeartbeat
+    options:
+      show_root_heading: true
+      members:
+        - timestamp
+        - ready_state
+        - is_idle
+
+::: gptnt.interactive.services.heartbeat.player.PlayerHeartbeat
+    options:
+      show_root_heading: true
+      members:
+        - capabilities
+        - is_idle
+
+::: gptnt.interactive.services.heartbeat.tombstone.Tombstone
+    options:
+      show_root_heading: true
+      members:
+        - uptime_seconds
+
+::: gptnt.interactive.services.heartbeat.tombstone.ServiceExpiredContext
+    options:
+      show_root_heading: true
+      members:
+        - tombstone
+        - heartbeat_key_ttl
+        - remaining_heartbeat_fields
+        - last_heartbeat_seq
+        - failure_category
+
 ## RPC channels
 
 | Channel | Client | Service |
