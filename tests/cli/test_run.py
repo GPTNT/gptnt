@@ -21,7 +21,7 @@ from gptnt.cli.doctor import command as doctor_command
 from gptnt.cli.doctor.command import DiagnoseResult
 from gptnt.cli.doctor.run_plan import RunPlanResult
 from gptnt.cli.onboarding import generate_specs as generate_command
-from gptnt.cli.run import pipeline
+from gptnt.cli.run import _pipeline as pipeline
 from gptnt.cli.run.manifest import RunManifest
 from gptnt.cli.statics import _evaluation as statics_evaluation
 from gptnt.cli.submission import new as submission_new
@@ -123,14 +123,14 @@ async def _fixed_diagnose(
 def _patch_diagnose(monkeypatch: pytest.MonkeyPatch, result: DiagnoseResult) -> None:
     """Patch the `diagnose` the pipeline imported into its namespace to return `result`."""
     monkeypatch.setattr(
-        "gptnt.cli.run.pipeline.diagnose", functools.partial(_fixed_diagnose, result)
+        "gptnt.cli.run._pipeline.diagnose", functools.partial(_fixed_diagnose, result)
     )
 
 
 def _patch_load_specs(monkeypatch: pytest.MonkeyPatch, specs: Sequence[object]) -> None:
     """Patch the disk-spec loader so the pipeline 'reads' the given specs without touching disk."""
     monkeypatch.setattr(
-        "gptnt.cli.run.pipeline.load_specs_from_dir", lambda _directory: list(specs)
+        "gptnt.cli.run._pipeline.load_specs_from_dir", lambda _directory: list(specs)
     )
 
 
@@ -449,7 +449,7 @@ async def test_run_pipeline_aborts_when_run_plan_missing(monkeypatch: pytest.Mon
 @pytest.mark.anyio
 async def test_run_pipeline_aborts_when_no_specs_on_disk(monkeypatch: pytest.MonkeyPatch) -> None:
     """An absent/empty spec dir is a hard error before anything is gated or spawned."""
-    monkeypatch.setattr("gptnt.cli.run.pipeline.diagnose", _fail_if_diagnose_called)
+    monkeypatch.setattr("gptnt.cli.run._pipeline.diagnose", _fail_if_diagnose_called)
     _patch_load_specs(monkeypatch, [])  # nothing generated yet
     calls = _patch_spawn(monkeypatch)
 
@@ -642,13 +642,13 @@ async def test_spawn_submit_monitor_tears_down_on_submit_failure(
     """A failed in-process submit must terminate the spawned cluster, not orphan it."""
     _FakeOrch.terminate_calls.clear()
 
-    monkeypatch.setattr("gptnt.cli.run.pipeline.ProcessOrchestrator", _FakeOrch)
-    monkeypatch.setattr("gptnt.cli.run.pipeline.monitor_status", _noop)
-    monkeypatch.setattr("gptnt.cli.run.pipeline.spawn_experiment_manager", _noop)
-    monkeypatch.setattr("gptnt.cli.run.pipeline.spawn_rooms", _noop)
-    monkeypatch.setattr("gptnt.cli.run.pipeline.spawn_players", _noop)
-    monkeypatch.setattr("gptnt.cli.run.pipeline.handle_signals", _fake_signals)
-    monkeypatch.setattr("gptnt.cli.run.pipeline.send_experiments", _boom)
+    monkeypatch.setattr("gptnt.cli.run._pipeline.ProcessOrchestrator", _FakeOrch)
+    monkeypatch.setattr("gptnt.cli.run._pipeline.monitor_status", _noop)
+    monkeypatch.setattr("gptnt.cli.run._pipeline.spawn_experiment_manager", _noop)
+    monkeypatch.setattr("gptnt.cli.run._pipeline.spawn_rooms", _noop)
+    monkeypatch.setattr("gptnt.cli.run._pipeline.spawn_players", _noop)
+    monkeypatch.setattr("gptnt.cli.run._pipeline.handle_signals", _fake_signals)
+    monkeypatch.setattr("gptnt.cli.run._pipeline.send_experiments", _boom)
     monkeypatch.setattr(
         "gptnt.common.paths.remove_empty_experiment_recorder_outputs", lambda _path: None
     )

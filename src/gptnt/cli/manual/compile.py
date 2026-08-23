@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from rich.console import Console
 
-from gptnt.cli.manual.selection import AllProfilesOption, SuitesOption, select_manual_profiles
+from gptnt.cli.manual._selection import AllProfilesOption, SuitesOption, select_manual_profiles
 from gptnt.common.paths import Paths
 from gptnt.ktane.manuals.artifacts import prepare_manual_artifacts
 from gptnt.ktane.manuals.sources import ManualSources

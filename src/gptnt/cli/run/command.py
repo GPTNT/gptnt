@@ -5,8 +5,8 @@ from cyclopts import Parameter
 from cyclopts.types import ExistingFile
 
 from gptnt.cli.integrity import AllowModifiedBenchmarkOption
+from gptnt.cli.run._pipeline import run_pipeline
 from gptnt.cli.run.manifest import RunManifest
-from gptnt.cli.run.pipeline import run_pipeline
 
 
 async def run(

@@ -15,8 +15,8 @@ from gptnt.interactive.services.heartbeat.events import PlayerState
 from gptnt.interactive.services.heartbeat.game import GameHeartbeat
 from gptnt.interactive.services.heartbeat.player import PlayerHeartbeat
 from gptnt.interactive.services.heartbeat.tombstone import ServiceExpiredContext
+from gptnt.interactive.services.registry._metrics import LogfireGauge
 from gptnt.interactive.services.registry.manifest import ServiceManifest, ServiceState
-from gptnt.interactive.services.registry.metrics import LogfireGauge
 from gptnt.interactive.services.timeouts import ServiceTimeouts
 from gptnt.ktane.state.game import GameState
 

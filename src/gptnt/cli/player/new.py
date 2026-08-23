@@ -5,7 +5,7 @@ from typing import Annotated
 from cyclopts import App, Parameter
 from rich.console import Console
 
-from gptnt.cli.player.templates import PLAYER_TEMPLATE, PROVIDER_TEMPLATE
+from gptnt.cli.player._templates import PLAYER_TEMPLATE, PROVIDER_TEMPLATE
 from gptnt.common.paths import Paths
 
 console = Console()

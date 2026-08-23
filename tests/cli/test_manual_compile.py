@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from gptnt.cli.manual import compile as command, selection
+from gptnt.cli.manual import _selection as selection, compile as command
 from gptnt.ktane.manuals.profile import KtaneContentAppendix, ManualProfile
 
 if TYPE_CHECKING:
