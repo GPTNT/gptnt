@@ -6,8 +6,8 @@ tags:
 
 # CLI reference
 
-GPTNT registers commands with Cyclopts under the `gptnt` entry point. These pages cover the
-commands used by the first-run and runtime path.
+GPTNT registers commands with Cyclopts under the `gptnt` entry point. These pages cover setup,
+execution, results, static evaluations, maintenance, and result submission.
 
 | Command group | Reference |
 | ------------- | --------- |
@@ -16,9 +16,10 @@ commands used by the first-run and runtime path.
 | Start, submit, monitor, or forcibly stop interactive work | [`run`, `submit`, and `kill`](run.md) |
 | Create and inspect model configuration | [Model and configuration commands](model-and-configuration.md) |
 | Download and compile manuals | [Manual commands](manuals.md) |
-
-Result analysis, static evaluations, submission, and maintenance stay with their task pages until
-their connected reference pages are integrated.
+| Inspect completion and maintain interactive outputs | [Interactive and maintenance commands](interactive-and-maintenance.md) |
+| Build and query result data | [Results and analysis commands](results-and-analysis.md) |
+| Run dataset-backed evaluations | [Static evaluation commands](statics.md) |
+| Build, validate, and submit result bundles | [Submission commands](submission.md) |
 
 ## Command order for an interactive run
 

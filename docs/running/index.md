@@ -23,9 +23,12 @@ configuration through experiment execution, result inspection, and submission.
 ## Execute and submit
 
 1. [Run your model](run-your-model.md){data-preview} to execute the generated interactive
-   specifications and inspect their outputs.
-2. Run any required static evaluations with the configured player.
-3. [Submit your results](../submit-your-results.md){data-preview} after the interactive and static
+   specifications.
+2. [Run static evaluations](run-static-evaluations.md){data-preview} for the required no-game
+   tasks.
+3. [Inspect and analyse results](inspect-results.md){data-preview} to check completion and build
+   DuckDB.
+4. [Submit your results](../submit-your-results.md){data-preview} after the interactive and static
    outputs are complete.
 
 Use [roles, protocols, and capabilities](../understand/roles-protocols-and-capabilities.md) when a

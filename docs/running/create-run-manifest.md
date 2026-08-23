@@ -131,4 +131,5 @@ The command writes one JSON file per attempt under
     The final line reports the specification count and destination directory.
 
 `gptnt run` does not regenerate specifications. Regenerate them after changing the manifest or a
-selected configuration that affects the experiments. Continue with [Run your model](run-your-model.md#interactive-experiments).
+selected configuration that affects the experiments. Continue with
+[Run interactive experiments](run-your-model.md).

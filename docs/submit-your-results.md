@@ -85,11 +85,11 @@ output/submissions/
 
 `submission.yaml` uses submission schema version 2. Its `provenance` block records `gptnt_version`,
 the benchmark reference in `release_tag`, `release_commit`, and `protected_content_modified`. It
-also records player capabilities and fingerprints and the measured suite or static identity. The
-terms benchmark reference, player fingerprint, and suite digest are defined in
-[Run your model](running/run-your-model.md#understand-benchmark-identity-and-editable-inputs),
-[Roles, protocols, and capabilities](understand/roles-protocols-and-capabilities.md#identity-and-fingerprints-serve-different-purposes), and
-[Adding or changing a suite](running/run-your-model.md#adding-or-changing-a-suite).
+also records player capabilities and fingerprints and the measured suite or static identity. See
+[Roles, protocols, and capabilities](understand/roles-protocols-and-capabilities.md#identity-and-fingerprints-serve-different-purposes)
+for player fingerprints and
+[Suites, revisions, and comparability](understand/suites-revisions-and-comparability.md) for
+benchmark references and suite digests.
 
 An interactive bundle also includes `suite.lock`, reduced to the recorded suite revision and the
 missions it references. Validation therefore checks the included suite snapshot instead of reading

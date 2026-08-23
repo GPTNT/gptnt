@@ -21,7 +21,5 @@ link back to the procedure that consumes each value.
 | [Suites](suites.md){data-preview} | Suite lock versions, revisions, composition, and digests |
 | [Missions](missions.md){data-preview} | Mission-set structure, mission fields, and canonical mission keys |
 
-Module-registry reference will join this section with its connected authoring procedure.
-
 [Install and check GPTNT](../../get-started.md)
 [Open runtime reference](../runtime/index.md)

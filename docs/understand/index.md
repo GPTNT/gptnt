@@ -19,6 +19,10 @@ reference when you need an exact option, setting, state, or channel.
    suites, missions, specifications, attempts, sessions, records, and outcomes.
 5. [Runtime services](runtime-services.md){data-preview} assigns process, matchmaking,
    communication, game, model-call, liveness, and recording responsibilities.
+6. [Suites, revisions, and comparability](suites-revisions-and-comparability.md){data-preview}
+   explains which identities and digests determine whether results measure the same benchmark.
+7. [Results and provenance](results-and-provenance.md){data-preview} connects player records,
+   terminal evidence, DuckDB, static outputs, and submission bundles.
 
 ## Choose another depth
 

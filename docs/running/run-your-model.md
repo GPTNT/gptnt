@@ -20,8 +20,9 @@ You need:
 - experiment specifications generated with `gptnt generate`; and
 - every required manual available or downloadable.
 
-Create and validate the run manifest before continuing. For the current schema and generation
-command, see [Experiment hierarchy](../understand/experiment-hierarchy.md) and
+Create and validate the run manifest before continuing. Follow
+[Create a run manifest](create-run-manifest.md) for the authoring procedure. For the hierarchy and
+exact generation command, see [Experiment hierarchy](../understand/experiment-hierarchy.md) and
 [`generate`](../reference/cli/generate.md).
 
 !!! warning "Generate before running"
