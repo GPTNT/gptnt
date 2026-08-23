@@ -346,6 +346,11 @@ Use the [reference field documentation inventory](documentation-reference-field-
 the implementation-backed backlog for field descriptions and object-level explanations. It is a
 planning input rather than public documentation.
 
+Use the [reference coverage inventory](documentation-reference-coverage.md) as the checked v2 map
+of commands, configuration, persisted formats, supported Python interfaces, and contributor-only
+runtime contracts. It records evidence, proposed page ownership, presentation mode, cross-links,
+and explicit exclusions.
+
 Maintain a checked inventory for:
 
 - Every top-level CLI command and nested subcommand.
