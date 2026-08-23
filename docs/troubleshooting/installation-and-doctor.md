@@ -100,8 +100,9 @@ gptnt doctor runs/<name>.yaml
   [Game and displays](game-and-displays.md).
 - Redis, experiment-manager endpoint, or telemetry warnings:
   [Redis and runtime services](redis-and-runtime-services.md).
-- Provider request failure after `--live`: use the player and provider configuration that doctor
-  reports. The request can incur provider charges.
+- Provider request failure after `--live`: use [provider and model-response troubleshooting](providers-and-model-responses.md)
+  with the player and provider configuration that doctor reports. The request can incur provider
+  charges.
 
 ## An older artefact does not load
 

@@ -14,9 +14,11 @@ commands used by the first-run and runtime path.
 | Validate configuration, infrastructure, players, and run plans | [`doctor`](doctor.md) |
 | Generate persisted experiment specifications | [`generate`](generate.md) |
 | Start, submit, monitor, or forcibly stop interactive work | [`run`, `submit`, and `kill`](run.md) |
+| Create and inspect model configuration | [Model and configuration commands](model-and-configuration.md) |
+| Download and compile manuals | [Manual commands](manuals.md) |
 
-Model onboarding, manuals, result analysis, static evaluations, submission, and maintenance stay
-with their existing task pages until their connected reference pages are integrated.
+Result analysis, static evaluations, submission, and maintenance stay with their task pages until
+their connected reference pages are integrated.
 
 ## Command order for an interactive run
 

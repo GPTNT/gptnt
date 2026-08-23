@@ -13,11 +13,12 @@ the task pages for an end-to-end procedure and these pages when you need an exac
 | --------- | -------------- |
 | [CLI](cli/index.md){data-preview} | Command selection, arguments, options, outputs, and failure boundaries |
 | [Configuration](configuration/index.md){data-preview} | Environment variables, runtime endpoints, game settings, and timeouts |
+| [Files and schemas](files/index.md){data-preview} | Manual source inputs and compiled outputs |
+| [Python interfaces](python/index.md){data-preview} | Selected player, action, observation, and processor objects |
 | [Runtime implementation](runtime/index.md){data-preview} | Process orchestration, services, registry state, heartbeats, and RPC |
 
-Files and schemas, supported Python interfaces, and the glossary are added with their first
-connected procedures. Runtime pages are available now because they support the first-run and
-service-troubleshooting paths.
+The glossary joins this section with the remaining concept and reference slices. Runtime pages are
+available because they support the first-run and service-troubleshooting paths.
 
 !!! info "Support boundary"
     CLI, configuration, persisted formats, and selected Python imports can be supported interfaces.

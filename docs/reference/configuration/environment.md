@@ -143,8 +143,9 @@ owns them. Common local boundaries include:
 - `LOGFIRE_TOKEN` for the production collector deployment.
 - `GITHUB_TOKEN` for remote submission operations.
 
-Use the provider's documentation for its complete variable set. Do not place credentials in a
-tracked run, player, or provider configuration.
+Use the provider's documentation for its complete variable set. The [provider configuration](providers.md)
+and [provider troubleshooting](../../troubleshooting/providers-and-model-responses.md) pages cover
+the GPTNT boundary. Do not place credentials in a tracked run, player, or provider configuration.
 
 [Install and check GPTNT](../../get-started.md){ .md-button }
 [Troubleshoot Redis and services](../../troubleshooting/redis-and-runtime-services.md){ .md-button }

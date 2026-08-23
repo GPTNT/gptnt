@@ -11,9 +11,13 @@ reference when you need an exact option, setting, state, or channel.
 
 1. [Benchmark and player model](benchmark-and-player-model.md){data-preview} explains the
    relationship among a model, configured player, running service, role, and benchmark outcome.
-2. [Experiment hierarchy](experiment-hierarchy.md){data-preview} traces a run manifest through
+2. [Roles, protocols, and capabilities](roles-protocols-and-capabilities.md){data-preview} separates
+   role assignment, experiment rules, service matching, and recorded participant identity.
+3. [Manuals and rule seeds](manuals-and-rule-seeds.md){data-preview} connects source pins, compiled
+   handbook identity, protocol access, and the current rules boundary.
+4. [Experiment hierarchy](experiment-hierarchy.md){data-preview} traces a run manifest through
    suites, missions, specifications, attempts, sessions, records, and outcomes.
-3. [Runtime services](runtime-services.md){data-preview} assigns process, matchmaking,
+5. [Runtime services](runtime-services.md){data-preview} assigns process, matchmaking,
    communication, game, model-call, liveness, and recording responsibilities.
 
 ## Choose another depth

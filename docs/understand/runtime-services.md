@@ -13,8 +13,8 @@ player services perform the experiment through Redis.
 
 !!! info "Current implementation"
     These service relationships describe the current GPTNT runtime. They are maintainer reference,
-    not supported extension interfaces. Use the selected Python API pages when integrating custom
-    code.
+    not supported extension interfaces. Use the selected [Python interface pages](../reference/python/index.md)
+    when integrating custom code.
 
 ```mermaid
 sequenceDiagram

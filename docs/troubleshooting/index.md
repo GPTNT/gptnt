@@ -12,9 +12,11 @@ condition, then the corresponding action.
 | Installation, dependency, player configuration, integrity, or run-plan check fails | [Installation and doctor](installation-and-doctor.md) |
 | KTANE is missing, cannot start, does not render, or uses the wrong display | [Game and displays](game-and-displays.md) |
 | Redis, the experiment manager, a heartbeat, an RPC call, or a child process fails | [Redis and runtime services](redis-and-runtime-services.md) |
+| A provider cannot be composed or reached, or a model response is rejected | [Providers and model responses](providers-and-model-responses.md) |
+| A manual source, profile, browser compile, rule seed, or cached artefact fails | [Manual preparation](manual-preparation.md) |
 
-Provider responses, manual preparation, interrupted outputs, and submission validation remain on
-their existing task pages until their connected troubleshooting pages are integrated.
+Interrupted outputs and submission validation remain on their task pages until their connected
+troubleshooting pages are integrated.
 
 <!-- vale ai-tells.DoubleHyphen = NO -->
 [Install and check GPTNT](../get-started.md){ .md-button .md-button--primary }

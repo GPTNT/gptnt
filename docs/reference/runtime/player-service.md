@@ -75,6 +75,10 @@ All commands use `player:<player_uuid>:commands:<command>`.
 Player-to-player messages use `session:<session_id>:player:<role>:messages`. They do not share the
 RPC command channel.
 
+The [player interfaces](../python/player-interfaces.md) define configuration and prediction
+objects. [Actions and observations](../python/actions-and-observations.md) and
+[processors](../python/processors.md) define the supported data and image-processing surfaces.
+
 ## Recording boundary
 
 The recorder writes `ExperimentStep` data during the experiment and a `RecordFooter` when the

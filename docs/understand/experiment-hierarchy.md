@@ -31,11 +31,14 @@ flowchart TD
 
 A **run manifest** selects one or more suites, a player roster, room capacity, optional display
 placement, completion source, observability preset, anchors, and an optional attempt-count
-override.
+override. [Create a run manifest](../running/create-run-manifest.md) describes that choice point.
 
 A **suite** defines what is measured. It combines a mission set, matchup rules, player protocols,
 modalities, a revision, and a manual profile. Published suites are frozen in `suites.lock`; their
 suite digest identifies the frozen configuration and mission snapshot.
+
+The [manuals and rule seeds](manuals-and-rule-seeds.md) concept explains how the selected profile
+and the mission's rule-seed value contribute to benchmark identity.
 
 A **mission** describes one KTANE bomb: modules, seed, rule seed, time limit, strike count, widgets,
 and related game parameters. A mission set groups materialised missions used by a suite.
