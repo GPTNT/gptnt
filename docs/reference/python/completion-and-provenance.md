@@ -70,5 +70,5 @@ Stored provenance is complete at record creation. A later reader never fills mis
 its checkout. Benchmark integrity requires one exact annotated `vMAJOR.MINOR.PATCH` tag on the
 release commit; an absent or ambiguous tag raises `BenchmarkIntegrityError`.
 
-[Understand results and provenance](../../understand/results-and-provenance.md){ .md-button }
-[Recording implementation](../runtime/recording-and-completion.md){ .md-button }
+[Understand results and provenance](../../understand/results-and-provenance.md)
+[Recording implementation](../runtime/recording-and-completion.md)

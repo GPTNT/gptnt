@@ -27,7 +27,7 @@ share one option set and always select a local player profile with `--player`.
 
 The common form is:
 
-```text
+```text title="Command syntax"
 gptnt statics TASK --player NAME [--provider NAME] [--download] [--throw]
                     [--upload] [--limit-instances N]
                     [--dataset-revision REF]
@@ -49,7 +49,7 @@ gptnt statics TASK --player NAME [--provider NAME] [--download] [--throw]
 
 ## `how-do-you`
 
-```text
+```text title="Command syntax"
 gptnt statics how-do-you --player NAME [--provider NAME]
                          [--attempts N] [--allow-thinking | --no-thinking]
                          [--output-file-prefix PREFIX]
@@ -59,5 +59,5 @@ gptnt statics how-do-you --player NAME [--provider NAME]
 command. It writes a module-to-attempt mapping under `output/how_do_you/`; it has no dataset,
 download, throw, upload, or benchmark-integrity option.
 
-[Run static evaluations](../../running/run-static-evaluations.md){ .md-button }
-[Static output formats](../files/static-evaluation-outputs.md){ .md-button }
+[Run static evaluations](../../running/run-static-evaluations.md)
+[Static output formats](../files/static-evaluation-outputs.md)

@@ -68,5 +68,5 @@ Install the submission extra. Set `GITHUB_TOKEN`, or ensure `gh auth token` succ
 `--repo` uses `owner/name` form and that the account can read the target repository. A dry run
 still authenticates, looks up the repository, and clones it. Only GitHub mutations are suppressed.
 
-[Submit results](../submit-your-results.md){ .md-button }
-[Submission bundle format](../reference/files/submission-bundles.md){ .md-button }
+[Submit results](../submit-your-results.md)
+[Submission bundle format](../reference/files/submission-bundles.md)

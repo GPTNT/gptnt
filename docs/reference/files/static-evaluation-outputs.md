@@ -10,7 +10,7 @@ tags:
 Dataset-backed static tasks write a model-specific directory with run metadata, one JSON file per
 prediction, and task-dependent metrics. These formats have no independent format version.
 
-```text
+```text title="Dataset task layout"
 output/
   <task>_predictions/
     <provider-model>/
@@ -69,5 +69,5 @@ the player, capabilities, task, dataset, run date, and provenance.
 attempt contains `prompt` and `response`. An optional prefix changes the filename. This command
 writes no `run_meta.json` or `metrics.json` and is not a dataset-backed submission target.
 
-[Run static evaluations](../../running/run-static-evaluations.md){ .md-button }
-[Submission bundle format](submission-bundles.md){ .md-button }
+[Run static evaluations](../../running/run-static-evaluations.md)
+[Submission bundle format](submission-bundles.md)

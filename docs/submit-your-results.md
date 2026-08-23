@@ -30,7 +30,7 @@ submission bundle construction has no modified-benchmark override.
 
 Install the remote-submission dependency group before the final stage:
 
-```bash
+```bash title="Run in your shell"
 uv sync --all-groups --extra submission
 ```
 
@@ -38,7 +38,7 @@ Set `GITHUB_TOKEN`, or install and authenticate the GitHub CLI with `gh auth log
 
 ## Collate the interactive records
 
-```bash
+```bash title="Run in your shell"
 gptnt build-db <directory-of-experiment-outputs> \
   --output output/experiments.duckdb
 ```
@@ -49,7 +49,7 @@ gptnt build-db <directory-of-experiment-outputs> \
 
 ## Build the bundles
 
-```bash
+```bash title="Run in your shell"
 gptnt submission new \
   --suite multi-self-async \
   --suite multi-self-sync \
@@ -105,7 +105,7 @@ You may fill the `submitter` block after building. A rebuild preserves an existi
 
 ## Validate the bundles
 
-```bash
+```bash title="Run in your shell"
 gptnt submission validate output/submissions
 ```
 
@@ -129,7 +129,7 @@ the validation boundary.
 
 ## Preview and submit
 
-```bash
+```bash title="Run in your shell"
 gptnt submission submit --dry-run
 ```
 
@@ -139,7 +139,7 @@ and pull-request title printed for every bundle.
 
 Submit after the preview is correct:
 
-```bash
+```bash title="Run in your shell"
 gptnt submission submit
 ```
 

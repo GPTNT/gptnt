@@ -12,7 +12,7 @@ It is separate from the top-level runtime queue command `gptnt submit`.
 
 ## `submission new`
 
-```text
+```text title="Command syntax"
 gptnt submission new [EXPERIMENTS-DB] [STATICS-OUTPUT-DIR] [OUTPUT-DIR]
                      [--suite NAME ...] [--static TASK ...]
                      [--model NAME ...]
@@ -38,7 +38,7 @@ protected benchmark and a player identity for every bundle it creates.
 
 ## `submission validate`
 
-```text
+```text title="Command syntax"
 gptnt submission validate [PATH] [--format {rich,json,github}]
 ```
 
@@ -48,7 +48,7 @@ checks produce a non-zero exit status, while warnings leave it at zero.
 
 ## `submission submit`
 
-```text
+```text title="Command syntax"
 gptnt submission submit [PATH] [--repo OWNER/NAME] [--dry-run]
 ```
 
@@ -59,5 +59,5 @@ does not fork, push, or open a pull request.
 Each top-level bundle directory becomes one branch, commit, and pull request. Remote operations
 need the submission extra and a token from `GITHUB_TOKEN` or `gh auth token`.
 
-[Submission procedure](../../submit-your-results.md){ .md-button }
-[Bundle schema](../files/submission-bundles.md){ .md-button }
+[Submission procedure](../../submit-your-results.md)
+[Bundle schema](../files/submission-bundles.md)

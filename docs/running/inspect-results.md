@@ -14,7 +14,7 @@ interactive and static outputs are ready for submission.
 
 Use the generated specification directory so `status` checks the exact attempt names from the run:
 
-```bash
+```bash title="Run in your shell"
 gptnt status output/experiment_specs/<manifest-stem> \
   --output-dir output/experiment_recorder_outputs/<timestamp>
 ```
@@ -27,7 +27,7 @@ strikeout, with no hard crash. `failed` means records exist but do not meet that
 
 Use the experiment-output directory printed by `gptnt run`:
 
-```bash
+```bash title="Run in your shell"
 gptnt build-db output/experiment_recorder_outputs/<timestamp> \
   --output output/experiments.duckdb
 ```
@@ -42,7 +42,7 @@ compatible database unless `--skip-filtering` is set.
 
 If an existing database has a v1 or otherwise incompatible structure, rebuild it explicitly:
 
-```bash
+```bash title="Run in your shell"
 gptnt build-db <outputs-dir> --delete-existing-db
 ```
 
@@ -50,7 +50,7 @@ gptnt build-db <outputs-dir> --delete-existing-db
 
 Render the completed outcomes:
 
-```bash
+```bash title="Run in your shell"
 gptnt results output/experiments.duckdb
 ```
 
@@ -59,7 +59,7 @@ caption rather than the ranked rows.
 
 Open the Streamlit analysis application with:
 
-```bash
+```bash title="Run in your shell"
 gptnt analyse
 ```
 
@@ -71,7 +71,7 @@ The application reads the configured DuckDB database. For direct queries, see th
 If `OBSERVABILITY_CAPTURE_SPAN_TIMINGS=1` was set for the run, summarise the JSONL files beside the
 player records:
 
-```bash
+```bash title="Run in your shell"
 gptnt timing output/experiment_recorder_outputs/<timestamp>
 ```
 
@@ -87,5 +87,5 @@ resolved dataset revision for reproducible comparison.
 When the required interactive suites and `expert-vqa-no-manual` output are complete, continue to
 [Submit your results](../submit-your-results.md).
 
-[Results command reference](../reference/cli/results-and-analysis.md){ .md-button }
-[Understand results and provenance](../understand/results-and-provenance.md){ .md-button }
+[Results command reference](../reference/cli/results-and-analysis.md)
+[Understand results and provenance](../understand/results-and-provenance.md)

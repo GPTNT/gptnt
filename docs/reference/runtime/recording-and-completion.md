@@ -43,5 +43,5 @@ An existing database is accepted only when its ordered base-table structure equa
 generated from `ExperimentStep` and `ExperimentSummary`. No database version row or view mediates
 compatibility.
 
-[Player-record format](../files/player-records-and-outcomes.md){ .md-button }
-[DuckDB schema](../files/duckdb.md){ .md-button }
+[Player-record format](../files/player-records-and-outcomes.md)
+[DuckDB schema](../files/duckdb.md)

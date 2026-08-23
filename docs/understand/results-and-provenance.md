@@ -68,7 +68,5 @@ A static bundle copies `metrics.json` and describes it with the stored static me
     Parquet until every intended bundle validates, so you can rebuild after a collation, selection,
     or schema problem.
 
-<!-- vale ai-tells.DoubleHyphen = NO -->
-[Inspect results](../running/inspect-results.md){ .md-button .md-button--primary }
-[Player records and outcomes](../reference/files/player-records-and-outcomes.md){ .md-button }
-<!-- vale ai-tells.DoubleHyphen = YES -->
+[Inspect results](../running/inspect-results.md)
+[Player records and outcomes](../reference/files/player-records-and-outcomes.md)

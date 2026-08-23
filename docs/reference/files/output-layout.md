@@ -10,7 +10,7 @@ tags:
 `Paths.root` defaults to the current working directory. Environment overrides can relocate any
 configured path, including the specification, recorder, database, static, and submission roots.
 
-```text
+```text title="Default output layout"
 storage/
   ktane/                              # installed game and mods
   prompts/                            # prompt storage
@@ -58,5 +58,5 @@ creates a timestamped directory under `output/experiment_recorder_outputs/`. The
     A file under `output/` is not automatically a supported format. Use the linked format page to
     determine its compatibility boundary before building another tool around it.
 
-[Player-record format](player-records-and-outcomes.md){ .md-button }
-[Troubleshoot missing output](../../troubleshooting/interrupted-runs-and-outputs.md){ .md-button }
+[Player-record format](player-records-and-outcomes.md)
+[Troubleshoot missing output](../../troubleshooting/interrupted-runs-and-outputs.md)

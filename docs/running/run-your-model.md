@@ -33,7 +33,7 @@ command, see [Experiment hierarchy](../understand/experiment-hierarchy.md) and
 
 Run the complete doctor check against the manifest:
 
-```bash
+```bash title="Run in your shell"
 gptnt doctor runs/<name>.yaml
 ```
 
@@ -47,7 +47,7 @@ that records `protected_content_modified: true`. Those results cannot be submitt
 
 ## Start the run
 
-```bash
+```bash title="Run in your shell"
 gptnt run runs/<name>.yaml
 ```
 
@@ -63,7 +63,7 @@ The command performs these operations in order:
 
 The default terminal view shows process status. Stream prefixed child logs instead with:
 
-```bash
+```bash title="Run in your shell"
 gptnt run runs/<name>.yaml --interactive
 ```
 
@@ -77,7 +77,7 @@ no processes.
 
 Check an output directory or suite explicitly:
 
-```bash
+```bash title="Run in your shell"
 gptnt status output/experiment_specs/<name> \
   --output-dir output/experiment_recorder_outputs/<timestamp>
 ```
@@ -102,7 +102,5 @@ queue, status, termination, and cleanup interfaces.
 
 ## Continue
 
-<!-- vale ai-tells.DoubleHyphen = NO -->
-[Inspect and analyse results](inspect-results.md){ .md-button .md-button--primary }
-[Troubleshoot an interrupted run](../troubleshooting/interrupted-runs-and-outputs.md){ .md-button }
-<!-- vale ai-tells.DoubleHyphen = YES -->
+[Inspect and analyse results](inspect-results.md)
+[Troubleshoot an interrupted run](../troubleshooting/interrupted-runs-and-outputs.md)

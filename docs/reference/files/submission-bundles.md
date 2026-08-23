@@ -10,7 +10,7 @@ tags:
 A bundle is one flat directory for one Defuser capability fingerprint and one measured target.
 `submission.yaml` uses submission schema version **2**.
 
-```text
+```text title="Interactive bundle layout"
 output/submissions/
   YYYYMMDD_<display-slug>_<fingerprint8>_<target>_<revision>/
     submission.yaml
@@ -69,5 +69,5 @@ shape without reading live suite or mission configuration.
 Face repository and split, requested and resolved revisions, player, capabilities, run date, and
 benchmark provenance.
 
-[Submit results](../../submit-your-results.md){ .md-button }
-[Submission command reference](../cli/submission.md){ .md-button }
+[Submit results](../../submit-your-results.md)
+[Submission command reference](../cli/submission.md)

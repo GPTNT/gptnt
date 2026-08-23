@@ -12,7 +12,7 @@ Parquet.
 
 ## `build-db`
 
-```text
+```text title="Command syntax"
 gptnt build-db DIRECTORY [--output PATH] [--max-workers N]
                          [--skip-filtering] [--delete-existing-db]
 ```
@@ -30,7 +30,7 @@ exactly compatible database structure and inserts the step and summary rows in o
 
 ## `results`
 
-```text
+```text title="Command syntax"
 gptnt results [DB-PATH]
 ```
 
@@ -39,7 +39,7 @@ lists valid completed outcomes and names invalid attempts in the table caption.
 
 ## `analyse`
 
-```text
+```text title="Command syntax"
 gptnt analyse
 ```
 
@@ -47,12 +47,12 @@ This command starts the Streamlit analysis application. It has no command-line p
 
 ## `timing`
 
-```text
+```text title="Command syntax"
 gptnt timing RUN-DIR
 ```
 
 `RUN-DIR` must contain `span_timings/*.jsonl`. The report includes information about the machine,
 player forward-pass timing, Pydantic AI inference time, framework time, and aggregate span phases.
 
-[Inspect and analyse results](../../running/inspect-results.md){ .md-button }
-[DuckDB schema](../files/duckdb.md){ .md-button }
+[Inspect and analyse results](../../running/inspect-results.md)
+[DuckDB schema](../files/duckdb.md)

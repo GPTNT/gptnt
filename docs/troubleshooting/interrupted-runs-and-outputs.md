@@ -16,7 +16,7 @@ Check whether the experiment manager and child processes still appear in the run
 list. If a normal run monitor is still active, let its termination path finish. When shutdown has
 failed and the processes are left behind, run:
 
-```bash
+```bash title="Run in your shell"
 gptnt kill
 ```
 
@@ -44,7 +44,7 @@ the remaining ones.
 The recorder writes `experiment-*.parquet.tmp` before an atomic rename. A remaining temporary file
 is not a completed record. Preview cleanup:
 
-```bash
+```bash title="Run in your shell"
 gptnt cleanup-outputs <recorder-directory>
 ```
 
@@ -59,7 +59,7 @@ Only after checking every listed file, apply it with `--execute`.
 The existing database has a v1 or otherwise incompatible base-table structure. Rebuild from the
 retained Parquet:
 
-```bash
+```bash title="Run in your shell"
 gptnt build-db <recorder-directory> \
   --output output/experiments.duckdb \
   --delete-existing-db
@@ -71,5 +71,5 @@ GPTNT refuses to assign current provenance to older `prediction_*.json` files wh
 is missing. Move the incomplete output directory aside or remove it after preserving anything
 needed for diagnosis, then rerun the static task from the beginning.
 
-[Run interactive experiments](../running/run-your-model.md){ .md-button }
-[Output layout](../reference/files/output-layout.md){ .md-button }
+[Run interactive experiments](../running/run-your-model.md)
+[Output layout](../reference/files/output-layout.md)

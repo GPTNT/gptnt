@@ -27,7 +27,5 @@ Run the applicable [`doctor` mode](../reference/cli/doctor.md) after changing a 
 run manifest, game installation, Redis endpoint, or display. Regenerate experiment specifications
 after changing a manifest or configuration that affects the selected experiments.
 
-<!-- vale ai-tells.DoubleHyphen = NO -->
 [Understand GPTNT](../understand/index.md)
 [Open the reference](../reference/index.md)
-<!-- vale ai-tells.DoubleHyphen = YES -->

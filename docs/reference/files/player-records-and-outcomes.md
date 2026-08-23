@@ -13,7 +13,7 @@ format version **3** is the current contract. Format version 2 belongs to v1 too
 
 The recorder writes:
 
-```text
+```text title="Filename pattern"
 experiment-<attempt-name>-<player-uuid>.parquet
 ```
 
@@ -74,5 +74,5 @@ provenance, plus computed fields used for querying.
     DuckDB summaries and submission `experiments.parquet` are derived from these files. Keep the
     player records until submission validation succeeds.
 
-[Understand results](../../understand/results-and-provenance.md){ .md-button }
-[DuckDB schema](duckdb.md){ .md-button }
+[Understand results](../../understand/results-and-provenance.md)
+[DuckDB schema](duckdb.md)

@@ -49,10 +49,10 @@ communication style, modules, seeds, pairing, and attempt.
 
 Generate files into the path that the run command reads:
 
-```bash
+```bash title="Run in your shell"
 gptnt generate runs/<name>.yaml
 gptnt run runs/<name>.yaml
 ```
 
-[Run interactive experiments](../../running/run-your-model.md){ .md-button }
-[Generation API](../python/experiment-generation.md){ .md-button }
+[Run interactive experiments](../../running/run-your-model.md)
+[Generation API](../python/experiment-generation.md)

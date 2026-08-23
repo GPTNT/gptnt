@@ -25,14 +25,14 @@ For a submission, run the three required interactive suites and the explicit
 Every dataset-backed command requires `--player`. `--provider` selects an optional provider
 override.
 
-```bash
+```bash title="Run in your shell"
 gptnt statics expert-vqa-no-manual --player <player-name>
 ```
 
 Without `--throw`, the command constructs the evaluation but does not execute predictions. Add a
 small limit while checking a player:
 
-```bash
+```bash title="Run in your shell"
 gptnt statics expert-vqa-no-manual \
   --player <player-name> \
   --limit-instances 3 \
@@ -48,7 +48,7 @@ gptnt statics expert-vqa-no-manual \
 Supply a Hugging Face branch, tag, or commit with `--dataset-revision`. GPTNT resolves the request
 to a concrete dataset commit before the first prediction and records both values.
 
-```bash
+```bash title="Run in your shell"
 gptnt statics expert-vqa-no-manual \
   --player <player-name> \
   --dataset-revision <commit-or-tag> \
@@ -78,7 +78,5 @@ identity from the directory name.
 See [Statics command reference](../reference/cli/statics.md) for every task and option, and
 [Static evaluation outputs](../reference/files/static-evaluation-outputs.md) for the stored fields.
 
-<!-- vale ai-tells.DoubleHyphen = NO -->
-[Inspect results](inspect-results.md){ .md-button .md-button--primary }
-[Understand comparability](../understand/suites-revisions-and-comparability.md){ .md-button }
-<!-- vale ai-tells.DoubleHyphen = YES -->
+[Inspect results](inspect-results.md)
+[Understand comparability](../understand/suites-revisions-and-comparability.md)

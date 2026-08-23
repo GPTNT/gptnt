@@ -13,7 +13,7 @@ execution command is documented under [`run`](run.md).
 
 ## Queue specifications with `submit`
 
-```text
+```text title="Command syntax"
 gptnt submit [--experiment-specs-dir DIRECTORY] [--source SOURCE]
              [--output-dir DIRECTORY] [--dry-run] [--no-filter]
              [--delete-unneeded]
@@ -37,7 +37,7 @@ not start game or player services and does not monitor them.
 
 ## Inspect completion with `status`
 
-```text
+```text title="Command syntax"
 gptnt status [SOURCES ...] [--source {local,wandb}] [--output-dir DIRECTORY]
 ```
 
@@ -50,7 +50,7 @@ footers. The optional live overlay reads active attempt names from the experimen
 
 ## Stop leftover processes with `kill`
 
-```text
+```text title="Command syntax"
 gptnt kill
 ```
 
@@ -59,7 +59,7 @@ processes. It has no options.
 
 ## Preview or remove invalid local outputs
 
-```text
+```text title="Command syntax"
 gptnt cleanup-outputs [TARGET] [--execute]
 ```
 
@@ -73,7 +73,7 @@ experiment groups and orphaned `experiment-*.parquet.tmp` files. It only preview
 
 ## Reconcile W&B
 
-```text
+```text title="Command syntax"
 gptnt reconcile-wandb [DIRECTORY] [--execute] [--include-dummy-runs]
                       [--mark-missing-output-as-old |
                        --no-mark-missing-output-as-old]
@@ -84,5 +84,5 @@ duplicate, or orphaned remote runs as `old`. When `DIRECTORY` is supplied, it ca
 files that lack a valid W&B run. It previews by default; `--execute` applies remote and local
 changes. Missing local output is marked `old` by default.
 
-[Run interactive experiments](../../running/run-your-model.md){ .md-button }
-[Troubleshoot interrupted output](../../troubleshooting/interrupted-runs-and-outputs.md){ .md-button }
+[Run interactive experiments](../../running/run-your-model.md)
+[Troubleshoot interrupted output](../../troubleshooting/interrupted-runs-and-outputs.md)

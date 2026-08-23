@@ -41,7 +41,7 @@ The declared and recorded columns are:
 
 Persisted computed columns are:
 
-```text
+```text title="Computed columns"
 is_solved  is_strike_out  is_timed_out  is_detonated
 fingerprint  attempt_name  seed  communication_style  modules
 defuser_capability_fingerprint  expert_capability_fingerprint
@@ -53,14 +53,14 @@ manual, protocol, and capability objects are DuckDB `JSON`. `modules` is `VARCHA
 
 ## Query examples
 
-```sql
+```sql title="Summary counts"
 SELECT suite_name, suite_revision, defuser_name, outcome, count(*) AS runs
 FROM experiment_summary
 GROUP BY ALL
 ORDER BY suite_name, defuser_name, outcome;
 ```
 
-```sql
+```sql title="Recorded steps"
 SELECT summary.attempt_name, step.role, count(*) AS recorded_steps
 FROM experiment_summary AS summary
 JOIN experiment_step AS step USING (session_id)
@@ -72,5 +72,5 @@ ORDER BY summary.attempt_name, step.role;
 incompatible database requires `--delete-existing-db`. A `.duckdb.wal` file is transient and not a
 third application table or a portable result format.
 
-[Inspect results](../../running/inspect-results.md){ .md-button }
-[Results command reference](../cli/results-and-analysis.md){ .md-button }
+[Inspect results](../../running/inspect-results.md)
+[Results command reference](../cli/results-and-analysis.md)

@@ -23,7 +23,5 @@ link back to the procedure that consumes each value.
 
 Module-registry reference will join this section with its connected authoring procedure.
 
-<!-- vale ai-tells.DoubleHyphen = NO -->
 [Install and check GPTNT](../../get-started.md)
 [Open runtime reference](../runtime/index.md)
-<!-- vale ai-tells.DoubleHyphen = YES -->
