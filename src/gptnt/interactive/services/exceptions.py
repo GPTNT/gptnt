@@ -14,7 +14,7 @@ logger = structlog.get_logger()
 # Exception registry for serialization/deserialization across RPC boundaries to maps exception
 # type names (strings) to their Python classes
 # Note: We convert FastAPI's HTTPException to httpx.HTTPStatusError in the decoder so clients can
-# use standard httpx exception catching patterns (since that's what the codebase was made with)
+# use standard httpx exception catching patterns (the codebase was written against httpx)
 EXCEPTION_REGISTRY: MappingProxyType[str, type[Exception]] = MappingProxyType(
     {
         "HTTPStatusError": httpx.HTTPStatusError,
@@ -127,7 +127,7 @@ def decode_request_error(data: dict[str, Any]) -> None:
 async def exception_aware_decoder(
     msg: RedisMessage, original_decoder: Callable[[RedisMessage], Awaitable[Any]]
 ) -> Any:
-    """Decode RPC responses and raise exceptions if marked as such.
+    """Decode RPC responses, raising the ones that encode an exception.
 
     This decoder wraps the original FastStream decoder and checks if the decoded message is an
     exception payload. If so, it reconstructs the exception and raises it, making RPC exceptions

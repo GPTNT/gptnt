@@ -83,7 +83,7 @@ class NaughtyOutputBehaviourFeedbackGenerator:
         return "The response you generated in your previous turn did not include any thoughts, but this is important for your decision making. Ensure to reason before responding in future."
 
     def _handle_reasoning_split_across_blocks(self) -> str:
-        return "The reasoning you generated in your previous turn was split across multiple separate tags or locations, which is not the expected format. Ensure you keep your reasoning in a single, coherent block in future responses."
+        return "The reasoning you generated in your previous turn was split across multiple separate tags or locations, which is not the expected format. Ensure you keep your reasoning in one, coherent block in future responses."
 
     def _handle_reasoning_mixed_with_untagged_text(self) -> str:
         return "The reasoning you generated in your previous turn was mixed with non-reasoning text outside of reasoning tags, which is not the expected format. Ensure you keep your reasoning separate from other text in future responses."

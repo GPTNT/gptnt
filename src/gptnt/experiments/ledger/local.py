@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, override
 
 from gptnt.experiments.db.extract import validity_from_footers
-from gptnt.experiments.ledger.base import CompletionLedger, ExperimentStatus
+from gptnt.experiments.ledger.completion import CompletionLedger, ExperimentStatus
 from gptnt.experiments.recorder.parquet import read_record_footer
 
 if TYPE_CHECKING:
@@ -21,10 +21,10 @@ _RECORD_GLOB = "experiment-*.parquet"
 class LocalLedger(CompletionLedger):
     """Completion ledger backed by the recorder's on-disk parquet outputs.
 
-    Reads completion straight from the recorded outputs — the same `attempt_name` key W&B uses, so
-    a local lookup is a drop-in for the W&B query. Needs no DB build: it groups the
-    `experiment-*.parquet` files by the attempt name in their footer (canonical, independent of the
-    filename) and reuses the DB layer's footer-based validity check.
+    Reads completion straight from the recorded outputs, the same `attempt_name` key W&B uses, so
+    a local lookup is a drop-in for the W&B query. Does not need a DB build: it groups the
+    `experiment-*.parquet` files by the attempt name in their footer (canonical, independent of
+    the filename) and reuses the DB layer's footer-based validity check.
     """
 
     output_dir: Path
@@ -37,15 +37,15 @@ class LocalLedger(CompletionLedger):
 
     @override
     def completed(self, attempt_names: Iterable[str]) -> set[str]:
-        """The attempt names with a valid, completed set of outputs on disk."""
+        """Return the attempt names with a valid, completed set of outputs on disk."""
         statuses = self.status_for(attempt_names)
         return {name for name, status in statuses.items() if status == "done"}
 
     def _scan(self) -> dict[str, ExperimentStatus]:
         """Group every output footer by its attempt name and classify each group by validity.
 
-        Reads each file's footer once and keys off `instance.attempt_name` — robust to whatever the
-        filename happens to be — then reuses the same footer-based validity the DB ingestion uses.
+        Reads each file's footer once and keys off `instance.attempt_name` rather than the
+        filename, then reuses the same footer-based validity the DB ingestion uses.
         """
         if not self.output_dir.exists():
             return {}

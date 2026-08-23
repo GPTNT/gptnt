@@ -3,7 +3,7 @@ from collections.abc import Generator
 import numpy as np
 import structlog
 
-from gptnt.processors.labels.types import (
+from gptnt.processors.labels.annotation import (
     Coordinates,
     DrawData,
     NumberBoxDimensions,

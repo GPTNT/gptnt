@@ -48,9 +48,9 @@ def coerce_tool_output_into_native_output(messages: list[ModelMessage]) -> list[
     so we clean up afterwards.
 
     Importantly, because Pydantic AI uses tools as a medium for structured outputs, it makes
-    certain assumptions. These assumptions CANNOT be made if you are using tools as tools, allowing
-    models to use the tool responses. That makes everything different and WILL break things, but
-    that's not a use case we are currently supporting.
+    assumptions. These assumptions CANNOT be made if you are using tools as tools, allowing models
+    to use the tool responses. That makes everything different and WILL break things, but that's
+    not a use case we are currently supporting.
     """
     coerced: list[ModelMessage] = []
     for message in messages:

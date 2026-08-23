@@ -8,7 +8,7 @@ from caseconverter import titlecase
 
 from gptnt.common.paths import Paths
 from gptnt.experiments.db.connection import DuckDBConnection
-from gptnt.experiments.models import ExperimentSummary
+from gptnt.experiments.records import ExperimentSummary
 from gptnt.ktane.state.modules import KNOWN_KTANE_MODULE_IDS
 from gptnt.players.specification import CommunicationStyle
 

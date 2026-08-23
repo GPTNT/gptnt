@@ -12,13 +12,11 @@ console = Console()
 
 
 def all_bundle_dirs(submission_dir: Path) -> list[Path]:
-    """Every top-level bundle directory under submission_dir, name-sorted.
+    """Return every top-level bundle directory under submission_dir, name-sorted.
 
     Each is one bundle (`YYYYMMDD_<display-slug>_<capfp8>_<suite>_<ver>`), the boundary for one
     pull request.
     """
-    if not submission_dir.exists():
-        raise FileNotFoundError(f"Expected a submissions directory at {submission_dir}")
     bundle_dirs = sorted(path for path in submission_dir.iterdir() if path.is_dir())
     if not bundle_dirs:
         raise FileNotFoundError(f"No bundle submission directories found under {submission_dir}")

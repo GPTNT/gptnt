@@ -1,15 +1,13 @@
-"""Download and cache the source files selected by manual profiles."""
-
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Self
+
+import anyio
 
 from gptnt.common.base_client import cached_retrying_async_http_client
 from gptnt.ktane.manuals import _ktane_content
 from gptnt.ktane.manuals._http import download_to_cache
-from gptnt.ktane.manuals._progress import DownloadProgress, ProgressCallback, ProgressReporter
 from gptnt.ktane.manuals.profile import (
     Document,
     KtaneContentAppendix,
@@ -17,6 +15,7 @@ from gptnt.ktane.manuals.profile import (
     ManualProfile,
     OfficialDocument,
 )
+from gptnt.ktane.manuals.progress import ProgressCallback, ProgressReporter
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -25,8 +24,6 @@ if TYPE_CHECKING:
     import httpx
 
     from gptnt.ktane.manuals.sources import KtaneContentSource, ManualSources, OfficialManualSource
-
-__all__ = ["DownloadProgress", "DownloadResult", "ProgressCallback", "download_manual_assets"]
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -41,7 +38,7 @@ class DownloadResult:
 
     @classmethod
     def empty(cls, cache_dir: Path) -> Self:
-        """Create a result for a plan that requires no remote assets."""
+        """Create a result for a plan that does not require remote assets."""
         return cls(
             cache_dir=cache_dir, added_files=0, added_bytes=0, cached_files=0, cached_bytes=0
         )
@@ -117,9 +114,6 @@ class _DownloadPlan:
         root_dir: Path,
     ) -> Self:
         """Resolve validated profiles and source configuration into one download plan."""
-        if not profiles:
-            raise ValueError("at least one manual profile is required")
-
         selection = _ProfileSelection.from_profiles(profiles, root_dir=root_dir)
         # Frontmatter lives in source configuration rather than each profile, so include it once
         # when at least one selected profile requests it.
@@ -198,12 +192,16 @@ async def _execute_plan(
         reporter=reporter,
         client=client,
     )
-    official_downloads = await asyncio.gather(
-        *(
-            _download_official_manual(asset, reporter=reporter, client=client)
-            for asset in plan.official_assets
+    official_downloads: list[_OfficialDownload] = []
+
+    async def cache_official(asset: _OfficialAsset) -> None:  # noqa: WPS430
+        official_downloads.append(
+            await _download_official_manual(asset, reporter=reporter, client=client)
         )
-    )
+
+    async with anyio.create_task_group() as task_group:
+        for asset in plan.official_assets:
+            task_group.start_soon(cache_official, asset)
     return DownloadResult(
         cache_dir=plan.cache_dir,
         added_files=ktane_download.added_files

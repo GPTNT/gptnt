@@ -9,7 +9,7 @@ import pytest
 from pydantic_ai.result import RunUsage
 
 from gptnt.experiments.instance import ExperimentInstance, PlayerContent
-from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentRecord, ExperimentStep
+from gptnt.experiments.records import ExperimentPlayerRecord, ExperimentRecord, ExperimentStep
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.actions import DoNothingAction

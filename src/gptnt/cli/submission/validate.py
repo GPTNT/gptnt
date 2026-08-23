@@ -1,14 +1,14 @@
-"""`gptnt submission validate` — check built bundles against their suite snapshots.
+"""`gptnt submission validate`: check built bundles against their suite snapshots.
 
 The doctor-style gate before a bundle goes to gptnt-submissions: the manifest parses (the schema
 itself rejects unknown versions, tampered fingerprints, and blank identities), the submitter block
 is filled in, the bundled suite snapshot matches its manifest and digest, every snapshot mission
 is covered by exactly one valid run, and the payload players match the
-manifest. Modified protected benchmark content fails validation; an unpinned statics dataset warns.
-Interactive validation reads no live suite or mission configuration.
+manifest. Modified protected benchmark content fails validation. An unpinned statics dataset warns.
+Interactive validation does not read live suite or mission configuration.
 
 `gptnt submission new` bundles every recorded experiment for a (suite, model) group, so a retried
-mission surfaces here as a duplicate — validate is the curation signal, not a bug in the build.
+mission is reported here as a duplicate. Validate is the curation signal, not a bug in the build.
 """
 
 import sys
@@ -46,8 +46,11 @@ def validate_submission(
         ),
     ] = "rich",
 ) -> None:
-    """Validate submission bundle(s); any failed check exits non-zero (warnings never fail)."""
-    # A bundle dir matches itself: rglob's implicit `**` also matches zero directories deep.
+    """Validate submission bundle(s).
+
+    Any failed check exits non-zero (warnings never fail).
+    """
+    # A bundle dir matches itself because rglob's implicit `**` matches zero directories deep.
     bundle_dirs = [manifest.parent for manifest in path.rglob("submission.yaml")]
     if not bundle_dirs:
         raise RuntimeError(f"No bundles under {path}: nothing contains a submission.yaml.")
@@ -65,7 +68,10 @@ def validate_submission(
 
 
 def _run_bundle_checks(bundle_dir: Path) -> list[CheckResult]:
-    """Run every applicable check for one bundle; empty sections simply don't render."""
+    """Run every applicable check for one bundle.
+
+    Empty sections simply don't render.
+    """
     sections: list[CheckResult] = []
 
     loaded, structure_findings = load_bundle(bundle_dir)
@@ -83,7 +89,10 @@ def _run_bundle_checks(bundle_dir: Path) -> list[CheckResult]:
 
 
 def _interactive_sections(bundle: InteractiveBundle) -> list[CheckResult]:
-    """The suite-dependent sections; coverage is meaningless against a wrong suite, so it skips."""
+    """Return the suite-dependent sections.
+
+    Coverage is meaningless against a wrong suite, so it skips.
+    """
     suite_findings = check_suite(bundle)
     if any(finding.status == "fail" for finding in suite_findings):
         coverage_findings = [CheckResult.skipped("coverage", "suite checks failed; not assessed")]

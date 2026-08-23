@@ -1,5 +1,3 @@
-"""Public preparation of pinned source files required by the HTML compiler."""
-
 import hashlib
 from importlib.resources import files
 from pathlib import Path
@@ -7,7 +5,7 @@ from pathlib import Path
 import anyio
 
 from gptnt.ktane.manuals import _git, _ktane_content
-from gptnt.ktane.manuals._progress import ProgressReporter
+from gptnt.ktane.manuals.progress import ProgressReporter
 
 KTANE_CONTENT_REPOSITORY = "https://github.com/Timwi/KtaneContent.git"
 KTANE_CONTENT_COMMIT = "137cc181b37038ccefeddcb095b402aab8dff5de"
@@ -22,7 +20,7 @@ def ktane_content_root(cache_dir: Path) -> Path:
 
 def keypad_assets_root() -> Path:
     """Return the committed 256-pixel Keypad image directory."""
-    # Editable checkouts keep assets under storage; built wheels relocate them into the package.
+    # Editable checkouts keep assets under storage. Built wheels relocate them into the package.
     checkout_root = Path(__file__).resolve().parents[4]
     checkout_assets = checkout_root / "storage" / "manual" / "keypad"
     if checkout_assets.is_dir():

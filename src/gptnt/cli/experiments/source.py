@@ -6,7 +6,7 @@ from typing import Annotated, Literal
 
 from cyclopts import Parameter
 
-from gptnt.experiments.ledger.base import Source
+from gptnt.experiments.ledger.completion import Source
 
 SourceOption = Annotated[
     Source,
@@ -24,7 +24,7 @@ SourceOption = Annotated[
 
 @dataclass
 class ExperimentsSource:
-    """A single CLI token parsed into either a directory path or an experiment name."""
+    """One CLI token parsed into either a directory path or an experiment name."""
 
     kind: Literal["dir", "name"]
     raw: str

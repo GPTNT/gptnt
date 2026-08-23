@@ -5,7 +5,7 @@ from pydantic import BaseModel, BeforeValidator, Field
 from pydantic.types import UUID4
 from whenever import Instant
 
-from gptnt.interactive.services.heartbeat.base import BaseEvent, ReadyState
+from gptnt.interactive.services.heartbeat.events import BaseEvent, ReadyState
 
 
 class FailureCategory(Enum):
@@ -32,14 +32,14 @@ class Tombstone(BaseEvent, frozen=True):
 class ServiceExpiredContext(BaseModel):
     """Diagnostic context gathered by the registry when a service expires.
 
-    This bundles all the Redis-probed information (tombstone, key state) into a single object that
+    This bundles all the Redis-probed information (tombstone, key state) into one object that
     gets passed to the EM's `_handle_expired_service` for rich logging.
     """
 
     service_uuid: UUID4
     service_type: str
 
-    # Tombstone info (None if no tombstone was found — i.e. unexpected death)
+    # Tombstone info (None if no tombstone was found, i.e. unexpected death)
     tombstone: Annotated[Tombstone | None, BeforeValidator(lambda tomb: tomb or None)] = None
 
     # Heartbeat key state at the moment of expiry

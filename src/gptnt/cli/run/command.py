@@ -33,7 +33,7 @@ async def run(
 ) -> None:
     """Run a benchmark: doctor, prepare required manuals, spawn, submit, and monitor.
 
-    Specs are NOT generated here — run them with `gptnt generate <manifest>` first; this command
+    Specs are NOT generated here. Run them with `gptnt generate <manifest>` first; this command
     loads the pre-generated specs from `output/experiment_specs/<manifest-stem>/`. Manual
     preparation occurs after resume filtering and before any process starts.
     """

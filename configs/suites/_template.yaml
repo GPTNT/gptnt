@@ -4,7 +4,7 @@ defaults:
   - /manual@suite.manual_profile: ???
 
 suite:
-  _target_: gptnt.experiments.suite.core.Suite
+  _target_: gptnt.experiments.suite.definition.Suite
   name: ???
   revision: 1
   modality: [vision, language]
@@ -22,5 +22,5 @@ suite:
     is_playing_alone: false
     include_manual: true
   matchup:
-    _target_: gptnt.experiments.suite.core.SuiteMatchup
+    _target_: gptnt.experiments.suite.definition.SuiteMatchup
     pairing_type: ???

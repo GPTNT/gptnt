@@ -62,8 +62,8 @@ class BaseActionDispatcher(abc.ABC):
         """Process output from Agent and direct to correct function.
 
         Once it comes in, index the type in the agent_output_type_to_function and call the function
-        that is mapped to that type. This will allow us to dynamically convert the result from the
-        AI model to a function that can be called to carry the logic forwards.
+        that is mapped to that type. This will allow us to convert the result from the AI model to
+        a function that can be called to continue the work.
         """
         method = self.agent_output_type_to_function(type(agent_output.output))
         return await method(agent_output)
@@ -73,8 +73,8 @@ class BaseActionDispatcher(abc.ABC):
     ) -> _ActionHandlerType:
         """Map the output type from the AI model to a method within the function.
 
-        This will allow us to dynamically convert the output from the AI model to a function that
-        can be called to carry the logic forwards.
+        This will allow us to convert the output from the AI model to a function that can be called
+        to perform the action.
         """
         switcher: dict[type[PlayerOutputType], _ActionHandlerType] = {
             SendMessageAction: self._send_message,

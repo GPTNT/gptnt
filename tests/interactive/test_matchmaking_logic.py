@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.interactive.services.experiment_manager.matchmaking import get_playable_pairings
-from gptnt.interactive.services.heartbeat.base import PlayerState, ReadyState
+from gptnt.interactive.services.heartbeat.events import PlayerState, ReadyState
 from gptnt.interactive.services.heartbeat.player import PlayerHeartbeat
 from gptnt.interactive.services.registry.manifest import PlayerServiceManifest, ServiceManifest
 from gptnt.ktane.mission_spec import KtaneMissionSpec

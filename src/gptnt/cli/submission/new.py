@@ -1,4 +1,4 @@
-"""`gptnt submission new` — build every leaderboard bundle from the DuckDB.
+"""`gptnt submission new`: build every leaderboard bundle from the DuckDB.
 
 Everything derivable is stamped: identity + capabilities from the records, attribution from each
 model's `PlayerIdentity`. Only the `submitter` block is written blank for the submitter to fill in.
@@ -29,7 +29,7 @@ logger = structlog.get_logger()
 paths = Paths()
 console = Console()
 
-# The canonical main-leaderboard set. Submitters override with --suite / --static for their own.
+# The canonical main-leaderboard set. Submitters override with `--suite` / `--static`.
 LEADERBOARD_SUITES: list[str] = ["multi-self-async", "multi-self-sync", "single-parametric-sync"]
 LEADERBOARD_STATICS: list[str] = []
 
@@ -39,14 +39,14 @@ def _load_run_metadata_for_static(run_dir: Path) -> StaticsRunMetadata | None:
     try:
         return StaticsRunMetadata.model_validate_json((run_dir / "run_meta.json").read_text())
     except (FileNotFoundError, ValidationError) as exc:
-        logger.warning(f"Skipping {run_dir}", reason=str(exc), exc_info=exc)
+        logger.warning("Skipping run directory", run_dir=run_dir, reason=str(exc), exc_info=exc)
         return None
 
 
 def _statics_runs(
     *, statics: list[str], statics_output_dir: Path, model_filter: set[str]
 ) -> list[tuple[Path, StaticsRunMetadata]]:
-    """Every `(run_dir, metadata)` with a parseable `run_meta.json` passing the model filter.
+    """Return every `(run_dir, metadata)` with a parseable `run_meta.json`.
 
     Matches on `capabilities.player_name`. Runs whose `run_meta.json` is missing or unparsable are
     skipped.

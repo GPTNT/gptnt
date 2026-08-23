@@ -16,7 +16,7 @@ class Pairing(NamedTuple):
 class PairingGenerator:
     """Generate all the possible pairings for a game.
 
-    This covers all the different types of experiments we are going to run. Note that if you want
+    This covers the different types of experiments we are going to run. Note that if you want
     to generate `with_best_defuser` or `with_best_expert`, then you need to give the `best_model`.
     """
 

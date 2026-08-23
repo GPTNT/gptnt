@@ -16,7 +16,7 @@ COVERAGE_CHECK = "Roster coverage"
 
 @dataclass(frozen=True)
 class _Roster:
-    """The resolved roster: config name → player_name, and the reverse for collision detection."""
+    """The resolved roster as config name → player_name, plus the reverse for collisions."""
 
     config_to_player: dict[str, str]
     player_to_configs: dict[str, list[str]]
@@ -90,7 +90,10 @@ def analyze_run_plan(
 def _resolve_roster(
     manifest: RunManifest, config_to_player: dict[str, str | None], findings: list[CheckResult]
 ) -> _Roster:
-    """Map each roster config to its player_name (from the matrix); flag unresolved/colliding."""
+    """Map each roster config to its player_name (from the matrix).
+
+    Flag unresolved/colliding.
+    """
     resolved: dict[str, str] = {}
     player_to_configs: dict[str, list[str]] = defaultdict(list)
     for entry in manifest.players:
@@ -123,7 +126,7 @@ def _resolve_roster(
 def _resolve_anchors(
     manifest: RunManifest, roster_config_to_player: dict[str, str], findings: list[CheckResult]
 ) -> dict[str, str]:
-    """Resolve set anchor *config* names to player names; ✗ on an invalid one.
+    """Resolve set anchor *config* names to player names. ✗ on an invalid one.
 
     Returns a map of anchor field (`best_expert`/`best_defuser`) → player_name for those that
     resolved. An anchor already in the roster reuses its resolved name (no extra validation). An
@@ -193,7 +196,7 @@ def _generate_union(
         ]
         try:
             specs = generate_specs(overrides)
-        except Exception as exc:  # noqa: BLE001 — surface a bad suite/override as a ✗ row
+        except Exception as exc:  # noqa: BLE001  (surface a bad suite/override as a ✗ row)
             findings.append(
                 CheckResult.failed(
                     f"Generate: {suite_name}",
@@ -221,7 +224,7 @@ def _appearances(specs: list[ExperimentSpec]) -> Counter[str]:
 def _unknown_player_findings(
     roster: _Roster, anchors: dict[str, str], appearances: Counter[str]
 ) -> list[CheckResult]:
-    """Players the run references but the roster does not provide — the silent-stall case (✗)."""
+    """Players the run references but the roster does not provide, the silent-stall case (✗)."""
     anchor_by_player = {player_name: field for field, player_name in anchors.items()}
     findings: list[CheckResult] = []
     for player_name in sorted(set(appearances) - roster.player_names):
@@ -240,7 +243,7 @@ def _unknown_player_findings(
 
 
 def _unused_findings(roster: _Roster, appearances: Counter[str]) -> list[CheckResult]:
-    """Roster players that no selected experiment ever pairs — a likely mistake (⚠, not fatal).
+    """Roster players that no selected experiment ever pairs, a likely mistake (⚠, not fatal).
 
     `count` is explicit (the user's choice), so we do NOT second-guess how many to spawn; the only
     roster-side smell worth surfacing is a player that is declared but never used.
@@ -261,7 +264,7 @@ def _unused_findings(roster: _Roster, appearances: Counter[str]) -> list[CheckRe
 def _coverage_ok(
     manifest: RunManifest, roster: _Roster, appearances: Counter[str], total_specs: int
 ) -> CheckResult:
-    """The ✓ summary row, naming the declared spawn count per player the run actually uses."""
+    """Return the ✓ summary row, naming the declared spawn count per player."""
     appearing = set(appearances)
     spawning = ", ".join(
         f"{entry.player}={entry.count}"
@@ -279,11 +282,11 @@ def _coverage_ok(
 def _resume(
     manifest: RunManifest, specs: list[ExperimentSpec]
 ) -> tuple[CheckResult, list[ExperimentSpec] | None]:
-    """The resume row AND the not-yet-done specs to run.
+    """Return the resume row AND the not-yet-done specs to run.
 
     The second element is the "remaining" (not-yet-done) specs from the manifest's completion
-    source, or `None` when resume could not be determined (errored / no specs) — meaning the caller
-    should run all generated specs. This is the SINGLE completion query for the whole run.
+    source, or `None` when resume could not be determined (errored / no specs), meaning the caller
+    should run all generated specs. Completion is queried ONCE here, for the whole run.
     """
     if not specs:
         return (
@@ -294,7 +297,7 @@ def _resume(
     source = manifest.source
     try:
         remaining = filter_experiments(specs, source=source, output_dir=_resume_output_dir())
-    except Exception as exc:  # noqa: BLE001 — resume is informational; never block the run
+    except Exception as exc:  # noqa: BLE001  (resume is informational; never block the run)
         return (
             CheckResult.warned(
                 RESUME_CHECK,
@@ -316,6 +319,6 @@ def _resume(
 
 
 def _resume_output_dir() -> Path:
-    """The recorder output root the local completion check scans (pinned dir, else base)."""
+    """Return the recorder output root the local completion check scans (pinned dir, else base)."""
     paths = Paths()
     return paths.experiment_recorder_outputs or paths.experiment_recorder_dir

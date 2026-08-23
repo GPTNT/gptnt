@@ -2,9 +2,9 @@
 
 One `experiment-{name}-{uuid}.parquet` file per player: step records are the rows (in the
 `mode="db"` representation, so they merge straight into DuckDB), and the experiment-level facts —
-instance, final bomb state, provenance, crash flag, role — live in the parquet footer as a single
+instance, final bomb state, provenance, crash flag, role — live in the parquet footer as one
 validated `RecordFooter` model. A few flat scalar keys (`session_id`, `player_uuid`,
-`format_version`) sit alongside it so identity/version reads don't have to parse the whole footer.
+`format_version`) sit beside it so identity/version reads don't have to parse the whole footer.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from pydantic import ConfigDict
 
 from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER, arrow_schema_for
 from gptnt.experiments.instance import ExperimentInstance  # noqa: TC001
-from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep
+from gptnt.experiments.records import ExperimentPlayerRecord, ExperimentStep
 from gptnt.ktane.state.bomb import BombState  # noqa: TC001
 from gptnt.players.specification import PlayerRole  # noqa: TC001
 from gptnt.provenance import Provenance
@@ -83,7 +83,7 @@ def write_player_record_parquet(
 ) -> None:
     """Write blobbed step dicts as parquet rows with `footer` stamped into the file metadata.
 
-    Rows flush in row-group batches to bound peak memory and keep any single column under the
+    Rows flush in row-group batches to bound peak memory and keep any column under the
     `large_binary` offset limit. Written to a sibling `.tmp`, then atomically renamed into place.
     """
     schema = _STEP_SCHEMA.with_metadata(footer)

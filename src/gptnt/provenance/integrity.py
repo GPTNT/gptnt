@@ -167,7 +167,7 @@ def check_benchmark_integrity(repository: Path) -> _BenchmarkIntegrityResult:
     The repository's exact annotated release tag and release commit supply the baseline. The result
     reports tracked and untracked protected changes, permitted input changes, and whether protected
     content was modified. It raises
-    `BenchmarkIntegrityError` when no repository is found or HEAD has no single exact annotated
+    `BenchmarkIntegrityError` when no repository is found or HEAD has no exact annotated
     release tag. Other repository read failures propagate from their source.
     """
     # Resolve the working repository and its release baseline.

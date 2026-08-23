@@ -1,5 +1,3 @@
-"""Gathering interactive experiments for a submission: the suite and its DuckDB rows."""
-
 from __future__ import annotations
 
 from collections import defaultdict
@@ -7,19 +5,17 @@ from typing import TYPE_CHECKING
 
 from gptnt.cli.submission._schema import SubmissionExperiment
 from gptnt.experiments.db.read import load_experiment_summaries, load_final_states_and_usage
-from gptnt.experiments.suite.core import SuiteIdentity
+from gptnt.experiments.suite.definition import SuiteIdentity
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
     from pathlib import Path
 
-    from gptnt.experiments.models import ExperimentSummary
+    from gptnt.experiments.records import ExperimentSummary
 
 
 def suite_identity_from_experiments(experiments: Sequence[ExperimentSummary]) -> SuiteIdentity:
     """Return the shared recorded suite identity, rejecting a mixed selection."""
-    if not experiments:
-        raise ValueError("Cannot identify a suite from an empty experiment selection")
     identities = {
         (experiment.suite_name, experiment.suite_revision, experiment.suite_digest)
         for experiment in experiments
@@ -65,7 +61,7 @@ def group_experiments_by_model(
     """Group experiments into one `(model_name, experiments)` bundle group per model, name-sorted.
 
     Grouped by defuser capability fingerprint (not name), so the same model run with different
-    capabilities lands in different bundles.
+    capabilities goes into a different bundle.
     """
     groups: dict[str, list[SubmissionExperiment]] = defaultdict(list)
     for experiment in experiments:

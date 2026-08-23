@@ -31,7 +31,7 @@ class PromptCache:
         for file_path in text_files:
             cls.cache[file_path] = file_path.read_text()
 
-        logger.debug(f"Cached {len(cls.cache)} files")
+        logger.debug("Cached files", file_count=len(cls.cache))
 
     @classmethod
     def get_text(cls, path: Path) -> str:

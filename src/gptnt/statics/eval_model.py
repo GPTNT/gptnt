@@ -141,7 +141,7 @@ class EvalModel(BaseModel):
                 exception=_exception_transformer(sys.exc_info()),  # pyright: ignore[reportArgumentType]
             )
 
-        # Flatten all the usage and remove zero counts
+        # Flatten all the usage and remove zeros
         usage: dict[str, int] = {}
         for token_type, token_count in asdict(model_output.usage).items():
             if isinstance(token_count, dict):

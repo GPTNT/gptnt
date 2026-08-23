@@ -6,7 +6,7 @@ from cyclopts.types import PositiveInt
 from pydantic_core import to_json
 from structlog import get_logger
 
-from gptnt.cli._params import PlayerOption, ProviderOption
+from gptnt.cli.params import PlayerOption, ProviderOption
 from gptnt.cli.statics._config_loader import ConfigLoader
 from gptnt.cli.statics._params import AllowThinkingOption
 from gptnt.common.logger import create_progress
@@ -15,7 +15,7 @@ from gptnt.ktane.state.modules import KtaneModuleId
 from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoningParser
 from gptnt.players.reasoning_parser.react import ReactStyleReasoningParser
 from gptnt.statics.constants import MODULE_NAMES, get_valid_modules
-from gptnt.statics.model import EvalModel
+from gptnt.statics.eval_model import EvalModel
 from gptnt.statics.prompts import format_instruction_with_reasoning
 
 logger = get_logger()
@@ -70,4 +70,4 @@ async def run_how_do_you_evaluation(  # noqa: WPS210
         output_file = output_file.with_stem(f"{output_file_prefix}_{output_file.stem}")
     output_file.parent.mkdir(parents=True, exist_ok=True)
     _ = output_file.write_bytes(to_json(all_results))
-    logger.info(f"Saved results to {output_file}")
+    logger.info("Saved results", output_file=output_file)

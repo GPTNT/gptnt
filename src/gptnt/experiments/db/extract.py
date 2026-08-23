@@ -7,7 +7,6 @@ import structlog
 
 from gptnt.common.logger import ProgressSentinel, with_default_progress
 from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER
-from gptnt.experiments.models import ExperimentSummary, is_valid_outcome
 from gptnt.experiments.recorder.parquet import (
     KEY_PLAYER_UUID,
     KEY_SESSION_ID,
@@ -15,6 +14,7 @@ from gptnt.experiments.recorder.parquet import (
     read_record_footer,
     read_session_id_from_parquet,
 )
+from gptnt.experiments.records import ExperimentSummary, is_valid_outcome
 from gptnt.provenance import Provenance
 
 if TYPE_CHECKING:
@@ -58,7 +58,7 @@ def _find_conflicting_summary_fields(footers: list[RecordFooter]) -> list[str]:
 
 
 def validity_from_footers(footers: list[RecordFooter]) -> bool:
-    """Whether a group of player footers forms a valid, completed experiment.
+    """Return whether a group of player footers forms a valid, completed experiment.
 
     Valid means no hard crash and a good ending (solved, or a clean strike-/time-out). An
     experiment that never reached a bomb state is not valid. The final bomb state lives only in the
@@ -79,7 +79,7 @@ def validity_from_footers(footers: list[RecordFooter]) -> bool:
 
 
 def compute_experiment_validity(paths: list[Path]) -> bool:
-    """Whether the grouped player files form a valid, completed experiment.
+    """Return whether the grouped player files form a valid, completed experiment.
 
     Reads each file's footer exactly once.
     """
@@ -118,7 +118,7 @@ def extract_metadata_from_paths(paths: list[Path]) -> DumpedExperimentMetadata:
 
 
 def group_by_unique_experiment(file_paths: list[Path]) -> dict[str, list[Path]]:
-    """Group player files into experiments by footer `session_id` — independent of the filename."""
+    """Group player files into experiments by footer `session_id`, independent of the filename."""
     grouped: dict[str, list[Path]] = defaultdict(list)
     for path in file_paths:
         grouped[read_session_id_from_parquet(path)].append(path)

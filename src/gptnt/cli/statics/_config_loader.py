@@ -12,7 +12,7 @@ from gptnt.processors.image_resizer import ImageResizer
 
 @dataclass(kw_only=True)
 class ConfigLoader:
-    """Load and instantiate player config components for a given player + role."""
+    """Load and instantiate player config components for a player + role."""
 
     player: str
     provider: str | None

@@ -24,8 +24,8 @@ def _floor_multiply(number: int, multiplier: float) -> int:
     return floor(number * multiplier)
 
 
-# Player configs use this to derive provider-specific switches from benchmark capabilities, while
-# keeping the capability itself as the single source of truth.
+# Player configs use this to derive provider-specific switches from benchmark capabilities, so the
+# switch is computed from the capability rather than declared beside it.
 if not OmegaConf.has_resolver("gptnt.eq"):
     OmegaConf.register_new_resolver("gptnt.eq", _equal)
 if not OmegaConf.has_resolver("gptnt.floor_mul"):
@@ -36,7 +36,7 @@ def get_hydra_overrides() -> list[str]:
     """Check and return any Hydra overrides passed as command line arguments."""
     hydra_overrides = sys.argv[1:] if len(sys.argv) > 1 else []
     if hydra_overrides:
-        logger.debug(f"Hydra overrides: {hydra_overrides}")
+        logger.debug("Hydra overrides", overrides=hydra_overrides)
     return hydra_overrides
 
 
@@ -49,11 +49,10 @@ def _strip_hydra_metadata(full_cfg: DictConfig) -> DictConfig:
 def compose_player_config(player: str, provider: str | None = None) -> DictConfig:
     """Compose the `player` Hydra config for a player (and optional provider).
 
-    The single shared player-config composition seam: both `gptnt-core`'s model
-    validation and `gptnt-statics`'s `ConfigLoader` go through here so they cannot
+    Both model validation and the statics `ConfigLoader` go through here so they cannot
     diverge. Uses the absolute, context-managed Hydra form (`initialize_config_dir`),
     which works regardless of the current working directory. The returned config is
-    composed but **not** resolved or stripped of Hydra metadata; callers instantiate
+    composed but NOT resolved or stripped of Hydra metadata. Callers instantiate
     subtrees and `OmegaConf.select` directly off it.
 
     Args:

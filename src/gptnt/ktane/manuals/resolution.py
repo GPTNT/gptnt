@@ -1,5 +1,3 @@
-"""Typed source inputs produced by manual profile resolution."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass

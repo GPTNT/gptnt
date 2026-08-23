@@ -15,7 +15,7 @@ from pydantic_ai import (
     UserPromptPart,
 )
 
-from gptnt.experiments.models import ExperimentStep
+from gptnt.experiments.records import ExperimentStep
 
 
 def render_image_gallery(
@@ -48,7 +48,7 @@ def render_image_gallery(
 
 
 def render_model_instructions(all_messages: list[ModelMessage]) -> None:
-    """Render the instructions given to the model in a dialog."""
+    """Render the instructions to the model in a dialog."""
     # First, find and render the model instructions, they'll be there somewhere
     any_request = next(
         (

@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from tomlkit import dumps, parse
 
 from gptnt.common.paths import Paths
-from gptnt.experiments.suite.core import Suite
+from gptnt.experiments.suite.definition import Suite
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 
 LOCK_VERSION = 2
@@ -22,7 +22,7 @@ _SUITE_TABLE = "suite"
 
 
 def default_lock_path() -> Path:
-    """The single canonical location of the lock, next to the suite configs it freezes."""
+    """Return the canonical location of the lock, next to the suite configs it freezes."""
     return Paths().suite_configs / LOCK_FILENAME
 
 
@@ -50,7 +50,7 @@ class MissionEntry(BaseModel):
 
 
 class SuiteLockEntry(BaseModel):
-    """One frozen suite revision: its digest, provenance, mission coverage, and full config.
+    """One frozen suite revision, with its digest, provenance, mission coverage, and config.
 
     `config` is `Suite.model_dump(mode="json", exclude_none=True)` (`config_digest` excluded), so
     `Suite.model_validate(config)` rebuilds the exact suite. `mission_keys` reference the shared
@@ -158,14 +158,14 @@ class SuiteLock(BaseModel):
         return self
 
     def entry_for(self, name: str, revision: int) -> SuiteLockEntry | None:
-        """The frozen entry for this exact `(name, revision)`, or `None` if not yet frozen."""
+        """Return the frozen entry for this `(name, revision)`, or `None` if not frozen."""
         for entry in self.suites:
             if entry.name == name and entry.revision == revision:
                 return entry
         return None
 
     def mission_specs(self) -> dict[str, KtaneMissionSpec]:
-        """The mission table as a `mission_key -> KtaneMissionSpec` lookup."""
+        """Return the mission table as a `mission_key -> KtaneMissionSpec` lookup."""
         return {mission.mission_key: mission.spec for mission in self.missions}
 
     def select_entry(self, name: str, revision: int | None) -> SuiteLockEntry:
@@ -212,7 +212,7 @@ class SuiteLock(BaseModel):
         return self.model_validate({"suites": (entry,), "missions": missions})
 
     def append(self, new_entries: list[SuiteLockEntry], new_missions: list[MissionEntry]) -> Self:
-        """Return a new lock with the given entries and missions appended.
+        """Return a new lock with the entries and missions appended.
 
         The new entries must be for suites not already in the lock, and the new missions must be
         distinct from any existing mission_key. The result is sorted by `(name, revision)` for a

@@ -60,7 +60,7 @@ def load_missions(missions_path: Path) -> list[KtaneMissionSpec]:
 
 
 class MissionGenerator:
-    """Generate missions for KTANE from the given config.
+    """Generate missions for KTANE from the config.
 
     Includes RNGs and seeds for reproducibility.
     """
@@ -97,7 +97,7 @@ class MissionGenerator:
     def _generate_mission(
         self, seed: int, *, chosen_module: KtaneModuleId | None
     ) -> KtaneMissionSpec:
-        """Generate one mission spec for a given condition."""
+        """Generate one mission spec for a condition."""
         n_components = self._rng.integers(
             low=self.spec.n_modules_min, high=self.spec.n_modules_max + 1
         ).item()

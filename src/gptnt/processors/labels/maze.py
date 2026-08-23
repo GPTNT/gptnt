@@ -2,8 +2,8 @@ from collections.abc import Generator
 
 import structlog
 
+from gptnt.processors.labels.annotation import DrawData, NumberBoxDimensions, RegionProperties
 from gptnt.processors.labels.position import get_region_height
-from gptnt.processors.labels.types import DrawData, NumberBoxDimensions, RegionProperties
 
 MAZE_REGIONS = 4
 TOP_X_OFFSET = 5
@@ -61,7 +61,7 @@ def calculate_maze_button_coordinates(
 def maze(regions: list[RegionProperties], _: NumberBoxDimensions) -> Generator[DrawData]:
     """Annotate the maze module with labels."""
     if len(regions) != MAZE_REGIONS:
-        log.warning(f"Maze should have {MAZE_REGIONS} regions, but got %d", len(regions))
+        log.warning("Unexpected maze region count", expected=MAZE_REGIONS, actual=len(regions))
     left_button, right_button, top_button, bottom_button = maze_get_buttons(regions)
     for region in regions:
         region_height = get_region_height(region)

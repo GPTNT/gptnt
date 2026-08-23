@@ -1,5 +1,3 @@
-"""Playwright assembly of resolved HTML manuals through KtaneContent's merger."""
-
 from __future__ import annotations
 
 import contextlib
@@ -132,9 +130,9 @@ def browser_renderer_identity() -> dict[str, str]:
 
 def _catalog_entry(document: HtmlDocument, *, index: int) -> tuple[dict[str, str], str]:
     """Build one merger catalog record and its collision-free synthetic module token."""
-    # Synthetic IDs prevent duplicate module selections from collapsing in the upstream merger.
+    # Synthetic IDs keep duplicate selections from collapsing in the upstream merger.
     token = f"gptnt-{index:04d}"
-    # Local documents are exposed through the token; pinned documents retain upstream filenames.
+    # Local documents are exposed through the token. Pinned documents retain upstream filenames.
     filename = token if isinstance(document, ResolvedLocalDocument) else document.source_path.stem
     return (
         {
@@ -184,7 +182,7 @@ def _launch_browser(playwright: Playwright) -> Browser:
             ],
         )
     except PlaywrightError as error:
-        # Convert the common setup failure into an actionable compiler message.
+        # Convert the common setup failure into a compiler message that names the fix.
         if "executable doesn't exist" in str(error).casefold():
             raise ManualBrowserError(
                 f"Playwright-managed Chromium is not installed. Run `{_BROWSER_INSTALL_COMMAND}`."
@@ -210,7 +208,7 @@ def _clean_print_document(frame: Frame) -> None:
 def _flatten_document(frame: Frame) -> tuple[tuple[str, ...], str]:
     """Clone one rendered frame into self-contained head and section HTML fragments."""
     flattened = frame.evaluate(_load_javascript("flatten-document.js"))
-    # Playwright values cross a dynamic JSON boundary, so validate the expected result shape.
+    # Playwright values cross an untyped JSON boundary, so validate the expected result shape.
     if not isinstance(flattened, dict):
         raise ManualBrowserError(f"manual HTML could not be flattened for print: {frame.url}")
     head = flattened.get("head")
@@ -233,7 +231,7 @@ def _print_documents(
     output_pdf: Path,
 ) -> list[str]:
     """Print flattened documents as one PDF and return any broken image URLs."""
-    # Stylesheet order is significant, but identical head fragments need appear only once.
+    # Stylesheet order matters, but identical head fragments need appear only once.
     head = "\n".join(
         dict.fromkeys(element for document_head, _ in documents for element in document_head)
     )
@@ -417,7 +415,7 @@ class _ManualRenderer:
 
     # One check reports four distinct browser failure categories with category-specific messages.
     def _raise_errors(self, *, broken_images: list[str]) -> None:  # noqa: WPS238
-        """Raise the most actionable accumulated browser validation failure, if any."""
+        """Raise the most specific accumulated browser validation failure, if any."""
         # Asset failures take priority because broken images are often their consequence.
         if self._missing_keypad_assets:
             raise ManualBrowserError(

@@ -5,8 +5,8 @@ from typing import Annotated
 from cyclopts import Parameter
 from cyclopts.types import ExistingDirectory
 
-from gptnt.cli._params import PlayerOption, ProviderOption
 from gptnt.cli.integrity import AllowModifiedBenchmarkOption
+from gptnt.cli.params import PlayerOption, ProviderOption
 from gptnt.cli.statics._evaluation import create_and_run_evaluation
 from gptnt.cli.statics._params import (
     AllowThinkingOption,

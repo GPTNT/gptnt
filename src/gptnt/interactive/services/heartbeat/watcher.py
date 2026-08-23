@@ -12,7 +12,7 @@ from coredis import Redis
 from pydantic import UUID4, TypeAdapter
 
 from gptnt.common.async_ops import Event, periodic
-from gptnt.interactive.services.heartbeat.base import PlayerState, ReadyState
+from gptnt.interactive.services.heartbeat.events import PlayerState, ReadyState
 from gptnt.interactive.services.timeouts import ServiceTimeouts
 from gptnt.ktane.state.game import GameState
 
@@ -25,7 +25,7 @@ _STATE_HISTORY_MAXLEN = 20
 
 @dataclass
 class StateTransition[ServiceStateT: Enum]:
-    """Record of a single state transition for diagnostic purposes."""
+    """Record of one state transition for diagnostic purposes."""
 
     timestamp: float
     """Monotonic timestamp of the transition."""
@@ -63,7 +63,7 @@ class BaseServiceStateWatcher[ServiceStateT: Enum]:
     _interval_changed: Event = field(default_factory=Event, init=False, repr=False)
     """Event for whenever the update interval is changed, to trigger an immediate update."""
 
-    # --- Diagnostic tracking fields ---
+    # Diagnostic tracking fields
     _has_ever_connected: bool = field(default=False, init=False, repr=False)
     """Whether we have ever successfully read a heartbeat from this service."""
 
@@ -218,8 +218,8 @@ class BaseServiceStateWatcher[ServiceStateT: Enum]:
         """Handle a failed heartbeat read with local-only diagnostic information.
 
         Logs all locally-tracked state (last good state, consecutive failures, state history)
-        without making additional Redis calls. Deeper diagnostics (tombstone lookup, key probing)
-        are handled by the registry when it detects the service expiry.
+        without making additional calls to Redis. Deeper diagnostics (tombstone lookup, key
+        probing) are handled by the registry when it detects the service expiry.
         """
         self._consecutive_failures += 1
 

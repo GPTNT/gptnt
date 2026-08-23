@@ -6,7 +6,7 @@ import streamlit as st
 
 from gptnt.app.components.dialogue_bubble import render_dialogue_bubble
 from gptnt.app.components.pagination import get_pagination_state, render_pagination_controls
-from gptnt.experiments.models import ExperimentStep
+from gptnt.experiments.records import ExperimentStep
 
 DIALOGUE_STATE_SESSION_KEY = "dialogue_state"
 DIALOGUE_PAGE_SESSION_KEY = "dialogue_page"  # owned by get_pagination_state

@@ -1,5 +1,3 @@
-"""`gptnt doctor` player-model checks: does each config compose, instantiate, and answer?"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -51,7 +49,7 @@ class PlayerReport:
 
 @dataclass(frozen=True)
 class PlayerDetail:
-    """One model's full validation result: the ✓/✗ boxes plus the underlying data."""
+    """The ✓/✗ boxes for one model, plus the underlying validation data."""
 
     report: PlayerReport
     """The matrix-compatible boxes that drive the failed/exit decision."""
@@ -98,7 +96,7 @@ async def check_players(targets: Sequence[tuple[str, str | None]], *, live: bool
         label = model_name if provider is None else f"{model_name}@{provider}"
         try:
             detail = await _player_detail(label, model_name, provider, live=live)  # noqa: WPS476
-        except Exception as exc:  # noqa: BLE001 — isolate one bad config from the rest of the run
+        except Exception as exc:  # noqa: BLE001  (isolate one bad config from the rest of the run)
             crashed = ModelValidationResult(model_name, provider, ok=False, error=str(exc))
             detail = PlayerDetail(
                 PlayerReport(label, "fail", "skip", "skip", f"check crashed: {exc}"), crashed
@@ -131,11 +129,11 @@ async def _player_detail(
 
 
 def check_tokens_per_image(details: Sequence[PlayerDetail]) -> list[CheckResult]:
-    """One row per player: is its per-image token cost calibrated (non-zero)?
+    """Return one row per player: is its per-image token cost calibrated (non-zero)?
 
     `capabilities.tokens_per_image` stays `0` until `gptnt measure-tokens-per-image` measures it
-    against the live model. A `0` makes the token accountant undercount image tokens, so it fails
-    here with the exact fix. Players whose config did not instantiate are skipped — the model
+    against the live model. A `0` makes the token accountant undercount every image, so it fails
+    here with the exact fix. Players whose config did not instantiate are skipped. The model
     matrix already fails them.
     """
     rows: list[CheckResult] = []
@@ -165,10 +163,11 @@ def _static_boxes(outcome: ModelValidationResult) -> tuple[CheckStatus, CheckSta
     """Map a static validation outcome to (exists, instantiates, note).
 
     Instantiation IS the credential check: an unset provider key is a ✗ carrying pydantic-ai's own
-    "set the X environment variable" text — no hardcoded key map to maintain. The doctor fails it
-    (a config with no key can't run) even though the raw validator stays credential-tolerant.
+    "set the X environment variable" text, which saves us maintaining a hardcoded key map. The
+    doctor fails it (a config with no key can't run) even though the raw validator stays
+    credential-tolerant.
     """
-    if outcome.error_stage == "compose":  # YAML missing / invalid — nothing to instantiate
+    if outcome.error_stage == "compose":  # YAML missing / invalid, nothing to instantiate
         return "fail", "skip", outcome.error or ""
     if not outcome.ok:  # composed, but capabilities/agent failed to build
         return "pass", "fail", outcome.error or ""

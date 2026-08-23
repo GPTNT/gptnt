@@ -18,10 +18,10 @@ logger = structlog.get_logger()
 class ActionDispatcher(BaseActionDispatcher):
     """Dispatch actions to the other places.
 
-    Now you might be wondering why this class even exists, since it could just be used directly
-    through inheritance. Well the main reason is for composition purposes, so that the player
-    supervisor is just instantiated with an action dispatcher rather than inheriting from it. This
-    means that within this class, we can do whatever we want to set it up and just use it as is
+    This class could just be used directly through inheritance. Well the main reason it exists is
+    for composition purposes, so that the player supervisor is just instantiated with an action
+    dispatcher rather than inheriting from it. This means that within this class, we can do
+    whatever we want to set it up and just use it as is
     """
 
     game_client: GameClient

@@ -17,7 +17,7 @@ type Modality = Literal["vision", "language", "audio"]
 
 
 class SuiteMatchup(BaseModel):
-    """How a run's roster is paired into (defuser, expert) games."""
+    """The pairing that turns a run's roster into (defuser, expert) games."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -65,7 +65,7 @@ class Suite(BaseModel):
 
     @model_validator(mode="after")
     def validate_roles(self) -> Self:
-        """Role tags must match their slots, and a solo defuser admits no expert."""
+        """Role tags must match their slots, and a solo defuser cannot have an expert."""
         if self.defuser_protocol.is_solo_player and self.expert_protocol is not None:
             raise ValueError("A solo defuser cannot have an expert.")
         return self
@@ -120,5 +120,5 @@ class SuiteIdentity(BaseModel):
 
     @property
     def target(self) -> str:
-        """What was measured, with its pin — the bundle dir's leaf name."""
+        """What was measured, with its pin, the bundle dir's leaf name."""
         return f"{self.suite_name}@{self.suite_revision}"

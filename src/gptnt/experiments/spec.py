@@ -80,7 +80,7 @@ class ExperimentSpec(BaseModel):
 
     @property
     def is_single_player(self) -> bool:
-        """Check if the experiment is a single player experiment."""
+        """Check if the experiment is one player experiment."""
         return self.defuser_protocol.is_solo_player
 
     @property
@@ -132,7 +132,7 @@ class ExperimentSpec(BaseModel):
         return defuser_wants_feedback or expert_wants_feedback
 
     def get_player_protocol(self, role: PlayerRole) -> PlayerProtocol | None:
-        """Get the player protocol for the given role."""
+        """Get the player protocol for the role."""
         match role:
             case "defuser":
                 return self.defuser_protocol

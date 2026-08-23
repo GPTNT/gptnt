@@ -26,11 +26,11 @@ class CompletionLedger(Protocol):
     """Answers 'which of these experiments are already done?' for a set of attempt names."""
 
     def status_for(self, attempt_names: Iterable[str]) -> dict[str, ExperimentStatus]:
-        """Map every given attempt name to its status."""
+        """Map every attempt name to its status."""
         ...
 
     def completed(self, attempt_names: Iterable[str]) -> set[str]:
-        """The subset of attempt names that are done and valid (safe to skip re-running).
+        """Return the subset of attempt names that are done and valid (safe to skip re-running).
 
         Implementations MAY prune stale state while answering (the W&B ledger marks invalid remote
         runs `old` so a run left in a bad state doesn't block a re-run); the local ledger is a pure

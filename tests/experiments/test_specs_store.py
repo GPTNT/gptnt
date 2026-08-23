@@ -31,7 +31,7 @@ def test_write_then_load_preserves_frozen_suite_digest(
     ]
 
     monkeypatch.setattr(
-        "gptnt.experiments.suite.core.load_missions", lambda _path: changed_missions
+        "gptnt.experiments.suite.definition.load_missions", lambda _path: changed_missions
     )
     assert live_suite.suite_digest != spec.suite_digest
 

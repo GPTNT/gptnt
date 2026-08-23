@@ -12,8 +12,8 @@ import wandb
 from anyio.to_thread import run_sync as run_sync_in_thread
 
 from gptnt.common.image_ops import load_observation_from_bytes
-from gptnt.experiments.models import ExperimentOutcome
 from gptnt.experiments.recorder.local import ExperimentPlayerRecorder
+from gptnt.experiments.records import ExperimentOutcome
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.players.observation_handler import Observation
 
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from whenever import Instant
 
     from gptnt.experiments.instance import ExperimentInstance
-    from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep
+    from gptnt.experiments.records import ExperimentPlayerRecord, ExperimentStep
     from gptnt.ktane.actions import KtaneGameplayInput
     from gptnt.players.actions import PlayerOutputType
     from gptnt.players.result import AgentCallResult

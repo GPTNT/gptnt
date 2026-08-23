@@ -27,15 +27,16 @@ def _image_to_png_bytes(img: Image.Image) -> PNGBytes:
 
 
 class Observation(BaseModel):
-    """Observation from the game.
-
-    This is a named tuple that contains the observation bytes, the segmentation bytes, and the
-    processed image.
-    """
+    """Observation from the game."""
 
     frames: list[PNGBytes]
+    """Observation frames as bytes, from oldest to newest."""
+
     segm_mask: PNGBytes | None
+    """Segmentation mask as bytes, or None if not available."""
+
     som_image: PNGBytes
+    """Set of marks image as bytes, or the last frame if SoM is not used."""
 
 
 @dataclass(kw_only=True)
@@ -110,7 +111,7 @@ class ObservationHandler:
             images = [self.image_resizer.resize_image(image) for image in images]
             last_image = self.image_resizer.resize_image(last_image)
 
-        # Convert the resized / som images back to bytes in parallel — order is preserved by map.
+        # Convert the resized / som images back to bytes in parallel, order is preserved by map.
         # last_image is prepended so som and frames are encoded in one pass.
         with logfire.span("Saving images back to bytes"), futures.ThreadPoolExecutor() as executor:
             all_bytes = list(executor.map(_image_to_png_bytes, [last_image, *images]))
@@ -132,13 +133,13 @@ class ObservationHandler:
         # Convert from SoM to relative coordinates if needed
         if self.set_of_marks_painter and isinstance(action.location, (int, str)):
             # Convert the SoM to relative coordinates
-            logger.info(f"Mark to click is: {action.location}")
+            logger.info("Mark to click", location=action.location)
             action_location = self.set_of_marks_painter.convert_mark_to_coordinate(
                 mark_id=action.location
             )
 
         if self.image_resizer and isinstance(action_location, PixelLocation):
-            logger.info(f"Converting absolute coordinate {action_location} to relative.")
+            logger.info("Converting absolute coordinate to relative", location=action_location)
             action_location = self.image_resizer.convert_absolute_to_relative(
                 coordinate=action_location
             )
@@ -146,7 +147,7 @@ class ObservationHandler:
         if self.image_resizer and isinstance(action_location, ScaledLocation):
             if self.coordinate_scale is None:
                 raise ValueError("Normalised action received without a coordinate scale.")
-            logger.info(f"Converting normalised coordinate {action_location} to relative.")
+            logger.info("Converting normalised coordinate to relative", location=action_location)
             action_location = RelativeCoordinate(
                 x_pos=action_location.x / self.coordinate_scale,
                 y_pos=action_location.y / self.coordinate_scale,

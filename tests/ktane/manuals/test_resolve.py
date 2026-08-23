@@ -15,7 +15,7 @@ from gptnt.ktane.manuals.resolution import (
     ResolvedLocalDocument,
     ResolvedOfficialDocument,
 )
-from gptnt.ktane.manuals.resolve import ManualResolutionError, resolve_manual_profile
+from gptnt.ktane.manuals.resolve import resolve_manual_profile
 from gptnt.ktane.manuals.sources import (
     KtaneContentCatalogSource,
     KtaneContentSource,
@@ -191,7 +191,7 @@ def test_resolution_policy_reports_the_profile_entry(
         _write(tmp_path / "local.html", '<link rel="stylesheet" href="/%2e%2e/outside.css">')
         profile = _profile({"source": "local", "path": "local.html", "language": "en"})
 
-    with pytest.raises(ManualResolutionError, match=match):
+    with pytest.raises(ValueError, match=match):
         _ = resolve_manual_profile(
             profile,
             sources=sources,

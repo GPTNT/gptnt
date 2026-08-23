@@ -2,7 +2,7 @@ from collections.abc import Generator
 
 import structlog
 
-from gptnt.processors.labels.types import DrawData, NumberBoxDimensions, RegionProperties
+from gptnt.processors.labels.annotation import DrawData, NumberBoxDimensions, RegionProperties
 
 MORSE_REGIONS = 3
 log = structlog.get_logger()
@@ -13,7 +13,7 @@ def morse_code(
 ) -> Generator[DrawData]:
     """Annotate the morse code module with labels."""
     if len(regions) != MORSE_REGIONS:
-        log.warning(f"Morse should have {MORSE_REGIONS} regions, but got %d", len(regions))
+        log.warning("Unexpected morse region count", expected=MORSE_REGIONS, actual=len(regions))
 
     _ = box_dims  # temporary
 

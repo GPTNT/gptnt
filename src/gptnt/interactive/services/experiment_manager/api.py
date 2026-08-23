@@ -83,7 +83,7 @@ async def add_experiment_specs(specs: Specs, experiment_manager: ExperimentManag
 
 @router.get("/active")
 async def active_experiments(experiment_manager: ExperimentManagerDep) -> ActiveExperiments:
-    """The attempt names currently in flight: running sessions plus queued-but-unmatched specs.
+    """Return the attempt names in flight: running sessions plus queued-but-unmatched specs.
 
     `status` overlays these onto the on-disk completion view so a benchmark run shows live progress
     without W&B.

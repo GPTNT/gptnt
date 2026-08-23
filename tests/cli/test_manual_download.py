@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
 
-    from gptnt.ktane.manuals.download import ProgressCallback
+    from gptnt.ktane.manuals.progress import ProgressCallback
     from gptnt.ktane.manuals.sources import ManualSources
 
 

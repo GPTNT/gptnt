@@ -12,7 +12,7 @@ from gptnt.players.specification import PlayerProtocol
 
 
 class ExperimentGenerator(BaseModel):
-    """Generate experiments from the given missions and pairings."""
+    """Generate experiments from the missions and pairings."""
 
     mission_set: str
     suite_name: str
@@ -28,7 +28,7 @@ class ExperimentGenerator(BaseModel):
     def generate(
         self, missions: Iterator[KtaneMissionSpec], pairings: Iterator[Pairing]
     ) -> Iterator[ExperimentSpec]:
-        """Generate all possible experiments to be run from the given inputs."""
+        """Generate all possible experiments to be run from the inputs."""
         for mission, pairing in itertools.product(missions, pairings):
             if pairing.expert is not None and self.expert_protocol is None:
                 raise ValueError(

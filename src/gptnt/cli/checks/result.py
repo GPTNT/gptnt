@@ -1,5 +1,3 @@
-"""The check-result value object and its four-state status."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -28,12 +26,12 @@ class CheckResult:
 
     @classmethod
     def passed(cls, name: str, detail: str = "") -> Self:
-        """The check held."""
+        """Return a result for a check that held."""
         return cls(name, "pass", detail=detail)
 
     @classmethod
     def failed(cls, name: str, detail: str = "", hint: str = "") -> Self:
-        """The check found a real problem; the run fails."""
+        """Return a result for a check that found a problem, failing the run."""
         return cls(name, "fail", detail=detail, hint=hint)
 
     @classmethod
@@ -43,5 +41,5 @@ class CheckResult:
 
     @classmethod
     def skipped(cls, name: str, detail: str = "", hint: str = "") -> Self:
-        """Not applicable here."""
+        """Return a result for a check that does not apply here."""
         return cls(name, "skip", detail=detail, hint=hint)

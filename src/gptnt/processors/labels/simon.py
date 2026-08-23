@@ -2,7 +2,7 @@ from collections.abc import Generator
 
 import structlog
 
-from gptnt.processors.labels.types import DrawData, NumberBoxDimensions, RegionProperties
+from gptnt.processors.labels.annotation import DrawData, NumberBoxDimensions, RegionProperties
 
 SIMON_REGIONS = 4
 log = structlog.get_logger()
@@ -13,7 +13,9 @@ def simon(  # noqa: WPS210
 ) -> Generator[DrawData]:
     """Annotate the simon module with labels."""
     if len(regions) != SIMON_REGIONS:
-        log.warning(f"Simon Says should have {SIMON_REGIONS} regions, but got %d", len(regions))
+        log.warning(
+            "Unexpected Simon Says region count", expected=SIMON_REGIONS, actual=len(regions)
+        )
     buttons = []
 
     sorted_top_to_bottom = sorted(regions, key=lambda region: region.bbox[0])

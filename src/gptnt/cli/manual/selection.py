@@ -1,5 +1,3 @@
-"""Profile selection shared by manual download and compile commands."""
-
 from dataclasses import dataclass
 from typing import Annotated
 
@@ -75,5 +73,5 @@ def select_manual_profiles(
     if all_profiles and suites is not None:
         raise ValueError("--all-profiles cannot be combined with --suite")
     profiles, description = _all_profiles(paths) if all_profiles else _suite_profiles(suites)
-    # Multiple suites commonly share a profile; compile or download each distinct value once.
+    # Multiple suites commonly share a profile. Compile or download each distinct value once.
     return ManualSelection(profiles=tuple(dict.fromkeys(profiles)), description=description)

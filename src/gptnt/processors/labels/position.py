@@ -1,6 +1,6 @@
 import numpy as np
 
-from gptnt.processors.labels.types import Coordinates, RegionProperties
+from gptnt.processors.labels.annotation import Coordinates, RegionProperties
 
 
 def get_background_corner_coords(
@@ -63,7 +63,7 @@ def calculate_offset_point(
 
 
 def get_furthest_point_from_center(region: RegionProperties, *, offset: int = 10) -> Coordinates:
-    """Get the furthest point from the center of the image for a given region."""
+    """Get the furthest point from the center of the image for a region."""
     center_y, center_x = calculate_image_center(region=region)
     furthest_y, furthest_x = find_furthest_point(region, center_y, center_x)
     return calculate_offset_point(furthest_y, furthest_x, center_y, center_x, offset)

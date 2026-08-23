@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Mapping
     from pathlib import Path
 
-    from gptnt.experiments.ledger.base import Source
+    from gptnt.experiments.ledger.completion import Source
     from gptnt.ktane.manuals.artifacts import ManualArtifact
     from gptnt.ktane.manuals.profile import ManualProfile
     from gptnt.players.specification import PlayerSpec
@@ -63,9 +63,9 @@ async def spawn_rooms(
 async def _wait_for_em_ready(
     orch: ProcessOrchestrator, *, fail_after: float = 60.0, interval: float = 0.5
 ) -> None:
-    """Poll the experiment manager's /health endpoint until it is ready, or fail loudly.
+    """Poll the experiment manager's /health endpoint until it is ready, or time out.
 
-    Replaces a blind fixed sleep so `run` starts as soon as the EM is actually up, and surfaces a
+    Replaces a blind fixed sleep so `run` starts as soon as the EM is actually up, and reports a
     clear error if it never binds or dies during startup.
     """
     url = runtime_settings.em_health_url

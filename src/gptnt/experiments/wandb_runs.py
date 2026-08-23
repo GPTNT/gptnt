@@ -6,20 +6,21 @@ from typing import TYPE_CHECKING, Any
 import structlog
 import wandb
 from pydantic import UUID4
-from rich.progress import Progress, track
 from wandb.apis.public import Run, Runs
 
 from gptnt.common.logger import ProgressSentinel, with_default_progress
-from gptnt.experiments.models import is_valid_outcome
 from gptnt.experiments.recorder.parquet import read_record_footer
+from gptnt.experiments.records import is_valid_outcome
 from gptnt.ktane.state.bomb import BombOutcome
 
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from rich.progress import Progress
+
 logger = structlog.get_logger()
 
-# The four flags that decide validity; their names never drifted, so old and new runs both carry
+# The flags that decide validity; their names never drifted, so old and new runs both carry
 # them. Required (alongside `finished` state) for a defuser run to be classifiable.
 _VALIDITY_KEYS = ("is_solved", "is_timed_out", "is_strike_out", "is_hard_crash")
 
@@ -47,9 +48,7 @@ def get_runs_from_wandb(
         filters={"$and": [{"state": {"$in": states}}, *additional_filters]},
         per_page=per_page,
     )
-    logger.info(
-        f"Found {len(runs)} runs (not experiments) on wandb", runs=len(runs), wandb_path=wandb_path
-    )
+    logger.info("Found runs (not experiments) on wandb", runs=len(runs), wandb_path=wandb_path)
 
     return runs
 
@@ -98,11 +97,11 @@ def has_run_falsely_finished(run: Run) -> bool:
 
 
 def is_run_valid(run: Run) -> bool:
-    """Whether a finished W&B run is valid, decided by the shared `is_valid_outcome`.
+    """Return whether a finished W&B run is valid, decided by the shared `is_valid_outcome`.
 
     Transport guard first: the run must be `finished`. Only the defuser observes the bomb, so only
-    a defuser run carries an outcome to validate; an expert run is valid as long as it finished
-    without a hard crash (its experiment's real outcome lives on the paired defuser run).
+    a defuser run has an outcome to validate. An expert run is valid as long as it finished without
+    a hard crash, because its experiment's real outcome is recorded on the paired defuser run.
     """
     if run.state != "finished" or "is_hard_crash" not in run.summary:
         return False
@@ -121,9 +120,10 @@ def is_run_valid(run: Run) -> bool:
     return is_valid_outcome(outcome=outcome, is_hard_crash=run.summary["is_hard_crash"])
 
 
-def mark_runs_as_old(runs: list[Run]) -> None:
+@with_default_progress(extra_fields=["extra"])
+def mark_runs_as_old(runs: list[Run], *, progress: Progress = ProgressSentinel) -> None:
     """Mark the runs as old by adding the 'old' tag."""
-    for run in track(runs, description="Marking runs as old...", total=len(runs)):
+    for run in progress.track(runs, description="Marking runs as old...", total=len(runs)):
         run.tags.append("old")
         run.update()
 
@@ -241,7 +241,7 @@ def parse_experiment_outputs_from_directory(
     """Scan for experiment output files and extract (attempt_name, player_uuid, path) tuples.
 
     Identity comes from each file's footer (`instance.attempt_name` + the role's player UUID), the
-    same footer-based identity the rest of the system uses — independent of the filename, so a
+    same footer-based identity the rest of the system uses, independent of the filename, so a
     renamed file still matches its W&B run. The footer is parsed once per file and both values read
     off it.
     """

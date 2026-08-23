@@ -6,7 +6,7 @@ import streamlit as st
 import structlog
 
 from gptnt.app.loader import ExperimentLoader
-from gptnt.experiments.models import ExperimentRecord
+from gptnt.experiments.records import ExperimentRecord
 
 logger = structlog.get_logger()
 
@@ -15,7 +15,7 @@ _DEFAULT_QUERY = "SELECT * FROM experiment_summary LIMIT 10"
 
 @dataclass
 class QueryRecord:
-    """A single executed SQL query and its execution metadata."""
+    """One executed SQL query and its execution metadata."""
 
     time: str
     query: str

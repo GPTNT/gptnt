@@ -4,7 +4,7 @@ from caseconverter import titlecase
 from htbuilder import div, styles
 from htbuilder.units import rem
 
-from gptnt.experiments.models import ExperimentRecord, ExperimentStep
+from gptnt.experiments.records import ExperimentRecord, ExperimentStep
 from gptnt.players.actions import SendMessageAction
 from gptnt.players.specification import PlayerProtocol
 
@@ -12,7 +12,7 @@ from gptnt.players.specification import PlayerProtocol
 def render_player_card(
     name: str, protocol: PlayerProtocol, role: str, reflection: ExperimentStep | None = None
 ) -> None:
-    """Render a single player info card."""
+    """Render one player info card."""
     icon = (
         ":material/document_search:"
         if role == "Expert"

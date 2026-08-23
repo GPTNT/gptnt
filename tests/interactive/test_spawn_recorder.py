@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from gptnt.experiments.ledger.base import Source
+from gptnt.experiments.ledger.completion import Source
 from gptnt.experiments.recorder.resolve import resolve_recorder
 from gptnt.interactive.orchestration.spawn import _build_player_command
 from gptnt.players.specification import PlayerSpec

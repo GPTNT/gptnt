@@ -17,7 +17,7 @@ def _resolve_commit_sha(*, hf_repo_id: str, revision: str | None) -> str | None:
     """Resolve the requested revision to a commit sha, best-effort.
 
     I apologise for the blanket exception. An offline or private repo must not fail a completed
-    run, so any Hub error records a null sha instead of propagating. The Hub can throw a variety of
+    run, so any Hub error records a null sha instead of propagating. The Hub can throw several
     exceptions and we don't really care _why_ it failed, we just want to record that it did.
     """
     try:
@@ -70,7 +70,7 @@ class StaticsIdentity(BaseModel, frozen=True):
 
     @property
     def revision_label(self) -> str:
-        """A short label for the dataset revision — always the resolved commit sha.
+        """A short label for the dataset revision, always the resolved commit sha.
 
         A HuggingFace dataset is only reproducibly pinned by its commit sha; a requested tag or
         branch can move, so it never forms the label. With no resolved sha (offline/private repo),
@@ -80,7 +80,7 @@ class StaticsIdentity(BaseModel, frozen=True):
 
     @property
     def target(self) -> str:
-        """What was measured, with its pin — a submission bundle dir's leaf name."""
+        """What was measured, with its pin, a submission bundle dir's leaf name."""
         return f"{self.task_name}@{self.revision_label}"
 
 

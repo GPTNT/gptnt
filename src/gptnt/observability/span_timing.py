@@ -2,7 +2,7 @@
 
 In async mode the experiment wall-clock budget is shared between model inference and the benchmark
 harness (observation fetch/render, Set-of-Marks, input building, action dispatch). Every phase is
-already wrapped in a named logfire span, but the player/game processes run `logfire.configure(...,
+already wrapped in a logfire span, but the player/game processes run `logfire.configure(...,
 send_to_logfire=False)` with no exporter attached, so those span durations are discarded.
 
 This module provides a :class:`SpanTimingExporter` that appends the durations of an allowlisted set
@@ -33,20 +33,20 @@ if TYPE_CHECKING:
 logger = structlog.get_logger()
 
 
-# The span we wrap `PlayerService.forward_pass` in — the per-step denominator (player process).
+# The span we wrap `PlayerService.forward_pass` in, the per-step denominator (player process).
 PLAYER_FORWARD_PASS_SPAN = "player forward pass"  # noqa: S105
 
-# The span wrapping `agent.run()` — captures the full pydantic-ai round-trip including framework
+# The span wrapping `agent.run()`: captures the full pydantic-ai round-trip including framework
 # overhead. Everything inside this span but outside the pydantic-ai "chat *" spans is overhead.
 INFERENCE_SPAN = "Send request to agent"
 
-# pydantic-ai instrumentation scope — "chat *" spans from this scope are the actual LLM calls.
+# pydantic-ai instrumentation scope: "chat *" spans from this scope are the actual LLM calls.
 PYDANTIC_AI_SCOPE = "pydantic-ai"
 
-# Named spans we persist: the per-step denominator, the inference span, and the non-inference
+# Spans we persist: the per-step denominator, the inference span, and the non-inference
 # phases that make up the overhead (player-side game-client waits + input prep + dispatch).
 # Set-of-Marks internals are children of "Prepare frames" and are intentionally not listed
-# individually to keep the files bounded; "Prepare frames" already subsumes their duration.
+# individually to keep the files bounded. "Prepare frames" already subsumes their duration.
 ALLOWLIST: frozenset[str] = frozenset(
     (
         PLAYER_FORWARD_PASS_SPAN,
@@ -70,7 +70,7 @@ ALLOWLIST: frozenset[str] = frozenset(
 class _TimingIdentity:
     """Process-wide experiment identity stamped onto every captured span row.
 
-    Each player/game process handles essentially one experiment for its whole lifetime, so a single
+    Each player/game process handles essentially one experiment for its whole lifetime, so one
     module-level instance is sufficient and avoids threading identity through every span. Populated
     once from the service's "configure for experiment" handler via :func:`set_timing_identity`; any
     field left unset is written as `null`.
@@ -84,7 +84,7 @@ class _TimingIdentity:
 
 
 # The live identity for this process. Mutated in place by `set_timing_identity` and read by
-# `SpanTimingExporter._row`; there is exactly one experiment per process so no locking is needed.
+# `SpanTimingExporter._row`. There is exactly one experiment per process so no locking is needed.
 _IDENTITY = _TimingIdentity()
 _IDENTITY_FIELDS: frozenset[str] = frozenset(field.name for field in fields(_TimingIdentity))
 
@@ -139,18 +139,18 @@ class SpanTimingExporter(SpanExporter):
     Each process writes to its own append-only file (`{service}-{pid}.jsonl`), so concurrent
     player/game processes never fight a shared writer.
 
-    Why the file handle is opened once and held open for the process lifetime, rather than
-    reopened on each export:
+    The file handle is opened once and held open for the process lifetime, rather than reopened
+    on each export:
 
     - `SimpleSpanProcessor` (see :func:`build_span_timing_processor`) calls :meth:`export`
       *synchronously, on the thread that just ended the span*. That thread is the one whose
       wall-clock this module exists to measure, so the export path must add as little latency
       as possible. Re-`open()`/`close()`-ing the file on every span end would charge a syscall
-      pair to the measured thread — and because a child span's export runs *inside* its still-
+      pair to the measured thread, and because a child span's export runs *inside* its still-
       open parent span's window, that cost would leak into the parent's recorded duration.
       Holding the handle open reduces each export to a buffered `write` + `flush`.
     - The handle is opened lazily on the first matching span (:meth:`_ensure_writer`), so a
-      process that never emits a captured span creates no empty file.
+      process that never emits a captured span does not create a file.
 
     Durability: each export ends with `flush()`, pushing rows into the OS page cache where they
     survive a non-graceful process exit (only a kernel panic / power loss could lose them).

@@ -17,7 +17,7 @@ service_timeouts = ServiceTimeouts()
 
 @dataclass(kw_only=True)
 class GameStateMonitor:
-    """Monitors and tracks game state changes."""
+    """Track changes to the game state."""
 
     client: KtaneClient
     state: AsyncValue[GameState] = field(
@@ -97,11 +97,7 @@ class GameStateMonitor:
             new_state = await self.client.get_game_state()
 
         if new_state != self.state.value:
-            logger.info(
-                f"Game state changed: {self.state.value} -> {new_state}",
-                from_state=self.state.value,
-                to_state=new_state,
-            )
+            logger.info("Game state changed", from_state=self.state.value, to_state=new_state)
             self.state.value = new_state
             self.history.append(new_state)
 

@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from gptnt.experiments.suite.core import Suite, SuiteMatchup
+from gptnt.experiments.suite.definition import Suite, SuiteMatchup
 from gptnt.ktane.manuals.profile import KtaneContentDocument, ManualProfile
 from gptnt.players.specification import PlayerProtocol
 

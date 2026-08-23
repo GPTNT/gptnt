@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING
 import anyio
 from pyarrow import ArrowInvalid
 
-from gptnt.experiments.models import ExperimentOutcome
 from gptnt.experiments.recorder.parquet import read_record_footer
+from gptnt.experiments.records import ExperimentOutcome
 
 if TYPE_CHECKING:
     from pathlib import Path

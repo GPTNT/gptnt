@@ -20,7 +20,7 @@ class PlayerExperimentPairing(NamedTuple):
 def find_valid_pairing_for_single_player(
     *, available_players: list[PlayerServiceManifest], experiment: ExperimentSpec
 ) -> PlayerExperimentPairing | None:
-    """Find a valid pairing of players for the given single player experiment.
+    """Find a valid pairing of players for the single-player experiment.
 
     Returns None if no valid pairing is found.
     """
@@ -33,7 +33,7 @@ def find_valid_pairing_for_single_player(
 def find_valid_pairing_for_multi_player(
     *, available_players: list[PlayerServiceManifest], experiment: ExperimentSpec
 ) -> PlayerExperimentPairing | None:
-    """Find a valid pairing of players for the given multi player experiment.
+    """Find a valid pairing of players for the multi player experiment.
 
     Returns None if no valid pairing is found.
     """

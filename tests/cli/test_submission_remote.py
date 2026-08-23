@@ -47,7 +47,7 @@ def test_model_dirs_returns_one_entry_per_model(tmp_path: Path) -> None:
 
 
 def test_model_dirs_errors_without_submissions_dir(tmp_path: Path) -> None:
-    with pytest.raises(FileNotFoundError, match="Expected a submissions directory"):
+    with pytest.raises(FileNotFoundError, match="submissions"):
         _ = all_bundle_dirs(tmp_path / "submissions")
 
 

@@ -13,7 +13,7 @@ from whenever import TimeDelta
 
 from gptnt.common.async_ops import periodic
 from gptnt.interactive.services.heartbeat import Heartbeat
-from gptnt.interactive.services.heartbeat.base import ReadyState
+from gptnt.interactive.services.heartbeat.events import ReadyState
 from gptnt.interactive.services.heartbeat.tombstone import FailureCategory, Tombstone
 from gptnt.interactive.services.registry.manifest import ServiceManifest
 from gptnt.interactive.services.timeouts import ServiceTimeouts

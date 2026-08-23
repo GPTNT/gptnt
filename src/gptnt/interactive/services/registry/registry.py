@@ -11,7 +11,7 @@ from structlog import get_logger
 
 from gptnt.common.async_ops import periodic
 from gptnt.interactive.services.heartbeat import Heartbeat
-from gptnt.interactive.services.heartbeat.base import PlayerState
+from gptnt.interactive.services.heartbeat.events import PlayerState
 from gptnt.interactive.services.heartbeat.game import GameHeartbeat
 from gptnt.interactive.services.heartbeat.player import PlayerHeartbeat
 from gptnt.interactive.services.heartbeat.tombstone import ServiceExpiredContext

@@ -1,5 +1,3 @@
-"""Select the declared model settings that form part of benchmark identity."""
-
 from collections.abc import Mapping
 
 from pydantic import JsonValue, TypeAdapter

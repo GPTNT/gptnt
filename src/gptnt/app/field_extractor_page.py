@@ -15,7 +15,7 @@ def extractor_page() -> None:
 
     _ = st.header("Get statistics")
     _ = st.caption(
-        "Pick one or more fields (one per line) and extract them in a single pass across all files."
+        "Pick one or more fields (one per line) and extract them in one pass across all files."
     )
 
     with st.sidebar:

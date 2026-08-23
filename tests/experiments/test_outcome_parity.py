@@ -12,13 +12,13 @@ from __future__ import annotations
 import pytest
 from pydantic_ai import RunUsage
 
-from gptnt.experiments.models import (
+from gptnt.experiments.recorder.wandb import WandbExperimentPlayerRecorder
+from gptnt.experiments.records import (
     ExperimentOutcome,
     ExperimentStep,
     ExperimentSummary,
     is_valid_outcome,
 )
-from gptnt.experiments.recorder.wandb import WandbExperimentPlayerRecorder
 from gptnt.ktane.state.bomb import BombOutcome, BombState
 from gptnt.players.actions import DoNothingAction
 from gptnt.players.specification import PlayerCapabilities

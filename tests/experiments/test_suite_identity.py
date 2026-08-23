@@ -1,6 +1,6 @@
 """Tests for the frozen suite identity recorded in submission bundles."""
 
-from gptnt.experiments.suite.core import SuiteIdentity
+from gptnt.experiments.suite.definition import SuiteIdentity
 
 
 def test_target_pins_name_to_revision() -> None:

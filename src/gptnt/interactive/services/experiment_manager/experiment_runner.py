@@ -335,9 +335,9 @@ class ExperimentRunner(abc.ABC):
 
         Players run the stop logic through a background task, so we expect this to return quickly.
         If there is an exception in the background task, that will be completely separate to the EM
-        and the runner because it is being handled in its own service. What this means is that if
-        the player crashes, it will never update the heartbeat and the EM will not start a new
-        experiment with that player because it would be marked as dead.
+        and the runner because it is being handled in its own service. So if the player crashes, it
+        will never update the heartbeat and the EM will not start a new experiment with that player
+        because it would be marked as dead.
         """
         # If we have crashed somehow, then we are going to skip the bomb state retrieval and just
         # tell the players to stop
@@ -363,8 +363,8 @@ class ExperimentRunner(abc.ABC):
             # start the stopping so we are going to just stick a lil wait here because there
             # isn't really a clear way to know when it'll actually start the processing under the
             # hood. The thing is, this should not be an actual issue because the state gets updated
-            # before the task starts, but I'm guessing that this is a consequence of the fact that
-            # the service state watcher being a interval-based thing.
+            # before the task starts, but I'm guessing that this is a consequence of
+            # the service state watcher being an interval-based thing.
             await anyio.sleep(timeouts.session_state_watcher_interval + 1)
 
     @logfire.instrument("Cleanup experiment")
@@ -448,7 +448,7 @@ class SyncExperimentRunner(ExperimentRunner):
         logger.debug("Experiment sync loop completed", experiment=self.experiment.attempt_name)
 
     async def run_single_sync_step(self) -> None:
-        """Run a single step of the sync experiment loop.
+        """Run one step of the sync experiment loop.
 
         We are constantly checking if the game is supposed to be over or not during this too to
         ensure that we don't run any more steps if the game is over.

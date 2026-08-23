@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pymupdf
 import pytest
 
-from gptnt.ktane.manuals.compiler import ManualCompileError, compile_manual
+from gptnt.ktane.manuals.artifacts import compile_manual
 from gptnt.ktane.manuals.compiler_sources import keypad_assets_root, ktane_content_root
 from gptnt.ktane.manuals.resolution import (
     LocalInputIdentity,
@@ -223,7 +223,7 @@ def test_browser_rejects_unsafe_or_incomplete_pages(
     _ = source.write_text(html, encoding="utf-8")
     _ = source.with_name("fixture.png").write_bytes(_PNG)
 
-    with pytest.raises(ManualCompileError, match=match):
+    with pytest.raises(RuntimeError, match=match):
         _ = compile_manual([_local_document(source, document_id="Unsafe")], cache_dir=cache_dir)
 
 
@@ -262,7 +262,7 @@ def test_keypad_uses_required_high_resolution_asset(
         ).format(heading="Keypad", body="missing symbol", script=""),
         encoding="utf-8",
     )
-    with pytest.raises(ManualCompileError, match="High-resolution Keypad assets"):
+    with pytest.raises(RuntimeError, match="High-resolution Keypad assets"):
         _ = compile_manual(
             [_local_document(missing_source, document_id="MissingKeypad")], cache_dir=cache_dir
         )

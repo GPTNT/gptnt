@@ -88,7 +88,7 @@ class PlayerDeps(BaseModel, frozen=True):
 
 
 def load_instructions_from_deps(ctx: RunContext[PlayerDeps]) -> str:
-    """Load instructions for the given player dynamically for the current agent."""
+    """Load the player instructions for the current agent."""
     instructions = load_instructions(ctx.deps.protocol, ctx.deps.capabilities)
 
     if ctx.deps.should_manually_add_schema_in_instructions:

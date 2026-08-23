@@ -13,7 +13,6 @@ from gptnt.experiments.db.extract import extract_metadata_from_paths
 from gptnt.experiments.db.ingest import ingest_player_records
 from gptnt.experiments.db.read import load_experiment_summaries
 from gptnt.experiments.instance import ExperimentInstance, PlayerContent
-from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep, ExperimentSummary
 from gptnt.experiments.recorder.local import ExperimentPlayerRecorder
 from gptnt.experiments.recorder.parquet import (
     KEY_FORMAT_VERSION,
@@ -23,6 +22,7 @@ from gptnt.experiments.recorder.parquet import (
     read_record_footer,
     write_player_record_parquet,
 )
+from gptnt.experiments.records import ExperimentPlayerRecord, ExperimentStep, ExperimentSummary
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.ktane.state.bomb import BombState

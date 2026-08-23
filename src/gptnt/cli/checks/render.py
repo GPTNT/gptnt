@@ -1,5 +1,3 @@
-"""Rendering for findings: the section-table renderer and doctor's model-matrix table."""
-
 from __future__ import annotations
 
 import textwrap
@@ -52,7 +50,7 @@ def render_players(console: Console, details: list[PlayerDetail]) -> None:
     """Print one row per model: the exists/instantiates/live boxes plus every resolved field.
 
     This is the one model presentation for `gptnt doctor`; `--model` only narrows the set, so the
-    same detail shows for every config — nothing is gated behind a flag.
+    same detail shows for every config. Nothing is gated behind a flag.
     """
     if not details:
         console.print(
@@ -79,7 +77,7 @@ def render_players(console: Console, details: list[PlayerDetail]) -> None:
     table.add_column("Thinking", no_wrap=True)
     table.add_column("Structured", no_wrap=True)
     table.add_column("Interaction", no_wrap=True)
-    if has_notes:  # only when something failed/warned — keep the happy-path table narrow
+    if has_notes:  # only when something failed/warned, keep the happy-path table narrow
         table.add_column("Notes", overflow="fold", style="dim")
 
     for detail, note in zip(details, notes, strict=True):
@@ -99,7 +97,7 @@ def render_players(console: Console, details: list[PlayerDetail]) -> None:
 
 
 def _player_row(detail: PlayerDetail) -> list[RenderableType]:
-    """One model's cells: label, the three boxes, and the resolved fields (no Notes cell)."""
+    """Return one model's cells: label, the three boxes, and the resolved fields."""
     report = detail.report
     caps = detail.static.capabilities
     if caps:
@@ -123,7 +121,7 @@ def _player_row(detail: PlayerDetail) -> list[RenderableType]:
 
 
 def _row_note(report: PlayerReport) -> str:
-    """The Notes cell: blank for a clean pass, else the box message (error / cred / latency)."""
+    """Return the Notes cell: blank on a clean pass, else the box message."""
     clean = report.exists == "pass" and report.instantiates == "pass" and report.live == "skip"
     return "" if clean else _short(report.note)
 

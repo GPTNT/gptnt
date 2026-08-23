@@ -92,9 +92,6 @@ def ensure_mod_exists() -> bool:
 def set_port_number_of_logfile(port: str) -> Generator[bool]:
     """Sets the log name with the port number."""
     log_path = paths.ktane.joinpath("logConfig.xml")
-    if not log_path.exists():
-        raise FileNotFoundError(f"Log config file not found at {log_path}.")
-
     original_data = log_path.read_text(encoding="utf-8")
 
     updated_data = original_data.replace('"logs/ktane.log"/', f'"logs/ktane_{port}.log"/')

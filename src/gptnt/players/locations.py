@@ -31,7 +31,7 @@ type SingleAlphabetLetter = Annotated[
 ]
 
 type SetOfMarksLocation = NonNegativeInt | SingleAlphabetLetter
-"""Set of marks location to interact with; must be an int >= 0, or a single letter A-Z."""
+"""Set of marks location to interact with; must be an int >= 0, or one letter A-Z."""
 
 type InteractableLocation = (
     RelativeCoordinate | SetOfMarksLocation | PixelLocation | ScaledLocation

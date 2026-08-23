@@ -50,7 +50,7 @@ class PlayerClient(BaseRPCClient):
         experiment_instance: ExperimentInstance,
         provenance: Provenance,
     ) -> bool:
-        """Configure the player with the given protocol."""
+        """Configure the player with the protocol."""
         payload = {
             "protocol": player_protocol.model_dump(mode="json"),
             "experiment_instance": experiment_instance.model_dump(mode="json"),

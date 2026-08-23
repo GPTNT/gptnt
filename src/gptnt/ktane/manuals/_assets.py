@@ -4,9 +4,9 @@ We use a blobless Git clone because we do not want to download the whole KtaneCo
 to build a manual. Restoring only the selected HTML files is not enough, though. Those files still
 need their stylesheets, images and scripts, and those files can have dependencies of their own.
 
-This is deliberately a static scanner, not a browser. It handles the ordinary ways HTML, CSS,
-JavaScript and SVG files refer to other files. It does not attempt to run JavaScript or guess paths
-assembled at runtime.
+This is deliberately a static scanner. It handles the ordinary ways HTML, CSS, JavaScript and SVG
+files refer to other files. It does not attempt to run JavaScript or guess paths assembled at
+runtime.
 """
 
 import posixpath

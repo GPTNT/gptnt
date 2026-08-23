@@ -1,5 +1,3 @@
-"""`gptnt doctor` service-reachability checks: Redis, the EM port, and the OTLP collector."""
-
 from __future__ import annotations
 
 from urllib.parse import urlsplit
@@ -18,7 +16,7 @@ _REDIS_PROBE_ERRORS = (OSError, TimeoutError, anyio.EndOfStream, anyio.BrokenRes
 
 
 async def _redis_pings(host: str, port: int, *, net_timeout: float = _NET_TIMEOUT) -> bool:
-    """True iff a Redis answers its native PING health check (+PONG) at host:port.
+    """Return True when a Redis answers its native PING health check (+PONG) at host:port.
 
     A port that merely accepts the TCP connection (e.g. a container runtime's port-forward with
     nothing behind it) is not a running Redis.
@@ -35,7 +33,7 @@ async def _redis_pings(host: str, port: int, *, net_timeout: float = _NET_TIMEOU
 
 
 async def _http_responds(url: str, *, net_timeout: float = _NET_TIMEOUT) -> bool:
-    """True iff an HTTP server answers at `url` with any status (not a dead port-forward)."""
+    """Return True when an HTTP server answers at `url` with any status."""
     try:
         async with httpx.AsyncClient(timeout=net_timeout) as client:
             _ = await client.get(url)
@@ -49,7 +47,7 @@ async def check_redis(
     name: str = "Redis",
     hint: str = "Run a Redis here — e.g. `docker compose up -d`, or set REDIS_DSN to your own.",
 ) -> CheckResult:
-    """Is a Redis actually answering at the configured DSN (via PING, not a bare port check)?"""
+    """Is a Redis actually answering a PING at the configured DSN?"""
     parsed = urlsplit(str(RuntimeSettings().redis_dsn))
     host, port = parsed.hostname or "localhost", parsed.port or 6379
     if await _redis_pings(host, port):
@@ -94,7 +92,7 @@ async def check_observability(
 ) -> CheckResult:
     """Is an OTLP collector reachable?
 
-    Recommended, not required — a warning, never a failure.
+    The collector is optional, so a missing one warns and never fails.
     """
     host, port = _otel_host_port()
     name = f"otel-collector :{port}"

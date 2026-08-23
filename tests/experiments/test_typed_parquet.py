@@ -8,7 +8,7 @@ from uuid import uuid4
 from pydantic_ai import RunUsage
 
 from gptnt.experiments.db.typed_parquet import read_typed_parquet, write_typed_parquet
-from gptnt.experiments.models import ExperimentStep, ExperimentSummary
+from gptnt.experiments.records import ExperimentStep, ExperimentSummary
 from gptnt.ktane.state.bomb import BombOutcome
 from gptnt.players.actions import DoNothingAction
 

@@ -11,18 +11,9 @@ paths = Paths()
 logger = structlog.get_logger()
 
 
-class NoPromptForProtocolError(ValueError):
-    """Exception raised when no prompt is found for the given player protocol."""
-
-    def __init__(self, protocol: PlayerProtocol, *, prompt_category: str) -> None:
-        super().__init__(f"No {prompt_category} prompt found for protocol: {protocol}")
-        self.protocol = protocol
-        self.prompt_category = prompt_category
-
-
 @lru_cache
 def _load_scenario(protocol: PlayerProtocol) -> str:
-    """Load the scenario for the given protocol."""
+    """Load the scenario for the protocol."""
     if protocol.is_playing_alone:
         logger.debug("Loading scenario for solo")
         return PromptCache.get_text(paths.prompts.joinpath("scenario_solo.md"))
@@ -33,7 +24,7 @@ def _load_scenario(protocol: PlayerProtocol) -> str:
 
 @lru_cache
 def _load_role(protocol: PlayerProtocol) -> str:
-    """Load the role for the given protocol."""
+    """Load the role for the protocol."""
     if protocol.role == "expert" and not protocol.is_playing_alone:
         return PromptCache.get_text(paths.prompts.joinpath("roles_expert.md"))
     if protocol.role == "defuser" and not protocol.is_playing_alone:
@@ -46,7 +37,7 @@ def _load_role(protocol: PlayerProtocol) -> str:
         )
         return PromptCache.get_text(paths.prompts.joinpath(path))
 
-    raise NoPromptForProtocolError(protocol, prompt_category="role")
+    raise ValueError(f"No role prompt found for protocol: {protocol}")
 
 
 @lru_cache
@@ -59,7 +50,7 @@ def _load_reasoning(capabilities: PlayerCapabilities) -> str:
 
 @lru_cache
 def _load_mechanics(protocol: PlayerProtocol, capabilities: PlayerCapabilities) -> str:
-    """Load the mechanics for the given protocol."""
+    """Load the mechanics for the protocol."""
     if protocol.role == "expert":
         return PromptCache.get_text(paths.prompts.joinpath("mechanics_expert.md"))
 
@@ -87,12 +78,12 @@ def _load_mechanics(protocol: PlayerProtocol, capabilities: PlayerCapabilities) 
 
         return f"{mechanics}\n{non_bomb_elements}\n{location}"
 
-    raise NoPromptForProtocolError(protocol, prompt_category="mechanics")
+    raise ValueError(f"No mechanics prompt found for protocol: {protocol}")
 
 
 @lru_cache
 def _load_commands(protocol: PlayerProtocol, capabilities: PlayerCapabilities) -> str:
-    """Load the commands for the given protocol."""
+    """Load the commands for the protocol."""
     commands = PromptCache.get_text(paths.prompts.joinpath("commands.md"))
 
     # load do nothing command
@@ -130,7 +121,7 @@ def _load_commands(protocol: PlayerProtocol, capabilities: PlayerCapabilities) -
 
 @lru_cache
 def _load_action_requirements(protocol: PlayerProtocol, capabilities: PlayerCapabilities) -> str:
-    """Load the action requirements for the given protocol."""
+    """Load the action requirements for the protocol."""
     action = PromptCache.get_text(paths.prompts.joinpath("requirements_action.md"))
     if protocol.communication_style == "async":
         action_realtime = PromptCache.get_text(
@@ -151,7 +142,7 @@ def _load_action_requirements(protocol: PlayerProtocol, capabilities: PlayerCapa
 
 @lru_cache
 def _load_observation_requirements(capabilities: PlayerCapabilities) -> str:
-    """Load the observation requirements for the given protocol."""
+    """Load the observation requirements for the protocol."""
     observation = PromptCache.get_text(paths.prompts.joinpath("requirements_observation.md"))
     # optionally load set-of-marks observation details
     if capabilities.interaction_location_method == "set-of-marks":
@@ -164,7 +155,7 @@ def _load_observation_requirements(capabilities: PlayerCapabilities) -> str:
 
 @lru_cache
 def load_formatting_requirements(capabilities: PlayerCapabilities) -> str:
-    """Load the formatting requirements for the given protocol."""
+    """Load the formatting requirements for the protocol."""
     if capabilities.structured_output_mode is not None:
         return PromptCache.get_text(
             paths.prompts.joinpath("requirements_formatting_structured-output.md")
@@ -174,7 +165,7 @@ def load_formatting_requirements(capabilities: PlayerCapabilities) -> str:
 
 @lru_cache
 def _load_requirements(protocol: PlayerProtocol, capabilities: PlayerCapabilities) -> str:
-    """Load the requirements for the given protocol."""
+    """Load the requirements for the protocol."""
     requirements = PromptCache.get_text(paths.prompts.joinpath("requirements.md"))
 
     # if defuser, load action + observation
@@ -216,7 +207,7 @@ def _load_requirements(protocol: PlayerProtocol, capabilities: PlayerCapabilitie
 
 @lru_cache
 def load_instructions(protocol: PlayerProtocol, capabilities: PlayerCapabilities) -> str:
-    """Load the instructions for the given player."""
+    """Load the instructions for the player."""
     scenario = _load_scenario(protocol)
     role = _load_role(protocol)
     reasoning = _load_reasoning(capabilities)

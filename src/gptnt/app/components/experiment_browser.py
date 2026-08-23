@@ -3,7 +3,7 @@ import streamlit as st
 from gptnt.app.app_state import get_state
 from gptnt.app.components.experiment_card import render_experiment_card
 from gptnt.app.components.pagination import get_pagination_state
-from gptnt.experiments.models import ExperimentSummary
+from gptnt.experiments.records import ExperimentSummary
 
 BROWSER_PAGE_SIZE = 50
 BROWSER_PAGINATION_STATE_KEY = "exp_selector_page"

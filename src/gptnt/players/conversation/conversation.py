@@ -22,7 +22,7 @@ class Conversation:
 
     `_dropped_non_pinned` counts the oldest non-pinned entries omitted from every future request.
     That count can increase but cannot decrease. Image eviction removes old image bytes from
-    storage; neither truncation nor eviction removes stored text.
+    storage. Neither truncation nor eviction removes stored text.
     """
 
     entries: list[Entry] = field(default_factory=list)

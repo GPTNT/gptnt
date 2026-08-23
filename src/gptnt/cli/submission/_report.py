@@ -1,5 +1,3 @@
-"""Render `gptnt submission validate` results with submission's wording over `checks.formats`."""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

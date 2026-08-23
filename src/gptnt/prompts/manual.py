@@ -13,8 +13,10 @@ logger = structlog.get_logger()
 def _resize_manual_image(image: bytes, *, page_number: int, resizer: ImageResizer) -> bytes:
     """Resize one manual PNG in memory while preserving its aspect ratio."""
     logger.info(
-        f"Resizing manual page {page_number} to fit target "
-        f"({resizer.target_width}x{resizer.target_height})"
+        "Resizing manual page",
+        page_number=page_number,
+        target_width=resizer.target_width,
+        target_height=resizer.target_height,
     )
     pil_image = load_observation_from_bytes(image)
     resized_image = resizer.resize_image(pil_image)

@@ -4,7 +4,7 @@ defaults:
   - /manual@suite.manual_profile: vanilla
 
 suite:
-  _target_: gptnt.experiments.suite.core.Suite
+  _target_: gptnt.experiments.suite.definition.Suite
   name: single-parametric-sync
   revision: 1
   modality: [vision, language]
@@ -17,7 +17,7 @@ suite:
     include_manual: false
   expert_protocol: null
   matchup:
-    _target_: gptnt.experiments.suite.core.SuiteMatchup
+    _target_: gptnt.experiments.suite.definition.SuiteMatchup
     pairing_type: no_expert
   manual_profile:
     _target_: gptnt.ktane.manuals.profile.ManualProfile

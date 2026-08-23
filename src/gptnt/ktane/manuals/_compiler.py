@@ -1,5 +1,3 @@
-"""Compile ordered resolved documents into cached manual artifacts."""
-
 from __future__ import annotations
 
 import contextlib
@@ -27,10 +25,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-class ManualCompileError(RuntimeError):
-    """Selected source documents cannot produce a validated manual."""
-
-
 def input_identity(document: ResolvedDocument) -> dict[str, Any]:
     """Describe one resolved input with every value that can affect rendered output."""
     with document.source_path.open("rb") as source_file:
@@ -44,7 +38,7 @@ def input_identity(document: ResolvedDocument) -> dict[str, Any]:
     # Modules depend on both their HTML and catalog metadata used by the upstream merger.
     if isinstance(document, ResolvedKtaneContentModule):
         if document.provenance.commit != KTANE_CONTENT_COMMIT:
-            raise ManualCompileError(
+            raise RuntimeError(
                 "KtaneContent documents must use the compiler's pinned Manual Merger commit "
                 f"{KTANE_CONTENT_COMMIT}; found {document.provenance.commit}"
             )
@@ -61,7 +55,7 @@ def input_identity(document: ResolvedDocument) -> dict[str, Any]:
     # Appendices have HTML provenance but no module metadata document.
     if isinstance(document, ResolvedKtaneContentAppendix):
         if document.provenance.commit != KTANE_CONTENT_COMMIT:
-            raise ManualCompileError(
+            raise RuntimeError(
                 "KtaneContent documents must use the compiler's pinned Manual Merger commit "
                 f"{KTANE_CONTENT_COMMIT}; found {document.provenance.commit}"
             )
@@ -110,11 +104,11 @@ def _insert_official_range(
     manual: pymupdf.Document, official: pymupdf.Document, document: ResolvedOfficialDocument
 ) -> int:
     """Append one validated one-based official PDF range and return its page count."""
-    # Configuration is one-based for users; PyMuPDF's insertion indices are zero-based.
+    # Configuration is one-based for users. PyMuPDF's insertion indices are zero-based.
     first_page = document.page_range.first - 1
     last_page = document.page_range.last - 1
     if last_page >= official.page_count:
-        raise ManualCompileError(
+        raise RuntimeError(
             f"official page range {document.page_range.first}-"
             f"{document.page_range.last} exceeds {official.page_count} pages in "
             f"{document.source_path}"
@@ -139,7 +133,7 @@ def _combine_documents(  # noqa: WPS231
         _ = shutil.copyfile(html_pdf, output_pdf)
         return
 
-    # ExitStack owns every dynamically opened PDF and closes all of them on failure or success.
+    # ExitStack holds every PDF opened at runtime and closes all of them on failure or success.
     with contextlib.ExitStack() as resources:
         manual = resources.enter_context(pymupdf.open())
         html_source = None
@@ -148,7 +142,7 @@ def _combine_documents(  # noqa: WPS231
         # Reuse an opened official PDF when the profile selects several ranges from the same file.
         official_sources: dict[Path, pymupdf.Document] = {}
 
-        # HTML documents occupy consecutive ranges in the single browser-rendered source PDF.
+        # HTML documents occupy consecutive ranges in the one browser-rendered source PDF.
         html_page = 0
         html_document = 0
         for document in documents:
@@ -163,7 +157,7 @@ def _combine_documents(  # noqa: WPS231
 
             # Every non-official input must correspond to the next recorded HTML page range.
             if html_source is None:
-                raise ManualCompileError("HTML renderer did not produce a source PDF")
+                raise RuntimeError("HTML renderer did not produce a source PDF")
             page_count = html_page_counts[html_document]
             manual.insert_pdf(
                 html_source, from_page=html_page, to_page=html_page + page_count - 1, final=0
@@ -172,7 +166,7 @@ def _combine_documents(  # noqa: WPS231
             html_document += 1
 
         if manual.page_count == 0:
-            raise ManualCompileError("the selected documents produced an empty manual")
+            raise RuntimeError("the selected documents produced an empty manual")
 
         # Strip volatile source metadata and suppress PyMuPDF's random document identifier.
         manual.set_metadata({})
@@ -189,7 +183,7 @@ def _write_extracted_page(page: pymupdf.Page, *, page_number: int, pages_dir: Pa
     text_blocks = (str(block[4]).strip() for block in blocks)
     text = "\n".join(block for block in text_blocks if block)
     if not text:
-        raise ManualCompileError(f"manual page {page_number} has no usable text layer")
+        raise RuntimeError(f"manual page {page_number} has no usable text layer")
     _ = (pages_dir / f"{page_number:04d}.txt").write_text(f"{text}\n", encoding="utf-8")
 
 
@@ -198,7 +192,7 @@ def _extract_pages(manual_pdf: Path, *, pages_dir: Path) -> int:
     pages_dir.mkdir()
     with pymupdf.open(manual_pdf) as manual:
         if manual.page_count == 0:
-            raise ManualCompileError("the selected documents produced an empty manual")
+            raise RuntimeError("the selected documents produced an empty manual")
         page_count = manual.page_count
         for page_number in range(1, page_count + 1):
             _write_extracted_page(
@@ -211,7 +205,7 @@ def build_artifact(
     documents: Sequence[ResolvedDocument], *, cache_dir: Path, artifact_dir: Path
 ) -> int:
     """Build one artifact directory and return its page count."""
-    # Chromium renders all HTML inputs once; official PDFs bypass the browser entirely.
+    # Chromium renders all HTML inputs once. Official PDFs bypass the browser entirely.
     html_documents = [
         document for document in documents if not isinstance(document, ResolvedOfficialDocument)
     ]
@@ -227,7 +221,7 @@ def build_artifact(
                 output_pdf=html_pdf,
             )
         except _browser.ManualBrowserError as error:
-            raise ManualCompileError(str(error)) from error
+            raise RuntimeError(str(error)) from error
 
     # Reassemble HTML ranges and official PDF ranges according to the original resolver order.
     manual_pdf = artifact_dir / "handbook.pdf"

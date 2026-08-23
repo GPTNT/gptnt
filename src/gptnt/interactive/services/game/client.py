@@ -44,7 +44,7 @@ class GameClient(BaseRPCClient):
 
     @logfire.instrument("Configure game")
     async def configure_game(self, *, spec: KtaneMissionSpec, session_id: UUID4) -> None:
-        """Configure the game with the given spec."""
+        """Configure the game with the spec."""
         configure_message = KtaneMissionConfig(**spec.model_dump(), session_id=session_id)
         _ = await self._send_command("configure_game", configure_message.model_dump(mode="json"))
         logger.debug("Configured game", spec=spec, session_id=session_id)

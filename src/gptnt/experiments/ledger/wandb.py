@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, override
 
-from gptnt.experiments.ledger.base import CompletionLedger
+from gptnt.experiments.ledger.completion import CompletionLedger
 from gptnt.experiments.wandb_runs import (
     cleanup_wandb_runs,
     collate_runs_per_experiment_per_game,
@@ -18,12 +18,12 @@ if TYPE_CHECKING:
     from pydantic import UUID4
     from wandb.apis.public import Run
 
-    from gptnt.experiments.ledger.base import ExperimentStatus
+    from gptnt.experiments.ledger.completion import ExperimentStatus
     from gptnt.experiments.wandb_runs import CollatedRuns
 
 
 def wandb_path_or_none() -> str | None:
-    """The `entity/project` from the environment, or None when either var is unset.
+    """Return the `entity/project` from the environment, or None when either var is unset.
 
     `wandb` itself reads `WANDB_ENTITY`/`WANDB_PROJECT` from the environment, so we read them the
     same way.
@@ -36,7 +36,7 @@ def wandb_path_or_none() -> str | None:
 
 
 def resolve_wandb_path() -> str:
-    """The `entity/project` path, or raise with a fix hint when the environment is incomplete."""
+    """Return the `entity/project` path, or raise a fix hint when the environment is incomplete."""
     path = wandb_path_or_none()
     if path is None:
         raise RuntimeError(
@@ -61,7 +61,7 @@ class WandbLedger(CompletionLedger):
 
     @override
     def completed(self, attempt_names: Iterable[str]) -> set[str]:
-        """The attempt names already validly on W&B, cleaning up stale/invalid runs first.
+        """Return the attempt names already validly on W&B, cleaning up stale/invalid runs first.
 
         Mirrors the historical resume behaviour: gather → mark invalid runs old → re-gather, so a
         run left in a bad state does not block a re-run.
@@ -94,7 +94,7 @@ class WandbLedger(CompletionLedger):
 
 
 def _experiment_status(sessions: dict[UUID4, list[Run]]) -> ExperimentStatus:
-    """Roll the per-session statuses for one experiment into a single status."""
+    """Roll the per-session statuses for one experiment into one status."""
     if not sessions:
         return "not_attempted"
     session_statuses = {_session_status(runs) for runs in sessions.values()}
@@ -106,7 +106,7 @@ def _experiment_status(sessions: dict[UUID4, list[Run]]) -> ExperimentStatus:
 
 
 def _session_status(session_runs: list[Run]) -> ExperimentStatus:
-    """Aggregate status for a single session's runs."""
+    """Aggregate status for one session's runs."""
     if any(tag == "old" for run in session_runs for tag in (run.tags or [])):
         return "failed"
     states = {run.state for run in session_runs}

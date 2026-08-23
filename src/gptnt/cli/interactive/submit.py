@@ -6,10 +6,10 @@ from cyclopts import Parameter
 from cyclopts.types import ExistingDirectory
 from structlog import get_logger
 
-from gptnt.cli.experiments.models import SourceOption
+from gptnt.cli.experiments.source import SourceOption
 from gptnt.common.paths import Paths
 from gptnt.common.runtime_settings import RuntimeSettings
-from gptnt.experiments.ledger.base import Source
+from gptnt.experiments.ledger.completion import Source
 from gptnt.experiments.ledger.resolve import filter_experiments
 from gptnt.experiments.spec import ExperimentSpec
 
@@ -19,7 +19,7 @@ runtime_settings = RuntimeSettings()
 
 
 async def send_experiments(experiments: list[ExperimentSpec]) -> None:
-    """Send the experiments to the experiment specs queue, confirming the POST landed."""
+    """Send the experiments to the experiment specs queue, confirming the POST succeeded."""
     async with httpx.AsyncClient() as client:
         response = await client.post(
             f"{runtime_settings.em_base_url}/add-specs",
@@ -65,7 +65,11 @@ async def send_experiment_specs_to_em(
     if not loaded_experiments:
         logger.warning("No experiments found in the directory.")
         return
-    logger.info(f"Loaded {len(loaded_experiments)} experiments from '{experiment_specs_dir}'")
+    logger.info(
+        "Loaded experiments",
+        experiment_count=len(loaded_experiments),
+        experiment_specs_dir=experiment_specs_dir,
+    )
 
     if no_filter:
         logger.warning("Skipping the completion check; throwing every spec.")
@@ -75,7 +79,8 @@ async def send_experiment_specs_to_em(
             loaded_experiments, source=source, output_dir=output_dir
         )
         logger.info(
-            f"{len(loaded_experiments)} experiments to throw",
+            "Experiments to throw",
+            experiment_count=len(loaded_experiments),
             filtered_out=before - len(loaded_experiments),
             source=source.value,
         )

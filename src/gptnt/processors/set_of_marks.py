@@ -17,6 +17,13 @@ from skimage.measure import regionprops
 from gptnt.ktane.actions import RelativeCoordinate
 from gptnt.ktane.state.modules import KtaneModuleId
 from gptnt.players.locations import SetOfMarksLocation
+from gptnt.processors.labels.annotation import (  # noqa: WPS235
+    Coordinates,
+    DrawData,
+    NumberBoxDimensions,
+    RegionProperties,
+    RGBArray,
+)
 from gptnt.processors.labels.color import get_region_color
 from gptnt.processors.labels.drawing import (
     AnnotationBackgroundParams,
@@ -35,13 +42,6 @@ from gptnt.processors.labels.ordering import (
 )
 from gptnt.processors.labels.password import password
 from gptnt.processors.labels.simon import simon
-from gptnt.processors.labels.types import (  # noqa: WPS235
-    Coordinates,
-    DrawData,
-    NumberBoxDimensions,
-    RegionProperties,
-    RGBArray,
-)
 from gptnt.processors.labels.venn import venn
 from gptnt.processors.labels.whos_on_first import whos_on_first
 from gptnt.processors.labels.wire_sequence import wire_sequence
@@ -101,7 +101,7 @@ def convert_colorful_segm_to_labeled(image_as_array: RGBArray) -> NDArray[np.uin
         p = alpha * [R, G, B],   0 < alpha ≤ 1
 
     This can result in hundreds of slightly different pixel values for the same colour/segment. So
-    we need to collapse them down into a single colour so we can properly label them.
+    we need to collapse them down into one colour so we can properly label them.
 
     Naively, we could convert to HSV and force S=1 and V=1 for every non-black pixel and then
     convert it back. This works because we just then have the hue values to differentiate it, but
@@ -240,7 +240,7 @@ def draw_region_masks(  # noqa: WPS210, WPS211
 
 @lru_cache(maxsize=1)
 def compute_sample_text_dimensions(*, text: str, params: AnnotationTextParams) -> tuple[int, int]:
-    """Compute the dimensions of a sample text using the given parameters."""
+    """Compute the dimensions of a sample text using the parameters."""
     (text_width, text_height), _ = cv2.getTextSize(
         text=text, fontFace=params.font, fontScale=params.font_scale, thickness=params.thickness
     )
@@ -302,7 +302,7 @@ class SetOfMarksHandler:
         colorful_image: RGBArray,
         zoomed_in_component: KtaneModuleId | None = None,
     ) -> RGBArray:
-        """Handle the labelling and bounding box drawing on the screenshot based on segmentation.
+        """Draw the labels and bounding boxes onto the screenshot, based on the segmentation.
 
         Output: Annotated screenshot with bounding boxes and labels drawn.
         """

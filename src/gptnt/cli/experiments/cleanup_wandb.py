@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 console = Console()
 
 
-class _NothingToDo(Exception):  # noqa: N818 — internal control-flow signal, not an error
+class _NothingToDo(Exception):  # noqa: N818  (internal control-flow signal, not an error)
     """Raised by a wandb helper to stop the command on a clean 'nothing to do' path."""
 
 
@@ -53,7 +53,7 @@ def reconcile_wandb_runs(
     """Reconcile local outputs against W&B, tagging invalid runs and deleting orphaned files.
 
     Tags invalid/duplicate/orphaned **remote** W&B runs as `old` and deletes local files lacking a
-    valid run. This **mutates remote W&B state**. Previews by default; pass `--execute` to apply.
+    valid run. This **mutates remote W&B state**. Previews by default. Pass `--execute` to apply.
     """
     # Imported here, not at module top, so the local commands work without the wandb extra.
     from gptnt.experiments.ledger.wandb import resolve_wandb_path  # noqa: PLC0415
@@ -88,7 +88,10 @@ def _run_wandb_cleanup(  # noqa: WPS210
     mark_missing_output_as_old: bool,
     progress: Progress,
 ) -> None:
-    """Run the wandb cleanup steps; raises `_NothingToDo` on a clean early exit."""
+    """Run the wandb cleanup steps.
+
+    Raises `_NothingToDo` on a clean early exit.
+    """
     # Imported here, not at module top, so the local commands work without the wandb extra.
     from gptnt.experiments.wandb_runs import (  # noqa: PLC0415
         cleanup_wandb_runs,

@@ -4,8 +4,7 @@ from pathlib import Path
 
 import pymupdf
 
-from gptnt.ktane.manuals.artifacts import ManualArtifact
-from gptnt.ktane.manuals.compiler import compile_manual
+from gptnt.ktane.manuals.artifacts import ManualArtifact, compile_manual
 from gptnt.ktane.manuals.resolution import OfficialManualProvenance, ResolvedOfficialDocument
 from gptnt.ktane.manuals.sources import OfficialPageRange
 

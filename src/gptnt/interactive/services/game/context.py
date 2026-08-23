@@ -26,7 +26,7 @@ class GameProcessDiedError(Exception):
 
 @dataclass(kw_only=True)
 class GameServiceContext(HeartbeatBroadcaster):
-    """Run a single instance of a game."""
+    """Run one instance of a game."""
 
     service_name: str = "game"
     process_manager: GameProcessManager = field(default_factory=GameProcessManager, init=False)
@@ -77,7 +77,7 @@ class GameServiceContext(HeartbeatBroadcaster):
                 self.expected_death = Event()
 
     async def _run_game_session(self) -> None:  # noqa: WPS213
-        """Run a single game session."""
+        """Run one game session."""
         async with anyio.create_task_group() as tg:
             # Start the game process
             port = await self.process_manager.start()

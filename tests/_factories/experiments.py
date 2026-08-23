@@ -8,7 +8,7 @@ from uuid import uuid4
 from whenever import Instant
 
 from gptnt.experiments.instance import ExperimentInstance
-from gptnt.experiments.models import ExperimentSummary
+from gptnt.experiments.records import ExperimentSummary
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.ktane.manuals.profile import KtaneContentDocument, ManualProfile
 from gptnt.ktane.mission_spec import KtaneMissionSpec

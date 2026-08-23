@@ -17,7 +17,7 @@ def _parse_fields(raw: str) -> list[str]:
 
 
 def render_field_input() -> tuple[list[str], bool]:
-    """Render the field path input widget with real-time per-field validation.
+    """Render the input widget for field paths, with real-time per-field validation.
 
     Returns:
         A tuple of `(fields, all_valid)` where:

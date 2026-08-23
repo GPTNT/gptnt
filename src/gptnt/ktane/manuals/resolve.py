@@ -1,5 +1,3 @@
-"""Resolve manual profiles into ordered source inputs without rendering their contents."""
-
 from __future__ import annotations
 
 import hashlib
@@ -35,10 +33,6 @@ if TYPE_CHECKING:
 _DEFAULT_RULE_SEED = 1
 
 
-class ManualResolutionError(ValueError):
-    """An expected profile or source mismatch prevents resolution."""
-
-
 def _entry_name(document: Document, *, index: int, frontmatter: bool) -> str:
     """Build the profile location and source identity used in resolution errors."""
     collection = "frontmatter" if frontmatter else "documents"
@@ -67,14 +61,14 @@ def _module_metadata(
     metadata_document = f"{catalog.module_names[document.id]}.json"
     metadata_path = repository_dir / "JSON" / metadata_document
     if not metadata_path.is_file():
-        raise ManualResolutionError(
+        raise ValueError(
             f"{entry_name}: KtaneContent metadata {metadata_document!r} "
             "is missing from the pinned source tree"
         )
 
     metadata = KtaneContentModuleMetadata.model_validate_json(metadata_path.read_bytes())
     if metadata.module_id != document.id:
-        raise ManualResolutionError(
+        raise ValueError(
             f"{entry_name}: KtaneContent metadata identifies module {metadata.module_id!r}, "
             f"not {document.id!r}"
         )
@@ -98,9 +92,7 @@ def _resolve_ktane_content(
     # its parser exception is left intact.
     catalog_path = cache_dir / "sources" / "ktanecontent" / "catalog" / "raw.json"
     if not catalog_path.is_file():
-        raise ManualResolutionError(
-            f"{entry_name}: cached KtaneContent catalog is missing at {catalog_path}"
-        )
+        raise ValueError(f"{entry_name}: cached KtaneContent catalog is missing at {catalog_path}")
     catalog = _ktane_content.KtaneContentCatalog.from_path(catalog_path)
 
     # Resolve the requested HTML name. Catalog lookup and language-policy exceptions retain their
@@ -111,7 +103,7 @@ def _resolve_ktane_content(
     repository_dir = cache_dir / "sources" / "ktanecontent" / sources.ktane_content.commit
     source_path = repository_dir / "HTML" / filename
     if not source_path.is_file():
-        raise ManualResolutionError(
+        raise ValueError(
             f"{entry_name}: KtaneContent document {filename!r} is missing from the pinned source tree"
         )
 
@@ -157,22 +149,20 @@ def _resolve_official(
     # Select the language-specific PDF and the pages assigned to this document ID.
     source = sources.official_manual.get(document.language)
     if source is None:
-        raise ManualResolutionError(
+        raise ValueError(
             f"{entry_name}: official manual source is not configured for language {document.language!r}"
         )
 
     page_range = source.pages.get(document.id)
     if page_range is None:
-        raise ManualResolutionError(
+        raise ValueError(
             f"{entry_name}: official manual {document.language!r} has no page map for {document.id!r}"
         )
 
-    # The downloader and resolver share this path; resolution never fetches the PDF itself.
+    # The downloader and resolver share this path. Resolution never fetches the PDF itself.
     source_path = source.cache_path(document.language, cache_dir=cache_dir)
     if not source_path.is_file():
-        raise ManualResolutionError(
-            f"{entry_name}: cached official manual is missing at {source_path}"
-        )
+        raise ValueError(f"{entry_name}: cached official manual is missing at {source_path}")
 
     return ResolvedOfficialDocument(
         document_id=document.id,
@@ -202,13 +192,13 @@ def _direct_local_dependencies(source: Path, *, root_dir: Path, entry_name: str)
             if dependency is not None:
                 dependencies.add(dependency)
     except ValueError as error:
-        raise ManualResolutionError(f"{entry_name}: {error}") from error
+        raise ValueError(f"{entry_name}: {error}") from error
 
     # Missing resolved files are a separate profile-policy failure from references that leave the
     # configured source root.
     for dependency in dependencies:
         if not dependency.is_file():
-            raise ManualResolutionError(
+            raise ValueError(
                 f"{entry_name}: local dependency {dependency} referenced by {source} is missing"
             )
 
@@ -245,7 +235,7 @@ def _resolve_local(
     source_path = document.path if document.path.is_absolute() else root_dir / document.path
     source_path = source_path.resolve()
     if not source_path.is_file():
-        raise ManualResolutionError(f"{entry_name}: local HTML source is missing at {source_path}")
+        raise ValueError(f"{entry_name}: local HTML source is missing at {source_path}")
 
     # Sort by absolute path so filesystem traversal order cannot alter the provenance tuple.
     dependencies = sorted(
@@ -289,7 +279,7 @@ def _resolve_profile_entry(
     # Validate language before accessing source configuration or cache paths so the error names the
     # profile entry that introduced the mismatch.
     if document.language != language:
-        raise ManualResolutionError(
+        raise ValueError(
             f"{entry_name}: document language {document.language!r} does not match "
             f"requested language {language!r}"
         )
@@ -316,8 +306,8 @@ def resolve_manual_profile(
 ) -> tuple[ResolvedDocument, ...]:
     """Return frontmatter followed by profile documents as ordered compilation inputs.
 
-    Every entry is checked against the requested language, default rule seed, configured source
-    metadata, and materialized local inputs before the tuple is returned. `ManualResolutionError`
+    Entries are checked against the requested language, default rule seed, configured source
+    metadata, and materialized local inputs before the tuple is returned. `ValueError`
     conditions name the responsible frontmatter or profile index. Catalog lookups and malformed or
     unreadable source files retain their native exceptions. The function reads catalogs, module
     metadata, and local dependencies and checks the selected HTML and PDF paths. It does not render
@@ -327,7 +317,7 @@ def resolve_manual_profile(
     configured: list[tuple[Document, int, bool]] = []
     if profile.include_frontmatter:
         if not sources.frontmatter:
-            raise ManualResolutionError(
+            raise ValueError(
                 "frontmatter: include_frontmatter is enabled but no frontmatter source is configured"
             )
         configured.extend(
@@ -342,7 +332,7 @@ def resolve_manual_profile(
         entry_name = _entry_name(
             first_document, index=first_index, frontmatter=first_is_frontmatter
         )
-        raise ManualResolutionError(
+        raise ValueError(
             f"{entry_name}: rule seed {rule_seed} is unsupported; "
             f"only default rule seed {_DEFAULT_RULE_SEED} can be resolved"
         )

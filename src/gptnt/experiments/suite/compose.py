@@ -7,7 +7,7 @@ import hydra
 from gptnt.common.hydra import load_config
 
 if TYPE_CHECKING:
-    from gptnt.experiments.suite.core import Suite
+    from gptnt.experiments.suite.definition import Suite
 
 CONFIG_NAME = "suite_generator"
 

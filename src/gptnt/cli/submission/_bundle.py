@@ -1,4 +1,4 @@
-"""What a submission bundle is: its naming, its two shapes, and how each saves and loads.
+"""A submission bundle's naming, its two shapes, and how each saves and loads.
 
 A bundle is one flat directory per (model, target):
 
@@ -10,8 +10,8 @@ A bundle is one flat directory per (model, target):
 
 `InteractiveBundle` and `StaticsBundle` pair a manifest with its payload: built via a `from_*`
 constructor, written with `save()` (which preserves a hand-filled `submitter` on rebuild), and
-read back with `load_submission_bundle()`. The manifest is self-describing, so `BundleName` — the
-single source of the `submission_id` and the directory — is derived from it alone.
+read back with `load_submission_bundle()`. The manifest is self-describing, so `BundleName`, which
+derives both the `submission_id` and the directory, is built from it alone.
 """
 
 from __future__ import annotations
@@ -52,7 +52,7 @@ def slugify(name: str) -> str:
 
 @dataclass(frozen=True)
 class BundleName:
-    """The single source of a bundle's naming: who ran what, fingerprinted and dated."""
+    """Where a bundle's name comes from: who ran what, fingerprinted and dated."""
 
     player_name: str
     """Recorded `player_name` of the model being submitted (the defuser)."""
@@ -83,13 +83,13 @@ class BundleName:
 
     @property
     def submission_id(self) -> str:
-        """The manifest's unique id: date, model, target, and short capability fingerprint."""
+        """The manifest's unique id, from date, model, target, and short capability fingerprint."""
         date_label = self.run_date.format_iso()[:10]
         return f"{date_label}_{slugify(self.player_name)}_{self._short_fingerprint}_{self.target}"
 
     @property
     def relative_dir(self) -> Path:
-        """Where the bundle lives under the output dir: one flat folder per bundle.
+        """Where the bundle is written under the output dir: one flat folder per bundle.
 
         `YYYYMMDD_<display_name>_<capfp8>_<suite>_<ver>`.
         """
@@ -114,7 +114,10 @@ class BundleName:
 
 @dataclass(kw_only=True, frozen=True)
 class SubmissionBundle[ManifestT: InteractiveSubmission | StaticsSubmission]:
-    """A manifest paired with its payload; subclasses declare the payload and how to write it."""
+    """A manifest paired with its payload.
+
+    Subclasses declare the payload and how to write it.
+    """
 
     manifest: ManifestT
 
@@ -204,7 +207,7 @@ class InteractiveBundle(SubmissionBundle[InteractiveSubmission]):
 
 @dataclass(kw_only=True, frozen=True)
 class StaticsBundle(SubmissionBundle[StaticsSubmission]):
-    """A statics submission: the manifest plus its verbatim `metrics.json` text."""
+    """A statics submission, the manifest plus its verbatim `metrics.json` text."""
 
     metrics_text: str
 
@@ -220,7 +223,7 @@ class StaticsBundle(SubmissionBundle[StaticsSubmission]):
     ) -> Self:
         """Bundle one statics run from its outputs dir (`submitter` stays blank for a human).
 
-        The task is read off the stamped `run_meta.json`, not the directory name — the run's own
+        The task is read off the stamped `run_meta.json`, not the directory name. The run's own
         metadata is the source of truth for what was measured. Pass `metadata` to reuse a
         `run_meta.json` already parsed by the caller (the build path parses it once, to filter).
         """
@@ -278,7 +281,7 @@ def load_submission_manifest(bundle_dir: Path) -> InteractiveSubmission | Static
 
 
 def _collect_distinct_experts(experiments: list[SubmissionExperiment]) -> list[PlayerCapabilities]:
-    """Every distinct expert (by capability fingerprint) paired with the defuser, name-sorted."""
+    """Return every distinct expert paired with the defuser, sorted by name."""
     experts: dict[str, PlayerCapabilities] = {}
     for experiment in experiments:
         if experiment.expert_capabilities is not None:
@@ -293,9 +296,9 @@ def _write_manifest(bundle_dir: Path, manifest: InteractiveSubmission | StaticsS
     # Load the existing manifest if it exists
     existing = yaml.safe_load(manifest_path.read_text()) if manifest_path.exists() else None
 
-    # Grab the submitter block from the existing manifest if it exists and merge it with the new
-    # manifest we want to write. This is so that we don't overwrite the submitter block and make
-    # things more annoying. A non-mapping existing file (a stray list/scalar) has no block to keep.
+    # Grab the submitter block from the existing manifest if it exists and merge it into the new
+    # manifest, so we don't overwrite that block and make things more annoying. A non-mapping
+    # existing file (a stray list/scalar) has no block to keep.
     if isinstance(existing, dict) and (submitter := existing.get("submitter")) is not None:
         manifest = manifest.model_copy(update={"submitter": Submitter.model_validate(submitter)})
 

@@ -13,7 +13,7 @@ SUBMISSION_REPO_HTTPS = f"https://github.com/{SUBMISSION_REPO_SLUG}"
 
 
 def remove_empty_experiment_recorder_outputs(root_path: Path) -> None:
-    """Remove empty experiment recorder output directories."""
+    """Remove the empty output directories left by the experiment recorder."""
     for path in root_path.glob("*"):
         if path.exists() and path.is_dir() and not any(path.iterdir()):
             path.rmdir()
@@ -80,7 +80,7 @@ class Paths(BaseSettings):
         if local.is_dir():
             return local
         packaged_config_location = Path(str(files("gptnt") / "_configs"))
-        logger.debug(f"Using pre-packaged configs directory from {packaged_config_location!r}")
+        logger.debug("Using pre-packaged configs directory", location=packaged_config_location)
         return packaged_config_location
 
     @property
@@ -121,7 +121,7 @@ class Paths(BaseSettings):
     def span_timings_dir(self) -> Path:
         """Directory for per-process span-timing JSONL files (benchmark overhead capture).
 
-        Sits alongside the experiment JSON records for the same run so the two can be joined on
+        Written beside the experiment JSON records for the same run so the two can be joined on
         `session_id` at analysis time.
         """
         return self.experiment_outputs.joinpath("span_timings")

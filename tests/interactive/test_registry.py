@@ -6,7 +6,7 @@ from typing import Any
 from unittest.mock import MagicMock
 from uuid import uuid4
 
-from gptnt.interactive.services.heartbeat.base import PlayerState, ReadyState
+from gptnt.interactive.services.heartbeat.events import PlayerState, ReadyState
 from gptnt.interactive.services.heartbeat.game import GameHeartbeat
 from gptnt.interactive.services.heartbeat.player import PlayerHeartbeat
 from gptnt.interactive.services.registry.manifest import ServiceManifest, ServiceState

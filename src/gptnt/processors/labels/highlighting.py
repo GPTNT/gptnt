@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.typing import NDArray
 
-from gptnt.processors.labels.types import RGBArray
+from gptnt.processors.labels.annotation import RGBArray
 
 
 def highlight_module_with_square(
@@ -12,7 +12,7 @@ def highlight_module_with_square(
     padding: int = 20,
     dim_factor: float = 0.5,
 ) -> RGBArray:
-    """Highlights a module with a square that encompasses all regions."""
+    """Highlight a module with a square covering the bounding box of its regions."""
     height, width = image.shape[:2]
     min_width, min_height = min_square_size
 

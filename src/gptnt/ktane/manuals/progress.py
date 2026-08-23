@@ -1,5 +1,3 @@
-"""Progress events shared by manual asset downloaders."""
-
 from collections.abc import Callable
 from dataclasses import dataclass
 

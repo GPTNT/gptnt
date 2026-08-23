@@ -112,16 +112,16 @@ async def run_pipeline(
         )
         return
 
-    # 3. Roster cross-check (the structural fix; enforced even under --force): every player the
+    # 3. Roster cross-check (the structural fix; enforced even under `--force`): every player the
     #    specs reference must be in the spawned roster, else the run would silently stall.
     _assert_roster_covers_specs(specs_to_run, run_plan.config_to_player)
 
     # 4. Prepare only the manuals needed by remaining specs. A failure here stops the run before
-    #    any process is spawned, including when --force allowed a failed doctor check.
+    #    any process is spawned, including when `--force` allowed a failed doctor check.
     manual_artifacts = await _prepare_run_manuals(specs_to_run)
 
     # 5. Build the spawn environment from the manifest, then spawn → submit → monitor. W&B is not
-    #    configured here — the spawned processes inherit the ambient WANDB_* env untouched.
+    #    configured here: the spawned processes inherit the ambient WANDB_* env untouched.
     env_base = {"PYTHONUNBUFFERED": "1"}
     env_base.update(_observability_env(manifest.observability))
 
@@ -260,7 +260,7 @@ async def _spawn_submit_monitor(
     *,
     interactive: bool = False,
 ) -> None:
-    """The orchestration seam: spawn EM/rooms/players, submit in-process, then monitor.
+    """Return the orchestration seam: spawn EM/rooms/players, submit in-process, then monitor.
 
     Interactive mode tees each process's logs to the terminal (docker-compose style) via a task
     group `spawn()` streams into; otherwise a live status table is shown.

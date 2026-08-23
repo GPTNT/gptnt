@@ -16,7 +16,7 @@ from whenever import Instant
 from gptnt.common.paths import Paths
 from gptnt.experiments.instance import ExperimentInstance
 from gptnt.interactive.services.game.client import BombIsDetonatedError
-from gptnt.interactive.services.heartbeat.base import PlayerState
+from gptnt.interactive.services.heartbeat.events import PlayerState
 from gptnt.interactive.services.player.agent import PlayerAgent
 from gptnt.interactive.services.player.commands import PlayerMessage, StopPlayerEvent
 from gptnt.interactive.services.rpc import BaseRPCService
@@ -178,7 +178,7 @@ class PlayerService(PlayerAgent, BaseRPCService[PlayerCommand]):
         if self.state != PlayerState.waiting_for_turn:
             raise HTTPException(status_code=503, detail="Player is not ready for a forward pass.")
 
-        logger.debug(f"Step {self.experiment_recorder.num_steps}")
+        logger.debug("Step", step=self.experiment_recorder.num_steps)
 
         # Collect the state and the observations
         if self.protocol.role == "defuser":

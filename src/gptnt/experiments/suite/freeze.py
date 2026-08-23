@@ -16,7 +16,7 @@ from gptnt.experiments.suite.lock import MissionEntry, SuiteLock, SuiteLockEntry
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from gptnt.experiments.suite.core import Suite
+    from gptnt.experiments.suite.definition import Suite
     from gptnt.ktane.mission_spec import KtaneMissionSpec
 
 
@@ -32,7 +32,7 @@ class FreezeStamp:
     git_sha: str = ""
 
     def build_entry(self, suite: Suite) -> SuiteLockEntry:
-        """A new lock entry for `suite`, stamped with this run's provenance."""
+        """Return a new lock entry for `suite`, stamped with this run's provenance."""
         return SuiteLockEntry(
             name=suite.name,
             revision=suite.revision,
@@ -113,7 +113,7 @@ class FreezeReport:
 def _reconcile_one(
     suite: Suite, lock: SuiteLock, stamp: FreezeStamp
 ) -> tuple[SuiteFreezeOutcome, SuiteLockEntry | None]:
-    """One suite's outcome against the lock, plus any entry to append."""
+    """Return one suite's outcome against the lock, plus any entry to append."""
     duplicate = _first_duplicate(suite.mission_keys)
     if duplicate is not None:
         detail = f"missions share mission_key {duplicate!r}"
@@ -132,7 +132,7 @@ def _reconcile_one(
 
 
 def _new_missions(suites: Sequence[Suite], lock: SuiteLock) -> list[MissionEntry]:
-    """The missions across every live suite that aren't already in the lock's shared table.
+    """Return the missions across every live suite that aren't already in the lock's shared table.
 
     A `mission_key` that maps to two different mission bodies — whether across live suites or
     against the existing table — is a freeze error.
@@ -150,7 +150,10 @@ def _register_fresh_mission(
     known: dict[str, KtaneMissionSpec],
     mission: KtaneMissionSpec,
 ) -> None:
-    """Record `mission` as fresh when unknown; reject a key already holding a different body."""
+    """Record `mission` as fresh when unknown.
+
+    Reject a key already holding a different body.
+    """
     key = mission.mission_key
     prior = fresh.get(key, known.get(key))
     if prior is not None and prior != mission:
@@ -160,7 +163,7 @@ def _register_fresh_mission(
 
 
 def _first_duplicate(keys: tuple[str, ...]) -> str | None:
-    """The first key that appears more than once, or `None` if all are unique."""
+    """Return the first key that appears more than once, or `None` if all are unique."""
     seen: set[str] = set()
     for key in keys:
         if key in seen:

@@ -1,5 +1,3 @@
-"""`gptnt doctor` host check: machine specs and a free-disk warning."""
-
 from __future__ import annotations
 
 import os
@@ -46,10 +44,13 @@ def _detect_gpu() -> str | None:
 def check_machine(
     *, name: str = "Machine", disk_name: str = "Disk space", warn_gib: float = 10.0
 ) -> list[CheckResult]:
-    """Report host specs + free disk; degrade to a single warn if probing the host fails."""
+    """Report host specs + free disk.
+
+    Degrade to one warn if probing the host fails.
+    """
     try:
         return _collect_machine_specs(name=name, disk_name=disk_name, warn_gib=warn_gib)
-    except Exception as exc:  # noqa: BLE001 — purely informational; never abort the report
+    except Exception as exc:  # noqa: BLE001  (purely informational; never abort the report)
         return [CheckResult.warned(name, "could not read host info", str(exc))]
 
 

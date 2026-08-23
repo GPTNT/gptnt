@@ -1,5 +1,3 @@
-"""Emit findings as rich tables, a JSON summary, or GitHub workflow annotations."""
-
 from __future__ import annotations
 
 import os
@@ -21,7 +19,7 @@ ReportFormat = Literal["rich", "json", "github"]
 
 @dataclass(frozen=True)
 class Report:
-    """One heading and the checks it produced (e.g. one bundle, one machine, one suite set)."""
+    """A heading and the checks it produced (e.g. for one bundle, machine, or suite set)."""
 
     heading: str
     checks: list[CheckResult]
@@ -54,7 +52,7 @@ def render_reports(
 
 
 def _render_rich(reports: list[Report], console: Console, *, noun: str) -> None:
-    """The shared per-section tables, one heading per report, then a one-line tally."""
+    """Return the shared per-section tables, one heading per report, then a one-line tally."""
     for report in reports:
         render_report(console, {report.heading: report.checks})
     total = len(reports)
@@ -65,7 +63,7 @@ def _render_rich(reports: list[Report], console: Console, *, noun: str) -> None:
 
 
 def _render_json(reports: list[Report], console: Console, *, noun: str) -> None:
-    """A machine-readable summary plus every check, for a CI step to parse."""
+    """Return a machine-readable summary plus every check, for a CI step to parse."""
     total = len(reports)
     failed = sum(one.failed for one in reports)
     payload = {
@@ -93,7 +91,7 @@ def _render_json(reports: list[Report], console: Console, *, noun: str) -> None:
 
 
 def _render_github(reports: list[Report], console: Console, *, title: str, noun: str) -> None:
-    """A workflow annotation per failure/warning, plus a job-summary table when running in CI."""
+    """Return a workflow annotation per finding, plus a job-summary table when running in CI."""
     for report in reports:
         for check in report.checks:
             if check.status in {"fail", "warn"}:
@@ -108,7 +106,7 @@ def _render_github(reports: list[Report], console: Console, *, title: str, noun:
 
 
 def _annotation(heading: str, check: CheckResult) -> str:
-    """One `::error`/`::warning` workflow command carrying the finding and its fix hint."""
+    """Return one `::error`/`::warning` workflow command carrying the finding and its fix hint."""
     level = "error" if check.status == "fail" else "warning"
     annotation_title = _escape_property(f"{heading} · {check.name}")
     message = _escape_data(" — ".join(part for part in (check.detail, check.hint) if part))
@@ -134,7 +132,7 @@ def _write_step_summary(reports: list[Report], *, title: str, noun: str) -> None
 
 
 def _summary_row(check: CheckResult) -> str:
-    """One markdown table row, with the cell-breaking pipe neutralised."""
+    """Return one markdown table row, with the cell-breaking pipe neutralised."""
     detail = " ".join(part for part in (check.detail, check.hint) if part).replace("|", r"\|")
     glyph, _ = GLYPHS[check.status]
     return f"| {glyph} | {check.name} | {detail} |"

@@ -527,7 +527,7 @@ def score_predictions(
     """Compute metrics locally (no Weave) for each scorer across all instances.
 
     `predictions` maps an instance index to its saved model-output dict. Numeric scores are
-    averaged; string scores are reported as the fraction of instances in each category.
+    averaged. String scores are reported as the fraction of instances in each category.
     """
     metrics: Metrics = {}
     for scorer in scorers:

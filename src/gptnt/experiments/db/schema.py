@@ -20,7 +20,7 @@ from pydantic import (
 )
 from pydantic_core import PydanticUndefined, core_schema, from_json, to_json, to_jsonable_python
 
-from gptnt.common.types import UNION_ORIGINS, is_nullable
+from gptnt.common.type_inspection import UNION_ORIGINS, is_nullable
 
 if TYPE_CHECKING:
     import pyarrow as pa
@@ -104,7 +104,7 @@ class AsJSON(DuckDBType):
     def __get_pydantic_core_schema__(
         cls, source_type: Any, handler: GetCoreSchemaHandler
     ) -> core_schema.CoreSchema:
-        """Parse JSON strings on the way in; serialise to JSON strings in DB export mode.
+        """Parse JSON strings on the way in. Serialise to JSON strings in DB export mode.
 
         Without the DB context, serialisation falls back to default Pydantic behaviour so that
         model_dump(mode="json") still produces plain Python objects for general use.
@@ -285,10 +285,10 @@ def generate_duckdb_schema(model: type[DuckDBSchemaMixin]) -> str:  # noqa: WPS2
 def arrow_schema_for(model: type[DuckDBSchemaMixin]) -> pa.Schema:
     """Derive the parquet-writer arrow schema from the model's DuckDB schema.
 
-    DuckDB is the single source of truth for column types: we create the table in an in-memory
+    Column types come from DuckDB: we create the table in an in-memory
     connection and read back the Arrow schema it produces, so the parquet columns line up
     name-for-name (and type-for-type) with the real table. `arrow_large_buffer_size` makes
-    `BLOB → large_binary` (and strings → large_string), dodging the 32-bit offset limit on the big
+    `BLOB → large_binary` (and strings → large_string), avoiding the 32-bit offset limit on the big
     observation/message blobs.
     """
     with duckdb.connect(":memory:") as con:
@@ -324,7 +324,7 @@ class DuckDBSchemaMixin(BaseModel):
         """When context={'mode': 'db'}: AsBlob fields → compressed bytes, rest → JSON-compatible.
 
         The handler propagates context down to field-level serializers, so AsBlob fields naturally
-        return bytes — no field-name hardcoding needed.
+        return bytes, which keeps the field names out of this method.
         """
         if info.context and info.context.get("mode") == EXPORT_CONTEXT_MARKER:
             raw = handler(self)  # AsBlob fields → bytes, others → Python objects

@@ -1,8 +1,8 @@
 """Open one pull request per bundle against gptnt/submissions to submit a run to the leaderboard.
 
 Each top-level bundle directory under `submissions/` becomes its own branch, commit, and PR.
-Requires either a GITHUB_TOKEN env var or the `gh` CLI to be authenticated. PyGitHub handles all
-GitHub API calls; pygit2 handles all local git operations.
+Requires either a GITHUB_TOKEN env var or the `gh` CLI to be authenticated. PyGitHub handles the
+GitHub API calls. Pygit2 handles the local git operations.
 """
 
 import os
@@ -76,7 +76,7 @@ def _fork_and_clone(
     # If a fork already exists, this will do nothing
     fork = user.create_fork(source)
 
-    # GitHub creates forks asynchronously — poll until refs are visible
+    # GitHub creates forks asynchronously. Poll until refs are visible
     for _ in range(num_attempts_to_get_fork):
         try:
             _ = list(fork.get_branches())
@@ -209,7 +209,7 @@ class _SubmissionSession:
         return f"{self.login}/add-{bundle_dir.name}"
 
     def head_for(self, bundle_dir: Path) -> str:
-        """The PR head ref: bare branch on push access, `login:branch` from a fork."""
+        """Return the PR head ref: bare branch on push access, `login:branch` from a fork."""
         branch = self.branch_for(bundle_dir)
         return branch if self.can_push else f"{self.login}:{branch}"
 
@@ -236,7 +236,7 @@ def _submit_one_bundle(session: _SubmissionSession, bundle_dir: Path) -> Submiss
         )
         return SubmissionResult(bundle=bundle_dir.name, branch=branch_name, pr_url=DRY_RUN_PR_URL)
 
-    # Isolate one bundle so a single push/PR failure does not abort the rest of the batch.
+    # Isolate one bundle so one push/PR failure does not abort the rest of the batch.
     try:
         pr_url = _push_and_open_pr(
             local_repo=session.repo,
@@ -265,10 +265,10 @@ def create_submission(
 
     Each top-level bundle directory becomes its own branch, commit, and PR against `slug`. Auth,
     the repo lookup, and the clone/fork happen once, shared across every bundle. Uses GITHUB_TOKEN
-    if set, otherwise `gh auth token`. PyGitHub handles the GitHub API; pygit2 handles local git.
+    if set, otherwise `gh auth token`. PyGitHub handles the GitHub API. Pygit2 handles local git.
 
     With `dry_run=True` every read-only step still runs (auth, repo lookup, clone, local commit)
-    but nothing is mutated on GitHub — no fork, no push, no PR — so you can verify the flow.
+    while the fork, the push, and the PR are skipped, so you can verify the flow.
     """
     token = _get_token()
     gh = Github(auth=Auth.Token(token))

@@ -179,8 +179,8 @@ class PlayerCapabilities(BaseModel):
     ) -> type[SingleAlphabetLetter] | type[PixelLocation] | type[ScaledLocation]:
         """The type used for interaction locations.
 
-        This is based on the interaction location method so that we can dynamically create the
-        output type for the protocol without needing to have a whole different if-statement.
+        This is based on the interaction location method so that we can create the output type for
+        the protocol without needing to have a whole different if-statement.
         """
         match self.coordinate_mode:
             case "absolute":
@@ -216,7 +216,7 @@ class PlayerCapabilities(BaseModel):
 
 
 class PlayerProtocol(BaseModel, frozen=True):
-    """Protocol that a player has for some given experiment."""
+    """Protocol that a player has for some experiment."""
 
     role: PlayerRole
     """The role of the player in the experiment.
@@ -265,7 +265,7 @@ class PlayerProtocol(BaseModel, frozen=True):
 
     @model_validator(mode="after")
     def check_expert_is_not_playing_alone(self) -> Self:
-        """An expert cannot play alone.
+        """Return an expert cannot play alone.
 
         It doesn't make sense for them to be alone.
         """
@@ -275,7 +275,7 @@ class PlayerProtocol(BaseModel, frozen=True):
 
 
 class PlayerSpec(BaseModel):
-    """One player in a roster: a player config, an optional provider override, and a count."""
+    """One player in a roster, with a player config, an optional provider override, and a count."""
 
     model_config = ConfigDict(extra="forbid")
 

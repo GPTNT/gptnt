@@ -13,7 +13,7 @@ from gptnt.experiments.db.extract import (
     filter_existing_experiments,
     group_by_unique_experiment,
 )
-from gptnt.experiments.models import ExperimentStep, ExperimentSummary
+from gptnt.experiments.records import ExperimentStep, ExperimentSummary
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 logger = structlog.get_logger()
 
-# (summary row dict, the group's step files) — what one worker returns for a valid experiment.
+# (summary row dict, the group's step files), what one worker returns for a valid experiment.
 type _GroupResult = tuple[dict[str, Any], list[Path]]
 type _DatabaseSchema = tuple[tuple[str, str, str, str], ...]
 
@@ -54,10 +54,10 @@ def _build_expected_database_schema() -> _DatabaseSchema:
 
 
 def _build_group_summary(file_paths: list[Path]) -> _GroupResult | None:
-    """Derive one experiment's summary row from its footers; return it with its step files.
+    """Derive one experiment's summary row from its footers. Return it with its step files.
 
-    Exceptions are logged and swallowed so a single bad experiment group doesn't kill the pool —
-    returning None excludes its step files from the merge, so the experiment is skipped entirely
+    Exceptions are logged and swallowed so one bad experiment group doesn't kill the pool.
+    Returning None excludes its step files from the merge, so the experiment is skipped entirely
     (no orphan step rows).
     """
     try:
@@ -103,7 +103,7 @@ def _execute_merge(
         _ = con.register("new_summaries", new_summaries)
         _ = con.begin()
         try:  # noqa: WPS229
-            # Recorder parquet is already the step representation; BY NAME matches columns by name.
+            # Recorder parquet is already the step representation. BY NAME matches columns by name.
             _ = con.execute("INSERT INTO experiment_step BY NAME SELECT * FROM new_step_records")
             _ = con.execute("INSERT INTO experiment_summary BY NAME SELECT * FROM new_summaries")
         except Exception:

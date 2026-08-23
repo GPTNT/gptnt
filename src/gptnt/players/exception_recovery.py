@@ -73,11 +73,11 @@ def ensure_messages_have_valid_final_response(messages: list[ModelMessage]) -> l
 
 @dataclass(kw_only=True)
 class ExceptionRecoveryStrategy[ExceptionT: Exception, RecoveryOutputT](ABC):
-    """Handle various AI run exceptions in a graceful manner."""
+    """Handle AI run exceptions in a graceful manner."""
 
     @abstractmethod
     def can_handle(self, *, exception: Exception, new_messages: list[ModelMessage]) -> bool:
-        """Return whether this strategy can handle the given exception."""
+        """Return whether this strategy can handle the exception."""
         raise NotImplementedError
 
     @abstractmethod
@@ -89,7 +89,7 @@ class ExceptionRecoveryStrategy[ExceptionT: Exception, RecoveryOutputT](ABC):
         raw_model_output: str | None = None,
         **kwargs: Any,
     ) -> RecoveryOutputT:
-        """Handle the given exception and return a recovery result."""
+        """Handle the exception and return a recovery result."""
         raise NotImplementedError
 
 
@@ -566,7 +566,7 @@ class ExceptionRecoveryChain:
     """Chain of exception recovery strategies to handle AI exceptions.
 
     The chain will go through each strategy in order and use the first one that can handle the
-    given exception.
+    exception.
     """
 
     strategies: Sequence[ExceptionRecoveryStrategy[Any, AgentCallResult[Any]]]
@@ -578,7 +578,7 @@ class ExceptionRecoveryChain:
 
     @classmethod
     def with_reflection_recovery(cls) -> Self:
-        """Create an ExceptionRecoveryChain with the default reflection recovery strategies.
+        """Create an ExceptionRecoveryChain with the default strategies for reflection.
 
         First we try to capture the output in case it's broken. If not, we just return the default
         "<error>". Ofc, if the exception is an unknown, we want to error hard.
@@ -598,7 +598,7 @@ class ExceptionRecoveryChain:
         raw_model_output: str | None = None,
         **kwargs: Any,
     ) -> AgentCallResult[Any]:
-        """Attempt to recover from the given exception using the chain of strategies."""
+        """Attempt to recover from the exception using the chain of strategies."""
         for strategy in self.strategies:
             if strategy.can_handle(exception=exception, new_messages=new_messages):
                 return strategy.recover(

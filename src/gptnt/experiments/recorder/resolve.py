@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from gptnt.experiments.ledger.base import Source
+from gptnt.experiments.ledger.completion import Source
 from gptnt.experiments.recorder.local import ExperimentPlayerRecorder
 
 

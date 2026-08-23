@@ -38,7 +38,7 @@ def git_sha() -> str | None:
 
 
 def is_valid_version(recorded: str | None) -> bool:
-    """Whether a recorded version is resolvable.
+    """Return whether a recorded version is resolvable.
 
     A valid version must parse as a version (PEP 440/SemVer) AND not be the `UNKNOWN_VERSION`
     fallback we stamp when the package metadata can't be resolved.

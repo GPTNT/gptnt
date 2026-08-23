@@ -1,5 +1,3 @@
-"""Utilities for selecting coordinates from noisy model output."""
-
 from collections.abc import Iterator
 from typing import Any, Literal, Self
 

@@ -30,8 +30,8 @@ def extract_static_answer(response: str) -> str:
     response = strip_box_envelope(response).strip()
 
     # Models sometimes mention the required `<action>` wrapper while reasoning. Remove
-    # completed reasoning blocks before looking for the real answer so an illustrative opening
-    # tag cannot consume everything through the final action's closing tag.
+    # completed reasoning blocks before looking for the real answer so an opening tag inside the
+    # reasoning cannot consume everything through the final action's closing tag.
     response_without_thoughts = _THOUGHT_BLOCK.sub("", response)
     action_matches = _ACTION_BLOCK.findall(response_without_thoughts)
     answer = next((match.strip() for match in action_matches if match.strip()), "")

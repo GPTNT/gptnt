@@ -1,5 +1,3 @@
-"""Compile source documents selected by configured manual profiles."""
-
 from __future__ import annotations
 
 from rich.console import Console

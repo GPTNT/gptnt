@@ -1,4 +1,4 @@
-"""Summarise LLM inference time vs framework overhead for an experiment run.
+"""Summarise LLM inference time against framework overhead for an experiment run.
 
 Reads the per-process span-timing JSONL written when
 `OBSERVABILITY_CAPTURE_SPAN_TIMINGS=1` is set (see `gptnt.observability.span_timing`) and,
@@ -30,7 +30,7 @@ logger = structlog.get_logger()
 
 
 def _per_step_df(df: pl.DataFrame) -> pl.DataFrame:
-    """One row per forward pass with inference and framework times split out.
+    """Return one row per forward pass with inference and framework times split out.
 
     Joins on parent_span_id chain rather than trace_id to avoid the case where
     multiple forward passes share a trace (e.g. both players in one session), which
@@ -48,8 +48,8 @@ def _per_step_df(df: pl.DataFrame) -> pl.DataFrame:
     )
 
     # pydantic-ai "chat *" spans are children of "Send request to agent".
-    # Group by their parent so each agent_span gets its own inference total —
-    # handles tool-use loops where one forward pass triggers multiple model calls.
+    # Group by their parent so each agent_span gets its own inference total.
+    # This handles tool-use loops where one forward pass triggers multiple model calls.
     inference_per_agent_span = (
         df.filter(
             (pl.col("otel_scope_name") == "pydantic-ai") & pl.col("name").str.starts_with("chat ")
@@ -275,7 +275,7 @@ def query_span_timings(
         ExistingDirectory, Parameter(help="Run output directory containing span_timings/*.jsonl.")
     ],
 ) -> None:
-    """Summarise LLM inference time vs framework overhead for an experiment run."""
+    """Summarise LLM inference time against framework overhead for an experiment run."""
     timing_files = sorted(run_dir.rglob("span_timings/*.jsonl"))
     if not timing_files:
         console.print(

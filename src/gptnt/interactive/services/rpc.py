@@ -23,7 +23,7 @@ class BaseRPCService[CommandKeyT](ABC):
 
     Subclasses must:
     - Define a `command_channel` property that returns the base channel name
-    - Define a `commands` dict mapping command names to handler functions
+    - Define a `commands` dict that maps command names to handler functions
     - Have a `broker` attribute of type RedisBroker
     """
 
@@ -77,7 +77,7 @@ class BaseRPCClient(ABC):
         ...
 
     def _get_channel(self, command: str) -> str:
-        """Get the full Redis channel name for a given command.
+        """Get the full Redis channel name for a command.
 
         Args:
             command: The command name (e.g., "get_state", "configure_game")

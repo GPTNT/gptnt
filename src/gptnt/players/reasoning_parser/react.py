@@ -290,7 +290,7 @@ class ReActValidator:
 
         return errors
 
-    # --- Position Helpers (cached) ---
+    # Position Helpers (cached)
     def _get_first_reasoning_open_position(self) -> int | None:
         """Get the position of the first opened reasoning tag."""
         if self._first_reasoning_open_pos is not UNSET:
@@ -336,7 +336,7 @@ class ReActValidator:
         )
         return self._first_action_close_pos
 
-    # --- Error Validators ---
+    # Error Validators
     def _check_missing_reasoning(self) -> list[AIResponseErrorType]:
         """Check if reasoning/thoughts are completely absent."""
         return [AIResponseErrorType.reasoning_absent] if self.extractor.thoughts is None else []

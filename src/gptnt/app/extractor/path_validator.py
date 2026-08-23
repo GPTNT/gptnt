@@ -2,8 +2,8 @@ import typing
 
 from pydantic import BaseModel
 
-from gptnt.common.types import expand_union, get_list_inner, resolve_type
-from gptnt.experiments.models import ExperimentStep
+from gptnt.common.type_inspection import expand_union, get_list_inner, resolve_type
+from gptnt.experiments.records import ExperimentStep
 
 
 def validate_path(path: str, model: type[BaseModel] = ExperimentStep) -> None:  # noqa: WPS231
@@ -14,7 +14,7 @@ def validate_path(path: str, model: type[BaseModel] = ExperimentStep) -> None:  
       - list[X] with [] notation
       - Union types (checks all branches)
       - Annotated / Optional unwrapping
-      - Non-model leaves (dict, primitives) — allowed through
+      - Non-model leaves (dict, primitives): allowed through
     """
     segments = path.split(".")
     current_types: list[typing.Any] = [model]
@@ -28,7 +28,7 @@ def validate_path(path: str, model: type[BaseModel] = ExperimentStep) -> None:  
             current = resolve_type(current_type)
 
             if not (isinstance(current, type) and issubclass(current, BaseModel)):
-                # Leaf / dict / primitive — can't introspect further, allow it
+                # Leaf / dict / primitive: can't introspect further, allow it
                 next_types.append(current)
                 continue
 

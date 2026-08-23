@@ -1,5 +1,3 @@
-"""Git operations used by the KtaneContent cache."""
-
 import os
 import shutil
 import subprocess

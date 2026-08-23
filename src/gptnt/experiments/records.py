@@ -54,7 +54,7 @@ ModelMessagesList = Annotated[
 
 
 class ExperimentStep(DuckDBSchemaMixin):
-    """Record of a single step in the experiment."""
+    """Record of one step in the experiment."""
 
     step: int
     timestamp: float
@@ -222,7 +222,7 @@ class StepRecordsMetricsMixin(BaseModel):
 
 
 class ExperimentPlayerRecord(Provenance, StepRecordsMetricsMixin):
-    """Records for a single player in an experiment."""
+    """Records for one player in an experiment."""
 
     experiment_instance: ExperimentInstance
     player_content: PlayerContent
@@ -375,7 +375,7 @@ class ExperimentSummary(ExperimentInstance, Provenance, ExperimentOutcome, DuckD
     @computed_field
     @property
     def defuser_has_manual(self) -> bool:
-        """True when the defuser player was explicitly given the manual."""
+        """True when the defuser player was explicitly the manual."""
         return self.defuser_protocol.include_manual
 
     @computed_field
@@ -446,11 +446,10 @@ class ExperimentRecord(StepRecordsMetricsMixin):
 
 
 def is_valid_outcome(*, outcome: BombOutcome, is_hard_crash: bool) -> bool:
-    """Whether an experiment outcome counts as a valid, completed run.
+    """Return whether an experiment outcome counts as a valid, completed run.
 
     Valid means no hard crash and the outcome classified as either solved, timeout, or strikeout.
-    This is the single definition shared by the local footer ledger, DuckDB summaries, and W&B
-    runs.
+    This definition is shared by the local footer ledger, DuckDB summaries, and W&B runs.
     """
     return not is_hard_crash and outcome in {
         BombOutcome.solved,

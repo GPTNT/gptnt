@@ -12,7 +12,7 @@ def partition_non_pinned_by_window(
 ) -> tuple[list[int], set[int]]:
     """Split non-pinned entry indices by the last `window` turns: (aged, in_window).
 
-    `aged` are the non-pinned entries that fall outside the window; `in_window` are the rest. A
+    `aged` are the non-pinned entries that fall outside the window. `in_window` are the rest. A
     non-positive window ages every non-pinned entry.
     """
     non_pinned = [index for index, entry in enumerate(entries) if not entry.pinned]
@@ -26,7 +26,7 @@ def remove_binary_content_from_model_request(
     """Copy of `message` with binary content stripped from its user-prompt parts.
 
     Keeps the last BinaryContent per part when `keep_last`. Returns the message unchanged, without
-    copying, when it holds no strippable binary content.
+    copying, when nothing needs stripping.
     """
     has_binary = any(
         isinstance(part, UserPromptPart)

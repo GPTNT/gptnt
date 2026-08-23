@@ -14,7 +14,7 @@ PROMPTED_OUTPUT_TEMPLATE = dedent(
 def create_output_schema_for_instructions[OutputT](
     structured_output_type: type[OutputT], *, template: str
 ) -> str:
-    """Render the prompted-output schema for `structured_output_type` into the given template.
+    """Render the prompted-output schema for `structured_output_type` into the template.
 
     Reproduces the schema text pydantic-ai injects in `prompted` mode, for models that instead
     return a raw string re-parsed downstream.

@@ -1,5 +1,3 @@
-"""`gptnt doctor` game/mod checks: the KTANE binary, mod files, X display, and the game spawn."""
-
 from __future__ import annotations
 
 import contextlib
@@ -58,7 +56,10 @@ def check_display(
     name: str = "Display (X)",
     startx_hint: str = "Start a GPU-backed X server: uv run python scripts/startx.py",
 ) -> CheckResult:
-    """On Linux, confirm an X display is available; elsewhere it is not required."""
+    """On Linux, confirm an X display is available.
+
+    Elsewhere it is not required.
+    """
     if sys.platform != "linux":
         return CheckResult.skipped(name, f"not required on {platform.system()}")
 
@@ -117,7 +118,7 @@ async def _poll_for_mod(
             try:
                 state = await client.get_game_state()
             except (httpx.HTTPError, OSError):
-                state = GameState.unknown  # not listening yet — keep polling
+                state = GameState.unknown  # not listening yet, keep polling
             if state is not GameState.unknown:
                 return CheckResult.passed(name, f"mod responding (state={state.name})")
             await anyio.sleep(poll)

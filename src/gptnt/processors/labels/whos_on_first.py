@@ -3,7 +3,7 @@ from types import MappingProxyType
 
 import structlog
 
-from gptnt.processors.labels.types import DrawData, NumberBoxDimensions, RegionProperties
+from gptnt.processors.labels.annotation import DrawData, NumberBoxDimensions, RegionProperties
 
 log = structlog.get_logger()
 
@@ -25,7 +25,9 @@ def get_sorted_whos_on_first_regions(
     """Annotate the whos on first module with labels."""
     if len(regions) != WHO_FIRST_REGIONS:
         log.warning(
-            f"Who's On First should have {WHO_FIRST_REGIONS} regions, but got %d", len(regions)
+            "Unexpected Who's On First region count",
+            expected=WHO_FIRST_REGIONS,
+            actual=len(regions),
         )
     # The left 3 buttons sorted by their x-coordinates
     buttons_sorted_on_x_axis = sorted(regions, key=lambda region: region.bbox[1])

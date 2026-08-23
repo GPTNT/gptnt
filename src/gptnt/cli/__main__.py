@@ -9,7 +9,7 @@ BACKEND = "asyncio"
 def build_app() -> App:
     """Assemble the root `gptnt` command surface.
 
-    Every command is registered by lazy import-path string, so a command's module and its heavy
+    Commands are registered by lazy import-path string, so a command's module and its heavy
     dependencies (hydra, torch, polars, duckdb, wandb, ...) load only when that command or its own
     `--help` runs.
     """
@@ -21,7 +21,7 @@ def build_app() -> App:
     statics = Group("Statics", sort_key=3)
     submission = Group("Submission", sort_key=4)
 
-    # Onboarding — verify the system, then scaffold + validate your model.
+    # Onboarding: verify the system, then scaffold + validate your model.
     app.command(
         "gptnt.cli.doctor.command:doctor",
         name="doctor",
@@ -80,7 +80,7 @@ def build_app() -> App:
         ),
     )
 
-    # Interactive runtime — top-level commands.
+    # Interactive runtime: top-level commands.
     app.command(
         "gptnt.cli.interactive.submit:send_experiment_specs_to_em",
         name="submit",
@@ -138,7 +138,7 @@ def build_app() -> App:
         help="List completed experiment outcomes from the DuckDB results.",
     )
 
-    # Statics evaluation — nested group.
+    # Statics evaluation: nested group.
     app.command(
         "gptnt.cli.statics.__main__:statics_app",
         name="statics",
@@ -146,7 +146,7 @@ def build_app() -> App:
         help="Run static evaluations against HuggingFace datasets.",
     )
 
-    # Submission — nested group.
+    # Submission: nested group.
     app.command(
         "gptnt.cli.submission.__main__:submission_app",
         name="submission",

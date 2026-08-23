@@ -21,13 +21,13 @@ from gptnt.cli.submission._schema import SubmissionExperiment
 from gptnt.experiments.db.ingest import ingest_player_records
 from gptnt.experiments.db.typed_parquet import read_typed_parquet
 from gptnt.experiments.instance import ExperimentInstance
-from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep
 from gptnt.experiments.recorder.parquet import (
     blob_step,
     footer_from_player_record,
     write_player_record_parquet,
 )
-from gptnt.experiments.suite.core import Suite, SuiteIdentity, SuiteMatchup
+from gptnt.experiments.records import ExperimentPlayerRecord, ExperimentStep
+from gptnt.experiments.suite.definition import Suite, SuiteIdentity, SuiteMatchup
 from gptnt.experiments.suite.lock import MissionEntry, SuiteLock, SuiteLockEntry
 from gptnt.players.actions import DoNothingAction
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
@@ -254,7 +254,7 @@ def test_new_builds_a_self_contained_bundle_that_validates_offline(
 
     monkeypatch.setattr("gptnt.experiments.suite.lock.default_lock_path", _fail_live_access)
     monkeypatch.setattr("gptnt.experiments.suite.compose.compose_suite", _fail_live_access)
-    monkeypatch.setattr("gptnt.experiments.suite.core.load_missions", _fail_live_access)
+    monkeypatch.setattr("gptnt.experiments.suite.definition.load_missions", _fail_live_access)
     result = invoke_cli(build_app(), ["submission", "validate", str(bundle_dir)])
     assert result.exit_code == 0, result.output
 

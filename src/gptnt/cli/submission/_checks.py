@@ -42,7 +42,7 @@ from gptnt.experiments.suite.lock import SuiteLock, SuiteNotFrozenError
 from gptnt.provenance import Provenance
 
 if TYPE_CHECKING:
-    from gptnt.experiments.suite.core import Suite
+    from gptnt.experiments.suite.definition import Suite
     from gptnt.experiments.suite.lock import SuiteLockEntry
     from gptnt.ktane.mission_spec import KtaneMissionSpec
     from gptnt.statics.run_metadata import StaticsIdentity
@@ -75,7 +75,7 @@ class LoadedBundle:
         return findings or [CheckResult.passed("naming", detail=str(self._actual_dir))]
 
     def check_submitter(self) -> list[CheckResult]:
-        """The one hand-filled block is actually filled in."""
+        """Return the one hand-filled block is actually filled in."""
         submitter = self.manifest.submitter
         fields = (("name", submitter.name), ("contact", submitter.contact))
         blank = [field_name for field_name, field_value in fields if not field_value.strip()]
@@ -113,11 +113,11 @@ class LoadedBundle:
 
     @property
     def _actual_dir(self) -> Path:
-        """The flat `YYYYMMDD_<display>_<fp8>_<suite>_<ver>` folder this bundle lives at."""
+        """The flat `YYYYMMDD_<display>_<fp8>_<suite>_<ver>` folder this bundle is written to."""
         return Path(self.bundle_dir.name)
 
     def _check_stray_payload(self) -> CheckResult | None:
-        """The other kind's payload file must not be lying around in this bundle."""
+        """Return the other kind's payload file must not be lying around in this bundle."""
         other = StaticsBundle if isinstance(self.bundle, InteractiveBundle) else InteractiveBundle
         if not (self.bundle_dir / other.payload_filename).exists():
             return None
@@ -125,7 +125,7 @@ class LoadedBundle:
         return CheckResult.failed("layout", detail, hint=REBUILD_HINT)
 
     def _check_directory_name(self) -> CheckResult | None:
-        """The directory must be exactly what `BundleName` derives from the manifest."""
+        """Return the directory must be exactly what `BundleName` derives from the manifest."""
         expected = BundleName.from_manifest(self.manifest).relative_dir
         if expected == self._actual_dir:
             return None
@@ -133,7 +133,7 @@ class LoadedBundle:
         return CheckResult.failed("directory", detail, hint=REBUILD_HINT)
 
     def _check_submission_id(self) -> CheckResult | None:
-        """The stored id must be exactly what `BundleName` derives from the manifest."""
+        """Return the stored id must be exactly what `BundleName` derives from the manifest."""
         expected = BundleName.from_manifest(self.manifest).submission_id
         if expected == self.manifest.submission_id:
             return None
@@ -142,7 +142,7 @@ class LoadedBundle:
 
 
 def check_suite(bundle: InteractiveBundle) -> list[CheckResult]:
-    """The bundled lock contains one matching entry and exactly its missions."""
+    """Return the bundled lock contains one matching entry and exactly its missions."""
     if len(bundle.suite_lock.suites) != 1:
         return [
             CheckResult.failed(
@@ -185,11 +185,11 @@ def check_suite(bundle: InteractiveBundle) -> list[CheckResult]:
 
 
 def check_mission_coverage(bundle: InteractiveBundle, entry: SuiteLockEntry) -> list[CheckResult]:
-    """Every (expert, mission) pairing the manifest declares has exactly one, valid run."""
+    """Return every (expert, mission) pairing the manifest declares has exactly one, valid run."""
     manifest = bundle.manifest
     experiments = bundle.experiments
     defuser = manifest.player.capabilities
-    # A submission fixes one defuser; solo play has no expert (an empty fingerprint marker).
+    # A submission fixes one defuser. Solo play has no expert (an empty fingerprint marker).
     experts = [player.capabilities for player in manifest.players[1:]] or [None]
     expected = {
         (defuser.fingerprint, expert.fingerprint if expert else "", mission_key): describe_pairing(
@@ -206,7 +206,7 @@ def check_mission_coverage(bundle: InteractiveBundle, entry: SuiteLockEntry) -> 
 
 
 def check_players(bundle: InteractiveBundle) -> list[CheckResult]:
-    """The payload was played by exactly the players the manifest declares.
+    """Return the payload was played by exactly the players the manifest declares.
 
     Deliberately bundle-internal (nothing here reads configs/player/); the manifest's own shape —
     identities, fingerprints, one-defuser-first — is already schema-enforced.
@@ -310,7 +310,7 @@ def _load_interactive_payload(
         ]
     try:
         experiments = read_typed_parquet(SubmissionExperiment, payload_path)
-    except Exception as error:  # noqa: BLE001 — pyarrow/pydantic raise many kinds; all mean a broken payload
+    except Exception as error:  # noqa: BLE001  (pyarrow/pydantic raise many kinds; all mean a broken payload)
         return None, [
             CheckResult.failed("payload", f"experiments.parquet did not read back: {error}")
         ]
@@ -349,7 +349,7 @@ def _load_suite_snapshot(bundle_dir: Path) -> tuple[SuiteLock | None, CheckResul
 
 
 def _check_suite_digest(declared_digest: str, frozen_digest: str) -> CheckResult:
-    """The bundle's claimed digest must equal the frozen digest for this revision in the lock."""
+    """Check the bundle's claimed digest against the frozen digest for this revision."""
     if frozen_digest != declared_digest:
         return CheckResult.failed(
             "suite digest",
@@ -362,7 +362,7 @@ def _check_suite_digest(declared_digest: str, frozen_digest: str) -> CheckResult
 def _check_experiments_belong_to_suite(
     bundle: InteractiveBundle, entry: SuiteLockEntry
 ) -> CheckResult:
-    """Every experiment must match the manifest identity and frozen suite content."""
+    """Return every experiment must match the manifest identity and frozen suite content."""
     declared = bundle.manifest.measured
     suite, missions = bundle.suite_lock.load_suite(entry.name, entry.revision)
     mission_specs = {mission.mission_key: mission for mission in missions}
@@ -394,7 +394,7 @@ def _experiment_matches_snapshot(
     mission_specs: dict[str, KtaneMissionSpec],
     suite: Suite,
 ) -> bool:
-    """Whether one payload row matches every frozen suite field it records."""
+    """Return whether one payload row matches every frozen suite field it records."""
     identity_matches = (
         experiment.suite_name,
         experiment.suite_revision,
@@ -468,7 +468,7 @@ def _check_experiment_outcomes(experiments: list[SubmissionExperiment]) -> Check
 def _check_defuser_matches_manifest(
     manifest: InteractiveSubmission, experiments: list[SubmissionExperiment]
 ) -> CheckResult:
-    """Every experiment must have been played by the manifest's defuser capability."""
+    """Return every experiment must have been played by the manifest's defuser capability."""
     defuser_fingerprint = manifest.player.capabilities.fingerprint
     mismatched = sum(
         experiment.defuser_capability_fingerprint != defuser_fingerprint
@@ -483,7 +483,7 @@ def _check_defuser_matches_manifest(
 def _check_experts_match_manifest(
     manifest: InteractiveSubmission, experiments: list[SubmissionExperiment]
 ) -> CheckResult:
-    """The manifest's expert entries and the payload's experts must be the same set."""
+    """Return the manifest's expert entries and the payload's experts must be the same set."""
     manifest_experts = {player.capabilities.fingerprint for player in manifest.players[1:]}
     row_experts = {
         experiment.expert_capability_fingerprint

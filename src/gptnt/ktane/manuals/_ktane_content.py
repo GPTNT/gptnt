@@ -1,5 +1,3 @@
-"""Resolve and cache the KtaneContent files selected by manual profiles."""
-
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,8 +9,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from gptnt.ktane.manuals import _assets, _git
 from gptnt.ktane.manuals._http import download_to_cache
-from gptnt.ktane.manuals._progress import ProgressReporter
 from gptnt.ktane.manuals.profile import KtaneContentAppendix, KtaneContentDocument
+from gptnt.ktane.manuals.progress import ProgressReporter
 from gptnt.ktane.manuals.sources import KtaneContentSource
 
 type KtaneContentRequirement = KtaneContentDocument | KtaneContentAppendix

@@ -9,7 +9,7 @@ import structlog
 from gptnt.common.paths import Paths
 from gptnt.experiments.db.connection import DuckDBConnection
 from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER
-from gptnt.experiments.models import (
+from gptnt.experiments.records import (
     ExperimentPlayerRecord,
     ExperimentRecord,
     ExperimentStep,
@@ -55,7 +55,7 @@ class ExperimentLoader:
         return loader
 
     def load_experiment_record(self, metadata: ExperimentSummary) -> ExperimentRecord | None:
-        """Load the full experiment record for a given experiment metadata."""
+        """Load the full experiment record for an experiment's metadata."""
         table = ExperimentStep.table_name()
         query = self.connection().execute(
             f"SELECT * FROM {table} WHERE session_id = ?",  # noqa: S608

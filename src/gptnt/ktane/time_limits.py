@@ -3,10 +3,9 @@ from gptnt.ktane.state.module_registry import ModuleFacts
 SECONDS_PER_ACTION = 3
 """Seconds per sequential action taken.
 
-This is the same as the maximum time it takes for the game to process a single action and update
-its visuals. This not the same as the maximum buffer time we build since that is different. You
-should not change this because changing it can have unintended consequences on the time limit
-calculation.
+This is the same as the maximum time it takes for the game to process one action and update its
+visuals. This not the same as the maximum buffer time we build since that is different. You should
+not change this because changing it can have unintended consequences on the time limit calculation.
 """
 
 NUM_EXTRA_DIALOGUE_TURNS = 10

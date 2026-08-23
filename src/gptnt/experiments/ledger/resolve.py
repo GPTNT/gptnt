@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from gptnt.experiments.ledger.base import CompletionLedger, Source
+from gptnt.experiments.ledger.completion import CompletionLedger, Source
 from gptnt.experiments.ledger.local import LocalLedger
 
 if TYPE_CHECKING:
@@ -27,7 +27,7 @@ def filter_experiments(
 ) -> list[ExperimentSpec]:
     """Drop the specs that are already done, per the chosen completion source.
 
-    The single front door used by both `submit` and the `run`/`doctor` resume check, so the two can
+    The entry point used by both `submit` and the `run`/`doctor` resume check, so the two can
     never disagree about what counts as 'already done'.
     """
     ledger = resolve_ledger(source, output_dir=output_dir)

@@ -2,7 +2,7 @@ import numpy as np
 from color_contrast import check_contrast
 
 from gptnt.ktane.state.modules import KtaneModuleId
-from gptnt.processors.labels.types import (  # noqa: WPS235
+from gptnt.processors.labels.annotation import (  # noqa: WPS235
     BLACK,
     BLUE,
     GREEN,
@@ -117,5 +117,5 @@ def get_region_color(  # noqa: WPS212
         if color == BLUE:
             return (YELLOW,)
 
-    # Otherwise, use segmentation image colour
+    # Otherwise, use the median colour from the segmentation image
     return (get_median_colour(region, segm_image),)

@@ -1,9 +1,9 @@
-"""`gptnt submission submit` — open one PR per bundle against gptnt-submissions.
+"""`gptnt submission submit`: open one PR per bundle against gptnt-submissions.
 
 The final step after `new` + `validate`: for each bundle directory under `submissions/`, it copies
 that bundle's subtree into a clone (or fork) of the target repo and opens a pull request. Pass
 `--dry-run` to run everything locally — auth, repo lookup, clone, and the local commits — while
-skipping every GitHub mutation (no fork, no push, no PR), so you can confirm the flow and see each
+skipping every GitHub mutation (the fork, the push, the PR), so you can confirm the flow and see
 bundle's branch, staged files, and PR title before anything goes out.
 
 Needs the `submission` extra (`uv sync --all-groups --extra submission`) and a GitHub token, via

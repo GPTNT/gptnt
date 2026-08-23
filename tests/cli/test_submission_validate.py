@@ -29,7 +29,7 @@ from gptnt.cli.submission.validate import validate_submission
 from gptnt.common.paths import Paths
 from gptnt.experiments.db.typed_parquet import read_typed_parquet, write_typed_parquet
 from gptnt.experiments.generation.missions import load_missions
-from gptnt.experiments.models import ExperimentSummary
+from gptnt.experiments.records import ExperimentSummary
 from gptnt.experiments.suite.compose import compose_suite
 from gptnt.experiments.suite.lock import SuiteLock
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
@@ -46,7 +46,7 @@ from tests._factories.statics import write_statics_run
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from gptnt.experiments.suite.core import Suite
+    from gptnt.experiments.suite.definition import Suite
     from gptnt.ktane.mission_spec import KtaneMissionSpec
 
 SUITE = "single-parametric-sync"

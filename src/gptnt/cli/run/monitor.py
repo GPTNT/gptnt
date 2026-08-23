@@ -110,7 +110,7 @@ async def render_stream(tracked: TrackedProcess, *, max_name_len: int = 20) -> N
 
 
 async def monitor_interactive(orch: ProcessOrchestrator) -> None:  # noqa: WPS231
-    """Monitor processes in interactive mode — output streams live; watch for completion/failure.
+    """Monitor processes in interactive mode: output streams live. Watch for completion/failure.
 
     The per-process streaming tasks are started via the orchestrator's `on_spawn` callback (set by
     the pipeline); this loop only polls status until everything finishes, something fails, or a

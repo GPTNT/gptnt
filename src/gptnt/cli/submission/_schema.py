@@ -14,8 +14,8 @@ from whenever import Instant
 
 from gptnt.cli.config_discovery import player_identity
 from gptnt.experiments.db.schema import AsJSON
-from gptnt.experiments.models import ExperimentSummary
-from gptnt.experiments.suite.core import SuiteIdentity
+from gptnt.experiments.records import ExperimentSummary
+from gptnt.experiments.suite.definition import SuiteIdentity
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.specification import PlayerCapabilities, PlayerIdentity, PlayerRole
 from gptnt.provenance import Provenance
@@ -31,7 +31,7 @@ class UnsupportedSubmissionSchemaError(ValueError):
 class Submitter(BaseModel):
     """Who is submitting.
 
-    Written blank on build; the submitter fills these in and CI checks they are non-empty.
+    Written blank on build. The submitter fills these in and CI checks they are non-empty.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -98,7 +98,7 @@ class SubmissionExperiment(ExperimentSummary):
 
 
 class SubmissionPlayer(BaseModel):
-    """One player in a submission: its role, full capabilities, fingerprint, and attribution.
+    """One player in a submission, with role, full capabilities, fingerprint, and attribution.
 
     `fingerprint` == `capabilities.fingerprint`, so it is a computed field and serialised into the
     manifest for readability. `identity` is the model's leaderboard from its player config.
@@ -134,10 +134,10 @@ class SubmissionPlayer(BaseModel):
     ) -> Self:
         """Check a serialised `fingerprint` still matches its capabilities, then drop it.
 
-        The written value is a computed field (display only), so a round-trip must discard it —
-        but a manifest whose written fingerprint disagrees with its own `capabilities` has been
+        The written value is a computed field (display only), so a round-trip must discard it.
+        But a manifest whose written fingerprint disagrees with its own `capabilities` has been
         tampered with (or built by different code) and must not parse. Localised here, at the
-        submission boundary that actually exports it — the core `PlayerCapabilities` stays a clean
+        submission boundary that actually exports it, the core `PlayerCapabilities` stays a clean
         recorded model with no such machinery.
         """
         written = None
@@ -183,13 +183,13 @@ class Submission[IdentityT: SuiteIdentity | StaticsIdentity](BaseModel):
 
     @property
     def target(self) -> str:
-        """What was measured, with its pin — the bundle dir's leaf name."""
+        """What was measured, with its pin, the bundle dir's leaf name."""
         return self.measured.target
 
     @field_validator("schema_version")
     @classmethod
     def _supported_schema_version(cls, version: int) -> int:
-        """A manifest written by a different schema can't be reasoned about here."""
+        """Return a manifest written by a different schema can't be reasoned about here."""
         if version != SCHEMA_VERSION:
             raise ValueError(
                 f"schema_version {version} is not supported "
@@ -200,7 +200,7 @@ class Submission[IdentityT: SuiteIdentity | StaticsIdentity](BaseModel):
     @field_validator("players", mode="after")
     @classmethod
     def _exactly_one_defuser_first(cls, players: list[SubmissionPlayer]) -> list[SubmissionPlayer]:
-        """A submission has exactly one defuser, and it is moved to the front for consistency."""
+        """Require exactly one defuser, moved to the front for consistency."""
         defuser_indices = [idx for idx, player in enumerate(players) if player.role == "defuser"]
         if len(defuser_indices) != 1:
             raise ValueError(f"Expected exactly one defuser, got {len(defuser_indices)}")

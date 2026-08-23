@@ -14,7 +14,7 @@ from gptnt.common.image_ops import ImageDimensions
 
 logger = structlog.get_logger()
 
-# The language codes KTANE ships, sourced from https://www.bombmanual.com/language.html
+# The language codes KTANE includes, sourced from https://www.bombmanual.com/language.html
 # (English plus 26 translations; the region-tagged entries pt-BR, zh-CN, ... are
 # part of the set). Constraining to this closed set both rejects unsupported codes
 # loudly and keeps the rendered XML well-formed (every value is alphanumeric/hyphen,
@@ -140,7 +140,7 @@ class KtaneSettings(BaseSettings):
     def backup_old_file(self, *, file_path: Path, default_file_contents: str) -> None:
         """Backup the old settings if it exists."""
         if file_path.exists() and file_path.read_text() == default_file_contents:
-            logger.debug(f"'{file_path.name}' file is already good, no need to backup.")
+            logger.debug("File is already correct, no backup needed", file_name=file_path.name)
             return
 
         if file_path.exists():
@@ -148,7 +148,9 @@ class KtaneSettings(BaseSettings):
             backup_location = file_path.with_suffix(f".{timestamp}.bak")
             with logfire.suppress_instrumentation():
                 logger.warning(
-                    f"'{file_path.name} file already exists, we need to replace it to run things automatically. We are going to backup your settings at '{backup_location}'"
+                    "Settings file already exists; replacing it and backing up the original",
+                    file_name=file_path.name,
+                    backup_location=backup_location,
                 )
             _ = backup_location.write_bytes(file_path.read_bytes())
 
@@ -162,7 +164,7 @@ class KtaneSettings(BaseSettings):
         file_path.parent.mkdir(parents=True, exist_ok=True)
         _ = file_path.write_text(default_file_contents, encoding="utf-8")
 
-        logger.info(f"File created at '{file_path}'")
+        logger.info("File created", file_path=file_path)
 
     def create_player_settings_file(self, *, path: Path | None = None) -> None:
         """Create the playerSettings.xml file if it doesn't exist.

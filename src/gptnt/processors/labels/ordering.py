@@ -7,7 +7,7 @@ from skimage.measure import regionprops
 from structlog import get_logger
 
 from gptnt.ktane.state.modules import KtaneModuleId
-from gptnt.processors.labels.types import RegionProperties, RGBArray
+from gptnt.processors.labels.annotation import RegionProperties, RGBArray
 
 _logger = get_logger()
 

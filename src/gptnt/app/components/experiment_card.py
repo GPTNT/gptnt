@@ -7,7 +7,7 @@ import streamlit as st
 if TYPE_CHECKING:
     from streamlit.runtime.state import WidgetCallback
 
-    from gptnt.experiments.models import ExperimentSummary
+    from gptnt.experiments.records import ExperimentSummary
 
 
 STREAMLIT_RED = "#BD4043"
@@ -49,7 +49,7 @@ def render_experiment_card(  # noqa: WPS231
     *,
     show_button: bool = True,
 ) -> ExperimentSummary | None:
-    """Render a single experiment card with selection button."""
+    """Render one experiment card with selection button."""
     with st.container(gap=None, horizontal=True, height="stretch", border=True, width=375):
         with st.container(gap=None, width=30, height="stretch", vertical_alignment="distribute"):
             if idx is not None:

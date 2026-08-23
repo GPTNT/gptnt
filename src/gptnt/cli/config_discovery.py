@@ -43,7 +43,7 @@ def discover_providers() -> list[str]:
 
 
 def _config_for_player(player_name: str) -> tuple[Path, dict[str, Any]] | None:
-    """The `(path, parsed config)` whose capabilities name matches `player_name`, or `None`."""
+    """Return the `(path, parsed config)` whose capabilities name matches `player_name`."""
     for path in paths.player_configs.glob("*.yaml"):
         config = yaml.safe_load(path.read_text()) or {}
         if (config.get("capabilities") or {}).get("player_name") == player_name:

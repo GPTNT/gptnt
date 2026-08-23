@@ -143,7 +143,7 @@ async def diagnose(
 
 
 def _doctor_targets(run: RunManifest | None) -> list[tuple[str, str | None]]:
-    """The (player, provider) pairs to validate.
+    """Return the (player, provider) pairs to validate.
 
     The manifest roster, else every discovered player.
     """
@@ -197,7 +197,7 @@ def _run_plan_checks(
     """
     try:
         return analyze_run_plan(run, config_to_player, specs=specs)
-    except Exception as exc:  # noqa: BLE001 — a crashing cross-check must not abort the report
+    except Exception as exc:  # noqa: BLE001  (a crashing cross-check must not abort the report)
         return RunPlanResult(
             findings=[CheckResult.failed("Run plan", "cross-check crashed", str(exc)[:200])],
             specs=[],
@@ -223,7 +223,7 @@ async def _infrastructure_checks(*, check_mod_load: bool) -> list[CheckResult]:
 
 
 async def _mod_load_row(*, enabled: bool, prerequisites: tuple[CheckResult, ...]) -> CheckResult:
-    """The mod-load row: skip (with the flag to run it) when disabled or a prerequisite failed."""
+    """Return the mod-load row, skipped when disabled or a prerequisite failed."""
     if not enabled:
         return CheckResult.skipped(MOD_LOAD_CHECK, "not run", "run with --check-mod-load")
 

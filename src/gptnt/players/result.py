@@ -27,7 +27,7 @@ class AgentCallResult(BaseModel, Generic[ModelOutputT_co]):  # noqa: UP046
         """Ensure there are no tool parts in the new messages.
 
         We do this just to make life easier right now. But that also means we are double-ing down
-        on the whole "no using function tools to play the game" aspect of the benchmark.
+        on "no using function tools to play the game" aspect of the benchmark.
 
         Also Pydantic says to use ValueError and not TypeError, hence the noqa.
         """

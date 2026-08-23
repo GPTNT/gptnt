@@ -1,5 +1,3 @@
-"""Render and enforce benchmark integrity at CLI score-producing boundaries."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass

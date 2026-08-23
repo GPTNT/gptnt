@@ -2,7 +2,7 @@ from collections.abc import Generator
 
 import structlog
 
-from gptnt.processors.labels.types import DrawData, NumberBoxDimensions, RegionProperties
+from gptnt.processors.labels.annotation import DrawData, NumberBoxDimensions, RegionProperties
 
 KEYPAD_REGIONS = 4
 log = structlog.get_logger()
@@ -13,7 +13,7 @@ def keypad(
 ) -> Generator[DrawData]:  # noqa: WPS210
     """Annotate the keypad module with labels."""
     if len(regions) != KEYPAD_REGIONS:
-        log.warning(f"Keypad should have {KEYPAD_REGIONS} regions, but got %d", len(regions))
+        log.warning("Unexpected keypad region count", expected=KEYPAD_REGIONS, actual=len(regions))
     # Sort by minimum x (leftmost)
     sorted_regions = sorted(regions, key=lambda region: region.bbox[1])
     # two leftmost regions

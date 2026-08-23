@@ -10,7 +10,7 @@ from pydantic_ai.settings import merge_model_settings
 from rich.console import Console
 from rich.table import Table
 
-from gptnt.cli._params import PlayerOption, ProviderOption
+from gptnt.cli.params import PlayerOption, ProviderOption
 from gptnt.common.hydra import compose_player_config
 from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.common.paths import Paths
@@ -85,8 +85,8 @@ async def _measure(agent: Agent, image_bytes: bytes) -> tuple[int, int]:
     provider-correct thinking setting is preserved rather than clobbered. A per-request settings
     callable has no static value to start from, so we fall back to overriding just `max_tokens`.
 
-    Both requests send the prompt as a single-element multipart list, so the only difference
-    between them is the image part — a plain-string baseline could tokenise differently and skew
+    Both requests send the prompt as one-element multipart list, so the only difference
+    between them is the image part. A plain-string baseline could tokenise differently and skew
     the delta.
     """
     base = None if callable(agent.model_settings) else agent.model_settings  # noqa: WPS504
@@ -117,10 +117,10 @@ def _write_tokens_per_image(player: str, tokens_per_image: int) -> Path:
 def _insert_tokens_per_image(text: str, tokens_per_image: int) -> str:
     """Set `tokens_per_image` inside the `capabilities:` block of a player-config yaml.
 
-    A surgical text edit: replace the existing `tokens_per_image:` line if present, else insert one
-    just below `player_name:` (falling back to directly under the `capabilities:` header when
-    there is no `player_name:`), matching the key order of the checked-in configs. Everything else
-    is left byte-for-byte, so comments and `${oc.env:...}` interpolations survive.
+    Replaces the existing `tokens_per_image:` line if present, else inserts one just below
+    `player_name:` (falling back to directly under the `capabilities:` header when there is no
+    `player_name:`), matching the key order of the checked-in configs. Everything else is left
+    byte-for-byte, so comments and `${oc.env:...}` interpolations survive.
     """
     lines = text.splitlines(keepends=True)
     header = next(

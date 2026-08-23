@@ -1,5 +1,3 @@
-"""User-authored manual profile: the documents a manual contains, in order."""
-
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -8,7 +6,7 @@ from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 from gptnt.common.hashing import stable_digest
 
 type DocumentName = Annotated[str, Field(pattern=r"^[^/\\]+\.html$")]
-"""The name of a single HTML document in the KtaneContent repository, without any directory."""
+"""The name of one HTML document in the KtaneContent repository, without any directory."""
 
 
 def _require_html_suffix(path: Path) -> Path:

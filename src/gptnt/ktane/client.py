@@ -161,7 +161,7 @@ class KtaneClient(ManagedHttpClient):
     """Client that interacts with the KTANE game itself."""
 
     async def update_url(self, url: str | httpx.URL) -> None:
-        """Create a new client with the given base URL."""
+        """Create a new client with the base URL."""
         await self.client.aclose()
         self.recreate_client(url=url)
 

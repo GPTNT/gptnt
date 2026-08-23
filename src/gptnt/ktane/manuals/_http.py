@@ -1,5 +1,3 @@
-"""HTTP streaming for manual asset downloads."""
-
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -7,7 +5,7 @@ from tempfile import NamedTemporaryFile
 
 import httpx
 
-from gptnt.ktane.manuals._progress import ProgressReporter
+from gptnt.ktane.manuals.progress import ProgressReporter
 
 
 @contextmanager

@@ -14,7 +14,7 @@ import yaml
 from pydantic import ValidationError
 
 from gptnt.cli.run.manifest import RunManifest
-from gptnt.experiments.ledger.base import Source
+from gptnt.experiments.ledger.completion import Source
 
 # tests/cli/test_run_manifest.py -> tests/cli -> tests -> <repo root>
 _REPO_ROOT = Path(__file__).resolve().parents[2]

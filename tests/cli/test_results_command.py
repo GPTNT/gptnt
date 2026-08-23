@@ -20,7 +20,7 @@ from tests._factories.experiments import make_experiment_summary
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from gptnt.experiments.models import ExperimentSummary
+    from gptnt.experiments.records import ExperimentSummary
 
 
 def _write_db(db_path: Path, summaries: list[ExperimentSummary]) -> None:

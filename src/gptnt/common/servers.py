@@ -11,7 +11,7 @@ def get_available_port() -> int:
 
 
 def block_until_listening(host: str, port: int, timeout: float = 5.0) -> None:
-    """Block until a server is listening on the given host and port.
+    """Block until a server is listening on the host and port.
 
     Synchronous on purpose (uses `time.monotonic` rather than `anyio.current_time`) so it can be
     called outside an event loop.

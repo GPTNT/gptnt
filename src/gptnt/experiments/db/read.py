@@ -1,5 +1,3 @@
-"""Read experiment summaries and per-experiment final state/usage from the DuckDB database."""
-
 from __future__ import annotations
 
 from collections import defaultdict
@@ -10,7 +8,7 @@ from pydantic import TypeAdapter
 from pydantic_ai import RunUsage
 
 from gptnt.experiments.db.schema import AsBlob
-from gptnt.experiments.models import ExperimentStep, ExperimentSummary
+from gptnt.experiments.records import ExperimentStep, ExperimentSummary
 from gptnt.ktane.state.bomb import BombState
 
 if TYPE_CHECKING:
@@ -80,7 +78,7 @@ def _group_cells_by_session(
 
 
 def _get_final_bomb_state(bomb_states: _BombStateCells) -> BombState:
-    """The last non-null bomb state of one experiment's steps, which _should_ exist."""
+    """Return the last non-null bomb state of one experiment's steps, which _should_ exist."""
     final = next(
         (BombState.model_validate_json(bs) for bs in reversed(bomb_states) if bs is not None), None
     )

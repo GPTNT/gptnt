@@ -1,6 +1,6 @@
 from typing import override
 
-from gptnt.interactive.services.heartbeat.base import BaseHeartbeat
+from gptnt.interactive.services.heartbeat.events import BaseHeartbeat
 from gptnt.ktane.state.game import GameState
 
 

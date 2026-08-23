@@ -109,7 +109,7 @@ class ObservabilitySettings(BaseSettings):
 
     @classmethod
     def limited(cls) -> Self:
-        """Minimal instrumentation for big throws: pydantic-ai spans only, no metrics."""
+        """Minimal instrumentation for big throws: pydantic-ai spans only."""
         return cls(
             enable_metrics=False,
             instrument_fastapi=False,

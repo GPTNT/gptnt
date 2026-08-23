@@ -3,7 +3,7 @@ from typing import Annotated, override
 import orjson
 from pydantic import BeforeValidator, PlainSerializer
 
-from gptnt.interactive.services.heartbeat.base import BaseHeartbeat, PlayerState
+from gptnt.interactive.services.heartbeat.events import BaseHeartbeat, PlayerState
 from gptnt.players.specification import PlayerCapabilities
 
 

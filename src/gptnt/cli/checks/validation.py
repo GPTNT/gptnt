@@ -1,5 +1,3 @@
-"""Validate a model config — used by the `validate` and `doctor` CLI commands."""
-
 from __future__ import annotations
 
 import time
@@ -39,7 +37,7 @@ class ModelValidationResult:
 
 @dataclass(frozen=True)
 class LiveCheckResult:
-    """Outcome of a single plain-text request: did the endpoint answer?"""
+    """Outcome of one plain-text request: did the endpoint answer?"""
 
     ok: bool
     latency_seconds: float | None = None
@@ -110,7 +108,7 @@ def _validate_agent(
 def validate_model_config(model_name: str, provider: str | None = None) -> ModelValidationResult:
     """Statically validate a model config: compose + instantiate it, then discard.
 
-    Credential-tolerant — an unset provider key reports `ok=True, missing_credential=True`.
+    Credential-tolerant: an unset provider key is reported as `ok=True, missing_credential=True`.
     """
     try:
         cfg = compose_player_config(model_name, provider)

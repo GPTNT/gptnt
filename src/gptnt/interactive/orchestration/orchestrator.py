@@ -148,8 +148,8 @@ class ProcessOrchestrator:
 async def fail_and_terminate(orch: ProcessOrchestrator, failed: TrackedProcess) -> None:
     """Report a process failure, tear down the cluster, and exit non-zero.
 
-    The single "log failure → terminate → exit" path shared by the spawn and monitor steps so a
-    crashed child never leaves the run idling forever.
+    The "log failure, terminate, exit" path shared by the spawn and monitor steps so a crashed
+    child never leaves the run idling forever.
     """
     logger.error(
         "Process failed",

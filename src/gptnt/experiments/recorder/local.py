@@ -12,12 +12,12 @@ from anyio.to_thread import run_sync as run_sync_in_thread
 from whenever import Instant
 
 from gptnt.common.paths import Paths
-from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentStep
 from gptnt.experiments.recorder.parquet import (
     blob_step,
     footer_from_player_record,
     write_player_record_parquet,
 )
+from gptnt.experiments.records import ExperimentPlayerRecord, ExperimentStep
 from gptnt.players.observation_handler import Observation
 
 if TYPE_CHECKING:
@@ -38,7 +38,7 @@ logger = structlog.get_logger()
 
 @dataclass(kw_only=True)
 class ExperimentPlayerRecorder:
-    """Record the events of an experiment for a single player."""
+    """Record the events of an experiment for one player."""
 
     capabilities: PlayerCapabilities
     provenance: Provenance | None = field(default=None, init=False)
@@ -200,7 +200,7 @@ class ExperimentPlayerRecorder:
         )
 
     async def save_player_record_to_disk(self, *, player_record: ExperimentPlayerRecord) -> None:
-        """Save the given player record to disk as a parquet file."""
+        """Save the player record to disk as a parquet file."""
         if not player_record.step_records:
             logger.warning(
                 "No step records to save for player record, skipping disk write.",
@@ -219,7 +219,7 @@ class ExperimentPlayerRecorder:
         )
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Blobbing (zstd level 19) + the parquet write are CPU-bound and synchronous — run them off
+        # Blobbing (zstd level 19) + the parquet write are CPU-bound and synchronous. Run them off
         # the event loop in a worker thread.
         await run_sync_in_thread(_write_player_record_sync, player_record, output_path)
 
@@ -234,7 +234,7 @@ class ExperimentPlayerRecorder:
 def _write_player_record_sync(player_record: ExperimentPlayerRecord, output_path: Path) -> None:
     """Blob the steps and write the parquet file.
 
-    Synchronous — call via a worker thread.
+    Synchronous, call via a worker thread.
     """
     write_player_record_parquet(
         blobbed_steps=(blob_step(step) for step in player_record.step_records),

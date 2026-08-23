@@ -12,7 +12,7 @@ from gptnt.app.components.model_messages import (
     render_small_html_text,
     render_thoughts,
 )
-from gptnt.experiments.models import ExperimentStep
+from gptnt.experiments.records import ExperimentStep
 from gptnt.ktane.actions import RelativeCoordinate
 from gptnt.players.actions import (
     DoNothingAction,
@@ -200,7 +200,7 @@ def render_response_errors(errors: list[AIResponseErrorType] | None) -> None:
 def render_dialogue_bubble(
     step: ExperimentStep, idx: int, *, render_as_raw: bool, force_collapsed: bool
 ) -> None:
-    """Render a single dialogue bubble for a step."""
+    """Render one dialogue bubble for a step."""
     if step.role == "defuser":
         msg_col, _ = st.columns([5, 1])
     else:

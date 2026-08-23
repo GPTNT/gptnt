@@ -6,7 +6,7 @@ from pydantic.types import UUID4
 from structlog import get_logger
 from whenever import Instant
 
-from gptnt.interactive.services.heartbeat.base import ReadyState
+from gptnt.interactive.services.heartbeat.events import ReadyState
 from gptnt.interactive.services.heartbeat.game import GameHeartbeat
 from gptnt.interactive.services.heartbeat.player import PlayerHeartbeat
 from gptnt.interactive.services.timeouts import ServiceTimeouts

@@ -2,13 +2,14 @@
 
 import subprocess
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import httpx
 import pytest
 import respx
 
 from gptnt.ktane.manuals import _assets
-from gptnt.ktane.manuals.download import DownloadProgress, download_manual_assets
+from gptnt.ktane.manuals.download import download_manual_assets
 from gptnt.ktane.manuals.profile import (
     KtaneContentDocument,
     LocalDocument,
@@ -23,6 +24,9 @@ from gptnt.ktane.manuals.sources import (
     ManualSources,
     OfficialManualSource,
 )
+
+if TYPE_CHECKING:
+    from gptnt.ktane.manuals.progress import DownloadProgress
 
 # The aggregate catalog only needs the fields used to map a profile's module ID to Wires.html.
 CATALOG = b'{"KtaneModules":[{"ModuleID":"Wires","Name":"Wires"}]}'

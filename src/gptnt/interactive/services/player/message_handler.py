@@ -108,7 +108,7 @@ class IncomingMessageHandler:
         """Pull all pending messages from the queue.
 
         Returns:
-            A single string with all pending feedback and normal messages joined by
+            One string with all pending feedback and normal messages joined by
             newlines. If there are no new (non-feedback) messages to return,
             `NO_NEW_MESSAGES_SENTINEL` is appended to the result so callers can
             distinguish the "no new messages" case.

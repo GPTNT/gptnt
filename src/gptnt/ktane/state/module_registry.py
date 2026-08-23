@@ -52,7 +52,7 @@ class ModuleRegistry(BaseModel):
         return self.modules.get(module_id, _DEFAULT_FACTS)
 
     def needs_multiple_frames(self, module_id: str) -> bool:
-        """Whether the Defuser needs several observation frames of a module."""
+        """Return whether the Defuser needs several observation frames of a module."""
         return self.facts(module_id).needs_multiple_frames
 
 
@@ -64,5 +64,5 @@ def _load_module_registry(path: Path) -> ModuleRegistry:
 
 @lru_cache(maxsize=1)
 def module_registry() -> ModuleRegistry:
-    """The registry shipped with GPTNT."""
+    """Return the registry included with GPTNT."""
     return _load_module_registry(Paths().module_registry)

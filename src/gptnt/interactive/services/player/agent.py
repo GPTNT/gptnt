@@ -9,8 +9,8 @@ from pydantic import UUID4
 from gptnt.experiments.instance import ExperimentInstance
 from gptnt.experiments.recorder.local import ExperimentPlayerRecorder
 from gptnt.interactive.services.game.client import GameClient
-from gptnt.interactive.services.heartbeat.base import PlayerState
 from gptnt.interactive.services.heartbeat.broadcaster import HeartbeatBroadcaster
+from gptnt.interactive.services.heartbeat.events import PlayerState
 from gptnt.interactive.services.heartbeat.player import PlayerHeartbeat
 from gptnt.interactive.services.player.action_dispatcher import ActionDispatcher
 from gptnt.interactive.services.player.message_handler import IncomingMessageHandler
@@ -26,13 +26,12 @@ from gptnt.players.specification import PlayerCapabilities, PlayerIdentity, Play
 class PlayerAgent(HeartbeatBroadcaster):
     """Context for the player service instance.
 
-    This composes the various player components and manages the shared state to help the actual
-    service. No logic is done here, that's delegated to the various components and the API routes
-    that use them.
+    This composes the player components and manages the shared state to help the actual service. No
+    logic is done here, that's delegated to the components and the API routes that use them.
 
     I'm hoping that in this way, we can keep things clearer but also nice and explicit about what
-    is happening and who is doing what by deferring ALL of that logic to the various components and
-    the API routes that use them.
+    is happening and who is doing what by deferring ALL of that logic to the components and the API
+    routes that use them.
     """
 
     uuid: UUID4 = field(default_factory=uuid4)

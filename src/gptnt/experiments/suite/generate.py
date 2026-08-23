@@ -17,7 +17,7 @@ CONFIG_NAME = "suite_generator"
 
 
 def _best_model_for(pairing_type: PairingType, players: DictConfig) -> str | None:
-    """The anchored model a `with_best_*` pairing needs, or `None` for the other pairings."""
+    """Return the anchored model a `with_best_*` pairing needs, or `None` otherwise."""
     if pairing_type == "with_best_defuser":
         return players.best_defuser
     if pairing_type == "with_best_expert":

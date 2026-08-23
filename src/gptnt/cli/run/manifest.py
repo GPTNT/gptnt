@@ -1,11 +1,11 @@
 """The `run.yaml` manifest schema and its loader.
 
-This module is the single source of truth for the declarative run manifest. It is shared by `gptnt
-doctor <run.yaml>` (which structurally validates + cross-checks the manifest) and the `gptnt run`
-capstone (which executes it). It is deliberately framework-free: it does not import typer, so the
-loader can be reused outside the CLI. The loader only validates *structure* — it does not check
-whether referenced model/provider/anchor/experiment config names actually exist on disk (that
-cross-check belongs to the doctor command).
+This module defines the declarative run manifest. It is shared by `gptnt doctor <run.yaml>` (which
+structurally validates + cross-checks the manifest) and the `gptnt run` capstone (which executes
+it). It is deliberately framework-free: it does not import typer, so the loader can be reused
+outside the CLI. The loader only validates *structure*. It does not check whether referenced
+model/provider/anchor/experiment config names actually exist on disk (that cross-check belongs to
+the doctor command).
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Annotated, Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from gptnt.experiments.ledger.base import Source
+from gptnt.experiments.ledger.completion import Source
 from gptnt.players.specification import PlayerSpec
 
 if TYPE_CHECKING:

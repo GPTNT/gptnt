@@ -8,7 +8,7 @@ from gptnt.ktane.state.modules import KtaneModuleId
 def compute_mission_key(components: list[KtaneModuleId], *, seed: int, rule_seed: int) -> str:
     """Stable, human-readable identity for a mission and its generated rules.
 
-    The component order does not affect identity. The two seeds remain visible so records using the
+    The component order does not affect identity. Both seeds remain visible so records using the
     same bomb layout but different generated rules do not share a key.
     """
     sorted_modules = ",".join(sorted(str(component) for component in components))

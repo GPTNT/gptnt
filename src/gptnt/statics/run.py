@@ -19,7 +19,7 @@ from gptnt.players.reasoning_parser.inner_monologue import InnerMonologueReasoni
 from gptnt.players.specification import PlayerCapabilities
 from gptnt.processors.image_resizer import ImageResizer
 from gptnt.provenance import Provenance
-from gptnt.statics.model import EvalModel, ModelOutput
+from gptnt.statics.eval_model import EvalModel, ModelOutput
 from gptnt.statics.output import StaticsReasoningParser, static_prediction_answer
 from gptnt.statics.preprocess import PostprocessInputsFunc
 from gptnt.statics.run_metadata import StaticsIdentity, StaticsRunMetadata, bind_run_metadata
@@ -82,7 +82,7 @@ async def run_eval_step(
     predict_method: Callable[..., Awaitable[ModelOutput]],
     prediction_output_file: Path,
 ) -> ModelOutput | None:
-    """Run a single evaluation step for an instance."""
+    """Run one evaluation step for an instance."""
     prediction = await predict_method(**instance)
     # Add index to prediction content
     prediction_with_index = {"index": instance["index"], **prediction}
@@ -162,14 +162,14 @@ class RunEvaluation(abc.ABC):
         assert getattr(self.eval_model, self.predict_method_name, None) is not None, (
             "EvalModel must have the specified predict method"
         )
-        logger.info(f"Running evaluation for task: {self.task_name}")
+        logger.info("Running evaluation", task_name=self.task_name)
         instances = self.load_dataset()
         for instance in tqdm(instances):
             prediction_output_file = self.output_dir.joinpath(
                 f"prediction_{instance['index']}.json"
             )
             if prediction_output_file.exists():
-                logger.info(f"Skipping instance {instance['index']}, output already exists.")
+                logger.info("Skipping instance, output already exists", index=instance["index"])
                 continue
 
             _ = await run_eval_step(  # noqa: WPS476
@@ -179,7 +179,7 @@ class RunEvaluation(abc.ABC):
             )
 
         _ = self.score(instances)
-        logger.info(f"Evaluation completed. Results saved to {self.output_dir}")
+        logger.info("Evaluation completed", output_dir=self.output_dir)
 
     def score(self, instances: Instances | None = None) -> Metrics:
         """Compute metrics locally from the saved predictions and write metrics.json (no Weave)."""
@@ -192,7 +192,7 @@ class RunEvaluation(abc.ABC):
         metrics = score_predictions(self.scorers, instances, predictions)
         metrics_file = self.output_dir.joinpath("metrics.json")
         _ = metrics_file.write_bytes(orjson.dumps(metrics, option=orjson.OPT_INDENT_2))
-        logger.info(f"Wrote metrics for {len(predictions)} predictions to {metrics_file}")
+        logger.info("Wrote metrics", prediction_count=len(predictions), metrics_file=metrics_file)
         return metrics
 
     async def upload(self) -> None:

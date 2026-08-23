@@ -1,5 +1,3 @@
-"""Load prepared manual artifacts and prepare them for selected profiles."""
-
 from __future__ import annotations
 
 import contextlib
@@ -23,12 +21,7 @@ from pydantic import (
     model_validator,
 )
 
-from gptnt.ktane.manuals._compiler import (
-    ManualCompileError,
-    build_artifact,
-    input_identity,
-    renderer_identity,
-)
+from gptnt.ktane.manuals._compiler import build_artifact, input_identity, renderer_identity
 from gptnt.ktane.manuals.compiler_sources import prepare_compiler_sources
 from gptnt.ktane.manuals.download import download_manual_assets
 from gptnt.ktane.manuals.resolution import ResolvedOfficialDocument
@@ -235,9 +228,6 @@ def _remove_incomplete(path: Path) -> None:
 
 def compile_manual(documents: Sequence[ResolvedDocument], *, cache_dir: Path) -> ManualArtifact:
     """Compile an ordered resolved-document sequence into a loaded manual artifact."""
-    if not documents:
-        raise ValueError("at least one resolved manual document is required")
-
     inputs = [input_identity(document) for document in documents]
     renderer = renderer_identity(documents)
     artifact_key = ManualArtifact.key(inputs, renderer)
@@ -275,7 +265,7 @@ def compile_manual(documents: Sequence[ResolvedDocument], *, cache_dir: Path) ->
                 expected_renderer=renderer,
             )
         except ValidationError as error:
-            raise ManualCompileError("compiler produced an incomplete artifact") from error
+            raise RuntimeError("compiler produced an incomplete artifact") from error
         with contextlib.suppress(OSError):
             _ = build_dir.rename(artifact_dir)
         return ManualArtifact.load(

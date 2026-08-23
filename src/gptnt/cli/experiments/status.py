@@ -10,7 +10,7 @@ from rich.table import Table
 from rich.text import Text
 
 from gptnt.cli.config_discovery import discover_suites
-from gptnt.cli.experiments.models import ExperimentsSource, SourceOption
+from gptnt.cli.experiments.source import ExperimentsSource, SourceOption
 from gptnt.common.paths import Paths
 from gptnt.common.runtime_settings import RuntimeSettings
 from gptnt.experiments.ledger import ExperimentStatus, Source, resolve_ledger
@@ -59,7 +59,7 @@ ExperimentsArgument = Annotated[
 
 
 def _attempt_names_for_suites(suite_names: list[str]) -> list[str]:
-    """Generate (in-process) the expected attempt names for the given suite names."""
+    """Generate (in-process) the expected attempt names for the suite names."""
     attempt_names: list[str] = []
     for suite_name in suite_names:
         console.print(f"  Adding suite: [cyan]{suite_name}[/cyan]")
@@ -92,14 +92,14 @@ def _resolve_experiments(sources: list[ExperimentsSource]) -> list[str]:
 
 
 def _live_running() -> set[str]:
-    """The attempt names the local EM is currently running/queueing, best-effort.
+    """Return the attempt names the local EM is currently running/queueing, best-effort.
 
     A live overlay so a benchmark run shows in-flight progress without W&B. If the EM is not up
     (the common case when just inspecting results), this returns nothing rather than failing.
     """
     try:
         response = httpx.get(f"{RuntimeSettings().em_base_url}/active", timeout=2)
-    except Exception:  # noqa: BLE001 — the overlay is optional; absence of the EM is normal
+    except Exception:  # noqa: BLE001  (the overlay is optional; absence of the EM is normal)
         return set()
     if response.status_code != 200:  # noqa: PLR2004
         return set()

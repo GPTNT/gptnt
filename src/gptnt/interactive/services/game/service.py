@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from faststream.redis import RedisBroker
 
 from gptnt.interactive.services.game.context import GameServiceContext
-from gptnt.interactive.services.heartbeat.base import ReadyState
+from gptnt.interactive.services.heartbeat.events import ReadyState
 from gptnt.interactive.services.rpc import BaseRPCService
 from gptnt.ktane.actions import KtaneGameplayInput
 from gptnt.ktane.client import FrameBuffer

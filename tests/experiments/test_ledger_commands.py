@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from gptnt.cli.__main__ import build_app
-from gptnt.experiments.ledger.base import Source
+from gptnt.experiments.ledger.completion import Source
 from gptnt.experiments.ledger.resolve import filter_experiments
 from gptnt.experiments.recorder.parquet import (
     RecordFooter,

@@ -86,7 +86,7 @@ class Session:
     async def run(self) -> None:
         """Run the experiment and blocks until done or cancelled.
 
-        Must be spawned in its own task (e.g. via `tg.start_soon`) so the cancel scope lives in
+        Must be spawned in its own task (e.g. via `tg.start_soon`) so the cancel scope belongs to
         that task, **not** in the caller's. `force_stop_experiment` can then safely cancel the
         scope without affecting sibling tasks.
         """
@@ -114,7 +114,7 @@ class Session:
         self.experiment_runner.client_crashed_event.set()
 
         # Force-cancel the session's scope to interrupt any blocked awaits (e.g. an RPC to a dead
-        # service).  Because run() is in its own task, this only affects the session — not the EM
+        # service).  Because run() is in its own task, this only affects the session, not the EM
         # or matchmaking loop.
         logger.info("Cancelling experiment scope", experiment=self.name)
         self._cancel_scope.cancel()

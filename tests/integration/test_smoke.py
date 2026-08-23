@@ -44,7 +44,7 @@ async def test_services_register_and_matchmake(
     """EM + game + 2 players register over fake Redis; a submitted spec is matched to a session."""
     # Keep this matchmaking test independent of the checkout's release tag.
     _ = mocker.patch(
-        "gptnt.provenance.model.check_benchmark_integrity", return_value=make_provenance()
+        "gptnt.provenance.capture.check_benchmark_integrity", return_value=make_provenance()
     )
 
     # Mock the experiment run itself because this test ends at session matchmaking.

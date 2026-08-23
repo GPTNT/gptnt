@@ -1,5 +1,3 @@
-"""Download the source assets required by configured manual profiles."""
-
 from rich.console import Console
 from rich.filesize import decimal
 from rich.progress import Progress, TaskID
@@ -7,7 +5,8 @@ from rich.progress import Progress, TaskID
 from gptnt.cli.manual.selection import AllProfilesOption, SuitesOption, select_manual_profiles
 from gptnt.common.logger import create_progress
 from gptnt.common.paths import Paths
-from gptnt.ktane.manuals.download import DownloadProgress, download_manual_assets
+from gptnt.ktane.manuals.download import download_manual_assets
+from gptnt.ktane.manuals.progress import DownloadProgress
 from gptnt.ktane.manuals.sources import ManualSources
 
 console = Console()

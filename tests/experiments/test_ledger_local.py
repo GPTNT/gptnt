@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from gptnt.experiments.ledger.base import Source
+from gptnt.experiments.ledger.completion import Source
 from gptnt.experiments.ledger.local import LocalLedger
 from gptnt.experiments.ledger.resolve import resolve_ledger
 from gptnt.experiments.recorder.parquet import (

@@ -1,5 +1,3 @@
-"""List completed experiment outcomes from the DuckDB results database."""
-
 from pathlib import Path
 from typing import Annotated
 
@@ -11,7 +9,7 @@ from rich.text import Text
 
 from gptnt.common.paths import Paths
 from gptnt.experiments.db.read import load_experiment_summaries
-from gptnt.experiments.models import ExperimentSummary
+from gptnt.experiments.records import ExperimentSummary
 from gptnt.ktane.state.bomb import BombOutcome
 
 console = Console()
@@ -19,7 +17,7 @@ paths = Paths()
 
 
 def _outcome(summary: ExperimentSummary) -> Text:
-    """The outcome label for a valid run.
+    """Return the outcome label for a valid run.
 
     `is_valid_outcome` guarantees a valid summary is exactly one of solved, struck out, or timed
     out, so these three branches are total for the rows we render.
@@ -32,7 +30,7 @@ def _outcome(summary: ExperimentSummary) -> Text:
 
 
 def _build_table(valid: list[ExperimentSummary], invalid: list[ExperimentSummary]) -> Table:
-    """One understated row per completed mission, with invalid attempts named in the caption."""
+    """Return one row per completed mission, with invalid attempts named in the caption."""
     table = Table(
         title="KTANE experiment outcomes",
         box=box.SIMPLE,

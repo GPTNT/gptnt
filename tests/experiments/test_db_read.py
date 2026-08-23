@@ -13,7 +13,7 @@ from pydantic_ai import RunUsage
 from gptnt.experiments.db.ingest import ensure_schema
 from gptnt.experiments.db.read import load_experiment_summaries, load_final_states_and_usage
 from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER
-from gptnt.experiments.models import ExperimentStep
+from gptnt.experiments.records import ExperimentStep
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import DoNothingAction
 

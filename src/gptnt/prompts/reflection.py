@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from functools import lru_cache
 
 from gptnt.common.paths import Paths
@@ -13,16 +12,9 @@ INNER_MONOLOGUE_OUTPUT = "Reason internally, then return only the send_message c
 THINKING_OUT_LOUD_OUTPUT = 'Provide your reasoning first, followed by a send_message command in the correct JSON format: \'<thought>{REASONING}</thought><action>{"result": {"kind": "send_message", "data": {"message": "{MESSAGE}"}}}</action>\', replacing {REASONING} with your reasoning and {MESSAGE} with your final answer.'
 
 
-@dataclass(kw_only=True)
-class InvalidBombStateForReflectionError(ValueError):
-    """Exception raised when the bomb state is invalid for reflection."""
-
-    bomb_state: BombState
-
-
 @lru_cache(maxsize=1)
 def load_reflection_prompt(protocol: PlayerProtocol, capabilities: PlayerCapabilities) -> str:
-    """Load the prompt for the given state."""
+    """Load the prompt for the state."""
     reflection_prompt = PromptCache.get_text(
         paths.prompts.joinpath(
             "reflection_solo.txt" if protocol.is_playing_alone else "reflection.txt"
@@ -40,7 +32,7 @@ def convert_bomb_state_to_reflection(bomb_state: BombState) -> str:
     """Convert the bomb state to a reflection message.
 
     Raises:
-        InvalidBombStateForReflectionError: If the bomb state is not valid for reflection.
+        ValueError: If the bomb state has no final message to reflect on.
     """
     final_message: str | None = None
     if bomb_state.is_detonated is True:
@@ -52,10 +44,10 @@ def convert_bomb_state_to_reflection(bomb_state: BombState) -> str:
             final_message = "The bomb exploded because we made too many mistakes."
 
     if bomb_state.is_solved is True:
-        # Player solved all modules on bomb
+        # Player defused the bomb
         final_message = "The bomb was defused successfully."
 
     if not final_message:
-        raise InvalidBombStateForReflectionError(bomb_state=bomb_state)
+        raise ValueError("Bomb state has no final message to reflect on.")
 
     return final_message

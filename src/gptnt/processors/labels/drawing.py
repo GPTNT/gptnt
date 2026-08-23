@@ -6,9 +6,7 @@ import structlog
 from cv2.typing import MatLike
 from numpy.typing import NDArray
 
-from gptnt.processors.labels.color import find_text_color
-from gptnt.processors.labels.position import get_background_corner_coords
-from gptnt.processors.labels.types import (  # noqa: WPS235
+from gptnt.processors.labels.annotation import (  # noqa: WPS235
     BLACK,
     WHITE,
     Color,
@@ -16,6 +14,8 @@ from gptnt.processors.labels.types import (  # noqa: WPS235
     NumberBoxDimensions,
     RGBArray,
 )
+from gptnt.processors.labels.color import find_text_color
+from gptnt.processors.labels.position import get_background_corner_coords
 
 log = structlog.get_logger()
 
@@ -228,7 +228,7 @@ def draw_annotation(
 
 
 def is_overlapping(c1: Coordinates, c2: Coordinates, dims: NumberBoxDimensions) -> bool:
-    """Check if two boxes overlap given their Coordinates and dimensions."""
+    """Check if two boxes overlap their Coordinates and dimensions."""
     return not (
         c1.x_pos + dims.width + dims.space_between <= c2.x_pos
         or c2.x_pos + dims.width + dims.space_between <= c1.x_pos
@@ -245,7 +245,7 @@ def draw_mask_on_image(  # noqa: WPS210
     thickness: int,
     soft_mask_alpha: float,
 ) -> tuple[RGBArray, NDArray[np.bool_]]:
-    """Draw outline of a single region with optional color split for top/bottom."""
+    """Draw outline of one region with optional color split for top/bottom."""
     # blank mask
     mask = np.zeros_like(image[:, :, 0])
 

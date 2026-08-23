@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 import pytest
 from pydantic import ValidationError
 
-from gptnt.experiments.models import ExperimentPlayerRecord, ExperimentSummary
 from gptnt.experiments.recorder.parquet import KEY_FOOTER, RecordFooter, footer_from_player_record
+from gptnt.experiments.records import ExperimentPlayerRecord, ExperimentSummary
 from gptnt.experiments.suite.compose import compose_suite
 from gptnt.experiments.suite.freeze import FreezeReport, FreezeStamp
 from gptnt.experiments.suite.generate import generate_specs
@@ -23,7 +23,7 @@ from tests._factories.experiments import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from gptnt.experiments.suite.core import Suite
+    from gptnt.experiments.suite.definition import Suite
 
 _STAMP = FreezeStamp(frozen_at="2026-01-01T00:00:00Z", gptnt_version="9.9.9", git_sha="cafef00d")
 
@@ -105,7 +105,7 @@ def test_load_suite_from_lock_rebuilds_suite_and_missions(
     path = tmp_path / "suites.lock"
     lock.dump_to_path(path)
     monkeypatch.setattr(
-        "gptnt.experiments.suite.core.load_missions",
+        "gptnt.experiments.suite.definition.load_missions",
         lambda _path: pytest.fail("lock loading read the live mission files"),
     )
 

@@ -1,6 +1,6 @@
 """The `gptnt run` process-supervision engine: spawn, poll, and tear down the cluster.
 
-Rendering-agnostic — operational events go through `structlog` and the live child-log stream is
+Rendering-agnostic, operational events go through `structlog` and the live child-log stream is
 decoupled via `ProcessOrchestrator.on_spawn`; all rich rendering lives in `gptnt.cli.run`.
 """
 

@@ -4,7 +4,7 @@ from typing import Any
 
 from gptnt.experiments.db.connection import DuckDBConnection
 from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER
-from gptnt.experiments.models import ExperimentStep, ExperimentSummary
+from gptnt.experiments.records import ExperimentStep, ExperimentSummary
 
 # Columns excluded from the SELECT to avoid pulling large compressed blobs.
 # The model validator (optionally_skip_heavy_objects) already sets these to
@@ -68,7 +68,7 @@ def _recurse(current: Any, levels: list[str]) -> list[Any]:  # noqa: WPS212
     return _recurse(field_value, remaining)
 
 
-# One dict per step: experiment metadata + role + extracted field values.
+# One dict per step, holding experiment metadata + role + extracted field values.
 StepRow = dict[str, Any]
 
 
@@ -81,7 +81,7 @@ def extract_from_step_records_db(  # noqa: WPS210, WPS231
 ) -> list[StepRow]:
     """Extract fields from ExperimentStep rows in DuckDB.
 
-    Fetches all relevant step records in a single query, then extracts the requested dot-notation
+    Fetches all relevant step records in one query, then extracts the requested dot-notation
     field paths from each deserialized record.
 
     I've also kept everything in this one func just to keep it together and easier to read.
