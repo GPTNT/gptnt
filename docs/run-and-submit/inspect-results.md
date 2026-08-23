@@ -85,7 +85,7 @@ For each static target, confirm that its model directory contains `run_meta.json
 resolved dataset revision for reproducible comparison.
 
 When the required interactive suites and `expert-vqa-no-manual` output are complete, continue to
-[Submit your results](../submit-your-results.md).
+[Submit your results](submit-results.md).
 
 [Results command reference](../reference/cli/results-and-analysis.md)
 [Understand results and provenance](../understand/results-and-provenance.md)

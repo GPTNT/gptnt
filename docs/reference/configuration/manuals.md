@@ -77,5 +77,5 @@ frontmatter.
 GPTNT v2 manual resolution supports only rule seed `1`. A manual-bearing experiment with another
 rule seed fails during preparation.
 
-Use [Prepare manuals](../../manuals.md) to edit and compile a profile. The
+Use [Prepare manuals](../../run-and-submit/prepare-manuals.md) to edit and compile a profile. The
 [manual file reference](../files/manuals.md) describes persisted inputs and cache outputs.

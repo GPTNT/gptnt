@@ -55,5 +55,5 @@ objects, model settings, usage limits, and output modes follow the
 `AgentCallResult` pairs parsed model output with response metadata. The dispatched variant also
 stores the action dispatch result.
 
-For configuration choices, use [Add a model](../../running/add-new-player.md). For the relationship
+For configuration choices, use [Add a model](../../run-and-submit/add-model.md). For the relationship
 between these models, use [Roles, protocols, and capabilities](../../understand/roles-protocols-and-capabilities.md).

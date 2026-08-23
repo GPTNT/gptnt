@@ -31,7 +31,8 @@ flowchart TD
 
 A **run manifest** selects one or more suites, a player roster, room capacity, optional display
 placement, completion source, observability preset, anchors, and an optional attempt-count
-override. [Create a run manifest](../running/create-run-manifest.md) describes that choice point.
+override. [Create a run manifest](../run-and-submit/create-run-manifest.md) describes that choice
+point.
 
 A **suite** defines what is measured. It combines a mission set, matchup rules, player protocols,
 modalities, a revision, and a manual profile. Published suites are frozen in `suites.lock`; their

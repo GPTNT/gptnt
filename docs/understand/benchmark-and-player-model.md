@@ -65,4 +65,4 @@ response alone is not a benchmark result. GPTNT relates the outcome to the suite
 protocols, player identities, capabilities, runtime instance, and provenance captured by the run.
 
 [Trace the experiment hierarchy](experiment-hierarchy.md)
-[Add a model](../running/add-new-player.md)
+[Add a model](../run-and-submit/add-model.md)

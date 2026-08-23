@@ -125,9 +125,9 @@ gptnt doctor runs/quickstart.yaml --config-only
     A successful doctor command exits without a failing row. The report has no separate final
     success sentence.
 
-See the [`doctor` reference](reference/cli/doctor.md){data-preview} for every mode and report
+See the [`doctor` reference](../reference/cli/doctor.md){data-preview} for every mode and report
 section. If this check fails, start with
-[installation and doctor troubleshooting](troubleshooting/installation-and-doctor.md).
+[installation and doctor troubleshooting](../troubleshooting/installation-and-doctor.md).
 
 ## Provide KTANE
 
@@ -191,7 +191,7 @@ requests, and player messages. KTANE does not run in Docker.
     ```
 
     Observability presets control instrumentation, not log verbosity. See
-    [environment configuration](reference/configuration/environment.md#observability).
+    [environment configuration](../reference/configuration/environment.md#observability).
 
 ## Provide a game display { #make-sure-the-game-can-render }
 
@@ -211,7 +211,7 @@ export DISPLAY=:3
 ```
 
 The display number `3` creates `$DISPLAY=:3`. A run manifest can also list display numbers and
-assign rooms to them. See [game and display troubleshooting](troubleshooting/game-and-displays.md)
+assign rooms to them. See [game and display troubleshooting](../troubleshooting/game-and-displays.md)
 when the X socket or game window is unavailable.
 
 ## Check the complete machine
@@ -246,6 +246,6 @@ the game. Redis is not required for this probe.
     from different format boundaries are not comparable identifiers.
 
 <!-- vale ai-tells.DoubleHyphen = NO -->
-[Run the quickstart](start-here/run-quickstart.md)
-[Doctor reference](reference/cli/doctor.md)
+[Run the quickstart](run-quickstart.md)
+[Doctor reference](../reference/cli/doctor.md)
 <!-- vale ai-tells.DoubleHyphen = YES -->

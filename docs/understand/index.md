@@ -29,6 +29,6 @@ reference when you need an exact option, setting, state, or channel.
 | If you want to... | Continue with... |
 | ----------------- | ---------------- |
 | Complete the included-player run | [Run the quickstart](../start-here/run-quickstart.md) |
-| Configure and run a model | [Run the benchmark](../running/index.md) |
+| Configure and run a model | [Run the benchmark](../run-and-submit/index.md) |
 | Trace exact runtime contracts | [Runtime implementation reference](../reference/runtime/index.md) |
 | Recover from a failed runtime | [Troubleshooting](../troubleshooting/index.md) |

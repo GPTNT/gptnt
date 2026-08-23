@@ -45,7 +45,7 @@ sequenceDiagram
 | Load | Read every `*.json` recursively from `output/experiment_specs/<manifest-stem>/`. Empty input stops before doctor or spawn. |
 | Gate | Run doctor against the files on disk. Protected-benchmark and roster failures are not bypassed by `--force`. |
 | Resume | Use the manifest completion source to select unfinished attempts. No remaining work exits without spawn. |
-| Manuals | [Prepare](../../manuals.md) each distinct profile required by remaining manual-bearing players. Failure stops before spawn. |
+| Manuals | [Prepare](../../run-and-submit/prepare-manuals.md) each distinct profile required by remaining manual-bearing players. Failure stops before spawn. |
 | Directories | Resolve one recorder output and one `output/logs/run_<output-name>/` directory, then pass the pinned output to recorder children. |
 | Spawn | Start the experiment manager, rooms, and player services in that order. |
 | Submit | Post the remaining specifications in-process. Failed submission terminates the cluster. |

@@ -14,11 +14,11 @@ capabilities, and benchmark provenance without starting KTANE.
 ## Before you start
 
 Complete the player and provider checks described in
-[Add a model](add-new-player.md). Choose a task from `gptnt statics --help`.
+[Add a model](add-model.md). Choose a task from `gptnt statics --help`.
 
 For a submission, run the three required interactive suites and the explicit
 `expert-vqa-no-manual` static target described in
-[Submit your results](../submit-your-results.md#prepare-the-required-results).
+[Submit your results](submit-results.md#prepare-the-required-results).
 
 ## Preview a task
 

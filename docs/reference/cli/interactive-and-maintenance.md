@@ -84,5 +84,5 @@ duplicate, or orphaned remote runs as `old`. When `DIRECTORY` is supplied, it ca
 files that lack a valid W&B run. It previews by default; `--execute` applies remote and local
 changes. Missing local output is marked `old` by default.
 
-[Run interactive experiments](../../running/run-your-model.md)
+[Run interactive experiments](../../run-and-submit/run-interactive.md)
 [Troubleshoot interrupted output](../../troubleshooting/interrupted-runs-and-outputs.md)

@@ -102,7 +102,7 @@ Troubleshooting
   Submission validation
 ```
 
-Use these initial paths:
+Use these paths:
 
 ```text
 docs/
@@ -119,8 +119,11 @@ docs/
   troubleshooting/
 ```
 
-The visible label and URL do not have to use the same wording. Preserve a stable URL when changing
-a label unless the old URL exists only on the unmerged `more-docs` branch.
+The visible label and URL do not have to use the same wording. Paths follow their top-level journey
+folder. This implementation replaces the legacy root-level and `running/` paths without redirects
+because the reader-journey structure controls the published layout. Update every inbound reference
+in the same change. Preserve URLs after this alignment unless another approved structure change
+requires a move.
 
 ### Home
 
@@ -728,6 +731,9 @@ not an instruction to retain the change:
 | `8753f455` | Change ignored files                                 | Do not migrate unless the documentation worktree creates the same generated artifact. |
 
 ### Page migration ledger
+
+Source paths in this table identify the pre-alignment material that was assessed. Target paths are
+the current destinations.
 
 The first implementation phase expands this table when a source section splits across targets.
 Targets identify where a subject belongs if the source material is accurate and useful. They do

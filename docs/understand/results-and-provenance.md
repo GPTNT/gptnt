@@ -68,5 +68,5 @@ A static bundle copies `metrics.json` and describes it with the stored static me
     Parquet until every intended bundle validates, so you can rebuild after a collation, selection,
     or schema problem.
 
-[Inspect results](../running/inspect-results.md)
+[Inspect results](../run-and-submit/inspect-results.md)
 [Player records and outcomes](../reference/files/player-records-and-outcomes.md)

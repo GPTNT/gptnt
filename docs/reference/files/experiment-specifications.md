@@ -54,5 +54,5 @@ gptnt generate runs/<name>.yaml
 gptnt run runs/<name>.yaml
 ```
 
-[Run interactive experiments](../../running/run-your-model.md)
+[Run interactive experiments](../../run-and-submit/run-interactive.md)
 [Generation API](../python/experiment-generation.md)

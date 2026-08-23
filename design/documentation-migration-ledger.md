@@ -48,6 +48,9 @@ configuration, format, Python, and runtime contracts.
 No decision permits copying a complete `more-docs` page without checking every command, field,
 default, path, and claim against v2.
 
+Paths in source columns identify the pre-alignment files that supplied the assessed material. The
+target owner and canonical ownership sections record the current destinations.
+
 ## Current v2 public pages
 
 ### Home and start material

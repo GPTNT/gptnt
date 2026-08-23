@@ -204,7 +204,8 @@ How-to, or class-per-page navigation areas. Do not add empty navigation stubs.
 Every deep reference page links back to its reference index and to a relevant procedure or concept.
 Every procedure links to exact command, configuration, or format anchors when the reader needs more
 detail. Use instant previews only for definitions or short reference checks that help a reader keep
-their place. Preserve existing v2 URLs or add redirects when a public path changes. branch-only
+their place. Keep public paths under their top-level journey folder. The approved path
+alignment replaces the legacy root-level and `running/` paths without redirects. Branch-only
 `more-docs` URLs do not require compatibility.
 
 ## Cross-slice ownership and dependencies
@@ -279,7 +280,8 @@ is applied:
    but must link to the Slice A command page instead of duplicating `run`.
 2. Add linked direct-`uv` installation tabs only after that sequence and the `mise` sequence both
    pass from a clean environment.
-3. Decide redirects or retained paths for existing public v2 URLs before changing navigation.
+3. Keep new public paths aligned with the six top-level navigation areas and update every inbound
+   reference when a page moves.
 4. Keep runtime re-exports in maintainer reference unless a separate supported-API decision includes
    them. In particular, resolve `interactive.orchestration` before describing import support.
 5. Document only current rule-seed behaviour. Do not publish the proposed Rule Seed Modifier.

@@ -85,4 +85,4 @@ GPTNT checks the manifest, required paths, and file hashes before reuse. It remo
 invalid artefact. A user should not update the JSON or any listed file to make validation pass.
 
 Use the [manual configuration reference](../configuration/manuals.md) for profile fields and
-[Prepare manuals](../../manuals.md) for cache preparation.
+[Prepare manuals](../../run-and-submit/prepare-manuals.md) for cache preparation.

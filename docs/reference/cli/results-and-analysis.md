@@ -54,5 +54,5 @@ gptnt timing RUN-DIR
 `RUN-DIR` must contain `span_timings/*.jsonl`. The report includes information about the machine,
 player forward-pass timing, Pydantic AI inference time, framework time, and aggregate span phases.
 
-[Inspect and analyse results](../../running/inspect-results.md)
+[Inspect and analyse results](../../run-and-submit/inspect-results.md)
 [DuckDB schema](../files/duckdb.md)

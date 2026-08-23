@@ -21,5 +21,5 @@ link back to the procedure that consumes each value.
 | [Suites](suites.md){data-preview} | Suite lock versions, revisions, composition, and digests |
 | [Missions](missions.md){data-preview} | Mission-set structure, mission fields, and canonical mission keys |
 
-[Install and check GPTNT](../../get-started.md)
+[Install and check GPTNT](../../start-here/install-and-check.md)
 [Open runtime reference](../runtime/index.md)

@@ -69,5 +69,5 @@ shape without reading live suite or mission configuration.
 Face repository and split, requested and resolved revisions, player, capabilities, run date, and
 benchmark provenance.
 
-[Submit results](../../submit-your-results.md)
+[Submit results](../../run-and-submit/submit-results.md)
 [Submission command reference](../cli/submission.md)

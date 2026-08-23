@@ -99,5 +99,5 @@ from that attempt instead of editing `manifest.json`.
 While connected, remove only the source file named by the error. Then run `manual download` or
 `manual compile` for the affected suite. Copy the refreshed complete cache to offline machines.
 
-Use [Prepare manuals](../manuals.md) for the standard workflow and
+Use [Prepare manuals](../run-and-submit/prepare-manuals.md) for the standard workflow and
 [manual files](../reference/files/manuals.md) for the cache contract.

@@ -19,13 +19,13 @@ site explains how to install, run, extend, and maintain GPTNT.
 
     Install GPTNT, check the machine, and complete the included quickstart.
 
-    [Install and check GPTNT](get-started.md) · [Run the quickstart](start-here/run-quickstart.md)
+    [Install and check GPTNT](start-here/install-and-check.md) · [Run the quickstart](start-here/run-quickstart.md)
 
--   **[Run & submit](running/index.md)**
+-   **[Run & submit](run-and-submit/index.md)**
 
     Configure a model, run evaluations, inspect the outputs, and prepare a submission.
 
-    [Add and run a model](running/add-new-player.md) · [Submit results](submit-your-results.md)
+    [Add and run a model](run-and-submit/add-model.md) · [Submit results](run-and-submit/submit-results.md)
 
 -   **[Understand](understand/index.md)**
 

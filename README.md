@@ -23,5 +23,6 @@ mise install
 mise run sync
 ```
 
-Continue with [Get started](https://gptnt.github.io/docs/get-started/) for checksum verification,
+Continue with [Install and check GPTNT](https://gptnt.github.io/docs/start-here/install-and-check/)
+for checksum verification,
 prerequisites, and the first run.

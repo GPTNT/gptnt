@@ -52,7 +52,8 @@ creates a timestamped directory under `output/experiment_recorder_outputs/`. The
 - Observation pickle files, process logs, span-timing JSONL, manual source downloads, and the
   DuckDB WAL are intermediate or implementation-facing artefacts.
 - Manual artefacts are content-addressed directories containing their own manifest, PDF, text, and
-  page images. Their lifecycle is documented under [Manuals](../../manuals.md).
+  page images. Their lifecycle is documented under
+  [Manuals](../../run-and-submit/prepare-manuals.md).
 
 !!! warning "Do not infer stability from location"
     A file under `output/` is not automatically a supported format. Use the linked format page to

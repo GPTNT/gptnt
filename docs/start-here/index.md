@@ -10,7 +10,7 @@ quickstart.
 
 ## Complete the first run
 
-1. [Install and check GPTNT](../get-started.md){data-preview}.
+1. [Install and check GPTNT](install-and-check.md){data-preview}.
    Install a release, provide KTANE and a display, start Redis, and pass `gptnt doctor`.
 2. [Run the quickstart](run-quickstart.md){data-preview}.
    Generate specifications, run the included players, build DuckDB, and inspect an outcome.
@@ -26,6 +26,6 @@ quickstart.
 | Redis or a runtime service fails | [Redis and runtime services](../troubleshooting/redis-and-runtime-services.md) |
 
 <!-- vale ai-tells.DoubleHyphen = NO -->
-[Install and check GPTNT](../get-started.md)
+[Install and check GPTNT](install-and-check.md)
 [Run the quickstart](run-quickstart.md)
 <!-- vale ai-tells.DoubleHyphen = YES -->

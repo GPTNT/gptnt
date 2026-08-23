@@ -48,6 +48,6 @@ resolved. Compilation reports browser, HTML, PDF, or artefact validation failure
 
 The CLI prints the failure and exits nonzero. It does not start runtime services.
 
-Use [Prepare manuals](../../manuals.md) for the workflow and
+Use [Prepare manuals](../../run-and-submit/prepare-manuals.md) for the workflow and
 [manual preparation troubleshooting](../../troubleshooting/manual-preparation.md) for corrective
 steps.

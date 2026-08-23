@@ -77,5 +77,5 @@ specifications or start processes. Use
 configuration or integrity failures. Use the game or Redis troubleshooting page for a row from
 that subsystem.
 
-[Install and check GPTNT](../../get-started.md)
+[Install and check GPTNT](../../start-here/install-and-check.md)
 [Generate specifications](generate.md)

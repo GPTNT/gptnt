@@ -30,7 +30,8 @@ Change `action_predictor.agent.model` to an explicit model configuration contain
 `model_name`, and `provider`. Then repeat the doctor command with `--provider <name>` or validate the
 run manifest that pairs them.
 
-Use [Configure a provider](../running/configure-provider.md) for the supported composition pattern.
+Use [Configure a provider](../run-and-submit/configure-provider.md) for the supported composition
+pattern.
 
 ## Doctor reports a missing credential
 

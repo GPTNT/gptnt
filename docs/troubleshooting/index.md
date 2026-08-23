@@ -18,6 +18,6 @@ condition, then the corresponding action.
 | A bundle fails local validation or remote submission | [Submission validation](submission-validation.md) |
 
 <!-- vale ai-tells.DoubleHyphen = NO -->
-[Install and check GPTNT](../get-started.md)
+[Install and check GPTNT](../start-here/install-and-check.md)
 [Understand runtime services](../understand/runtime-services.md)
 <!-- vale ai-tells.DoubleHyphen = YES -->

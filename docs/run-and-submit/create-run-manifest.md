@@ -15,8 +15,8 @@ behaviour. Finish with a passing doctor report and generated experiment specific
 You need:
 
 - a checked installation and completed quickstart;
-- each required [player](add-new-player.md) and [provider](configure-provider.md);
-- the manual profile selected by each suite, prepared as described in [Prepare manuals](../manuals.md);
+- each required [player](add-model.md) and [provider](configure-provider.md);
+- the manual profile selected by each suite, prepared as described in [Prepare manuals](prepare-manuals.md);
   and
 - enough player processes and game rooms for the selected suite protocols.
 
@@ -132,4 +132,4 @@ The command writes one JSON file per attempt under
 
 `gptnt run` does not regenerate specifications. Regenerate them after changing the manifest or a
 selected configuration that affects the experiments. Continue with
-[Run interactive experiments](run-your-model.md).
+[Run interactive experiments](run-interactive.md).

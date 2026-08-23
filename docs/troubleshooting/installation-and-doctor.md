@@ -112,4 +112,4 @@ gptnt doctor runs/<name>.yaml
     release or rerun the benchmark to produce current records.
 
 [Doctor reference](../reference/cli/doctor.md)
-[Install and check GPTNT](../get-started.md)
+[Install and check GPTNT](../start-here/install-and-check.md)

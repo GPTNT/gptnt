@@ -59,5 +59,5 @@ gptnt statics how-do-you --player NAME [--provider NAME]
 command. It writes a module-to-attempt mapping under `output/how_do_you/`; it has no dataset,
 download, throw, upload, or benchmark-integrity option.
 
-[Run static evaluations](../../running/run-static-evaluations.md)
+[Run static evaluations](../../run-and-submit/run-statics.md)
 [Static output formats](../files/static-evaluation-outputs.md)

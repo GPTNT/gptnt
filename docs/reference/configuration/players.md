@@ -73,5 +73,5 @@ The base profile supplies `ObservationHandler`, `ImageResizer`, and `SetOfMarksH
 their Hydra subtrees only when the player needs different image dimensions, coordinate handling, or
 mark rendering. Their callable contracts are grouped in the [processor reference](../python/processors.md).
 
-[Add a model](../../running/add-new-player.md)
+[Add a model](../../run-and-submit/add-model.md)
 [Understand capabilities](../../understand/roles-protocols-and-capabilities.md)

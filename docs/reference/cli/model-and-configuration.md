@@ -77,5 +77,5 @@ token counts becomes `capabilities.tokens_per_image` in the player YAML.
 A zero or negative difference fails instead of updating the file. This can indicate that the
 provider does not include image tokens in its input-token report.
 
-[Add a model](../../running/add-new-player.md)
-[Configure a provider](../../running/configure-provider.md)
+[Add a model](../../run-and-submit/add-model.md)
+[Configure a provider](../../run-and-submit/configure-provider.md)

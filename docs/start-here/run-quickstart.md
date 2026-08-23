@@ -13,7 +13,7 @@ the runtime services, recording, and database construction without provider cred
 
 ## Before you begin
 
-Complete [Install and check GPTNT](../get-started.md). The full doctor report must reach Redis and
+Complete [Install and check GPTNT](install-and-check.md). The full doctor report must reach Redis and
 locate KTANE with its mod. On Linux, it must also use a display.
 
 !!! example "Complete quickstart sequence"

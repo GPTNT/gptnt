@@ -72,5 +72,5 @@ ORDER BY summary.attempt_name, step.role;
 incompatible database requires `--delete-existing-db`. A `.duckdb.wal` file is transient and not a
 third application table or a portable result format.
 
-[Inspect results](../../running/inspect-results.md)
+[Inspect results](../../run-and-submit/inspect-results.md)
 [Results command reference](../cli/results-and-analysis.md)

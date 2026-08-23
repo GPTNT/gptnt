@@ -109,5 +109,5 @@ Changing fields on `PlayerIdentity` changes attribution. Changing a fingerprinte
 changes the participant grouping used by results and submissions. Neither change alters the suite
 revision or suite digest, which identify what was measured.
 
-[Add a model](../running/add-new-player.md)
+[Add a model](../run-and-submit/add-model.md)
 [Open player interfaces](../reference/python/player-interfaces.md)

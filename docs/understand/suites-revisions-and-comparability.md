@@ -60,7 +60,7 @@ module identifiers, mission seed, and rule seed. An interactive submission conta
 with one suite revision and exactly its referenced missions.
 
 The manual profile is also copied into each specification and result. Manual preparation and source
-provenance are explained in [Manuals](../manuals.md).
+provenance are explained in [Manuals](../run-and-submit/prepare-manuals.md).
 
 Static identity uses the task name, Hugging Face repository and split, requested revision, and
 resolved commit. Only the resolved commit pins a dataset. An unavailable commit is recorded as
@@ -82,4 +82,4 @@ The current submission workflow requires `multi-self-async`, `multi-self-sync`, 
 `single-parametric-sync`, plus the explicit `expert-vqa-no-manual` static target.
 
 [Suite configuration reference](../reference/configuration/suites.md)
-[Submit results](../submit-your-results.md)
+[Submit results](../run-and-submit/submit-results.md)

@@ -59,5 +59,5 @@ does not fork, push, or open a pull request.
 Each top-level bundle directory becomes one branch, commit, and pull request. Remote operations
 need the submission extra and a token from `GITHUB_TOKEN` or `gh auth token`.
 
-[Submission procedure](../../submit-your-results.md)
+[Submission procedure](../../run-and-submit/submit-results.md)
 [Bundle schema](../files/submission-bundles.md)

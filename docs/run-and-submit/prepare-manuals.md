@@ -135,6 +135,7 @@ and compile the profile through that suite:
 gptnt manual compile --suite <suite>
 ```
 
-For exact profile and source fields, see the [manual configuration reference](reference/configuration/manuals.md).
-For cache contents, see [manual files](reference/files/manuals.md). If preparation stops, start with
-[manual preparation troubleshooting](troubleshooting/manual-preparation.md).
+For exact profile and source fields, see the
+[manual configuration reference](../reference/configuration/manuals.md). For cache contents, see
+[manual files](../reference/files/manuals.md). If preparation stops, start with
+[manual preparation troubleshooting](../troubleshooting/manual-preparation.md).

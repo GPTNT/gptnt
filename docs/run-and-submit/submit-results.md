@@ -22,9 +22,9 @@ Complete these interactive suites:
 
 Also complete the explicit `expert-vqa-no-manual` static target. Every submitted player needs an
 `identity` block in `configs/player/<player-name>.yaml`; see
-[Configure the player](running/add-new-player.md#configure-the-player){data-preview}.
+[Configure the player](add-model.md#configure-the-player){data-preview}.
 
-Use [Inspect and analyse results](running/inspect-results.md) to confirm terminal outcomes, build
+Use [Inspect and analyse results](inspect-results.md) to confirm terminal outcomes, build
 DuckDB, and check the static metadata and metrics. Run from an unmodified tagged release;
 submission bundle construction has no modified-benchmark override.
 
@@ -86,9 +86,9 @@ output/submissions/
 `submission.yaml` uses submission schema version 2. Its `provenance` block records `gptnt_version`,
 the benchmark reference in `release_tag`, `release_commit`, and `protected_content_modified`. It
 also records player capabilities and fingerprints and the measured suite or static identity. See
-[Roles, protocols, and capabilities](understand/roles-protocols-and-capabilities.md#identity-and-fingerprints-serve-different-purposes)
+[Roles, protocols, and capabilities](../understand/roles-protocols-and-capabilities.md#identity-and-fingerprints-serve-different-purposes)
 for player fingerprints and
-[Suites, revisions, and comparability](understand/suites-revisions-and-comparability.md) for
+[Suites, revisions, and comparability](../understand/suites-revisions-and-comparability.md) for
 benchmark references and suite digests.
 
 An interactive bundle also includes `suite.lock`, reduced to the recorded suite revision and the
@@ -147,5 +147,5 @@ The command opens or refreshes one pull request per top-level bundle. It pushes 
 account has access; otherwise it creates or uses a fork. A failure for one bundle is reported while
 the remaining bundles continue.
 
-[Submission command reference](reference/cli/submission.md)
-[Submission bundle format](reference/files/submission-bundles.md)
+[Submission command reference](../reference/cli/submission.md)
+[Submission bundle format](../reference/files/submission-bundles.md)

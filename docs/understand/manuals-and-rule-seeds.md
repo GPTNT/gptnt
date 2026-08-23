@@ -55,5 +55,5 @@ The rule seed and manual digest protect different inputs. The rule seed identifi
 rules. The digest identifies the compiled handbook bytes and their provenance. Both belong in a
 reproducible specification.
 
-Use [Prepare manuals](../manuals.md) for the procedure and the
+Use [Prepare manuals](../run-and-submit/prepare-manuals.md) for the procedure and the
 [manual configuration reference](../reference/configuration/manuals.md) for exact fields.

@@ -151,5 +151,5 @@ when composition succeeds but construction, calibration, or a live request fails
 ## Continue
 
 Create any required [provider profile](configure-provider.md), then [prepare the selected
-manuals](../manuals.md) and [create a run manifest](create-run-manifest.md). When configuration is
+manuals](prepare-manuals.md) and [create a run manifest](create-run-manifest.md). When configuration is
 not enough for an integration, use the [supported player interfaces](../reference/python/player-interfaces.md).

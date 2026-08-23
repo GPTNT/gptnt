@@ -18,7 +18,7 @@ entries, and anchors.
 --8<-- "runs/quickstart.yaml"
 ```
 
-Use [Create a run manifest](../../running/create-run-manifest.md) for the authoring procedure.
+Use [Create a run manifest](../../run-and-submit/create-run-manifest.md) for the authoring procedure.
 
 ## Field effects not conveyed by the schema
 
@@ -57,5 +57,5 @@ attempts. `attempts_per_mission` changes generation depth rather than suite iden
     options:
       members: true
 
-[Create a run manifest](../../running/create-run-manifest.md)
+[Create a run manifest](../../run-and-submit/create-run-manifest.md)
 [Open player configuration](players.md)
