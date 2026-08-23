@@ -836,6 +836,15 @@ foundation:
 | B      | Inventory v2 commands, configuration, persisted formats, Python extension points, and runtime subsystems         | Reference coverage inventory and grouped-rendering requirements                      |
 | C      | Trace the runner, model-integrator, submitter, and contributor journeys; match each need to a Zensical component | Journey map, connection requirements, and component matrix                           |
 
+The checked Stage 1 evidence packets are:
+
+- [Documentation migration ledger](documentation-migration-ledger.md), which records section-level
+  dispositions, restored FAQ subjects, canonical ownership, and implementation-evidence keys.
+- [Documentation reference coverage inventory](documentation-reference-coverage.md), which records
+  the selected CLI, configuration, format, Python, and runtime interfaces.
+- [Documentation reader journeys and component map](documentation-reader-journeys.md), which records
+  the three vertical slices, cross-slice connections, navigation needs, and bounded Zensical uses.
+
 The coordinator combines those outputs and completes these foundation tasks:
 
 - Refresh from `origin/v2` and reconcile the temporary Vale and agent-guidance copies.
