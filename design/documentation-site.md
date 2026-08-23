@@ -124,15 +124,12 @@ a label unless the old URL exists only on the unmerged `more-docs` branch.
 
 ### Home
 
-The home page states what GPTNT measures, distinguishes the project website from the documentation,
-and offers direct next actions as ordinary links in a compact list:
-
-- Install and check GPTNT.
-- Run the quickstart.
-- Add and run a model.
-- Submit results.
-
-The page also links to understanding and reference material without listing the complete site map.
+The home page states what GPTNT measures and distinguishes the project website from the
+documentation. It presents the five top-level reader journeys in a concise Zensical card grid. Each
+card links to its section overview, and cards may include direct task links when that route has a
+common entry or completion point. Keep install, quickstart, model integration, and submission
+reachable from the grid without listing the complete site map. Do not apply button classes to card
+links.
 
 ### Start here
 

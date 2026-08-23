@@ -11,22 +11,32 @@ AI players communicate, act on the game, and complete bomb-defusal missions.
 The [GPTNT project website](https://gptnt.github.io/) presents the benchmark and its results. This
 site explains how to install, run, extend, and maintain GPTNT.
 
-## Start with a task
+## Choose a route
 
-<!-- vale ai-tells.DoubleHyphen = NO -->
-[Install and check GPTNT](get-started.md)
-[Run the quickstart](start-here/run-quickstart.md)
+<div class="grid cards" markdown>
 
-[Add and run a model](running/add-new-player.md)
-[Submit results](submit-your-results.md)
-<!-- vale ai-tells.DoubleHyphen = YES -->
+-   **[Start here](start-here/index.md)**
 
-## Find the right depth
+    Install GPTNT, check the machine, and complete the included quickstart.
 
-| If you need to... | Continue with... |
-| ----------------- | ---------------- |
-| Complete the first run | [Start here](start-here/index.md){data-preview} |
-| Choose what to do after the quickstart | [Choose the next workflow](start-here/choose-next-workflow.md){data-preview} |
-| Understand the benchmark, experiment hierarchy, or services | [Understand GPTNT](understand/index.md){data-preview} |
-| Check an exact command, setting, or runtime contract | [Reference](reference/index.md){data-preview} |
-| Recover from a failed check or service | [Troubleshooting](troubleshooting/index.md){data-preview} |
+    [Install and check GPTNT](get-started.md) · [Run the quickstart](start-here/run-quickstart.md)
+
+-   **[Run & submit](running/index.md)**
+
+    Configure a model, run evaluations, inspect the outputs, and prepare a submission.
+
+    [Add and run a model](running/add-new-player.md) · [Submit results](submit-your-results.md)
+
+-   **[Understand](understand/index.md)**
+
+    Learn how the benchmark, players, experiments, runtime services, and results fit together.
+
+-   **[Reference](reference/index.md)**
+
+    Look up commands, configuration fields, file formats, Python interfaces, and runtime contracts.
+
+-   **[Troubleshooting](troubleshooting/index.md)**
+
+    Diagnose installation, game, service, provider, output, and submission failures.
+
+</div>
