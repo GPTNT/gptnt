@@ -25,13 +25,22 @@ class MissionGeneratorConfig(BaseModel):
 
     # Module sampling settings
     n_modules_min: NonNegativeInt = Field(ge=1)
+    """Inclusive lower bound for the number of components generated in each mission."""
+
     n_modules_max: NonNegativeInt = Field(ge=1)
+    """Inclusive upper bound for the number of components generated in each mission."""
 
     sample_from_modules: bool
+    """Selects one sampled component set or one mission per available module for each seed."""
+
     allow_repeat_module: bool
+    """Whether random multi-module sampling selects components with replacement."""
 
     min_optional_widgets: NonNegativeInt = Field(ge=1, default=1)
+    """Inclusive lower bound for the randomly generated optional-widget count."""
+
     max_optional_widgets: NonNegativeInt = Field(ge=1, default=5)
+    """Inclusive upper bound for the randomly generated optional-widget count."""
 
     excluded_modules: set[KtaneModuleId] = Field(
         default_factory=lambda: {"NeedyVentGas", "NeedyCapacitor", "NeedyKnob"}

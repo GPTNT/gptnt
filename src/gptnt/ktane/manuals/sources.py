@@ -13,6 +13,7 @@ class KtaneContentCatalogSource(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     url: HttpUrl
+    """Download location for the aggregate module and translated-filename catalog."""
 
 
 class KtaneContentSource(BaseModel):
@@ -21,8 +22,13 @@ class KtaneContentSource(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     repository: AnyUrl
+    """Git repository from which KtaneContent documents and assets are downloaded."""
+
     commit: str = Field(pattern=r"^[0-9a-fA-F]{40}$")
+    """Exact repository commit included in cache paths and artifact provenance."""
+
     catalog: KtaneContentCatalogSource
+    """Catalog used to resolve module identifiers and translated document filenames."""
 
 
 class OfficialManualSource(BaseModel):
@@ -31,7 +37,11 @@ class OfficialManualSource(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     version: str
+    """Manual version included in the cache location and artifact provenance."""
+
     url: HttpUrl
+    """Download location for the official manual in the configured language."""
+
     pages: dict[str, "OfficialPageRange"] = Field(default_factory=dict)
     """Pages to extract for each profile document ID available in this PDF."""
 
@@ -70,6 +80,7 @@ class ManualSources(BaseModel):
     frontmatter: tuple[Document, ...] = ()
     """Configured source documents inserted before a profile when frontmatter is enabled."""
     official_manual: dict[str, OfficialManualSource]
+    """Official-manual sources keyed by language code."""
 
     @classmethod
     def from_path(cls, path: Path) -> Self:

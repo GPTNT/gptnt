@@ -23,6 +23,8 @@ class Paths(BaseSettings):
     """Paths and locations for things."""
 
     root: Path = Path.cwd()
+    """Base for default configuration, storage, and output paths; defaults to the working
+    directory."""
 
     configs_override: Path | None = Field(default=None, alias="CONFIGS")
     """Explicit configs directory; overrides the checkout-then-packaged resolution of `configs`."""

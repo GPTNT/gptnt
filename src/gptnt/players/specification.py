@@ -96,6 +96,7 @@ class PlayerCapabilities(BaseModel):
     """
 
     usage_limits: UsageLimits = Field(default_factory=UsageLimits)
+    """Pydantic AI request limits, including the input-token limit used for history truncation."""
 
     image_dimensions: ImageDimensions = Field(default=KtaneSettings().image_dimensions)
     """Width and height for the player's input images.

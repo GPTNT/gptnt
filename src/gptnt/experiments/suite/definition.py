@@ -37,26 +37,40 @@ class Suite(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     name: str
+    """Suite identifier copied into lock entries, specifications, results, and submission
+    targets."""
+
     revision: int = Field(ge=1)
+    """Comparability revision that must increase when the suite's measured content changes."""
 
     modality: Annotated[
         tuple[Modality, ...],
         AfterValidator(lambda modalities: tuple(sorted(set(modalities)))),
         Field(min_length=1),
     ]
+    """Sorted, deduplicated input modalities included in the suite configuration digest."""
+
     missions_path: Annotated[
         Path,
         Predicate(lambda path: not path.is_absolute()),
-        Field(description="Relative to the repo root, not absolute."),
+        Field(
+            description=(
+                "Repository-relative directory whose materialised missions are included in the "
+                "suite digest."
+            )
+        ),
     ]
 
     defuser_protocol: Annotated[
         PlayerProtocol, Predicate(lambda protocol: protocol.role == "defuser")
     ]
+    """Defuser access and action rules copied into every generated specification."""
+
     expert_protocol: Annotated[
         PlayerProtocol | None,
         Predicate(lambda protocol: protocol.role == "expert" or protocol is None),
     ]
+    """Expert access and action rules copied into every generated non-solo specification."""
 
     matchup: SuiteMatchup
 

@@ -17,8 +17,11 @@ class AgentCallResult(BaseModel, Generic[ModelOutputT_co]):  # noqa: UP046
 
     usage: RunUsage
     new_messages: list[ModelMessage]
+    """Tool-free request and response messages ending in the call's final model response."""
 
     ai_response_error: list[AIResponseErrorType] = Field(default_factory=list)
+    """Response-error classifications retained after parsing or recovery."""
+
     raw_output: str | None = None
 
     @field_validator("new_messages")
@@ -54,6 +57,7 @@ class DispatchedAgentCallResult(AgentCallResult[ModelOutputT_co], Generic[ModelO
     """Agent result stamped when dispatch of its output begins."""
 
     dispatched_at: Instant
+    """Instant when output dispatch starts and the origin for the recorded step timestamp."""
 
     @classmethod
     def from_agent_call(cls, agent_call_result: AgentCallResult[ModelOutputT_co]) -> Self:

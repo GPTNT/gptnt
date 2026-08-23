@@ -57,25 +57,43 @@ class ExperimentStep(DuckDBSchemaMixin):
     """Record of one step in the experiment."""
 
     step: int
+    """One-based counter within one player record, including reflection rows."""
+
     timestamp: float
     """Seconds from the shared experiment start to the beginning of output dispatch."""
     role: PlayerRole
     session_id: UUID4
+    """Execution identifier used to join rows recorded by different players."""
+
     player_uuid: UUID4
     player_name: str
 
     output: Annotated[PlayerOutputType | KtaneGameplayInput, AsVarchar]
+    """Parsed player action dispatched for this step."""
+
     raw_output: str | None
+    """Unparsed model response retained by parsing or recovery."""
+
     thoughts: str | None = None
+    """Reasoning text extracted separately from the player action."""
 
     input_messages: ModelMessagesList = Field(default_factory=list)
+    """Prior conversation rendered as message history before the current model call."""
+
     new_messages: ModelMessagesList = Field(default_factory=list)
+    """Request and response messages added by the current model call."""
 
     bomb_state: Annotated[BombState | None, AsJSON]
     observation: Annotated[Observation | Path | None, AsBlob, Field(repr=False)]
+    """Captured observation, stored as its temporary file path before record rebuilding."""
+
     usage: Annotated[RunUsage, AsBlob]
     num_prompt_truncations: int
+    """Cumulative count of oldest non-pinned conversation entries omitted from model requests."""
+
     error_type: list[AIResponseErrorType] | None = None
+    """Response-error classifications recorded by parsing or recovery."""
+
     is_reflection: bool = False
 
     @override
@@ -133,6 +151,7 @@ class StepRecordsMetricsMixin(BaseModel):
     """Metrics computed from a list of step records."""
 
     step_records: SortedStepRecords
+    """Step rows sorted by relative timestamp before aggregate metrics are calculated."""
 
     @computed_field
     @property
@@ -228,6 +247,7 @@ class ExperimentPlayerRecord(Provenance, StepRecordsMetricsMixin):
     player_content: PlayerContent
     step_records: SortedStepRecords
     is_hard_crash: bool = False
+    """Whether a service failure ended the experiment execution."""
 
     @property
     def role(self) -> PlayerRole:
@@ -282,6 +302,7 @@ class ExperimentOutcome(BaseModel):
 
     outcome: BombOutcome
     seconds_remaining: Annotated[float, Field(alias="timer_seconds")]
+    """Bomb-timer seconds at terminal state, stored in DuckDB as `timer_seconds`."""
     strike_count: int
     num_modules_solved: int
 
@@ -422,6 +443,8 @@ class ExperimentRecord(StepRecordsMetricsMixin):
 
     experiment_instance: ExperimentInstance
     step_records: SortedStepRecords = Field(default_factory=list)
+    """Rows from all player records, sorted by relative timestamp."""
+
     is_hard_crash: bool
 
     @classmethod

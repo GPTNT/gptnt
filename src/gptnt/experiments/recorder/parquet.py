@@ -48,9 +48,14 @@ class RecordFooter(Provenance):
     model_config = ConfigDict(frozen=True)
 
     instance: ExperimentInstance
+    """Execution metadata shared by every row in this player's Parquet file."""
+
     final_bomb_state: BombState | None
+    """Last bomb state captured for the execution."""
+
     is_hard_crash: bool
     role: PlayerRole
+    """Player role whose step rows are stored in the file."""
 
 
 def build_footer(footer: RecordFooter, *, player_uuid: str) -> dict[bytes, bytes]:

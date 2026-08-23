@@ -32,18 +32,24 @@ class ModelOutput(TypedDict):
     """Output of the model predict."""
 
     usage: dict[str, int]
+    """Non-zero Pydantic AI token-usage counts flattened for this prediction."""
+
     model: str
+    """Provider model name resolved for this prediction."""
+
     output: str
+    """Parsed task output before task-specific score normalisation."""
+
     scored_output: str
     """Canonical task answer consumed by scorers."""
 
     thoughts: str | None
     raw_output: str | None
     error: str | None
-    """Log any response errors that occurred during prediction."""
+    """Model-response validation classifications produced by parsing or recovery."""
 
     exception: Any | None
-    """Log any exception that occurred during prediction."""
+    """Structured traceback for an exception that prevented prediction."""
 
 
 class EvalModel(BaseModel):
