@@ -12,14 +12,14 @@ run are prerequisites for the execution and submission paths.
 | Connect a model to GPTNT | [Add a model](../running/add-new-player.md){data-preview} |
 | Configure suites, players, rooms, or displays | [Create a run manifest](../running/create-run-manifest.md){data-preview} |
 | Prepare or inspect manuals | [Prepare manuals](../manuals.md){data-preview} |
-| Run interactive experiments | [Run your model](../running/run-your-model.md#interactive-experiments) |
-| Inspect Parquet and DuckDB results | [Read the results](../running/run-your-model.md#read-the-results) |
+| Run interactive experiments | [Run interactive experiments](../running/run-your-model.md) |
+| Inspect Parquet and DuckDB results | [Inspect and analyse results](../running/inspect-results.md) |
 | Build and validate a submission | [Submit your results](../submit-your-results.md){data-preview} |
 | Understand models, players, roles, and services | [Understand GPTNT](../understand/index.md){data-preview} |
 | Find exact commands, settings, or runtime contracts | [Reference](../reference/index.md){data-preview} |
 
-Static-evaluation and expanded result procedures will join this route when their connected Slice C
-pages are integrated. The current static CLI uses `--player`, not `--model`.
+The static-evaluation CLI uses `--player`, not the earlier `--model` spelling. Continue with
+[Run static evaluations](../running/run-static-evaluations.md) for no-game tasks.
 
 ## Repeat checks after setup changes
 

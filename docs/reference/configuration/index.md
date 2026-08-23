@@ -18,9 +18,10 @@ link back to the procedure that consumes each value.
 | [Players](players.md){data-preview} | Identity, capabilities, model attachment, processing, and operational configuration |
 | [Providers](providers.md){data-preview} | Provider override composition and validation boundaries |
 | [Manuals](manuals.md){data-preview} | Profile variants, source pins, language constraints, and the current rule-seed boundary |
+| [Suites](suites.md){data-preview} | Suite lock versions, revisions, composition, and digests |
+| [Missions](missions.md){data-preview} | Mission-set structure, mission fields, and canonical mission keys |
 
-Suite, mission, and module-registry reference joins this section with its connected authoring
-procedures.
+Module-registry reference will join this section with its connected authoring procedure.
 
 <!-- vale ai-tells.DoubleHyphen = NO -->
 [Install and check GPTNT](../../get-started.md)
