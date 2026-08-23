@@ -3,6 +3,12 @@
 > [!warning]
 > This is a current work in progress.
 
+## Documentation
+
+Read the [documentation site specification](design/documentation-site.md) before changing the site.
+It defines the information architecture, page types, writing rules, reference generation, Zensical
+conventions, migration plan, and verification requirements.
+
 ## Versioning & releases
 
 GPTNT uses standard [SemVer](https://semver.org). We are **pre-1.0**: every release is `0.x` and the
