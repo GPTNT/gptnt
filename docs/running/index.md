@@ -1,21 +1,33 @@
-# Run the benchmark
+---
+title: Run and submit
+---
 
-!!! warning "Ensure the dummy models work first"
-    This section presumes you have already run the benchmark with the dummy models and have a working setup. If you have not, follow [Get started](../get-started.md){data-preview} first.
+# Run and submit
 
-This section takes you from a working setup to a set of results you can submit. Add your model, run the benchmark's suites, then package the outcome.
-The benchmark runs as a set of suites through two commands:
+Start here after the included-player quickstart works. These procedures take a model from local
+configuration through experiment execution, result inspection, and submission.
 
-- **Interactive suites** play the game, driven by a `run.yaml` manifest and `gptnt run`.
-- **Static evaluations** (`expert-vqa-no-manual`) evaluate the manual without the game, through `gptnt statics`.
+!!! warning "Complete the quickstart first"
+    The procedures assume that `gptnt doctor` can reach Redis and KTANE and that the
+    [quickstart](../start-here/run-quickstart.md){data-preview} has produced a queryable result.
 
-## Where to start
+## Configure the inputs
 
-!!! danger
-    This entire section focuses on getting you to a set of results you can submit. Therefore, various details are going to be left out. Watch this space for additional details on how to go beyond running the existing set of suites.
+| Goal | Procedure | Result |
+| ---- | --------- | ------ |
+| Assemble a model-backed player | [Add a model](add-new-player.md){data-preview} | A player profile with identity, capabilities, model settings, and image-token calibration |
+| Connect the player to an endpoint | [Configure a provider](configure-provider.md){data-preview} | Credentials and any provider override supplied outside the player profile |
+| Prepare the manual selected by a suite | [Prepare manuals](../manuals.md){data-preview} | Validated, content-addressed manual artefacts |
+| Select suites, players, and runtime capacity | [Create a run manifest](create-run-manifest.md){data-preview} | A schema-v2 manifest and generated experiment specifications |
 
-The pages follow the order you use them:
+## Execute and submit
 
-1. [Add a new player](add-new-player.md){data-preview} — write and validate a model config.
-2. [Run your model](run-your-model.md){data-preview} — declare a run, play the suites, read the results.
-3. [Submit your results](../submit-your-results.md){data-preview} — package them and open a pull request.
+1. [Run your model](run-your-model.md){data-preview} to execute the generated interactive
+   specifications and inspect their outputs.
+2. Run any required static evaluations with the configured player.
+3. [Submit your results](../submit-your-results.md){data-preview} after the interactive and static
+   outputs are complete.
+
+Use [roles, protocols, and capabilities](../understand/roles-protocols-and-capabilities.md) when a
+suite's participation rules affect a player choice. Use the [reference](../reference/index.md) for
+exact commands, fields, formats, and supported Python interfaces.

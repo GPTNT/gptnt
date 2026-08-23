@@ -35,6 +35,9 @@ A player protocol specifies the role, communication style, manual access, and fe
 for one side of an experiment. A suite can also use a solo Defuser protocol. Do not infer that
 every room always requires two player services.
 
+[Roles, protocols, and capabilities](roles-protocols-and-capabilities.md) explains the supported
+pairing modes and the distinction between protocol fields and service matching.
+
 The suite supplies the protocols. The generated experiment specification records the selected
 player names and protocols. When the experiment manager creates a running instance, it adds each
 service UUID and the capabilities reported by that service.
@@ -62,4 +65,4 @@ response alone is not a benchmark result. GPTNT relates the outcome to the suite
 protocols, player identities, capabilities, runtime instance, and provenance captured by the run.
 
 [Trace the experiment hierarchy](experiment-hierarchy.md){ .md-button }
-[Add a player](../running/add-new-player.md){ .md-button }
+[Add a model](../running/add-new-player.md){ .md-button }

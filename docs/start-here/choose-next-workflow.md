@@ -9,9 +9,9 @@ run are prerequisites for the execution and submission paths.
 
 | Your current goal | Continue with |
 | ----------------- | ------------- |
-| Connect a model to GPTNT | [Add a new player](../running/add-new-player.md){data-preview} |
-| Configure suites, players, rooms, or displays | [Run your model](../running/run-your-model.md){data-preview} |
-| Prepare or inspect manuals | [Manuals](../manuals.md){data-preview} |
+| Connect a model to GPTNT | [Add a model](../running/add-new-player.md){data-preview} |
+| Configure suites, players, rooms, or displays | [Create a run manifest](../running/create-run-manifest.md){data-preview} |
+| Prepare or inspect manuals | [Prepare manuals](../manuals.md){data-preview} |
 | Run interactive experiments | [Run your model](../running/run-your-model.md#interactive-experiments) |
 | Inspect Parquet and DuckDB results | [Read the results](../running/run-your-model.md#read-the-results) |
 | Build and validate a submission | [Submit your results](../submit-your-results.md){data-preview} |

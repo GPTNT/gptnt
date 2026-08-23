@@ -25,7 +25,7 @@ Run these interactive suites:
 
 Also run the `expert-vqa-no-manual` static evaluation. Each submitted player must have an
 `identity` block in `configs/player/<player-name>.yaml`; see
-[Configure the identity](running/add-new-player.md#configuring-the-identity){data-preview}.
+[Configure the player](running/add-new-player.md#configure-the-player){data-preview}.
 
 Install the submission dependencies before opening a pull request:
 
@@ -64,7 +64,7 @@ gptnt submission new \
 
 `--submitter.contact` accepts a GitHub handle or an email. Affiliation is optional. Use
 `--experiments-db`, `--statics-output-dir`, or `--output-dir` when your files are outside their
-default locations. Pass `--model` to select particular players.
+default locations. Pass `--model` to select players.
 
 The builder writes one directory per model and target under `output/submissions/`:
 
@@ -84,14 +84,14 @@ the benchmark reference in `release_tag`, `release_commit`, and `protected_conte
 also records player capabilities and fingerprints and the measured suite or static identity. The
 terms benchmark reference, player fingerprint, and suite digest are defined in
 [Run your model](running/run-your-model.md#understand-benchmark-identity-and-editable-inputs),
-[Add a new player](running/add-new-player.md#capabilities-have-fingerprints), and
+[Roles, protocols, and capabilities](understand/roles-protocols-and-capabilities.md#identity-and-fingerprints-serve-different-purposes), and
 [Adding or changing a suite](running/run-your-model.md#adding-or-changing-a-suite).
 
 An interactive bundle also includes `suite.lock`, reduced to the recorded suite revision and the
 missions it references. Validation therefore checks the included suite snapshot instead of reading
 the current `configs/suites` and `configs/missions` files. `experiments.parquet` contains an
 `ExperimentSummary`, outcome, and per-player usage for each submitted experiment; it does not
-contain the full trajectories. A static bundle carries its aggregated scorer output in
+contain the full trajectories. A static bundle contains its aggregated scorer output in
 `metrics.json`.
 
 The player display name and attribution come from the config's `identity` block. The measured
@@ -135,8 +135,8 @@ Run the submission flow locally first:
 gptnt submission submit --dry-run
 ```
 
-The dry run authenticates, clones the registry, creates local branches and commits, and prints what
-each pull request would contain. It does not fork, push, or open a pull request.
+The dry run authenticates and clones the registry. It creates local branches with commits, then
+prints what each pull request would contain. It does not fork, push, or open a pull request.
 
 When the output is correct, submit the bundles:
 
