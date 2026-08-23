@@ -20,15 +20,54 @@ Copyright &copy; 2026 GPTNT
 #
 # Read more: https://zensical.org/docs/setup/navigation/
 nav = [
-    "index.md",
-    "get-started.md",
-    {"Run the benchmark" = [
-        "running/index.md",
-        "running/add-new-player.md",
-        "running/run-your-model.md",
+    {"Home" = "index.md"},
+    {"Start here" = [
+        {"Overview" = "start-here/index.md"},
+        {"Install & check" = "get-started.md"},
+        {"Quickstart" = "start-here/run-quickstart.md"},
+        {"Next steps" = "start-here/choose-next-workflow.md"},
     ]},
-    "submit-your-results.md",
-    "manuals.md",
+    {"Run & submit" = [
+        {"Overview" = "running/index.md"},
+        {"Add a model" = "running/add-new-player.md"},
+        {"Run your model" = "running/run-your-model.md"},
+        {"Manuals" = "manuals.md"},
+        {"Submit results" = "submit-your-results.md"},
+    ]},
+    {"Understand" = [
+        {"Overview" = "understand/index.md"},
+        {"Benchmark & players" = "understand/benchmark-and-player-model.md"},
+        {"Experiment hierarchy" = "understand/experiment-hierarchy.md"},
+        {"Runtime services" = "understand/runtime-services.md"},
+    ]},
+    {"Reference" = [
+        {"Overview" = "reference/index.md"},
+        {"CLI" = [
+            {"Overview" = "reference/cli/index.md"},
+            {"Doctor" = "reference/cli/doctor.md"},
+            {"Generate" = "reference/cli/generate.md"},
+            {"Run" = "reference/cli/run.md"},
+        ]},
+        {"Configuration" = [
+            {"Overview" = "reference/configuration/index.md"},
+            {"Environment" = "reference/configuration/environment.md"},
+        ]},
+        {"Runtime" = [
+            {"Overview" = "reference/runtime/index.md"},
+            {"Run orchestration" = "reference/runtime/run-orchestration.md"},
+            {"Experiment manager" = "reference/runtime/experiment-manager.md"},
+            {"Game service" = "reference/runtime/game-service.md"},
+            {"Player service" = "reference/runtime/player-service.md"},
+            {"Service registry" = "reference/runtime/service-registry.md"},
+            {"Heartbeats & RPC" = "reference/runtime/heartbeats-and-rpc.md"},
+        ]},
+    ]},
+    {"Troubleshooting" = [
+        {"Overview" = "troubleshooting/index.md"},
+        {"Installation & doctor" = "troubleshooting/installation-and-doctor.md"},
+        {"Game & displays" = "troubleshooting/game-and-displays.md"},
+        {"Redis & services" = "troubleshooting/redis-and-runtime-services.md"},
+    ]},
 ]
 extra_css = ["stylesheets/extra.css"]
 
