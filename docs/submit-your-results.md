@@ -1,53 +1,51 @@
 ---
 title: Submit your results
+tags:
+  - Submission
+  - Results
+  - CLI
 ---
 
 # Submit your results
 
-A submission is a self-contained bundle of recorded results and the identities needed to validate
-them. You build and check the bundle locally, then open a pull request against the separate
-[gptnt/submissions](https://github.com/gptnt/submissions) registry.
+Build one schema-version-2 bundle per model and target, validate it locally, preview the repository
+operation, and open pull requests against
+[gptnt/submissions](https://github.com/gptnt/submissions).
 
-Submitting takes four steps:
+## Prepare the required results
 
-1. [Collate](#collate-the-results) experiment outputs into DuckDB.
-2. [Build](#build-the-bundles) one bundle per model and target.
-3. [Validate](#validate-the-bundles) the bundle locally and in the registry.
-4. [Submit](#open-the-pull-request) it by pull request.
-
-## Before you start
-
-Run these interactive suites:
+Complete these interactive suites:
 
 - `multi-self-async`
 - `multi-self-sync`
 - `single-parametric-sync`
 
-Also run the `expert-vqa-no-manual` static evaluation. Each submitted player must have an
+Also complete the explicit `expert-vqa-no-manual` static target. Every submitted player needs an
 `identity` block in `configs/player/<player-name>.yaml`; see
 [Configure the player](running/add-new-player.md#configure-the-player){data-preview}.
 
-Install the submission dependencies before opening a pull request:
+Use [Inspect and analyse results](running/inspect-results.md) to confirm terminal outcomes, build
+DuckDB, and check the static metadata and metrics. Run from an unmodified tagged release;
+submission bundle construction has no modified-benchmark override.
+
+Install the remote-submission dependency group before the final stage:
 
 ```bash
 uv sync --all-groups --extra submission
 ```
 
-Set `GITHUB_TOKEN`, or authenticate the GitHub CLI with `gh auth login`. Local repository work uses
-`pygit2`, so the system Git executable is not required.
+Set `GITHUB_TOKEN`, or install and authenticate the GitHub CLI with `gh auth login`.
 
-## Collate the results
-
-Each interactive experiment writes player records under the recorder output directory. Collate
-them into one DuckDB file:
+## Collate the interactive records
 
 ```bash
-gptnt build-db <directory-of-experiment-outputs> -o output/experiments.duckdb
+gptnt build-db <directory-of-experiment-outputs> \
+  --output output/experiments.duckdb
 ```
 
-The DuckDB file is the input to the interactive submission builder. Keep the original Parquet files
-until you have built and validated the bundles, because they are the source records if collation or
-bundle construction must be repeated.
+!!! warning "Keep the source Parquet"
+    Preserve the player-record Parquet through bundle construction and successful validation.
+    DuckDB and bundle payloads are derived data. Retained records allow either to be rebuilt.
 
 ## Build the bundles
 
@@ -62,11 +60,17 @@ gptnt submission new \
   --submitter.affiliation "<affiliation>"
 ```
 
-`--submitter.contact` accepts a GitHub handle or an email. Affiliation is optional. Use
-`--experiments-db`, `--statics-output-dir`, or `--output-dir` when your files are outside their
-default locations. Pass `--model` to select players.
+`multi-self-async`, `multi-self-sync`, and `single-parametric-sync` are the interactive defaults,
+but stating them in a release command makes the intended selection visible. Static targets have no
+default, so pass `--static expert-vqa-no-manual` explicitly. `--submitter.contact` accepts a GitHub
+handle or an email, and affiliation is optional. Use `--experiments-db`, `--statics-output-dir`, or
+`--output-dir` when your files are outside their default locations. Use `--model` to select player
+configuration names present in the data.
 
-The builder writes one directory per model and target under `output/submissions/`:
+The builder creates one flat directory per capability fingerprint and target. An interactive
+bundle contains `submission.yaml`, `experiments.parquet`, and `suite.lock`. The last file is a
+reduced snapshot of `configs/suites/suites.lock`. A static bundle contains `submission.yaml` and a
+verbatim `metrics.json`.
 
 ```text
 output/submissions/
@@ -97,52 +101,51 @@ contain the full trajectories. A static bundle contains its aggregated scorer ou
 The player display name and attribution come from the config's `identity` block. The measured
 capabilities and player fingerprint come from the records. Do not hand-edit derived identities in
 `submission.yaml`: validation recomputes them and rejects a mismatch.
+You may fill the `submitter` block after building. A rebuild preserves an existing valid block.
 
 ## Validate the bundles
 
-### Local validation
-
 ```bash
-gptnt submission validate
+gptnt submission validate output/submissions
 ```
 
-Local validation uses your current checkout and does not use the network. It checks the manifest,
-recorded provenance, player fingerprints, included suite snapshot and suite digest, mission
-coverage, player coverage, and outcomes. Pass a bundle directory or another root path to validate
-something outside `output/submissions/`.
+The command accepts one bundle directory or a root to sweep. It checks manifest and payload shape,
+directory and submission IDs, submitter fields, fingerprints, provenance, protected state, and the
+payload kind. Interactive validation also checks the reduced suite snapshot, suite digest, exact
+mission coverage, terminal outcomes, and players. Static validation warns when the dataset has no
+resolved commit.
 
-!!! warning "Modified protected content cannot be submitted"
-    Contributor runs may use `--allow-modified-benchmark`, but their records set
-    `protected_content_modified: true`. Submission validation rejects those records because they do
-    not match the protected content at the recorded benchmark reference. Restore the release and
-    rerun the benchmark before building a submission.
+!!! danger "Modified protected content is not submittable"
+    Validation rejects `protected_content_modified: true`. Restore the release checkout and rerun
+    the benchmark. Do not edit the stored flag or derived provenance.
 
-### Published validation
+!!! success "The bundle is ready"
+    Every bundle report has no failed checks. Warnings remain visible and should be resolved when
+    they affect reproducibility, including an unpinned static dataset.
 
-The registry check treats the recorded benchmark reference as the validator boundary. It downloads
-`gptnt.tar.gz` and `gptnt.tar.gz.sha256` from that tag's
-`/releases/download/vX.Y.Z/` path, verifies the checksum and `release_commit`, and runs the
-validator from that release. It never uses `/releases/latest/download/`, because the latest release
-may implement a different submission contract from the one that wrote the records.
+The submissions repository validates with the GPTNT release identified by the recorded release
+tag and commit. A later release can have a different bundle contract, so the recorded release is
+the validation boundary.
 
-For the boundary around prior formats, see [Prior artifacts](get-started.md#prior-artifacts).
-
-## Open the pull request
-
-Run the submission flow locally first:
+## Preview and submit
 
 ```bash
 gptnt submission submit --dry-run
 ```
 
-The dry run authenticates and clones the registry. It creates local branches with commits, then
-prints what each pull request would contain. It does not fork, push, or open a pull request.
+The dry run authenticates and reads the repository before creating a local clone, branches, and
+commits. It does not fork, push, or open a pull request. Review the bundle, branch, staged paths,
+and pull-request title printed for every bundle.
 
-When the output is correct, submit the bundles:
+Submit after the preview is correct:
 
 ```bash
 gptnt submission submit
 ```
 
-The command opens one pull request per bundle. It pushes directly when you have registry access;
-otherwise it creates a fork. Re-running updates the branch and existing pull request.
+The command opens or refreshes one pull request per top-level bundle. It pushes directly when your
+account has access; otherwise it creates or uses a fork. A failure for one bundle is reported while
+the remaining bundles continue.
+
+[Submission command reference](reference/cli/submission.md)
+[Submission bundle format](reference/files/submission-bundles.md)
