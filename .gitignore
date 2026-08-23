@@ -830,3 +830,5 @@ agent_docs/
 
 .claude/
 .codex/
+
+.styles/
