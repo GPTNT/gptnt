@@ -22,7 +22,7 @@ their connected reference pages are integrated.
 
 ## Command order for an interactive run
 
-```bash
+```bash title="Run the interactive command sequence"
 gptnt doctor runs/<name>.yaml
 gptnt generate runs/<name>.yaml
 gptnt run runs/<name>.yaml
@@ -32,6 +32,6 @@ gptnt run runs/<name>.yaml
 before any game or player process starts.
 
 <!-- vale ai-tells.DoubleHyphen = NO -->
-[Run the quickstart](../../start-here/run-quickstart.md){ .md-button .md-button--primary }
-[Open runtime reference](../runtime/index.md){ .md-button }
+[Run the quickstart](../../start-here/run-quickstart.md)
+[Open runtime reference](../runtime/index.md)
 <!-- vale ai-tells.DoubleHyphen = YES -->

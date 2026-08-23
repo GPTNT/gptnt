@@ -74,6 +74,6 @@ active list and update completed or failed metrics.
 - Integration smoke tests cover registration, solved, strikeout, timeout, partial, solo,
   asynchronous, and player-crash paths.
 
-[Service registry](service-registry.md){ .md-button }
-[Game service](game-service.md){ .md-button }
-[Player service](player-service.md){ .md-button }
+[Service registry](service-registry.md)
+[Game service](game-service.md)
+[Player service](player-service.md)

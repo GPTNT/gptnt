@@ -14,7 +14,7 @@ experiment run.
 Download the remote inputs for the selected manual profiles into `output/manual_cache/sources/`.
 The command does not resolve or compile a handbook.
 
-```text
+```text title="Command syntax"
 gptnt manual download [--suite SUITE]... [--all-profiles]
 ```
 
@@ -30,7 +30,7 @@ profiles used by all configured suites.
 
 Run the complete download, resolution, and compilation pipeline for the selected profiles.
 
-```text
+```text title="Command syntax"
 gptnt manual compile [--suite SUITE]... [--all-profiles]
 ```
 

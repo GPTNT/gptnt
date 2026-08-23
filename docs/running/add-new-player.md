@@ -28,7 +28,7 @@ If the model uses a custom endpoint, you will create its player profile here and
 Choose a configuration name containing only letters, digits, hyphens, and underscore characters.
 From the repository root, run:
 
-```bash
+```bash title="Create a player configuration"
 gptnt new player my-model
 ```
 
@@ -107,7 +107,7 @@ GPTNT uses `tokens_per_image` when deciding how much conversation history fits i
 scaffold leaves the value unset, and the resolved capability default is `0`. Measure it against the
 configured endpoint:
 
-```bash
+```bash title="Measure image tokens"
 gptnt measure-tokens-per-image my-model path/to/manual-page.png
 ```
 
@@ -127,7 +127,7 @@ then writes their positive input-token difference to `configs/player/my-model.ya
 
 Run the configuration-only checks:
 
-```bash
+```bash title="Validate the player configuration"
 gptnt doctor --config-only
 ```
 
@@ -137,7 +137,7 @@ environment variable reported by Pydantic AI.
 
 To make one endpoint request per discovered player, add `--live`:
 
-```bash
+```bash title="Check model access"
 gptnt doctor --config-only --live
 ```
 

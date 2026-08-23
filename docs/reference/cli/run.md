@@ -13,7 +13,7 @@ matching GPTNT and KTANE processes after normal shutdown is unavailable.
 
 ## `run`
 
-```text
+```text title="Command syntax"
 gptnt run MANIFEST [--force] [--allow-modified-benchmark]
                    [--interactive | -i]
 ```
@@ -61,7 +61,7 @@ stragglers.
 
 ## `submit`
 
-```text
+```text title="Command syntax"
 gptnt submit [--experiment-specs-dir DIRECTORY] [--source SOURCE]
              [--output-dir DIRECTORY] [--dry-run] [--no-filter]
              [--delete-unneeded]
@@ -84,7 +84,7 @@ manager. It does not start or monitor services.
 
 ## `kill`
 
-```text
+```text title="Command syntax"
 gptnt kill
 ```
 
@@ -96,5 +96,5 @@ processes, then forcibly terminates each match. It prints the matched process ty
     shutdown. Inspect the process list before assuming that each match belongs to the interrupted
     run.
 
-[Understand runtime services](../../understand/runtime-services.md){ .md-button }
-[Trace run orchestration](../runtime/run-orchestration.md){ .md-button }
+[Understand runtime services](../../understand/runtime-services.md)
+[Trace run orchestration](../runtime/run-orchestration.md)

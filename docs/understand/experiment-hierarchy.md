@@ -70,7 +70,7 @@ adds their UUIDs and reported capabilities to the specification to create an
 
 The session name has this form:
 
-```text
+```text title="Attempt name"
 <attempt_name>--<experiment_uuid>
 ```
 
@@ -90,5 +90,5 @@ An `ExperimentSummary` combines the instance, provenance, outcome, and crash sta
 `ExperimentDescriptor` is not a v2 type. Use `ExperimentSpec` for generated work and
 `ExperimentInstance` for its runtime form.
 
-[Understand the runtime services](runtime-services.md){ .md-button }
-[Run the quickstart](../start-here/run-quickstart.md){ .md-button }
+[Understand the runtime services](runtime-services.md)
+[Run the quickstart](../start-here/run-quickstart.md)

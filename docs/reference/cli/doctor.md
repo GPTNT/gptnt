@@ -11,7 +11,7 @@ runtime infrastructure, the KTANE mod, or one provider request per configured mo
 
 ## Usage
 
-```text
+```text title="Command syntax"
 gptnt doctor [MANIFEST] [--check-mod-load] [--live] [--config-only]
              [--allow-modified-benchmark]
 ```
@@ -55,7 +55,7 @@ The report renders only sections that apply to the selected mode.
 !!! example "Benchmark section"
     The values depend on the installed release. A matching checkout has this form:
 
-    ```text
+    ```text title="Expected output"
     Benchmark
     Reference          v2.0.0
     Release commit     abc1234
@@ -77,5 +77,5 @@ specifications or start processes. Use
 configuration or integrity failures. Use the game or Redis troubleshooting page for a row from
 that subsystem.
 
-[Install and check GPTNT](../../get-started.md){ .md-button }
-[Generate specifications](generate.md){ .md-button }
+[Install and check GPTNT](../../get-started.md)
+[Generate specifications](generate.md)

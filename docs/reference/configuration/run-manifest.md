@@ -57,5 +57,5 @@ attempts. `attempts_per_mission` changes generation depth rather than suite iden
     options:
       members: true
 
-[Create a run manifest](../../running/create-run-manifest.md){ .md-button }
-[Open player configuration](players.md){ .md-button }
+[Create a run manifest](../../running/create-run-manifest.md)
+[Open player configuration](players.md)

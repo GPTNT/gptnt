@@ -125,7 +125,7 @@ a label unless the old URL exists only on the unmerged `more-docs` branch.
 ### Home
 
 The home page states what GPTNT measures, distinguishes the project website from the documentation,
-and offers direct next actions. Use Zensical buttons for the primary actions:
+and offers direct next actions as ordinary links in a compact list:
 
 - Install and check GPTNT.
 - Run the quickstart.
@@ -481,6 +481,16 @@ Every command block states where it runs when the location is not the repository
 examples that match v2. Show expected output when it is the verification step or when a successful
 command otherwise appears idle.
 
+Use a titled `bash` fence for commands that the reader can copy into a shell. Omit the `$` prompt so
+the block remains copyable. Use `console title="Shell session"` only when a transcript combines
+commands and their output, and prefix commands in that transcript with `$`. Use
+`text title="Expected output"` for output without commands. Prefer a short task-specific title such
+as `Install dependencies`, `Start services`, or `Validate the player` to the generic
+`Run in your shell` title.
+
+Test titled language fences before adding a shell icon. Do not add a decorative icon or custom CSS
+for command blocks unless the titled fences leave the distinction unclear in the rendered site.
+
 ### Tooltips, glossary, and footnotes
 
 Keep project-wide abbreviations in `docs/includes/abbreviations.md` and enable improved tooltips.
@@ -506,11 +516,11 @@ Use captions, lazy loading, colour-scheme variants, and GLightbox where a screen
 artifact adds information. Give every image descriptive alternative text. Do not use a screenshot
 as the only record of a command, field, or error message.
 
-### Buttons and previews
+### Links and previews
 
-Use primary buttons for the main next action on home and section indexes. Use secondary buttons for
-an adjacent path. Use instant previews on links where a reader benefits from checking a definition
-without leaving a procedure.
+Use ordinary Markdown links, compact route lists, or direct next-step prose. Do not apply button
+classes to navigation links. Use instant previews on links where a reader benefits from checking a
+definition without leaving a procedure.
 
 ### Tags
 
@@ -1046,7 +1056,7 @@ The documentation expansion is complete when:
 - Generated API detail comes from v2 source and is grouped beneath hand-written domain overviews.
 - Contributor depth remains reachable through navigation, search, cross-links, and controlled
   tags.
-- Admonitions, tabs, annotations, diagrams, tooltips, footnotes, buttons, previews, and images follow
+- Admonitions, tabs, annotations, diagrams, tooltips, footnotes, links, previews, and images follow
   the conventions in this file.
 - No analytics or analytics-backed feedback is configured.
 - A site-wide editor has read every changed public page in navigation order and applied the prose

@@ -12,7 +12,7 @@ player's image-token cost.
 
 ## `gptnt new player`
 
-```text
+```text title="Command syntax"
 gptnt new player NAME
 ```
 
@@ -26,7 +26,7 @@ Its completion message recommends `gptnt doctor`.
 
 ## `gptnt new provider`
 
-```text
+```text title="Command syntax"
 gptnt new provider NAME
 ```
 
@@ -36,7 +36,7 @@ uses an OpenAI-compatible provider as an editable example.
 
 ## `gptnt list players`
 
-```text
+```text title="Command syntax"
 gptnt list players
 ```
 
@@ -46,7 +46,7 @@ When provider profiles exist, it prints a separate sorted **Providers** group fr
 
 ## `gptnt list suites`
 
-```text
+```text title="Command syntax"
 gptnt list suites
 ```
 
@@ -55,7 +55,7 @@ underscore-prefixed templates.
 
 ## `gptnt measure-tokens-per-image`
 
-```text
+```text title="Command syntax"
 gptnt measure-tokens-per-image PLAYER CALIBRATION-IMAGE [--provider PROVIDER]
 ```
 
@@ -77,5 +77,5 @@ token counts becomes `capabilities.tokens_per_image` in the player YAML.
 A zero or negative difference fails instead of updating the file. This can indicate that the
 provider does not include image tokens in its input-token report.
 
-[Add a model](../../running/add-new-player.md){ .md-button }
-[Configure a provider](../../running/configure-provider.md){ .md-button }
+[Add a model](../../running/add-new-player.md)
+[Configure a provider](../../running/configure-provider.md)

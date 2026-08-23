@@ -22,7 +22,7 @@ You need:
 
 List the available names before editing:
 
-```bash
+```bash title="List available configurations"
 gptnt list suites
 gptnt list players
 ```
@@ -33,7 +33,7 @@ gptnt list players
 
 Run this command from the repository root:
 
-```bash
+```bash title="Create the manifest"
 cp runs/_template.yaml runs/my-run.yaml
 ```
 
@@ -103,7 +103,7 @@ and does not form part of suite identity.
 
 Run the full check:
 
-```bash
+```bash title="Validate the run manifest"
 gptnt doctor runs/my-run.yaml
 ```
 
@@ -120,7 +120,7 @@ for a failed model row.
 
 ## Generate the specifications
 
-```bash
+```bash title="Generate specifications"
 gptnt generate runs/my-run.yaml
 ```
 

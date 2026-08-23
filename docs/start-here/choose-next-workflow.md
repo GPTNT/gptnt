@@ -28,6 +28,6 @@ run manifest, game installation, Redis endpoint, or display. Regenerate experime
 after changing a manifest or configuration that affects the selected experiments.
 
 <!-- vale ai-tells.DoubleHyphen = NO -->
-[Understand GPTNT](../understand/index.md){ .md-button .md-button--primary }
-[Open the reference](../reference/index.md){ .md-button }
+[Understand GPTNT](../understand/index.md)
+[Open the reference](../reference/index.md)
 <!-- vale ai-tells.DoubleHyphen = YES -->

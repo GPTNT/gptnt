@@ -77,7 +77,7 @@ transported exceptions where the service returns one.
 
 Player communication uses:
 
-```text
+```text title="Message channel"
 session:<session_id>:player:<role>:messages
 ```
 
@@ -85,5 +85,5 @@ A player publishes to the other role's channel. `IncomingMessageHandler` subscri
 player is configured for the session and stores received messages. It supplies the messages to the
 next forward pass. These messages are asynchronous events rather than RPC commands.
 
-[Service registry](service-registry.md){ .md-button }
-[Troubleshoot Redis and services](../../troubleshooting/redis-and-runtime-services.md){ .md-button }
+[Service registry](service-registry.md)
+[Troubleshoot Redis and services](../../troubleshooting/redis-and-runtime-services.md)

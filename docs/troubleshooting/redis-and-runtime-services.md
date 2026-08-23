@@ -20,7 +20,7 @@ exceeded its timeout.
 
 Start the included service:
 
-```bash
+```bash title="Start Redis and check the run"
 docker compose up -d
 gptnt doctor runs/<name>.yaml
 ```
@@ -29,7 +29,7 @@ Doctor sends Redis `PING` to the configured `REDIS_DSN`. A failed row means no s
 was received. Check that the endpoint, authentication, and network route match every service
 process. Starting the development telemetry profile does not change Redis:
 
-```bash
+```bash title="Start Redis and telemetry"
 COMPOSE_PROFILES=dev docker compose up -d
 ```
 
@@ -92,7 +92,7 @@ seconds, and short game-control requests use 5 seconds. A player model pass has 
 
 The channel identifies the target:
 
-```text
+```text title="RPC channels"
 game:<uuid>:commands:<command>
 player:<uuid>:commands:<command>
 ```
@@ -118,5 +118,5 @@ The doctor telemetry check is optional and reports a warning. It is not a Redis 
 manager failure. Use `COMPOSE_PROFILES=dev` when the collector endpoint should remain available but
 discard exported telemetry.
 
-[Heartbeats and RPC](../reference/runtime/heartbeats-and-rpc.md){ .md-button }
-[Understand runtime services](../understand/runtime-services.md){ .md-button }
+[Heartbeats and RPC](../reference/runtime/heartbeats-and-rpc.md)
+[Understand runtime services](../understand/runtime-services.md)

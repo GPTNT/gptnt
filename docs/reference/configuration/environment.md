@@ -147,5 +147,5 @@ Use the provider's documentation for its complete variable set. The [provider co
 and [provider troubleshooting](../../troubleshooting/providers-and-model-responses.md) pages cover
 the GPTNT boundary. Do not place credentials in a tracked run, player, or provider configuration.
 
-[Install and check GPTNT](../../get-started.md){ .md-button }
-[Troubleshoot Redis and services](../../troubleshooting/redis-and-runtime-services.md){ .md-button }
+[Install and check GPTNT](../../get-started.md)
+[Troubleshoot Redis and services](../../troubleshooting/redis-and-runtime-services.md)

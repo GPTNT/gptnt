@@ -26,6 +26,6 @@ quickstart.
 | Redis or a runtime service fails | [Redis and runtime services](../troubleshooting/redis-and-runtime-services.md) |
 
 <!-- vale ai-tells.DoubleHyphen = NO -->
-[Install and check GPTNT](../get-started.md){ .md-button .md-button--primary }
-[Run the quickstart](run-quickstart.md){ .md-button }
+[Install and check GPTNT](../get-started.md)
+[Run the quickstart](run-quickstart.md)
 <!-- vale ai-tells.DoubleHyphen = YES -->

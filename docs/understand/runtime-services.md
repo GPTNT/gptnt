@@ -90,5 +90,5 @@ registry stops a running session when one of its required services expires.
 | Readiness and service state | [Service registry](../reference/runtime/service-registry.md) |
 | Liveness, channels, and timeouts | [Heartbeats and RPC](../reference/runtime/heartbeats-and-rpc.md) |
 
-[Open the runtime reference](../reference/runtime/index.md){ .md-button }
-[Troubleshoot Redis and services](../troubleshooting/redis-and-runtime-services.md){ .md-button }
+[Open the runtime reference](../reference/runtime/index.md)
+[Troubleshoot Redis and services](../troubleshooting/redis-and-runtime-services.md)

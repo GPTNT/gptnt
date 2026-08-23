@@ -51,5 +51,5 @@ Doctor composes the player and provider sequentially, constructs capabilities an
 constructs the Pydantic AI agent. A missing provider credential fails the **Inst.** column. With
 `--live`, doctor makes one request and reports the result in **Live**.
 
-[Configure a provider](../../running/configure-provider.md){ .md-button }
-[Troubleshoot provider access](../../troubleshooting/providers-and-model-responses.md){ .md-button }
+[Configure a provider](../../running/configure-provider.md)
+[Troubleshoot provider access](../../troubleshooting/providers-and-model-responses.md)

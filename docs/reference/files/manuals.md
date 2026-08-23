@@ -59,7 +59,7 @@ The full source reference is repository-owned configuration. A KtaneContent pin 
 
 The default cache has this structure:
 
-```text
+```text title="Manual cache layout"
 output/manual_cache/
 ├── sources/
 │   └── <downloaded and compiler inputs>

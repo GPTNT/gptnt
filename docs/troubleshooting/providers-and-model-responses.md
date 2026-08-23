@@ -13,7 +13,7 @@ provider override that GPTNT composed.
 
 Run:
 
-```bash
+```bash title="List player configurations"
 gptnt list players
 ```
 
@@ -48,7 +48,7 @@ to its official API instead of inventing a placeholder secret.
 
 Use a live doctor check for the affected run or player:
 
-```bash
+```bash title="Check provider access"
 gptnt doctor runs/<name>.yaml --live
 gptnt doctor --player <player> --provider <provider> --live
 ```

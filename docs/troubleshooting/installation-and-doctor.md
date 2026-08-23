@@ -19,7 +19,7 @@ infrastructure, game startup, or provider requests to the check.
 
 Run:
 
-```bash
+```bash title="Check the installation"
 gptnt doctor --config-only
 ```
 
@@ -41,7 +41,7 @@ content comparable with the release.
 
 Repeat the repository tasks from the extracted `gptnt/` root:
 
-```bash
+```bash title="Install dependencies"
 mise install
 mise run sync
 gptnt doctor --config-only
@@ -54,7 +54,7 @@ omits the browser can pass some configuration checks but later fail manual prepa
 
 Run doctor with the manifest that selects the player:
 
-```bash
+```bash title="Validate the run configuration"
 gptnt doctor runs/<name>.yaml --config-only
 ```
 
@@ -71,7 +71,7 @@ checks every discovered player and can report an unrelated profile.
 
 Re-run the manifest check before generation:
 
-```bash
+```bash title="Repeat the configuration check"
 gptnt doctor runs/<name>.yaml --config-only
 ```
 
@@ -92,7 +92,7 @@ the same endpoint.
 `--config-only` intentionally skips infrastructure and machine checks. Run the full report and use
 the corresponding subsystem page:
 
-```bash
+```bash title="Check runtime dependencies"
 gptnt doctor runs/<name>.yaml
 ```
 
@@ -111,5 +111,5 @@ gptnt doctor runs/<name>.yaml
     layouts. It does not upgrade an earlier database in place. Inspect old data with its matching
     release or rerun the benchmark to produce current records.
 
-[Doctor reference](../reference/cli/doctor.md){ .md-button }
-[Install and check GPTNT](../get-started.md){ .md-button }
+[Doctor reference](../reference/cli/doctor.md)
+[Install and check GPTNT](../get-started.md)

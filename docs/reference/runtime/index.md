@@ -26,6 +26,6 @@ commands, records progress, and handles failure.
 | Inspect liveness keys, request channels, and timeouts | [Heartbeats and RPC](heartbeats-and-rpc.md) |
 
 <!-- vale ai-tells.DoubleHyphen = NO -->
-[Understand runtime services](../../understand/runtime-services.md){ .md-button .md-button--primary }
-[Troubleshoot runtime services](../../troubleshooting/redis-and-runtime-services.md){ .md-button }
+[Understand runtime services](../../understand/runtime-services.md)
+[Troubleshoot runtime services](../../troubleshooting/redis-and-runtime-services.md)
 <!-- vale ai-tells.DoubleHyphen = YES -->

@@ -23,6 +23,6 @@ Suite, mission, and module-registry reference joins this section with its connec
 procedures.
 
 <!-- vale ai-tells.DoubleHyphen = NO -->
-[Install and check GPTNT](../../get-started.md){ .md-button .md-button--primary }
-[Open runtime reference](../runtime/index.md){ .md-button }
+[Install and check GPTNT](../../get-started.md)
+[Open runtime reference](../runtime/index.md)
 <!-- vale ai-tells.DoubleHyphen = YES -->

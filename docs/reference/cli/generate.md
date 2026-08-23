@@ -12,7 +12,7 @@ configuration and benchmark integrity without checking runtime infrastructure.
 
 ## Usage
 
-```text
+```text title="Command syntax"
 gptnt generate MANIFEST [--output-dir PATH] [--allow-modified-benchmark]
 ```
 
@@ -33,14 +33,14 @@ The command performs these operations in order:
 
 Without an override, the output directory is:
 
-```text
+```text title="Default output directory"
 output/experiment_specs/<manifest-stem>/
 ```
 
 Each file uses the `<attempt_name>.json` pattern. `gptnt run runs/<name>.yaml` later reads every
 `*.json` file recursively from `output/experiment_specs/<name>/`.
 
-```bash
+```bash title="Generate specifications"
 gptnt generate runs/quickstart.yaml --output-dir output/experiment_specs/quickstart # (1)!
 ```
 
@@ -59,5 +59,5 @@ gptnt generate runs/quickstart.yaml --output-dir output/experiment_specs/quickst
     changing a manifest, suite selection, mission input, protocol, player selection, or attempt
     count. Do not mix files generated from incompatible inputs in one output directory.
 
-[Run the quickstart](../../start-here/run-quickstart.md){ .md-button }
-[Run generated specifications](run.md){ .md-button }
+[Run the quickstart](../../start-here/run-quickstart.md)
+[Run generated specifications](run.md)

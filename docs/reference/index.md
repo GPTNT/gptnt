@@ -26,6 +26,6 @@ available because they support the first-run and service-troubleshooting paths.
     module name does not by itself make every object inside it a supported interface.
 
 <!-- vale ai-tells.DoubleHyphen = NO -->
-[Run the quickstart](../start-here/run-quickstart.md){ .md-button .md-button--primary }
-[Understand GPTNT](../understand/index.md){ .md-button }
+[Run the quickstart](../start-here/run-quickstart.md)
+[Understand GPTNT](../understand/index.md)
 <!-- vale ai-tells.DoubleHyphen = YES -->

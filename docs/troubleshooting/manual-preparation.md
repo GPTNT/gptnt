@@ -13,7 +13,7 @@ index, source path, or artefact key to narrow the correction.
 
 `gptnt manual compile --suite <suite>` rejects an unknown suite. Confirm the available name with:
 
-```bash
+```bash title="List manual suites"
 gptnt list suites
 ```
 
@@ -27,7 +27,7 @@ Do not combine `--suite` and `--all-profiles`.
 
 On a connected machine, populate the source cache:
 
-```bash
+```bash title="Download manual sources"
 gptnt manual download --suite <suite>
 ```
 
@@ -43,7 +43,7 @@ resolution without source catalog data or required compiler and PDF inputs.
 The error names the Playwright browser executable. Install the version paired with the current
 environment:
 
-```bash
+```bash title="Install Chromium"
 uv run playwright install chromium
 ```
 
@@ -84,7 +84,7 @@ external run-time dependencies from the document.
 The compiler also stops on missing images and uncaught page JavaScript errors. Correct the first
 reported failure, then run:
 
-```bash
+```bash title="Compile the manual"
 gptnt manual compile --suite <suite>
 ```
 

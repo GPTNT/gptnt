@@ -14,11 +14,11 @@ site explains how to install, run, extend, and maintain GPTNT.
 ## Start with a task
 
 <!-- vale ai-tells.DoubleHyphen = NO -->
-[Install and check GPTNT](get-started.md){ .md-button .md-button--primary }
-[Run the quickstart](start-here/run-quickstart.md){ .md-button }
+[Install and check GPTNT](get-started.md)
+[Run the quickstart](start-here/run-quickstart.md)
 
-[Add and run a model](running/add-new-player.md){ .md-button }
-[Submit results](submit-your-results.md){ .md-button }
+[Add and run a model](running/add-new-player.md)
+[Submit results](submit-your-results.md)
 <!-- vale ai-tells.DoubleHyphen = YES -->
 
 ## Find the right depth

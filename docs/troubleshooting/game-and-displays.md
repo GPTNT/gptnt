@@ -27,7 +27,7 @@ Place exactly one supported executable under `storage/ktane/`.
 
 Run the full doctor check again:
 
-```bash
+```bash title="Check the game and display"
 gptnt doctor runs/<name>.yaml
 ```
 
@@ -35,13 +35,13 @@ gptnt doctor runs/<name>.yaml
 
 Install the mod at:
 
-```text
+```text title="Expected mod directory"
 storage/ktane/mods/Gptnt Plays/
 ```
 
 The file check only proves the directory exists. Confirm that the game loads the mod with:
 
-```bash
+```bash title="Check the KTANE mod"
 gptnt doctor runs/<name>.yaml --check-mod-load
 ```
 
@@ -54,7 +54,7 @@ the binary, mod directory, or Linux display prerequisite has already failed.
     Use an existing desktop display or start a GPU-backed Xorg display. A compute accelerator alone
     does not provide the Unity rendering stack.
 
-```bash
+```bash title="Start a virtual display"
 sudo -E .venv/bin/python scripts/startx.py 3
 export DISPLAY=:3
 ```
@@ -111,5 +111,5 @@ for GPTNT interactive entry points and KTANE processes.
 !!! danger "Forced cleanup matches processes by command and name"
     Confirm that another user or run does not own a matching process before running `gptnt kill`.
 
-[Game service reference](../reference/runtime/game-service.md){ .md-button }
-[Install and check GPTNT](../get-started.md){ .md-button }
+[Game service reference](../reference/runtime/game-service.md)
+[Install and check GPTNT](../get-started.md)

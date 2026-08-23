@@ -62,5 +62,5 @@ File layout, saved settings, mod loading, display access, and the game process l
 service boundary. Diagnose those conditions in
 [game and display troubleshooting](../../troubleshooting/game-and-displays.md).
 
-[Heartbeats and RPC](heartbeats-and-rpc.md){ .md-button }
-[Troubleshoot the game](../../troubleshooting/game-and-displays.md){ .md-button }
+[Heartbeats and RPC](heartbeats-and-rpc.md)
+[Troubleshoot the game](../../troubleshooting/game-and-displays.md)

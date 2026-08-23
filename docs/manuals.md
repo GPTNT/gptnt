@@ -15,7 +15,7 @@ commands when you need to populate an offline cache or isolate a preparation fai
 
 Install the project and Playwright-managed Chromium:
 
-```bash
+```bash title="Install dependencies"
 mise run sync
 ```
 
@@ -45,7 +45,7 @@ experiment specifications before running it.
 
 Run persisted experiment specifications in the standard way:
 
-```bash
+```bash title="Run with automatic preparation"
 gptnt run runs/<name>.yaml
 ```
 
@@ -61,20 +61,20 @@ game rooms, or players start. `--force` does not bypass a preparation failure.
 
 Compile the profiles used by all configured suites:
 
-```bash
+```bash title="Compile configured manuals"
 gptnt manual compile
 ```
 
 Narrow preparation by repeating `--suite`, or select every profile:
 
-```bash
+```bash title="Select manual profiles"
 gptnt manual compile --suite single-pairwise-sync --suite multi-self-sync
 gptnt manual compile --all-profiles
 ```
 
 Use `download` to stop after remote sources enter the cache:
 
-```bash
+```bash title="Download manual sources"
 gptnt manual download --suite single-pairwise-sync
 ```
 
@@ -89,7 +89,7 @@ the profiles used by all configured suites. Shared profiles are prepared once.
 
 On a connected machine, compile the suites that the offline machine will run:
 
-```bash
+```bash title="Compile selected profiles"
 gptnt manual compile --suite single-pairwise-sync --suite multi-self-sync
 ```
 
@@ -131,7 +131,7 @@ KtaneContent document without a module ID.
 Select the new profile in a suite. Then freeze the changed suite, regenerate its specifications,
 and compile the profile through that suite:
 
-```bash
+```bash title="Retry manual compilation"
 gptnt manual compile --suite <suite>
 ```
 

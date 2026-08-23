@@ -23,7 +23,7 @@ investigate a submission. Clone the repository only when you intend to contribut
 
 ### Download the latest release
 
-```bash
+```bash title="Download and install GPTNT"
 curl -fsSL \
   https://github.com/GPTNT/gptnt/releases/latest/download/gptnt.tar.gz |
   tar -xzf -
@@ -51,7 +51,7 @@ Download the archive and checksum before extraction when you need to verify the 
 
 === "Linux"
 
-    ```bash
+    ```bash title="Download and verify the release"
     curl -fsSLO https://github.com/GPTNT/gptnt/releases/latest/download/gptnt.tar.gz
     curl -fsSLO https://github.com/GPTNT/gptnt/releases/latest/download/gptnt.tar.gz.sha256
     sha256sum --check gptnt.tar.gz.sha256
@@ -60,7 +60,7 @@ Download the archive and checksum before extraction when you need to verify the 
 
 === "macOS"
 
-    ```bash
+    ```bash title="Download and verify the release"
     curl -fsSLO https://github.com/GPTNT/gptnt/releases/latest/download/gptnt.tar.gz
     curl -fsSLO https://github.com/GPTNT/gptnt/releases/latest/download/gptnt.tar.gz.sha256
     shasum --algorithm 256 --check gptnt.tar.gz.sha256
@@ -78,7 +78,7 @@ The archive extracts into `gptnt/`. Run `mise install` and `mise run sync` from 
 
 Replace `vX.Y.Z` with the release recorded by the result or submission you are investigating.
 
-```bash
+```bash title="Download and install a release"
 curl -fsSLO https://github.com/GPTNT/gptnt/releases/download/vX.Y.Z/gptnt.tar.gz
 curl -fsSLO https://github.com/GPTNT/gptnt/releases/download/vX.Y.Z/gptnt.tar.gz.sha256
 sha256sum --check gptnt.tar.gz.sha256
@@ -94,7 +94,7 @@ copied version string.
 
 ### Clone for contribution and development
 
-```bash
+```bash title="Install from a Git checkout"
 git clone https://github.com/GPTNT/gptnt.git
 cd gptnt
 mise install
@@ -107,7 +107,7 @@ benchmark code or inputs.
 
 ## Check configuration without services
 
-```bash
+```bash title="Check the installation"
 gptnt doctor --config-only
 ```
 
@@ -117,7 +117,7 @@ machine checks.
 
 Pass the included manifest to check only its player roster and add its run-plan checks:
 
-```bash
+```bash title="Validate the quickstart configuration"
 gptnt doctor runs/quickstart.yaml --config-only
 ```
 
@@ -140,7 +140,7 @@ GPTNT expects one game executable in the platform layout:
 
 === "Linux"
 
-    ```text
+    ```text title="Expected Linux layout"
     storage/ktane/
     ├── <name>.x86_64
     └── ktane_Data/
@@ -148,14 +148,14 @@ GPTNT expects one game executable in the platform layout:
 
 === "macOS"
 
-    ```text
+    ```text title="Expected macOS layout"
     storage/ktane/
     └── <name>.app/
     ```
 
 === "Windows"
 
-    ```text
+    ```text title="Expected Windows layout"
     storage/ktane/
     ├── <name>.exe
     └── ktane_Data/
@@ -166,7 +166,7 @@ A macOS `*.app` is an application bundle, so an editor may display it as a direc
 
 ## Start Redis and telemetry
 
-```bash
+```bash title="Start Redis"
 docker compose up -d
 ```
 
@@ -186,7 +186,7 @@ requests, and player messages. KTANE does not run in Docker.
     Start the development Compose profile. It keeps the collector endpoint available but discards
     the exported telemetry.
 
-    ```bash
+    ```bash title="Start Redis and telemetry"
     COMPOSE_PROFILES=dev docker compose up -d
     ```
 
@@ -205,7 +205,7 @@ Windows doesn't need an extra X display. A Linux desktop can use its existing `$
 
 On headless Linux, start a GPU-backed Xorg display and export it:
 
-```bash
+```bash title="Start a virtual display"
 sudo -E .venv/bin/python scripts/startx.py 3
 export DISPLAY=:3
 ```
@@ -218,7 +218,7 @@ when the X socket or game window is unavailable.
 
 Run the full doctor report against the included manifest:
 
-```bash
+```bash title="Validate the quickstart environment"
 gptnt doctor runs/quickstart.yaml
 ```
 
@@ -226,7 +226,7 @@ The report checks the run plan, Redis, game files, mod files, Linux display, exp
 port, optional telemetry endpoint, machine capacity, and configured players. Add the slower game
 probe when you need to confirm that the mod serves its health endpoint:
 
-```bash
+```bash title="Check the KTANE mod"
 gptnt doctor runs/quickstart.yaml --check-mod-load
 ```
 
@@ -246,6 +246,6 @@ the game. Redis is not required for this probe.
     from different format boundaries are not comparable identifiers.
 
 <!-- vale ai-tells.DoubleHyphen = NO -->
-[Run the quickstart](start-here/run-quickstart.md){ .md-button .md-button--primary }
-[Doctor reference](reference/cli/doctor.md){ .md-button }
+[Run the quickstart](start-here/run-quickstart.md)
+[Doctor reference](reference/cli/doctor.md)
 <!-- vale ai-tells.DoubleHyphen = YES -->

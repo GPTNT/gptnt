@@ -20,7 +20,7 @@ locate KTANE with its mod. On Linux, it must also use a display.
     Run these commands from the repository root. The commands are separate because generation is
     an inspectable step and `run` consumes the specifications already on disk.
 
-    ```bash
+    ```bash title="Run the quickstart"
     gptnt doctor runs/quickstart.yaml
     gptnt generate runs/quickstart.yaml
     gptnt run runs/quickstart.yaml
@@ -30,7 +30,7 @@ locate KTANE with its mod. On Linux, it must also use a display.
 
 ## Check the run plan
 
-```bash
+```bash title="Check prerequisites"
 gptnt doctor runs/quickstart.yaml
 ```
 
@@ -48,21 +48,21 @@ Use the [`doctor` reference](../reference/cli/doctor.md){data-preview} to interp
 
 ## Generate experiment specifications
 
-```bash
+```bash title="Generate specifications"
 gptnt generate runs/quickstart.yaml
 ```
 
 `generate` performs the configuration and integrity checks without requiring runtime services. It
 writes one JSON file for each mission, pairing, and attempt under:
 
-```text
+```text title="Specification directory"
 output/experiment_specs/quickstart/
 ```
 
 !!! success "Specifications were written"
     The final line has this form:
 
-    ```text
+    ```text title="Expected output"
     Wrote <count> spec(s) to output/experiment_specs/quickstart
     ```
 
@@ -71,7 +71,7 @@ conditions.
 
 ## Run the experiments
 
-```bash
+```bash title="Run the interactive experiment"
 gptnt run runs/quickstart.yaml
 ```
 
@@ -95,7 +95,7 @@ logs remain under `output/logs/run_<run-output-name>/`.
 Copy the experiment-output directory printed by `run`. It normally resembles
 `output/experiment_recorder_outputs/<timestamp>/`.
 
-```bash
+```bash title="Build the result database"
 gptnt build-db <outputs-dir>
 ```
 
@@ -108,7 +108,7 @@ gptnt build-db <outputs-dir>
 
 ## Inspect an outcome
 
-```bash
+```bash title="Open the results dashboard"
 gptnt results
 ```
 
@@ -118,7 +118,7 @@ gptnt results
 
 The artefacts now form this sequence:
 
-```text
+```text title="Quickstart artefacts"
 runs/quickstart.yaml
   → output/experiment_specs/quickstart/*.json
   → output/experiment_recorder_outputs/<timestamp>/experiment-*.parquet
@@ -127,6 +127,6 @@ runs/quickstart.yaml
 ```
 
 <!-- vale ai-tells.DoubleHyphen = NO -->
-[Choose the next workflow](choose-next-workflow.md){ .md-button .md-button--primary }
-[Understand the experiment hierarchy](../understand/experiment-hierarchy.md){ .md-button }
+[Choose the next workflow](choose-next-workflow.md)
+[Understand the experiment hierarchy](../understand/experiment-hierarchy.md)
 <!-- vale ai-tells.DoubleHyphen = YES -->

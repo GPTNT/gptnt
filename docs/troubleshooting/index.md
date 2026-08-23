@@ -19,6 +19,6 @@ Interrupted outputs and submission validation remain on their task pages until t
 troubleshooting pages are integrated.
 
 <!-- vale ai-tells.DoubleHyphen = NO -->
-[Install and check GPTNT](../get-started.md){ .md-button .md-button--primary }
-[Understand runtime services](../understand/runtime-services.md){ .md-button }
+[Install and check GPTNT](../get-started.md)
+[Understand runtime services](../understand/runtime-services.md)
 <!-- vale ai-tells.DoubleHyphen = YES -->

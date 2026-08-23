@@ -86,5 +86,5 @@ player stops. The footer contains the experiment instance, final bomb state, pro
 state, and role. A hard player crash can therefore mark the experiment invalid even when other
 services remain reachable.
 
-[Service registry](service-registry.md){ .md-button }
-[Heartbeats and RPC](heartbeats-and-rpc.md){ .md-button }
+[Service registry](service-registry.md)
+[Heartbeats and RPC](heartbeats-and-rpc.md)

@@ -23,7 +23,7 @@ client, or provider to the same player.
 
     If the hosted service needs a non-default provider or SDK client, scaffold a provider profile:
 
-    ```bash
+    ```bash title="Create a hosted provider configuration"
     gptnt new provider my-provider
     ```
 
@@ -34,7 +34,7 @@ client, or provider to the same player.
 
     Scaffold an endpoint profile:
 
-    ```bash
+    ```bash title="Create a self-hosted provider configuration"
     gptnt new provider my-vllm
     ```
 
@@ -97,13 +97,13 @@ lists, credential names, and client behaviour.
 
 First validate composition and construction without infrastructure checks:
 
-```bash
+```bash title="Validate the provider configuration"
 gptnt doctor runs/my-run.yaml --config-only
 ```
 
 Then make one request for each player and provider pair in the manifest:
 
-```bash
+```bash title="Check provider access"
 gptnt doctor runs/my-run.yaml --config-only --live
 ```
 
