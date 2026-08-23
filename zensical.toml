@@ -3,6 +3,8 @@ site_name = "GPTNT Documentation"
 site_description = "Documentation for GPTNT, an AI benchmark built on KTANE."
 site_author = "GPTNT"
 site_url = "https://gptnt.github.io/docs/"
+repo_url = "https://github.com/gptnt/gptnt"
+repo_name = "gptnt/gptnt"
 # The copyright notice appears in the page footer and can contain an HTML
 # fragment.
 #
@@ -39,6 +41,16 @@ homepage = "/docs"
 [[project.extra.social]]
 icon = "fontawesome/brands/github"
 link = "https://github.com/gptnt/"
+
+[project.extra.tags]
+Configuration = "configuration"
+CLI = "cli"
+"Model integration" = "model-integration"
+"Extension API" = "extension-api"
+Runtime = "runtime"
+Results = "results"
+Submission = "submission"
+"Maintainer reference" = "maintainer-reference"
 
 # Render ```mermaid fences client-side with beautiful-mermaid, loaded as an ESM
 # module from esm.run. See docs/javascripts/beautiful-mermaid.js.
@@ -119,6 +131,11 @@ custom_checkbox = true
 [project.markdown_extensions.toc]
 permalink = true
 
+# Zensical provides the GLightbox assets and wraps eligible documentation
+# images. Add `off-glb` to an image that should not open in the lightbox.
+[project.plugins.glightbox]
+auto = true
+
 # ----------------------------------------------------------------------------
 # The mkdocstrings handler renders API reference from the package's docstrings.
 # "paths" is resolved relative to the project root, so the docs build must run
@@ -127,14 +144,38 @@ permalink = true
 #
 # Read more: https://zensical.org/docs/setup/extensions/mkdocstrings/
 # ----------------------------------------------------------------------------
+[project.plugins.mkdocstrings]
+custom_templates = "docs/_templates"
+
 [project.plugins.mkdocstrings.handlers.python]
 inventories = ["https://docs.python.org/3/objects.inv", "https://docs.pydantic.dev/latest/objects.inv", "https://pydantic.dev/docs/ai/objects.inv", "https://logfire.pydantic.dev/docs/objects.inv", "https://fastapi.tiangolo.com/objects.inv"]
 paths = ["src"]
 
 [project.plugins.mkdocstrings.handlers.python.options]
 docstring_style = "google"
-inherited_members = true
+docstring_section_style = "spacy"
+docstring_options = {ignore_init_summary = true}
+extensions = [{griffe_pydantic = {schema = true}}]
+members_order = "source"
+group_by_category = true
+show_category_heading = true
+unwrap_annotated = true
 show_source = false
+show_symbol_type_heading = true
+show_symbol_type_toc = false
+show_root_heading = true
+show_root_full_path = false
+show_signature = true
+separate_signature = true
+show_signature_annotations = true
+signature_crossrefs = true
+backlinks = "tree"
+show_if_no_docstring = true
+inherited_members = false
+filters = ["!^_", "!^model_config$"]
+show_inheritance_diagram = false
+parameter_headings = true
+modernize_annotations = true
 
 # ----------------------------------------------------------------------------
 # Section for configuring theme options
@@ -162,21 +203,33 @@ features = [
     "content.footnote.tooltips",
     "content.tabs.link",
     "content.tooltips",
-    "navigation.expand",
     "navigation.footer",
     "navigation.indexes",
     "navigation.instant",
     "navigation.instant.prefetch",
     "navigation.instant.progress",
-    # When sections are enabled, top-level sections are rendered as groups in
-    # the sidebar for viewports above 1220px, but remain as-is on mobile.
-    # https://zensical.org/docs/setup/navigation/#navigation-sections
-    # "navigation.sections",
+    "navigation.path",
+    "navigation.sections",
+    "navigation.tabs",
+    "navigation.tabs.sticky",
     "navigation.top",
     "navigation.tracking",
     "search.highlight",
     "toc.follow",
 ]
+
+[project.theme.icon]
+repo = "fontawesome/brands/github"
+
+[project.theme.icon.tag]
+configuration = "lucide/settings"
+cli = "lucide/terminal"
+model-integration = "lucide/cpu"
+extension-api = "lucide/blocks"
+runtime = "lucide/activity"
+results = "lucide/database"
+submission = "lucide/package-check"
+maintainer-reference = "lucide/wrench"
 
 # ----------------------------------------------------------------------------
 # In the "palette" subsection you can configure options for the color scheme.

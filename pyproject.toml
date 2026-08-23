@@ -105,6 +105,7 @@ wandb = [
 docs = [
     "zensical>=0.0.46",
     "mkdocstrings-python>=1.11.0",
+    "griffe-pydantic>=1.3.1",
 ]
 release = [
     "repro-tarfile>=0.2.1",

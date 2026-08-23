@@ -1,0 +1,7 @@
+{# Keep the generated JSON schema and documented attributes, but omit the
+   configuration, field, and validator summaries that repeat those details. #}
+{% extends "_base/pydantic_model.html.jinja" %}
+
+{% block config %}{% endblock %}
+{% block fields %}{% endblock %}
+{% block validators %}{% endblock %}
