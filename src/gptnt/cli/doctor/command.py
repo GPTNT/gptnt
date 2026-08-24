@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Annotated
 
@@ -97,7 +98,8 @@ async def doctor(
         allow_modified_benchmark=allow_modified_benchmark,
     )
     if diagnosis.failed:
-        raise RuntimeError("Doctor found problems; fix the rows above.")
+        console.print("[bold red]Doctor found issues. See above for details.[/]")
+        sys.exit(1)
 
 
 async def diagnose(
