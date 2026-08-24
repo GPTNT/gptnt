@@ -3,10 +3,11 @@ from __future__ import annotations
 from functools import lru_cache
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
+from typing import Self
 
 import pygit2
 from packaging.version import InvalidVersion, Version
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from gptnt.provenance.integrity import RELEASE_TAG_PATTERN, check_benchmark_integrity
 
@@ -63,18 +64,25 @@ class Provenance(BaseModel):
     gptnt_version: str
     """Installed GPTNT package version that created the record."""
 
-    release_commit: str = Field(min_length=1)
-    """Release commit recorded for the benchmark run."""
+    release_commit: str | None = Field(min_length=1)
+    """Release commit recorded for the benchmark run, if integrity was established."""
 
-    release_tag: str = Field(pattern=rf"^{RELEASE_TAG_PATTERN}$")
-    """Exact release tag identifying the protected-content baseline."""
+    release_tag: str | None = Field(pattern=rf"^{RELEASE_TAG_PATTERN}$")
+    """Exact release tag identifying the protected-content baseline, if established."""
 
-    protected_content_modified: bool
-    """Whether protected content differed from the tagged baseline."""
+    protected_content_modified: bool | None
+    """Whether protected content differed from the tagged baseline, if one was established."""
 
     @classmethod
-    def capture(cls, repository: Path = _MODULE_DIR) -> Provenance:
-        """Capture release provenance from the repository's benchmark integrity state."""
+    def capture(cls, repository: Path = _MODULE_DIR, *, force: bool = False) -> Provenance:
+        """Capture release provenance, or record its absence for a forced execution."""
+        if force:
+            return cls(
+                gptnt_version=gptnt_version(),
+                release_commit=None,
+                release_tag=None,
+                protected_content_modified=None,
+            )
         integrity = check_benchmark_integrity(repository)
         return cls(
             gptnt_version=gptnt_version(),
@@ -96,7 +104,22 @@ class Provenance(BaseModel):
 
     @field_validator("release_commit")
     @classmethod
-    def _reject_dirty_release_commit(cls, recorded: str) -> str:
+    def _reject_dirty_release_commit(cls, recorded: str | None) -> str | None:
+        if recorded is None:
+            return None
         if recorded.endswith("-dirty"):
             raise ValueError("release_commit must not include a -dirty suffix")
         return recorded
+
+    @model_validator(mode="after")
+    def _complete_release_provenance(self) -> Self:
+        """Require release commit, tag, and content assessment together or not at all."""
+        release_values = (self.release_commit, self.release_tag, self.protected_content_modified)
+        if any(entry is not None for entry in release_values) and any(
+            entry is None for entry in release_values
+        ):
+            raise ValueError(
+                "release_commit, release_tag, and protected_content_modified must all be set "
+                "or all be null"
+            )
+        return self

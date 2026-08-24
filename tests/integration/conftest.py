@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from gptnt.common.runtime_settings import FORCE_ENV
 from gptnt.experiments.recorder.local import ExperimentPlayerRecorder
 
 from tests._harness.assembly import assembled_experiment
@@ -73,6 +74,7 @@ def records_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr(ExperimentPlayerRecorder, "output_dir", records)
     monkeypatch.setattr(ExperimentPlayerRecorder, "observations_dir", records.joinpath("obs"))
     monkeypatch.setenv("EXPERIMENT_RECORDER_OUTPUTS", records.as_posix())
+    monkeypatch.setenv(FORCE_ENV, "true")
     return records
 
 

@@ -169,6 +169,13 @@ def _fixed_statics_identity(
     )
 
 
+def _fixed_provenance_capture(
+    provenance: Provenance, _cls: type[Provenance], *, force: bool = False
+) -> Provenance:
+    assert force is True
+    return provenance
+
+
 def _manual_spec(document_id: str, *, seed: int) -> ExperimentSpec:
     """Build one manual-bearing spec with a selectable profile."""
     return make_experiment_spec(seed).model_copy(
@@ -263,8 +270,7 @@ async def test_run_force_does_not_bypass_roster_failure(monkeypatch: pytest.Monk
 
 
 @pytest.mark.parametrize(
-    "entry_point",
-    ["suite-freeze", "doctor", "generate", "run-force", "statics-throw", "submission-new"],
+    "entry_point", ["suite-freeze", "generate", "run", "statics-throw", "submission-new"]
 )
 def test_score_producing_commands_fail_integrity_before_writing_or_spawning(
     entry_point: str, monkeypatch: pytest.MonkeyPatch, tmp_path
@@ -295,9 +301,8 @@ def test_score_producing_commands_fail_integrity_before_writing_or_spawning(
     manifest = "runs/quickstart.yaml"
     argv = {
         "suite-freeze": ["suite", "freeze"],
-        "doctor": ["doctor", manifest, "--check-mod-load"],
         "generate": ["generate", manifest, "--output-dir", str(tmp_path / "specs")],
-        "run-force": ["run", manifest, "--force"],
+        "run": ["run", manifest],
         "statics-throw": ["statics", "expert-vqa-no-manual", "--player", "test-random", "--throw"],
         "submission-new": [
             "submission",
@@ -315,31 +320,7 @@ def test_score_producing_commands_fail_integrity_before_writing_or_spawning(
     assert not (tmp_path / "submissions").exists()
 
 
-def test_unavailable_contributor_override_keeps_modified_benchmark_fatal(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        integrity,
-        "check_benchmark_integrity",
-        lambda _repository: SimpleNamespace(
-            release_tag="v2.0.0",
-            release_commit="abc123456789",
-            protected_changes=("src/gptnt/prompts/manual.py",),
-            untracked_protected_files=(),
-            permitted_input_changes=(),
-            protected_content_modified=True,
-        ),
-    )
-
-    diagnosis = integrity.diagnose_benchmark_integrity(
-        allow_modified_benchmark=True, contributor_override_available=False, render=False
-    )
-
-    assert diagnosis.failed is True
-    assert diagnosis.findings[-1].status == "fail"
-
-
-def test_statics_contributor_override_warns_and_stamps_modified_provenance(
+def test_statics_force_warns_and_stamps_null_release_provenance(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
     monkeypatch.setattr(
@@ -354,13 +335,17 @@ def test_statics_contributor_override_warns_and_stamps_modified_provenance(
             protected_content_modified=True,
         ),
     )
-    modified_provenance = Provenance(
+    forced_provenance = Provenance(
         gptnt_version="2.0.0",
-        release_commit="abc123456789",
-        release_tag="v2.0.0",
-        protected_content_modified=True,
+        release_commit=None,
+        release_tag=None,
+        protected_content_modified=None,
     )
-    monkeypatch.setattr(Provenance, "capture", classmethod(lambda _cls: modified_provenance))
+    monkeypatch.setattr(
+        Provenance,
+        "capture",
+        classmethod(functools.partial(_fixed_provenance_capture, forced_provenance)),
+    )
     monkeypatch.setattr(statics_run, "paths", SimpleNamespace(output=tmp_path))
     monkeypatch.setattr(
         run_metadata.StaticsIdentity, "resolve", classmethod(_fixed_statics_identity)
@@ -369,21 +354,15 @@ def test_statics_contributor_override_warns_and_stamps_modified_provenance(
 
     result = invoke_cli(
         build_app(),
-        [
-            "statics",
-            "expert-vqa-no-manual",
-            "--player",
-            "test-random",
-            "--throw",
-            "--allow-modified-benchmark",
-        ],
+        ["statics", "expert-vqa-no-manual", "--player", "test-random", "--throw", "--force"],
     )
 
     assert result.exit_code == 0, result.output
     assert "WARNING: protected benchmark content is modified" in result.output
     metadata_path = next(tmp_path.rglob("run_meta.json"))
     metadata = run_metadata.StaticsRunMetadata.model_validate_json(metadata_path.read_text())
-    assert metadata.provenance.protected_content_modified is True
+    assert metadata.provenance.release_tag is None
+    assert metadata.provenance.release_commit is None
 
 
 @pytest.mark.anyio
@@ -431,6 +410,7 @@ async def test_run_pipeline_force_proceeds_despite_failure(
     await pipeline.run_pipeline(_manifest(), manifest_stem="m", force=True)  # must not raise
 
     assert len(calls) == 1
+    assert cast("dict[str, str]", calls[0]["env_base"])["GPTNT_FORCE"] == "true"
 
 
 @pytest.mark.anyio

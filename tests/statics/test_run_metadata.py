@@ -200,10 +200,12 @@ async def test_hf_run_loads_the_resolved_revision_recorded_in_metadata(
     )
     runner.image_resizer = cast("ImageResizer", cast("object", Mock()))
     runner._resolved_revision = None
+    runner.force = False
 
     # The Hub now resolves the moving tag to another commit, but resume returns stored metadata.
     monkeypatch.setattr(statics_run, "paths", SimpleNamespace(output=tmp_path))
-    monkeypatch.setattr(Provenance, "capture", make_provenance)
+    capture_provenance = Mock(return_value=make_provenance())
+    monkeypatch.setattr(Provenance, "capture", capture_provenance)
     monkeypatch.setattr(
         run_metadata.StaticsIdentity, "resolve", Mock(return_value=current_identity)
     )
@@ -221,6 +223,7 @@ async def test_hf_run_loads_the_resolved_revision_recorded_in_metadata(
 
     current_metadata = write_metadata.call_args.args[0]
     assert current_metadata.statics == current_identity
+    capture_provenance.assert_called_once_with(force=False)
     load_dataset.assert_called_once_with(
         stored_identity.hf_repo_id,
         split=stored_identity.dataset_split,

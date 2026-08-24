@@ -1,4 +1,4 @@
-from gptnt.cli.integrity import AllowModifiedBenchmarkOption
+from gptnt.cli.integrity import ForceOption
 from gptnt.cli.params import PlayerOption, ProviderOption
 from gptnt.cli.statics._evaluation import create_and_run_evaluation
 from gptnt.cli.statics._params import (
@@ -31,7 +31,7 @@ async def run_defuser_mcq_vqa_evaluation(
     limit_instances: LimitInstancesOption = None,
     dataset_revision: DatasetRevisionOption = None,
     allow_thinking: AllowThinkingOption = True,
-    allow_modified_benchmark: AllowModifiedBenchmarkOption = False,
+    force: ForceOption = False,
 ) -> None:
     """Defuser VQA multiple choice questions."""
     await create_and_run_evaluation(
@@ -54,7 +54,7 @@ async def run_defuser_mcq_vqa_evaluation(
         should_upload=should_upload,
         limit_instances=limit_instances,
         dataset_revision=dataset_revision,
-        allow_modified_benchmark=allow_modified_benchmark,
+        force=force,
     )
 
 
@@ -69,7 +69,7 @@ async def run_defuser_state_recognition_vqa_evaluation(
     limit_instances: LimitInstancesOption = None,
     dataset_revision: DatasetRevisionOption = None,
     allow_thinking: AllowThinkingOption = True,
-    allow_modified_benchmark: AllowModifiedBenchmarkOption = False,
+    force: ForceOption = False,
 ) -> None:
     """Defuser VQA multiple-choice state-recognition questions."""
     if state_split not in STATE_RECOGNITION_SPLITS:
@@ -98,5 +98,5 @@ async def run_defuser_state_recognition_vqa_evaluation(
         should_upload=should_upload,
         limit_instances=limit_instances,
         dataset_revision=dataset_revision,
-        allow_modified_benchmark=allow_modified_benchmark,
+        force=force,
     )

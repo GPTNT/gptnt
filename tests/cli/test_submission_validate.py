@@ -215,6 +215,23 @@ def test_modified_benchmark_records_cannot_be_submitted(
     assert "✗ protected content" in _unwrap_output(capsys)
 
 
+def test_records_without_release_provenance_cannot_be_submitted(
+    bundle_copy: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    payload = bundle_copy / "experiments.parquet"
+    experiments = read_typed_parquet(SubmissionExperiment, payload)
+    missing = {"release_commit": None, "release_tag": None, "protected_content_modified": None}
+    write_typed_parquet(
+        [experiment.model_copy(update=missing) for experiment in experiments], file_path=payload
+    )
+    manifest = _read_manifest(bundle_copy)
+    manifest["provenance"].update(missing)
+    _write_manifest(bundle_copy, manifest)
+
+    _assert_validate_fails(bundle_copy)
+    assert "has no release_tag" in _unwrap_output(capsys)
+
+
 def test_missing_mission_fails(bundle_copy: Path, capsys: pytest.CaptureFixture[str]) -> None:
     experiments = read_typed_parquet(SubmissionExperiment, bundle_copy / "experiments.parquet")
     write_typed_parquet(experiments[1:], file_path=bundle_copy / "experiments.parquet")

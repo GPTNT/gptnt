@@ -6,6 +6,7 @@ from pydantic import Field, RedisDsn
 from pydantic_settings import BaseSettings
 
 MANUAL_ARTIFACTS_ENV = "GPTNT_MANUAL_ARTIFACTS"
+FORCE_ENV = "GPTNT_FORCE"
 
 
 class RuntimeSettings(BaseSettings):
@@ -31,6 +32,9 @@ class RuntimeSettings(BaseSettings):
         default_factory=dict, validation_alias=MANUAL_ARTIFACTS_ENV
     )
     """Prepared manual paths keyed by the runtime digest of their manual profile."""
+
+    force: bool = Field(default=False, validation_alias=FORCE_ENV)
+    """Whether the parent command forced execution past failed policy checks."""
 
     @property
     def em_base_url(self) -> str:

@@ -10,16 +10,23 @@ environment-dependent and verified by running `gptnt doctor` directly.
 from __future__ import annotations
 
 import sys
+from unittest.mock import AsyncMock
 
 import pytest
 
+from gptnt.cli import integrity
 from gptnt.cli.__main__ import build_app
 from gptnt.cli.checks import game, machine, players, render, services
 from gptnt.cli.checks.result import CheckResult
 from gptnt.cli.checks.validation import ModelValidationResult
 from gptnt.cli.doctor import command
+from gptnt.provenance import BenchmarkIntegrityError
 
 from tests._cli_runner import invoke_cli
+
+
+def _unavailable_benchmark(_repository: object) -> object:
+    raise BenchmarkIntegrityError("no release reference")
 
 
 async def _unexpected_infrastructure_check(*_args: object, **_kwargs: object) -> object:
@@ -90,6 +97,25 @@ def test_doctor_config_only_renders_clean_benchmark_and_checks_configuration(
     assert "matches" in result.output
     assert "test-random" in result.output
     assert "Infrastructure" not in result.output
+
+
+def test_doctor_force_runs_infrastructure_without_release_provenance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    infrastructure = AsyncMock(return_value=[CheckResult.passed("Mod load", "loaded")])
+
+    monkeypatch.setattr(integrity, "check_benchmark_integrity", _unavailable_benchmark)
+    monkeypatch.setattr(command, "_infrastructure_checks", infrastructure)
+    monkeypatch.setattr(command, "check_machine", list)
+
+    result = invoke_cli(
+        build_app(), ["doctor", "runs/quickstart.yaml", "--check-mod-load", "--force"]
+    )
+
+    assert result.exit_code == 0, result.output
+    infrastructure.assert_awaited_once_with(check_mod_load=True)
+    assert "no release reference" in result.output
+    assert "Mod load" in result.output
 
 
 def test_display_skipped_off_linux(monkeypatch: pytest.MonkeyPatch) -> None:

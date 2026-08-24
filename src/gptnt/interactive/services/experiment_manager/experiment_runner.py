@@ -14,6 +14,7 @@ from coredis import Redis
 from faststream.redis import RedisBroker
 
 from gptnt.common.async_ops import Event
+from gptnt.common.runtime_settings import RuntimeSettings
 from gptnt.experiments.instance import ExperimentInstance
 from gptnt.interactive.services.game.client import GameClient
 from gptnt.interactive.services.heartbeat.watcher import GameStateWatcher, PlayerStateWatcher
@@ -43,7 +44,11 @@ class ExperimentRunner(abc.ABC):
     """Handle the lifecycle of the experiment."""
 
     experiment: ExperimentInstance
-    provenance: Provenance = field(default_factory=Provenance.capture, init=False, repr=False)
+    provenance: Provenance = field(
+        default_factory=lambda: Provenance.capture(force=RuntimeSettings().force),
+        init=False,
+        repr=False,
+    )
     game_client: GameClient = field(init=False)
     """Game client to interact with the game service."""
 

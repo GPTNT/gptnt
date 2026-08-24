@@ -39,7 +39,7 @@ async def create_and_run_evaluation(
     should_throw: bool,
     should_upload: bool,
     limit_instances: int | None,
-    allow_modified_benchmark: bool = False,
+    force: bool = False,
 ) -> None:
     """Construct a HuggingFace-dataset evaluation and run the download/throw/upload branches.
 
@@ -67,10 +67,10 @@ async def create_and_run_evaluation(
         should_throw: Whether to actually execute the evaluation.
         should_upload: Whether to upload the evaluation results to Weave.
         limit_instances: Optional cap on the number of instances to evaluate.
-        allow_modified_benchmark: Whether contributor execution may use modified protected content.
+        force: Whether to continue without verified release provenance.
     """
     if should_throw:
-        require_benchmark_integrity(allow_modified_benchmark=allow_modified_benchmark)
+        require_benchmark_integrity(force=force)
     config_loader = ConfigLoader(player=player, provider=provider, role=role)
     capabilities = config_loader.capabilities
     agent = config_loader.agent_fn(instructions=build_instruction(capabilities))
@@ -95,6 +95,7 @@ async def create_and_run_evaluation(
         model_output_type=model_output_type,
         output_serializer=output_serializer,
         scored_output_func=scored_output_func,
+        force=force,
     )
     if should_download:
         logger.info("Downloading dataset before running evaluation")

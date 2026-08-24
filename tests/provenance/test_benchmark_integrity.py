@@ -81,6 +81,19 @@ def test_tagged_repository_supplies_integrity_and_provenance(tmp_path: Path) -> 
     }
 
 
+def test_forced_capture_records_null_release_provenance(tmp_path: Path) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+
+    provenance = Provenance.capture(repository, force=True)
+
+    assert provenance.model_dump() == {
+        "gptnt_version": gptnt_version(),
+        "release_commit": None,
+        "release_tag": None,
+        "protected_content_modified": None,
+    }
+
+
 def _apply_change(repository: Path, change: ChangeKind) -> None:
     """Apply one working-tree state from the path-policy table."""
     protected = repository / "src/gptnt/benchmark.py"

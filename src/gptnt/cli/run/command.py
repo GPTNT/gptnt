@@ -4,7 +4,7 @@ from typing import Annotated
 from cyclopts import Parameter
 from cyclopts.types import ExistingFile
 
-from gptnt.cli.integrity import AllowModifiedBenchmarkOption
+from gptnt.cli.integrity import ForceOption
 from gptnt.cli.run._pipeline import run_pipeline
 from gptnt.cli.run.manifest import RunManifest
 
@@ -12,17 +12,7 @@ from gptnt.cli.run.manifest import RunManifest
 async def run(
     manifest: Annotated[ExistingFile, Parameter(help="Path to the run.yaml manifest.")],
     *,
-    force: Annotated[
-        bool,
-        Parameter(
-            name="--force",
-            help=(
-                "Run despite ordinary doctor failures; does not bypass protected-content, roster, "
-                "or manual-preparation failures."
-            ),
-        ),
-    ] = False,
-    allow_modified_benchmark: AllowModifiedBenchmarkOption = False,
+    force: ForceOption = False,
     interactive: Annotated[
         bool,
         Parameter(
@@ -39,9 +29,5 @@ async def run(
     """
     loaded = RunManifest.from_path(manifest)
     await run_pipeline(
-        loaded,
-        manifest_stem=Path(manifest).stem,
-        force=force,
-        interactive=interactive,
-        allow_modified_benchmark=allow_modified_benchmark,
+        loaded, manifest_stem=Path(manifest).stem, force=force, interactive=interactive
     )

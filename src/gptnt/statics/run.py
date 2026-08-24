@@ -246,13 +246,15 @@ class RunHFDatasetEvaluation(RunEvaluation):
 
     _resolved_revision: str | None = field(default=None, init=False, repr=False)
 
+    force: bool = False
+
     preprocess_instance_func: PostprocessInputsFunc
     """The function to preprocess the instance before loading into the WeaveDataset."""
 
     @override
     async def throw(self) -> None:
         """Bind provenance to the output set, then run predictions and metrics."""
-        provenance = Provenance.capture()
+        provenance = Provenance.capture(force=self.force)
 
         statics = StaticsIdentity.resolve(
             task_name=self.task_name,

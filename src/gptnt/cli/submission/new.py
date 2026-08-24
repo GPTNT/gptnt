@@ -128,7 +128,7 @@ def build_submission(
     ] = None,
 ) -> None:
     """Build every submission bundle from the DuckDB."""
-    require_benchmark_integrity(contributor_override_available=False)
+    require_benchmark_integrity()
     built = _build_interactive_bundles(
         experiments_db=experiments_db,
         output_dir=output_dir,

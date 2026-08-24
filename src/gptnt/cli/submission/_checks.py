@@ -231,8 +231,14 @@ def load_bundle(bundle_dir: Path) -> tuple[LoadedBundle | None, list[CheckResult
     return LoadedBundle(bundle_dir=bundle_dir, bundle=bundle), findings
 
 
-def _check_protected_content(*, modified: bool) -> CheckResult:
+def _check_protected_content(*, modified: bool | None) -> CheckResult:
     """Reject records produced while protected benchmark content differed from the release."""
+    if modified is None:
+        return CheckResult.failed(
+            "protected content",
+            "not assessed because the run has no release provenance",
+            "Run the benchmark from an unmodified release checkout, then rebuild the submission.",
+        )
     if modified:
         return CheckResult.failed(
             "protected content",
@@ -499,8 +505,12 @@ def _check_experts_match_manifest(
     return CheckResult.passed("experts", detail)
 
 
-def _check_release_version(version: str, release_tag: str) -> CheckResult:
+def _check_release_version(version: str, release_tag: str | None) -> CheckResult:
     """Require the package version to identify the recorded release tag."""
+    if release_tag is None:
+        return CheckResult.failed(
+            "gptnt_version", f"gptnt_version {version!r} has no release_tag", hint=REBUILD_HINT
+        )
     expected = release_tag.removeprefix("v")
     if version != expected:
         return CheckResult.failed(
@@ -511,9 +521,9 @@ def _check_release_version(version: str, release_tag: str) -> CheckResult:
     return CheckResult.passed("gptnt_version", f"{release_tag} ({version})")
 
 
-def _check_release_commit(release_commit: str) -> CheckResult:
+def _check_release_commit(release_commit: str | None) -> CheckResult:
     """Require the complete lowercase Git SHA-1 written by the release checkout."""
-    if re.fullmatch(r"[0-9a-f]{40}", release_commit):
+    if release_commit is not None and re.fullmatch(r"[0-9a-f]{40}", release_commit):
         return CheckResult.passed("release_commit", release_commit)
     return CheckResult.failed(
         "release_commit", f"{release_commit!r} is not a complete commit SHA", hint=REBUILD_HINT

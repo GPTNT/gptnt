@@ -12,6 +12,7 @@ from gptnt.cli.interactive.submit import send_experiments
 from gptnt.cli.run._monitor import monitor_interactive, monitor_status, render_stream
 from gptnt.cli.run.manifest import RunManifest
 from gptnt.common.paths import Paths, remove_empty_experiment_recorder_outputs
+from gptnt.common.runtime_settings import FORCE_ENV
 from gptnt.experiments.spec import ExperimentSpec, load_specs_from_dir
 from gptnt.interactive.orchestration import (
     ProcessOrchestrator,
@@ -29,29 +30,21 @@ console = Console()
 paths = Paths()
 
 
-def _require_non_bypassable_checks(diagnosis: DiagnoseResult) -> RunPlanResult:
-    """Return the run plan, rejecting integrity and roster failures regardless of `--force`."""
+def _require_run_plan(diagnosis: DiagnoseResult) -> RunPlanResult:
+    """Return the run plan, rejecting a missing plan or a roster that cannot execute."""
     if diagnosis.run_plan is None:
         console.print("[bold red]Internal error: the run-plan check did not execute.[/bold red]")
         raise RuntimeError("the run-plan check did not execute")
 
     run_plan_failed = any(finding.status == "fail" for finding in diagnosis.run_plan.findings)
-    if not (diagnosis.benchmark_failed or run_plan_failed):
+    if not run_plan_failed:
         return diagnosis.run_plan
 
-    failures = []
-    if diagnosis.benchmark_failed:
-        failures.append("Benchmark integrity")
-    if run_plan_failed:
-        failures.append("run roster")
-    failure_text = " and ".join(failures)
     console.print(
-        f"\n[bold red]Run blocked by {failure_text}.[/bold red] Fix the ✗ rows above. "
-        "[bold]--force cannot bypass these failures.[/bold]"
+        "\n[bold red]Run blocked by the roster.[/bold red] The run cannot queue specs for "
+        "players that will not be spawned."
     )
-    raise RuntimeError(
-        f"run blocked by {failure_text.lower()}; --force cannot bypass this failure"
-    )
+    raise RuntimeError("run blocked by run roster")
 
 
 async def run_pipeline(
@@ -61,7 +54,6 @@ async def run_pipeline(
     force: bool = False,
     live: bool = False,
     interactive: bool = False,
-    allow_modified_benchmark: bool = False,
 ) -> None:
     """Execute a run manifest end-to-end: load specs, gate, spawn, submit (cross-checked), monitor.
 
@@ -81,24 +73,19 @@ async def run_pipeline(
 
     # 1. Doctor gate (run-plan mode) against the loaded specs: renders the full report and reports
     #    resume state for exactly the specs that will run.
-    diagnosis = await diagnose(
-        manifest, live=live, specs=specs, allow_modified_benchmark=allow_modified_benchmark
-    )
-    run_plan = _require_non_bypassable_checks(diagnosis)
+    diagnosis = await diagnose(manifest, live=live, specs=specs, force=force)
+    run_plan = _require_run_plan(diagnosis)
 
     if diagnosis.failed:
         if not force:
             console.print(
                 "\n[bold red]Doctor found problems.[/bold red] Fix the ✗ rows above, or re-run "
-                "with [bold]--force[/bold] to pass ordinary doctor failures. --force cannot "
-                "bypass Benchmark or run-roster failures."
+                "with [bold]--force[/bold]."
             )
             raise RuntimeError(
                 "doctor found problems; fix the rows above or use --force for ordinary failures"
             )
-        console.print(
-            "\n[yellow]--force set: proceeding despite ordinary doctor failures above.[/yellow]"
-        )
+        console.print("\n[yellow]--force set: proceeding despite doctor failures above.[/yellow]")
 
     # 2. Resume: reuse the specs the gate's resume check already filtered (one completion query for
     #    the whole run). `None` means resume couldn't be determined, so run all. Exit early if
@@ -122,7 +109,7 @@ async def run_pipeline(
 
     # 5. Build the spawn environment from the manifest, then spawn → submit → monitor. W&B is not
     #    configured here: the spawned processes inherit the ambient WANDB_* env untouched.
-    env_base = {"PYTHONUNBUFFERED": "1"}
+    env_base = {"PYTHONUNBUFFERED": "1", FORCE_ENV: str(force).lower()}
     env_base.update(_observability_env(manifest.observability))
 
     output_dir, logs_dir = _resolve_dirs()
