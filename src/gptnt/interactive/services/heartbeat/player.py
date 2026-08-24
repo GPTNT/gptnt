@@ -21,6 +21,8 @@ class PlayerHeartbeat(BaseHeartbeat, frozen=True):
             lambda capabilities: capabilities.model_dump_json(), return_type=str, when_used="json"
         ),
     ]
+    """Capabilities advertised at registration and serialised in the Redis heartbeat hash."""
+
     state: PlayerState
 
     @property

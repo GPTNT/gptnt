@@ -9,8 +9,8 @@ from rich.table import Table
 from gptnt.cli.doctor.command import DiagnoseResult, diagnose
 from gptnt.cli.doctor.run_plan import RunPlanResult
 from gptnt.cli.interactive.submit import send_experiments
+from gptnt.cli.run._monitor import monitor_interactive, monitor_status, render_stream
 from gptnt.cli.run.manifest import RunManifest
-from gptnt.cli.run.monitor import monitor_interactive, monitor_status, render_stream
 from gptnt.common.paths import Paths, remove_empty_experiment_recorder_outputs
 from gptnt.experiments.spec import ExperimentSpec, load_specs_from_dir
 from gptnt.interactive.orchestration import (

@@ -5,43 +5,46 @@ class ServiceTimeouts(BaseSettings):
     """Configuration for service timeouts."""
 
     heartbeat_repeat_interval: float = 3
-    """Interval for sending heartbeat messages."""
+    """Seconds between heartbeats emitted by each service."""
 
     heartbeat_check_interval: float = 2
-    """Interval for checking heartbeat messages."""
+    """Seconds between registry scans for expired service heartbeats."""
 
     heartbeat_expiration: float = 10
-    """Expiration time for heartbeat messages sent."""
+    """Seconds after a heartbeat timestamp before the registry expires the service."""
 
     tombstone_expiration: float = 120
-    """Expiration time for tombstone keys written on shutdown."""
+    """Seconds for which a shutdown tombstone remains in Redis."""
 
     game_state_interval: float = 2
-    """Interval for requesting the game state."""
+    """Seconds between game-state polls."""
 
     get_bomb_state_timeout: float = 10
-    """Timeout for getting the bomb state in a request."""
+    """Seconds allowed for one `get_bomb_state` RPC."""
 
     get_observation_timeout: float = 60
-    """Timeout for getting an observation from the game."""
+    """Seconds allowed for one `get_frames` RPC."""
 
     update_metrics_interval: float = 5
-    """Interval for updating service metrics."""
+    """Seconds between service-metric updates."""
 
     configure_services_timeout: float = 60
-    """Timeout for configuring services for an experiment."""
+    """Seconds allowed to configure the services assigned to an execution."""
 
     run_forward_pass_timeout: float = 600
-    """Timeout for running a forward pass for a player."""
+    """Reserved forward-pass timeout in seconds.
+
+    Player RPC currently uses `redis_rpc_timeout` instead.
+    """
 
     redis_rpc_timeout: float = 600
-    """Maximum time to wait for a Redis RPC response."""
+    """Seconds allowed for one Redis RPC response unless a client supplies another timeout."""
 
     maximum_experiment_duration: float = 12000
-    """Maximum duration for an experiment before it is forcibly stopped."""
+    """Seconds allowed for each lights-off, lights-on, or game-over wait."""
 
     session_state_watcher_interval: float = 1
-    """Interval for the session state watcher to check service states."""
+    """Seconds between session-watcher polls of service state."""
 
     game_request_timeout: float = 5
-    """Timeout for sending requests to the game service."""
+    """Seconds allowed for the `stop_game` RPC."""

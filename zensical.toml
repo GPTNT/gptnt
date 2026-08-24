@@ -3,6 +3,8 @@ site_name = "GPTNT Documentation"
 site_description = "Documentation for GPTNT, an AI benchmark built on KTANE."
 site_author = "GPTNT"
 site_url = "https://gptnt.github.io/docs/"
+repo_url = "https://github.com/gptnt/gptnt"
+repo_name = "gptnt/gptnt"
 # The copyright notice appears in the page footer and can contain an HTML
 # fragment.
 #
@@ -18,15 +20,101 @@ Copyright &copy; 2026 GPTNT
 #
 # Read more: https://zensical.org/docs/setup/navigation/
 nav = [
-    "index.md",
-    "get-started.md",
-    {"Run the benchmark" = [
-        "running/index.md",
-        "running/add-new-player.md",
-        "running/run-your-model.md",
+    {"Home" = "index.md"},
+    {"Start here" = [
+        {"Overview" = "start-here/index.md"},
+        {"Install & check" = "start-here/install-and-check.md"},
+        {"Quickstart" = "start-here/run-quickstart.md"},
+        {"Next steps" = "start-here/choose-next-workflow.md"},
     ]},
-    "submit-your-results.md",
-    "manuals.md",
+    {"Run & submit" = [
+        {"Overview" = "run-and-submit/index.md"},
+        {"Set up" = [
+            {"Add a model" = "run-and-submit/add-model.md"},
+            {"Provider" = "run-and-submit/configure-provider.md"},
+            {"Manuals" = "run-and-submit/prepare-manuals.md"},
+            {"Run manifest" = "run-and-submit/create-run-manifest.md"},
+        ]},
+        {"Run" = [
+            {"Interactive" = "run-and-submit/run-interactive.md"},
+            {"Static evaluations" = "run-and-submit/run-statics.md"},
+            {"Inspect results" = "run-and-submit/inspect-results.md"},
+        ]},
+        {"Submit results" = "run-and-submit/submit-results.md"},
+    ]},
+    {"Understand" = [
+        {"Overview" = "understand/index.md"},
+        {"Benchmark & players" = "understand/benchmark-and-player-model.md"},
+        {"Experiment hierarchy" = "understand/experiment-hierarchy.md"},
+        {"Roles & capabilities" = "understand/roles-protocols-and-capabilities.md"},
+        {"Manuals & seeds" = "understand/manuals-and-rule-seeds.md"},
+        {"Suites & comparison" = "understand/suites-revisions-and-comparability.md"},
+        {"Runtime services" = "understand/runtime-services.md"},
+        {"Results & provenance" = "understand/results-and-provenance.md"},
+    ]},
+    {"Reference" = [
+        {"Overview" = "reference/index.md"},
+        {"CLI" = [
+            {"Overview" = "reference/cli/index.md"},
+            {"Doctor" = "reference/cli/doctor.md"},
+            {"Model setup" = "reference/cli/model-and-configuration.md"},
+            {"Manuals" = "reference/cli/manuals.md"},
+            {"Generate" = "reference/cli/generate.md"},
+            {"Run, submit specs & kill" = "reference/cli/run.md"},
+            {"Runtime maintenance" = "reference/cli/interactive-and-maintenance.md"},
+            {"Results & analysis" = "reference/cli/results-and-analysis.md"},
+            {"Static evaluations" = "reference/cli/statics.md"},
+            {"Submit results" = "reference/cli/submission.md"},
+        ]},
+        {"Configuration" = [
+            {"Overview" = "reference/configuration/index.md"},
+            {"Run manifest" = "reference/configuration/run-manifest.md"},
+            {"Players" = "reference/configuration/players.md"},
+            {"Providers" = "reference/configuration/providers.md"},
+            {"Suites" = "reference/configuration/suites.md"},
+            {"Missions" = "reference/configuration/missions.md"},
+            {"Manuals" = "reference/configuration/manuals.md"},
+            {"Environment" = "reference/configuration/environment.md"},
+        ]},
+        {"Files & schemas" = [
+            {"Overview" = "reference/files/index.md"},
+            {"Manuals" = "reference/files/manuals.md"},
+            {"Experiment specs" = "reference/files/experiment-specifications.md"},
+            {"Records & outcomes" = "reference/files/player-records-and-outcomes.md"},
+            {"DuckDB" = "reference/files/duckdb.md"},
+            {"Static outputs" = "reference/files/static-evaluation-outputs.md"},
+            {"Submission bundles" = "reference/files/submission-bundles.md"},
+            {"Output layout" = "reference/files/output-layout.md"},
+        ]},
+        {"Python API" = [
+            {"Overview" = "reference/python/index.md"},
+            {"Player interfaces" = "reference/python/player-interfaces.md"},
+            {"Actions & observations" = "reference/python/actions-and-observations.md"},
+            {"Processors" = "reference/python/processors.md"},
+            {"Experiment generation" = "reference/python/experiment-generation.md"},
+            {"Completion & provenance" = "reference/python/completion-and-provenance.md"},
+        ]},
+        {"Runtime" = [
+            {"Overview" = "reference/runtime/index.md"},
+            {"Run orchestration" = "reference/runtime/run-orchestration.md"},
+            {"Experiment manager" = "reference/runtime/experiment-manager.md"},
+            {"Game service" = "reference/runtime/game-service.md"},
+            {"Player service" = "reference/runtime/player-service.md"},
+            {"Service registry" = "reference/runtime/service-registry.md"},
+            {"Heartbeats & RPC" = "reference/runtime/heartbeats-and-rpc.md"},
+            {"Recording & completion" = "reference/runtime/recording-and-completion.md"},
+        ]},
+    ]},
+    {"Troubleshooting" = [
+        {"Overview" = "troubleshooting/index.md"},
+        {"Installation & doctor" = "troubleshooting/installation-and-doctor.md"},
+        {"Game & displays" = "troubleshooting/game-and-displays.md"},
+        {"Redis & services" = "troubleshooting/redis-and-runtime-services.md"},
+        {"Providers & responses" = "troubleshooting/providers-and-model-responses.md"},
+        {"Manual preparation" = "troubleshooting/manual-preparation.md"},
+        {"Interrupted runs" = "troubleshooting/interrupted-runs-and-outputs.md"},
+        {"Submission validation" = "troubleshooting/submission-validation.md"},
+    ]},
 ]
 extra_css = ["stylesheets/extra.css"]
 
@@ -39,6 +127,16 @@ homepage = "/docs"
 [[project.extra.social]]
 icon = "fontawesome/brands/github"
 link = "https://github.com/gptnt/"
+
+[project.extra.tags]
+Configuration = "configuration"
+CLI = "cli"
+"Model integration" = "model-integration"
+"Extension API" = "extension-api"
+Runtime = "runtime"
+Results = "results"
+Submission = "submission"
+"Maintainer reference" = "maintainer-reference"
 
 # Render ```mermaid fences client-side with beautiful-mermaid, loaded as an ESM
 # module from esm.run. See docs/javascripts/beautiful-mermaid.js.
@@ -119,6 +217,11 @@ custom_checkbox = true
 [project.markdown_extensions.toc]
 permalink = true
 
+# Zensical provides the GLightbox assets and wraps eligible documentation
+# images. Add `off-glb` to an image that should not open in the lightbox.
+[project.plugins.glightbox]
+auto = true
+
 # ----------------------------------------------------------------------------
 # The mkdocstrings handler renders API reference from the package's docstrings.
 # "paths" is resolved relative to the project root, so the docs build must run
@@ -127,14 +230,38 @@ permalink = true
 #
 # Read more: https://zensical.org/docs/setup/extensions/mkdocstrings/
 # ----------------------------------------------------------------------------
+[project.plugins.mkdocstrings]
+custom_templates = "docs/_templates"
+
 [project.plugins.mkdocstrings.handlers.python]
 inventories = ["https://docs.python.org/3/objects.inv", "https://docs.pydantic.dev/latest/objects.inv", "https://pydantic.dev/docs/ai/objects.inv", "https://logfire.pydantic.dev/docs/objects.inv", "https://fastapi.tiangolo.com/objects.inv"]
 paths = ["src"]
 
 [project.plugins.mkdocstrings.handlers.python.options]
 docstring_style = "google"
-inherited_members = true
+docstring_section_style = "spacy"
+docstring_options = {ignore_init_summary = true}
+extensions = [{griffe_pydantic = {schema = true}}]
+members_order = "source"
+group_by_category = true
+show_category_heading = true
+unwrap_annotated = true
 show_source = false
+show_symbol_type_heading = true
+show_symbol_type_toc = false
+show_root_heading = true
+show_root_full_path = false
+show_signature = true
+separate_signature = true
+show_signature_annotations = true
+signature_crossrefs = true
+backlinks = "tree"
+show_if_no_docstring = true
+inherited_members = false
+filters = ["!^_", "!^model_config$"]
+show_inheritance_diagram = false
+parameter_headings = true
+modernize_annotations = true
 
 # ----------------------------------------------------------------------------
 # Section for configuring theme options
@@ -154,6 +281,8 @@ show_source = false
 # - https://zensical.org/docs/setup/language/
 #
 language = "en"
+logo = "/logo.png"
+favicon = "/logo.png"
 features = [
     "announce.dismiss",
     "content.code.annotate",
@@ -162,21 +291,33 @@ features = [
     "content.footnote.tooltips",
     "content.tabs.link",
     "content.tooltips",
-    "navigation.expand",
     "navigation.footer",
-    "navigation.indexes",
+    # "navigation.indexes",
     "navigation.instant",
     "navigation.instant.prefetch",
     "navigation.instant.progress",
-    # When sections are enabled, top-level sections are rendered as groups in
-    # the sidebar for viewports above 1220px, but remain as-is on mobile.
-    # https://zensical.org/docs/setup/navigation/#navigation-sections
-    # "navigation.sections",
+    # "navigation.path",
+    "navigation.sections",
+    "navigation.tabs",
+    "navigation.tabs.sticky",
     "navigation.top",
     "navigation.tracking",
     "search.highlight",
     "toc.follow",
 ]
+
+[project.theme.icon]
+repo = "fontawesome/brands/github"
+
+[project.theme.icon.tag]
+configuration = "lucide/settings"
+cli = "lucide/terminal"
+model-integration = "lucide/cpu"
+extension-api = "lucide/blocks"
+runtime = "lucide/activity"
+results = "lucide/database"
+submission = "lucide/package-check"
+maintainer-reference = "lucide/wrench"
 
 # ----------------------------------------------------------------------------
 # In the "palette" subsection you can configure options for the color scheme.

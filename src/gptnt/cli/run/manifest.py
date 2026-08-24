@@ -46,6 +46,8 @@ class RunManifest(BaseModel):
     """One or more suite ids (`configs/suites/<id>.yaml`)."""
 
     rooms: int = Field(ge=1)
+    """Number of KTANE game-service processes started for concurrent experiments."""
+
     displays: list[Annotated[int, Field(ge=0)]] | None = Field(default=None, min_length=1)
     """X display numbers to spread rooms across, round-robin.
 
@@ -53,12 +55,17 @@ class RunManifest(BaseModel):
     """
 
     players: list[PlayerSpec] = Field(min_length=1)
+    """Roster whose `count` values determine how many player-service processes are started."""
+
     anchors: Anchors = Field(default_factory=Anchors)
+    """Player configurations used by `with_best_*` pairings; each must resolve from the roster."""
 
     source: Source = Source.local
     """Where the resume check reads completion from: `local` (on-disk outputs) or `wandb`."""
 
     observability: Literal["full", "limited", "off"] = "limited"
+    """`full` retains configured instrumentation, `limited` aggressively samples Pydantic AI,
+    and `off` disables instrumentation."""
 
     attempts_per_mission: int = Field(default=1, ge=1)
     """Independent attempts to generate per (mission, pairing).

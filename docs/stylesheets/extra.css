@@ -1,3 +1,132 @@
-table tr td:first-child {
-	white-space: nowrap
+/* Sans = system-ui (Inter disabled via theme.font=false in zensical.toml).
+   Material's --md-text-font-family already appends -apple-system, … sans-serif. */
+:root {
+	--md-text-font: system-ui;
+	--md-code-font: ui-monospace;
 }
+
+/* Both nav bars to 12.25px (0.6125rem against the 20px root). The right TOC
+   wraps its link text in .md-typeset, so the theme sizes it with a more
+   specific `.md-nav__link .md-typeset` rule — match that selector or only the
+   left sidebar shrinks. */
+.md-nav,
+.md-nav__link .md-typeset {
+	font-size: 0.6125rem;
+}
+
+.md-tabs__link {
+	font-size: 0.6125rem;
+}
+
+/* Left sidebar: a touch more line-height and vertical rhythm now that the type
+   is smaller. Scoped to --primary so the right TOC keeps its tighter spacing. */
+.md-nav--primary {
+	line-height: 1.5;
+}
+
+.md-nav--secondary .md-nav {
+	margin-top: unset;
+}
+
+/* .md-nav--primary .md-nav__link {
+	padding-top: 0.3rem;
+	padding-bottom: 0.3rem;
+} */
+
+/* Prose: the two modern niceties Tailwind's `prose` has that Material predates.
+   Pure CSS, no library. */
+.md-typeset p,
+.md-typeset li {
+	text-wrap: pretty;
+}
+
+.md-nav__list {
+	gap: unset;
+}
+
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4 {
+	text-wrap: balance;
+	letter-spacing: unset;
+}
+
+.md-typeset h2,
+.md-typeset h3 {
+	margin-top: 2em;
+}
+
+table tr td:first-child {
+	white-space: nowrap;
+}
+
+/* API reference tables follow spaCy's compact two-column pattern. The
+   attribute summary is the canonical rendering, so the detailed attribute
+   blocks remain in the document for anchors but are not displayed twice. */
+.doc-contents > table:not([class]),
+.doc-md-description + p {
+	font-size: 0.72rem;
+}
+
+.doc-contents > table:not([class]) {
+	display: table;
+	width: 100%;
+	margin: 1rem 0 1.6rem;
+	border-collapse: collapse;
+}
+
+.doc-contents > table:not([class]) th {
+	padding: 0.55rem 0.7rem;
+	font-size: 0.58rem;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.doc-contents > table:not([class]) td {
+	padding: 0.55rem 0.7rem;
+	vertical-align: top;
+}
+
+.doc-contents > table:not([class]) td:first-child {
+	width: 1%;
+	font-weight: 600;
+}
+
+.doc-param-details > p,
+.doc-attribute-details > p {
+	margin: 0.25rem 0 0;
+	color: var(--md-default-fg-color--light);
+	font-size: 0.62rem;
+}
+
+.doc-param-annotation + .doc-param-default {
+	margin-left: 0.8rem;
+}
+
+.doc-children > .doc-attribute,
+.doc-children > :is(h2, h3, h4, h5, h6)[id$="-attributes"] {
+	display: none;
+}
+
+/* Let generated object names serve as page titles without the nested-page
+   indentation used when several objects share a page. */
+.doc-object > .doc-contents.first {
+	margin-left: 0;
+	padding-left: 0;
+	border-left: 0;
+}
+
+table a {
+	text-underline-offset: 1px;
+	text-decoration-thickness: 0.05em !important;
+}
+
+
+/* Disable the middle aligning of the content area */
+/* main > .md-grid {
+	margin-left: 0;
+}
+header .md-grid {
+	margin-left: 0
+} */

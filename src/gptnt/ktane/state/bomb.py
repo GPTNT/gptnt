@@ -67,6 +67,8 @@ class BombState(BaseModel):
 
     seed: int
     max_strikes: int = 3
+    """Strike count at which the terminal outcome is classified as a strikeout."""
+
     strikes: (
         Annotated[
             list[KtaneModuleId],
@@ -84,6 +86,7 @@ class BombState(BaseModel):
     is_light_on: bool
     bomb_side: Literal["top", "bottom", "left", "right", "front", "back"]
     timer_module: TimerState
+    """Timer state from which remaining seconds and timeout outcomes are derived."""
     widgets: Annotated[
         list[WidgetStates],
         BeforeValidator(_validate_state_from_string),

@@ -41,6 +41,8 @@ class ObservabilitySettings(BaseSettings):
     instrument_fastapi: bool = True
     instrument_faststream: bool = True
     instrument_httpx: bool = True
+    """Capture HTTPX request headers and bodies, but not response bodies."""
+
     instrument_pydantic_ai: bool = True
     instrument_redis: bool = False
 

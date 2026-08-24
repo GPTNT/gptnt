@@ -17,3 +17,5 @@
 *[statics]: One of the offline evaluation tasks that does not require access to the game.
 *[player]: A model that plays the game and the capabilities it supports.
 *[players]: A model that plays the game and the capabilities it supports.
+*[other-play]: A model paired with another model (e.g., Gemini 3 vs GPT-5).
+*[self-play]: A model paired with itself (e.g., Gemini 3 vs Gemini 3). Each instantiation of the model is a separate player, so they do not share context lengths.

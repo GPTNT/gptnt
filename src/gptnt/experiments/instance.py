@@ -26,15 +26,22 @@ class ExperimentInstance(ExperimentSpec):
     model_config = ConfigDict(frozen=True)
 
     session_id: UUID4
+    """Identifier shared by the game and player records for this execution."""
 
     expert_uuid: UUID4 | None
+    """Player-service process assigned to the expert role."""
+
     defuser_uuid: UUID4
+    """Player-service process assigned to the defuser role."""
+
     game_uuid: UUID4
+    """Game-service process assigned to this execution."""
 
     defuser_capabilities: PlayerCapabilities
     expert_capabilities: PlayerCapabilities | None
 
     start_time: Instant = Field(default_factory=Instant.now)
+    """Instant used as the origin for relative step timestamps."""
 
     @property
     def player_uuids(self) -> list[UUID4]:

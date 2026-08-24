@@ -30,13 +30,14 @@ class Observation(BaseModel):
     """Observation from the game."""
 
     frames: list[PNGBytes]
-    """Observation frames as bytes, from oldest to newest."""
+    """Ordered PNG game frames before the final frame is replaced by its set-of-marks version."""
 
     segm_mask: PNGBytes | None
-    """Segmentation mask as bytes, or None if not available."""
+    """PNG segmentation mask aligned with the final game frame."""
 
     som_image: PNGBytes
-    """Set of marks image as bytes, or the last frame if SoM is not used."""
+    """Final frame after optional set-of-marks processing and resizing, sent to the defuser
+    model."""
 
 
 @dataclass(kw_only=True)

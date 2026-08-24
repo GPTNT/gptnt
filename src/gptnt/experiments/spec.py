@@ -32,21 +32,31 @@ class ExperimentSpec(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     mission_spec: KtaneMissionSpec
+    """Exact bomb configuration played by this attempt."""
+
     mission_set: str
     """The mission set this came from (the `missions_path` basename), e.g. `single_module`."""
 
     attempt: int = 1
+    """Generator-assigned, one-based repeat index for the same mission and player pairing."""
 
     suite_name: str
     suite_revision: int
+    """Frozen suite revision that defines comparability for this specification."""
+
     suite_digest: str
+    """Digest of the frozen suite configuration and mission snapshot."""
+
     manual_profile: ManualProfile
+    """Ordered manual profile prepared for this experiment."""
 
     defuser_protocol: PlayerProtocol
     defuser_name: str
+    """`player_name` assigned to the defuser role, not the player configuration name."""
 
     expert_protocol: PlayerProtocol | None
     expert_name: str | None
+    """`player_name` assigned to the expert role, not the player configuration name."""
 
     @model_validator(mode="after")
     def verify_expert_has_both_spec_and_name(self) -> Self:

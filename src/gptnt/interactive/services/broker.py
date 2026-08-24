@@ -4,7 +4,7 @@ from faststream.redis import RedisBroker
 from faststream.redis.opentelemetry import RedisTelemetryMiddleware
 from pydantic import RedisDsn
 
-from gptnt.interactive.services.exceptions import exc_middleware, exception_aware_decoder
+from gptnt.interactive.services._exceptions import exc_middleware, exception_aware_decoder
 from gptnt.observability.settings import ObservabilitySettings
 
 observability_settings = ObservabilitySettings()

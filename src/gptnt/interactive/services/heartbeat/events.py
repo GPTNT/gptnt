@@ -32,7 +32,10 @@ class BaseHeartbeat(BaseEvent, frozen=True):
 
     event: Literal["heartbeat"] = "heartbeat"
     timestamp: Instant = Field(default_factory=Instant.now)
+    """Wall-clock instant at which this heartbeat was created."""
+
     ready_state: ReadyState
+    """Service eligibility for work, independent of the phase-specific state."""
 
     # Diagnostic fields for richer error context
     heartbeat_seq: int = 0

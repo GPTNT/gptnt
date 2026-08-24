@@ -21,7 +21,7 @@ from rich.progress import (
 from rich.text import Text
 from structlog.typing import EventDict
 
-from gptnt.common.run_once import run_once
+from gptnt.common._run_once import run_once
 
 logger = structlog.get_logger()
 

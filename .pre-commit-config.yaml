@@ -10,13 +10,13 @@ exclude: ^CHANGELOG\.md$
 
 repos:
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.16.3
+    rev: v4.18.0
     hooks:
       - id: commitizen
         stages: [commit-msg]
 
   - repo: https://github.com/editorconfig-checker/editorconfig-checker.python
-    rev: "3.6.1"
+    rev: "3.11.1"
     hooks:
       - id: editorconfig-checker
         # Disabled indentation check because it conflicts with docstrings
@@ -57,8 +57,8 @@ repos:
       - id: mixed-line-ending
       - id: fix-byte-order-marker
 
-  - repo: https://github.com/rhysd/actionlint
-    rev: v1.7.12
+  - repo: https://github.com/kjanat/actionlint
+    rev: v1.10.0
     hooks:
       - id: actionlint
         priority: 0
@@ -74,13 +74,13 @@ repos:
         exclude: ^[^/]*\.lock$
 
   - repo: https://github.com/zizmorcore/zizmor-pre-commit
-    rev: v1.25.2
+    rev: v1.29.0
     hooks:
       - id: zizmor
         priority: 0
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.11.0.1
+    rev: v0.11.0.1-1
     hooks:
       - id: shellcheck
         priority: 0
@@ -98,7 +98,7 @@ repos:
         exclude: ^[^/]*\.lock$
 
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.8.4
+    rev: v3.9.6
     hooks:
       - id: prettier
         types_or: [html, javascript, yaml, json, markdown]

@@ -1,17 +1,44 @@
 ---
-title: GPTNT Documentation
+title: GPTNT documentation
+hide:
+  - toc
 ---
 
 # GPTNT documentation
 
-GPTNT measures real-time collaboration between multimodal agents in
-[Keep Talking and Nobody Explodes](https://keeptalkinggame.com/) (KTANE).
+GPTNT measures collaboration between multimodal agents in
+[Keep Talking and Nobody Explodes](https://keeptalkinggame.com/) (KTANE). The benchmark records how
+AI players communicate, act on the game, and complete bomb-defusal missions.
 
-Follow this route:
+The [GPTNT project website](https://gptnt.github.io/) presents the benchmark and its results. This
+site explains how to install, run, extend, and maintain GPTNT.
 
-1. [Get started](get-started.md){data-preview}: install a release, check the prerequisites, and run
-   the dummy players.
-2. [Run the benchmark](running/index.md){data-preview}: configure a model, generate experiments, and
-   record results.
-3. [Submit your results](submit-your-results.md){data-preview}: build, validate, and send a submission
-   bundle.
+## Choose a route
+
+<div class="grid cards" markdown>
+
+-   :material-rocket-launch:{ .lg .middle } **[Start here](start-here/index.md)**
+
+    Install GPTNT, check the machine, and complete the included quickstart.
+
+    [Install and check GPTNT](start-here/install-and-check.md) · [Run the quickstart](start-here/run-quickstart.md)
+
+-   :material-play-circle-outline:{ .lg .middle } **[Run & submit](run-and-submit/index.md)**
+
+    Configure a model, run evaluations, inspect the outputs, and prepare a submission.
+
+    [Add and run a model](run-and-submit/add-model.md) · [Submit results](run-and-submit/submit-results.md)
+
+-   :material-school-outline:{ .lg .middle } **[Understand](understand/index.md)**
+
+    Learn how the benchmark, players, experiments, runtime services, and results fit together.
+
+-   :material-book-open-page-variant-outline:{ .lg .middle } **[Reference](reference/index.md)**
+
+    Look up commands, configuration fields, file formats, Python interfaces, and runtime contracts.
+
+-   :material-lifebuoy:{ .lg .middle } **[Troubleshooting](troubleshooting/index.md)**
+
+    Diagnose installation, game, service, provider, output, and submission failures.
+
+</div>

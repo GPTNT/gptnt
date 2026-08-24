@@ -43,7 +43,10 @@ class StaticsIdentity(BaseModel, frozen=True):
     hf_repo_id: str
     dataset_split: str | None
     requested_revision: str | None
+    """Branch, tag, or commit supplied to the dataset loader before pin resolution."""
+
     resolved_revision: str | None
+    """Concrete dataset commit resolved before prediction."""
 
     @classmethod
     def resolve(
@@ -89,9 +92,12 @@ class StaticsRunMetadata(BaseModel, frozen=True):
 
     model_name: str
     run_date: Instant
+    """Output-set start instant bound before the first prediction and preserved on resume."""
+
     statics: StaticsIdentity
     capabilities: PlayerCapabilities
     provenance: Provenance
+    """GPTNT release provenance captured before prediction."""
 
 
 def bind_run_metadata(metadata: StaticsRunMetadata, *, output_dir: Path) -> StaticsRunMetadata:

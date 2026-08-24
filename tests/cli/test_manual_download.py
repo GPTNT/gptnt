@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import pytest
 import yaml
 
-from gptnt.cli.manual import download as command, selection
+from gptnt.cli.manual import _selection as selection, download as command
 from gptnt.ktane.manuals.download import DownloadResult
 from gptnt.ktane.manuals.profile import KtaneContentAppendix, ManualProfile
 

@@ -67,7 +67,10 @@ class BaseModuleState(BaseModel):
     name: KtaneModuleId
 
     on_front: bool
+    """Whether `module_location` offsets this face-local slot by six."""
+
     index: Annotated[int, Field(ge=0, le=5)]
+    """Zero-based slot index on one bomb face."""
 
     @computed_field
     @property
@@ -91,6 +94,7 @@ class InteractiveModuleState(BaseModuleState):
 
     is_solved: bool
     in_focus: bool
+    """The first module with this value set determines `zoomed_in_component`."""
 
     @computed_field
     @property

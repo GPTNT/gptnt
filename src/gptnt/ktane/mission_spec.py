@@ -80,7 +80,7 @@ class KtaneMissionSpec(BaseModel):
         default=3000,  # noqa: WPS432
         validation_alias="timeStepSize",
         serialization_alias="timeStepSize",
-        description="Used to detremine how long the time should advance for when using the command for it.",
+        description="Milliseconds advanced by each timestep command before the game pauses again",
     )
 
     @property

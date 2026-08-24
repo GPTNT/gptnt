@@ -60,8 +60,13 @@ class SubmissionExperiment(ExperimentSummary):
     """
 
     final_bomb_state: Annotated[BombState, AsJSON]
+    """Terminal bomb state used to validate the outcome and mission pairing."""
+
     defuser_usage: Annotated[RunUsage, AsJSON]
+    """Sum of Pydantic AI usage recorded by defuser steps in this execution."""
+
     expert_usage: Annotated[RunUsage | None, AsJSON]
+    """Sum of Pydantic AI usage recorded by expert steps in this execution."""
 
     @classmethod
     def from_summary(
@@ -109,6 +114,7 @@ class SubmissionPlayer(BaseModel):
     role: PlayerRole
     capabilities: PlayerCapabilities
     identity: PlayerIdentity
+    """Leaderboard attribution loaded from the player configuration for these capabilities."""
 
     @classmethod
     def for_role(cls, role: PlayerRole, capabilities: PlayerCapabilities) -> Self:
@@ -164,6 +170,8 @@ class Submission[IdentityT: SuiteIdentity | StaticsIdentity](BaseModel):
 
     schema_version: int = SCHEMA_VERSION
     submission_id: str
+    """Identifier derived from run date, player name, target, and abbreviated capability
+    fingerprint."""
 
     measured: IdentityT
     """What was measured: a frozen suite, or a statics task with its dataset pin."""
@@ -174,7 +182,10 @@ class Submission[IdentityT: SuiteIdentity | StaticsIdentity](BaseModel):
     """Role-tagged model entries, defuser first."""
 
     provenance: Provenance
+    """Benchmark release provenance shared by every payload row."""
+
     run_date: Instant
+    """Earliest included interactive start, or the bound output-set start for statics results."""
 
     @property
     def player(self) -> SubmissionPlayer:

@@ -36,6 +36,8 @@ class MissionEntry(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     mission_key: str
+    """Identity derived from both seeds and the sorted component names."""
+
     spec: KtaneMissionSpec
 
     @model_validator(mode="after")
@@ -61,17 +63,24 @@ class SuiteLockEntry(BaseModel):
 
     name: str
     revision: int = Field(ge=1)
+    """Frozen comparability revision in the append-only sequence for this suite name."""
+
     suite_digest: str
+    """Digest recomputed from the frozen suite configuration and referenced mission bodies."""
+
     frozen_at: str
     """ISO-8601 UTC instant the entry was first written."""
 
     gptnt_version: str
+    """Installed GPTNT version used when this suite revision was frozen."""
+
     git_sha: str = ""
     """The commit the entry was frozen at, or `""` when git was unavailable."""
 
     mission_keys: tuple[str, ...]
     """Sorted `mission_key` of every mission the suite covers."""
     config: dict[str, Any]
+    """JSON-form suite fields used to reconstruct the frozen suite, excluding `config_digest`."""
 
     @property
     def mission_set(self) -> str:
@@ -113,7 +122,10 @@ class SuiteLock(BaseModel):
     version: int = LOCK_VERSION
 
     suites: tuple[SuiteLockEntry, ...] = Field(default_factory=tuple, alias=_SUITE_TABLE)
+    """Append-only frozen revisions for each suite."""
+
     missions: tuple[MissionEntry, ...] = Field(default_factory=tuple, alias=_MISSION_TABLE)
+    """Deduplicated mission bodies referenced by `mission_key` from frozen suites."""
 
     default_location: ClassVar[Path] = default_lock_path()
 
