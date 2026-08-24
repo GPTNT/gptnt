@@ -294,7 +294,7 @@ features = [
     "navigation.instant",
     "navigation.instant.prefetch",
     "navigation.instant.progress",
-    "navigation.path",
+    # "navigation.path",
     # "navigation.sections",
     "navigation.tabs",
     "navigation.tabs.sticky",
