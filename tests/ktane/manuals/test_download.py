@@ -47,14 +47,16 @@ def _source_repository(tmp_path: Path) -> tuple[Path, str]:
     repository = tmp_path / "upstream"
     repository.mkdir()
 
-    # Wires.html references CSS and an image; the CSS then references a font. This gives the
-    # downloader two layers of references to discover without reproducing KtaneContent itself.
+    # Wires.html references CSS and images. The CSS then references a font. One image appears in
+    # an embedded style block, as Who's on First does in KtaneContent.
     _write(
         repository / "HTML" / "Wires.html",
-        '<link rel="stylesheet" href="css/main.css"><img src="img/Wires.svg">',
+        '<link rel="stylesheet" href="css/main.css"><style>.eye { background: '
+        'url("img/eye.png"); }</style><img src="img/Wires.svg">',
     )
     _write(repository / "HTML" / "css" / "main.css", "url('../font/manual.woff2')")
     _write(repository / "HTML" / "font" / "manual.woff2", b"font")
+    _write(repository / "HTML" / "img" / "eye.png", b"eye")
     _write(repository / "HTML" / "img" / "Wires.svg", "<svg></svg>")
     _write(
         repository / "JSON" / "Wires.json",
@@ -173,16 +175,17 @@ async def test_download_caches_selected_ktanecontent_files_and_recursive_referen
         "HTML/Wires.html",
         "HTML/css/main.css",
         "HTML/font/manual.woff2",
+        "HTML/img/eye.png",
         "HTML/img/Wires.svg",
         "JSON/Wires.json",
     }
-    # The catalog is requested once; the local Git remote supplies only the selected blobs.
+    # The catalog is requested once. The local Git remote supplies only the selected blobs.
     assert catalog_route.call_count == 1
-    assert (added.added_files, added.cached_files) == (6, 0)
-    assert (cached.added_files, cached.cached_files) == (0, 6)
+    assert (added.added_files, added.cached_files) == (7, 0)
+    assert (cached.added_files, cached.cached_files) == (0, 7)
     assert any(
         update.description == "Selected KtaneContent assets are cached"
-        and update.completed == update.total == 5
+        and update.completed == update.total == 6
         for update in updates
     )
 
@@ -331,7 +334,7 @@ async def test_local_document_requires_no_download_or_cache(
         lambda **_kwargs: pytest.fail("local documents must not create an HTTP client"),
     )
 
-    # Local documents are validated in place; the download command neither copies nor counts them.
+    # Local documents are validated in place. The download command neither copies nor counts them.
     download = await download_manual_assets(
         [profile], sources=_sources(), cache_dir=tmp_path / "cache", root_dir=tmp_path
     )

@@ -14,8 +14,9 @@
 	// CSS url(...) references need the same treatment as HTML src and href attributes.
 	const absoluteCss = (value) =>
 		value.replace(
-			/url\(\s*(['"]?)([^'"\)]+)\1\s*\)/g,
-			(_match, _quote, url) => `url("${absoluteUrl(url)}")`,
+			/url\(\s*(?:(['"])(.*?)\1|([^'"\s\)]+))\s*\)/g,
+			(_match, _quote, quotedUrl, unquotedUrl) =>
+				`url("${absoluteUrl(quotedUrl ?? unquotedUrl)}")`,
 		);
 	// Work on a deep clone so cleanup cannot mutate the live source frame before validation.
 	const clone = document.documentElement.cloneNode(true);

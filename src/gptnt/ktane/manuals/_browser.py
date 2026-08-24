@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import functools
+import tempfile
 import threading
 from http import HTTPStatus, server as http_server
 from importlib import metadata
@@ -36,7 +37,7 @@ type FlattenedFrames = tuple[list[int], list[FlattenedDocument], list[str]]
 _MERGER_PATH = "More/Manual%20Merger/index.html"
 _KEYPAD_URL_PREFIX = "/HTML/img/Keypad/"
 _BROWSER_INSTALL_COMMAND = "uv run playwright install chromium"
-_PRINT_LAYOUT_REVISION = "ordered-flattened-merger-print-4"
+_PRINT_LAYOUT_REVISION = "ordered-flattened-merger-print-6"
 
 
 class ManualBrowserError(RuntimeError):
@@ -128,23 +129,6 @@ def browser_renderer_identity() -> dict[str, str]:
     }
 
 
-def _catalog_entry(document: HtmlDocument, *, index: int) -> tuple[dict[str, str], str]:
-    """Build one merger catalog record and its collision-free synthetic module token."""
-    # Synthetic IDs keep duplicate selections from collapsing in the upstream merger.
-    token = f"gptnt-{index:04d}"
-    # Local documents are exposed through the token. Pinned documents retain upstream filenames.
-    filename = token if isinstance(document, ResolvedLocalDocument) else document.source_path.stem
-    return (
-        {
-            "ModuleID": token,
-            "Name": document.document_id,
-            "FileName": filename,
-            "SortKey": f"{index:08d}",
-        },
-        token,
-    )
-
-
 @functools.cache
 def _load_javascript(name: str) -> str:
     """Read and cache one packaged browser expression by filename."""
@@ -223,33 +207,25 @@ def _flatten_document(frame: Frame) -> tuple[tuple[str, ...], str]:
     return tuple(head), sections
 
 
-def _print_documents(
-    page: Page,
-    *,
-    documents: Sequence[tuple[Sequence[str], str]],
-    page_counts: Sequence[int],
-    output_pdf: Path,
+def _print_document(
+    page: Page, *, document: FlattenedDocument, page_count: int, output_pdf: Path
 ) -> list[str]:
-    """Print flattened documents as one PDF and return any broken image URLs."""
-    # Stylesheet order matters, but identical head fragments need appear only once.
-    head = "\n".join(
-        dict.fromkeys(element for document_head, _ in documents for element in document_head)
-    )
-    sections = "\n".join(document_sections for _, document_sections in documents)
-    # Printing one flat page tree avoids Chromium iframe pagination and PDF form-object issues.
+    """Print one flattened document and return any broken image URLs."""
+    head = "\n".join(dict.fromkeys(document[0]))
+    # Each document includes stylesheet links. Combining several documents here lets one module's
+    # global CSS alter another module's pages.
     page.set_content(
         f"<!doctype html><html><head>{head}"
         "<style>html,body{margin:0;padding:0}</style></head>"
-        f"<body>{sections}</body></html>",
+        f"<body>{document[1]}</body></html>",
         wait_until="networkidle",
         timeout=30_000,
     )
     actual_pages, broken_images = _wait_for_document(page.main_frame)
-    expected_pages = sum(page_counts)
     # A count mismatch means flattening changed the accepted source pagination.
-    if actual_pages != expected_pages:
+    if actual_pages != page_count:
         raise ManualBrowserError(
-            f"flattened manual contains {actual_pages} pages; expected {expected_pages}"
+            f"flattened manual contains {actual_pages} pages; expected {page_count}"
         )
     # US Letter and zero margins match the dimensions already encoded by the manual page CSS.
     _ = page.pdf(
@@ -258,15 +234,42 @@ def _print_documents(
         print_background=True,
         display_header_footer=False,
         prefer_css_page_size=False,
-        page_ranges=f"1-{expected_pages}",
+        page_ranges=f"1-{page_count}",
         margin={"top": "0", "right": "0", "bottom": "0", "left": "0"},
     )
     # Reopen the file through the downstream PDF library before allowing assembly to continue.
     with pymupdf.open(output_pdf) as printed_document:
-        if printed_document.page_count != expected_pages:
+        if printed_document.page_count != page_count:
             raise ManualBrowserError(
-                f"Chromium printed {printed_document.page_count} pages; expected {expected_pages}"
+                f"Chromium printed {printed_document.page_count} pages; expected {page_count}"
             )
+    return broken_images
+
+
+def _print_flattened_documents(
+    page: Page,
+    *,
+    documents: Sequence[FlattenedDocument],
+    page_counts: Sequence[int],
+    output_pdf: Path,
+) -> list[str]:
+    """Print each flattened document in CSS isolation and combine the PDFs."""
+    with tempfile.TemporaryDirectory(prefix=".manual-print-", dir=output_pdf.parent) as temporary:
+        printed_pdfs: list[Path] = []
+        broken_images: list[str] = []
+        for index, (document, page_count) in enumerate(zip(documents, page_counts, strict=True)):
+            printed_pdf = Path(temporary) / f"{index:04d}.pdf"
+            broken_images.extend(
+                _print_document(
+                    page, document=document, page_count=page_count, output_pdf=printed_pdf
+                )
+            )
+            printed_pdfs.append(printed_pdf)
+        with pymupdf.open() as combined:
+            for source_pdf in printed_pdfs:
+                with pymupdf.open(source_pdf) as printed:
+                    combined.insert_pdf(printed, final=0)
+            combined.save(output_pdf)
     return broken_images
 
 
@@ -287,12 +290,23 @@ class _ManualRenderer:
         self._keypad_root = keypad_root
         self._output_pdf = output_pdf
 
-        # Catalog SortKeys and synthetic tokens preserve every occurrence in resolver order.
-        catalog_and_tokens = [
-            _catalog_entry(document, index=index) for index, document in enumerate(self._documents)
+        # Synthetic IDs and SortKeys keep duplicate selections in resolver order upstream.
+        self._tokens = [f"gptnt-{index:04d}" for index in range(len(self._documents))]
+        self._catalog = [
+            {
+                "ModuleID": token,
+                "Name": document.document_id,
+                "FileName": (
+                    token
+                    if isinstance(document, ResolvedLocalDocument)
+                    else document.source_path.stem
+                ),
+                "SortKey": f"{index:08d}",
+            }
+            for index, (document, token) in enumerate(
+                zip(self._documents, self._tokens, strict=True)
+            )
         ]
-        self._catalog = [entry for entry, _ in catalog_and_tokens]
-        self._tokens = [token for _, token in catalog_and_tokens]
 
         # Only local documents require synthetic URL-to-disk mappings in the request handler.
         self._local_documents = {
@@ -443,7 +457,7 @@ class _ManualRenderer:
         # Source-frame failures must stop compilation before a PDF is printed.
         self._raise_errors(broken_images=broken_images)
 
-        flattened_broken_images = _print_documents(
+        flattened_broken_images = _print_flattened_documents(
             page,
             documents=flattened_documents,
             page_counts=page_counts,

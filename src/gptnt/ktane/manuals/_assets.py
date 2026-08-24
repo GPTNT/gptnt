@@ -16,6 +16,20 @@ from pathlib import Path, PurePosixPath
 from typing import ClassVar, override
 from urllib.parse import unquote, urlsplit
 
+_CSS_URL = re.compile(r"url\(\s*(['\"]?)(.*?)\1\s*\)", flags=re.IGNORECASE)
+_CSS_IMPORT = re.compile(r"@import\s+(?:url\(\s*)?['\"]([^'\"]+)['\"]", flags=re.IGNORECASE)
+_JS_IMPORT_FROM = re.compile(
+    r"\b(?:import|export)\s+[^;]*?\s+from\s*['\"]([^'\"]+)['\"]", flags=re.IGNORECASE
+)
+_JS_BARE_IMPORT = re.compile(r"\bimport\s*['\"]([^'\"]+)['\"]", flags=re.IGNORECASE)
+_JS_DYNAMIC_IMPORT = re.compile(r"\bimport\s*\(\s*['\"]([^'\"]+)['\"]\s*\)", flags=re.IGNORECASE)
+_XML_REFERENCE = re.compile(r"(?:href|xlink:href)=['\"]([^'\"]+)['\"]", flags=re.IGNORECASE)
+
+
+def _css_references(text: str) -> set[str]:
+    """Return local URL references from one CSS stylesheet or embedded rule block."""
+    return {match[1] for match in _CSS_URL.findall(text)} | set(_CSS_IMPORT.findall(text))
+
 
 class _HtmlAssetParser(HTMLParser):
     """Collect file-bearing attributes from HTML start tags.
@@ -40,9 +54,12 @@ class _HtmlAssetParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
         self.references: set[str] = set()
+        self._in_style = False
 
     @override
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "style":
+            self._in_style = True
         selected = self._attributes.get(tag, ())
         for name, attribute_value in attrs:
             if attribute_value is None or name not in selected:
@@ -56,15 +73,15 @@ class _HtmlAssetParser(HTMLParser):
             else:
                 self.references.add(attribute_value)
 
+    @override
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "style":
+            self._in_style = False
 
-_CSS_URL = re.compile(r"url\(\s*(['\"]?)(.*?)\1\s*\)", flags=re.IGNORECASE)
-_CSS_IMPORT = re.compile(r"@import\s+(?:url\(\s*)?['\"]([^'\"]+)['\"]", flags=re.IGNORECASE)
-_JS_IMPORT_FROM = re.compile(
-    r"\b(?:import|export)\s+[^;]*?\s+from\s*['\"]([^'\"]+)['\"]", flags=re.IGNORECASE
-)
-_JS_BARE_IMPORT = re.compile(r"\bimport\s*['\"]([^'\"]+)['\"]", flags=re.IGNORECASE)
-_JS_DYNAMIC_IMPORT = re.compile(r"\bimport\s*\(\s*['\"]([^'\"]+)['\"]\s*\)", flags=re.IGNORECASE)
-_XML_REFERENCE = re.compile(r"(?:href|xlink:href)=['\"]([^'\"]+)['\"]", flags=re.IGNORECASE)
+    @override
+    def handle_data(self, data: str) -> None:
+        if self._in_style:
+            self.references.update(_css_references(data))
 
 
 def extract_references_from_file(path: Path) -> set[str]:
@@ -75,8 +92,8 @@ def extract_references_from_file(path: Path) -> set[str]:
     simple. Binary assets and file types that cannot lead us to another dependency return an
     empty set.
 
-    The values can still be external URLs, absolute website paths, relative paths, or paths with
-    URL escaping. Resolving and checking them is a separate step.
+    The values can be URLs or filesystem paths. Both forms can use URL escaping. Resolving and
+    checking them is a separate step.
     """
     suffix = path.suffix.lower()
     if suffix not in {".css", ".html", ".js", ".svg"}:
@@ -87,7 +104,7 @@ def extract_references_from_file(path: Path) -> set[str]:
         parser.feed(text)
         return parser.references
     if suffix == ".css":
-        return {match[1] for match in _CSS_URL.findall(text)} | set(_CSS_IMPORT.findall(text))
+        return _css_references(text)
     if suffix == ".js":
         return (
             set(_JS_IMPORT_FROM.findall(text))

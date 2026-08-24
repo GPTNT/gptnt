@@ -3,7 +3,8 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import shutil
-from typing import TYPE_CHECKING, Any
+from itertools import chain
+from typing import TYPE_CHECKING, Any, cast
 
 import pymupdf
 
@@ -23,6 +24,11 @@ from gptnt.ktane.manuals.resolution import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
+
+_MIN_TABLE_DIMENSION = 2
+_MIN_TABLE_POPULATED_CELLS = 4
+_MIN_TABLE_DENSITY = 0.5
+_TABLE_BOUND_TOLERANCE = 10
 
 
 def input_identity(document: ResolvedDocument) -> dict[str, Any]:
@@ -92,11 +98,14 @@ def renderer_identity(documents: Sequence[ResolvedDocument]) -> dict[str, Any]:
         "pymupdf": pymupdf.VersionBind,
         "png_dpi": 144,
         "assembly_revision": "ordered-insert-or-browser-copy-1",
-        "extraction_revision": "dpi-144-png-before-text-1",
+        "extraction_revision": "dpi-144-png-table-text-3",
     }
     # Official-only builds never invoke Playwright, so browser state does not affect their key.
     if any(not isinstance(document, ResolvedOfficialDocument) for document in documents):
-        identity["html"] = _browser.browser_renderer_identity()
+        identity["html"] = {
+            **_browser.browser_renderer_identity(),
+            "asset_discovery_revision": "inline-style-css-1",
+        }
     return identity
 
 
@@ -173,6 +182,59 @@ def _combine_documents(  # noqa: WPS231
         manual.save(output_pdf, garbage=4, clean=True, deflate=True, no_new_id=True)
 
 
+def _table_cell_text(cell: str | None) -> str:
+    """Normalize one table cell for a pipe-delimited text row."""
+    return " ".join((cell or "").split()).replace("|", r"\|")
+
+
+def _format_table(rows: list[list[str | None]]) -> str:
+    """Format one detected table into stable row-major plain text."""
+    return "\n".join(" | ".join(_table_cell_text(cell) for cell in row) for row in rows)
+
+
+def _is_structured_table(rows: list[list[str | None]]) -> bool:
+    """Return whether extracted rows carry enough cell text to be a usable table."""
+    if len(rows) < _MIN_TABLE_DIMENSION or len(rows[0]) < _MIN_TABLE_DIMENSION:
+        return False
+    if any(len(row) != len(rows[0]) for row in rows):
+        return False
+    cells = tuple(chain.from_iterable(rows))
+    cell_count = len(cells)
+    populated = sum(bool(_table_cell_text(cell)) for cell in cells)
+    return populated >= _MIN_TABLE_POPULATED_CELLS and populated / cell_count >= _MIN_TABLE_DENSITY
+
+
+def _structured_tables(
+    page: pymupdf.Page,
+) -> tuple[list[tuple[float, float, str]], list[pymupdf.Rect]]:
+    """Return dense ruled tables as positioned text components and their bounds."""
+    components: list[tuple[float, float, str]] = []
+    bounds: list[pymupdf.Rect] = []
+    # PyMuPDF's installed type stubs omit the supported table-finder API.
+    for table in cast("Any", page).find_tables().tables:
+        rows = table.extract()
+        if not rows or not _is_structured_table(rows):
+            continue
+        bound = pymupdf.Rect(table.bbox)
+        components.append((bound.y0, bound.x0, _format_table(rows)))
+        bounds.append(bound)
+    return components, bounds
+
+
+def _is_text_block_inside_table(block: Any, *, bounds: list[pymupdf.Rect]) -> bool:
+    """Return whether a text block belongs to a detected table despite minor bound drift."""
+    text_bound = pymupdf.Rect(block[:4])
+    return any(
+        pymupdf.Rect(
+            bound.x0 - _TABLE_BOUND_TOLERANCE,
+            bound.y0 - _TABLE_BOUND_TOLERANCE,
+            bound.x1 + _TABLE_BOUND_TOLERANCE,
+            bound.y1 + _TABLE_BOUND_TOLERANCE,
+        ).contains(text_bound)
+        for bound in bounds
+    )
+
+
 def _write_extracted_page(page: pymupdf.Page, *, page_number: int, pages_dir: Path) -> None:
     """Write one canonical PNG and ordered plain-text representation of a PDF page."""
     # Rasterize first so a text-layer failure cannot leave a text-only page pair.
@@ -180,8 +242,18 @@ def _write_extracted_page(page: pymupdf.Page, *, page_number: int, pages_dir: Pa
     pixmap.save(pages_dir / f"{page_number:04d}.png")
     # Sorted blocks preserve approximate visual reading order without exposing layout metadata.
     blocks = page.get_text("blocks", sort=True)
-    text_blocks = (str(block[4]).strip() for block in blocks)
-    text = "\n".join(block for block in text_blocks if block)
+    table_components, table_bounds = _structured_tables(page)
+    if table_components:
+        components = table_components + [
+            (float(block[1]), float(block[0]), str(block[4]).strip())
+            for block in blocks
+            if str(block[4]).strip()
+            and not _is_text_block_inside_table(block, bounds=table_bounds)
+        ]
+        text = "\n".join(component[2] for component in sorted(components))
+    else:
+        text_blocks = (str(block[4]).strip() for block in blocks)
+        text = "\n".join(block for block in text_blocks if block)
     if not text:
         raise RuntimeError(f"manual page {page_number} has no usable text layer")
     _ = (pages_dir / f"{page_number:04d}.txt").write_text(f"{text}\n", encoding="utf-8")
