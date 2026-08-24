@@ -100,8 +100,3 @@ already running. It does not start services or monitor them. This queue command 
 Use the supervised `run` command for the normal workflow. See
 [Interactive and maintenance commands](../reference/cli/interactive-and-maintenance.md) for the
 queue, status, termination, and cleanup interfaces.
-
-## Continue
-
-[Inspect and analyse results](inspect-results.md)
-[Troubleshoot an interrupted run](../troubleshooting/interrupted-runs-and-outputs.md)

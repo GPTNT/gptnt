@@ -20,6 +20,3 @@ link back to the procedure that consumes each value.
 | [Manuals](manuals.md){data-preview} | Profile variants, source pins, language constraints, and the current rule-seed boundary |
 | [Suites](suites.md){data-preview} | Suite lock versions, revisions, composition, and digests |
 | [Missions](missions.md){data-preview} | Mission-set structure, mission fields, and canonical mission keys |
-
-[Install and check GPTNT](../../start-here/install-and-check.md)
-[Open runtime reference](../runtime/index.md)

@@ -50,6 +50,3 @@ component names. `timeStepSize` is the number of milliseconds advanced by a time
         - mission_key
         - requires_multiple_images_per_observation
         - to_query_params
-
-[Experiment specification files](../files/experiment-specifications.md)
-[Experiment hierarchy](../../understand/experiment-hierarchy.md)

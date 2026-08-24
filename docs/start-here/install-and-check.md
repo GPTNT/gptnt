@@ -15,11 +15,12 @@ experiment. Complete this page from the repository root unless a step says other
 Use the latest release for a normal benchmark run. Use a pinned release to reproduce a result or
 investigate a submission. Clone the repository only when you intend to contribute to GPTNT.
 
-| Installation | Use it for |
-| ------------ | ---------- |
-| Latest release | Normal benchmark use |
-| Pinned release | Reproduction and submission investigation |
-| Repository checkout | Contribution and development |
+|Option | Installation | Use it for |
+| --- | ------------ | ---------- |
+| 1 | Latest release | Normal benchmark use |
+| 2 | Pinned release | Reproduction and submission investigation |
+| 3 | Repository checkout | Contribution and development |
+
 
 ### Download the latest release
 
@@ -244,8 +245,3 @@ the game. Redis is not required for this probe.
     layouts. They do not upgrade prior databases in place. Inspect an artefact with its matching
     release and dependencies. Rerun the benchmark to produce current results. Player fingerprints
     from different format boundaries are not comparable identifiers.
-
-<!-- vale ai-tells.DoubleHyphen = NO -->
-[Run the quickstart](run-quickstart.md)
-[Doctor reference](../reference/cli/doctor.md)
-<!-- vale ai-tells.DoubleHyphen = YES -->

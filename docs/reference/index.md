@@ -21,8 +21,3 @@ the task pages for an end-to-end procedure and these pages when you need an exac
     CLI, configuration, persisted formats, and selected Python imports can be supported interfaces.
     The runtime section instead describes the current implementation for maintainers. A public
     module name does not by itself make every object inside it a supported interface.
-
-<!-- vale ai-tells.DoubleHyphen = NO -->
-[Run the quickstart](../start-here/run-quickstart.md)
-[Understand GPTNT](../understand/index.md)
-<!-- vale ai-tells.DoubleHyphen = YES -->

@@ -25,8 +25,3 @@ commands, records progress, and handles failure.
 | Determine readiness, availability, and expiry | [Service registry](service-registry.md) |
 | Inspect liveness keys, request channels, and timeouts | [Heartbeats and RPC](heartbeats-and-rpc.md) |
 | Write player records, finalise outcomes, and ingest results | [Recording and completion](recording-and-completion.md) |
-
-<!-- vale ai-tells.DoubleHyphen = NO -->
-[Understand runtime services](../../understand/runtime-services.md)
-[Troubleshoot runtime services](../../troubleshooting/redis-and-runtime-services.md)
-<!-- vale ai-tells.DoubleHyphen = YES -->

@@ -41,7 +41,8 @@ Edit the copy. This complete manifest uses one custom player through a provider 
 included player:
 
 !!! example "Schema-v2 manifest"
-    ```yaml title="runs/my-run.yaml" annotations
+
+    ```yaml title="runs/my-run.yaml"
     spec_version: 2
 
     suites:

@@ -121,3 +121,12 @@ table a {
 	text-underline-offset: 1px;
 	text-decoration-thickness: 0.05em !important;
 }
+
+
+/* Disable the middle aligning of the content area */
+/* main > .md-grid {
+	margin-left: 0;
+}
+header .md-grid {
+	margin-left: 0
+} */

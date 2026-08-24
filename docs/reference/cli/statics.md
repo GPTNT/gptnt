@@ -58,6 +58,3 @@ gptnt statics how-do-you --player NAME [--provider NAME]
 `--attempts` is a positive count and defaults to `1`. Thinking is disabled by default on this
 command. It writes a module-to-attempt mapping under `output/how_do_you/`; it has no dataset,
 download, throw, upload, or benchmark-integrity option.
-
-[Run static evaluations](../../run-and-submit/run-statics.md)
-[Static output formats](../files/static-evaluation-outputs.md)

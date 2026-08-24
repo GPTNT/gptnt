@@ -73,6 +73,3 @@ provenance, plus computed fields used for querying.
 !!! warning "Retain source records"
     DuckDB summaries and submission `experiments.parquet` are derived from these files. Keep the
     player records until submission validation succeeds.
-
-[Understand results](../../understand/results-and-provenance.md)
-[DuckDB schema](duckdb.md)

@@ -69,6 +69,3 @@ report `running` by itself. The CLI status command adds that state from the expe
 Stored provenance is complete at record creation. A later reader never fills missing values from
 its checkout. Benchmark integrity requires one exact annotated `vMAJOR.MINOR.PATCH` tag on the
 release commit; an absent or ambiguous tag raises `BenchmarkIntegrityError`.
-
-[Understand results and provenance](../../understand/results-and-provenance.md)
-[Recording implementation](../runtime/recording-and-completion.md)

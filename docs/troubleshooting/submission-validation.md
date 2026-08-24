@@ -67,6 +67,3 @@ An unpinned static dataset is a warning rather than a failed check. Rerun with
 Install the submission extra. Set `GITHUB_TOKEN`, or ensure `gh auth token` succeeds. Confirm that
 `--repo` uses `owner/name` form and that the account can read the target repository. A dry run
 still authenticates, looks up the repository, and clones it. Only GitHub mutations are suppressed.
-
-[Submit results](../run-and-submit/submit-results.md)
-[Submission bundle format](../reference/files/submission-bundles.md)

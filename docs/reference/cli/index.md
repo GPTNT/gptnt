@@ -31,8 +31,3 @@ gptnt run runs/<name>.yaml
 
 `run` does not call `generate`. The separation lets you inspect and retain the exact specifications
 before any game or player process starts.
-
-<!-- vale ai-tells.DoubleHyphen = NO -->
-[Run the quickstart](../../start-here/run-quickstart.md)
-[Open runtime reference](../runtime/index.md)
-<!-- vale ai-tells.DoubleHyphen = YES -->

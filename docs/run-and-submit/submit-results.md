@@ -146,6 +146,3 @@ gptnt submission submit
 The command opens or refreshes one pull request per top-level bundle. It pushes directly when your
 account has access; otherwise it creates or uses a fork. A failure for one bundle is reported while
 the remaining bundles continue.
-
-[Submission command reference](../reference/cli/submission.md)
-[Submission bundle format](../reference/files/submission-bundles.md)

@@ -90,6 +90,3 @@ An `ExperimentSummary` combines the instance, provenance, outcome, and crash sta
 
 `ExperimentDescriptor` is not a v2 type. Use `ExperimentSpec` for generated work and
 `ExperimentInstance` for its runtime form.
-
-[Understand the runtime services](runtime-services.md)
-[Run the quickstart](../start-here/run-quickstart.md)

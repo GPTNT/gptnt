@@ -110,6 +110,3 @@ gptnt doctor runs/<name>.yaml
     V2 tooling does not convert submission schema version 1, prior Parquet layouts, or prior DuckDB
     layouts. It does not upgrade an earlier database in place. Inspect old data with its matching
     release or rerun the benchmark to produce current records.
-
-[Doctor reference](../reference/cli/doctor.md)
-[Install and check GPTNT](../start-here/install-and-check.md)

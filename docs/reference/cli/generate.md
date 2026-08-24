@@ -58,6 +58,3 @@ gptnt generate runs/quickstart.yaml --output-dir output/experiment_specs/quickst
     A specification records the selected suite name, revision, and digest. Regenerate after
     changing a manifest, suite selection, mission input, protocol, player selection, or attempt
     count. Do not mix files generated from incompatible inputs in one output directory.
-
-[Run the quickstart](../../start-here/run-quickstart.md)
-[Run generated specifications](run.md)

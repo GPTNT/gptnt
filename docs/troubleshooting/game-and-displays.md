@@ -110,6 +110,3 @@ for GPTNT interactive entry points and KTANE processes.
 
 !!! danger "Forced cleanup matches processes by command and name"
     Confirm that another user or run does not own a matching process before running `gptnt kill`.
-
-[Game service reference](../reference/runtime/game-service.md)
-[Install and check GPTNT](../start-here/install-and-check.md)

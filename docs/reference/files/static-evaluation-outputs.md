@@ -68,6 +68,3 @@ the player, capabilities, task, dataset, run date, and provenance.
 `output/how_do_you/<provider-model>.json` maps each supported module to a list of attempts. Each
 attempt contains `prompt` and `response`. An optional prefix changes the filename. This command
 writes no `run_meta.json` or `metrics.json` and is not a dataset-backed submission target.
-
-[Run static evaluations](../../run-and-submit/run-statics.md)
-[Submission bundle format](submission-bundles.md)

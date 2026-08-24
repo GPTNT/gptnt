@@ -125,8 +125,3 @@ runs/quickstart.yaml
   → output/experiments.duckdb
   → gptnt results
 ```
-
-<!-- vale ai-tells.DoubleHyphen = NO -->
-[Choose the next workflow](choose-next-workflow.md)
-[Understand the experiment hierarchy](../understand/experiment-hierarchy.md)
-<!-- vale ai-tells.DoubleHyphen = YES -->

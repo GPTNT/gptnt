@@ -56,6 +56,3 @@ attempts. `attempts_per_mission` changes generation depth rather than suite iden
 ::: gptnt.experiments.ledger.base.Source
     options:
       members: true
-
-[Create a run manifest](../../run-and-submit/create-run-manifest.md)
-[Open player configuration](players.md)

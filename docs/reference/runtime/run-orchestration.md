@@ -81,6 +81,3 @@ prepared manual-artifact mapping.
 The signal handler marks shutdown and lets the current startup or monitor path terminate all
 running children. `terminate_all` sends a termination signal, waits up to 35 seconds, then forcibly
 stops remaining processes. A child failure uses the same terminate-and-error path.
-
-[CLI run contract](../cli/run.md)
-[Experiment manager](experiment-manager.md)

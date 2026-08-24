@@ -1,5 +1,7 @@
 ---
 title: GPTNT documentation
+hide:
+  - toc
 ---
 
 # GPTNT documentation
@@ -15,27 +17,27 @@ site explains how to install, run, extend, and maintain GPTNT.
 
 <div class="grid cards" markdown>
 
--   **[Start here](start-here/index.md)**
+-   :material-rocket-launch:{ .lg .middle } **[Start here](start-here/index.md)**
 
     Install GPTNT, check the machine, and complete the included quickstart.
 
     [Install and check GPTNT](start-here/install-and-check.md) · [Run the quickstart](start-here/run-quickstart.md)
 
--   **[Run & submit](run-and-submit/index.md)**
+-   :material-play-circle-outline:{ .lg .middle } **[Run & submit](run-and-submit/index.md)**
 
     Configure a model, run evaluations, inspect the outputs, and prepare a submission.
 
     [Add and run a model](run-and-submit/add-model.md) · [Submit results](run-and-submit/submit-results.md)
 
--   **[Understand](understand/index.md)**
+-   :material-school-outline:{ .lg .middle } **[Understand](understand/index.md)**
 
     Learn how the benchmark, players, experiments, runtime services, and results fit together.
 
--   **[Reference](reference/index.md)**
+-   :material-book-open-page-variant-outline:{ .lg .middle } **[Reference](reference/index.md)**
 
     Look up commands, configuration fields, file formats, Python interfaces, and runtime contracts.
 
--   **[Troubleshooting](troubleshooting/index.md)**
+-   :material-lifebuoy:{ .lg .middle } **[Troubleshooting](troubleshooting/index.md)**
 
     Diagnose installation, game, service, provider, output, and submission failures.
 

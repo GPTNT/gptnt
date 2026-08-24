@@ -77,6 +77,3 @@ player pairings, experiment specifications, and frozen suite snapshots. CLI work
 
 The generator assigns attempts starting at one. `ExperimentSpec` requires expert protocol and
 expert name to be either both present or both absent, and forbids an Expert for a solo Defuser.
-
-[Suite configuration](../configuration/suites.md)
-[Experiment specifications](../files/experiment-specifications.md)

@@ -26,6 +26,3 @@ The static-evaluation CLI uses `--player`, not the earlier `--model` spelling. C
 Run the applicable [`doctor` mode](../reference/cli/doctor.md) after changing a player, provider,
 run manifest, game installation, Redis endpoint, or display. Regenerate experiment specifications
 after changing a manifest or configuration that affects the selected experiments.
-
-[Understand GPTNT](../understand/index.md)
-[Open the reference](../reference/index.md)

@@ -58,6 +58,3 @@ creates a timestamped directory under `output/experiment_recorder_outputs/`. The
 !!! warning "Do not infer stability from location"
     A file under `output/` is not automatically a supported format. Use the linked format page to
     determine its compatibility boundary before building another tool around it.
-
-[Player-record format](player-records-and-outcomes.md)
-[Troubleshoot missing output](../../troubleshooting/interrupted-runs-and-outputs.md)

@@ -42,6 +42,3 @@ derived summaries. A failed group is excluded in full, so ingest does not leave 
 An existing database is accepted only when its ordered base-table structure equals the schema
 generated from `ExperimentStep` and `ExperimentSummary`. No database version row or view mediates
 compatibility.
-
-[Player-record format](../files/player-records-and-outcomes.md)
-[DuckDB schema](../files/duckdb.md)

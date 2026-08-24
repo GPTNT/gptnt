@@ -70,6 +70,3 @@ gptnt build-db <recorder-directory> \
 GPTNT refuses to assign current provenance to older `prediction_*.json` files when `run_meta.json`
 is missing. Move the incomplete output directory aside or remove it after preserving anything
 needed for diagnosis, then rerun the static task from the beginning.
-
-[Run interactive experiments](../run-and-submit/run-interactive.md)
-[Output layout](../reference/files/output-layout.md)

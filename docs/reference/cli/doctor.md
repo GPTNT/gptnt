@@ -76,6 +76,3 @@ specifications or start processes. Use
 [installation and doctor troubleshooting](../../troubleshooting/installation-and-doctor.md) for
 configuration or integrity failures. Use the game or Redis troubleshooting page for a row from
 that subsystem.
-
-[Install and check GPTNT](../../start-here/install-and-check.md)
-[Generate specifications](generate.md)

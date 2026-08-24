@@ -77,6 +77,3 @@ identity from the directory name.
 
 See [Statics command reference](../reference/cli/statics.md) for every task and option, and
 [Static evaluation outputs](../reference/files/static-evaluation-outputs.md) for the stored fields.
-
-[Inspect results](inspect-results.md)
-[Understand comparability](../understand/suites-revisions-and-comparability.md)

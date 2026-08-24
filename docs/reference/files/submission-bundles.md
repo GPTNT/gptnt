@@ -68,6 +68,3 @@ shape without reading live suite or mission configuration.
 `metrics.json` is copied verbatim from the task output. The manifest supplies the task, Hugging
 Face repository and split, requested and resolved revisions, player, capabilities, run date, and
 benchmark provenance.
-
-[Submit results](../../run-and-submit/submit-results.md)
-[Submission command reference](../cli/submission.md)

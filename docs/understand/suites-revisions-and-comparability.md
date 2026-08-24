@@ -80,6 +80,3 @@ must match the tagged release for submission.
 
 The current submission workflow requires `multi-self-async`, `multi-self-sync`, and
 `single-parametric-sync`, plus the explicit `expert-vqa-no-manual` static target.
-
-[Suite configuration reference](../reference/configuration/suites.md)
-[Submit results](../run-and-submit/submit-results.md)

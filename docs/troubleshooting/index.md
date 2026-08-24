@@ -16,8 +16,3 @@ condition, then the corresponding action.
 | A manual source, profile, browser compile, rule seed, or cached artefact fails | [Manual preparation](manual-preparation.md) |
 | A run stops, completion is unclear, or an output cannot be ingested | [Interrupted runs and outputs](interrupted-runs-and-outputs.md) |
 | A bundle fails local validation or remote submission | [Submission validation](submission-validation.md) |
-
-<!-- vale ai-tells.DoubleHyphen = NO -->
-[Install and check GPTNT](../start-here/install-and-check.md)
-[Understand runtime services](../understand/runtime-services.md)
-<!-- vale ai-tells.DoubleHyphen = YES -->

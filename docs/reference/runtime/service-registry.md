@@ -60,6 +60,3 @@ Those metrics do not affect matchmaking predicates.
 
 The registry readiness tests cover ready/idle players, busy players, main-menu games, and separation
 between game and player manifests.
-
-[Experiment manager](experiment-manager.md)
-[Heartbeats and RPC](heartbeats-and-rpc.md)

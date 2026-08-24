@@ -85,6 +85,3 @@ The recorder writes `ExperimentStep` data during the experiment and a `RecordFoo
 player stops. The footer contains the experiment instance, final bomb state, provenance, crash
 state, and role. A hard player crash can therefore mark the experiment invalid even when other
 services remain reachable.
-
-[Service registry](service-registry.md)
-[Heartbeats and RPC](heartbeats-and-rpc.md)

@@ -95,6 +95,3 @@ processes, then forcibly terminates each match. It prints the matched process ty
     A normal `run` terminates its own process cluster. Use `kill` after a failed or interrupted
     shutdown. Inspect the process list before assuming that each match belongs to the interrupted
     run.
-
-[Understand runtime services](../../understand/runtime-services.md)
-[Trace run orchestration](../runtime/run-orchestration.md)

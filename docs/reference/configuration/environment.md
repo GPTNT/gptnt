@@ -173,6 +173,3 @@ owns them. Common local boundaries include:
 Use the provider's documentation for its complete variable set. The [provider configuration](providers.md)
 and [provider troubleshooting](../../troubleshooting/providers-and-model-responses.md) pages cover
 the GPTNT boundary. Do not place credentials in a tracked run, player, or provider configuration.
-
-[Install and check GPTNT](../../start-here/install-and-check.md)
-[Troubleshoot Redis and services](../../troubleshooting/redis-and-runtime-services.md)

@@ -72,6 +72,3 @@ operational settings excluded by `fingerprint_model_settings`.
 The base profile supplies `ObservationHandler`, `ImageResizer`, and `SetOfMarksHandler`. Override
 their Hydra subtrees only when the player needs different image dimensions, coordinate handling, or
 mark rendering. Their callable contracts are grouped in the [processor reference](../python/processors.md).
-
-[Add a model](../../run-and-submit/add-model.md)
-[Understand capabilities](../../understand/roles-protocols-and-capabilities.md)

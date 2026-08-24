@@ -117,6 +117,3 @@ work only after identifying which run owns it.
 The doctor telemetry check is optional and reports a warning. It is not a Redis or experiment
 manager failure. Use `COMPOSE_PROFILES=dev` when the collector endpoint should remain available but
 discard exported telemetry.
-
-[Heartbeats and RPC](../reference/runtime/heartbeats-and-rpc.md)
-[Understand runtime services](../understand/runtime-services.md)
