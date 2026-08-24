@@ -53,6 +53,6 @@ attempts. `attempts_per_mission` changes generation depth rather than suite iden
 
 ## Completion source
 
-::: gptnt.experiments.ledger.base.Source
+::: gptnt.experiments.ledger.completion.Source
     options:
       members: true

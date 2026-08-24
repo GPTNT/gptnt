@@ -44,7 +44,7 @@ resumed because current provenance cannot be assigned to earlier calls.
 
 Each `prediction_<index>.json` adds the dataset row `index` to `ModelOutput`:
 
-::: gptnt.statics.model.ModelOutput
+::: gptnt.statics.eval_model.ModelOutput
     options:
       show_root_heading: true
 

@@ -23,7 +23,7 @@ write a file for a player with no step rows.
 
 ## Step rows
 
-::: gptnt.experiments.models.ExperimentStep
+::: gptnt.experiments.records.ExperimentStep
     options:
       show_root_heading: true
 
@@ -57,11 +57,11 @@ execution. It can be null after an early failure.
 
 ## Outcomes and summaries
 
-::: gptnt.experiments.models.ExperimentOutcome
+::: gptnt.experiments.records.ExperimentOutcome
     options:
       show_root_heading: true
 
-::: gptnt.experiments.models.ExperimentSummary
+::: gptnt.experiments.records.ExperimentSummary
     options:
       show_root_heading: true
 

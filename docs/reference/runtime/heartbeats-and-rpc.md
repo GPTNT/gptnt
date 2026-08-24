@@ -61,7 +61,7 @@ tombstone. The tombstone includes the final readiness, failure reason, heartbeat
 These generated models expose fields used by the current service implementation. They do not
 define a supported transport or Python extension interface.
 
-::: gptnt.interactive.services.heartbeat.base.BaseHeartbeat
+::: gptnt.interactive.services.heartbeat.events.BaseHeartbeat
     options:
       show_root_heading: true
       members:

@@ -13,7 +13,7 @@ player pairings, experiment specifications, and frozen suite snapshots. CLI work
 
 ## Suites and pairings
 
-::: gptnt.experiments.suite.core.Suite
+::: gptnt.experiments.suite.definition.Suite
     options:
       show_root_heading: true
       members:
@@ -22,11 +22,11 @@ player pairings, experiment specifications, and frozen suite snapshots. CLI work
         - config_digest
         - suite_digest
 
-::: gptnt.experiments.suite.core.SuiteMatchup
+::: gptnt.experiments.suite.definition.SuiteMatchup
     options:
       show_root_heading: true
 
-::: gptnt.experiments.suite.core.SuiteIdentity
+::: gptnt.experiments.suite.definition.SuiteIdentity
     options:
       show_root_heading: true
       members:

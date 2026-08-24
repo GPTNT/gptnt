@@ -35,7 +35,7 @@ enforce the value against player capabilities.
 
 ## Generated models
 
-::: gptnt.experiments.suite.core.Suite
+::: gptnt.experiments.suite.definition.Suite
     options:
       show_root_heading: true
       members:
@@ -43,11 +43,11 @@ enforce the value against player capabilities.
         - config_digest
         - suite_digest
 
-::: gptnt.experiments.suite.core.SuiteMatchup
+::: gptnt.experiments.suite.definition.SuiteMatchup
     options:
       show_root_heading: true
 
-::: gptnt.experiments.suite.core.SuiteIdentity
+::: gptnt.experiments.suite.definition.SuiteIdentity
     options:
       show_root_heading: true
       members:
