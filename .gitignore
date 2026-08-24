@@ -819,10 +819,6 @@ stats/
 output/
 
 
-AGENTS.md
-CLAUDE.md
-agent_docs/
-
 # ignore worktrees
 .worktrees/
 .worktreeinclude
