@@ -1,0 +1,13 @@
+spec_version: 2
+suites:
+  - one-wires-sync
+rooms: 1
+
+players:
+  - player: nemotron-3-nano
+    provider: vllm_box7
+    count: 2
+
+source: local
+
+observability: limited

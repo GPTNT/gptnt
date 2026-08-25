@@ -1,0 +1,29 @@
+# @package _global_
+
+defaults:
+  - /manual@suite.manual_profile: vanilla
+
+suite:
+  _target_: gptnt.experiments.suite.definition.Suite
+  name: one-wires-sync
+  revision: 1
+  modality: [vision, language]
+  missions_path: configs/missions/one_wires
+  manual_rule_seed: 1
+  defuser_protocol:
+    _target_: gptnt.players.specification.PlayerProtocol
+    role: defuser
+    communication_style: sync
+    is_playing_alone: false
+    include_manual: false
+  expert_protocol:
+    _target_: gptnt.players.specification.PlayerProtocol
+    role: expert
+    communication_style: sync
+    is_playing_alone: false
+    include_manual: true
+  matchup:
+    _target_: gptnt.experiments.suite.definition.SuiteMatchup
+    pairing_type: pairwise
+  manual_profile:
+    _target_: gptnt.ktane.manuals.profile.ManualProfile
