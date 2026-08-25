@@ -10,6 +10,7 @@ from gptnt.interactive.services.experiment_manager.experiment_runner import (
     AsyncExperimentRunner,
     ExperimentState,
 )
+from gptnt.ktane.game_settings import KtaneSettings
 from gptnt.ktane.state.bomb import BombOutcome
 
 from tests._cli_runner import invoke_cli
@@ -35,6 +36,16 @@ pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
 async def _silent_heartbeat() -> None:
     """Model a player that has stopped sending heartbeats."""
+
+
+def test_test_environment_redirects_ktane_settings(tmp_path: Path) -> None:
+    """A test-created game uses a directory owned by that test, not the user's KTANE profile."""
+    settings = KtaneSettings()
+    expected_dir = tmp_path.joinpath("ktane")
+
+    assert {settings.get_dir(system=system) for system in ("Windows", "Darwin", "Linux")} == {
+        expected_dir
+    }
 
 
 async def test_services_register_and_matchmake(

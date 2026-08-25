@@ -23,8 +23,8 @@ configure_logging(enable_logfire=False)
 
 
 @pytest.fixture(autouse=True)
-def configure_test_environment(tmp_path: Path) -> None:
-    """Point the experiment recorder at a throwaway per-test dir.
+def configure_test_environment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Point test-created output and KTANE settings files at throwaway per-test directories.
 
     The fast-poll service timeouts are set at conftest import time (see top of this module). They
     MUST be in place before `gptnt.interactive` is imported, which is too early for a fixture.
@@ -32,6 +32,9 @@ def configure_test_environment(tmp_path: Path) -> None:
     records_dir = tmp_path.joinpath("output")
     records_dir.mkdir(parents=True, exist_ok=True)
     _ = os.environ.setdefault("EXPERIMENT_RECORDER_OUTPUTS", records_dir.as_posix())
+    ktane_settings_dir = tmp_path.joinpath("ktane")
+    for system in ("WINDOWS", "MAC", "LINUX"):
+        monkeypatch.setenv(f"KTANE_{system}", ktane_settings_dir.as_posix())
 
 
 # Import all the fixtures from every file in the tests/_cases dir. Anchor the glob to this file's
