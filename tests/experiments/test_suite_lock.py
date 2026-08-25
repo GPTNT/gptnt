@@ -2,17 +2,20 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+from textwrap import dedent
 from typing import TYPE_CHECKING
 
 import pytest
 from pydantic import ValidationError
 
+from gptnt.cli.config_discovery import discover_suites
 from gptnt.experiments.recorder.parquet import KEY_FOOTER, RecordFooter, footer_from_player_record
 from gptnt.experiments.records import ExperimentPlayerRecord, ExperimentSummary
 from gptnt.experiments.suite.compose import compose_suite
 from gptnt.experiments.suite.freeze import FreezeReport, FreezeStamp
 from gptnt.experiments.suite.generate import generate_specs
-from gptnt.experiments.suite.lock import MissionEntry, SuiteLock, SuiteNotFrozenError
+from gptnt.experiments.suite.lock import MissionReference, SuiteLock, SuiteNotFrozenError
 
 from tests._factories.experiments import (
     make_experiment_instance,
@@ -21,16 +24,229 @@ from tests._factories.experiments import (
 )
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from gptnt.experiments.suite.definition import Suite
 
 _STAMP = FreezeStamp(frozen_at="2026-01-01T00:00:00Z", gptnt_version="9.9.9", git_sha="cafef00d")
 
 
+def _v1_lock_text() -> str:
+    """Return one historical lock snapshot from origin/main."""
+    return dedent(
+        """\
+        version = 2
+
+        [[suite]]
+        name = "multi-self-async"
+        revision = 1
+        suite_digest = "a02fed7179d4fd142d34324d720468ba"
+        frozen_at = "2026-07-09T13:30:26.639588Z"
+        gptnt_version = "0.15.1.dev6+290fd417"
+        git_sha = "290fd4172a87842a92dbc643f43b9d080ceb5465-dirty"
+        mission_keys = ["1028|Keypad,Maze,Password,WireSequence", "110|Keypad,Maze,Wires", "286|Memory,Password,WhosOnFirst", "337|BigButton,Simon,Venn", "412|Keypad,Simon,WhosOnFirst", "526|Maze,Memory,Wires", "619|BigButton,Memory,WhosOnFirst", "798|BigButton,Keypad,Memory,Wires", "851|Keypad,Simon,WhosOnFirst,Wires", "990|Morse,Venn,WhosOnFirst,Wires"]
+
+        [suite.config]
+        name = "multi-self-async"
+        revision = 1
+        modality = ["language", "vision"]
+        missions_path = "configs/missions/multiple_module_n"
+
+        [suite.config.defuser_protocol]
+        role = "defuser"
+        communication_style = "async"
+        is_playing_alone = false
+        include_manual = false
+        receive_feedback_after_action = false
+        allow_magic_actions = false
+        allow_lottery_actions = false
+        allow_message_output = true
+
+        [suite.config.expert_protocol]
+        role = "expert"
+        communication_style = "async"
+        is_playing_alone = false
+        include_manual = true
+        receive_feedback_after_action = false
+        allow_magic_actions = false
+        allow_lottery_actions = false
+        allow_message_output = true
+
+        [suite.config.matchup]
+        pairing_type = "with_self"
+
+        [[mission]]
+        mission_key = "1028|Keypad,Maze,Password,WireSequence"
+        [mission.spec]
+        seed = 1028
+        timeLimit = 300
+        numStrikes = 3
+        components = ["Keypad", "Maze", "Password", "WireSequence"]
+        optWidgets = 5
+        needyTime = 60
+        isFront = false
+        timeScale = 1.0
+        timeStepSize = 3000
+
+        [[mission]]
+        mission_key = "110|Keypad,Maze,Wires"
+        [mission.spec]
+        seed = 110
+        timeLimit = 300
+        numStrikes = 3
+        components = ["Keypad", "Wires", "Maze"]
+        optWidgets = 5
+        needyTime = 60
+        isFront = false
+        timeScale = 1.0
+        timeStepSize = 3000
+
+        [[mission]]
+        mission_key = "286|Memory,Password,WhosOnFirst"
+        [mission.spec]
+        seed = 286
+        timeLimit = 300
+        numStrikes = 3
+        components = ["WhosOnFirst", "Memory", "Password"]
+        optWidgets = 5
+        needyTime = 60
+        isFront = false
+        timeScale = 1.0
+        timeStepSize = 3000
+
+        [[mission]]
+        mission_key = "337|BigButton,Simon,Venn"
+        [mission.spec]
+        seed = 337
+        timeLimit = 300
+        numStrikes = 3
+        components = ["BigButton", "Simon", "Venn"]
+        optWidgets = 5
+        needyTime = 60
+        isFront = false
+        timeScale = 1.0
+        timeStepSize = 3000
+
+        [[mission]]
+        mission_key = "412|Keypad,Simon,WhosOnFirst"
+        [mission.spec]
+        seed = 412
+        timeLimit = 180
+        numStrikes = 3
+        components = ["Keypad", "Simon", "WhosOnFirst"]
+        optWidgets = 5
+        needyTime = 60
+        isFront = false
+        timeScale = 1.0
+        timeStepSize = 3000
+
+        [[mission]]
+        mission_key = "526|Maze,Memory,Wires"
+        [mission.spec]
+        seed = 526
+        timeLimit = 180
+        numStrikes = 3
+        components = ["Wires", "Maze", "Memory"]
+        optWidgets = 5
+        needyTime = 60
+        isFront = false
+        timeScale = 1.0
+        timeStepSize = 3000
+
+        [[mission]]
+        mission_key = "619|BigButton,Memory,WhosOnFirst"
+        [mission.spec]
+        seed = 619
+        timeLimit = 180
+        numStrikes = 3
+        components = ["BigButton", "Memory", "WhosOnFirst"]
+        optWidgets = 5
+        needyTime = 60
+        isFront = false
+        timeScale = 1.0
+        timeStepSize = 3000
+
+        [[mission]]
+        mission_key = "798|BigButton,Keypad,Memory,Wires"
+        [mission.spec]
+        seed = 798
+        timeLimit = 300
+        numStrikes = 3
+        components = ["Wires", "BigButton", "Keypad", "Memory"]
+        optWidgets = 5
+        needyTime = 60
+        isFront = false
+        timeScale = 1.0
+        timeStepSize = 3000
+
+        [[mission]]
+        mission_key = "851|Keypad,Simon,WhosOnFirst,Wires"
+        [mission.spec]
+        seed = 851
+        timeLimit = 300
+        numStrikes = 3
+        components = ["Wires", "Keypad", "Simon", "WhosOnFirst"]
+        optWidgets = 5
+        needyTime = 60
+        isFront = false
+        timeScale = 1.0
+        timeStepSize = 3000
+
+        [[mission]]
+        mission_key = "990|Morse,Venn,WhosOnFirst,Wires"
+        [mission.spec]
+        seed = 990
+        timeLimit = 300
+        numStrikes = 3
+        components = ["Morse", "Venn", "WhosOnFirst", "Wires"]
+        optWidgets = 5
+        needyTime = 60
+        isFront = false
+        timeScale = 1.0
+        timeStepSize = 3000
+        """
+    )
+
+
 def _a_suite() -> Suite:
     """One real composed suite to reconcile against."""
     return compose_suite("single-solo-player-sync")
+
+
+def test_suite_digest_ignores_suite_identity_and_mission_path() -> None:
+    """Suite naming and authoring locations do not change what a suite measures."""
+    suite = _a_suite()
+    relocated = suite.model_copy(
+        update={"name": "renamed", "revision": 7, "missions_path": Path("other/missions")}
+    )
+
+    assert suite.digest_for(suite.loaded_missions) == relocated.digest_for(suite.loaded_missions)
+
+
+def test_lock_rejects_a_v1_snapshot(tmp_path: Path) -> None:
+    """Version-3 locks deliberately do not reinterpret a historical snapshot."""
+    path = tmp_path / "suites.lock"
+    _ = path.write_text(_v1_lock_text())
+
+    with pytest.raises(ValidationError, match=r"unsupported suites\.lock version"):
+        _ = SuiteLock.from_lock_path(path)
+
+
+def test_lock_file_requires_an_explicit_version(tmp_path: Path) -> None:
+    """A missing version cannot silently select the current digest contract."""
+    report = FreezeReport.reconcile([_a_suite()], None, _STAMP)
+    path = tmp_path / "suites.lock"
+    report.updated_lock.dump_to_path(path)
+    _ = path.write_text(path.read_text().replace("version = 3\n\n", "", count=1))
+
+    with pytest.raises(ValueError, match=r"suites\.lock version is required"):
+        _ = SuiteLock.from_lock_path(path)
+
+
+def test_lock_entry_cannot_load_authoring_time_missions() -> None:
+    """A persisted entry must be resolved through its enclosing lock snapshot."""
+    entry = FreezeReport.reconcile([_a_suite()], None, _STAMP).updated_lock.suites[0]
+
+    with pytest.raises(RuntimeError, match=r"SuiteLock\.load_suite"):
+        _ = entry.loaded_missions
 
 
 def test_reconcile_appends_a_new_suite() -> None:
@@ -44,16 +260,19 @@ def test_reconcile_appends_a_new_suite() -> None:
     assert len(report.updated_lock.suites) == 1
     entry = report.updated_lock.suites[0]
     assert entry.name == suite.name
-    assert entry.suite_digest == suite.suite_digest
-    assert entry.mission_keys == suite.mission_keys
-    assert entry.config["matchup"]["pairing_type"] == suite.matchup.pairing_type
+    assert entry.suite_digest == suite.digest
+    assert report.updated_lock.mission_keys_for(entry) == tuple(
+        report.updated_lock.mission_specs()[reference.digest].mission_key
+        for reference in entry.missions
+    )
+    assert entry.matchup.pairing_type == suite.matchup.pairing_type
     assert (entry.frozen_at, entry.gptnt_version, entry.git_sha) == (
         _STAMP.frozen_at,
         _STAMP.gptnt_version,
         _STAMP.git_sha,
     )
     # every referenced mission is stored once in the shared table
-    assert set(entry.mission_keys) == set(report.updated_lock.mission_specs())
+    assert set(entry.mission_digests) == set(report.updated_lock.mission_specs())
 
 
 def test_reconcile_is_unchanged_when_already_frozen() -> None:
@@ -66,6 +285,19 @@ def test_reconcile_is_unchanged_when_already_frozen() -> None:
     assert report.updated_lock.suites == frozen.suites
 
 
+def test_freeze_provenance_does_not_change_suite_digest() -> None:
+    """Freeze bookkeeping does not affect the suite-content identity."""
+    suite = _a_suite()
+    earlier = FreezeReport.reconcile([suite], None, _STAMP).updated_lock.suites[0]
+    later = FreezeReport.reconcile(
+        [suite],
+        None,
+        FreezeStamp(frozen_at="2026-02-02T00:00:00Z", gptnt_version="10.0.0", git_sha="new"),
+    ).updated_lock.suites[0]
+
+    assert earlier.suite_digest == later.suite_digest
+
+
 def test_reconcile_dedups_missions_shared_across_suites() -> None:
     """Suites over the same mission set store each mission once."""
     pairwise = compose_suite("single-pairwise-sync")
@@ -73,8 +305,32 @@ def test_reconcile_dedups_missions_shared_across_suites() -> None:
     assert pairwise.mission_keys == parametric.mission_keys  # both use single_module
 
     report = FreezeReport.reconcile([pairwise, parametric], None, _STAMP)
-    stored = [mission.mission_key for mission in report.updated_lock.missions]
-    assert stored == sorted(set(stored)) == sorted(pairwise.mission_keys)
+    stored = [mission.digest for mission in report.updated_lock.missions]
+    expected = sorted(mission.digest for mission in pairwise.loaded_missions)
+    assert stored == sorted(set(stored)) == expected
+
+
+def test_configured_suites_are_frozen_at_revision_two_with_seed_1764() -> None:
+    """The v3 lock contains the seven configured benchmark suites at revision two."""
+    expected_names = {
+        "multi-self-async",
+        "multi-self-sync",
+        "one-wires-sync",
+        "single-pairwise-sync",
+        "single-parametric-sync",
+        "single-self-async",
+        "single-solo-player-sync",
+    }
+    assert set(discover_suites()) == expected_names
+
+    lock = SuiteLock.from_lock_path()
+    for name in expected_names:
+        suite = compose_suite(name)
+        entry = lock.entry_for(name, 2)
+        assert suite.revision == 2
+        assert suite.manual_rule_seed == 1764
+        assert entry is not None
+        assert entry.suite_digest == suite.digest
 
 
 def test_reconcile_requires_revision_bump_for_changed_content() -> None:
@@ -99,8 +355,8 @@ def test_load_suite_from_lock_rebuilds_suite_and_missions(
 ) -> None:
     """The stored config and mission table rebuild the suite without reading live missions."""
     suite = _a_suite()
-    expected_digest = suite.suite_digest
-    expected_mission_keys = suite.mission_keys
+    expected_digest = suite.digest
+    expected_mission_digests = {mission.digest for mission in suite.loaded_missions}
     lock = FreezeReport.reconcile([suite], None, _STAMP).updated_lock
     path = tmp_path / "suites.lock"
     lock.dump_to_path(path)
@@ -113,7 +369,10 @@ def test_load_suite_from_lock_rebuilds_suite_and_missions(
     rebuilt, missions = lock.load_suite(suite.name)
     assert rebuilt.digest_for(missions) == expected_digest
     assert rebuilt.expert_protocol is None  # a solo suite omits its expert (TOML has no null)
-    assert [mission.mission_key for mission in missions] == list(expected_mission_keys)
+    assert [mission.digest for mission in missions] == [
+        reference.digest for reference in lock.suites[0].missions
+    ]
+    assert {mission.digest for mission in missions} == expected_mission_digests
 
 
 def test_load_suite_from_lock_errors_when_unfrozen() -> None:
@@ -133,19 +392,25 @@ def test_lock_roundtrips_through_toml(tmp_path: Path) -> None:
     assert SuiteLock.from_lock_path(path) == lock
 
     entry = lock.suites[0]
-    mismatched = entry.model_copy(
-        update={"config": entry.config | {"revision": entry.revision + 1}}
+    mismatched_reference = MissionReference(
+        mission_key="wrong label", digest=entry.missions[0].digest
     )
-    with pytest.raises(ValidationError, match="does not match its frozen config identity"):
+    mismatched = entry.model_copy(update={"missions": (mismatched_reference, *entry.missions[1:])})
+    with pytest.raises(ValidationError, match="label that does not match"):
         _ = SuiteLock.model_validate({"suites": (mismatched,), "missions": lock.missions})
 
     wrong_digest = entry.model_copy(update={"suite_digest": "0" * 32})
     with pytest.raises(ValidationError, match="digest does not match"):
         _ = SuiteLock.model_validate({"suites": (wrong_digest,), "missions": lock.missions})
 
-    mission = lock.missions[0]
-    with pytest.raises(ValidationError, match="does not match stored mission"):
-        _ = MissionEntry(mission_key="999999|Fake", spec=mission.spec)
+    altered_body = lock.missions[0].model_copy(update={"time_limit": 1})
+    with pytest.raises(ValidationError, match="absent from the table"):
+        _ = SuiteLock.model_validate(
+            {"suites": lock.suites, "missions": (altered_body, *lock.missions[1:])}
+        )
+
+    with pytest.raises(ValidationError, match="absent from the table"):
+        _ = SuiteLock.model_validate({"suites": lock.suites, "missions": ()})
 
 
 def test_freeze_reload_and_generate_pins_suite_identity(
@@ -187,16 +452,10 @@ def test_freeze_reload_and_generate_pins_suite_identity(
         == record_footer.instance.manual_profile
     )
 
-    assert (
-        experiment.suite_name,
-        experiment.suite_revision,
-        experiment.suite_digest,
-        experiment.fingerprint,
-    ) == (
-        "single-solo-player-sync",
-        1,
-        "cd8d0f434673435dda9c9a3840e309b9",
-        "a2f6889b8fd4c0b0ec6531b4dda54f3b",
+    assert (experiment.suite_name, experiment.suite_revision, experiment.suite_digest) == (
+        suite.name,
+        suite.revision,
+        suite.digest,
     )
 
 

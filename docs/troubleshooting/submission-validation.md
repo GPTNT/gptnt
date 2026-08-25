@@ -49,6 +49,13 @@ Expert, and mission pairing.
 
 Preserve the source player-record Parquet while making these corrections.
 
+## Installed suite registry checks fail
+
+`--require-installed-lock-match` reports either that the suite revision is absent from the
+installed suite registry or that the bundle suite snapshot does not exactly match it. Rebuild the
+bundle from the GPTNT release recorded in its provenance. Do not edit `suite.lock` to make this
+check pass.
+
 ## Provenance fails
 
 `gptnt_version` must match the recorded release tag, and `release_commit` must be a complete

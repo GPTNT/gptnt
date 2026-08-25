@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, ClassVar, Self
+from typing import ClassVar, Self, override
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from tomlkit import dumps, parse
@@ -10,8 +10,8 @@ from gptnt.common.paths import Paths
 from gptnt.experiments.suite.definition import Suite
 from gptnt.ktane.mission_spec import KtaneMissionSpec
 
-LOCK_VERSION = 2
-"""Schema version of the lock file itself, bumped only if this layout changes."""
+LOCK_VERSION = 3
+"""The v3 TOML layout and suite-digest recipe contract."""
 
 LOCK_FILENAME = "suites.lock"
 
@@ -22,7 +22,7 @@ _SUITE_TABLE = "suite"
 
 
 def default_lock_path() -> Path:
-    """Return the canonical location of the lock, next to the suite configs it freezes."""
+    """Return the default lock location, next to the suite configurations it records."""
     return Paths().suite_configs / LOCK_FILENAME
 
 
@@ -30,40 +30,22 @@ class SuiteNotFrozenError(Exception):
     """A requested suite (or revision) has no entry in the lock."""
 
 
-class MissionEntry(BaseModel):
-    """One distinct mission, stored once and referenced by every suite that covers it."""
+class MissionReference(BaseModel):
+    """A readable reference from one suite revision to one stored mission body."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     mission_key: str
-    """Identity derived from both seeds and the sorted component names."""
+    """Display label derived from the referenced mission body."""
 
-    spec: KtaneMissionSpec
-
-    @model_validator(mode="after")
-    def check_mission_key(self) -> Self:
-        """Require the table key to identify the stored mission body."""
-        if self.mission_key != self.spec.mission_key:
-            raise ValueError(
-                f"mission entry key {self.mission_key!r} does not match stored mission "
-                f"{self.spec.mission_key!r}"
-            )
-        return self
+    digest: str
+    """Content identity derived from the referenced mission body."""
 
 
-class SuiteLockEntry(BaseModel):
-    """One frozen suite revision, with its digest, provenance, mission coverage, and config.
-
-    `config` is `Suite.model_dump(mode="json", exclude_none=True)` (`config_digest` excluded), so
-    `Suite.model_validate(config)` rebuilds the exact suite. `mission_keys` reference the shared
-    `[[mission]]` table.
-    """
+class SuiteLockEntry(Suite):
+    """One frozen suite revision with configuration, missions, digest, and provenance."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
-
-    name: str
-    revision: int = Field(ge=1)
-    """Frozen comparability revision in the append-only sequence for this suite name."""
 
     suite_digest: str
     """Digest recomputed from the frozen suite configuration and referenced mission bodies."""
@@ -77,35 +59,95 @@ class SuiteLockEntry(BaseModel):
     git_sha: str = ""
     """The commit the entry was frozen at, or `""` when git was unavailable."""
 
-    mission_keys: tuple[str, ...]
-    """Sorted `mission_key` of every mission the suite covers."""
-    config: dict[str, Any]
-    """JSON-form suite fields used to reconstruct the frozen suite, excluding `config_digest`."""
+    missions: tuple[MissionReference, ...]
+    """Readable references to missions that are included in this suite."""
 
     @property
-    def mission_set(self) -> str:
-        """The mission-set name (the `missions_path` basename), as frozen in the config."""
-        return Path(self.config["missions_path"]).name
+    @override
+    def digest(self) -> str:
+        """Return the pre-computed digest for the suite."""
+        return self.suite_digest
+
+    @property
+    @override
+    def loaded_missions(self) -> list[KtaneMissionSpec]:
+        """Reject authoring-file access; resolve persisted bodies through the lock instead."""
+        raise RuntimeError(
+            "SuiteLockEntry has no authoring-time mission bodies; call SuiteLock.load_suite()"
+        )
+
+    @property
+    def mission_digests(self) -> tuple[str, ...]:
+        """Return mission content identities for internal lookup compatibility."""
+        return tuple(reference.digest for reference in self.missions)
 
 
 def _validate_entry_snapshots(
     entries: tuple[SuiteLockEntry, ...], specs: dict[str, KtaneMissionSpec]
 ) -> None:
-    """Verify each entry's identity and digest against its stored snapshot."""
+    """Verify each entry's digest against its stored mission bodies."""
     for entry in entries:
-        suite = Suite.model_validate({"expert_protocol": None, **entry.config})
-        if (entry.name, entry.revision) != (suite.name, suite.revision):
+        _validate_entry_snapshot(entry, specs)
+
+
+def _validate_entry_snapshot(entry: SuiteLockEntry, specs: dict[str, KtaneMissionSpec]) -> None:
+    """Verify one entry's frozen identity and digest."""
+    missions = []
+    for reference in entry.missions:
+        spec = specs[reference.digest]
+        if reference.mission_key != spec.mission_key:
             raise ValueError(
-                f"suite entry {entry.name!r} revision {entry.revision} does not match its "
-                f"frozen config identity {suite.name!r} revision {suite.revision}"
+                f"suite {entry.name!r} revision {entry.revision} references mission "
+                f"{reference.digest} with a label that does not match its stored body"
             )
-        missions = [specs[key] for key in entry.mission_keys]
-        calculated_digest = suite.digest_for(missions)
-        if calculated_digest != entry.suite_digest:
-            raise ValueError(
-                f"suite {entry.name!r} revision {entry.revision} digest does not match "
-                "its frozen config and missions"
-            )
+        missions.append(spec)
+    _validate_entry_digest(entry, missions)
+
+
+def _validate_entry_digest(entry: SuiteLockEntry, missions: list[KtaneMissionSpec]) -> None:
+    """Require the stored digest to describe the entry's materialised content."""
+    if entry.digest_for(missions) != entry.suite_digest:
+        raise ValueError(
+            f"suite {entry.name!r} revision {entry.revision} digest does not match "
+            "its digest payload and missions"
+        )
+
+
+def _check_unique_mission_bodies(missions: tuple[KtaneMissionSpec, ...]) -> None:
+    """Require each complete mission body to have one content digest."""
+    if len({mission.digest for mission in missions}) != len(missions):
+        raise ValueError("duplicate mission digest in the mission table")
+
+
+def _check_unique_suite_revisions(entries: tuple[SuiteLockEntry, ...]) -> None:
+    """Require each `(name, revision)` pair to appear once."""
+    revisions = [(entry.name, entry.revision) for entry in entries]
+    if len(revisions) != len(set(revisions)):
+        raise ValueError("duplicate (name, revision) in the suite entries")
+
+
+def _check_entry_references(
+    entries: tuple[SuiteLockEntry, ...], bodies_by_digest: dict[str, KtaneMissionSpec]
+) -> None:
+    """Require references to resolve once and keep distinct labels within each suite."""
+    referenced = {reference.digest for entry in entries for reference in entry.missions}
+    unknown = referenced - set(bodies_by_digest)
+    if unknown:
+        raise ValueError(f"suites reference mission digests absent from the table: {unknown}")
+    for entry in entries:
+        _check_distinct_entry_references(entry)
+
+
+def _check_distinct_entry_references(entry: SuiteLockEntry) -> None:
+    """Require one reference per mission body and readable label in a suite revision."""
+    digests = entry.mission_digests
+    if len(digests) != len(set(digests)):
+        raise ValueError(
+            f"suite {entry.name!r} revision {entry.revision} repeats a mission digest"
+        )
+    keys = [reference.mission_key for reference in entry.missions]
+    if len(keys) != len(set(keys)):
+        raise ValueError(f"suite {entry.name!r} revision {entry.revision} repeats a mission key")
 
 
 class SuiteLock(BaseModel):
@@ -124,8 +166,8 @@ class SuiteLock(BaseModel):
     suites: tuple[SuiteLockEntry, ...] = Field(default_factory=tuple, alias=_SUITE_TABLE)
     """Append-only frozen revisions for each suite."""
 
-    missions: tuple[MissionEntry, ...] = Field(default_factory=tuple, alias=_MISSION_TABLE)
-    """Deduplicated mission bodies referenced by `mission_key` from frozen suites."""
+    missions: tuple[KtaneMissionSpec, ...] = Field(default_factory=tuple, alias=_MISSION_TABLE)
+    """Deduplicated, complete mission bodies referenced by digest from frozen suites."""
 
     default_location: ClassVar[Path] = default_lock_path()
 
@@ -136,11 +178,14 @@ class SuiteLock(BaseModel):
         if not path.exists():
             raise SuiteNotFrozenError(f"{path} not found; run `gptnt suite freeze` first")
         raw = parse(path.read_text())
-        return cls.model_validate(raw.unwrap(), by_alias=True)
+        data = raw.unwrap()
+        if "version" not in data:
+            raise ValueError("suites.lock version is required")
+        return cls.model_validate(data, by_alias=True)
 
     def dump_to_path(self, path: Path) -> None:
         """Write the lock to disk as TOML."""
-        _ = path.write_text(dumps(self.model_dump(mode="json", by_alias=True)))
+        _ = path.write_text(dumps(self.model_dump(mode="json", by_alias=True, exclude_none=True)))
 
     @field_validator("version")
     @classmethod
@@ -153,20 +198,11 @@ class SuiteLock(BaseModel):
     @model_validator(mode="after")
     def check_wellformed(self) -> Self:
         """Check uniqueness, references, and stored suite digests."""
-        mission_keys = [mission.mission_key for mission in self.missions]
-        if len(mission_keys) != len(set(mission_keys)):
-            raise ValueError("duplicate mission_key in the mission table")
-
-        revisions = [(entry.name, entry.revision) for entry in self.suites]
-        if len(revisions) != len(set(revisions)):
-            raise ValueError("duplicate (name, revision) in the suite entries")
-
-        referenced = {key for entry in self.suites for key in entry.mission_keys}
-        unknown = referenced - set(mission_keys)
-        if unknown:
-            raise ValueError(f"suites reference missions absent from the table: {unknown}")
-
-        _validate_entry_snapshots(self.suites, self.mission_specs())
+        bodies_by_digest = self.mission_specs()
+        _check_unique_mission_bodies(self.missions)
+        _check_unique_suite_revisions(self.suites)
+        _check_entry_references(self.suites, bodies_by_digest)
+        _validate_entry_snapshots(self.suites, bodies_by_digest)
         return self
 
     def entry_for(self, name: str, revision: int) -> SuiteLockEntry | None:
@@ -177,8 +213,12 @@ class SuiteLock(BaseModel):
         return None
 
     def mission_specs(self) -> dict[str, KtaneMissionSpec]:
-        """Return the mission table as a `mission_key -> KtaneMissionSpec` lookup."""
-        return {mission.mission_key: mission.spec for mission in self.missions}
+        """Return the mission table as a `mission_digest -> KtaneMissionSpec` lookup."""
+        return {mission.digest: mission for mission in self.missions}
+
+    def mission_keys_for(self, entry: SuiteLockEntry) -> tuple[str, ...]:
+        """Return readable mission keys for one frozen entry in its stored order."""
+        return tuple(reference.mission_key for reference in entry.missions)
 
     def select_entry(self, name: str, revision: int | None) -> SuiteLockEntry:
         """Get the requested entry, or the latest revision when `revision` is None."""
@@ -209,31 +249,30 @@ class SuiteLock(BaseModel):
         reconstructs as None.
         """
         entry = self.select_entry(name, revision)
-        suite = Suite.model_validate({"expert_protocol": None, **entry.config})
         specs = self.mission_specs()
-        missions = [specs[key] for key in entry.mission_keys]
-        return suite, missions
+        missions = [specs[reference.digest] for reference in entry.missions]
+        return entry, missions
 
     def snapshot(self, name: str, revision: int) -> Self:
-        """Reduce this lock to one suite entry and exactly its referenced missions."""
+        """Return the bundle suite snapshot for one frozen suite revision."""
         entry = self.select_entry(name, revision)
-        mission_keys = set(entry.mission_keys)
-        missions = tuple(
-            mission for mission in self.missions if mission.mission_key in mission_keys
-        )
+        mission_digests = set(entry.mission_digests)
+        missions = tuple(mission for mission in self.missions if mission.digest in mission_digests)
         return self.model_validate({"suites": (entry,), "missions": missions})
 
-    def append(self, new_entries: list[SuiteLockEntry], new_missions: list[MissionEntry]) -> Self:
+    def append(
+        self, new_entries: list[SuiteLockEntry], new_missions: list[KtaneMissionSpec]
+    ) -> Self:
         """Return a new lock with the entries and missions appended.
 
-        The new entries must be for suites not already in the lock, and the new missions must be
-        distinct from any existing mission_key. The result is sorted by `(name, revision)` for a
-        stable file.
+        The new entries must not duplicate an existing `(name, revision)` pair. The new missions
+        must be distinct from any existing mission digest. The result is sorted by `(name,
+        revision)` for a stable file.
         """
         entries = sorted(
             (*self.suites, *new_entries), key=lambda entry: (entry.name, entry.revision)
         )
-        missions = sorted((*self.missions, *new_missions), key=lambda mission: mission.mission_key)
+        missions = sorted((*self.missions, *new_missions), key=lambda mission: mission.digest)
         return self.model_validate(
             {**dict(self), "suites": tuple(entries), "missions": tuple(missions)}
         )

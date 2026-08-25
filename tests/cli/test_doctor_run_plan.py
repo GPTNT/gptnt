@@ -113,7 +113,7 @@ def test_loaded_specs_report_missing_manuals_when_the_roster_is_unresolved(
         _manifest(players=[{"player": "nonexistent_xyz"}]), {"nonexistent_xyz": None}, specs=specs
     )
 
-    manual = _row(result.findings, "Manual rule seed 1")
+    manual = _row(result.findings, "Manual rule seed 1764")
     assert manual is not None
     assert manual.status == "fail"
 

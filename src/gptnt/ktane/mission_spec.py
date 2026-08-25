@@ -1,6 +1,7 @@
 from httpx import QueryParams
 from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator
 
+from gptnt.common.hashing import stable_digest
 from gptnt.ktane.state.module_registry import module_registry
 from gptnt.ktane.state.modules import KtaneModuleId
 
@@ -87,6 +88,11 @@ class KtaneMissionSpec(BaseModel):
     def mission_key(self) -> str:
         """Stable identity for this mission's modules and both seeds."""
         return compute_mission_key(self.components, seed=self.seed, rule_seed=self.rule_seed)
+
+    @property
+    def digest(self) -> str:
+        """Content digest of this complete materialised mission specification."""
+        return stable_digest(self.model_dump(mode="json"))
 
     @property
     def requires_multiple_images_per_observation(self) -> bool:

@@ -28,7 +28,7 @@ from gptnt.experiments.recorder.parquet import (
 )
 from gptnt.experiments.records import ExperimentPlayerRecord, ExperimentStep
 from gptnt.experiments.suite.definition import Suite, SuiteIdentity, SuiteMatchup
-from gptnt.experiments.suite.lock import MissionEntry, SuiteLock, SuiteLockEntry
+from gptnt.experiments.suite.lock import MissionReference, SuiteLock, SuiteLockEntry
 from gptnt.players.actions import DoNothingAction
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
@@ -57,23 +57,17 @@ _SUITE = Suite(
 )
 _SUITE_DIGEST = _SUITE.digest_for(_MISSIONS)
 _SUITE_ENTRY = SuiteLockEntry(
-    name=_SUITE.name,
-    revision=_SUITE.revision,
+    **_SUITE.model_dump(mode="json", exclude_none=True),
     suite_digest=_SUITE_DIGEST,
     frozen_at="2026-08-20T00:00:00Z",
     gptnt_version="2.0.0",
     git_sha="a1b2c3d4",
-    mission_keys=tuple(mission.mission_key for mission in _MISSIONS),
-    config=_SUITE.model_dump(mode="json", exclude_none=True, exclude={"config_digest"}),
+    missions=tuple(
+        MissionReference(mission_key=mission.mission_key, digest=mission.digest)
+        for mission in sorted(_MISSIONS, key=lambda mission: mission.digest)
+    ),
 )
-_SUITE_LOCK = SuiteLock.model_validate(
-    {
-        "suites": (_SUITE_ENTRY,),
-        "missions": tuple(
-            MissionEntry(mission_key=mission.mission_key, spec=mission) for mission in _MISSIONS
-        ),
-    }
-)
+_SUITE_LOCK = SuiteLock.model_validate({"suites": (_SUITE_ENTRY,), "missions": _MISSIONS})
 _SUITE_IDENTITY = SuiteIdentity(
     suite_name=_SUITE.name, suite_revision=_SUITE.revision, suite_digest=_SUITE_DIGEST
 )
@@ -250,7 +244,7 @@ def test_new_builds_a_self_contained_bundle_that_validates_offline(
 
     snapshot = SuiteLock.from_lock_path(bundle_dir / "suite.lock")
     assert snapshot.suites == (_SUITE_ENTRY,)
-    assert set(snapshot.mission_specs()) == set(_SUITE_ENTRY.mission_keys)
+    assert set(snapshot.mission_specs()) == set(_SUITE_ENTRY.mission_digests)
 
     manifest["submitter"] = {"name": "Ada Lovelace", "contact": "@ada", "affiliation": None}
     _ = (bundle_dir / "submission.yaml").write_text(yaml.safe_dump(manifest, sort_keys=False))

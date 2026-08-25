@@ -33,7 +33,7 @@ def test_write_then_load_preserves_frozen_suite_digest(
     monkeypatch.setattr(
         "gptnt.experiments.suite.definition.load_missions", lambda _path: changed_missions
     )
-    assert live_suite.suite_digest != spec.suite_digest
+    assert live_suite.digest != spec.suite_digest
 
     assert written == [out / f"{spec.attempt_name}.json"]
     loaded = load_specs_from_dir(out)

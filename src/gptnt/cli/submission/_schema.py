@@ -21,7 +21,7 @@ from gptnt.players.specification import PlayerCapabilities, PlayerIdentity, Play
 from gptnt.provenance import Provenance
 from gptnt.statics.run_metadata import StaticsIdentity
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 class UnsupportedSubmissionSchemaError(ValueError):
@@ -230,15 +230,10 @@ class StaticsSubmission(Submission[StaticsIdentity]):
 def parse_submission_manifest(raw: dict[str, Any]) -> InteractiveSubmission | StaticsSubmission:
     """Validate a raw manifest, discriminated on what its `measured` block describes."""
     schema_version = raw.get("schema_version")
-    if schema_version is None or schema_version == 1:
+    if schema_version is None or schema_version != SCHEMA_VERSION:
         raise UnsupportedSubmissionSchemaError(
-            "schema-v1 submissions are not supported by the schema-v2 validator; "
-            "use the matching v1 checkout"
-        )
-    if schema_version != SCHEMA_VERSION:
-        raise UnsupportedSubmissionSchemaError(
-            f"submission schema_version {schema_version!r} is not supported; "
-            f"expected {SCHEMA_VERSION}"
+            f"schema-v{schema_version} submissions are not supported by the schema-v{SCHEMA_VERSION} validator; "
+            f"use the matching checkout"
         )
 
     measured = raw.get("measured")

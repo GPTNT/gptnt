@@ -167,7 +167,7 @@ def check_suite(bundle: InteractiveBundle) -> list[CheckResult]:
         )
     findings.append(_check_suite_digest(declared.suite_digest, entry.suite_digest))
 
-    referenced = set(entry.mission_keys)
+    referenced = set(entry.mission_digests)
     stored = set(bundle.suite_lock.mission_specs().keys())
     if referenced == stored:
         findings.append(
@@ -185,6 +185,28 @@ def check_suite(bundle: InteractiveBundle) -> list[CheckResult]:
     return findings
 
 
+def check_installed_lock_match(
+    bundle: InteractiveBundle, installed_suite_registry: SuiteLock
+) -> CheckResult:
+    """Require the bundle snapshot to equal this installation's suite-registry snapshot."""
+    entry = bundle.suite_lock.suites[0]
+    try:
+        installed_snapshot = installed_suite_registry.snapshot(entry.name, entry.revision)
+    except SuiteNotFrozenError:
+        return CheckResult.failed(
+            "installed suite registry",
+            f"{entry.name}@{entry.revision} is absent from the installed suite registry",
+            hint=REBUILD_HINT,
+        )
+    if bundle.suite_lock != installed_snapshot:
+        return CheckResult.failed(
+            "installed suite registry",
+            f"{entry.name}@{entry.revision} does not exactly match the installed suite registry",
+            hint=REBUILD_HINT,
+        )
+    return CheckResult.passed("installed suite registry", f"{entry.name}@{entry.revision}")
+
+
 def check_mission_coverage(bundle: InteractiveBundle, entry: SuiteLockEntry) -> list[CheckResult]:
     """Return every (expert, mission) pairing the manifest declares has exactly one, valid run."""
     manifest = bundle.manifest
@@ -197,7 +219,7 @@ def check_mission_coverage(bundle: InteractiveBundle, entry: SuiteLockEntry) -> 
             defuser.player_name, expert.player_name if expert else None, mission_key
         )
         for expert in experts
-        for mission_key in entry.mission_keys
+        for mission_key in bundle.suite_lock.mission_keys_for(entry)
     }
     return [
         _check_experiments_belong_to_suite(bundle, entry),
@@ -344,15 +366,22 @@ def _load_suite_snapshot(bundle_dir: Path) -> tuple[SuiteLock | None, CheckResul
     try:
         snapshot = SuiteLock.from_lock_path(snapshot_path)
     except (SuiteNotFrozenError, TOMLKitError, ValidationError) as error:
-        detail = str(error)
-        if "digest does not match" in detail:
-            name = "snapshot digest"
-        elif "missions absent from the table" in detail:
-            name = "snapshot missions"
-        else:
-            name = "suite snapshot"
-        return None, CheckResult.failed(name, f"suite.lock is not valid: {detail}")
+        return None, _invalid_snapshot_finding(error)
+    except ValueError as error:
+        return None, _invalid_snapshot_finding(error)
     return snapshot, CheckResult.passed("suite snapshot", "suite.lock")
+
+
+def _invalid_snapshot_finding(error: Exception) -> CheckResult:
+    """Classify a lock-read failure for concise submission-validation output."""
+    detail = str(error)
+    if "digest does not match" in detail:
+        name = "snapshot digest"
+    elif "mission digests absent from the table" in detail:
+        name = "snapshot missions"
+    else:
+        name = "suite snapshot"
+    return CheckResult.failed(name, f"suite.lock is not valid: {detail}")
 
 
 def _check_suite_digest(declared_digest: str, frozen_digest: str) -> CheckResult:

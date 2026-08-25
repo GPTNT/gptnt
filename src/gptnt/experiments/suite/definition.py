@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Annotated, Literal, Self
 
 from annotated_types import Predicate
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, computed_field, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
 from gptnt.common.hashing import stable_digest
 from gptnt.common.paths import Paths
@@ -25,12 +25,13 @@ class SuiteMatchup(BaseModel):
 
 
 class Suite(BaseModel):
-    """One frozen benchmark configuration that defines a comparable set of results.
+    """One benchmark-suite configuration that defines a comparable set of results.
 
     It records the mission set, per-role interaction protocol, player matchup, required modalities,
-    and revision that define what is measured.
+    and revision that define what is measured. A `SuiteLockEntry` records a frozen revision of this
+    configuration.
 
-    `suite_digest` fingerprints the config and the mission files together, so a change without a
+    `digest` fingerprints the config and the mission files together, so a change without a
     `revision` bump is caught.
     """
 
@@ -69,7 +70,7 @@ class Suite(BaseModel):
     expert_protocol: Annotated[
         PlayerProtocol | None,
         Predicate(lambda protocol: protocol.role == "expert" or protocol is None),
-    ]
+    ] = None
     """Expert access and action rules copied into every generated non-solo specification."""
 
     matchup: SuiteMatchup
@@ -105,27 +106,34 @@ class Suite(BaseModel):
         """Sorted `mission_key` of every mission in the set, read from disk."""
         return tuple(sorted(mission.mission_key for mission in self.loaded_missions))
 
-    @computed_field
-    @property
-    def config_digest(self) -> str:
-        """A stable digest of the suite's config itself."""
-        payload = self.model_dump(mode="json", exclude={"name", "revision", "config_digest"})
-        return stable_digest(payload)
+    def digest_payload(self, missions: Sequence[KtaneMissionSpec]) -> dict[str, object]:
+        """Return the complete version-3 benchmark content represented by this suite.
 
-    def frozen_config(self) -> dict[str, object]:
-        """Return the canonical suite snapshot stored in `suites.lock`."""
-        payload = self.model_dump(mode="json", exclude_none=True, exclude={"config_digest"})
-        return payload
+        Suite labels, configuration paths, and freeze provenance intentionally do not appear here.
+        The lock version fixes this exact payload recipe.
+        """
+        mission_payloads = [
+            mission.model_dump(mode="json")
+            for mission in sorted(missions, key=lambda mission: mission.digest)
+        ]
+        return {
+            "missions": mission_payloads,
+            "manual_profile": self.manual_profile.model_dump(mode="json"),
+            "manual_rule_seed": self.manual_rule_seed,
+            "defuser_protocol": self.defuser_protocol.model_dump(mode="json"),
+            "expert_protocol": (
+                self.expert_protocol.model_dump(mode="json") if self.expert_protocol else None
+            ),
+            "matchup": self.matchup.model_dump(mode="json"),
+            "modality": self.modality,
+        }
 
     def digest_for(self, missions: Sequence[KtaneMissionSpec]) -> str:
-        """Calculate this suite's digest from an explicit mission snapshot."""
-        # sort the payloads using the digest so that the ordering is stable too.
-        payloads = sorted([mission.model_dump_json() for mission in missions], key=stable_digest)
-        missions_digest = stable_digest(payloads)
-        return stable_digest([self.config_digest, missions_digest])
+        """Return the suite digest for an explicit mission snapshot."""
+        return stable_digest(self.digest_payload(missions))
 
     @property
-    def suite_digest(self) -> str:
+    def digest(self) -> str:
         """A stable digest of the suite config and the current mission files.
 
         The full fingerprint of what the suite measures. Frozen lock entries store it alongside the

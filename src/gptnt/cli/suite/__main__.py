@@ -31,9 +31,9 @@ CheckOption = Annotated[
 def freeze(*, check: CheckOption = False, force: ForceOption = False) -> None:
     """Record every live suite revision in `suites.lock`, or verify it is complete with `--check`.
 
-    A suite whose digest changed without a `revision` bump, or whose missions collide on a
-    `mission_key`, is an error and blocks the write. `--check` additionally fails when a live suite
-    has no current-revision entry, so CI catches a lock that was never regenerated.
+    A suite whose digest changed without a `revision` bump, or that repeats a materialised mission,
+    is an error and blocks the write. `--check` additionally fails when a live suite has no
+    current-revision entry, so CI catches a lock that was never regenerated.
     """
     require_benchmark_integrity(force=force)
     try:
@@ -71,7 +71,7 @@ def _check_result(outcome: SuiteFreezeOutcome, *, check: bool) -> CheckResult:
     if outcome.action == "digest_mismatch":
         hint = f"Bump `revision` in configs/suites/{outcome.name}.yaml, then re-freeze."
         return CheckResult.failed(name, outcome.detail, hint)
-    if outcome.action == "duplicate_keys":
+    if outcome.action == "duplicate_missions":
         return CheckResult.failed(name, outcome.detail, "Regenerate the mission set.")
     if check:
         return CheckResult.failed(name, "not in suites.lock", "Run `gptnt suite freeze`.")
