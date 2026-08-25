@@ -230,7 +230,12 @@ class StaticsSubmission(Submission[StaticsIdentity]):
 def parse_submission_manifest(raw: dict[str, Any]) -> InteractiveSubmission | StaticsSubmission:
     """Validate a raw manifest, discriminated on what its `measured` block describes."""
     schema_version = raw.get("schema_version")
-    if schema_version is None or schema_version != SCHEMA_VERSION:
+    if schema_version is None:
+        raise UnsupportedSubmissionSchemaError(
+            f"submission schema_version is required; this validator only accepts schema-v{SCHEMA_VERSION} "
+            "submissions"
+        )
+    if schema_version != SCHEMA_VERSION:
         raise UnsupportedSubmissionSchemaError(
             f"schema-v{schema_version} submissions are not supported by the schema-v{SCHEMA_VERSION} validator; "
             f"use the matching checkout"

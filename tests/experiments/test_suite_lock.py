@@ -29,8 +29,8 @@ if TYPE_CHECKING:
 _STAMP = FreezeStamp(frozen_at="2026-01-01T00:00:00Z", gptnt_version="9.9.9", git_sha="cafef00d")
 
 
-def _v1_lock_text() -> str:
-    """Return one historical lock snapshot from origin/main."""
+def _v2_lock_text() -> str:
+    """Return a historical version-2 lock snapshot from origin/main."""
     return dedent(
         """\
         version = 2
@@ -221,10 +221,10 @@ def test_suite_digest_ignores_suite_identity_and_mission_path() -> None:
     assert suite.digest_for(suite.loaded_missions) == relocated.digest_for(suite.loaded_missions)
 
 
-def test_lock_rejects_a_v1_snapshot(tmp_path: Path) -> None:
-    """Version-3 locks deliberately do not reinterpret a historical snapshot."""
+def test_lock_rejects_a_v2_snapshot(tmp_path: Path) -> None:
+    """Version-3 locks deliberately do not reinterpret a version-2 snapshot."""
     path = tmp_path / "suites.lock"
-    _ = path.write_text(_v1_lock_text())
+    _ = path.write_text(_v2_lock_text())
 
     with pytest.raises(ValidationError, match=r"unsupported suites\.lock version"):
         _ = SuiteLock.from_lock_path(path)
@@ -310,25 +310,24 @@ def test_reconcile_dedups_missions_shared_across_suites() -> None:
     assert stored == sorted(set(stored)) == expected
 
 
-def test_configured_suites_are_frozen_at_revision_two_with_seed_1764() -> None:
-    """The v3 lock contains the seven configured benchmark suites at revision two."""
-    expected_names = {
-        "multi-self-async",
-        "multi-self-sync",
-        "one-wires-sync",
-        "single-pairwise-sync",
-        "single-parametric-sync",
-        "single-self-async",
-        "single-solo-player-sync",
+def test_configured_suites_match_their_frozen_revision_and_rule_seed() -> None:
+    """Each configured suite has a lock entry for its configured benchmark content."""
+    expected_identities = {
+        "multi-self-async": (2, 1764),
+        "multi-self-sync": (2, 1764),
+        "one-wires-sync": (1, 1),
+        "single-pairwise-sync": (2, 1764),
+        "single-parametric-sync": (2, 1764),
+        "single-self-async": (2, 1764),
+        "single-solo-player-sync": (2, 1764),
     }
-    assert set(discover_suites()) == expected_names
+    assert set(discover_suites()) == set(expected_identities)
 
     lock = SuiteLock.from_lock_path()
-    for name in expected_names:
+    for name, (revision, manual_rule_seed) in expected_identities.items():
         suite = compose_suite(name)
-        entry = lock.entry_for(name, 2)
-        assert suite.revision == 2
-        assert suite.manual_rule_seed == 1764
+        entry = lock.entry_for(name, revision)
+        assert (suite.revision, suite.manual_rule_seed) == (revision, manual_rule_seed)
         assert entry is not None
         assert entry.suite_digest == suite.digest
 

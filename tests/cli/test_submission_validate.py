@@ -247,6 +247,22 @@ def test_schema_v1_stops_at_version_boundary(bundle_copy: Path) -> None:
     assert "schema-v1 submissions are not supported" in checks[0]["detail"]
 
 
+def test_missing_schema_version_stops_at_version_boundary(bundle_copy: Path) -> None:
+    manifest = _read_manifest(bundle_copy)
+    _ = manifest.pop("schema_version")
+    manifest["measured"] = "unversioned content must not be parsed"
+    _write_manifest(bundle_copy, manifest)
+
+    result = invoke_cli(
+        build_app(), ["submission", "validate", str(bundle_copy), "--format", "json"]
+    )
+    assert result.exit_code == 1
+    checks = orjson.loads(result.output)["bundles"][0]["checks"]
+    assert len(checks) == 1
+    assert checks[0]["name"] == "schema_version"
+    assert "schema_version is required" in checks[0]["detail"]
+
+
 def test_modified_benchmark_records_cannot_be_submitted(
     bundle_copy: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
