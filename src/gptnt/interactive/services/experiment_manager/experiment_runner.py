@@ -552,8 +552,12 @@ class AsyncExperimentRunner(ExperimentRunner):
                     tg.start_soon(
                         self.run_player_loop, self.expert_player_client, "expert", name="expert"
                     )
+                await self.game_state_watcher.game_over_event.wait()
+                tg.cancel_scope.cancel()
 
-            logger.debug("Experiment loop started", experiment=self.experiment.attempt_name)
+            logger.debug(
+                "Experiment async loop completed", experiment=self.experiment.attempt_name
+            )
 
     async def run_player_loop(self, player_client: PlayerClient, role: PlayerRole) -> None:
         """Run the player loop in async mode."""

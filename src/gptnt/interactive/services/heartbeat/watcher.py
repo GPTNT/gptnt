@@ -310,6 +310,9 @@ class GameStateWatcher(BaseServiceStateWatcher[GameState]):
     good_game_over_event: Event = field(default_factory=Event, init=False)
     """Event to signal that the game finished without any errors or issues."""
 
+    game_over_event: Event = field(default_factory=Event, init=False)
+    """Event to signal that the game ended, including after a hard crash."""
+
     @property
     def is_game_over(self) -> bool:
         """Check if the game is over."""
@@ -377,4 +380,6 @@ class GameStateWatcher(BaseServiceStateWatcher[GameState]):
                 if self._service_state in {GameState.game_ended, GameState.transitioning}:
                     logger.debug("Game has ended successfully", game_uuid=self.service_uuid)
                     self.good_game_over_event.set()
+                    self.game_over_event.set()
                 await anyio.sleep(self.update_interval)
+            self.game_over_event.set()
