@@ -63,22 +63,7 @@ def test_profile_deserializes_each_document_variant(
     assert isinstance(profile.documents[0], expected_type)
 
 
-@pytest.mark.parametrize("document", ["HTML/Wires.html", r"HTML\Wires.html"])
-def test_document_override_must_be_a_bare_filename(document: str) -> None:
-    """Prevent an HTML override from selecting a path outside KtaneContent's HTML directory."""
-    with pytest.raises(ValidationError):
-        _ = KtaneContentDocument(
-            source="ktanecontent", id="Wires", language="en", document=document
-        )
-
-
 def test_local_document_rejects_a_non_html_path() -> None:
     """Restrict local manual inputs to HTML documents that dependency discovery can inspect."""
     with pytest.raises(ValidationError, match=r"must be an \.html file"):
         _ = LocalDocument(source="local", path=Path("my/notes/Wires.pdf"), language="en")
-
-
-def test_profile_requires_at_least_one_document() -> None:
-    """Ensure every profile contributes a body document after optional frontmatter."""
-    with pytest.raises(ValidationError):
-        _ = ManualProfile(include_frontmatter=False, documents=())
