@@ -44,9 +44,9 @@ async def measure_tokens_per_image(
     We do this so that we do not need to guess how much each image is worth in tokens, which is
     important for truncation and context accounting.
 
-    Composes the player config, resizes the supplied PNG to the portrait dimensions used for manual
-    pages, measures the per-image input-token cost, writes it into `configs/player/<player>.yaml`,
-    and prints the result. SPENDS MONEY.
+    It composes the player config and resizes the supplied PNG to the portrait dimensions used for
+    manual pages. It then measures the per-image input-token cost, writes it into
+    `configs/player/<player>.yaml`, and prints the result. SPENDS MONEY.
     """
     cfg = compose_player_config(player, provider)
     capabilities: PlayerCapabilities = instantiate(cfg.player.capabilities)

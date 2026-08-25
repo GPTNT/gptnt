@@ -54,8 +54,8 @@ class Entry:
         """Estimate the tokens this entry adds to a render.
 
         Text uses a fixed four-characters-per-token estimate. Each retained image contributes
-        `tokens_per_image`: pinned entries retain every image, entries inside the observation
-        window retain one image per prompt part, and older entries retain none.
+        `tokens_per_image`. Pinned entries retain every image. Entries inside the observation
+        window retain one image per prompt part. Older entries retain none.
         """
         text_chars = 0
         image_bearing_parts = 0

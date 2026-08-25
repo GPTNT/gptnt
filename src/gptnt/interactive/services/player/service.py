@@ -295,9 +295,8 @@ class PlayerService(PlayerAgent, BaseRPCService[PlayerCommand]):
 
         self.state = PlayerState.stopping
         logger.info("Stopping player and ending experiment")
-        # Force a heartbeat update to let the EM know we are stopping because if not, this can
-        # literally move incredibly quickly and hit the reset() before the EM notices, which causes
-        # errors.
+        # Notify the EM before the process reaches reset(), which can happen before the EM observes
+        # the state change.
         await self.send_heartbeat()
 
         # Spawn background task for cleanup

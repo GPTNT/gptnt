@@ -43,8 +43,8 @@ INFERENCE_SPAN = "Send request to agent"
 # pydantic-ai instrumentation scope: "chat *" spans from this scope are the actual LLM calls.
 PYDANTIC_AI_SCOPE = "pydantic-ai"
 
-# Spans we persist: the per-step denominator, the inference span, and the non-inference
-# phases that make up the overhead (player-side game-client waits + input prep + dispatch).
+# Persist the player-step span, agent-inference span, and specified overhead phases. The overhead
+# phases cover player-side game-client waits, input preparation, and dispatch.
 # Set-of-Marks internals are children of "Prepare frames" and are intentionally not listed
 # individually to keep the files bounded. "Prepare frames" already subsumes their duration.
 ALLOWLIST: frozenset[str] = frozenset(

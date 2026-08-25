@@ -71,10 +71,10 @@ class Paths(BaseSettings):
 
     @property
     def configs(self) -> Path:
-        """Configs directory: the override, the checkout's `configs/`, or the packaged copy.
+        """Return the configured override or the checkout's `configs/` directory.
 
-        A source checkout has `root/configs`. An installed wheel does not, so it falls back to the
-        `gptnt/_configs` tree bundled in the wheel.
+        A source checkout has `root/configs`. An installed wheel falls back to the `gptnt/_configs`
+        tree bundled in the wheel.
         """
         if self.configs_override is not None:
             return self.configs_override

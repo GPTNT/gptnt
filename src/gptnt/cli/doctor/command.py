@@ -63,7 +63,7 @@ ConfigOnlyOption = Annotated[
 class DiagnoseResult:
     """The full doctor outcome.
 
-    Whether anything fatal failed, the model matrix, and — in run-plan mode — the run-plan result
+    Whether anything fatal failed, the model matrix, and, in run-plan mode, the run-plan result
     (which carries the generated specs `gptnt run` reuses).
     """
 

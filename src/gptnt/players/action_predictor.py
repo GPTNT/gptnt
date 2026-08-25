@@ -148,8 +148,8 @@ class ActionPredictor:
 
         Importantly, we do not care if the reflection fails, we just want to log it and move on.
 
-        We override the max tokens for this request because models now want to use and output more
-        and more reasoning, which was leading to issues, so we just increase this.
+        This request uses a larger output-token limit because reasoning models can exceed the
+        regular limit.
 
         For handling structured outputs:
             If the player supports structured output, then we give it the chance to use the

@@ -1,9 +1,9 @@
 """Read/write experiment player records as Parquet.
 
 One `experiment-{name}-{uuid}.parquet` file per player: step records are the rows (in the
-`mode="db"` representation, so they merge straight into DuckDB), and the experiment-level facts —
-instance, final bomb state, provenance, crash flag, role — live in the parquet footer as one
-validated `RecordFooter` model. A few flat scalar keys (`session_id`, `player_uuid`,
+`mode="db"` representation, so they merge straight into DuckDB). The experiment-level facts,
+including instance, final bomb state, provenance, crash flag, and role, live in the parquet footer
+as one validated `RecordFooter` model. A few flat scalar keys (`session_id`, `player_uuid`,
 `format_version`) sit beside it so identity/version reads don't have to parse the whole footer.
 """
 

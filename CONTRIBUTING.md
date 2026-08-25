@@ -20,8 +20,8 @@ stable benchmark.
 | Segment   | Pre-1.0 (now)                                           | Post-1.0                                                |
 | --------- | ------------------------------------------------------- | ------------------------------------------------------- |
 | **MAJOR** | Stays `0`.                                              | A breaking change. **Eval scores may be incomparable.** |
-| **MINOR** | A breaking change _or_ an overhaul (the `0.x` "major"). | Additive — new tasks/features; existing scores intact.  |
-| **PATCH** | Everything additive — new features and fixes.           | A fix with no break and no score impact.                |
+| **MINOR** | A breaking change or an overhaul (the `0.x` "major"). | Additive: new tasks/features. Existing scores intact. |
+| **PATCH** | Everything additive: new features and fixes.           | A fix with no break and no score impact.               |
 
 While `MAJOR` is `0`, a breaking commit bumps **MINOR** (not to `1.0.0`), and a `feat`/`fix` bumps
 **PATCH**. This is commitizen's `major_version_zero` behaviour and is configured in `pyproject.toml`.

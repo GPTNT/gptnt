@@ -134,8 +134,8 @@ def _reconcile_one(
 def _new_missions(suites: Sequence[Suite], lock: SuiteLock) -> list[MissionEntry]:
     """Return the missions across every live suite that aren't already in the lock's shared table.
 
-    A `mission_key` that maps to two different mission bodies — whether across live suites or
-    against the existing table — is a freeze error.
+    A `mission_key` that maps to two different mission bodies is a freeze error, whether the
+    conflicting entries come from live suites or the existing table.
     """
     known = lock.mission_specs()
     fresh: dict[str, KtaneMissionSpec] = {}

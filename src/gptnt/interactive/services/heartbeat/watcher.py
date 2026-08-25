@@ -40,10 +40,8 @@ class StateTransition[ServiceStateT: Enum]:
 class BaseServiceStateWatcher[ServiceStateT: Enum]:
     """Base service state watcher that polls the heartbeats from Redis.
 
-    While this is more code and a bit more confused to follow along with, this is preferable to
-    constantly sending requests to the API itself since that is going to block up the thread and
-    slow things down for the game. When you have a LOT of services all pinging at once, this can
-    add up and lead to a thundering herd, so let's just avoid that.
+    Polling avoids blocking the game API with status requests. Request bursts from multiple
+    services can otherwise delay the game.
     """
 
     service_name: str
@@ -296,10 +294,8 @@ class PlayerStateWatcher(BaseServiceStateWatcher[PlayerState]):
 class GameStateWatcher(BaseServiceStateWatcher[GameState]):
     """Watch the game state by polling the heartbeats.
 
-    While this is more code and a bit more confused to follow along with, this is preferable to
-    constantly sending requests to the API itself since that is going to block up the thread and
-    slow things down for the game. When you have a LOT of services all pinging at once, this can
-    add up and lead to a thundering herd, so let's just avoid that.
+    Polling avoids blocking the game API with status requests. Request bursts from multiple
+    services can otherwise delay the game.
     """
 
     service_state_type: type[GameState] = GameState

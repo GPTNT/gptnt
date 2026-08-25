@@ -74,7 +74,7 @@ def nvidia_bus_ids() -> list[str]:
 
 
 def generate_xorg_conf(bus_ids: list[str]) -> str:
-    """Build an xorg.conf with one Device+Screen per GPU and a single layout."""
+    """Build an xorg.conf with one Device+Screen per GPU and one layout."""
     sections = []
     screen_entries = []
     for index, bus_id in enumerate(bus_ids):
@@ -86,7 +86,7 @@ def generate_xorg_conf(bus_ids: list[str]) -> str:
 
 
 def run_xorg(config_path: str, display: int) -> None:
-    """Run Xorg against the given config until it exits, killing it on interrupt."""
+    """Run Xorg against the config until it exits, killing it on interrupt."""
     command = [
         "Xorg",
         "-noreset",

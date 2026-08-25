@@ -1,3 +1,4 @@
+<!-- vale ai-tells.EmDashUsage = NO -->
 *[KTANE]: Keep Talking and Nobody Explodes
 *[EM]: Experiment Manager
 *[SoM]: Set of Marks
@@ -11,7 +12,7 @@
 *[magic box]: An LLM.
 *[suite]: A collection of experiments that are run together. Each suite has a name and a revision.
 *[suites]: A collection of experiments that are run together. Each suite has a name and a revision.
-*[room]: A single instance of the KTANE game.
+*[room]: One instance of the KTANE game.
 *[rooms]: Instances of the KTANE game that we spawn and control.
 *[static]: Something that does not require access to the game.
 *[statics]: One of the offline evaluation tasks that does not require access to the game.

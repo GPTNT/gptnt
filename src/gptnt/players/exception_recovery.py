@@ -167,8 +167,8 @@ class GuardrailViolationRecovery(SendMessageRecoveryStrategy[AgentRunError]):
     ) -> AgentCallResult[SendMessageAction]:
         """Handle situations where the prompt is refused for some reason.
 
-        In these cases, we want to tell the other agent to rephrase the prompt, BUT we do not want
-        to count this as a new message in history to avoid it happening again.
+        Tell the other agent to revise the prompt, BUT do not count this as a new history message
+        to avoid another refusal.
         """
         logger.warning("Filtered due to content policy", error=exception)
 

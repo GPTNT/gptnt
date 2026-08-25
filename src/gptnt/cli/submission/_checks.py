@@ -1,9 +1,10 @@
 """The individual `gptnt submission validate` checks.
 
-`load_bundle` parses a directory into a `LoadedBundle` — or the findings explaining why it
-couldn't — and the checks are methods on it, each returning :class:`CheckResult`s and never
-raising. The manifest schema does the cheap gatekeeping itself (unknown schema versions, tampered
-fingerprints, blank identities, and kind discrimination all fail the parse), so the methods here
+`load_bundle` parses a directory into a `LoadedBundle` or returns findings explaining why it
+could not. The checks are methods on the loaded bundle, each returning :class:`CheckResult`s and
+never raising. The manifest schema performs cheap gatekeeping itself. Unknown schema versions,
+tampered fingerprints, blank identities, and kind discrimination all fail the parse. The methods
+here
 only cover what needs the directory, the payload, or the checkout: naming, coverage, and hygiene.
 The command layer (`validate.py`) decides section order and rendering, reusing the shared
 `CheckResult` and the `gptnt.cli.checks` render/format machinery.
@@ -208,8 +209,8 @@ def check_mission_coverage(bundle: InteractiveBundle, entry: SuiteLockEntry) -> 
 def check_players(bundle: InteractiveBundle) -> list[CheckResult]:
     """Return the payload was played by exactly the players the manifest declares.
 
-    Deliberately bundle-internal (nothing here reads configs/player/); the manifest's own shape —
-    identities, fingerprints, one-defuser-first — is already schema-enforced.
+    This is bundle-internal. Nothing here reads `configs/player/`. The manifest's own shape,
+    including identities, fingerprints, and the one-defuser-first order, is schema-enforced.
     """
     manifest = bundle.manifest
     experiments = bundle.experiments

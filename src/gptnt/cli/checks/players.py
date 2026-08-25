@@ -113,8 +113,8 @@ async def _player_detail(
     """Validate one model into its full detail (boxes + resolved fields + optional live result)."""
     static = validate_model_config(model_name, provider)
     exists, instantiates, note = _static_boxes(static)
-    # Live only runs when requested AND the model instantiated (a ✗ instantiate — a build error or
-    # an unset credential — leaves nothing to call).
+    # Live runs only when requested and the model instantiates. A build error or an unset
+    # credential leaves nothing to call.
     if not (live and exists == "pass" and instantiates == "pass"):
         return PlayerDetail(PlayerReport(label, exists, instantiates, "skip", note), static)
 

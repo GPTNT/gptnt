@@ -1,4 +1,4 @@
-"""Local, no-network parts of a submit: find the bundle dirs, copy one, and preview a dry run.
+"""Local, no-network helpers for inspecting and copying submission bundles.
 
 None of this touches GitHub, so it stays out of the git/GitHub plumbing in `_remote`.
 """

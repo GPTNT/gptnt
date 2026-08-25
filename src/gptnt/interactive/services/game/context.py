@@ -96,11 +96,8 @@ class GameServiceContext(HeartbeatBroadcaster):
             logger.debug("Starting process death monitor")
             tg.start_soon(self._monitor_process_death)
 
-            # Run until cancelled
-            # Note that we are suppressing the CancelledError exception that gets raised here
-            # because we don't need to know about it. When the game dies, we will get a
-            # GameProcessDiedError, and when we are exiting the service, we will catch it in the
-            # lifespan
+            # Suppress cancellation while the service is exiting. A game death raises
+            # GameProcessDiedError. The lifespan catches that exception.
             with suppress(anyio.get_cancelled_exc_class()):
                 logger.debug("Game session running, waiting indefinitely")
                 await anyio.sleep_forever()

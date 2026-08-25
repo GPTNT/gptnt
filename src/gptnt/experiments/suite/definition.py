@@ -27,8 +27,8 @@ class SuiteMatchup(BaseModel):
 class Suite(BaseModel):
     """One frozen benchmark configuration that defines a comparable set of results.
 
-    This is a frozen definition of what is measured: its mission set, the per-role interaction
-    protocol, the matchup that pairs players, the required modalities, and a revision.
+    It records the mission set, per-role interaction protocol, player matchup, required modalities,
+    and revision that define what is measured.
 
     `suite_digest` fingerprints the config and the mission files together, so a change without a
     `revision` bump is caught.

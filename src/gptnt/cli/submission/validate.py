@@ -1,11 +1,10 @@
 """`gptnt submission validate`: check built bundles against their suite snapshots.
 
-The doctor-style gate before a bundle goes to gptnt-submissions: the manifest parses (the schema
-itself rejects unknown versions, tampered fingerprints, and blank identities), the submitter block
-is filled in, the bundled suite snapshot matches its manifest and digest, every snapshot mission
-is covered by exactly one valid run, and the payload players match the
-manifest. Modified protected benchmark content fails validation. An unpinned statics dataset warns.
-Interactive validation does not read live suite or mission configuration.
+The doctor-style gate before a bundle goes to gptnt-submissions first parses the manifest. The
+schema rejects unknown versions, tampered fingerprints, and blank identities. Validation then
+checks the submitter block, suite snapshot, mission coverage, and payload players. Modified
+protected benchmark content fails validation. An unpinned statics dataset warns. Interactive
+validation does not read live suite or mission configuration.
 
 `gptnt submission new` bundles every recorded experiment for a (suite, model) group, so a retried
 mission is reported here as a duplicate. Validate is the curation signal, not a bug in the build.

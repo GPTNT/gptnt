@@ -114,8 +114,8 @@ def convert_colorful_segm_to_labeled(image_as_array: RGBArray) -> NDArray[np.uin
 
         H = (G - B) / (max(R,G,B) - min(R,G,B))
 
-    When we plug in the blended pixel, the alpha cancels out from the top and bottom, meaning that
-    H is identical to the original. This means that the "set S=1, V=1, and convert back" is
+    Substituting the blended pixel factors alpha out of the numerator and denominator. Therefore,
+    H is identical to the original. The "set S=1, V=1, and convert back" operation is
     geometrically the same as doing a simple min-max stretch in RGB space:
 
         normalised_i = (channel_i - min) / (max - min) * 255

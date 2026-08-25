@@ -247,7 +247,7 @@ async def _spawn_submit_monitor(
     *,
     interactive: bool = False,
 ) -> None:
-    """Return the orchestration seam: spawn EM/rooms/players, submit in-process, then monitor.
+    """Coordinate process startup, in-process submission, and experiment monitoring.
 
     Interactive mode tees each process's logs to the terminal (docker-compose style) via a task
     group `spawn()` streams into; otherwise a live status table is shown.

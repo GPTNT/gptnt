@@ -71,9 +71,9 @@ def _validate_agent(
 ) -> ModelValidationResult:
     """Instantiate the agent and classify the outcome (ok / missing-credential / agent error).
 
-    An unset provider key isn't a malformed config — instantiation IS the credential check.
+    An unset provider key is not a malformed config. Instantiation IS the credential check.
     pydantic-ai's message names the missing env var, and hydra keeps it in the wrapped message, so
-    we retain it (in `error`) for the caller to surface. We never read the value itself — only
+    we retain it (in `error`) for the caller to surface. We never read the value itself, only
     pydantic-ai's own "set the X environment variable" text.
     """
     try:

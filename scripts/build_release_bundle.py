@@ -170,7 +170,8 @@ def _write_archives(checkout: Path, output_dir: Path, *, timestamp: int) -> None
     paths = [checkout, *sorted(checkout.rglob("*"), key=lambda path: path.as_posix())]
     environment = _ARCHIVE_ENVIRONMENT | {"SOURCE_DATE_EPOCH": str(timestamp)}
 
-    # Pin the libraries' supported metadata controls so caller environment cannot change output.
+    # Pin the libraries' supported metadata controls so caller-supplied environment variables do
+    # not affect the archive output.
     os.environ.update(environment)
     with repro_tarfile.open(output_dir / _ARCHIVES[0], "w:gz") as archive:
         for path in paths:

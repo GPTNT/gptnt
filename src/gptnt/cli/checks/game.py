@@ -86,8 +86,9 @@ async def check_mod_load(
 ) -> CheckResult:
     """Definitive proof the mod loads: spawn a game and poll /health for a real GameState.
 
-    Slow — it launches the game — so the command only runs this when `--check-mod-load` is given
-    and the cheap binary/mod/display checks have already passed. This spawns the *bare* KTANE
+    The check is slow because it launches the game. The command only runs it when
+    `--check-mod-load` is given and the cheap binary/mod/display checks have already passed. This
+    spawns the *bare* KTANE
     binary (the mod serves the HTTP endpoints); it does not touch Redis, so Redis being down does
     not gate it.
     """

@@ -77,9 +77,8 @@ class PlayerDeps(BaseModel, frozen=True):
     def schema_template(self) -> str:
         """The schema template to use for the output schema in instructions.
 
-        If we are using structured outputs, then we use the prompted output template from Pydantic-
-        AI's PromptedOutput mode. Otherwise, we use our custom one, which is very similar, but just
-        doesn't have the last line.
+        Structured outputs use the prompted-output template from Pydantic-AI's PromptedOutput mode.
+        Otherwise, this returns the local template, which omits the final line.
         """
         if self.capabilities.structured_output_mode is None:
             return PROMPTED_OUTPUT_TEMPLATE

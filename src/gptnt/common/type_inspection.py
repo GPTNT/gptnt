@@ -69,8 +69,8 @@ def is_nullable(tp: Any) -> bool:
 def extract_literal_values(tp: Any) -> tuple[str, ...]:
     """Return the members of a `Literal`, unwrapping PEP 695 `type` aliases.
 
-    `typing.get_args` returns `()` for `type X = Literal[...]` aliases — the `Literal` lives on
-    `__value__` — so callers wanting the members of such an alias need this. Plain `Literal[...]`
+    `typing.get_args` returns `()` for `type X = Literal[...]` aliases because the `Literal` lives
+    on `__value__`. Callers wanting the members of such an alias need this. Plain `Literal[...]`
     is handled too.
     """
     return get_args(getattr(tp, "__value__", tp))

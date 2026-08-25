@@ -472,7 +472,7 @@ async def save_single_module_state_sequential(
 async def process_mission_with_client(
     client: KtaneClient, path: Path, mission_spec: KtaneMissionSpec
 ) -> None:
-    """Process a single mission with a client."""
+    """Process one mission with a client."""
     bomb_state = await get_bomb_details(client, mission_spec)
     save(path, mission_spec.seed, mission_spec.components, bomb_state)
 
@@ -480,7 +480,7 @@ async def process_mission_with_client(
 async def process_single_module_mission(
     client: KtaneClient, path: Path, bomb: KtaneMissionSpec
 ) -> None:
-    """Process a single module mission with a client."""
+    """Process one module mission with a client."""
     bomb_state = await get_bomb_details(client, bomb)
     save(path, bomb.seed, bomb.components, bomb_state)
 
