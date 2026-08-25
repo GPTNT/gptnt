@@ -37,7 +37,7 @@ type FlattenedFrames = tuple[list[int], list[FlattenedDocument], list[str]]
 _MERGER_PATH = "More/Manual%20Merger/index.html"
 _KEYPAD_URL_PREFIX = "/HTML/img/Keypad/"
 _BROWSER_INSTALL_COMMAND = "uv run playwright install chromium"
-_PRINT_LAYOUT_REVISION = "ordered-flattened-merger-print-6"
+_PRINT_LAYOUT_REVISION = "ordered-flattened-merger-print-7"
 
 
 class ManualBrowserError(RuntimeError):
@@ -384,7 +384,8 @@ class _ManualRenderer:
         """Load the merger and submit the ordered in-memory selection profile."""
         _ = page.goto(f"{base_url}/{_MERGER_PATH}", wait_until="networkidle", timeout=30_000)
 
-        # Operation 1 is the upstream merger's explicitly enabled module-list mode.
+        # Operation 1 is the upstream merger's explicitly enabled module-list mode. Rule-seed
+        # support belongs to individual source documents, not to this whole selection profile.
         profile = {"EnabledList": self._tokens, "Operation": 1}
         with page.expect_file_chooser() as choice:
             page.get_by_role("button", name="Upload profile").click()
@@ -404,6 +405,15 @@ class _ManualRenderer:
             _load_javascript("manual-frames-loaded.js"), arg=len(self._documents)
         )
 
+    def _apply_rule_seed_fragment(self, frame: Frame, *, rule_seed: int) -> None:
+        """Activate KtaneContent's seeded rules after this supported frame has loaded."""
+        _ = frame.evaluate("(seed) => { window.location.hash = `#${seed}`; }", rule_seed)
+        _ = frame.wait_for_function(
+            "(seed) => window.location.hash === `#${seed}` && "
+            "document.body.classList.contains('ruleseed-active')",
+            arg=rule_seed,
+        )
+
     def _flatten_frames(self, page: Page) -> FlattenedFrames:
         """Validate and flatten each selected frame while preserving resolver order."""
         page_counts: list[int] = []
@@ -417,6 +427,10 @@ class _ManualRenderer:
                 raise ManualBrowserError(
                     f"Manual Merger frame for {document.document_id} is unavailable"
                 )
+
+            _ = frame.wait_for_load_state("domcontentloaded")
+            if document.rule_seed_fragment is not None:
+                self._apply_rule_seed_fragment(frame, rule_seed=document.rule_seed_fragment)
 
             # Capture the rendered result before flattening strips executable scripts.
             page_count, frame_broken = _wait_for_document(frame)

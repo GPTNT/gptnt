@@ -37,6 +37,9 @@ def generate_specs(overrides: list[str] | None = None) -> list[ExperimentSpec]:
     lock = SuiteLock.from_lock_path()
     entry = lock.select_entry(cfg.suite.name, None)
     suite, missions = lock.load_suite(entry.name, entry.revision)
+    missions = [
+        mission.model_copy(update={"rule_seed": suite.manual_rule_seed}) for mission in missions
+    ]
 
     pairings = list(
         PairingGenerator(

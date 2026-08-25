@@ -74,10 +74,7 @@ def build_app() -> App:
         "gptnt.cli.run.command:run",
         name="run",
         group=onboarding,
-        help=(
-            "Run pre-generated specs end-to-end: doctor → prepare manuals → spawn → submit → "
-            "monitor."
-        ),
+        help=("Run pre-generated specs end-to-end: doctor → spawn → submit → monitor."),
     )
 
     # Interactive runtime: top-level commands.

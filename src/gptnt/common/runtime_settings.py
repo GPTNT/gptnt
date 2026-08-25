@@ -31,7 +31,7 @@ class RuntimeSettings(BaseSettings):
     manual_artifacts: dict[str, Path] = Field(
         default_factory=dict, validation_alias=MANUAL_ARTIFACTS_ENV
     )
-    """Prepared manual paths keyed by the runtime digest of their manual profile."""
+    """Prepared manual paths keyed by their profile-and-rule-seed requirement."""
 
     force: bool = Field(default=False, validation_alias=FORCE_ENV)
     """Whether the parent command forced execution past failed policy checks."""

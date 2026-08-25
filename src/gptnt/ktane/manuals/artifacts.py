@@ -31,11 +31,11 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from gptnt.ktane.manuals.profile import ManualProfile
+    from gptnt.ktane.manuals.requirement import ManualRequirement
     from gptnt.ktane.manuals.resolution import ResolvedDocument
     from gptnt.ktane.manuals.sources import ManualSources
 
 _ARTIFACTS_DIRECTORY = "artifacts"
-_DEFAULT_RULE_SEED = 1
 
 
 class ManualArtifact(BaseModel):
@@ -48,6 +48,9 @@ class ManualArtifact(BaseModel):
 
     artifact: str
     """Content-addressed key recorded in the artifact manifest."""
+
+    rule_seed: int = Field(ge=1)
+    """Rule seed used to render this manual."""
 
     inputs: list[dict[str, Any]]
     """Ordered compiler input identities recorded in the manifest."""
@@ -74,6 +77,7 @@ class ManualArtifact(BaseModel):
         expected_key: str | None = None,
         expected_inputs: list[dict[str, Any]] | None = None,
         expected_renderer: dict[str, Any] | None = None,
+        expected_rule_seed: int | None = None,
     ) -> Self:
         """Load a prepared manual directory and validate its complete contents."""
         return cls.model_validate(
@@ -82,14 +86,18 @@ class ManualArtifact(BaseModel):
                 "expected_key": expected_key or path.name,
                 "expected_inputs": expected_inputs,
                 "expected_renderer": expected_renderer,
+                "expected_rule_seed": expected_rule_seed,
             },
         )
 
     @classmethod
-    def key(cls, inputs: list[dict[str, Any]], renderer: dict[str, Any]) -> str:
+    def key(
+        cls, inputs: list[dict[str, Any]], renderer: dict[str, Any], *, rule_seed: int = 1
+    ) -> str:
         """Hash canonical input and renderer identity into an artifact key."""
         encoded = orjson.dumps(
-            {"inputs": inputs, "renderer": renderer}, option=orjson.OPT_SORT_KEYS
+            {"inputs": inputs, "renderer": renderer, "rule_seed": rule_seed},
+            option=orjson.OPT_SORT_KEYS,
         )
         return hashlib.sha256(encoded).hexdigest()
 
@@ -185,13 +193,30 @@ class ManualArtifact(BaseModel):
         expected_key = cast("str", context.get("expected_key", self.path.name))
         expected_inputs = cast("list[dict[str, Any]] | None", context.get("expected_inputs"))
         expected_renderer = cast("dict[str, Any] | None", context.get("expected_renderer"))
-        if self.artifact != expected_key or self.key(self.inputs, self.renderer) != expected_key:
+        expected_rule_seed = cast("int | None", context.get("expected_rule_seed"))
+        self._validate_key(expected_key)
+        self._validate_expected_inputs(expected_inputs, expected_renderer, expected_rule_seed)
+        return self
+
+    def _validate_key(self, expected_key: str) -> None:
+        """Reject an artifact path or manifest key that does not match its contents."""
+        actual_key = self.key(self.inputs, self.renderer, rule_seed=self.rule_seed)
+        if self.artifact != expected_key or actual_key != expected_key:
             raise ValueError("manual artifact key does not match its inputs")
+
+    def _validate_expected_inputs(
+        self,
+        expected_inputs: list[dict[str, Any]] | None,
+        expected_renderer: dict[str, Any] | None,
+        expected_rule_seed: int | None,
+    ) -> None:
+        """Reject an artifact that does not match a requested manual requirement."""
         if expected_inputs is not None and self.inputs != expected_inputs:
             raise ValueError("manual artifact inputs do not match")
         if expected_renderer is not None and self.renderer != expected_renderer:
             raise ValueError("manual artifact renderer does not match")
-        return self
+        if expected_rule_seed is not None and self.rule_seed != expected_rule_seed:
+            raise ValueError("manual artifact rule seed does not match")
 
     @field_validator("pages")
     @classmethod
@@ -226,11 +251,13 @@ def _remove_incomplete(path: Path) -> None:
         path.unlink()
 
 
-def compile_manual(documents: Sequence[ResolvedDocument], *, cache_dir: Path) -> ManualArtifact:
+def compile_manual(
+    documents: Sequence[ResolvedDocument], *, cache_dir: Path, rule_seed: int = 1
+) -> ManualArtifact:
     """Compile an ordered resolved-document sequence into a loaded manual artifact."""
     inputs = [input_identity(document) for document in documents]
     renderer = renderer_identity(documents)
-    artifact_key = ManualArtifact.key(inputs, renderer)
+    artifact_key = ManualArtifact.key(inputs, renderer, rule_seed=rule_seed)
     artifacts_dir = cache_dir / _ARTIFACTS_DIRECTORY
     artifact_dir = artifacts_dir / artifact_key
     artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -240,6 +267,7 @@ def compile_manual(documents: Sequence[ResolvedDocument], *, cache_dir: Path) ->
             expected_key=artifact_key,
             expected_inputs=inputs,
             expected_renderer=renderer,
+            expected_rule_seed=rule_seed,
         )
 
     _remove_incomplete(artifact_dir)
@@ -249,6 +277,7 @@ def compile_manual(documents: Sequence[ResolvedDocument], *, cache_dir: Path) ->
         page_count = build_artifact(documents, cache_dir=cache_dir, artifact_dir=build_dir)
         manifest = {
             "artifact": artifact_key,
+            "rule_seed": rule_seed,
             "inputs": inputs,
             "renderer": renderer,
             "page_count": page_count,
@@ -263,6 +292,7 @@ def compile_manual(documents: Sequence[ResolvedDocument], *, cache_dir: Path) ->
                 expected_key=artifact_key,
                 expected_inputs=inputs,
                 expected_renderer=renderer,
+                expected_rule_seed=rule_seed,
             )
         except ValidationError as error:
             raise RuntimeError("compiler produced an incomplete artifact") from error
@@ -273,6 +303,7 @@ def compile_manual(documents: Sequence[ResolvedDocument], *, cache_dir: Path) ->
             expected_key=artifact_key,
             expected_inputs=inputs,
             expected_renderer=renderer,
+            expected_rule_seed=rule_seed,
         )
 
 
@@ -283,39 +314,73 @@ def _profile_language(profile: ManualProfile, *, sources: ManualSources) -> str:
     return profile.documents[0].language
 
 
+def load_manual_artifact(
+    requirement: ManualRequirement, *, sources: ManualSources, cache_dir: Path, root_dir: Path
+) -> ManualArtifact:
+    """Load the validated compiled artifact for one suite-owned manual requirement."""
+    profile = requirement.profile
+    resolved = resolve_manual_profile(
+        profile,
+        sources=sources,
+        cache_dir=cache_dir,
+        root_dir=root_dir,
+        language=_profile_language(profile, sources=sources),
+        rule_seed=requirement.rule_seed,
+    )
+    inputs = [input_identity(document) for document in resolved]
+    renderer = renderer_identity(resolved)
+    artifact_key = ManualArtifact.key(inputs, renderer, rule_seed=requirement.rule_seed)
+    return ManualArtifact.load(
+        cache_dir / _ARTIFACTS_DIRECTORY / artifact_key,
+        expected_key=artifact_key,
+        expected_inputs=inputs,
+        expected_renderer=renderer,
+        expected_rule_seed=requirement.rule_seed,
+    )
+
+
 async def prepare_manual_artifacts(
-    profiles: Sequence[ManualProfile], *, sources: ManualSources, cache_dir: Path, root_dir: Path
-) -> dict[ManualProfile, ManualArtifact]:
-    """Download, resolve, and compile each distinct default-rule profile once."""
-    distinct_profiles = tuple(dict.fromkeys(profiles))
-    if not distinct_profiles:
+    requirements: Sequence[ManualRequirement],
+    *,
+    sources: ManualSources,
+    cache_dir: Path,
+    root_dir: Path,
+) -> dict[ManualRequirement, ManualArtifact]:
+    """Download, resolve, and compile each distinct profile-and-seed requirement once."""
+    distinct_requirements = tuple(dict.fromkeys(requirements))
+    if not distinct_requirements:
         return {}
 
     _ = await download_manual_assets(
-        distinct_profiles, sources=sources, cache_dir=cache_dir, root_dir=root_dir
+        [requirement.profile for requirement in distinct_requirements],
+        sources=sources,
+        cache_dir=cache_dir,
+        root_dir=root_dir,
     )
-    resolved_profiles = {
-        profile: resolve_manual_profile(
-            profile,
+    resolved_requirements = {
+        requirement: resolve_manual_profile(
+            requirement.profile,
             sources=sources,
             cache_dir=cache_dir,
             root_dir=root_dir,
-            language=_profile_language(profile, sources=sources),
-            rule_seed=_DEFAULT_RULE_SEED,
+            language=_profile_language(requirement.profile, sources=sources),
+            rule_seed=requirement.rule_seed,
         )
-        for profile in distinct_profiles
+        for requirement in distinct_requirements
     }
 
     if any(
         not isinstance(document, ResolvedOfficialDocument)
-        for resolved in resolved_profiles.values()
+        for resolved in resolved_requirements.values()
         for document in resolved
     ):
         await prepare_compiler_sources(cache_dir)
 
-    artifacts: dict[ManualProfile, ManualArtifact] = {}
-    for profile, resolved in resolved_profiles.items():
-        artifacts[profile] = await run_sync(  # noqa: WPS476
-            functools.partial(compile_manual, resolved, cache_dir=cache_dir)
+    artifacts: dict[ManualRequirement, ManualArtifact] = {}
+    for requirement, resolved in resolved_requirements.items():
+        artifacts[requirement] = await run_sync(  # noqa: WPS476
+            functools.partial(
+                compile_manual, resolved, cache_dir=cache_dir, rule_seed=requirement.rule_seed
+            )
         )
     return artifacts

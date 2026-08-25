@@ -17,11 +17,9 @@ index, source path, or artefact key to narrow the correction.
 gptnt list suites
 ```
 
-With `--all-profiles`, GPTNT selects every profile file whose name does not begin with an
-underscore. With no selection option, it selects profiles used by configured suites. A repository
-with no profiles for the chosen mode cannot prepare a manual.
-
-Do not combine `--suite` and `--all-profiles`.
+With no selection option, `manual compile` selects every configured suite. It compiles each
+distinct profile-and-rule-seed requirement. `manual download --all-profiles` remains available for
+source preparation outside a suite.
 
 ## A remote source is unavailable
 
@@ -67,10 +65,12 @@ Run the compile command again after correcting it.
 Every effective document in one profile must use the same language, including frontmatter. Change
 the mismatched entry or disable frontmatter when the catalog has no matching language entry.
 
-## A rule seed cannot be resolved
+## A rule seed produces unexpected manual content
 
-GPTNT v2 prepares manual-bearing experiments only for rule seed `1`. Update the mission and
-regenerate its experiment specifications if another value was set unintentionally.
+A non-default `manual_rule_seed` changes only KtaneContent modules whose pinned metadata declares
+`RuleSeedSupport: Supported`. Widgets, appendices, official pages, and local documents remain
+unchanged, so a mixed profile does not require a replacement. Freeze the updated suite, regenerate its
+specifications, and compile the manual again.
 
 Changing a rule seed changes benchmark identity. Do not edit a persisted specification to bypass
 the check.

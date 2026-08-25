@@ -17,6 +17,7 @@ import pytest
 
 from gptnt.cli import integrity
 from gptnt.cli.__main__ import build_app
+from gptnt.cli.checks.result import CheckResult
 from gptnt.cli.doctor import command as doctor_command
 from gptnt.cli.doctor.command import DiagnoseResult
 from gptnt.cli.doctor.run_plan import RunPlanResult
@@ -27,6 +28,7 @@ from gptnt.cli.statics import _evaluation as statics_evaluation
 from gptnt.cli.submission import new as submission_new
 from gptnt.cli.suite import __main__ as suite_command
 from gptnt.experiments.suite.lock import SuiteLock
+from gptnt.ktane.manuals.requirement import ManualRequirement
 from gptnt.players.specification import PlayerProtocol, PlayerSpec
 from gptnt.provenance import Provenance
 from gptnt.statics import run as statics_run, run_metadata
@@ -35,11 +37,10 @@ from tests._cli_runner import invoke_cli
 from tests._factories.experiments import make_experiment_spec, make_manual_profile
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Callable, Sequence
+    from collections.abc import AsyncIterator, Sequence
     from pathlib import Path
 
     from gptnt.experiments.spec import ExperimentSpec
-    from gptnt.ktane.manuals.profile import ManualProfile
 
 
 def _manifest(**overrides: object) -> RunManifest:
@@ -501,16 +502,24 @@ async def test_run_pipeline_happy_path_spawns_with_resolved_specs(
 
 
 @pytest.mark.anyio
-async def test_run_prepares_distinct_remaining_profiles_before_spawn(
+async def test_run_reuses_checked_manual_artifacts_without_compiling(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """Download, resolve, and compile only distinct remaining profiles before spawn."""
+    """Run passes doctor-validated artifacts to players without compiling on demand."""
     first = _manual_spec("Wires", seed=1)
     repeated = _manual_spec("Wires", seed=2)
     second = _manual_spec("BigButton", seed=3)
     completed = _manual_spec("Keypad", seed=4)
     remaining = [first, repeated, second, _spec()]
     all_specs = [*remaining, completed]
+    requirements = {
+        ManualRequirement(
+            profile=first.manual_profile, rule_seed=first.mission_spec.rule_seed
+        ): object(),
+        ManualRequirement(
+            profile=second.manual_profile, rule_seed=second.mission_spec.rule_seed
+        ): object(),
+    }
     result = DiagnoseResult(
         failed=False,
         benchmark_failed=False,
@@ -520,78 +529,40 @@ async def test_run_prepares_distinct_remaining_profiles_before_spawn(
             specs=all_specs,
             config_to_player={"claude-sonnet-4-6": "claude-sonnet-4-6"},
             remaining_specs=remaining,
+            manual_artifacts=requirements,
         ),
     )
     _patch_diagnose(monkeypatch, result)
     _patch_load_specs(monkeypatch, all_specs)
-    events: list[object] = []
     calls: list[dict[str, object]] = []
+    compiled: list[bool] = []
 
-    async def download(  # noqa: WPS430
-        profiles: Sequence[ManualProfile], **_kwargs: object
-    ) -> object:
-        events.append(("download", profiles))
-        return object()
+    async def fail_compile(*_args: object, **_kwargs: object) -> object:  # noqa: WPS430
+        compiled.append(True)
+        raise AssertionError("run must not compile manuals")
 
-    def resolve(  # noqa: WPS430
-        profile: ManualProfile, **_kwargs: object
-    ) -> tuple[object, ...]:
-        events.append(("resolve", profile))
-        return (object(),)
-
-    async def compiler_sources(_cache_dir: object) -> None:  # noqa: WPS430
-        events.append("compiler-sources")
-
-    def compile_manual(  # noqa: WPS430
-        resolved: tuple[object, ...], **_kwargs: object
-    ) -> SimpleNamespace:
-        events.append(("compile", resolved))
-        return SimpleNamespace(path=tmp_path / f"artifact-{len(events)}")
-
-    async def run_sync(function: Callable[[], SimpleNamespace]) -> SimpleNamespace:  # noqa: WPS430
-        return function()
-
-    async def spawn_recorder(*args: object, **kwargs: object) -> None:  # noqa: WPS430
-        events.append("spawn")
-        await _record_spawn(calls, *args, **kwargs)
-
-    monkeypatch.setattr(pipeline, "ManualSources", SimpleNamespace(from_path=lambda _: object()))
-    monkeypatch.setattr("gptnt.ktane.manuals.artifacts.download_manual_assets", download)
-    monkeypatch.setattr("gptnt.ktane.manuals.artifacts.resolve_manual_profile", resolve)
-    monkeypatch.setattr("gptnt.ktane.manuals.artifacts.prepare_compiler_sources", compiler_sources)
-    monkeypatch.setattr("gptnt.ktane.manuals.artifacts.compile_manual", compile_manual)
-    monkeypatch.setattr("gptnt.ktane.manuals.artifacts.run_sync", run_sync)
-    monkeypatch.setattr(pipeline, "_spawn_submit_monitor", spawn_recorder)
+    monkeypatch.setattr(pipeline, "prepare_manual_artifacts", fail_compile, raising=False)
+    monkeypatch.setattr(pipeline, "_spawn_submit_monitor", functools.partial(_record_spawn, calls))
 
     await pipeline.run_pipeline(_manifest(), manifest_stem="m")
 
-    expected_profiles = (first.manual_profile, second.manual_profile)
-    assert events[0] == ("download", expected_profiles)
-    assert [event[0] for event in events if isinstance(event, tuple)] == [
-        "download",
-        "resolve",
-        "resolve",
-        "compile",
-        "compile",
-    ]
-    assert events[-1] == "spawn"
-    prepared = cast("dict[ManualProfile, object]", calls[0]["manual_artifacts"])
-    assert set(prepared) == set(expected_profiles)
+    assert compiled == []
+    assert calls[0]["manual_artifacts"] == requirements
 
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("resume_filtered", [False, True])
-async def test_manual_preparation_failure_prevents_spawn(
+async def test_manual_doctor_failure_prevents_spawn_even_with_force(
     monkeypatch: pytest.MonkeyPatch, resume_filtered: bool
 ) -> None:
-    """Preparation failure stops before spawn with a filtered or unknown resume result."""
+    """A missing compiled manual is a hard doctor gate, including under `--force`."""
     spec = _manual_spec("Wires", seed=1)
     result = DiagnoseResult(
-        failed=not resume_filtered,
+        failed=True,
         benchmark_failed=False,
         player_reports=[],
         run_plan=RunPlanResult(
-            findings=[],
+            findings=[CheckResult.failed("Manual rule seed 1", "compiled manual is unavailable")],
             specs=[spec],
             config_to_player={"claude-sonnet-4-6": "claude-sonnet-4-6"},
             remaining_specs=[spec] if resume_filtered else None,
@@ -601,13 +572,7 @@ async def test_manual_preparation_failure_prevents_spawn(
     _patch_load_specs(monkeypatch, [spec])
     calls = _patch_spawn(monkeypatch)
 
-    async def fail(*_args: object, **_kwargs: object) -> object:  # noqa: WPS430
-        raise RuntimeError("manual preparation failed")
-
-    monkeypatch.setattr(pipeline, "ManualSources", SimpleNamespace(from_path=lambda _: object()))
-    monkeypatch.setattr(pipeline, "prepare_manual_artifacts", fail)
-
-    with pytest.raises(RuntimeError, match="manual preparation failed"):
+    with pytest.raises(RuntimeError, match="run blocked by doctor run-plan checks"):
         await pipeline.run_pipeline(_manifest(), manifest_stem="m", force=not resume_filtered)
 
     assert calls == []

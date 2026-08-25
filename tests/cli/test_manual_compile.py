@@ -9,6 +9,7 @@ import pytest
 
 from gptnt.cli.manual import _selection as selection, compile as command
 from gptnt.ktane.manuals.profile import KtaneContentAppendix, ManualProfile
+from gptnt.ktane.manuals.requirement import ManualRequirement
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -19,26 +20,27 @@ if TYPE_CHECKING:
 async def test_compile_reuses_selection_and_orders_pipeline(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Deduplicate suite profiles and pass them to the shared preparation boundary."""
+    """Deduplicate matching suite requirements before preparation."""
     profile = ManualProfile(
         include_frontmatter=False,
         documents=(
             KtaneContentAppendix(source="ktanecontent", language="en", document="Wires.html"),
         ),
     )
-    captured_profiles: list[ManualProfile] = []
+    captured_requirements: list[ManualRequirement] = []
 
     # Local fakes record the orchestration order without crossing browser or network boundaries.
     def compose_suite(_: str) -> SimpleNamespace:  # noqa: WPS430
         """Return the one configured profile used by this orchestration fixture."""
-        return SimpleNamespace(manual_profile=profile)
+        return SimpleNamespace(manual_profile=profile, manual_rule_seed=1)
 
     async def prepare(  # noqa: WPS430
-        profiles: Sequence[ManualProfile], **_kwargs: object
-    ) -> dict[ManualProfile, SimpleNamespace]:
-        """Record profiles selected by the command and return one prepared path."""
-        captured_profiles.extend(profiles)
-        return dict(zip((profile,), (SimpleNamespace(path=tmp_path / "artifact"),), strict=True))
+        requirements: Sequence[ManualRequirement], **_kwargs: object
+    ) -> dict[ManualRequirement, SimpleNamespace]:
+        """Record requirements selected by the command and return one prepared path."""
+        captured_requirements.extend(requirements)
+        requirement = ManualRequirement(profile=profile, rule_seed=1)
+        return {requirement: SimpleNamespace(path=tmp_path / "artifact")}
 
     # Patch every external boundary so the assertion isolates CLI selection and ordering.
     monkeypatch.setattr(selection, "discover_suites", lambda: ["one", "two"])
@@ -57,4 +59,53 @@ async def test_compile_reuses_selection_and_orders_pipeline(
 
     await command.compile_manuals(suites=["one", "two", "one"])
 
-    assert captured_profiles == [profile]
+    assert captured_requirements == [ManualRequirement(profile=profile, rule_seed=1)]
+
+
+@pytest.mark.anyio
+async def test_compile_keeps_distinct_rule_seeds_for_a_shared_profile(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Suite selection must not collapse manuals that need different generated rules."""
+    profile = ManualProfile(
+        include_frontmatter=False,
+        documents=(
+            KtaneContentAppendix(source="ktanecontent", language="en", document="Wires.html"),
+        ),
+    )
+    captured_requirements: list[ManualRequirement] = []
+
+    def compose_suite(suite_name: str) -> SimpleNamespace:  # noqa: WPS430
+        return SimpleNamespace(
+            manual_profile=profile, manual_rule_seed={"one": 1, "two": 2}[suite_name]
+        )
+
+    async def prepare(  # noqa: WPS430
+        requirements: Sequence[ManualRequirement], **_kwargs: object
+    ) -> dict[ManualRequirement, SimpleNamespace]:
+        captured_requirements.extend(requirements)
+        return {
+            requirement: SimpleNamespace(path=tmp_path / f"artifact-{requirement.rule_seed}")
+            for requirement in requirements
+        }
+
+    monkeypatch.setattr(selection, "discover_suites", lambda: ["one", "two"])
+    monkeypatch.setattr(selection, "compose_suite", compose_suite)
+    monkeypatch.setattr(
+        command,
+        "paths",
+        SimpleNamespace(
+            manual_sources=tmp_path / "sources.toml",
+            manual_cache=tmp_path / "cache",
+            root=tmp_path,
+        ),
+    )
+    monkeypatch.setattr(command, "ManualSources", SimpleNamespace(from_path=lambda _: object()))
+    monkeypatch.setattr(command, "prepare_manual_artifacts", prepare)
+
+    await command.compile_manuals(suites=["one", "two"])
+
+    assert captured_requirements == [
+        ManualRequirement(profile=profile, rule_seed=1),
+        ManualRequirement(profile=profile, rule_seed=2),
+    ]

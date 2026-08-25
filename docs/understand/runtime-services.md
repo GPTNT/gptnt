@@ -42,7 +42,7 @@ sequenceDiagram
 
 ## Process orchestration
 
-The CLI validates the run and filters completed attempts. It prepares required manuals and
+The CLI validates the run, including compiled manual artefacts, and filters completed attempts. It
 resolves one output directory. `ProcessOrchestrator` starts the experiment manager, game rooms,
 and player services. It sends specifications only after the experiment manager responds to
 `/health`.

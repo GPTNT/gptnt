@@ -70,7 +70,8 @@ class ResolvedKtaneContentModule:
     metadata_path: Path
     metadata: KtaneContentModuleMetadata
     provenance: KtaneContentProvenance
-    supports_requested_rule_seed: bool
+    rule_seed_fragment: int | None
+    """Rule seed applied to this document's URL fragment, if its rules support one."""
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -85,7 +86,8 @@ class ResolvedKtaneContentAppendix:
     source: Literal["ktanecontent"]
     source_path: Path
     provenance: KtaneContentProvenance
-    supports_requested_rule_seed: bool
+    rule_seed_fragment: int | None
+    """Rule seed applied to this document's URL fragment, if any."""
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -98,7 +100,8 @@ class ResolvedOfficialDocument:
     source_path: Path
     page_range: OfficialPageRange
     provenance: OfficialManualProvenance
-    supports_requested_rule_seed: bool
+    rule_seed_fragment: int | None
+    """Rule seed applied to this document's URL fragment, if any."""
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -110,7 +113,8 @@ class ResolvedLocalDocument:
     source: Literal["local"]
     source_path: Path
     provenance: LocalProvenance
-    supports_requested_rule_seed: bool
+    rule_seed_fragment: int | None
+    """Rule seed applied to this document's URL fragment, if any."""
 
 
 type ResolvedDocument = (

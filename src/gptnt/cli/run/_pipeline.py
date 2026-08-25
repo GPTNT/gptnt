@@ -21,9 +21,8 @@ from gptnt.interactive.orchestration import (
     spawn_players,
     spawn_rooms,
 )
-from gptnt.ktane.manuals.artifacts import ManualArtifact, prepare_manual_artifacts
-from gptnt.ktane.manuals.profile import ManualProfile
-from gptnt.ktane.manuals.sources import ManualSources
+from gptnt.ktane.manuals.artifacts import ManualArtifact
+from gptnt.ktane.manuals.requirement import ManualRequirement
 from gptnt.observability.settings import ObservabilitySettings
 
 console = Console()
@@ -41,10 +40,10 @@ def _require_run_plan(diagnosis: DiagnoseResult) -> RunPlanResult:
         return diagnosis.run_plan
 
     console.print(
-        "\n[bold red]Run blocked by the roster.[/bold red] The run cannot queue specs for "
-        "players that will not be spawned."
+        "\n[bold red]Run blocked by the doctor run-plan checks.[/bold red] Correct the failing "
+        "rows before queueing specs."
     )
-    raise RuntimeError("run blocked by run roster")
+    raise RuntimeError("run blocked by doctor run-plan checks")
 
 
 async def run_pipeline(
@@ -103,9 +102,9 @@ async def run_pipeline(
     #    specs reference must be in the spawned roster, else the run would silently stall.
     _assert_roster_covers_specs(specs_to_run, run_plan.config_to_player)
 
-    # 4. Prepare only the manuals needed by remaining specs. A failure here stops the run before
-    #    any process is spawned, including when `--force` allowed a failed doctor check.
-    manual_artifacts = await _prepare_run_manuals(specs_to_run)
+    # 4. Doctor already loaded the required compiled manuals. Reuse those paths rather than
+    # compiling during a run, so manual preparation remains an explicit prerequisite.
+    manual_artifacts = run_plan.manual_artifacts
 
     # 5. Build the spawn environment from the manifest, then spawn → submit → monitor. W&B is not
     #    configured here: the spawned processes inherit the ambient WANDB_* env untouched.
@@ -124,30 +123,6 @@ async def run_pipeline(
         logs_dir,
         interactive=interactive,
     )
-
-
-async def _prepare_run_manuals(specs: list[ExperimentSpec]) -> dict[ManualProfile, ManualArtifact]:
-    """Prepare each distinct profile required by a remaining manual-bearing player."""
-    profiles = tuple(
-        dict.fromkeys(
-            spec.manual_profile
-            for spec in specs
-            if spec.defuser_protocol.include_manual
-            or (spec.expert_protocol is not None and spec.expert_protocol.include_manual)
-        )
-    )
-    if not profiles:
-        return {}
-
-    console.print(
-        f"[bold]Preparing {len(profiles)} manual profile(s) before starting processes...[/bold]"
-    )
-    sources = ManualSources.from_path(paths.manual_sources)
-    artifacts = await prepare_manual_artifacts(
-        profiles, sources=sources, cache_dir=paths.manual_cache, root_dir=paths.root
-    )
-    console.print(f"  Prepared {len(artifacts)} manual artifact(s).")
-    return artifacts
 
 
 def _assert_roster_covers_specs(
@@ -240,7 +215,7 @@ def _print_summary(
 async def _spawn_submit_monitor(
     manifest: RunManifest,
     specs: list[ExperimentSpec],
-    manual_artifacts: dict[ManualProfile, ManualArtifact],
+    manual_artifacts: dict[ManualRequirement, ManualArtifact],
     env_base: dict[str, str],
     output_dir: Path,
     logs_dir: Path,
@@ -281,7 +256,7 @@ async def _spawn_and_submit(
     orch: ProcessOrchestrator,
     manifest: RunManifest,
     specs: list[ExperimentSpec],
-    manual_artifacts: dict[ManualProfile, ManualArtifact],
+    manual_artifacts: dict[ManualRequirement, ManualArtifact],
     output_dir: Path,
 ) -> None:
     """Spawn EM/rooms/players, submit the specs in-process, and tearing down on fail."""

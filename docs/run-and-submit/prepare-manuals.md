@@ -7,9 +7,9 @@ tags:
 
 # Prepare manuals
 
-GPTNT prepares the manual artefact required by each remaining experiment before it starts game or
-player processes. A standard `gptnt run` performs this preparation. Use the standalone manual
-commands when you need to populate an offline cache or isolate a preparation failure.
+Compile the manual artefact required by each suite before running its experiments. `gptnt doctor`
+validates the compiled artefact and blocks a run when it is absent or no longer matches its inputs.
+Use the standalone manual commands to populate an offline cache or isolate a preparation failure.
 
 ## Before you begin
 
@@ -37,39 +37,41 @@ defaults:
 
 1. Use the profile filename without `.yaml`.
 
-The included profiles are `vanilla`, `vanilla_with_needy`, and `vanilla_fr`. A profile change
-changes measured suite content. Update the suite revision, freeze the suite, and regenerate its
-experiment specifications before running it.
+The included profiles are `vanilla`, `vanilla_with_needy`, and `vanilla_fr`. A profile change or
+`manual_rule_seed` change changes measured suite content. Update the suite revision, freeze the
+suite, regenerate its experiment specifications, and compile the suite manual before running it.
 
-## Let the run prepare required manuals
+## Compile before running
 
-Run persisted experiment specifications in the standard way:
+Compile the suites selected by the run manifest, then verify them with doctor:
 
-```bash title="Run with automatic preparation"
+```bash title="Compile and verify manuals"
+gptnt manual compile --suite <suite>
+gptnt doctor runs/<name>.yaml
 gptnt run runs/<name>.yaml
 ```
 
-GPTNT applies doctor checks and resume filtering first. It then prepares each distinct manual
-profile required by the work that remains. Preparation completes before the experiment manager,
-game rooms, or players start. `--force` does not bypass a preparation failure.
+The suite owns both its manual profile and `manual_rule_seed`. Compilation creates one artefact for
+each distinct profile-and-seed pair. Doctor loads and validates the required artefacts before the
+experiment manager, game rooms, or players start. `--force` does not bypass a missing or mismatched
+manual artefact.
 
-!!! success "Manual preparation is complete"
-    The run proceeds to the process plan after every required profile resolves to a validated
+!!! success "Manual artefacts are compiled"
+    Doctor permits the run after every required profile-and-seed pair resolves to a validated
     artefact. Only protocols with `include_manual: true` receive that artefact.
 
 ## Prepare manuals without starting a run
 
-Compile the profiles used by all configured suites:
+Compile the manuals used by all configured suites:
 
 ```bash title="Compile configured manuals"
 gptnt manual compile
 ```
 
-Narrow preparation by repeating `--suite`, or select every profile:
+Narrow compilation by repeating `--suite`:
 
 ```bash title="Select manual profiles"
 gptnt manual compile --suite single-pairwise-sync --suite multi-self-sync
-gptnt manual compile --all-profiles
 ```
 
 Use `download` to stop after remote sources enter the cache:
@@ -78,8 +80,8 @@ Use `download` to stop after remote sources enter the cache:
 gptnt manual download --suite single-pairwise-sync
 ```
 
-`--suite` and `--all-profiles` are mutually exclusive. Without either option, both commands select
-the profiles used by all configured suites. Shared profiles are prepared once.
+Without `--suite`, `manual compile` selects all configured suites. `manual download` can still use
+`--all-profiles` when you need source assets for an unselected profile.
 
 !!! success "The cache is ready"
     A complete compile writes a validated artefact under `output/manual_cache/artifacts/<sha256>/`.

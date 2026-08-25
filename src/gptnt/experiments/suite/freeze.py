@@ -41,7 +41,7 @@ class FreezeStamp:
             gptnt_version=self.gptnt_version,
             git_sha=self.git_sha,
             mission_keys=suite.mission_keys,
-            config=suite.model_dump(mode="json", exclude_none=True, exclude={"config_digest"}),
+            config=suite.frozen_config(),
         )
 
 

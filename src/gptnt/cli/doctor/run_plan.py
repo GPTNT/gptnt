@@ -1,5 +1,5 @@
 from collections import Counter, defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from gptnt.cli.checks.result import CheckResult
@@ -9,6 +9,9 @@ from gptnt.common.paths import Paths
 from gptnt.experiments.ledger.resolve import filter_experiments
 from gptnt.experiments.spec import ExperimentSpec
 from gptnt.experiments.suite.generate import generate_specs
+from gptnt.ktane.manuals.artifacts import ManualArtifact, load_manual_artifact
+from gptnt.ktane.manuals.requirement import ManualRequirement
+from gptnt.ktane.manuals.sources import ManualSources
 
 RESUME_CHECK = "Resume"
 COVERAGE_CHECK = "Roster coverage"
@@ -39,9 +42,23 @@ class RunPlanResult:
     """
 
     findings: list[CheckResult]
+    """Results from the validation checks."""
+
     specs: list[ExperimentSpec]
+    """The generated specs that would run, or the pre-loaded specs if given."""
+
     config_to_player: dict[str, str]
+    """The resolved roster mapping each config name to its player_name.
+
+    This is so that `gptnt run` can reuse the same roster resolution without re-checking the
+    matrix.
+    """
+
     remaining_specs: list[ExperimentSpec] | None = None
+    """The subset of `specs` that are not yet done, or `None` if cannot be determined."""
+
+    manual_artifacts: dict[ManualRequirement, ManualArtifact] = field(default_factory=dict)
+    """The compiled manuals that exist for the run's specs, keyed by requirement (profile+seed)."""
 
 
 def analyze_run_plan(
@@ -68,23 +85,100 @@ def analyze_run_plan(
     if not roster.player_names:
         # Every roster entry failed to resolve; the ✗ rows above say why, and there is nothing to
         # generate against, so stop here rather than generating with an empty roster.
-        return RunPlanResult(findings, [], roster.config_to_player)
+        if specs is None:
+            return RunPlanResult(findings, [], roster.config_to_player)
+
+        resume_row, remaining = _check_resume_state(manifest, specs)
+        manual_specs = specs if remaining is None else remaining
+        manual_findings, manual_artifacts = _check_required_manual_artifacts(manual_specs)
+        findings.extend(manual_findings)
+        findings.append(resume_row)
+        return RunPlanResult(
+            findings,
+            specs,
+            roster.config_to_player,
+            remaining_specs=remaining,
+            manual_artifacts=manual_artifacts,
+        )
 
     specs = (
-        _generate_union(manifest, roster.player_names, anchors, findings)
+        _generate_manifest_specs(manifest, roster.player_names, anchors, findings)
         if specs is None
         else specs
     )
-    appearances = _appearances(specs)
+    appearances = _count_player_appearances(specs)
+    resume_row, remaining = _check_resume_state(manifest, specs)
+    manual_specs = specs if remaining is None else remaining
+    manual_findings, manual_artifacts = _check_required_manual_artifacts(manual_specs)
+    findings.extend(manual_findings)
 
-    findings.extend(_unknown_player_findings(roster, anchors, appearances))
-    findings.extend(_unused_findings(roster, appearances))
+    findings.extend(_missing_roster_player_findings(roster, anchors, appearances))
+    findings.extend(_unused_roster_player_findings(roster, appearances))
     if not any(finding.status == "fail" for finding in findings):
         # A clean ✓ summary (with the declared spawn counts) only when nothing above is fatal.
-        findings.append(_coverage_ok(manifest, roster, appearances, len(specs)))
-    resume_row, remaining = _resume(manifest, specs)
+        findings.append(_passed_roster_coverage_check(manifest, roster, appearances, len(specs)))
     findings.append(resume_row)
-    return RunPlanResult(findings, specs, roster.config_to_player, remaining_specs=remaining)
+    return RunPlanResult(
+        findings,
+        specs,
+        roster.config_to_player,
+        remaining_specs=remaining,
+        manual_artifacts=manual_artifacts,
+    )
+
+
+def _check_required_manual_artifacts(
+    specs: list[ExperimentSpec],
+) -> tuple[list[CheckResult], dict[ManualRequirement, ManualArtifact]]:
+    """Load every existing manual required by the plan and report a cache miss as a failure."""
+    requirements = _collect_manual_requirements(specs)
+    if not requirements:
+        return [], {}
+
+    paths = Paths()
+    sources = ManualSources.from_path(paths.manual_sources)
+    findings: list[CheckResult] = []
+    artifacts: dict[ManualRequirement, ManualArtifact] = {}
+    for requirement, suite_names in requirements.items():
+        suites = sorted(suite_names)
+        command = " ".join(f"--suite {name}" for name in suites)
+        try:
+            artifacts[requirement] = load_manual_artifact(
+                requirement, sources=sources, cache_dir=paths.manual_cache, root_dir=paths.root
+            )
+        except (OSError, RuntimeError, ValueError) as error:
+            findings.append(
+                CheckResult.failed(
+                    f"Manual rule seed {requirement.rule_seed}",
+                    f"compiled manual is unavailable for {', '.join(suites)}: {error}",
+                    f"run `gptnt manual compile {command}`",
+                )
+            )
+        else:
+            findings.append(
+                CheckResult.passed(
+                    f"Manual rule seed {requirement.rule_seed}",
+                    f"compiled manual is available for {', '.join(suites)}",
+                )
+            )
+    return findings, artifacts
+
+
+def _collect_manual_requirements(
+    specs: list[ExperimentSpec],
+) -> dict[ManualRequirement, set[str]]:
+    """Collect each manual-bearing specification's profile-and-seed requirement by suite."""
+    requirements: dict[ManualRequirement, set[str]] = defaultdict(set)
+    for spec in specs:
+        manual_needed = spec.defuser_protocol.include_manual or (
+            spec.expert_protocol is not None and spec.expert_protocol.include_manual
+        )
+        if manual_needed:
+            requirement = ManualRequirement(
+                profile=spec.manual_profile, rule_seed=spec.mission_spec.rule_seed
+            )
+            requirements[requirement].add(spec.suite_name)
+    return requirements
 
 
 def _resolve_roster(
@@ -141,7 +235,7 @@ def _resolve_anchors(
     for field_name, config_name in fields:
         if config_name is None:
             continue
-        player_name = _anchor_player_name(config_name, roster_config_to_player, cache)
+        player_name = _resolve_anchor_player_name(config_name, roster_config_to_player, cache)
         if player_name is None:
             findings.append(
                 CheckResult.failed(
@@ -155,7 +249,7 @@ def _resolve_anchors(
     return resolved
 
 
-def _anchor_player_name(
+def _resolve_anchor_player_name(
     config_name: str, roster_config_to_player: dict[str, str], cache: dict[str, str | None]
 ) -> str | None:
     """Resolve an anchor config name to its player_name, reusing the roster / a per-call cache."""
@@ -170,7 +264,7 @@ def _anchor_player_name(
     return player_name
 
 
-def _generate_union(
+def _generate_manifest_specs(
     manifest: RunManifest,
     roster_player_names: set[str],
     anchors: dict[str, str],
@@ -211,7 +305,7 @@ def _generate_union(
     return list(union.values())
 
 
-def _appearances(specs: list[ExperimentSpec]) -> Counter[str]:
+def _count_player_appearances(specs: list[ExperimentSpec]) -> Counter[str]:
     """Count how many times each player_name appears (as defuser or expert) across the specs."""
     counter: Counter[str] = Counter()
     for spec in specs:
@@ -221,7 +315,7 @@ def _appearances(specs: list[ExperimentSpec]) -> Counter[str]:
     return counter
 
 
-def _unknown_player_findings(
+def _missing_roster_player_findings(
     roster: _Roster, anchors: dict[str, str], appearances: Counter[str]
 ) -> list[CheckResult]:
     """Players the run references but the roster does not provide, the silent-stall case (✗)."""
@@ -242,7 +336,9 @@ def _unknown_player_findings(
     return findings
 
 
-def _unused_findings(roster: _Roster, appearances: Counter[str]) -> list[CheckResult]:
+def _unused_roster_player_findings(
+    roster: _Roster, appearances: Counter[str]
+) -> list[CheckResult]:
     """Roster players that no selected experiment ever pairs, a likely mistake (⚠, not fatal).
 
     `count` is explicit (the user's choice), so we do NOT second-guess how many to spawn; the only
@@ -261,7 +357,7 @@ def _unused_findings(roster: _Roster, appearances: Counter[str]) -> list[CheckRe
     return findings
 
 
-def _coverage_ok(
+def _passed_roster_coverage_check(
     manifest: RunManifest, roster: _Roster, appearances: Counter[str], total_specs: int
 ) -> CheckResult:
     """Return the ✓ summary row, naming the declared spawn count per player."""
@@ -279,7 +375,7 @@ def _coverage_ok(
     return CheckResult.passed(COVERAGE_CHECK, detail)
 
 
-def _resume(
+def _check_resume_state(
     manifest: RunManifest, specs: list[ExperimentSpec]
 ) -> tuple[CheckResult, list[ExperimentSpec] | None]:
     """Return the resume row AND the not-yet-done specs to run.

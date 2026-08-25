@@ -9,6 +9,7 @@ suite:
   revision: 1
   modality: [vision, language]
   missions_path: configs/missions/single_module
+  manual_rule_seed: 1
   defuser_protocol:
     _target_: gptnt.players.specification.PlayerProtocol
     role: defuser

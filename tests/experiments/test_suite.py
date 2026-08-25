@@ -56,6 +56,13 @@ def test_config_digest_tracks_matchup() -> None:
     )
 
 
+def test_manual_rule_seed_replaces_each_materialised_mission_rule_seed() -> None:
+    """The suite, rather than individual mission files, selects the manual's generated rules."""
+    suite = _suite(manual_rule_seed=7)
+
+    assert {mission.rule_seed for mission in suite.loaded_missions} == {7}
+
+
 def test_mission_set_derives_from_missions_path() -> None:
     """The grouping label is the mission-set directory name, not a separate field."""
     assert _suite().mission_set == "multiple_module_n"

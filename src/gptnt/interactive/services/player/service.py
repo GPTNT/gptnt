@@ -21,6 +21,7 @@ from gptnt.interactive.services.player.agent import PlayerAgent
 from gptnt.interactive.services.player.commands import PlayerMessage, StopPlayerEvent
 from gptnt.interactive.services.rpc import BaseRPCService
 from gptnt.ktane.manuals.artifacts import ManualArtifact
+from gptnt.ktane.manuals.requirement import ManualRequirement
 from gptnt.observability.span_timing import set_timing_identity
 from gptnt.players.base_action_dispatcher import DispatchedAgentCall
 from gptnt.players.conversation import Conversation
@@ -132,7 +133,12 @@ class PlayerService(PlayerAgent, BaseRPCService[PlayerCommand]):
         manual_artifact = None
         if self.protocol.include_manual:
             manual_artifact = ManualArtifact.load(
-                self.manual_artifacts[self.experiment_instance.manual_profile.runtime_digest]
+                self.manual_artifacts[
+                    ManualRequirement(
+                        profile=self.experiment_instance.manual_profile,
+                        rule_seed=self.experiment_instance.mission_spec.rule_seed,
+                    ).runtime_key
+                ]
             )
         self.conversation = Conversation.begin(
             capabilities=self.capabilities,

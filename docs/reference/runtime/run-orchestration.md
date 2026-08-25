@@ -8,7 +8,7 @@ tags:
 # Run orchestration
 
 The `run` pipeline defines the command-to-process boundary. It validates persisted specifications
-and prepares shared inputs. It then starts the process cluster and sends work. The monitor tracks
+and reuses doctor-validated shared inputs. It then starts the process cluster and sends work. The monitor tracks
 whether each process exits and terminates every process the pipeline started.
 
 !!! info "Current implementation"
@@ -28,7 +28,7 @@ sequenceDiagram
     Run->>Run: Load generated specifications
     Run->>Doctor: Diagnose persisted plan and infrastructure
     Doctor-->>Run: Findings and remaining attempts
-    Run->>Manuals: Prepare required profiles
+    Doctor->>Manuals: Validate compiled manual artefacts
     Run->>Orch: Resolve logs, output, and environment
     Orch->>EM: Start and poll GET /health
     Orch->>Rooms: Start one process per room
@@ -43,9 +43,9 @@ sequenceDiagram
 | Stage | Contract |
 | ----- | -------- |
 | Load | Read every `*.json` recursively from `output/experiment_specs/<manifest-stem>/`. Empty input stops before doctor or spawn. |
-| Gate | Run doctor against the files on disk. `--force` can continue despite integrity failures, but a missing roster entry still blocks the run. |
+| Gate | Run doctor against the files on disk. A missing roster entry or compiled manual artefact blocks the run, including with `--force`. |
 | Resume | Use the manifest completion source to select unfinished attempts. No remaining work exits without spawn. |
-| Manuals | [Prepare](../../run-and-submit/prepare-manuals.md) each distinct profile required by remaining manual-bearing players. Failure stops before spawn. |
+| Manuals | Reuse doctor-validated artefacts for each profile-and-rule-seed requirement. [Compile](../../run-and-submit/prepare-manuals.md) them before doctor. |
 | Directories | Resolve one recorder output and one `output/logs/run_<output-name>/` directory, then pass the pinned output to recorder children. |
 | Spawn | Start the experiment manager, rooms, and player services in that order. |
 | Submit | Post the remaining specifications in-process. Failed submission terminates the cluster. |

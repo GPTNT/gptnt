@@ -198,3 +198,18 @@ def test_freeze_reload_and_generate_pins_suite_identity(
         "cd8d0f434673435dda9c9a3840e309b9",
         "a2f6889b8fd4c0b0ec6531b4dda54f3b",
     )
+
+
+def test_generate_applies_the_frozen_suite_manual_rule_seed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Generation writes one suite-selected rule seed into every mission specification."""
+    suite = _a_suite().model_copy(update={"manual_rule_seed": 7})
+    lock = FreezeReport.reconcile([suite], None, _STAMP).updated_lock
+    path = tmp_path / "suites.lock"
+    lock.dump_to_path(path)
+    monkeypatch.setattr("gptnt.experiments.suite.lock.default_lock_path", lambda: path)
+
+    experiments = generate_specs(["suites=single-solo-player-sync", "players.all=[test-defuser]"])
+
+    assert {experiment.mission_spec.rule_seed for experiment in experiments} == {7}

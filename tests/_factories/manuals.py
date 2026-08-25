@@ -27,6 +27,6 @@ def make_compiled_manual(
         provenance=OfficialManualProvenance(
             version="fixture", url=f"https://manual.test/{name}.pdf"
         ),
-        supports_requested_rule_seed=True,
+        rule_seed_fragment=None,
     )
     return compile_manual([resolved], cache_dir=root / "cache")

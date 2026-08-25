@@ -35,8 +35,8 @@ boundaries.
 | `GPTNT_EM_PORT` | Integer, `8085` | Experiment-manager HTTP port. |
 | `REDIS_DSN` | Redis DSN, `redis://localhost:6379` | Redis endpoint used by the experiment manager, game services, player services, heartbeats, and RPC. |
 
-`GPTNT_MANUAL_ARTIFACTS` is not user-authored configuration. `gptnt run` serialises prepared manual
-paths into it for player child processes.
+`GPTNT_MANUAL_ARTIFACTS` is not user-authored configuration. `gptnt run` serialises doctor-validated
+manual paths into it for player child processes, keyed by profile-and-rule-seed requirement.
 
 ## Display
 

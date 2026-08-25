@@ -40,6 +40,7 @@ def input_identity(document: ResolvedDocument) -> dict[str, Any]:
         "source": document.source,
         "id": document.document_id,
         "language": document.language,
+        "rule_seed_fragment": document.rule_seed_fragment,
     }
     # Modules depend on both their HTML and catalog metadata used by the upstream merger.
     if isinstance(document, ResolvedKtaneContentModule):

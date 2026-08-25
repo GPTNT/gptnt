@@ -5,16 +5,24 @@ from __future__ import annotations
 import hashlib
 from typing import TYPE_CHECKING
 
+import orjson
 import pymupdf
 import pytest
 from PIL import Image
 
 from gptnt.ktane.manuals.artifacts import compile_manual
-from gptnt.ktane.manuals.compiler_sources import keypad_assets_root, ktane_content_root
+from gptnt.ktane.manuals.compiler_sources import (
+    KTANE_CONTENT_COMMIT,
+    keypad_assets_root,
+    ktane_content_root,
+)
 from gptnt.ktane.manuals.resolution import (
+    KtaneContentModuleMetadata,
+    KtaneContentProvenance,
     LocalInputIdentity,
     LocalProvenance,
     OfficialManualProvenance,
+    ResolvedKtaneContentModule,
     ResolvedLocalDocument,
     ResolvedOfficialDocument,
 )
@@ -110,7 +118,51 @@ def _local_document(path: Path, *, document_id: str) -> ResolvedLocalDocument:
         source="local",
         source_path=path,
         provenance=LocalProvenance(inputs=(LocalInputIdentity(path=path.name, sha256=digest),)),
-        supports_requested_rule_seed=True,
+        rule_seed_fragment=None,
+    )
+
+
+def _ktane_content_document(
+    cache_dir: Path, *, document_id: str, supports_rule_seed: bool
+) -> ResolvedKtaneContentModule:
+    """Create one pinned KtaneContent HTML module that reports its URL fragment."""
+    root = ktane_content_root(cache_dir)
+    source_path = root / "HTML" / f"{document_id}.html"
+    _write_page(
+        source_path,
+        heading=document_id,
+        body="module page",
+        script=(
+            "const applyRuleSeed = () => { "
+            "document.body.classList.toggle('ruleseed-active', Boolean(window.location.hash)); "
+            "document.querySelector('#heading').textContent = window.location.hash || 'unseeded'; "
+            "}; applyRuleSeed(); window.onhashchange = applyRuleSeed;"
+        ),
+    )
+    metadata_path = root / "JSON" / f"{document_id}.json"
+    metadata_payload: dict[str, str] = {
+        "ModuleID": document_id,
+        "Name": document_id,
+        "Origin": "Test",
+        "SortKey": document_id.upper(),
+    }
+    if supports_rule_seed:
+        metadata_payload["RuleSeedSupport"] = "Supported"
+    metadata_path.parent.mkdir(parents=True, exist_ok=True)
+    _ = metadata_path.write_bytes(orjson.dumps(metadata_payload))
+    return ResolvedKtaneContentModule(
+        document_id=document_id,
+        language="en",
+        source="ktanecontent",
+        source_path=source_path,
+        metadata_path=metadata_path,
+        metadata=KtaneContentModuleMetadata.model_validate(metadata_payload),
+        provenance=KtaneContentProvenance(
+            commit=KTANE_CONTENT_COMMIT,
+            document=source_path.name,
+            metadata_document=metadata_path.name,
+        ),
+        rule_seed_fragment=7 if supports_rule_seed else None,
     )
 
 
@@ -125,7 +177,7 @@ def _official_document(
         source_path=path,
         page_range=OfficialPageRange(first=first, last=last),
         provenance=OfficialManualProvenance(version="fixture", url="https://manual.test/a.pdf"),
-        supports_requested_rule_seed=True,
+        rule_seed_fragment=None,
     )
 
 
@@ -169,6 +221,27 @@ def _write_page(path: Path, *, heading: str, body: str, script: str = "") -> Non
     path.parent.mkdir(parents=True, exist_ok=True)
     _ = path.write_text(_PAGE.format(heading=heading, body=body, script=script), encoding="utf-8")
     _ = path.with_name("fixture.png").write_bytes(_PNG)
+
+
+def test_compiler_seeds_only_supported_ktane_content_modules(
+    tmp_path: Path, browser_sources: Callable[[Path], None]
+) -> None:
+    """Static KtaneContent pages stay fragment-free beside a seeded module."""
+    cache_dir = tmp_path / "cache"
+    browser_sources(cache_dir)
+    supported = _ktane_content_document(cache_dir, document_id="Seeded", supports_rule_seed=True)
+    unsupported = _ktane_content_document(
+        cache_dir, document_id="Static", supports_rule_seed=False
+    )
+
+    artifact = compile_manual([supported, unsupported], cache_dir=cache_dir, rule_seed=7)
+
+    assert artifact.pages[0][0].startswith("#7")
+    assert artifact.pages[1][0].startswith("unseeded")
+    assert [artifact_input["rule_seed_fragment"] for artifact_input in artifact.inputs] == [
+        7,
+        None,
+    ]
 
 
 def test_browser_executes_and_prints_ordered_local_html(
@@ -439,3 +512,16 @@ def test_cache_reuses_invalidates_and_rebuilds(tmp_path: Path) -> None:
 
     assert compile_manual([document], cache_dir=cache_dir) == changed
     assert incomplete_page.is_file()
+
+
+def test_cache_separates_artifacts_by_rule_seed(tmp_path: Path) -> None:
+    """The manual cache cannot reuse one profile's artifact for a different rule set."""
+    source = tmp_path / "official.pdf"
+    _write_pdf(source, ["one page"])
+    document = _official_document(source, document_id="Page", first=1, last=1)
+
+    first = compile_manual([document], cache_dir=tmp_path / "cache", rule_seed=1)
+    second = compile_manual([document], cache_dir=tmp_path / "cache", rule_seed=2)
+
+    assert first.path != second.path
+    assert (first.rule_seed, second.rule_seed) == (1, 2)

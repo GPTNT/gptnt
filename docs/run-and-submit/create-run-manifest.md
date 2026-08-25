@@ -16,7 +16,7 @@ You need:
 
 - a checked installation and completed quickstart;
 - each required [player](add-model.md) and [provider](configure-provider.md);
-- the manual profile selected by each suite, prepared as described in [Prepare manuals](prepare-manuals.md);
+- the manual profile and rule seed selected by each suite, compiled as described in [Prepare manuals](prepare-manuals.md);
   and
 - enough player processes and game rooms for the selected suite protocols.
 

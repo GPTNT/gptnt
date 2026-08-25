@@ -30,8 +30,6 @@ if TYPE_CHECKING:
 
     from gptnt.ktane.manuals.sources import ManualSources
 
-_DEFAULT_RULE_SEED = 1
-
 
 def _entry_name(document: Document, *, index: int, frontmatter: bool) -> str:
     """Build the profile location and source identity used in resolution errors."""
@@ -82,6 +80,7 @@ def _resolve_ktane_content(
     sources: ManualSources,
     cache_dir: Path,
     entry_name: str,
+    rule_seed: int,
 ) -> ResolvedKtaneContentModule | ResolvedKtaneContentAppendix:
     """Resolve one KtaneContent profile entry from the pinned source cache.
 
@@ -116,7 +115,7 @@ def _resolve_ktane_content(
             provenance=KtaneContentProvenance(
                 commit=sources.ktane_content.commit, document=filename
             ),
-            supports_requested_rule_seed=True,
+            rule_seed_fragment=None,
         )
 
     metadata_document, metadata_path, metadata = _module_metadata(
@@ -134,7 +133,9 @@ def _resolve_ktane_content(
             document=filename,
             metadata_document=metadata_document,
         ),
-        supports_requested_rule_seed=True,
+        rule_seed_fragment=(
+            rule_seed if rule_seed != 1 and metadata.rule_seed_support == "Supported" else None
+        ),
     )
 
 
@@ -171,7 +172,7 @@ def _resolve_official(
         source_path=source_path,
         page_range=page_range,
         provenance=OfficialManualProvenance(version=source.version, url=str(source.url)),
-        supports_requested_rule_seed=True,
+        rule_seed_fragment=None,
     )
 
 
@@ -262,7 +263,7 @@ def _resolve_local(
         source="local",
         source_path=source_path,
         provenance=LocalProvenance(inputs=tuple(inputs)),
-        supports_requested_rule_seed=True,
+        rule_seed_fragment=None,
     )
 
 
@@ -274,6 +275,7 @@ def _resolve_profile_entry(
     root_dir: Path,
     language: str,
     entry_name: str,
+    rule_seed: int,
 ) -> ResolvedDocument:
     """Apply shared language policy, then resolve one entry from its source."""
     # Validate language before accessing source configuration or cache paths so the error names the
@@ -286,7 +288,11 @@ def _resolve_profile_entry(
 
     if isinstance(document, (KtaneContentDocument, KtaneContentAppendix)):
         return _resolve_ktane_content(
-            document, sources=sources, cache_dir=cache_dir, entry_name=entry_name
+            document,
+            sources=sources,
+            cache_dir=cache_dir,
+            entry_name=entry_name,
+            rule_seed=rule_seed,
         )
     if isinstance(document, OfficialDocument):
         return _resolve_official(
@@ -306,8 +312,8 @@ def resolve_manual_profile(
 ) -> tuple[ResolvedDocument, ...]:
     """Return frontmatter followed by profile documents as ordered compilation inputs.
 
-    Entries are checked against the requested language, default rule seed, configured source
-    metadata, and materialized local inputs before the tuple is returned. `ValueError`
+    Entries are checked against the requested language before the tuple is returned.
+    Source metadata and local inputs determine the selected documents. `ValueError`
     conditions name the responsible frontmatter or profile index. Catalog lookups and malformed or
     unreadable source files retain their native exceptions. The function reads catalogs, module
     metadata, and local dependencies and checks the selected HTML and PDF paths. It does not render
@@ -325,18 +331,6 @@ def resolve_manual_profile(
         )
     configured.extend((document, index, False) for index, document in enumerate(profile.documents))
 
-    # Rule-seed support applies to the complete manual. Report the first effective entry because no
-    # source input may be returned when the requested seed is unsupported.
-    first_document, first_index, first_is_frontmatter = configured[0]
-    if rule_seed != _DEFAULT_RULE_SEED:
-        entry_name = _entry_name(
-            first_document, index=first_index, frontmatter=first_is_frontmatter
-        )
-        raise ValueError(
-            f"{entry_name}: rule seed {rule_seed} is unsupported; "
-            f"only default rule seed {_DEFAULT_RULE_SEED} can be resolved"
-        )
-
     resolved: list[ResolvedDocument] = []
     for document, index, is_frontmatter in configured:
         entry_name = _entry_name(document, index=index, frontmatter=is_frontmatter)
@@ -348,6 +342,7 @@ def resolve_manual_profile(
                 root_dir=root_dir,
                 language=language,
                 entry_name=entry_name,
+                rule_seed=rule_seed,
             )
         )
 

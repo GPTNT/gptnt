@@ -57,7 +57,12 @@ def _sources(*, frontmatter: tuple[LocalDocument, ...] = ()) -> ManualSources:
 
 def _cache_ktane_content(cache_dir: Path) -> None:
     """Create the catalog, HTML, appendix, and JSON files expected from the downloader."""
-    catalog = {"KtaneModules": [{"ModuleID": "Wires", "Name": "Wires"}]}
+    catalog = {
+        "KtaneModules": [
+            {"ModuleID": "Wires", "Name": "Wires"},
+            {"ModuleID": "IndicatorWidget", "Name": "Indicators"},
+        ]
+    }
     _write(cache_dir / "sources" / "ktanecontent" / "catalog" / "raw.json", orjson.dumps(catalog))
     revision = cache_dir / "sources" / "ktanecontent" / COMMIT
     _write(revision / "HTML" / "Wires.html", "<main>Cut a wire.</main>")
@@ -71,6 +76,18 @@ def _cache_ktane_content(cache_dir: Path) -> None:
                 "Origin": "Vanilla",
                 "SortKey": "WIRES",
                 "RuleSeedSupport": "Supported",
+            }
+        ),
+    )
+    _write(revision / "HTML" / "Indicators.html", "<main>Read indicator labels.</main>")
+    _write(
+        revision / "JSON" / "Indicators.json",
+        orjson.dumps(
+            {
+                "ModuleID": "IndicatorWidget",
+                "Name": "Indicators",
+                "Origin": "Vanilla",
+                "SortKey": "INDICATORS",
             }
         ),
     )
@@ -144,7 +161,46 @@ def test_resolves_mixed_sources_in_profile_order_with_provenance(tmp_path: Path)
         ("local/notes.html", "294f1c2bb7cc0e5603b182f915141e5b5c4a486879abc9f31faef0206d6e3b0e"),
         ("local/style.css", "0672760d4259787e46e8a95a612f4879b568104efdab70090cc552f0220fd2d7"),
     ]
-    assert all(document.supports_requested_rule_seed for document in resolved)
+    assert [document.rule_seed_fragment for document in resolved] == [None, None, None, None]
+
+
+def test_resolves_supported_ktane_content_for_a_nondefault_rule_seed(tmp_path: Path) -> None:
+    """A suite can compile a manual whose seeded module rules differ from the default."""
+    cache_dir = tmp_path / "cache"
+    _cache_ktane_content(cache_dir)
+    profile = _profile({"source": "ktanecontent", "id": "Wires", "language": "en"})
+
+    resolved = resolve_manual_profile(
+        profile,
+        sources=_sources(),
+        cache_dir=cache_dir,
+        root_dir=tmp_path,
+        language="en",
+        rule_seed=2,
+    )
+
+    assert [document.rule_seed_fragment for document in resolved] == [2]
+
+
+def test_resolves_mixed_seeded_and_static_ktane_content_documents(tmp_path: Path) -> None:
+    """A static widget remains unseeded beside a supported module at one rule seed."""
+    cache_dir = tmp_path / "cache"
+    _cache_ktane_content(cache_dir)
+    profile = _profile(
+        {"source": "ktanecontent", "id": "Wires", "language": "en"},
+        {"source": "ktanecontent", "id": "IndicatorWidget", "language": "en"},
+    )
+
+    resolved = resolve_manual_profile(
+        profile,
+        sources=_sources(),
+        cache_dir=cache_dir,
+        root_dir=tmp_path,
+        language="en",
+        rule_seed=7,
+    )
+
+    assert [document.rule_seed_fragment for document in resolved] == [7, None]
 
 
 @pytest.mark.parametrize(
@@ -152,7 +208,6 @@ def test_resolves_mixed_sources_in_profile_order_with_provenance(tmp_path: Path)
     [
         ("absent_document", r"documents\[0\].*document 'Missing\.html'.*missing"),
         ("missing_page_map", r"documents\[0\].*no page map for 'Missing'"),
-        ("unsupported_rule_seed", r"documents\[0\].*rule seed 2 is unsupported"),
         ("incompatible_language", r"documents\[0\].*language 'fr'.*language 'en'"),
         ("missing_local_dependency", r"documents\[0\].*missing\.css.*is missing"),
         ("escaping_local_dependency", r"documents\[0\].*escapes the configured source root"),
@@ -177,10 +232,6 @@ def test_resolution_policy_reports_the_profile_entry(
         )
     elif policy == "missing_page_map":
         profile = _profile({"source": "official", "id": "Missing", "language": "en"})
-    elif policy == "unsupported_rule_seed":
-        _write(tmp_path / "local.html", "local")
-        profile = _profile({"source": "local", "path": "local.html", "language": "en"})
-        rule_seed = 2
     elif policy == "incompatible_language":
         _write(tmp_path / "local.html", "local")
         profile = _profile({"source": "local", "path": "local.html", "language": "fr"})

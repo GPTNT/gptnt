@@ -21,6 +21,7 @@ from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.common.runtime_settings import MANUAL_ARTIFACTS_ENV
 from gptnt.interactive.entrypoints.run_player import main as build_player_app
 from gptnt.ktane.manuals.artifacts import ManualArtifact
+from gptnt.ktane.manuals.requirement import ManualRequirement
 from gptnt.players.conversation import Conversation
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
 
@@ -88,7 +89,7 @@ def test_profiles_select_their_prepared_prompts_and_no_manual_reads_nothing(
         MANUAL_ARTIFACTS_ENV,
         orjson.dumps(
             {
-                profile.runtime_digest: str(artifact.path)
+                ManualRequirement(profile=profile, rule_seed=1).runtime_key: str(artifact.path)
                 for profile, artifact in artifacts.items()
             },
             option=orjson.OPT_SORT_KEYS,
@@ -103,12 +104,16 @@ def test_profiles_select_their_prepared_prompts_and_no_manual_reads_nothing(
     first = Conversation.begin(
         capabilities=capabilities,
         protocol=_manual_protocol(include_manual=True),
-        manual_artifact=ManualArtifact.load(runtime_artifacts[first_profile.runtime_digest]),
+        manual_artifact=ManualArtifact.load(
+            runtime_artifacts[ManualRequirement(profile=first_profile, rule_seed=1).runtime_key]
+        ),
     )
     second = Conversation.begin(
         capabilities=capabilities,
         protocol=_manual_protocol(include_manual=True),
-        manual_artifact=ManualArtifact.load(runtime_artifacts[second_profile.runtime_digest]),
+        manual_artifact=ManualArtifact.load(
+            runtime_artifacts[ManualRequirement(profile=second_profile, rule_seed=1).runtime_key]
+        ),
     )
 
     assert any("FIRST PROFILE" in text for text in _manual_prompt_text(first))

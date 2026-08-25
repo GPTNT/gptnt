@@ -6,7 +6,7 @@ manual_app = App(name="manual", help="Manage manual assets.")
 manual_app.command(
     "gptnt.cli.manual.compile:compile_manuals",
     name="compile",
-    help="Compile selected profiles into cached manual artifacts.",
+    help="Compile selected suite manuals into cached artifacts.",
 )
 manual_app.command(
     "gptnt.cli.manual.download:download",

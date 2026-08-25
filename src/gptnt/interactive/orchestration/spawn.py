@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
     from gptnt.experiments.ledger.completion import Source
     from gptnt.ktane.manuals.artifacts import ManualArtifact
-    from gptnt.ktane.manuals.profile import ManualProfile
+    from gptnt.ktane.manuals.requirement import ManualRequirement
     from gptnt.players.specification import PlayerSpec
 
 
@@ -136,13 +136,13 @@ async def spawn_players(
     players: list[PlayerSpec],
     output_dir: Path,
     source: Source,
-    manual_artifacts: Mapping[ManualProfile, ManualArtifact],
+    manual_artifacts: Mapping[ManualRequirement, ManualArtifact],
 ) -> None:
     """Spawn the requested players, each in its own process to run in parallel."""
     encoded_manual_artifacts = orjson.dumps(
         {
-            profile.runtime_digest: str(artifact.path)
-            for profile, artifact in manual_artifacts.items()
+            requirement.runtime_key: str(artifact.path)
+            for requirement, artifact in manual_artifacts.items()
         },
         option=orjson.OPT_SORT_KEYS,
     ).decode()

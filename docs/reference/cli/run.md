@@ -34,7 +34,7 @@ The run order is:
 2. Run full doctor checks against those files.
 3. enforce roster conditions;
 4. filter attempts already complete under the manifest's completion source;
-5. prepare only the manual profiles required by remaining attempts;
+5. reuse the doctor-validated manual artefacts required by remaining attempts;
 6. resolve one recorder directory and one log directory;
 7. start the experiment manager and wait for `GET /health`;
 8. start game rooms and player services;

@@ -76,7 +76,7 @@ gptnt run runs/quickstart.yaml
 ```
 
 `run` loads the generated JSON files and repeats the full doctor gate. It filters completed
-attempts and prepares the required manual. It then starts the experiment manager, game rooms, and
+attempts and validates the required compiled manual. It then starts the experiment manager, game rooms, and
 players before submitting the specifications and monitoring every child process.
 
 The included players exercise the system. They do not guarantee a solved bomb. A completed attempt

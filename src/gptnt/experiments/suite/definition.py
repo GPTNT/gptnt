@@ -77,6 +77,9 @@ class Suite(BaseModel):
     manual_profile: ManualProfile
     """The manual required for the mission in this Suite."""
 
+    manual_rule_seed: int = Field(default=1, ge=1)
+    """Rule seed shared by the suite's bombs and its compiled manual."""
+
     @model_validator(mode="after")
     def validate_roles(self) -> Self:
         """Role tags must match their slots, and a solo defuser cannot have an expert."""
@@ -92,7 +95,10 @@ class Suite(BaseModel):
     @property
     def loaded_missions(self) -> list[KtaneMissionSpec]:
         """Every materialised mission the suite covers, read from disk."""
-        return load_missions(Paths().root / self.missions_path)
+        return [
+            mission.model_copy(update={"rule_seed": self.manual_rule_seed})
+            for mission in load_missions(Paths().root / self.missions_path)
+        ]
 
     @property
     def mission_keys(self) -> tuple[str, ...]:
@@ -105,6 +111,11 @@ class Suite(BaseModel):
         """A stable digest of the suite's config itself."""
         payload = self.model_dump(mode="json", exclude={"name", "revision", "config_digest"})
         return stable_digest(payload)
+
+    def frozen_config(self) -> dict[str, object]:
+        """Return the canonical suite snapshot stored in `suites.lock`."""
+        payload = self.model_dump(mode="json", exclude_none=True, exclude={"config_digest"})
+        return payload
 
     def digest_for(self, missions: Sequence[KtaneMissionSpec]) -> str:
         """Calculate this suite's digest from an explicit mission snapshot."""

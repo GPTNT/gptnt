@@ -21,11 +21,11 @@ async def run(
         ),
     ] = False,
 ) -> None:
-    """Run a benchmark: doctor, prepare required manuals, spawn, submit, and monitor.
+    """Run a benchmark: doctor, spawn, submit, and monitor.
 
     Specs are NOT generated here. Run them with `gptnt generate <manifest>` first; this command
-    loads the pre-generated specs from `output/experiment_specs/<manifest-stem>/`. Manual
-    preparation occurs after resume filtering and before any process starts.
+    loads the pre-generated specs from `output/experiment_specs/<manifest-stem>/`. Doctor requires
+    the selected suites' manuals to be compiled before any process starts.
     """
     loaded = RunManifest.from_path(manifest)
     await run_pipeline(

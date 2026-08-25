@@ -28,13 +28,15 @@ profiles used by all configured suites.
 
 ## `gptnt manual compile`
 
-Run the complete download, resolution, and compilation pipeline for the selected profiles.
+Run the complete download, resolution, and compilation pipeline for the selected suites.
 
 ```text title="Command syntax"
-gptnt manual compile [--suite SUITE]... [--all-profiles]
+gptnt manual compile [--suite SUITE]...
 ```
 
-Selection follows the same rules as `manual download`. A successful compile writes or reuses a
+With no `--suite`, the command selects every configured suite. It deduplicates matching
+profile-and-rule-seed requirements, so two suites using one profile with different
+`manual_rule_seed` values compile separate artifacts. A successful compile writes or reuses a
 validated content-addressed directory under `output/manual_cache/artifacts/`.
 
 HTML compilation requires the Playwright-managed Chromium version installed for the current Python
@@ -42,9 +44,9 @@ environment. Profiles made only from selected pages of official PDF manuals do n
 
 ## Failure boundary
 
-Selection rejects an unknown suite, an empty profile set, or use of both selection modes. Download
-reports missing remote data. Resolution names the profile entry or frontmatter that cannot be
-resolved. Compilation reports browser, HTML, PDF, or artefact validation failures.
+Selection rejects an unknown suite or an empty suite set. Download reports missing remote data.
+Resolution names the profile entry or frontmatter that cannot be resolved. Compilation reports
+browser, HTML, PDF, or artefact validation failures.
 
 The CLI prints the failure and exits nonzero. It does not start runtime services.
 
