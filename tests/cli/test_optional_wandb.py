@@ -1,4 +1,4 @@
-"""Ensure that `wandb` is a genuinely optional extra.
+"""Ensure that `wandb` is an optional extra.
 
 `wandb` is opt-in through a `gptnt[wandb]` extra, so every non-wandb code path must import and
 run without it. The transitive imports (generic code -> wandb module) are lazy, so the default
@@ -15,7 +15,7 @@ from gptnt.experiments.ledger import Source
 from gptnt.experiments.ledger.local import LocalLedger
 from gptnt.experiments.ledger.resolve import resolve_ledger
 
-# Every module reachable on a non-wandb code path; all must import with wandb uninstalled.
+# Every module reachable on a non-wandb code path. All must import with wandb uninstalled.
 NON_WANDB_MODULES = (
     "gptnt.experiments.ledger.resolve",
     "gptnt.experiments.ledger",
@@ -25,7 +25,7 @@ NON_WANDB_MODULES = (
     "gptnt.cli.experiments.cleanup_wandb",
 )
 
-# The wandb integration modules: importing either runs `import wandb`, so non-wandb paths must not.
+# Importing either wandb integration module runs `import wandb`, so non-wandb paths must not.
 _WANDB_MODULES = ("gptnt.experiments.ledger.wandb", "gptnt.experiments.wandb_runs")
 
 
@@ -44,7 +44,7 @@ def test_locked_modules_import_without_wandb() -> None:
         *(f"import {module}" for module in NON_WANDB_MODULES),
     ]
     code = "\n".join(statements)
-    result = subprocess.run(  # noqa: S603 — fixed argv, no shell, test-only
+    result = subprocess.run(  # noqa: S603 (fixed argv, no shell, test-only)
         [sys.executable, "-c", code], capture_output=True, text=True, check=False
     )
     assert result.returncode == 0, result.stderr

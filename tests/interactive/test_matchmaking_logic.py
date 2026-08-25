@@ -1,4 +1,4 @@
-"""Unit tests for matchmaking pairing logic (pure functions, no Redis)."""
+"""Unit tests for pure matchmaking pairing functions."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from tests._factories.experiments import make_manual_profile
 def make_player(
     player_name: str, *, state: PlayerState = PlayerState.idle
 ) -> PlayerServiceManifest:
-    """Build a player manifest with the given matchmaking name."""
+    """Build a player manifest with a matchmaking name."""
     heartbeat = PlayerHeartbeat(
         uuid=uuid4(),
         service_name=player_name,
@@ -30,7 +30,7 @@ def make_player(
 
 
 def make_spec(*, defuser_name: str, expert_name: str | None = None) -> ExperimentSpec:
-    """Build a single- or multi-player spec keyed on the given player names."""
+    """Build a single- or multi-player spec keyed on player names."""
     is_solo = expert_name is None
     return ExperimentSpec(
         mission_spec=KtaneMissionSpec(

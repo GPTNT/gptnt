@@ -73,7 +73,7 @@ def test_absolute_missions_path_is_rejected() -> None:
 
 
 def test_solo_defuser_cannot_have_expert() -> None:
-    """A solo defuser paired with an expert fails loudly."""
+    """A solo defuser paired with an expert raises an error."""
     solo = PlayerProtocol(
         role="defuser", communication_style="sync", is_playing_alone=True, include_manual=False
     )

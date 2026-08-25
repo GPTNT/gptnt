@@ -36,7 +36,10 @@ def _write_db(db_path: Path, summaries: list[ExperimentSummary]) -> None:
 def test_results_lists_outcomes_and_dims_invalid(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Valid runs become rows; invalid runs only name their attempt in the caption."""
+    """Valid runs become rows.
+
+    Invalid runs only name their attempt in the caption.
+    """
     monkeypatch.setenv("COLUMNS", "200")  # keep rich from truncating cells in the captured pipe
     db_path = tmp_path / "experiments.duckdb"
     _write_db(

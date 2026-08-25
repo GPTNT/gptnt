@@ -1,7 +1,7 @@
 """Tests for the local (Weave-free) metrics aggregation: `score_predictions`.
 
 This is the path that replaced Weave-orchestrated scoring (statics can compute metrics with the
-`weave` extra uninstalled). A lightweight comparer keeps the test fast — no model/dataset.
+`weave` extra uninstalled). A lightweight comparer keeps the test fast without a model or dataset.
 """
 
 from __future__ import annotations

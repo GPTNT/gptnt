@@ -22,11 +22,11 @@ def _readable_footers(records_dir: Path) -> list[RecordFooter]:
 
     Skips a file a player's background save is still writing, since the runner reaches `done`
     before that save flushes and a half-written parquet raises on read. A `ValueError` (an unknown
-    footer format version) is a genuine problem, not a mid-write file, so it propagates.
+    footer format version) propagates as an error. A mid-write file is retried instead.
     """
     footers: list[RecordFooter] = []
     for path in sorted(records_dir.glob("experiment-*.parquet")):
-        # A mid-write parquet raises `OSError`/`ArrowInvalid`; the next poll retries it.
+        # A mid-write parquet raises `OSError`/`ArrowInvalid`. The next poll retries it.
         with suppress(OSError, ArrowInvalid):
             footers.append(read_record_footer(path))
     return footers
@@ -53,8 +53,8 @@ async def wait_for_recorded_outcome(
 ) -> ExperimentOutcome:
     """Wait for a completed run's record and return the outcome the DuckDB ingest would read.
 
-    Waits for a record carrying a final bomb state (the defuser stamps it on stop), then derives
-    the canonical `ExperimentOutcome` from it.
+    Waits for a record that contains a final bomb state, which the defuser stamps on stop. Derives
+    the canonical `ExperimentOutcome` from that state.
     """
     with anyio.fail_after(fail_after):
         while True:

@@ -5,7 +5,7 @@ from gptnt.players.specification import PlayerProtocol
 
 
 class ProtocolCases:
-    """Comprehensive PlayerProtocol configurations consolidating various test scenarios."""
+    """PlayerProtocol configurations that consolidate test scenarios."""
 
     def case_defuser(self) -> PlayerProtocol:
         """Defuser role, collaborative, without manual."""
@@ -38,7 +38,7 @@ class ProtocolCases:
     def check_expected_output_with_protocol(  # noqa: WPS602
         expected_output: PlayerOutputType | str, protocol: PlayerProtocol
     ) -> None:
-        """Check if the expected output is compatible with the given protocol."""
+        """Check whether the expected output is compatible with the protocol."""
         invalid_test_combinations = [
             (isinstance(expected_output, SendMessageAction) and protocol.is_playing_alone),
             (isinstance(expected_output, InteractGameAction) and protocol.role == "expert"),

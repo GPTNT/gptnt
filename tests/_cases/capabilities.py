@@ -88,7 +88,7 @@ class CapabilitiesCases:
     def check_expected_output_with_capabilities(  # noqa: WPS602
         expected_output: PlayerOutputType | str, capabilities: PlayerCapabilities
     ) -> None:
-        """Check if the expected output is compatible with the given capabilities."""
+        """Check whether the expected output is compatible with the capabilities."""
         invalid_test_combinations = [
             (
                 capabilities.interaction_location_method == "coordinates"

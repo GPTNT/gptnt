@@ -21,7 +21,7 @@ def test_configs_prefers_local_checkout_dir(tmp_path: Path) -> None:
 def test_configs_falls_back_to_packaged_copy(tmp_path: Path) -> None:
     # No `root/configs` here, so `configs` resolves to the packaged `gptnt/_configs`. A source
     # checkout has no `_configs` on disk, so the fallback's end-to-end presence is verified by the
-    # wheel build (integration); here we only check the fallback location is chosen.
+    # wheel build (integration). Here we only check that the fallback location is chosen.
     resolved = Paths(root=tmp_path).configs
     assert resolved.name == "_configs"
     assert tmp_path not in resolved.parents

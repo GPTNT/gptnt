@@ -31,7 +31,10 @@ def make_manual_profile(document_id: str = "Wires") -> ManualProfile:
 
 
 def make_solved_bomb() -> BombState:
-    """A solved bomb (empty modules; the is-solved validator marks an empty bomb solved)."""
+    """A solved bomb with empty modules.
+
+    The is-solved validator marks it solved.
+    """
     return BombState.model_validate(
         {
             "seed": 1,
@@ -64,7 +67,10 @@ def make_provenance() -> Provenance:
 
 
 def make_experiment_spec(seed: int = 12345) -> ExperimentSpec:
-    """A real single-player ExperimentSpec; the seed makes each attempt_name distinct."""
+    """A single-player ExperimentSpec.
+
+    The seed makes each attempt_name distinct.
+    """
     return ExperimentSpec(
         mission_spec=KtaneMissionSpec(
             seed=seed,

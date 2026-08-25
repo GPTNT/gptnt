@@ -26,7 +26,7 @@ configure_logging(enable_logfire=False)
 def configure_test_environment(tmp_path: Path) -> None:
     """Point the experiment recorder at a throwaway per-test dir.
 
-    The fast-poll service timeouts are set at conftest import time (see top of this module) — they
+    The fast-poll service timeouts are set at conftest import time (see top of this module). They
     MUST be in place before `gptnt.interactive` is imported, which is too early for a fixture.
     """
     records_dir = tmp_path.joinpath("output")
@@ -74,7 +74,7 @@ async def ktane_client(host: str, port: int) -> AsyncIterator[KtaneClient]:
     """Provides an instance of the Ktane Client for testing.
 
     `KtaneClient.__post_init__` already builds a real `httpx.AsyncClient` bound to this loop, so we
-    just hand it back and close it on teardown. (We must NOT patch `_client` onto the *class* — a
+    just hand it back and close it on teardown. (We must NOT patch `_client` onto the *class*. A
     `PropertyMock` assigned to the class is a descriptor that leaks into every other test's
     `KtaneClient` instances and breaks them on a closed event loop.)
     """

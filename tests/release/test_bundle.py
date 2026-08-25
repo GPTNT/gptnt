@@ -105,7 +105,7 @@ def _extract_assets(output_dir: Path, destination: Path) -> tuple[Path, Path]:
         archive.extractall(  # noqa: S202 - Extract the test-produced archive into a temp directory.
             zip_destination
         )
-    # Python's ZIP extractor does not restore POSIX modes; apply the modes stored in the archive.
+    # Python's ZIP extractor does not restore POSIX modes. Apply the modes stored in the archive.
     for member in members:
         (zip_destination / member.filename).chmod(member.external_attr >> 16 & 0o777)
     return tar_destination / "gptnt", zip_destination / "gptnt"

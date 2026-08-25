@@ -135,7 +135,7 @@ class BadReactOutputCases:
         return SendMessageAction(message="Hello")
 
     def case_only_reasoning(self) -> ParsedOutputCase:
-        """Only reasoning tag, no action at all."""
+        """A reasoning tag produces a reasoning-only result."""
         output = f"<{REACT_REASONING_TAG}>{self.thoughts}</{REACT_REASONING_TAG}>"
         return ParsedOutputCase(
             action=None,
@@ -146,7 +146,7 @@ class BadReactOutputCases:
         )
 
     def case_only_action(self) -> ParsedOutputCase:
-        """Only action tag, no reasoning at all."""
+        """An action tag produces an action-only result."""
         output = f"<{REACT_ACT_TAG}>{self.action.text_part_dump()}</{REACT_ACT_TAG}>"
         return ParsedOutputCase(
             action=self.action,
@@ -168,7 +168,7 @@ class BadReactOutputCases:
         )
 
     def case_only_action_no_tags(self) -> ParsedOutputCase:
-        """Action without any tags, no reasoning present."""
+        """Text without tags is treated as an action without reasoning."""
         output = self.action.text_part_dump()
         return ParsedOutputCase(
             action=self.action,
@@ -179,7 +179,7 @@ class BadReactOutputCases:
         )
 
     def case_only_reasoning_open_tag(self) -> ParsedOutputCase:
-        """Reasoning tag opened but never closed, no action generated."""
+        """An unclosed reasoning tag yields a malformed output result."""
         output = f"<{REACT_REASONING_TAG}>{self.thoughts}"
         return ParsedOutputCase(
             action=None,

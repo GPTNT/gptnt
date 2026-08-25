@@ -1,7 +1,7 @@
 """Local↔W&B parity: one outcome vocabulary, one validity definition.
 
-These pin the convergence so it can't silently re-drift: whichever source a consumer reads — the
-DuckDB `experiment_summary` row or the W&B `run.summary` — the experiment outcome has identical
+These pin the convergence so it cannot drift. Both the DuckDB `experiment_summary` row and the W&B
+`run.summary` describe the experiment outcome with identical
 field names and values, and both ledgers decide validity through the same `is_valid_outcome`. Real
 `BombState`s drive every case: the bomb's `check_is_solved_condition` validator means a "not
 solved" state needs a real unsolved module, so we use one.
@@ -25,14 +25,14 @@ from gptnt.players.specification import PlayerCapabilities
 
 from tests._factories.experiments import make_experiment_instance, make_provenance
 
-# Names retired by the convergence — must never reappear as summary columns or logged metrics.
+# Names retired by the convergence must never reappear as summary columns or logged metrics.
 _RETIRED_NAMES = frozenset(
     ("time_remaining", "total_modules_solved", "total_strikes", "is_timeout")
 )
 
 
 def _module(*, solved: bool) -> dict[str, object]:
-    """A single Wires module (solved or not) for a test BombState."""
+    """One Wires module (solved or not) for a test BombState."""
     return {
         "wires": [{"position": 0, "isCut": False, "color": "red"}],
         "isSolved": solved,
@@ -46,7 +46,7 @@ def _module(*, solved: bool) -> dict[str, object]:
 def _bomb(
     *, solved: bool, detonated: bool, seconds: float, strikes: list[str] | None = None
 ) -> BombState:
-    """A real final BombState with a single (un)solved module so `is_solved` is honoured."""
+    """A final BombState with one (un)solved module so `is_solved` is honoured."""
     return BombState.model_validate(
         {
             "seed": 1,
@@ -68,7 +68,7 @@ def _bomb(
     )
 
 
-# (label, bomb, is_hard_crash, expected_valid). `seconds=0` (int) is the zero-time case — pydantic
+# (label, bomb, is_hard_crash, expected_valid). `seconds=0` (int) is the zero-time case. Pydantic
 # coerces it to the float field, and it keeps WPS off a float-zero literal.
 _CASES = (
     ("solved", _bomb(solved=True, detonated=False, seconds=100.0), False, True),
@@ -102,15 +102,14 @@ def test_outcome_and_validity_parity(
         provenance=make_provenance(),
     )
 
-    # The DuckDB summary carries every outcome field under the same name and value.
+    # The DuckDB summary contains every outcome field under the same name and value.
     assert summary.outcome is bomb.outcome
     assert summary.seconds_remaining == bomb.seconds_remaining
     assert summary.strike_count == bomb.strike_count
     assert summary.num_modules_solved == bomb.num_modules_solved
     assert summary.is_hard_crash is is_hard_crash
 
-    # One validity definition: the shared helper (on the outcome's flags) and the local bomb-state
-    # path agree.
+    # The shared helper (on the outcome's flags) and the local bomb-state path agree.
     assert is_valid_outcome(outcome=bomb.outcome, is_hard_crash=is_hard_crash) is expected_valid
 
 
@@ -122,7 +121,10 @@ def test_timeout_takes_precedence_if_terminal_signals_overlap() -> None:
 
 
 def test_outcome_field_names_are_shared_and_drift_free() -> None:
-    """Every canonical outcome field is a real summary column; retired names stay gone."""
+    """Every canonical outcome field is a summary column.
+
+    Retired names stay gone.
+    """
     summary_cols = set(ExperimentSummary.model_fields)
     assert set(ExperimentOutcome.model_fields) <= summary_cols
     assert _RETIRED_NAMES.isdisjoint(summary_cols)

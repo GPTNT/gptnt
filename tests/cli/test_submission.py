@@ -137,7 +137,10 @@ def _instance(*, seed: int, model: str, expert: str | None = None) -> Experiment
 
 
 def _steps(instance: ExperimentInstance, player: PlayerContent) -> list[ExperimentStep]:
-    """Two steps for one player's record; only the defuser's steps carry a bomb state."""
+    """One player's record has steps.
+
+    Only defuser steps contain a bomb state.
+    """
     role = player.protocol.role
     is_defuser = role == "defuser"
     step = ExperimentStep(
@@ -362,7 +365,7 @@ def test_statics_bundle_from_filesystem(tmp_path: Path) -> None:
 def test_statics_model_filter_matches_player_name_not_dir(tmp_path: Path) -> None:
     """`--model` filters on the run's `player_name`, even when the run dir is the model string."""
     root = tmp_path / "statics"
-    # The run dir is the resolved model string; the leaderboard player_name differs.
+    # The run dir is the resolved model string. The leaderboard player_name differs.
     _ = write_statics_run(root, model_dir="gpt-5-mini-2026", player_name="gpt-5-2")
     into = tmp_path / "submissions"
 
@@ -374,7 +377,10 @@ def test_statics_model_filter_matches_player_name_not_dir(tmp_path: Path) -> Non
 
 
 def test_statics_unparsable_run_meta_is_skipped_not_fatal(tmp_path: Path) -> None:
-    """A broken run_meta.json is skipped with a warning; a valid sibling run still builds."""
+    """A broken run_meta.json is skipped with a warning.
+
+    A valid sibling run still builds.
+    """
     root = tmp_path / "statics"
     _ = write_statics_run(root, model_dir="good", player_name="gpt-5-2")
     broken = root / "expert-ocr_predictions" / "broken"
@@ -385,7 +391,7 @@ def test_statics_unparsable_run_meta_is_skipped_not_fatal(tmp_path: Path) -> Non
 
     result = _run_statics_new(root, into)
     assert result.exit_code == 0, result.output
-    # Only the good run produced a bundle; the broken one was skipped.
+    # Only the good run produced a bundle. The broken run was skipped.
     bundles = list(into.rglob("submission.yaml"))
     assert len(bundles) == 1
     manifest = _read_manifest(bundles[0].parent)

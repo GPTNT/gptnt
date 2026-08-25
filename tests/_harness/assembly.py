@@ -167,7 +167,7 @@ async def assembled_experiment(
         for service in services:
             await stack.enter_async_context(service.lifespan())  # noqa: WPS476
 
-        # Each `lifespan` enters `async with self.broker`, which only *connects* the broker —
+        # Each `lifespan` enters `async with self.broker`, which only *connects* the broker.
         # it does NOT start the registered subscribers (in production `FastStream.run()` calls
         # `broker.start()` for us). Without this, the RPC command subscribers (configure_player,
         # configure_game, ...) never consume, so the runner's first `broker.request` blocks until
@@ -187,7 +187,7 @@ async def assembled_experiment(
         # group that this AsyncExitStack holds open. If one of those tasks raises during startup,
         # anyio's task-group teardown absorbs it and `@asynccontextmanager` reports the cryptic
         # `RuntimeError: generator didn't yield` with no clue as to why. Actively waiting for
-        # readiness here turns a failed/stuck startup into an actionable error at assembly time;
+        # readiness here turns a failed or stuck startup into an error at assembly time.
         # the real exception is logged by the offending service (see broadcaster / state_monitor).
         try:
             await experiment.wait_until_ready(timeout=_STARTUP_TIMEOUT)

@@ -146,7 +146,10 @@ def test_run_metadata_is_bound_before_predictions_and_validated_on_resume(
 
 
 def test_revision_label_is_the_resolved_sha_not_the_requested_tag() -> None:
-    """The label pins on the resolved commit sha; a moving tag never forms it."""
+    """The label pins on the resolved commit sha.
+
+    A moving tag never forms it.
+    """
     identity = _identity(requested="release-2024-01", resolved="a1b2c3d4e5f6")
     assert identity.is_pinned
     assert identity.revision_label == "a1b2c3d4"
@@ -154,14 +157,14 @@ def test_revision_label_is_the_resolved_sha_not_the_requested_tag() -> None:
 
 
 def test_distinct_pins_do_not_collide_on_a_shared_tag_prefix() -> None:
-    """Two runs whose tags share an 8-char prefix but resolve to different shas stay distinct."""
+    """Runs whose tags share an 8-char prefix but resolve to different shas stay distinct."""
     first = _identity(requested="release-2024-01", resolved="aaaa1111deadbeef")
     second = _identity(requested="release-2024-02", resolved="bbbb2222deadbeef")
     assert first.target != second.target
 
 
 def test_unpinned_when_no_resolved_sha_even_with_a_requested_tag() -> None:
-    """No resolved commit sha (offline/private) means unpinned — never the requested tag."""
+    """A missing resolved commit sha (offline/private) leaves the run unpinned."""
     identity = _identity(requested="v1", resolved=None)
     assert not identity.is_pinned
     assert identity.revision_label == "unpinned"

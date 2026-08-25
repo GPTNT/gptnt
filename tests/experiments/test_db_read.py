@@ -101,7 +101,10 @@ def test_schema_policy_creates_fresh_database_and_rejects_v1_database(tmp_path: 
 def test_load_final_states_and_usage_takes_last_bomb_state_and_sums_per_role(
     tmp_path: Path,
 ) -> None:
-    """The final state is the last non-null bomb state; usage sums separately per player role."""
+    """The final state is the last non-null bomb state.
+
+    Usage sums separately per player role.
+    """
     session_id = uuid4()
     db_path = tmp_path / "experiments.duckdb"
     _write_steps(
@@ -142,7 +145,10 @@ def test_load_final_states_and_usage_takes_last_bomb_state_and_sums_per_role(
 
 
 def test_load_final_states_and_usage_is_empty_for_no_session_ids(tmp_path: Path) -> None:
-    """No session ids means no query and an empty result, not a crash."""
+    """No session ids means no query.
+
+    The result is empty.
+    """
     db_path = tmp_path / "experiments.duckdb"
     ensure_schema(db_path)
 

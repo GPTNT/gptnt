@@ -105,13 +105,13 @@ def test_rendered_player_settings_uses_configured_values() -> None:
 
 @parametrize("volume", [-1, 101])
 def test_volume_out_of_range_is_rejected(volume: int) -> None:
-    """Volumes outside 0-100 fail loudly rather than producing an invalid file."""
+    """Volumes outside 0-100 raise a validation error."""
     with pytest.raises(ValidationError):
         _ = KtaneSettings(music_volume=volume)
 
 
 @parametrize("code", ["", "xx", "en-GB", "fr&"])
 def test_unsupported_language_code_is_rejected(code: str) -> None:
-    """A code outside the KTANE set fails loudly instead of writing malformed XML."""
+    """A code outside the KTANE set raises a validation error."""
     with pytest.raises(ValidationError):
         _ = KtaneSettings(language_code=code)
