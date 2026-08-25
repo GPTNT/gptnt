@@ -9,7 +9,7 @@ from gptnt.cli.checks.validation import validate_model_config
 
 
 def test_unknown_model_fails_at_compose() -> None:
-    """An unknown model name fails loudly at the Hydra compose stage."""
+    """An unknown model name raises an error at the Hydra compose stage."""
     result = validate_model_config("this_model_does_not_exist_xyz")
 
     assert result.ok is False

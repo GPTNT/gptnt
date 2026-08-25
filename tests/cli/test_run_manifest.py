@@ -34,7 +34,7 @@ def _load_payload(tmp_path: Path, payload: dict[str, object]) -> RunManifest:
     """Write `payload` to a file and load it through the real `RunManifest.from_path` entrypoint.
 
     Structural errors propagate as pydantic's own `ValidationError` (the loader no longer wraps
-    them); the negative cases assert on that directly.
+    them). The negative cases assert on that directly.
     """
     manifest_file = tmp_path / "run.yaml"
     _ = manifest_file.write_text(yaml.safe_dump(payload), encoding="utf-8")

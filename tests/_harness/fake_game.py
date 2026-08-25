@@ -1,17 +1,14 @@
 """A scripted, in-process stand-in for the KTANE game binary.
 
-Two seams replace the real game:
-
-1. `GameProcessManager` is patched so `start()` returns a fixed port without spawning the
-   binary, and the process is reported alive.
-2. The `KtaneClient` HTTP endpoints are mocked with `respx` by a phase machine:
-
-   `setup` --(/startMission)--> `lights_off` --(/settimescale value>0)--> `lights_on` --> `ended`
+`GameProcessManager.start()` is patched to return a fixed port without spawning the binary. The
+process reports as alive. The `KtaneClient` HTTP endpoints are mocked with `respx` by a phase
+machine. A `/startMission` request moves `setup` to `lights_off`. A positive `/settimescale`
+request moves it to `lights_on`, then it ends after the configured number of steps.
 
 The game advances from `lights_on` to `ended` after `steps_until_end` steps. Sync play drives those
 steps by explicit `/timestep` calls and pauses the game in between; async play leaves the game
 unpaused and never calls `/timestep`, so an unpaused game advances on each defuser `/action`
-instead, standing in for the wall clock the real game runs on. On `ended` the bomb reads solved,
+instead, which models the wall clock of the game process. On `ended` the bomb reads solved,
 detonated, or timed out per `outcome`. The real `GameStateMonitor`, heartbeats, `GameStateWatcher`,
 and `ExperimentRunner` all run unmodified on top of this.
 """
@@ -35,8 +32,8 @@ if TYPE_CHECKING:
 
 _FAKE_GAME_PORT = 19999
 
-# A minimal but valid BombState body (camelCase, as the game emits it) with a single unsolved
-# module — an empty module list would vacuously mark the bomb solved.
+# A minimal valid BombState body (camelCase, as the game emits it) with one unsolved module. An
+# empty module list would mark the bomb solved.
 _BASE_BOMB_STATE: dict[str, Any] = {  # noqa: WPS407
     "seed": 234,
     "maxStrikes": 3,
@@ -62,7 +59,7 @@ _BASE_BOMB_STATE: dict[str, Any] = {  # noqa: WPS407
 
 
 def _blank_frame_buffer(width: int = 64, height: int = 64) -> bytes:
-    """Pack a single blank RGB frame the way `FrameBuffer` expects (header + pixels)."""
+    """Pack one blank RGB frame the way `FrameBuffer` expects (header + pixels)."""
     image = Image.new("RGB", (width, height), color=(20, 20, 20))
     pixels = image.transpose(Image.Transpose.FLIP_TOP_BOTTOM).tobytes()
     header = struct.pack("<Biii", 0, 1, height, width)  # has_segmentation=0, frame_count=1
@@ -98,7 +95,7 @@ class FakeKtaneGame:
         """Patch the process manager and register the HTTP routes against `respx_mock`."""
         # The client sleeps `SECONDS_PER_ACTION` after each `advance_game_time` to track the real
         # game's wall clock. The fake game has no clock, so that sleep is pure dead time (~3s/step,
-        # the bulk of a full-run test); drop it to 0 with no effect on the state machine.
+        # the bulk of a full-run test). Drop it to 0 with no effect on the state machine.
         monkeypatch.setattr(game_client, "SECONDS_PER_ACTION", 0)
 
         async def _fake_start(_self: object) -> int:  # noqa: WPS430
@@ -167,7 +164,7 @@ class FakeKtaneGame:
         return self.num_modules if self.outcome == "solved" else self.modules_solved_at_end
 
     def _apply_terminal_state(self, state: dict[str, Any]) -> None:
-        """Set the losing-end flags; the modules already carry the solved count from `_modules`.
+        """Set the losing-end flags. The modules already contain the solved count from `_modules`.
 
         `is_timed_out` and `is_strike_out` both require `is_detonated`, so a detonation is the base
         of every losing end and the timer or strike count is what distinguishes them.
@@ -179,7 +176,7 @@ class FakeKtaneGame:
         if self.outcome == "timed_out":
             state["timerModule"] = {**state["timerModule"], "secondsRemaining": 0}
 
-    # --- HTTP handlers -----------------------------------------------------------------------
+    # HTTP handlers
     def _on_health(self, _request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, text=self._game_state())
 
@@ -192,7 +189,7 @@ class FakeKtaneGame:
         return httpx.Response(200, text="true")
 
     def _on_set_timescale(self, request: httpx.Request) -> httpx.Response:
-        # value>0 unpauses the game (and turns the lights on); value==0 pauses it. Sync mode pauses
+        # value>0 unpauses the game (and turns the lights on). value==0 pauses it. Sync mode pauses
         # between steps and advances time by explicit `/timestep`; async mode leaves the game
         # unpaused and never steps it, so an unpaused game advances on each defuser `/action`.
         value = float(request.url.params.get("value", "0"))
@@ -211,7 +208,10 @@ class FakeKtaneGame:
         return httpx.Response(200, text="true")
 
     def _advance(self) -> None:
-        """Advance one step towards the end; the bomb resolves per `outcome` once time runs out."""
+        """Advance one step towards the end.
+
+        The bomb resolves per `outcome` once time runs out.
+        """
         self.timesteps += 1
         if self.timesteps >= self.steps_until_end:
             self.phase = "ended"

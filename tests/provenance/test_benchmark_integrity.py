@@ -129,7 +129,7 @@ def _apply_change(repository: Path, change: ChangeKind) -> None:
         ("modified", ("configs/manual/sources.toml",), (), (), True),
         ("deleted", ("src/gptnt/benchmark.py",), (), (), True),
         ("file_mode", ("src/gptnt/benchmark.py",), (), (), True),
-        # Untracked protected content, permitted input, and unrelated content.
+        # Cases with untracked paths or permitted input.
         ("untracked", (), ("src/gptnt/untracked.py",), (), True),
         ("replaced", ("src/gptnt/benchmark.py",), ("src/gptnt/benchmark.py",), (), True),
         ("permitted", (), (), ("configs/player/custom.yaml",), False),

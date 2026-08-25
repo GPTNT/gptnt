@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from tests._harness.fake_game import FakeKtaneGame
 
 # Manual debugging (see where a run stalls, without output capture):
-#   uv run pytest tests/integration/test_smoke.py -s -o addopts="" -p no:sugar --no-header
+#   Run pytest for this file with capture disabled, no Sugar plugin, and the no-header option.
 # The full-run family exercises the orchestration over `FakeKtaneGame`, a scripted single-module
 # phase machine with no real timing or frame-buffer decoding. A green run is evidence about the
 # service plumbing, not that the benchmark starts against the real KTANE binary (a `requires_game`
@@ -34,13 +34,16 @@ pytestmark = [pytest.mark.anyio, pytest.mark.integration]
 
 
 async def _silent_heartbeat() -> None:
-    """Stand in for a player that has stopped sending heartbeats."""
+    """Model a player that has stopped sending heartbeats."""
 
 
 async def test_services_register_and_matchmake(
     assembled: AssembledExperiment, mocker: MockerFixture
 ) -> None:
-    """EM + game + 2 players register over fake Redis; a submitted spec is matched to a session."""
+    """EM, game, and players register over fake Redis.
+
+    A submitted spec is matched to a session.
+    """
     # Mock the experiment run itself because this test ends at session matchmaking.
     _ = mocker.patch(
         "gptnt.interactive.services.experiment_manager.session.Session.run", autospec=True
@@ -82,7 +85,7 @@ async def test_full_run_solved(
 async def test_full_run_detonated(
     assembled: AssembledExperiment, fake_game: FakeKtaneGame, records_dir: Path
 ) -> None:
-    """A detonated bomb ends the run with a game-over, not a hard crash, and records it."""
+    """A detonated bomb ends the run with a game-over and records it."""
     session = await assembled.run_to_completion(assembled.build_spec())
 
     assert session.state == ExperimentState.done
@@ -150,7 +153,7 @@ async def test_full_run_async(
     spec = assembled.build_spec(communication_style="async")
     session = await assembled.run_to_completion(spec)
 
-    # Assert the runner type so a silent fallback to the sync runner cannot pass this vacuously.
+    # Assert the runner type to ensure the session uses AsyncExperimentRunner.
     assert isinstance(session.experiment_runner, AsyncExperimentRunner)
     assert session.state == ExperimentState.done
     assert not session.is_hard_crash
@@ -193,7 +196,7 @@ async def test_player_crash_midrun(
     thing that stops the run. The registry must detect the expired heartbeat, force-stop the
     session, reach `done`, and still write a record, all within the heartbeat-expiry timeout rather
     than hanging on the runner's RPC. Only the heartbeat is silenced, so the defuser's RPC still
-    answers the stop and its record saves too; a truly unrecoverable player is a separate case.
+    answers the stop and its record saves too. A player that cannot respond is a separate case.
     """
     spec = assembled.build_spec(communication_style="async")
     assembled.experiment_manager.specs.append(spec)
@@ -213,11 +216,11 @@ async def test_player_crash_midrun(
             await anyio.sleep(0.1)
     assert session is not None  # the loop only breaks once a session is matched and running
 
-    # Stop refreshing the defuser's heartbeat key; it expires within `HEARTBEAT_EXPIRATION`.
+    # Stop refreshing the defuser's heartbeat key. It expires within `HEARTBEAT_EXPIRATION`.
     monkeypatch.setattr(assembled.defuser, "send_heartbeat", _silent_heartbeat)
 
-    # The registry detects the expired defuser and force-stops the session. Bounded, so a failed
-    # recovery surfaces as a timeout here rather than hanging on the runner's RPC.
+    # The registry detects the expired defuser and force-stops the session. A failed recovery
+    # produces a timeout here rather than hanging on the runner's RPC.
     with anyio.fail_after(20):
         while True:
             if session.state == ExperimentState.done:

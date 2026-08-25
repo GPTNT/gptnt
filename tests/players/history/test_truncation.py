@@ -56,7 +56,7 @@ def _drop(entries: list[Entry], **overrides: int | None) -> int:
     return turns_to_drop(entries=entries, **kwargs)
 
 
-# --- the size estimate ------------------------------------------------------------------------
+# The size estimate
 
 
 def test_text_is_sized_at_four_characters_per_token() -> None:
@@ -92,7 +92,7 @@ def test_zero_tokens_per_image_adds_no_image_size() -> None:
     assert entry.estimated_render_tokens(in_window=True, tokens_per_image=0) == 10
 
 
-# --- the drop decision ------------------------------------------------------------------------
+# The drop decision
 
 
 def test_no_limit_never_truncates() -> None:
@@ -102,7 +102,7 @@ def test_no_limit_never_truncates() -> None:
 
 
 def test_prompt_under_budget_keeps_everything() -> None:
-    """A prompt at the 80% threshold requires no truncation."""
+    """A prompt at the 80% threshold does not require truncation."""
     entries = [_turn(input_tokens=100, text_chars=400) for _ in range(5)]
     entries.append(_turn(input_tokens=800, text_chars=400))
 
@@ -183,7 +183,7 @@ def test_pinned_entries_are_never_dropped() -> None:
 
 
 def test_the_newest_turn_is_never_dropped() -> None:
-    """Even a single turn far over budget stays: there is nothing older to drop for it."""
+    """Even one turn far over budget stays because no older turn can be dropped."""
     entries = [_turn(input_tokens=10_000, text_chars=400)]
 
     assert _drop(entries, input_tokens_limit=1000) == 0
@@ -198,7 +198,7 @@ def test_a_prompt_larger_than_the_whole_history_drops_all_but_the_newest() -> No
     assert _drop(entries, input_tokens_limit=1000) == 4
 
 
-# --- the cache sub-counts (guarding the double-count fix) --------------------------------------
+# The cache sub-counts (guarding the double-count fix)
 
 
 def test_total_input_tokens_excludes_cache_subcounts() -> None:

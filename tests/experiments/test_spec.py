@@ -8,7 +8,7 @@ from tests._factories.experiments import (
 
 
 def test_fingerprint_ignores_attempt_and_player_names() -> None:
-    """Two specs that differ only in attempt or player identity fingerprint the same experiment."""
+    """Specs that differ only in attempt or player identity fingerprint the same experiment."""
     spec = make_experiment_spec()
     same_experiment = spec.model_copy(
         update={"attempt": spec.attempt + 1, "defuser_name": "other"}
@@ -17,7 +17,10 @@ def test_fingerprint_ignores_attempt_and_player_names() -> None:
 
 
 def test_fingerprint_includes_manual_profile_but_not_player_image_dimensions() -> None:
-    """The profile is spec identity; image dimensions are resolved runtime state."""
+    """The profile is spec identity.
+
+    Image dimensions are resolved runtime state.
+    """
     instance = make_experiment_instance()
     different_manual = instance.model_copy(
         update={"manual_profile": make_manual_profile(document_id="BigButton")}

@@ -1,9 +1,9 @@
 """Tests for `gptnt doctor`.
 
-Coverage is the deterministic, infra-free surface: the model-result mapping, the display-gating
+Coverage is the deterministic, infra-free surface for model-result mapping and display-gating
 logic, the small text/path helpers, the summary tally, and the two async paths that need neither
-network nor a spawned game (a dummy model check, and the mod-load gate that must *skip* — not spawn
-— when a prerequisite already failed). The infra checks themselves (Redis/EM/otel/game spawn) are
+network nor a spawned game (a dummy model check and the mod-load gate that skips spawning when a
+prerequisite already failed). The infra checks themselves (Redis/EM/otel/game spawn) are
 environment-dependent and verified by running `gptnt doctor` directly.
 """
 
@@ -47,7 +47,7 @@ def test_static_boxes_ok_is_exists_and_instantiates() -> None:
 def test_static_boxes_compose_fail_is_exists_fail() -> None:
     outcome = ModelValidationResult("m", None, ok=False, error_stage="compose", error="bad yaml")
     exists, instantiates, _ = players._static_boxes(outcome)
-    # A config that doesn't compose doesn't "exist"; instantiation can't even be attempted.
+    # A config that does not compose cannot be instantiated.
     assert (exists, instantiates) == ("fail", "skip")
 
 
@@ -68,7 +68,7 @@ def test_static_boxes_missing_credential_is_instantiate_fail() -> None:
     exists, instantiates, note = players._static_boxes(outcome)
     # An unset provider key composes but can't run, so the doctor fails it (not a warn).
     assert (exists, instantiates) == ("pass", "fail")
-    # The note surfaces pydantic-ai's own message (which names the var) — no maintained map.
+    # The note surfaces pydantic-ai's own message, which names the variable. No map is maintained.
     assert "FOO_API_KEY" in note
 
 
@@ -168,7 +168,7 @@ async def test_mod_load_skips_when_prerequisite_failed() -> None:
 
 @pytest.mark.anyio
 async def test_mod_load_row_points_to_flag_when_disabled() -> None:
-    """When --check-mod-load is off, the row is shown as a skip that names the flag (not
+    """When the check-mod-load option is off, the row is shown as a skip that names the flag (not
     hidden)."""
     result = await command._mod_load_row(enabled=False, prerequisites=())
     assert result.status == "skip"

@@ -67,7 +67,7 @@ def test_reconcile_is_unchanged_when_already_frozen() -> None:
 
 
 def test_reconcile_dedups_missions_shared_across_suites() -> None:
-    """Two suites over the same mission set store each mission once, not twice."""
+    """Suites over the same mission set store each mission once."""
     pairwise = compose_suite("single-pairwise-sync")
     parametric = compose_suite("single-parametric-sync")
     assert pairwise.mission_keys == parametric.mission_keys  # both use single_module
@@ -117,7 +117,7 @@ def test_load_suite_from_lock_rebuilds_suite_and_missions(
 
 
 def test_load_suite_from_lock_errors_when_unfrozen() -> None:
-    """Selecting a suite (or revision) absent from the lock fails loudly."""
+    """Selecting a suite (or revision) absent from the lock raises an error."""
     lock = FreezeReport.reconcile([_a_suite()], None, _STAMP).updated_lock
     with pytest.raises(SuiteNotFrozenError, match="is not in the lock"):
         _ = lock.load_suite("never-frozen")

@@ -1,6 +1,6 @@
 """An in-process `fakeredis` server that clients connect to.
 
-`TcpFakeServer` serves both the FastStream pub/sub RPC and the coredis heartbeat command set,
+`TcpFakeServer` serves both the FastStream pub/sub RPC and the heartbeat commands used by coredis,
 provided the server is listening before any client connects.
 """
 

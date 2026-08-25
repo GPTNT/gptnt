@@ -298,7 +298,7 @@ async def test_recorder_skips_empty_record(
     recorder.output_dir = tmp_path
     await recorder.save_player_record_to_disk(player_record=empty_record)
 
-    # Synchronous glob in a test assertion — not a hot path, anyio.Path is unwarranted here.
+    # This test assertion uses a synchronous glob. It is not a hot path.
     assert list(tmp_path.glob("*.parquet")) == []  # noqa: ASYNC240
 
 
@@ -432,7 +432,7 @@ def _write_record_parquet(record: ExperimentPlayerRecord, path: Path) -> None:
 
 
 def test_ingest_recorder_parquet_into_duckdb(tmp_path: Path, step_record: ExperimentStep) -> None:
-    """Two player footers reconstruct one summary with the complete recorded identity."""
+    """Player footers reconstruct a summary with the complete recorded identity."""
     instance = _two_player_instance()
     provenance = make_provenance()
     defuser_record = _build_player_record(instance, instance.defuser, step_record)

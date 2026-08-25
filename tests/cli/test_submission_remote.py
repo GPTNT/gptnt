@@ -84,7 +84,7 @@ def _dry_run_session(
 ) -> _SubmissionSession:
     return _SubmissionSession(
         repo=repo,
-        # The dry-run path never dereferences source_repo; a bare object proves it stays untouched.
+        # The dry-run path never dereferences source_repo. A bare object proves it stays untouched.
         source_repo=cast("GhRepository", object()),
         default_branch="main",
         login="octocat",
@@ -126,7 +126,7 @@ def test_submit_one_bundle_dry_run_commits_only_that_bundle(tmp_path: Path) -> N
     assert result.pr_url == DRY_RUN_PR_URL
     assert result.error is None
 
-    # A real commit landed on the bundle's branch, off base, carrying only that bundle's files.
+    # The bundle's branch has a commit off base that contains only that bundle's files.
     committed = repo.diff(
         repo[base_oid].peel(pygit2.Commit),
         repo.branches.local["octocat/add-gpt-5-2_7bc641c3"].peel(pygit2.Commit),

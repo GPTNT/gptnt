@@ -10,7 +10,7 @@ game_command = param_fixture(
 
 
 class PredictedActionCases:
-    """Case class for successful model outputs across various action types."""
+    """Case class for successful model outputs across action types."""
 
     def case_do_nothing(self) -> DoNothingAction:
         """DoNothingAction output."""

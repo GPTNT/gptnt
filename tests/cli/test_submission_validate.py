@@ -116,7 +116,10 @@ def valid_bundle_root(
 
 @pytest.fixture
 def bundle_copy(valid_bundle_root: Path, tmp_path: Path) -> Path:
-    """A fresh mutable copy of the valid bundle tree; returns the bundle dir itself."""
+    """A fresh mutable copy of the valid bundle tree.
+
+    Return the bundle dir itself.
+    """
     root = tmp_path / "submissions"
     _ = shutil.copytree(valid_bundle_root, root)
     return next(root.rglob("submission.yaml")).parent
@@ -130,7 +133,10 @@ def _assert_validate_fails(path: Path) -> None:
 
 
 def _unwrap_output(capsys: pytest.CaptureFixture[str]) -> str:
-    """The output whitespace-collapsed; assert on `✗ <check-name>` (that column never wraps)."""
+    """The output is whitespace-collapsed.
+
+    Assert on `✗ <check-name>`, which never wraps.
+    """
     return " ".join(capsys.readouterr().out.split())
 
 
@@ -388,7 +394,10 @@ def valid_pairwise_root(
 
 @pytest.fixture
 def pairwise_bundle_copy(valid_pairwise_root: Path, tmp_path: Path) -> Path:
-    """A fresh mutable copy of the covering pairwise bundle; returns the bundle dir itself."""
+    """A fresh mutable copy of the covering pairwise bundle.
+
+    Return the bundle dir itself.
+    """
     root = tmp_path / "submissions"
     _ = shutil.copytree(valid_pairwise_root, root)
     return next(root.rglob("submission.yaml")).parent
@@ -404,7 +413,7 @@ def test_pairwise_bundle_passes(pairwise_bundle_copy: Path) -> None:
 def test_pairwise_repeated_pairing_fails(
     pairwise_bundle_copy: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """Two runs of the same (expert, mission) pairing is a real duplicate."""
+    """Repeated runs of the same (expert, mission) pairing are a duplicate."""
     payload = pairwise_bundle_copy / "experiments.parquet"
     experiments = read_typed_parquet(SubmissionExperiment, payload)
     write_typed_parquet([*experiments, experiments[0]], file_path=payload)

@@ -40,7 +40,7 @@ class DocumentConfigCases:
         )
 
 
-# --- profile parsing ---------------------------------------------------------------------------
+# Profile parsing
 
 
 def test_every_shipped_config_parses() -> None:

@@ -1,12 +1,12 @@
 """Fixtures for in-situ interactive integration tests (fake Redis + fake game, real services).
 
-- `fake_redis_dsn` — an in-process fake Redis (sync; starts before anything connects)
-- `fake_game`      — patches the game process manager + mocks the KTANE HTTP endpoints. Parametrise
-                     its outcome indirectly: `@pytest.mark.parametrize("fake_game", ["detonated"],
-                     indirect=True)`.
-- `records_dir`    — the per-test directory the players' recorders write parquet records to
-- `assembled`      — the live EM + game + 2 player services on the fake Redis
-- `assembled_solo` — the same, but Defuser-only (no expert)
+- `fake_redis_dsn`: an in-process fake Redis (sync, starts before anything connects)
+- `fake_game`: patches the game-process manager and mocks the KTANE HTTP endpoints.
+  Parametrise its outcome indirectly: `@pytest.mark.parametrize("fake_game", ["detonated"],
+  indirect=True)`.
+- `records_dir`: the per-test directory the players' recorders write parquet records to
+- `assembled`: the live EM + game + 2 player services on the fake Redis
+- `assembled_solo`: the same, but Defuser-only (no expert)
 
 To debug by hand, the same pieces are importable directly:
 
@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 
 @pytest.fixture
 def fake_redis_dsn() -> Iterator[str]:
-    """An in-process fake Redis; yields its DSN."""
+    """Yield the DSN for an in-process fake Redis."""
     with fake_redis_server() as dsn:
         yield dsn
 

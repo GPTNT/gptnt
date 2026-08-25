@@ -222,7 +222,7 @@ def _texts(messages: list[ModelMessage]) -> list[str]:
 
 
 def test_render_composes_truncation_windowing_and_coercion() -> None:
-    """Rendering truncates turns, windows images, and converts tool output."""
+    """Rendering truncates turns and windows images before converting tool output."""
     protocol = PlayerProtocol(
         role="defuser", communication_style="sync", is_playing_alone=False, include_manual=False
     )

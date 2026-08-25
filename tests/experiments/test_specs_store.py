@@ -41,7 +41,10 @@ def test_write_then_load_preserves_frozen_suite_digest(
 
 
 def test_load_from_missing_dir_is_empty(tmp_path: Path) -> None:
-    """An absent spec dir yields no specs (the caller turns this into a clear 'generate first')."""
+    """An absent spec dir yields an empty result.
+
+    The caller asks the user to generate specs first.
+    """
     assert load_specs_from_dir(tmp_path / "never-generated") == []
 
 

@@ -2,7 +2,7 @@
 
 The point of the lazy, per-name lookup: a malformed `identity` block in an *unrelated* model's
 config must never be validated (so it can't block a good submission), and a malformed block on the
-*requested* model must fail loudly, naming the offending file.
+*requested* model must raise an error that names the offending file.
 """
 
 from __future__ import annotations
@@ -52,14 +52,14 @@ def test_resolves_a_configured_identity(configs_dir: Path) -> None:
 
 def test_raises_when_no_config_matches(configs_dir: Path) -> None:
     _write_config(configs_dir, "good", player_name="good-model", identity=_VALID_IDENTITY)
-    # A submission must be attributable, so an unknown player is a hard error, not a blank.
+    # A submission must identify each player. An unknown player therefore raises an error.
     with pytest.raises(ValueError, match="absent-model"):
         _ = config_discovery.player_identity("absent-model")
 
 
 def test_a_malformed_unrelated_config_does_not_block_a_good_lookup(configs_dir: Path) -> None:
     _write_config(configs_dir, "good", player_name="good-model", identity=_VALID_IDENTITY)
-    # Missing display_name/is_os_model/url — invalid, but for a model we are not resolving.
+    # Missing display_name/is_os_model/url is invalid, but this model is not resolved.
     _write_config(configs_dir, "bad", player_name="bad-model", identity={"organisation": "X"})
     assert config_discovery.player_identity("good-model").organisation == "GPTNT"
 

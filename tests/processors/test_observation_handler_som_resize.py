@@ -194,11 +194,6 @@ def test_som_coordinates_preserved_after_resize(
         f"Original pixel Y {original_pixel_y} out of bounds [0, 384)"
     )
 
-    # If we incorrectly used the resized dimensions (448x448), the coordinates would map otherwise
-    # Let's verify that the coordinate doesn't make sense for 448x448 when the aspect ratio differs
-    # For the original 512x384 image, the aspect ratio is 4:3
-    # After resize to 448x448 (1:1), if marks were computed post-resize, coordinates would differ
-
     # The key test: verify that convert_som_location_to_coordinate returns the same coordinate
     # that was stored in mark_to_coordinate (which was computed on original dimensions)
     converted_coordinate = som_handler.convert_mark_to_coordinate(mark_id=first_mark)

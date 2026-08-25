@@ -3,7 +3,7 @@
 The cross-check (`run_plan.analyze_run_plan`) is the focus: given a config-name → player_name
 mapping (built here exactly as `check_players` hands one back) it dry-runs real, offline experiment
 generation and reports coverage / count / resume findings. Generation runs through Hydra (offline,
-deterministic), so these tests exercise the genuine config→player_name resolution and the roster
+deterministic), so these tests exercise the config→player_name resolution and the roster
 cross-check.
 
 WandB is never contacted: the manifests default to `source: local`, so the resume row reads
@@ -90,7 +90,10 @@ def test_explicit_count_is_not_second_guessed() -> None:
 
 
 def test_unresolved_roster_model_is_flagged_and_generation_continues() -> None:
-    """A roster entry that didn't resolve to a player_name is ✗; the rest still cross-checks."""
+    """A roster entry that did not resolve to a player_name is ✗.
+
+    The rest still cross-checks.
+    """
     manifest = _manifest(
         rooms=1, players=[{"player": "test-defuser"}, {"player": "nonexistent_xyz"}]
     )

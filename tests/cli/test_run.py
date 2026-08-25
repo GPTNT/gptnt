@@ -54,7 +54,10 @@ def _manifest(**overrides: object) -> RunManifest:
 
 
 def _spec(defuser: str = "claude-sonnet-4-6", expert: str | None = None) -> ExperimentSpec:
-    """A real spec keyed on the given player names (the pipeline reads the name fields)."""
+    """A spec keyed on player names.
+
+    The pipeline reads the name fields.
+    """
     spec = make_experiment_spec()
     if expert is None:
         return spec.model_copy(update={"defuser_name": defuser})
@@ -106,7 +109,7 @@ async def _record_spawn(
 def _patch_spawn(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, object]]:
     """Replace the real spawn/submit/monitor with a stub that records each call's specs.
 
-    Returns the call log; an empty list means spawn was never reached.
+    Returns the call log. An empty list means spawn was never reached.
     """
     calls: list[dict[str, object]] = []
     monkeypatch.setattr(pipeline, "_spawn_submit_monitor", functools.partial(_record_spawn, calls))
@@ -128,7 +131,7 @@ def _patch_diagnose(monkeypatch: pytest.MonkeyPatch, result: DiagnoseResult) -> 
 
 
 def _patch_load_specs(monkeypatch: pytest.MonkeyPatch, specs: Sequence[object]) -> None:
-    """Patch the disk-spec loader so the pipeline 'reads' the given specs without touching disk."""
+    """Patch the disk-spec loader so the pipeline reads specs without touching disk."""
     monkeypatch.setattr(
         "gptnt.cli.run._pipeline.load_specs_from_dir", lambda _directory: list(specs)
     )
@@ -265,7 +268,7 @@ async def test_run_force_does_not_bypass_roster_failure(monkeypatch: pytest.Monk
 
 
 # -------------------------------------------------------------------------------------------------
-# run_pipeline — control flow
+# run_pipeline control flow
 # -------------------------------------------------------------------------------------------------
 
 
@@ -436,7 +439,7 @@ async def test_run_pipeline_aborts_when_no_specs_on_disk(monkeypatch: pytest.Mon
     with pytest.raises(RuntimeError):
         await pipeline.run_pipeline(_manifest(), manifest_stem="m")
 
-    # The raising stub guarantees we exit before the doctor gate; nothing was spawned either.
+    # The raising stub guarantees we exit before the doctor gate. Nothing was spawned.
     assert calls == []
 
 
@@ -611,7 +614,7 @@ async def test_manual_preparation_failure_prevents_spawn(
 
 
 # -------------------------------------------------------------------------------------------------
-# _spawn_submit_monitor — teardown on submit failure
+# _spawn_submit_monitor teardown on submit failure
 # -------------------------------------------------------------------------------------------------
 
 

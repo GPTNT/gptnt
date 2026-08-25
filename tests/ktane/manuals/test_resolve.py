@@ -37,7 +37,7 @@ def _write(path: Path, content: str | bytes) -> None:
 
 
 def _sources(*, frontmatter: tuple[LocalDocument, ...] = ()) -> ManualSources:
-    """Build the smallest source configuration that covers every resolver branch."""
+    """Build a source configuration for resolver-branch tests."""
     return ManualSources(
         ktane_content=KtaneContentSource(
             repository="https://content.test/repository.git",

@@ -20,7 +20,7 @@ def test_nobf_generator_handles_error_combinations(error_list: list[AIResponseEr
     """Test that the NaughtyOutputBehaviourFeedbackGenerator can handle combinations of errors."""
     generator = NaughtyOutputBehaviourFeedbackGenerator()
 
-    # Create a mock AgentCallResult with the given errors
+    # Create a mock AgentCallResult with errors
     agent_call_result = AgentCallResult[PlayerOutputType](
         ai_response_error=error_list,
         output=DoNothingAction(),
@@ -43,7 +43,7 @@ def test_nobf_generator_handles_error_combinations(error_list: list[AIResponseEr
 def test_nobf_generator_handles_no_errors() -> None:
     generator = NaughtyOutputBehaviourFeedbackGenerator()
 
-    # Create a mock AgentCallResult with the given errors
+    # Create a mock AgentCallResult with errors
     agent_call_result = AgentCallResult[PlayerOutputType](
         ai_response_error=[],
         output=DoNothingAction(),

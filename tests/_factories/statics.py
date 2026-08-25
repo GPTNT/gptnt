@@ -25,11 +25,11 @@ def write_statics_run(
     resolved_revision: str | None = "a1b2c3d4e5f6",
     metrics: dict[str, Any] | None = None,
 ) -> Path:
-    """Write a statics outputs dir (metrics.json + a stamped run_meta.json); return the run dir.
+    """Write a statics outputs dir (metrics.json + a stamped run_meta.json). Return the run dir.
 
     `model_dir` is the run directory leaf (the resolved model string, as the real writer names it);
-    `player_name` is the config/leaderboard name — the two are distinct on purpose so tests can
-    exercise the `--model` filter, which keys on `player_name`.
+    `player_name` is the config/leaderboard name. Tests exercise the `--model` filter, which keys
+    on `player_name` rather than `model_dir`.
     """
     out = root / f"{task}_predictions" / model_dir
     out.mkdir(parents=True)

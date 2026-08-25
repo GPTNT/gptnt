@@ -16,13 +16,16 @@ from tests._cases.mission_generator_config import MissionGeneratorConfigCases
 
 
 def test_load_missions_raises_on_an_empty_set(tmp_path: Path) -> None:
-    """Loading a set directory with no mission files fails loudly, not silently on nothing."""
+    """Loading a set directory with no mission files raises an error."""
     with pytest.raises(FileNotFoundError, match="No mission specs"):
         _ = load_missions(tmp_path)
 
 
 def test_best_model_for_resolves_the_anchor_named_by_the_pairing() -> None:
-    """A `with_best_*` pairing pulls its anchor from the roster; the others need none."""
+    """A `with_best_*` pairing pulls its anchor from the roster.
+
+    Other pairings do not need one.
+    """
     players = OmegaConf.create({"best_defuser": "anchor-d", "best_expert": "anchor-e"})
     assert _best_model_for("with_best_defuser", players) == "anchor-d"
     assert _best_model_for("with_best_expert", players) == "anchor-e"
