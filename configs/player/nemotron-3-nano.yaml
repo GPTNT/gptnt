@@ -1,0 +1,39 @@
+# @package player
+
+identity:
+  display_name: Nemotron 3 Nano Omni (30B-A3B Reasoning)
+  organisation: NVIDIA
+  is_os_model: true
+  url: https://huggingface.co/nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-BF16
+
+capabilities:
+  player_name: nemotron-3-nano
+  # Provisional estimate; calibrate against the deployed endpoint before long runs.
+  tokens_per_image: 302
+  structured_output_mode: native
+  thinking_method: inner-monologue
+  include_schema_in_instructions: false
+  interaction_location_method: set-of-marks
+  usage_limits:
+    input_tokens_limit: 257143
+    output_tokens_limit: 5001
+
+action_predictor:
+  agent:
+    model:
+      _target_: pydantic_ai.models.openai.OpenAIChatModel
+      model_name: nemotron-3-nano
+    model_settings:
+      _target_: pydantic_ai.models.openai.OpenAIChatModelSettings
+      _convert_: all
+      max_tokens: 5000
+      # NVIDIA's recommended sampling settings for the default thinking mode.
+      temperature: 0.6
+      top_p: 0.95
+      extra_body:
+        # Aim to finish reasoning by 85%, with a hard stop at 90%. The gap lets the model close
+        # its reasoning naturally while reserving the final 10% for the structured action.
+        thinking_token_budget: ${gptnt.floor_mul:${player.action_predictor.agent.model_settings.max_tokens},0.9}
+        chat_template_kwargs:
+          enable_thinking: ${gptnt.eq:${player.capabilities.thinking_method},inner-monologue}
+          reasoning_budget: ${gptnt.floor_mul:${player.action_predictor.agent.model_settings.max_tokens},0.85}
