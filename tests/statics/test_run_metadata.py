@@ -223,7 +223,7 @@ async def test_hf_run_loads_the_resolved_revision_recorded_in_metadata(
 
     # Dataset loading uses the stored commit rather than the tag's new target.
     dataset = datasets.Dataset.from_dict({"prompt": ["question"]})
-    load_dataset = mocker.patch.object(statics_run.datasets, "load_dataset", return_value=dataset)
+    load_dataset = mocker.patch.object(datasets, "load_dataset", return_value=dataset)
     instances = runner.load_dataset()
 
     current_metadata = write_metadata.call_args.args[0]
