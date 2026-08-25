@@ -43,7 +43,7 @@ sequenceDiagram
 | Stage | Contract |
 | ----- | -------- |
 | Load | Read every `*.json` recursively from `output/experiment_specs/<manifest-stem>/`. Empty input stops before doctor or spawn. |
-| Gate | Run doctor against the files on disk. Protected-benchmark and roster failures are not bypassed by `--force`. |
+| Gate | Run doctor against the files on disk. `--force` can continue despite integrity failures, but a missing roster entry still blocks the run. |
 | Resume | Use the manifest completion source to select unfinished attempts. No remaining work exits without spawn. |
 | Manuals | [Prepare](../../run-and-submit/prepare-manuals.md) each distinct profile required by remaining manual-bearing players. Failure stops before spawn. |
 | Directories | Resolve one recorder output and one `output/logs/run_<output-name>/` directory, then pass the pinned output to recorder children. |

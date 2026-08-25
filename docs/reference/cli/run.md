@@ -14,15 +14,13 @@ matching GPTNT and KTANE processes after normal shutdown is unavailable.
 ## `run`
 
 ```text title="Command syntax"
-gptnt run MANIFEST [--force] [--allow-modified-benchmark]
-                   [--interactive | -i]
+gptnt run MANIFEST [--force] [--interactive | -i]
 ```
 
 | Input or option | Required | Effect |
 | --------------- | -------- | ------ |
 | `MANIFEST` | Yes | Loads the run manifest and pre-generated specifications from the matching manifest-stem directory. |
-| `--force` | No | Continues after ordinary doctor failures. It cannot bypass benchmark-integrity, run-roster, or manual-preparation failures. |
-| `--allow-modified-benchmark` | No | Uses the contributor integrity override when available and marks protected content as modified. |
+| `--force` | No | Continues despite failed policy and preflight checks. Required roster and manual-preparation failures still stop the run. Forced records omit release provenance and cannot be submitted. |
 | `--interactive`, `-i` | No | Streams prefixed child logs to the terminal while retaining the log files. The default renders a process-status table. |
 
 !!! warning "Generate first"
@@ -34,7 +32,7 @@ The run order is:
 
 1. Load the generated JSON files.
 2. Run full doctor checks against those files.
-3. enforce protected-benchmark and roster conditions;
+3. enforce roster conditions;
 4. filter attempts already complete under the manifest's completion source;
 5. prepare only the manual profiles required by remaining attempts;
 6. resolve one recorder directory and one log directory;

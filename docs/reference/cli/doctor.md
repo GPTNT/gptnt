@@ -13,7 +13,7 @@ runtime infrastructure, the KTANE mod, or one provider request per configured mo
 
 ```text title="Command syntax"
 gptnt doctor [MANIFEST] [--check-mod-load] [--live] [--config-only]
-             [--allow-modified-benchmark]
+             [--force]
 ```
 
 | Input | Required | Effect |
@@ -27,7 +27,7 @@ gptnt doctor [MANIFEST] [--check-mod-load] [--live] [--config-only]
 | `--config-only` | Checks benchmark integrity, players, image-token settings, and an optional run plan. Skips Redis, KTANE, display, local-service, and machine checks. |
 | `--check-mod-load` | Starts bare KTANE and polls the mod `/health` endpoint. The check can take up to 45 seconds and runs only when binary, mod, and display prerequisites pass. |
 | `--live` | Sends one provider request per configured model after composition and instantiation. This can incur provider charges. |
-| `--allow-modified-benchmark` | Allows a contributor run with modified protected content when that override is available. The resulting provenance is marked modified and is not eligible for submission. |
+| `--force` | Continues despite failed policy and preflight checks. Output produced after a forced integrity check omits release provenance and cannot be submitted. |
 
 ## Select a mode
 
@@ -68,11 +68,12 @@ The report renders only sections that apply to the selected mode.
     The command exits without a failing row. It does not print a separate final success sentence.
 
 !!! failure "Doctor found problems"
-    A fatal row makes the command raise `Doctor found problems; fix the rows above.` Use the row's
-    hint before repeating the command. `--force` belongs to `gptnt run`. It is not a doctor option.
+    A fatal row makes the command exit with an error. Use the row's hint before repeating the
+    command. `--force` renders the full report and continues after failed checks; a later command
+    can still fail when a required input or service is unavailable.
 
-Benchmark-integrity and run-roster failures stop generation and execution before they write
-specifications or start processes. Use
+Without `--force`, benchmark-integrity and run-roster failures stop generation and execution before
+they write specifications or start processes. Use
 [installation and doctor troubleshooting](../../troubleshooting/installation-and-doctor.md) for
 configuration or integrity failures. Use the game or Redis troubleshooting page for a row from
 that subsystem.

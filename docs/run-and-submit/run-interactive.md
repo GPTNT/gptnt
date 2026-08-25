@@ -42,9 +42,9 @@ Correct benchmark-integrity and roster failures before continuing. An anchor req
 must resolve through the manifest roster. The roster also needs enough player-service capacity for
 the selected protocols and number of rooms.
 
-`--force` can continue past an ordinary doctor failure. It cannot bypass benchmark-integrity,
-run-roster, or manual-preparation failures. `--allow-modified-benchmark` is a contributor override
-that records `protected_content_modified: true`. Those results cannot be submitted.
+`--force` can continue past failed policy and preflight checks, including benchmark integrity.
+Roster and manual-preparation failures still stop the run because the selected work cannot execute
+without them. A forced run omits release provenance, so its results cannot be submitted.
 
 ## Start the run
 

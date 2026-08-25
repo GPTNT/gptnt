@@ -32,7 +32,7 @@ gptnt statics TASK --player NAME [--provider NAME] [--download] [--throw]
                     [--upload] [--limit-instances N]
                     [--dataset-revision REF]
                     [--allow-thinking | --no-thinking]
-                    [--allow-modified-benchmark]
+                    [--force]
 ```
 
 | Option | Default and effect |
@@ -45,7 +45,7 @@ gptnt statics TASK --player NAME [--provider NAME] [--download] [--throw]
 | `--limit-instances` | Restricts the loaded instances. |
 | `--dataset-revision` | Requests a Hugging Face branch, tag, or commit. |
 | `--allow-thinking`, `--no-thinking` | Enables thinking by default for dataset tasks. |
-| `--allow-modified-benchmark` | Contributor override that marks outputs as non-submittable. |
+| `--force` | Continues when release provenance cannot be verified. Forced outputs cannot be submitted. |
 
 ## `how-do-you`
 

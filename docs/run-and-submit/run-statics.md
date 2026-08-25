@@ -66,8 +66,8 @@ capabilities, task, dataset, or provenance.
 
 !!! warning "Keep dataset and benchmark identity with the output"
     A requested tag or branch can move. Comparability uses the resolved dataset commit recorded in
-    `run_meta.json`. Running with `--allow-modified-benchmark` marks the static output as modified
-    protected content and prevents submission.
+    `run_meta.json`. Running with `--force` when release provenance cannot be verified omits that
+    provenance from the static output and prevents submission.
 
 ## Check the output
 

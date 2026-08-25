@@ -33,9 +33,9 @@ contribution and development.
     selected release. Player profiles, permitted suite or mission inputs, and run manifests are
     reported separately when they are allowed runner inputs.
 
-`--allow-modified-benchmark` is a contributor override. When available, it marks provenance as
-modified and produces records that cannot be submitted. It is not a way to make changed benchmark
-content comparable with the release.
+Use `--force` only when you need to continue despite the integrity failure. Forced records omit
+release provenance and cannot be submitted. It is not a way to make changed benchmark content
+comparable with the release.
 
 ## Dependency installation is incomplete
 

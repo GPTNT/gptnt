@@ -13,14 +13,14 @@ configuration and benchmark integrity without checking runtime infrastructure.
 ## Usage
 
 ```text title="Command syntax"
-gptnt generate MANIFEST [--output-dir PATH] [--allow-modified-benchmark]
+gptnt generate MANIFEST [--output-dir PATH] [--force]
 ```
 
 | Input or option | Required | Effect |
 | --------------- | -------- | ------ |
 | `MANIFEST` | Yes | Existing `run.yaml` manifest to compose. |
 | `--output-dir PATH` | No | Writes specifications to this directory. Also reads `EXPERIMENT_SPECS_DIR`. |
-| `--allow-modified-benchmark` | No | Uses the contributor integrity override when available and records modified protected content in later provenance. |
+| `--force` | No | Continues despite failed policy and preflight checks. Any later records without verified release provenance cannot be submitted. |
 
 The command performs these operations in order:
 
