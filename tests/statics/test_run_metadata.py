@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Literal, cast
-from unittest.mock import AsyncMock, Mock
 
 import datasets
 import pytest
@@ -25,6 +24,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from pydantic_ai import Agent
+    from pytest_mock import MockerFixture
 
     from gptnt.processors.image_resizer import ImageResizer
     from gptnt.statics.preprocess import PostprocessInputsFunc
@@ -172,7 +172,7 @@ def test_unpinned_when_no_resolved_sha_even_with_a_requested_tag() -> None:
 
 @pytest.mark.anyio
 async def test_hf_run_loads_the_resolved_revision_recorded_in_metadata(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture
 ) -> None:
     """A resumed run loads the stored commit after its requested reference moves."""
     stored_identity = _identity(requested="moving-tag", resolved="a1b2c3d4e5f6")
@@ -195,38 +195,50 @@ async def test_hf_run_loads_the_resolved_revision_recorded_in_metadata(
     runner.capabilities = stored_metadata.capabilities
     runner.max_instances = None
     runner.preprocess_instance_func = cast(
-        "PostprocessInputsFunc", cast("object", Mock(return_value={"prompt": "question"}))
+        "PostprocessInputsFunc", cast("object", mocker.Mock(return_value={"prompt": "question"}))
     )
     runner.agent = cast(
         "Agent[object, str]",
-        cast("object", Mock(_get_instructions=Mock(return_value=("instructions", [])))),
+        cast(
+            "object", mocker.Mock(_get_instructions=mocker.Mock(return_value=("instructions", [])))
+        ),
     )
-    runner.image_resizer = cast("ImageResizer", cast("object", Mock()))
+    runner.image_resizer = cast("ImageResizer", cast("object", mocker.Mock()))
     runner._resolved_revision = None
     runner.force = False
 
     # The Hub now resolves the moving tag to another commit, but resume returns stored metadata.
     monkeypatch.setattr(statics_run, "paths", SimpleNamespace(output=tmp_path))
-    capture_provenance = Mock(return_value=make_provenance())
-    monkeypatch.setattr(Provenance, "capture", capture_provenance)
-    monkeypatch.setattr(
-        run_metadata.StaticsIdentity, "resolve", Mock(return_value=current_identity)
+    capture_provenance = mocker.patch.object(Provenance, "capture", return_value=make_provenance())
+    resolve_identity = mocker.patch.object(
+        run_metadata.StaticsIdentity, "resolve", return_value=current_identity
     )
-    write_metadata = Mock(return_value=stored_metadata)
-    monkeypatch.setattr(statics_run, "bind_run_metadata", write_metadata)
-    skip_predictions = AsyncMock(return_value=None)
-    monkeypatch.setattr(statics_run.RunEvaluation, "throw", skip_predictions)
+    write_metadata = mocker.patch.object(
+        statics_run, "bind_run_metadata", return_value=stored_metadata
+    )
+    skip_predictions = mocker.patch.object(
+        statics_run.RunEvaluation, "throw", autospec=True, return_value=None
+    )
     await runner.throw()
 
     # Dataset loading uses the stored commit rather than the tag's new target.
     dataset = datasets.Dataset.from_dict({"prompt": ["question"]})
-    load_dataset = Mock(return_value=dataset)
-    monkeypatch.setattr(datasets, "load_dataset", load_dataset)
+    load_dataset = mocker.patch.object(statics_run.datasets, "load_dataset", return_value=dataset)
     instances = runner.load_dataset()
 
     current_metadata = write_metadata.call_args.args[0]
     assert current_metadata.statics == current_identity
     capture_provenance.assert_called_once_with(force=False)
+    resolve_identity.assert_called_once_with(
+        task_name=current_identity.task_name,
+        hf_repo_id=current_identity.hf_repo_id,
+        dataset_split=current_identity.dataset_split,
+        revision=current_identity.requested_revision,
+    )
+    assert write_metadata.call_args.kwargs == {
+        "output_dir": tmp_path / "expert-ocr_predictions" / "test-model"
+    }
+    _ = skip_predictions.assert_awaited_once_with(runner)
     load_dataset.assert_called_once_with(
         stored_identity.hf_repo_id,
         split=stored_identity.dataset_split,

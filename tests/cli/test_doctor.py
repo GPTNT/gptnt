@@ -10,7 +10,7 @@ environment-dependent and verified by running `gptnt doctor` directly.
 from __future__ import annotations
 
 import sys
-from unittest.mock import AsyncMock
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -23,6 +23,9 @@ from gptnt.cli.doctor import command
 from gptnt.provenance import BenchmarkIntegrityError
 
 from tests._cli_runner import invoke_cli
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 def _unavailable_benchmark(_repository: object) -> object:
@@ -100,9 +103,9 @@ def test_doctor_config_only_renders_clean_benchmark_and_checks_configuration(
 
 
 def test_doctor_force_runs_infrastructure_without_release_provenance(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture
 ) -> None:
-    infrastructure = AsyncMock(return_value=[CheckResult.passed("Mod load", "loaded")])
+    infrastructure = mocker.AsyncMock(return_value=[CheckResult.passed("Mod load", "loaded")])
 
     monkeypatch.setattr(integrity, "check_benchmark_integrity", _unavailable_benchmark)
     monkeypatch.setattr(command, "_infrastructure_checks", infrastructure)
