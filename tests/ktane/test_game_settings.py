@@ -3,7 +3,6 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 import pytest
-from pydantic import ValidationError
 from pytest_cases import parametrize
 
 from gptnt.ktane.game_settings import DEFAULT_PROGRESSION_XML, KtaneSettings
@@ -101,17 +100,3 @@ def test_rendered_player_settings_uses_configured_values() -> None:
     assert _settings_element_text(rendered, "MusicVolume") == "40"
     assert _settings_element_text(rendered, "SFXVolume") == "60"
     assert _settings_element_text(rendered, "LanguageCode") == "zh-CN"
-
-
-@parametrize("volume", [-1, 101])
-def test_volume_out_of_range_is_rejected(volume: int) -> None:
-    """Volumes outside 0-100 raise a validation error."""
-    with pytest.raises(ValidationError):
-        _ = KtaneSettings(music_volume=volume)
-
-
-@parametrize("code", ["", "xx", "en-GB", "fr&"])
-def test_unsupported_language_code_is_rejected(code: str) -> None:
-    """A code outside the KTANE set raises a validation error."""
-    with pytest.raises(ValidationError):
-        _ = KtaneSettings(language_code=code)

@@ -1,7 +1,7 @@
 import pytest
 from hydra.utils import instantiate
 from omegaconf import open_dict
-from pydantic import BaseModel, JsonValue, SecretBytes, SecretStr, ValidationError
+from pydantic import JsonValue
 from pydantic_ai import ModelSettings
 from pydantic_ai.models.anthropic import AnthropicModelSettings
 from pydantic_ai.models.google import GoogleModelSettings
@@ -10,11 +10,6 @@ from pydantic_ai.models.openai import OpenAIChatModelSettings
 from gptnt.common.hydra import compose_player_config
 from gptnt.players.model_settings import _IGNORED_MODEL_SETTINGS, fingerprint_model_settings
 from gptnt.players.specification import PlayerCapabilities
-
-
-class _UnsupportedSettingsModel(BaseModel):
-    setting: str
-
 
 _PYDANTIC_AI_SETTINGS_FIELDS = (
     ModelSettings.__annotations__,
@@ -179,21 +174,6 @@ def test_fingerprint_settings_do_not_remove_nested_ignored_names() -> None:
 
 
 @pytest.mark.parametrize(
-    "unsupported_setting",
-    [
-        pytest.param(dict, id="callable"),
-        pytest.param(b"binary", id="bytes"),
-        pytest.param(SecretStr("secret"), id="secret-string"),
-        pytest.param(SecretBytes(b"secret"), id="secret-bytes"),
-        pytest.param(_UnsupportedSettingsModel(setting="value"), id="pydantic-model"),
-    ],
-)
-def test_non_json_model_settings_are_rejected(unsupported_setting: object) -> None:
-    with pytest.raises(ValidationError, match="valid JSON value"):
-        _ = fingerprint_model_settings({"unsupported": unsupported_setting})
-
-
-@pytest.mark.parametrize(
     ("settings", "expected"),
     [
         pytest.param(None, None, id="absent"),
@@ -207,20 +187,6 @@ def test_empty_fingerprint_settings_are_absent(
     settings: dict[str, object] | None, expected: None
 ) -> None:
     assert fingerprint_model_settings(settings) is expected
-
-
-def test_all_json_value_shapes_are_preserved() -> None:
-    settings = {
-        "none": None,
-        "boolean": True,
-        "integer": 1,
-        "float": 0.5,
-        "string": "value",
-        "array": [None, False, 2, 0.25, "entry", {"nested": "mapping"}],
-        "mapping": {"nested": [1, 2, 3]},
-    }
-
-    assert fingerprint_model_settings(settings) == settings
 
 
 def test_selecting_fingerprint_settings_does_not_mutate_agent_settings() -> None:

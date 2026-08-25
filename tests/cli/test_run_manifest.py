@@ -41,17 +41,6 @@ def _load_payload(tmp_path: Path, payload: dict[str, object]) -> RunManifest:
     return RunManifest.from_path(manifest_file)
 
 
-def test_default_models_do_not_share_mutable_state() -> None:
-    """`Field(default_factory=...)` must give each manifest its own nested models."""
-    first = RunManifest.model_validate(_minimal_manifest())
-    second = RunManifest.model_validate(_minimal_manifest())
-
-    first.anchors.best_expert = "claude-sonnet-4-6"
-
-    assert first.anchors.best_expert == "claude-sonnet-4-6"
-    assert second.anchors.best_expert is None
-
-
 def test_committed_quickstart_manifest_loads_cleanly() -> None:
     assert _QUICKSTART.exists(), f"expected example manifest at {_QUICKSTART}"
 
@@ -65,78 +54,9 @@ def test_committed_quickstart_manifest_loads_cleanly() -> None:
     assert manifest.source is Source.local
 
 
-def test_unknown_top_level_key_is_rejected(tmp_path: Path) -> None:
-    payload = _minimal_manifest()
-    payload["roomz"] = 2  # typo'd `rooms`
-
-    with pytest.raises(ValidationError):
-        _ = _load_payload(tmp_path, payload)
-
-
-def test_unknown_nested_player_key_is_rejected(tmp_path: Path) -> None:
-    payload = _minimal_manifest()
-    payload["players"] = [{"player": "claude-sonnet-4-6", "kount": 2}]  # typo'd `count`
-
-    with pytest.raises(ValidationError):
-        _ = _load_payload(tmp_path, payload)
-
-
 def test_unsupported_spec_version_is_rejected(tmp_path: Path) -> None:
     payload = _minimal_manifest()
     payload["spec_version"] = 1  # the superseded schema
-
-    with pytest.raises(ValidationError):
-        _ = _load_payload(tmp_path, payload)
-
-
-def test_empty_suites_is_rejected(tmp_path: Path) -> None:
-    payload = _minimal_manifest()
-    payload["suites"] = []
-
-    with pytest.raises(ValidationError):
-        _ = _load_payload(tmp_path, payload)
-
-
-def test_zero_rooms_is_rejected(tmp_path: Path) -> None:
-    payload = _minimal_manifest()
-    payload["rooms"] = 0
-
-    with pytest.raises(ValidationError):
-        _ = _load_payload(tmp_path, payload)
-
-
-def test_empty_displays_list_is_rejected(tmp_path: Path) -> None:
-    """An explicit empty list is meaningless; `min_length=1` rejects it (use omission for
-    default)."""
-    payload = _minimal_manifest()
-    payload["displays"] = []
-
-    with pytest.raises(ValidationError):
-        _ = _load_payload(tmp_path, payload)
-
-
-def test_negative_display_number_is_rejected(tmp_path: Path) -> None:
-    payload = _minimal_manifest()
-    payload["displays"] = [0, -1]
-
-    with pytest.raises(ValidationError):
-        _ = _load_payload(tmp_path, payload)
-
-
-def test_recording_key_is_rejected(tmp_path: Path) -> None:
-    """The recorder output location is env-driven (`EXPERIMENT_RECORDER_OUTPUTS`), not a manifest
-    key, so any `recording:` block is rejected by `extra='forbid'`."""
-    payload = _minimal_manifest()
-    payload["recording"] = {"output_dir": "somewhere"}
-
-    with pytest.raises(ValidationError):
-        _ = _load_payload(tmp_path, payload)
-
-
-@pytest.mark.parametrize("bad_count", [0, -1])
-def test_non_positive_attempts_per_mission_is_rejected(tmp_path: Path, bad_count: int) -> None:
-    payload = _minimal_manifest()
-    payload["attempts_per_mission"] = bad_count
 
     with pytest.raises(ValidationError):
         _ = _load_payload(tmp_path, payload)

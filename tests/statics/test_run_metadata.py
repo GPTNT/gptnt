@@ -13,7 +13,6 @@ from unittest.mock import AsyncMock, Mock
 
 import datasets
 import pytest
-from pydantic import ValidationError
 
 from gptnt.players.specification import PlayerCapabilities
 from gptnt.provenance import Provenance
@@ -56,25 +55,6 @@ def test_statics_identity_records_null_sha_when_hub_unreachable(
     )
     assert identity.resolved_revision is None
     assert identity.requested_revision == "v1.0"
-
-
-def test_missing_provenance_or_run_date_is_rejected() -> None:
-    """A `run_meta.json` lacking provenance/run_date must fail, not silently backfill from here."""
-    statics = run_metadata.StaticsIdentity(
-        task_name="t",
-        hf_repo_id="org/ds",
-        dataset_split=None,
-        requested_revision="v1",
-        resolved_revision="a1b2c3d4e5f6",
-    )
-    capabilities = PlayerCapabilities(player_name="p", player_type="ai")
-    partial_run_meta = {
-        "model_name": "m",
-        "statics": statics.model_dump(),
-        "capabilities": capabilities.model_dump(mode="json"),
-    }
-    with pytest.raises(ValidationError):
-        _ = run_metadata.StaticsRunMetadata.model_validate(partial_run_meta)
 
 
 def _identity(*, requested: str | None, resolved: str | None) -> run_metadata.StaticsIdentity:

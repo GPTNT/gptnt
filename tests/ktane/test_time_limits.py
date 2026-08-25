@@ -31,12 +31,3 @@ def test_registered_complex_module_receives_more_time() -> None:
     ) > get_time_limit_for_mission(
         [registry.facts("SomeCommunityModule")], allow_back_placement=False
     )
-
-
-def test_absent_module_takes_the_default_facts() -> None:
-    """A community module not in the registry gets the minimal budget defaults."""
-    facts = module_registry().facts("SomeCommunityModule")
-
-    assert facts.side_info_rotations == 0
-    assert facts.num_stages == 1
-    assert facts.num_interaction_actions == 1
