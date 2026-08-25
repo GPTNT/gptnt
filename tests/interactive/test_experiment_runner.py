@@ -2,10 +2,10 @@
 
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, cast
-from unittest.mock import AsyncMock
 
 import anyio
 import pytest
+from pytest_mock import MockerFixture
 
 from gptnt.interactive.services.experiment_manager.experiment_runner import SyncExperimentRunner
 from gptnt.players.specification import PlayerProtocol
@@ -23,7 +23,9 @@ if TYPE_CHECKING:
 
 
 @pytest.mark.anyio
-async def test_player_configuration_shares_one_experiment_provenance_snapshot() -> None:
+async def test_player_configuration_shares_one_experiment_provenance_snapshot(
+    mocker: MockerFixture,
+) -> None:
     """Defuser and expert configuration receive the runner's one captured snapshot."""
     defuser_protocol = PlayerProtocol(
         role="defuser", communication_style="sync", is_playing_alone=False, include_manual=False
@@ -47,23 +49,19 @@ async def test_player_configuration_shares_one_experiment_provenance_snapshot() 
     runner = object.__new__(SyncExperimentRunner)
     runner.experiment = experiment
     runner.provenance = make_provenance()
-    defuser_configure = AsyncMock(return_value=True)
-    expert_configure = AsyncMock(return_value=True)
+    defuser_configure = mocker.AsyncMock(return_value=True)
+    expert_configure = mocker.AsyncMock(return_value=True)
     runner.defuser_player_client = cast(
         "PlayerClient", cast("object", SimpleNamespace(configure_player=defuser_configure))
     )
     runner.expert_player_client = cast(
         "PlayerClient", cast("object", SimpleNamespace(configure_player=expert_configure))
     )
+    configure_game = mocker.AsyncMock(return_value=None)
+    pause_game = mocker.AsyncMock(return_value=None)
     runner.game_client = cast(
         "GameClient",
-        cast(
-            "object",
-            SimpleNamespace(
-                configure_game=AsyncMock(return_value=None),
-                pause_game=AsyncMock(return_value=None),
-            ),
-        ),
+        cast("object", SimpleNamespace(configure_game=configure_game, pause_game=pause_game)),
     )
     runner.game_state_watcher = cast(
         "GameStateWatcher", cast("object", SimpleNamespace(lights_are_off_event=lights_are_off))
@@ -71,9 +69,17 @@ async def test_player_configuration_shares_one_experiment_provenance_snapshot() 
 
     await runner.configure_services()
 
-    assert defuser_configure.await_args is not None
-    assert expert_configure.await_args is not None
-    defuser_provenance = defuser_configure.await_args.kwargs["provenance"]
-    expert_provenance = expert_configure.await_args.kwargs["provenance"]
-    assert defuser_provenance is runner.provenance
-    assert expert_provenance is runner.provenance
+    defuser_configure.assert_awaited_once_with(
+        player_protocol=defuser_protocol,
+        experiment_instance=experiment,
+        provenance=runner.provenance,
+    )
+    expert_configure.assert_awaited_once_with(
+        player_protocol=expert_protocol,
+        experiment_instance=experiment,
+        provenance=runner.provenance,
+    )
+    configure_game.assert_awaited_once_with(
+        spec=experiment.mission_spec, session_id=experiment.session_id
+    )
+    pause_game.assert_awaited_once_with()

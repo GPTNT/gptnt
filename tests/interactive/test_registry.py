@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
-from unittest.mock import MagicMock
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from gptnt.interactive.services.heartbeat.events import PlayerState, ReadyState
@@ -13,6 +12,9 @@ from gptnt.interactive.services.registry.manifest import ServiceManifest, Servic
 from gptnt.interactive.services.registry.registry import ServiceRegistry
 from gptnt.ktane.state.game import GameState
 from gptnt.players.specification import PlayerCapabilities
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 def player_manifest(
@@ -41,46 +43,46 @@ def game_manifest(
     return ServiceManifest(heartbeat=heartbeat)
 
 
-def make_registry(*manifests: ServiceManifest[Any]) -> ServiceRegistry:
-    registry = ServiceRegistry(redis=MagicMock())
+def make_registry(mocker: MockerFixture, *manifests: ServiceManifest[Any]) -> ServiceRegistry:
+    registry = ServiceRegistry(redis=mocker.MagicMock())
     for manifest in manifests:
         registry.connected_services[manifest.uuid] = manifest
     return registry
 
 
-def test_ready_players_requires_ready_and_idle() -> None:
+def test_ready_players_requires_ready_and_idle(mocker: MockerFixture) -> None:
     idle = player_manifest()
     mid_turn = player_manifest(state=PlayerState.waiting_for_turn)
     not_ready = player_manifest(ready=False)
 
-    registry = make_registry(idle, mid_turn, not_ready)
+    registry = make_registry(mocker, idle, mid_turn, not_ready)
 
     assert registry.ready_players == [idle]
 
 
-def test_player_in_experiment_is_not_ready() -> None:
+def test_player_in_experiment_is_not_ready(mocker: MockerFixture) -> None:
     player = player_manifest()
     player.state = ServiceState.in_experiment  # the EM-level state, set on matchmaking
 
-    registry = make_registry(player)
+    registry = make_registry(mocker, player)
 
     assert registry.ready_players == []
 
 
-def test_ready_games_requires_main_menu() -> None:
+def test_ready_games_requires_main_menu(mocker: MockerFixture) -> None:
     at_menu = game_manifest()
     running = game_manifest(state=GameState.lights_on)
 
-    registry = make_registry(at_menu, running)
+    registry = make_registry(mocker, at_menu, running)
 
     assert registry.ready_games == [at_menu]
 
 
-def test_players_and_games_do_not_cross_contaminate() -> None:
+def test_players_and_games_do_not_cross_contaminate(mocker: MockerFixture) -> None:
     player = player_manifest()
     game = game_manifest()
 
-    registry = make_registry(player, game)
+    registry = make_registry(mocker, player, game)
 
     assert registry.ready_players == [player]
     assert registry.ready_games == [game]
