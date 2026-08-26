@@ -13,11 +13,51 @@ suites:
 rooms: 2
 
 players:
-  - player: claude-sonnet-4-6
-  - player: gemini-3-flash-preview
-  - player: gpt-5-2
-  - player: internvl3-5-38b
-  - player: qwen3-5-27b
+  - player: claude-sonnet-5
+    provider: anthropic_foundry
+    count: 2
+  - player: gemini-3-5-flash
+    provider: google
+    count: 2
+  - player: gpt-5-6-terra
+    provider: azure
+    count: 2
+  - player: qwen3-6-27b
+    provider: vllm_box1
+    count: 2
+  - player: gemma4
+    provider: vllm_box2
+    count: 2
+  - player: qwen3-6-moe35b
+    provider: vllm_box3
+    count: 2
+  - player: gemma4-moe26b
+    provider: vllm_box4
+    count: 2
+  - player: ernie-4-5-vl
+    provider: vllm_box5
+    count: 2
+  - player: mistral-small-4
+    provider: vllm_box6
+    count: 2
+  - player: nemotron-3-nano
+    provider: vllm_box7
+    count: 2
+  - player: qwen3-8-27b
+    provider: vllm_box8
+    count: 2
+  - player: step-3-7-flash
+    provider: vllm_box9
+    count: 2
+  - player: qwen3-8-flash-next
+    provider: vllm_box10
+    count: 2
+  - player: mimo-v2-5
+    provider: vllm_box11
+    count: 2
+  - player: glm-4-6v
+    provider: vllm_box12
+    count: 2
 
 source: local
 observability: limited

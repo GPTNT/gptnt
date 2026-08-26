@@ -1,0 +1,39 @@
+# @package player
+
+defaults:
+  - _self_
+
+identity:
+  display_name: Claude Sonnet 5
+  organisation: Anthropic
+  is_os_model: false
+  url: https://www.anthropic.com/claude/sonnet
+
+capabilities:
+  player_name: claude-sonnet-5
+  tokens_per_image: 417
+  structured_output_mode: prompted
+  thinking_method: inner-monologue
+  include_schema_in_instructions: true
+  interaction_location_method: set-of-marks
+  usage_limits:
+    input_tokens_limit: 872000
+    output_tokens_limit: 128000
+
+action_predictor:
+  agent:
+    model:
+      _target_: pydantic_ai.models.anthropic.AnthropicModel
+      model_name: claude-sonnet-5
+
+    # Use adaptive reasoning and return its summary as a ThinkingPart for the
+    # inner-monologue parser. Claude rejects non-default sampling parameters,
+    # so clear the base config's temperature.
+    model_settings:
+      # Cache the longest reusable prompt prefix automatically as conversation history grows.
+      anthropic_cache: true
+      anthropic_thinking:
+        type: adaptive
+        display: summarized
+      anthropic_effort: medium
+      temperature: null

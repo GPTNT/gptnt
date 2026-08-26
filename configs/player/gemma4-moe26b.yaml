@@ -1,0 +1,37 @@
+# @package player
+
+identity:
+  display_name: Gemma 4 (26B MoE)
+  organisation: Google DeepMind
+  is_os_model: true
+  url: https://huggingface.co/google/gemma-4-26b-it
+
+capabilities:
+  player_name: gemma4-moe26b
+  # The 26B MoE variant uses the same provisional estimate as the existing Gemma 4 config.
+  tokens_per_image: 268
+  structured_output_mode: native
+  thinking_method: inner-monologue
+  include_schema_in_instructions: false
+  interaction_location_method: set-of-marks
+  coordinate_mode: normalised
+  coordinate_scale: 1024
+  usage_limits:
+    input_tokens_limit: 257143
+    output_tokens_limit: 5001
+
+action_predictor:
+  agent:
+    model:
+      _target_: pydantic_ai.models.openai.OpenAIChatModel
+      model_name: gemma4-moe26b
+    model_settings:
+      _target_: pydantic_ai.models.openai.OpenAIChatModelSettings
+      _convert_: all
+      max_tokens: 5000
+      temperature: 1.0
+      top_p: 0.95
+      extra_body:
+        top_k: 64
+        chat_template_kwargs:
+          enable_thinking: ${gptnt.eq:${player.capabilities.thinking_method},inner-monologue}

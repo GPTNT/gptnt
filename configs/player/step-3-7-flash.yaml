@@ -1,0 +1,34 @@
+# @package player
+
+identity:
+  display_name: Step 3.7 Flash (198B-A11B)
+  organisation: StepFun
+  is_os_model: true
+  url: https://huggingface.co/stepfun-ai/Step-3.7-Flash
+
+capabilities:
+  player_name: step-3-7-flash
+  # Provisional estimate; calibrate against the deployed endpoint before long runs.
+  tokens_per_image: 171
+  structured_output_mode: native
+  thinking_method: inner-monologue
+  include_schema_in_instructions: false
+  interaction_location_method: set-of-marks
+  usage_limits:
+    # The model context is 256K; reserve 5,001 tokens for output.
+    input_tokens_limit: 257143
+    output_tokens_limit: 5001
+
+action_predictor:
+  agent:
+    model:
+      _target_: pydantic_ai.models.openai.OpenAIChatModel
+      model_name: step-3-7-flash
+    model_settings:
+      _target_: pydantic_ai.models.openai.OpenAIChatModelSettings
+      _convert_: all
+      max_tokens: 5000
+      # StepFun's NVIDIA NIM profile defaults to these values and specifies no top-k.
+      temperature: 1.0
+      top_p: 0.95
+      openai_reasoning_effort: medium

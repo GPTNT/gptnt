@@ -1,0 +1,34 @@
+# @package player
+
+identity:
+  display_name: Mistral Small 4 (119B-A6.5B)
+  organisation: Mistral AI
+  is_os_model: true
+  url: https://huggingface.co/mistralai/Mistral-Small-4-119B-2603
+
+capabilities:
+  player_name: mistral-small-4
+  # Provisional estimate; calibrate against the deployed endpoint before long runs.
+  tokens_per_image: 437
+  structured_output_mode: native
+  thinking_method: inner-monologue
+  include_schema_in_instructions: false
+  interaction_location_method: set-of-marks
+  usage_limits:
+    # The recommended vLLM deployment window is 256K; reserve 5,001 tokens for output.
+    input_tokens_limit: 257143
+    output_tokens_limit: 5001
+
+action_predictor:
+  agent:
+    model:
+      _target_: pydantic_ai.models.openai.OpenAIChatModel
+      model_name: mistral-small-4
+    model_settings:
+      _target_: pydantic_ai.models.openai.OpenAIChatModelSettings
+      _convert_: all
+      max_tokens: 5000
+      # Mistral recommends temperature 0.7 with high reasoning effort. It does not
+      # publish model-specific top-p or top-k settings, so retain the server defaults.
+      temperature: 0.7
+      openai_reasoning_effort: high

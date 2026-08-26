@@ -1,0 +1,38 @@
+# @package player
+
+identity:
+  display_name: Qwen3.6 (27B)
+  organisation: Qwen
+  is_os_model: true
+  url: https://huggingface.co/Qwen/Qwen3.6-27B
+
+capabilities:
+  player_name: qwen3-6-27b
+  tokens_per_image: 302
+  structured_output_mode: native
+  thinking_method: inner-monologue
+  include_schema_in_instructions: false
+  interaction_location_method: set-of-marks
+  coordinate_mode: normalised
+  coordinate_scale: 1000
+  usage_limits:
+    input_tokens_limit: 257143
+    output_tokens_limit: 5001
+
+action_predictor:
+  agent:
+    model:
+      _target_: pydantic_ai.models.openai.OpenAIChatModel
+      model_name: qwen36
+    model_settings:
+      _target_: pydantic_ai.models.openai.OpenAIChatModelSettings
+      _convert_: all
+      max_tokens: 5000
+      # Qwen3.6's recommended general-task sampling settings in thinking mode.
+      temperature: 1.0
+      top_p: 0.95
+      presence_penalty: 0.0
+      extra_body:
+        top_k: 20
+        chat_template_kwargs:
+          enable_thinking: ${gptnt.eq:${player.capabilities.thinking_method},inner-monologue}

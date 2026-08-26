@@ -1,0 +1,49 @@
+# @package player
+
+defaults:
+  - _self_
+
+identity:
+  display_name: Gemini 3.5 Flash
+  organisation: Google
+  is_os_model: false
+  url: https://deepmind.google/models/gemini/flash/
+
+capabilities:
+  player_name: gemini-3-5-flash
+  tokens_per_image: 541
+  structured_output_mode: native
+  thinking_method: inner-monologue
+  include_schema_in_instructions: false
+  interaction_location_method: set-of-marks
+  coordinate_mode: normalised
+  coordinate_scale: 1000
+  usage_limits:
+    input_tokens_limit: 1048576
+    output_tokens_limit: 65536
+
+action_predictor:
+  agent:
+    model:
+      _target_: pydantic_ai.models.google.GoogleModel
+      model_name: gemini-3.5-flash
+
+    # Request provider-returned thought summaries for the inner-monologue parser. Gemini 3.x is
+    # optimized for its default sampling parameters, so clear the base config's temperature.
+    model_settings:
+      _target_: pydantic_ai.models.google.GoogleModelSettings
+      _convert_: all
+      thinking: medium
+      temperature: null
+      google_video_resolution: "MEDIA_RESOLUTION_MEDIUM"
+      google_safety_settings:
+        - category: HARM_CATEGORY_HARASSMENT
+          threshold: BLOCK_NONE
+        - category: HARM_CATEGORY_DANGEROUS_CONTENT
+          threshold: BLOCK_NONE
+        - category: HARM_CATEGORY_HATE_SPEECH
+          threshold: BLOCK_NONE
+        - category: HARM_CATEGORY_SEXUALLY_EXPLICIT
+          threshold: BLOCK_NONE
+        - category: HARM_CATEGORY_CIVIC_INTEGRITY
+          threshold: BLOCK_NONE
