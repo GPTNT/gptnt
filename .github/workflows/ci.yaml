@@ -2,6 +2,12 @@ name: CI
 
 on:
   workflow_call:
+    inputs:
+      run_tests:
+        description: Run pytest even when the caller event has no usable path diff.
+        required: false
+        type: boolean
+        default: true
   workflow_dispatch:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -50,8 +56,8 @@ jobs:
               - *deps-files
               - *ci-files
               - '**/*.py'
-              # A release bump changes this file before it creates the annotated tag. Exercise
-              # pytest before publishing that tag, not only in the release workflow afterwards.
+              # A release bump changes this file. Exercise pytest on the release commit as well
+              # as in the tag-triggered release workflow.
               - 'CHANGELOG.md'
               # This defines the local release command, so its changes need the same gate.
               - 'mise.toml'
@@ -123,8 +129,8 @@ jobs:
         always()
         && !github.event.pull_request.draft
         && (
-          github.event_name == 'workflow_dispatch'
-          || github.event_name == 'workflow_call'
+          inputs.run_tests
+          || github.event_name == 'workflow_dispatch'
           || needs.changes.outputs.tests == 'true'
         )
       }}
