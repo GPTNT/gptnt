@@ -11,6 +11,10 @@ the Expert reads the manual, and they must communicate to defuse it.
 
 </div>
 
+This benchmark uses the real game and the official manual. We have done as much as possible to make everything easy to use and run, and have put all the information to help you get started on our [documentation site](https://gptnt.github.io/docs/).
+
+
+
 ## Download
 
 ```bash
@@ -24,5 +28,4 @@ mise run sync
 ```
 
 Continue with [Install and check GPTNT](https://gptnt.github.io/docs/start-here/install-and-check/)
-for checksum verification,
-prerequisites, and the first run.
+for checksum verification, prerequisites, and the first run.
