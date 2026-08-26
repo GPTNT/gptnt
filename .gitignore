@@ -786,7 +786,10 @@ storage/outputs
 
 # The game, but not the mod
 storage/ktane/*
-!storage/ktane/mods/Gptnt Plays
+!storage/ktane/mods/
+storage/ktane/mods/*
+!storage/ktane/mods/Gptnt Plays/
+!storage/ktane/mods/RuleSeedModifier/
 !storage/ktane/logConfig.xml
 
 # The experiment jsons, but not the tests
