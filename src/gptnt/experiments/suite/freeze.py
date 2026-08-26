@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal, Self
 
-from gptnt.experiments.suite.lock import MissionEntry, SuiteLock, SuiteLockEntry
+from gptnt.experiments.suite.lock import MissionReference, SuiteLock, SuiteLockEntry
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -28,34 +28,45 @@ class FreezeStamp:
     """
 
     frozen_at: str
+    """ISO-8601 UTC instant the entry was first written."""
+
     gptnt_version: str
+    """Installed GPTNT version used when this suite revision was frozen."""
+
     git_sha: str = ""
+    """The commit the entry was frozen at, or `""` when git was unavailable."""
 
     def build_entry(self, suite: Suite) -> SuiteLockEntry:
         """Return a new lock entry for `suite`, stamped with this run's provenance."""
         return SuiteLockEntry(
-            name=suite.name,
-            revision=suite.revision,
-            suite_digest=suite.suite_digest,
+            **suite.model_dump(mode="json", exclude_none=True),
+            suite_digest=suite.digest,
             frozen_at=self.frozen_at,
             gptnt_version=self.gptnt_version,
             git_sha=self.git_sha,
-            mission_keys=suite.mission_keys,
-            config=suite.frozen_config(),
+            missions=tuple(
+                sorted(
+                    (
+                        MissionReference(mission_key=mission.mission_key, digest=mission.digest)
+                        for mission in suite.loaded_missions
+                    ),
+                    key=lambda reference: (reference.mission_key, reference.digest),
+                )
+            ),
         )
 
 
-FreezeAction = Literal["append", "unchanged", "digest_mismatch", "duplicate_keys"]
+FreezeAction = Literal["append", "unchanged", "digest_mismatch", "duplicate_missions"]
 """What reconciliation found for one suite:
 
 - `append`: no entry yet for its current revision — freeze writes one.
 - `unchanged`: the current-revision entry matches its digest.
 - `digest_mismatch`: the current-revision entry exists but its digest differs — the suite changed
   without a `revision` bump.
-- `duplicate_keys`: two of the suite's missions share a `mission_key`.
+- `duplicate_missions`: two of the suite's missions have identical materialised bodies.
 """
 
-_BLOCKING_ACTIONS: frozenset[FreezeAction] = frozenset(("digest_mismatch", "duplicate_keys"))
+_BLOCKING_ACTIONS: frozenset[FreezeAction] = frozenset(("digest_mismatch", "duplicate_missions"))
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -87,8 +98,8 @@ class FreezeReport:
         """Compute each suite's freeze outcome and the append-only lock that results.
 
         A missing lock is treated as an empty one. Existing entries are never mutated or removed;
-        only missions absent from the shared table are appended. A `mission_key` mapping to two
-        different bodies is a freeze error (`ValueError`).
+        only mission bodies absent from the shared table are appended. Repeating an identical
+        mission in one suite is a freeze error.
         """
         lock = existing or SuiteLock()
         outcomes: list[SuiteFreezeOutcome] = []
@@ -103,7 +114,7 @@ class FreezeReport:
 
     @property
     def has_blocking_errors(self) -> bool:
-        """True if any suite changed without a revision bump or has colliding mission keys.
+        """True if any suite changed without a revision bump or repeats a mission.
 
         These block a write regardless of `--check`: the lock never records a mismatched digest.
         """
@@ -114,35 +125,39 @@ def _reconcile_one(
     suite: Suite, lock: SuiteLock, stamp: FreezeStamp
 ) -> tuple[SuiteFreezeOutcome, SuiteLockEntry | None]:
     """Return one suite's outcome against the lock, plus any entry to append."""
-    duplicate = _first_duplicate(suite.mission_keys)
-    if duplicate is not None:
-        detail = f"missions share mission_key {duplicate!r}"
-        return SuiteFreezeOutcome.for_suite(suite, "duplicate_keys", detail), None
+    missions = suite.loaded_missions
+    duplicate_digest = _first_duplicate(tuple(mission.digest for mission in missions))
+    duplicate_key = _first_duplicate(tuple(mission.mission_key for mission in missions))
+    if duplicate_digest is not None:
+        detail = f"missions share body digest {duplicate_digest!r}"
+        return SuiteFreezeOutcome.for_suite(suite, "duplicate_missions", detail), None
+    if duplicate_key is not None:
+        detail = f"missions share mission key {duplicate_key!r}"
+        return SuiteFreezeOutcome.for_suite(suite, "duplicate_missions", detail), None
 
     entry = lock.entry_for(suite.name, suite.revision)
     if entry is None:
         detail = f"revision {suite.revision} not yet frozen"
         return SuiteFreezeOutcome.for_suite(suite, "append", detail), stamp.build_entry(suite)
-    if entry.suite_digest != suite.suite_digest:
-        was, now = entry.suite_digest[:8], suite.suite_digest[:8]
+    if entry.suite_digest != suite.digest:
+        was, now = entry.suite_digest[:8], suite.digest[:8]
         detail = f"digest {was} → {now} without a revision bump"
         return SuiteFreezeOutcome.for_suite(suite, "digest_mismatch", detail), None
     detail = f"revision {suite.revision} frozen"
     return SuiteFreezeOutcome.for_suite(suite, "unchanged", detail), None
 
 
-def _new_missions(suites: Sequence[Suite], lock: SuiteLock) -> list[MissionEntry]:
+def _new_missions(suites: Sequence[Suite], lock: SuiteLock) -> list[KtaneMissionSpec]:
     """Return the missions across every live suite that aren't already in the lock's shared table.
 
-    A `mission_key` that maps to two different mission bodies is a freeze error, whether the
-    conflicting entries come from live suites or the existing table.
+    Mission bodies are deduplicated by their complete content digest.
     """
     known = lock.mission_specs()
     fresh: dict[str, KtaneMissionSpec] = {}
     for suite in suites:
         for mission in suite.loaded_missions:
             _register_fresh_mission(fresh, known, mission)
-    return [MissionEntry(mission_key=key, spec=fresh[key]) for key in sorted(fresh)]
+    return [fresh[key] for key in sorted(fresh)]
 
 
 def _register_fresh_mission(
@@ -152,12 +167,9 @@ def _register_fresh_mission(
 ) -> None:
     """Record `mission` as fresh when unknown.
 
-    Reject a key already holding a different body.
+    Use the complete mission body as the deduplication identity.
     """
-    key = mission.mission_key
-    prior = fresh.get(key, known.get(key))
-    if prior is not None and prior != mission:
-        raise ValueError(f"mission_key {key!r} maps to two different missions")
+    key = mission.digest
     if key not in known:
         fresh[key] = mission
 

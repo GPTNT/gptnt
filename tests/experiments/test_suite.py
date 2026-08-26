@@ -35,25 +35,89 @@ def _suite(**overrides: object) -> Suite:
     return Suite.model_validate(fields)
 
 
-def test_config_digest_ignores_identity() -> None:
-    """A different name or revision over identical config yields the same config_digest."""
-    assert _suite().config_digest == _suite(name="renamed", revision=9).config_digest
+def test_suite_digest_changes_with_a_materialised_mission_body() -> None:
+    """The complete materialised mission specification is part of the benchmark contract."""
+    suite = _suite()
+    missions = suite.loaded_missions
+    changed_missions = [
+        missions[0].model_copy(update={"time_limit": missions[0].time_limit + 1}),
+        *missions[1:],
+    ]
+
+    assert suite.digest_for(missions) != suite.digest_for(changed_missions)
 
 
-def test_config_digest_tracks_missions_path() -> None:
-    """Pointing at a different mission set changes the config_digest."""
-    assert (
-        _suite().config_digest
-        != _suite(missions_path=Path("configs/missions/single_module")).config_digest
+def test_suite_digest_changes_with_manual_profile() -> None:
+    """Changing the manual made available to the expert changes what the benchmark measures."""
+    suite = _suite()
+    changed = suite.model_copy(
+        update={
+            "manual_profile": suite.manual_profile.model_copy(update={"include_frontmatter": True})
+        }
     )
 
+    assert suite.digest != changed.digest
 
-def test_config_digest_tracks_matchup() -> None:
-    """Changing who plays whom changes the config_digest."""
-    assert (
-        _suite().config_digest
-        != _suite(matchup=SuiteMatchup(pairing_type="pairwise")).config_digest
+
+def test_suite_digest_changes_with_explicit_manual_rule_seed() -> None:
+    """The manual rule seed is a direct digest input with an unchanged mission snapshot."""
+    suite = _suite()
+    changed = suite.model_copy(update={"manual_rule_seed": 7})
+
+    assert suite.digest_for(suite.loaded_missions) != changed.digest_for(suite.loaded_missions)
+
+
+def test_suite_digest_changes_with_defuser_protocol() -> None:
+    """Defuser interaction permissions are benchmark-affecting."""
+    suite = _suite()
+    changed = suite.model_copy(
+        update={
+            "defuser_protocol": suite.defuser_protocol.model_copy(
+                update={"allow_magic_actions": True}
+            )
+        }
     )
+
+    assert suite.digest != changed.digest
+
+
+def test_suite_digest_changes_with_expert_protocol() -> None:
+    """Expert interaction permissions are benchmark-affecting."""
+    suite = _suite()
+    assert suite.expert_protocol is not None
+    changed = suite.model_copy(
+        update={
+            "expert_protocol": suite.expert_protocol.model_copy(
+                update={"allow_magic_actions": True}
+            )
+        }
+    )
+
+    assert suite.digest != changed.digest
+
+
+def test_suite_digest_changes_with_matchup() -> None:
+    """Player pairing changes what a suite measures."""
+    suite = _suite()
+    changed = suite.model_copy(update={"matchup": SuiteMatchup(pairing_type="pairwise")})
+
+    assert suite.digest != changed.digest
+
+
+def test_suite_digest_changes_with_modality() -> None:
+    """Required model modalities are benchmark-affecting."""
+    suite = _suite()
+    changed = suite.model_copy(update={"modality": ("audio", "language")})
+
+    assert suite.digest != changed.digest
+
+
+def test_suite_digest_ignores_mission_order() -> None:
+    """Mission order does not affect the digest because the bodies are sorted by digest."""
+    suite = _suite()
+    missions = suite.loaded_missions
+
+    assert suite.digest_for(missions) == suite.digest_for(list(reversed(missions)))
 
 
 def test_manual_rule_seed_replaces_each_materialised_mission_rule_seed() -> None:
@@ -74,7 +138,7 @@ def test_modality_is_canonicalised() -> None:
 
 
 def test_absolute_missions_path_is_rejected() -> None:
-    """An absolute set path would make config_digest machine-dependent, so it is rejected."""
+    """An absolute mission path is not a portable authoring configuration."""
     with pytest.raises(ValidationError, match="missions_path"):
         _ = _suite(missions_path=Path("/abs/missions"))
 

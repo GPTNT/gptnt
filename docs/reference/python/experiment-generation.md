@@ -18,9 +18,8 @@ player pairings, experiment specifications, and frozen suite snapshots. CLI work
       show_root_heading: true
       members:
         - digest_for
+        - digest
         - mission_set
-        - config_digest
-        - suite_digest
 
 ::: gptnt.experiments.suite.definition.SuiteMatchup
     options:

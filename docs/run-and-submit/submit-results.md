@@ -123,9 +123,10 @@ resolved commit.
     Every bundle report has no failed checks. Warnings remain visible and should be resolved when
     they affect reproducibility, including an unpinned static dataset.
 
-The submissions repository validates with the GPTNT release identified by the recorded release
-tag and commit. A later release can have a different bundle contract, so the recorded release is
-the validation boundary.
+The submissions repository first verifies the GPTNT release identified by the recorded release tag
+and commit. It then requires the bundle suite snapshot to exactly match that release's suite
+registry. A later release can have a different bundle contract, so the recorded release is the
+validation boundary.
 
 ## Preview and submit
 

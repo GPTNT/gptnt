@@ -7,11 +7,11 @@ tags:
 
 # Suite configuration
 
-Suite YAML composes a frozen benchmark definition: missions, protocols, pairing policy, manual
-profile, modalities, and revision. Live YAML is an authoring input. Specification generation reads
-the corresponding entry from `configs/suites/suites.lock`.
+Suite YAML defines missions, protocols, pairing policy, manual profile, modalities, and revision.
+`suite freeze` records a frozen revision in `configs/suites/suites.lock`. Specification generation
+reads that frozen revision rather than the current YAML.
 
-## Authoring shape
+## Configuration shape
 
 Files under `configs/suites/` use Hydra's `_target_` keys to construct `Suite`, `SuiteMatchup`,
 `PlayerProtocol`, and `ManualProfile`. Start from `configs/suites/_template.yaml`.
@@ -40,8 +40,7 @@ enforce the value against player capabilities.
       show_root_heading: true
       members:
         - mission_set
-        - config_digest
-        - suite_digest
+        - digest
 
 ::: gptnt.experiments.suite.definition.SuiteMatchup
     options:
@@ -57,7 +56,8 @@ enforce the value against player capabilities.
     options:
       show_root_heading: true
 
-For `config_digest`, `name`, `revision`, and mission bodies are excluded. `suite_digest` adds the
-materialised mission snapshot. The exact frozen lock structure is documented with
-[submission bundles](../files/submission-bundles.md) and comparability is explained in
-[Suites, revisions, and comparability](../../understand/suites-revisions-and-comparability.md).
+`digest` covers the materialised mission bodies, manual profile and rule seed, role protocols,
+matchup, and modalities. It excludes the suite name, revision, configuration path, and freeze
+provenance. The lock version defines the digest recipe. The exact frozen lock structure is
+documented with [submission bundles](../files/submission-bundles.md) and comparability is explained
+in [Suites, revisions, and comparability](../../understand/suites-revisions-and-comparability.md).

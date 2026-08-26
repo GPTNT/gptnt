@@ -6,10 +6,10 @@ defaults:
 suite:
   _target_: gptnt.experiments.suite.definition.Suite
   name: single-self-async
-  revision: 1
+  revision: 2
   modality: [vision, language]
   missions_path: configs/missions/single_module
-  manual_rule_seed: 1
+  manual_rule_seed: 1764
   defuser_protocol:
     _target_: gptnt.players.specification.PlayerProtocol
     role: defuser

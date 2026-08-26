@@ -11,7 +11,7 @@ submission_app.command(
 submission_app.command(
     "gptnt.cli.submission.validate:validate_submission",
     name="validate",
-    help="Validate submission bundle(s) against the local gptnt checkout.",
+    help="Validate submission bundle(s) for internal consistency.",
 )
 submission_app.command(
     "gptnt.cli.submission.submit:submit_submission",

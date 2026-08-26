@@ -26,9 +26,7 @@ from gptnt.cli.submission._bundle import (
 )
 from gptnt.cli.submission._schema import SubmissionExperiment
 from gptnt.cli.submission.validate import validate_submission
-from gptnt.common.paths import Paths
 from gptnt.experiments.db.typed_parquet import read_typed_parquet, write_typed_parquet
-from gptnt.experiments.generation.missions import load_missions
 from gptnt.experiments.records import ExperimentSummary
 from gptnt.experiments.suite.compose import compose_suite
 from gptnt.experiments.suite.lock import SuiteLock
@@ -107,9 +105,9 @@ def valid_bundle_root(
 ) -> Path:
     """A submissions root holding one fully covering, submitter-filled interactive bundle."""
     root = tmp_path_factory.mktemp("submissions")
-    missions = load_missions(Paths().root / suite.missions_path)
+    frozen_suite, missions = suite_snapshot.load_suite(suite.name, suite.revision)
     suite_digest = suite_snapshot.suites[0].suite_digest
-    experiments = [_make_experiment(mission, suite, suite_digest) for mission in missions]
+    experiments = [_make_experiment(mission, frozen_suite, suite_digest) for mission in missions]
     _fill_submitter(InteractiveBundle.from_experiments(experiments, suite_snapshot).save(root))
     return root
 
@@ -160,6 +158,54 @@ def test_valid_bundle_passes(bundle_copy: Path) -> None:
     assert "1 ok, 0 failed" in result.output
 
 
+def test_bundle_snapshot_must_match_the_installed_suite_registry(bundle_copy: Path) -> None:
+    """A self-consistent snapshot is rejected when it differs from the installed registry."""
+    snapshot_path = bundle_copy / "suite.lock"
+    snapshot = SuiteLock.from_lock_path(snapshot_path)
+    altered_entry = snapshot.suites[0].model_copy(update={"frozen_at": "2026-08-25T00:00:00Z"})
+    snapshot.model_copy(update={"suites": (altered_entry,)}).dump_to_path(snapshot_path)
+
+    result = invoke_cli(
+        build_app(), ["submission", "validate", "--require-installed-lock-match", str(bundle_copy)]
+    )
+
+    assert result.exit_code == 1
+    assert "installed suite registry" in result.output
+
+
+def test_bundle_with_a_self_consistent_unaccepted_suite_is_rejected(
+    bundle_copy: Path, tmp_path: Path
+) -> None:
+    """Installed-registry validation rejects a bundle that rewrites its suite identity fields."""
+    bundle = load_submission_bundle(bundle_copy)
+    assert isinstance(bundle, InteractiveBundle)
+    unaccepted_name, unaccepted_revision = "unaccepted-suite", 9
+    entry = bundle.suite_lock.suites[0].model_copy(
+        update={"name": unaccepted_name, "revision": unaccepted_revision}
+    )
+    unaccepted_lock = bundle.suite_lock.model_copy(update={"suites": (entry,)})
+    unaccepted_experiments = [
+        experiment.model_copy(
+            update={"suite_name": unaccepted_name, "suite_revision": unaccepted_revision}
+        )
+        for experiment in bundle.experiments
+    ]
+    unaccepted_bundle = InteractiveBundle.from_experiments(
+        unaccepted_experiments, unaccepted_lock, submitter=bundle.manifest.submitter
+    )
+    unaccepted_path = unaccepted_bundle.save(tmp_path / "unaccepted")
+
+    local_result = invoke_cli(build_app(), ["submission", "validate", str(unaccepted_path)])
+    release_result = invoke_cli(
+        build_app(),
+        ["submission", "validate", "--require-installed-lock-match", str(unaccepted_path)],
+    )
+
+    assert local_result.exit_code == 0, local_result.output
+    assert release_result.exit_code == 1
+    assert "installed suite registry" in release_result.output
+
+
 @pytest.mark.parametrize(
     ("identity_domain", "expected_check"),
     [("release", "gptnt_version"), ("player", "player fingerprint"), ("suite", "suite digest")],
@@ -199,6 +245,22 @@ def test_schema_v1_stops_at_version_boundary(bundle_copy: Path) -> None:
     assert len(checks) == 1
     assert checks[0]["name"] == "schema_version"
     assert "schema-v1 submissions are not supported" in checks[0]["detail"]
+
+
+def test_missing_schema_version_stops_at_version_boundary(bundle_copy: Path) -> None:
+    manifest = _read_manifest(bundle_copy)
+    _ = manifest.pop("schema_version")
+    manifest["measured"] = "unversioned content must not be parsed"
+    _write_manifest(bundle_copy, manifest)
+
+    result = invoke_cli(
+        build_app(), ["submission", "validate", str(bundle_copy), "--format", "json"]
+    )
+    assert result.exit_code == 1
+    checks = orjson.loads(result.output)["bundles"][0]["checks"]
+    assert len(checks) == 1
+    assert checks[0]["name"] == "schema_version"
+    assert "schema_version is required" in checks[0]["detail"]
 
 
 def test_modified_benchmark_records_cannot_be_submitted(
@@ -381,10 +443,12 @@ def valid_pairwise_root(
 ) -> Path:
     """A submissions root with a covering pairwise bundle: every mission run once per expert."""
     root = tmp_path_factory.mktemp("pairwise-submissions")
-    missions = load_missions(Paths().root / pairwise_suite.missions_path)
+    frozen_suite, missions = pairwise_snapshot.load_suite(
+        pairwise_suite.name, pairwise_suite.revision
+    )
     suite_digest = pairwise_snapshot.suites[0].suite_digest
     experiments = [
-        _make_pairwise_experiment(mission, pairwise_suite, suite_digest, expert)
+        _make_pairwise_experiment(mission, frozen_suite, suite_digest, expert)
         for mission in missions
         for expert in PAIRWISE_EXPERTS
     ]

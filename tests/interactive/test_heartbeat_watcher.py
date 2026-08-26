@@ -2,9 +2,9 @@
 
 from uuid import uuid4
 
-import anyio
 import pytest
 
+from gptnt.common.async_ops import Event
 from gptnt.interactive.services.heartbeat.events import ReadyState
 from gptnt.interactive.services.heartbeat.watcher import GameStateWatcher
 from gptnt.ktane.state.game import GameState
@@ -17,8 +17,8 @@ def _game_watcher(*, state: GameState, ready_state: ReadyState) -> GameStateWatc
     watcher._service_state = state
     watcher.ready_state = ready_state
     watcher.update_interval = 0.01
-    watcher.good_game_over_event = anyio.Event()
-    watcher.game_over_event = anyio.Event()
+    watcher.good_game_over_event = Event()
+    watcher.game_over_event = Event()
     return watcher
 
 

@@ -164,9 +164,7 @@ def _check_required_manual_artifacts(
     return findings, artifacts
 
 
-def _collect_manual_requirements(
-    specs: list[ExperimentSpec],
-) -> dict[ManualRequirement, set[str]]:
+def _collect_manual_requirements(specs: list[ExperimentSpec]) -> dict[ManualRequirement, set[str]]:
     """Collect each manual-bearing specification's profile-and-seed requirement by suite."""
     requirements: dict[ManualRequirement, set[str]] = defaultdict(set)
     for spec in specs:

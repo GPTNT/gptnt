@@ -20,8 +20,9 @@ output/submissions/
 
 Static bundles replace `suite.lock` and `experiments.parquet` with `metrics.json`.
 
-`suite.lock` is a reduced snapshot of the canonical `configs/suites/suites.lock`: it contains one
-recorded suite revision and exactly the mission bodies that entry references.
+`suite.lock` is a bundle suite snapshot from `configs/suites/suites.lock`: it contains one frozen
+suite revision and exactly the mission bodies that revision references. Submissions CI later
+compares this snapshot with the suite registry in the verified GPTNT release.
 
 ## Manifest
 
