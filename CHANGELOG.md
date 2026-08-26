@@ -1,3 +1,66 @@
+## v2.0.0 (2026-08-26)
+
+### Feat
+
+- remove integrity check when creating submission
+- **suites**: add versioned suite snapshots for reproducible submissions (#98)
+- **suites**: create a smoke test for pre-release checking
+- **configs/models**: add nemotron-3-nano
+- **manual**: support custom rule seed per suite
+- **gitignore**: only do not ignore the gptnt mod
+- **submission**: enforce release-bound schema v2 (#88)
+- **manual**: prepare manuals for runs (#85)
+- **ktane/config**: support rule seed parameter when sending mission specs (#49)
+- **submission**: bundle frozen suite snapshots (#87)
+- **release**: build fixed-name release bundles (#83)
+- **cli**: enforce integrity before producing benchmark results (#84)
+- **records**: enforce storage identity (#82)
+- **manual**: add compiler (#81)
+- **provenance**: capture benchmark integrity (#75)
+- **manuals**: freeze profile in experiment specs (#80)
+- **suites**: record frozen suite digests in specs (#77)
+- **manual**: resolve profiles into source files and PDF page ranges (#74)
+- **provenance**: fingerprint model settings (#71)
+- **config**: add reusable model configuration helpers (#70)
+- **statics**: canonicalize model outputs for scoring (#72)
+- **coordinates**: support model-native normalised scales (#68)
+- **prompts**: support provider-native reasoning and output modes (#67)
+- **cli/manual**: add the manual download command (#63)
+- **manual**: download and cache manual assets (#62)
+- **manual**: add manual profiles to suites (#61)
+- migrate the per-module time-limit information to the module registry  (#54)
+- redo KtaneComponent to support modded modules and now strings (#53)
+- **state**: add module registry for tracking "facts" per module (#52)
+- **records**: make timestamp be the moment the action was dispatched (#47)
+- add fingerprint to experiments (#44)
+
+### Fix
+
+- **release**: check out annotated tag (#103)
+- **submission**: require submitter details to be given up front
+- **interactive**: cancel async player loops at game end
+- **tests**: ensure ktanesettings dont overlap across tests
+- **manual**: rendering and compiling
+- **cli**: simplify all the benchmark bypasses to "--force"
+- **cli**: do not render traceback if doctor fails
+- **recovery**: preserve failed model response details (#69)
+- remove the guard that prevents changes that would alter the suites.lock (#57)
+
+### Refactor
+
+- **json**: replace orjson with pydantic core (#101)
+- simplify tests
+- **tests**: improve docs and comments (#95)
+- apply the project coding rules across the tree
+- **manual**: remove legacy implementation and assets (#89)
+- **experiments**: use the v2 object model (#73)
+- remove pointless tests (#58)
+- remove component limitations for ktane (#56)
+- move provenance into common (#51)
+- **players**: make prompt truncation persistent (#48)
+- put bomb outcome as an enum (#46)
+- move `generate_specs` func into suite (#45)
+
 ## v1.1.1 (2026-07-30)
 
 ### Fix
