@@ -1,7 +1,7 @@
 from typing import Annotated, override
 
-import orjson
 from pydantic import BeforeValidator, PlainSerializer
+from pydantic_core import from_json
 
 from gptnt.interactive.services.heartbeat.events import BaseHeartbeat, PlayerState
 from gptnt.players.specification import PlayerCapabilities
@@ -14,7 +14,7 @@ class PlayerHeartbeat(BaseHeartbeat, frozen=True):
         PlayerCapabilities,
         BeforeValidator(
             lambda capabilities: (
-                orjson.loads(capabilities) if isinstance(capabilities, str) else capabilities
+                from_json(capabilities) if isinstance(capabilities, str) else capabilities
             )
         ),
         PlainSerializer(

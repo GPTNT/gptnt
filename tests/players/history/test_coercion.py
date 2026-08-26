@@ -1,6 +1,5 @@
 import datetime
 
-import orjson
 from pydantic_ai import (
     ModelMessage,
     ModelRequest,
@@ -11,6 +10,7 @@ from pydantic_ai import (
     UserPromptPart,
 )
 from pydantic_ai.messages import ModelMessagesTypeAdapter
+from pydantic_core import to_json
 
 from gptnt.players.conversation._coercion import coerce_tool_output_into_native_output
 
@@ -49,7 +49,7 @@ def test_coercion_rewrites_tool_calls_and_removes_tool_returns() -> None:
     assert isinstance(coerced[1], ModelResponse)
     assert coerced[1].parts == [
         TextPart(
-            content=orjson.dumps(
+            content=to_json(
                 {"result": {"kind": "send_message", "data": {"message": "Cut the blue wire."}}}
             ).decode()
         )

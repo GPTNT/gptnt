@@ -2,7 +2,6 @@ from enum import StrEnum
 from functools import partial
 from typing import Annotated, Any, Literal, Self, Union
 
-import orjson
 from pydantic import (
     BaseModel,
     BeforeValidator,
@@ -14,6 +13,7 @@ from pydantic import (
     alias_generators,
     model_validator,
 )
+from pydantic_core import from_json, to_json
 
 from gptnt.ktane.state.module_registry import module_registry
 from gptnt.ktane.state.modules import KtaneModuleId, ModuleStates, TimerState
@@ -44,14 +44,14 @@ def _serialise_states_to_string(
 ) -> str:
     """Either we serialize it to string or let the handler do its job."""
     if info.context and info.context.get("serialize_as_string", False):
-        return orjson.dumps(TypeAdapter(obj_type).dump_python(input_value, mode="json")).decode()
+        return to_json(TypeAdapter(obj_type).dump_python(input_value, mode="json")).decode()
     return handler(input_value)
 
 
 def _validate_state_from_string(data: str | Any) -> dict[str, Any]:
     """Validate state from string or pass through."""
     if isinstance(data, str):
-        return orjson.loads(data)
+        return from_json(data)
     return data
 
 

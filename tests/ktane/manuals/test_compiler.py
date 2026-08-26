@@ -5,10 +5,10 @@ from __future__ import annotations
 import hashlib
 from typing import TYPE_CHECKING
 
-import orjson
 import pymupdf
 import pytest
 from PIL import Image
+from pydantic_core import to_json
 
 from gptnt.ktane.manuals.artifacts import compile_manual
 from gptnt.ktane.manuals.compiler_sources import (
@@ -149,7 +149,7 @@ def _ktane_content_document(
     if supports_rule_seed:
         metadata_payload["RuleSeedSupport"] = "Supported"
     metadata_path.parent.mkdir(parents=True, exist_ok=True)
-    _ = metadata_path.write_bytes(orjson.dumps(metadata_payload))
+    _ = metadata_path.write_bytes(to_json(metadata_payload))
     return ResolvedKtaneContentModule(
         document_id=document_id,
         language="en",

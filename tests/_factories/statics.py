@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-import orjson
+from pydantic_core import to_json
 
 from gptnt.players.specification import PlayerCapabilities
 
@@ -35,7 +35,7 @@ def write_statics_run(
     out.mkdir(parents=True)
     capabilities = PlayerCapabilities(player_name=player_name, player_type="ai")
     _ = (out / "run_meta.json").write_bytes(
-        orjson.dumps(
+        to_json(
             {
                 "model_name": model_dir,
                 "run_date": "2026-07-02T10:00:00Z",
@@ -56,5 +56,5 @@ def write_statics_run(
             }
         )
     )
-    _ = (out / "metrics.json").write_bytes(orjson.dumps(metrics or _DEFAULT_METRICS))
+    _ = (out / "metrics.json").write_bytes(to_json(metrics or _DEFAULT_METRICS))
     return out

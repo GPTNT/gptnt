@@ -11,10 +11,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-import orjson
 import pytest
 import yaml
 from pydantic_ai import RunUsage
+from pydantic_core import from_json, to_json
 
 from gptnt.cli.__main__ import build_app
 from gptnt.cli.submission._schema import SubmissionExperiment
@@ -355,7 +355,7 @@ def test_statics_bundle_from_filesystem(tmp_path: Path) -> None:
 
     bundle_dir = next(into.rglob("submission.yaml")).parent
     # Aggregated metrics live in a separate metrics.json, not in the manifest.
-    assert orjson.loads((bundle_dir / "metrics.json").read_bytes()) == {"module": {"total": 0.87}}
+    assert from_json((bundle_dir / "metrics.json").read_bytes()) == {"module": {"total": 0.87}}
     assert not (bundle_dir / "predictions.parquet").exists()
     manifest = _read_manifest(bundle_dir)
     defuser = manifest["players"][0]
@@ -395,7 +395,7 @@ def test_statics_unparsable_run_meta_is_skipped_not_fatal(tmp_path: Path) -> Non
     broken = root / "expert-ocr_predictions" / "broken"
     broken.mkdir(parents=True)
     _ = (broken / "run_meta.json").write_text("{ not valid json")
-    _ = (broken / "metrics.json").write_bytes(orjson.dumps({"module": {"total": 0.1}}))
+    _ = (broken / "metrics.json").write_bytes(to_json({"module": {"total": 0.1}}))
     into = tmp_path / "submissions"
 
     result = _run_statics_new(root, into)

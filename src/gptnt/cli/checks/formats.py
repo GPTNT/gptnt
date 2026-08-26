@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
-import orjson
+from pydantic_core import to_json
 
 from gptnt.cli.checks.render import GLYPHS, render_report
 
@@ -86,7 +86,7 @@ def _render_json(reports: list[Report], console: Console, *, noun: str) -> None:
         ],
     }
     # markup/highlight off + soft_wrap so rich never mangles the machine-readable output.
-    rendered = orjson.dumps(payload, option=orjson.OPT_INDENT_2).decode()
+    rendered = to_json(payload, indent=2).decode()
     console.print(rendered, markup=False, highlight=False, soft_wrap=True)
 
 

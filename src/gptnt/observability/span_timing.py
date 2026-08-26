@@ -17,10 +17,10 @@ import os
 from dataclasses import dataclass, fields
 from typing import TYPE_CHECKING, TextIO, TypedDict, override
 
-import orjson
 import structlog
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor, SpanExporter, SpanExportResult
 from opentelemetry.trace import format_span_id, format_trace_id
+from pydantic_core import to_json
 
 from gptnt.common.paths import Paths
 
@@ -230,8 +230,7 @@ class SpanTimingExporter(SpanExporter):
         """Append `rows` as newline-delimited JSON and flush so they survive a hard exit."""
         writer = self._ensure_writer()
         for row in rows:
-            encoded = orjson.dumps(row, option=orjson.OPT_APPEND_NEWLINE)
-            _ = writer.write(encoded.decode())
+            _ = writer.write(f"{to_json(row).decode()}\n")
         writer.flush()
 
 

@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-import orjson
+from pydantic_core import from_json
 
 from gptnt.observability.span_timing import SpanTimingExporter
 
@@ -34,4 +34,4 @@ def test_timing_rows_remain_utf8_newline_delimited_json(tmp_path: Path) -> None:
     assert encoded.endswith(b"\n")
     assert len(encoded.splitlines()) == 1
     assert b'"player_name":"mod\xc3\xa8le"' in encoded
-    assert orjson.loads(encoded)["player_name"] == "modèle"
+    assert from_json(encoded)["player_name"] == "modèle"

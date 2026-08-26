@@ -2,8 +2,7 @@ import re
 from collections.abc import Callable
 
 import json_repair
-import orjson
-from pydantic_core import from_json
+from pydantic_core import from_json, to_json
 
 from gptnt.statics.coordinates import select_coordinate_candidate
 
@@ -47,4 +46,4 @@ def convert_normalised_to_absolute(
     except (KeyError, TypeError, ValueError, OverflowError):  # noqa: WPS239
         return model_output
 
-    return orjson.dumps({"x": absolute_x, "y": absolute_y}).decode()
+    return to_json({"x": absolute_x, "y": absolute_y}).decode()

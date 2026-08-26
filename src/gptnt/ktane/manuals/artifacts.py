@@ -3,12 +3,12 @@ from __future__ import annotations
 import contextlib
 import functools
 import hashlib
+import json
 import shutil
 import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self, cast
 
-import orjson
 from anyio.to_thread import run_sync
 from pydantic import (
     BaseModel,
@@ -20,6 +20,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+from pydantic_core import from_json, to_json
 
 from gptnt.ktane.manuals._compiler import build_artifact, input_identity, renderer_identity
 from gptnt.ktane.manuals.compiler_sources import prepare_compiler_sources
@@ -95,10 +96,12 @@ class ManualArtifact(BaseModel):
         cls, inputs: list[dict[str, Any]], renderer: dict[str, Any], *, rule_seed: int = 1
     ) -> str:
         """Hash canonical input and renderer identity into an artifact key."""
-        encoded = orjson.dumps(
+        encoded = json.dumps(
             {"inputs": inputs, "renderer": renderer, "rule_seed": rule_seed},
-            option=orjson.OPT_SORT_KEYS,
-        )
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode()
         return hashlib.sha256(encoded).hexdigest()
 
     @classmethod
@@ -120,7 +123,7 @@ class ManualArtifact(BaseModel):
         if not isinstance(raw_artifact, Path):
             return raw_artifact
         try:
-            manifest = orjson.loads((raw_artifact / "manifest.json").read_bytes())
+            manifest = from_json((raw_artifact / "manifest.json").read_bytes())
         except (OSError, ValueError) as error:
             raise ValueError(f"manual artifact could not be read at {raw_artifact}") from error
         if isinstance(manifest, dict):
@@ -283,9 +286,7 @@ def compile_manual(
             "page_count": page_count,
             "files": ManualArtifact.describe_files(build_dir),
         }
-        _ = (build_dir / "manifest.json").write_bytes(
-            orjson.dumps(manifest, option=orjson.OPT_APPEND_NEWLINE)
-        )
+        _ = (build_dir / "manifest.json").write_bytes(b"\n".join((to_json(manifest), b"")))
         try:
             _ = ManualArtifact.load(
                 build_dir,

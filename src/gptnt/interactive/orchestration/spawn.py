@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 
 import anyio
 import httpx
-import orjson
 import structlog
+from pydantic_core import to_json
 
 from gptnt.common.async_ops import periodic
 from gptnt.common.runtime_settings import MANUAL_ARTIFACTS_ENV, RuntimeSettings
@@ -139,12 +139,11 @@ async def spawn_players(
     manual_artifacts: Mapping[ManualRequirement, ManualArtifact],
 ) -> None:
     """Spawn the requested players, each in its own process to run in parallel."""
-    encoded_manual_artifacts = orjson.dumps(
+    encoded_manual_artifacts = to_json(
         {
             requirement.runtime_key: str(artifact.path)
             for requirement, artifact in manual_artifacts.items()
-        },
-        option=orjson.OPT_SORT_KEYS,
+        }
     ).decode()
     logger.info("Starting players", count=sum(player.count for player in players))
     player_counters: Counter[str] = Counter()

@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-import orjson
 import pytest
+from pydantic_core import to_json
 
 from gptnt.ktane.manuals.profile import LocalDocument, ManualProfile
 from gptnt.ktane.manuals.resolution import (
@@ -63,13 +63,13 @@ def _cache_ktane_content(cache_dir: Path) -> None:
             {"ModuleID": "IndicatorWidget", "Name": "Indicators"},
         ]
     }
-    _write(cache_dir / "sources" / "ktanecontent" / "catalog" / "raw.json", orjson.dumps(catalog))
+    _write(cache_dir / "sources" / "ktanecontent" / "catalog" / "raw.json", to_json(catalog))
     revision = cache_dir / "sources" / "ktanecontent" / COMMIT
     _write(revision / "HTML" / "Wires.html", "<main>Cut a wire.</main>")
     _write(revision / "HTML" / "Appendix SQUARE.html", "<main>Appendix.</main>")
     _write(
         revision / "JSON" / "Wires.json",
-        orjson.dumps(
+        to_json(
             {
                 "ModuleID": "Wires",
                 "Name": "Wires",
@@ -82,7 +82,7 @@ def _cache_ktane_content(cache_dir: Path) -> None:
     _write(revision / "HTML" / "Indicators.html", "<main>Read indicator labels.</main>")
     _write(
         revision / "JSON" / "Indicators.json",
-        orjson.dumps(
+        to_json(
             {
                 "ModuleID": "IndicatorWidget",
                 "Name": "Indicators",

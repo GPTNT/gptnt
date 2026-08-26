@@ -11,10 +11,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, override
 from urllib.parse import unquote, urlparse
 
-import orjson
 import playwright
 import pymupdf
 from playwright.sync_api import Error as PlaywrightError, Frame, Page, Route, sync_playwright
+from pydantic_core import from_json, to_json
 
 from gptnt.ktane.manuals.compiler_sources import KTANE_CONTENT_COMMIT, keypad_assets_identity
 from gptnt.ktane.manuals.resolution import (
@@ -118,7 +118,7 @@ def browser_renderer_identity() -> dict[str, str]:
     # Playwright's package records the exact managed Chromium revision independently of its own
     # version, so both values participate in artifact invalidation.
     browsers_path = Path(playwright.__file__).parent / "driver" / "package" / "browsers.json"
-    browsers = orjson.loads(browsers_path.read_bytes())["browsers"]
+    browsers = from_json(browsers_path.read_bytes())["browsers"]
     chromium = next(browser for browser in browsers if browser["name"] == "chromium")
     return {
         "assembly": f"KtaneContent Manual Merger at {KTANE_CONTENT_COMMIT}",
@@ -346,7 +346,7 @@ class _ManualRenderer:
             route.fulfill(
                 status=200,
                 content_type="application/json",
-                body=orjson.dumps({"KtaneModules": self._catalog}).decode(),
+                body=to_json({"KtaneModules": self._catalog}).decode(),
             )
             return
 
@@ -396,7 +396,7 @@ class _ManualRenderer:
             {
                 "name": "Bomb Defusal Manual.json",
                 "mimeType": "application/json",
-                "buffer": orjson.dumps(profile),
+                "buffer": to_json(profile),
             }
         )
 

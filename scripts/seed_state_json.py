@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Any
 
-import orjson
+from pydantic_core import from_json, to_json
 
 
 def _remove_keys_recursively(data: Any, keys_to_remove: tuple[str, ...]) -> None:
@@ -20,7 +20,7 @@ def _remove_keys_recursively(data: Any, keys_to_remove: tuple[str, ...]) -> None
 
 def dump_unneeded_info(file_path: Path) -> None:
     """Remove volatile bomb-state fields and rewrite the JSON with two-space indentation."""
-    data = orjson.loads(file_path.read_bytes())
+    data = from_json(file_path.read_bytes())
     del data["timerModule"]["secondsRemaining"]
 
     keys_to_remove = (
@@ -45,4 +45,4 @@ def dump_unneeded_info(file_path: Path) -> None:
                     if "color" in module[position]:
                         del module[position]["color"]
 
-    _ = file_path.write_bytes(orjson.dumps(data, option=orjson.OPT_INDENT_2))
+    _ = file_path.write_bytes(to_json(data, indent=2))
