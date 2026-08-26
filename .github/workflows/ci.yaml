@@ -2,6 +2,12 @@ name: CI
 
 on:
   workflow_call:
+    inputs:
+      run_tests:
+        description: Run pytest even when the caller event has no usable path diff.
+        required: false
+        type: boolean
+        default: true
   workflow_dispatch:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -23,7 +29,7 @@ jobs:
   changes:
     name: Check for file changes
     runs-on: ubuntu-latest
-    if: ${{ !github.event.pull_request.draft }}
+    if: ${{ (github.event_name == 'pull_request' || github.event_name == 'push') && !github.event.pull_request.draft }}
     permissions:
       pull-requests: read
       contents: read
@@ -50,6 +56,11 @@ jobs:
               - *deps-files
               - *ci-files
               - '**/*.py'
+              # A release bump changes this file. Exercise pytest on the release commit as well
+              # as in the tag-triggered release workflow.
+              - 'CHANGELOG.md'
+              # This defines the local release command, so its changes need the same gate.
+              - 'mise.toml'
               # Benchmark configuration and manifests can change the generated workload without
               # changing Python, so they need the same test gate.
               - 'configs/**'
@@ -111,7 +122,18 @@ jobs:
   test:
     name: Run pytest
     needs: [changes]
-    if: ${{needs.changes.outputs.tests == 'true' && !github.event.pull_request.draft }}
+    # A manual or reusable CI invocation is an explicit request to test. Pushes and pull requests
+    # remain path-filtered to avoid consuming a full test run for unrelated documentation changes.
+    if: >-
+      ${{
+        always()
+        && !github.event.pull_request.draft
+        && (
+          inputs.run_tests
+          || github.event_name == 'workflow_dispatch'
+          || needs.changes.outputs.tests == 'true'
+        )
+      }}
     uses: ./.github/workflows/verify.yaml
 
     permissions:
