@@ -1,3 +1,4 @@
+import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Annotated
@@ -170,7 +171,7 @@ def check_experiment_completion(
     expected = _resolve_experiments(parsed)
     if not expected:
         console.print("[red]No experiments found. Aborting.[/red]")
-        raise RuntimeError("No experiments found.")
+        sys.exit(1)
     console.print(f"  Loaded [bold]{len(expected)}[/bold] expected experiments.\n")
 
     ledger = resolve_ledger(source, output_dir=output_dir)

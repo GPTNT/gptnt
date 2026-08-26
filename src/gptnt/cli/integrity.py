@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
@@ -140,6 +141,4 @@ def require_benchmark_integrity(*, force: bool = False) -> None:
     console.print(
         "\n[bold red]Benchmark integrity failed.[/bold red] Fix the Benchmark rows above."
     )
-    raise RuntimeError(
-        "benchmark integrity failed; restore protected content or check out an exact release tag"
-    )
+    sys.exit(1)

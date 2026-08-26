@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from typing import Literal
 
@@ -33,7 +34,7 @@ def _require_run_plan(diagnosis: DiagnoseResult) -> RunPlanResult:
     """Return the run plan, rejecting a missing plan or a roster that cannot execute."""
     if diagnosis.run_plan is None:
         console.print("[bold red]Internal error: the run-plan check did not execute.[/bold red]")
-        raise RuntimeError("the run-plan check did not execute")
+        sys.exit(1)
 
     run_plan_failed = any(finding.status == "fail" for finding in diagnosis.run_plan.findings)
     if not run_plan_failed:
@@ -43,7 +44,7 @@ def _require_run_plan(diagnosis: DiagnoseResult) -> RunPlanResult:
         "\n[bold red]Run blocked by the doctor run-plan checks.[/bold red] Correct the failing "
         "rows before queueing specs."
     )
-    raise RuntimeError("run blocked by doctor run-plan checks")
+    sys.exit(1)
 
 
 async def run_pipeline(
@@ -67,7 +68,8 @@ async def run_pipeline(
             f"\n[bold red]No experiment specs found at[/bold red] {specs_dir}\n"
             f"Generate them first with: [bold]gptnt generate {manifest_stem}.yaml[/bold]"
         )
-        raise RuntimeError(f"no experiment specs found at {specs_dir}; run `gptnt generate` first")
+        sys.exit(1)
+
     console.print(f"[green]Loading {len(specs)} spec(s) from[/green] {specs_dir}")
 
     # 1. Doctor gate (run-plan mode) against the loaded specs: renders the full report and reports
@@ -81,9 +83,8 @@ async def run_pipeline(
                 "\n[bold red]Doctor found problems.[/bold red] Fix the ✗ rows above, or re-run "
                 "with [bold]--force[/bold]."
             )
-            raise RuntimeError(
-                "doctor found problems; fix the rows above or use --force for ordinary failures"
-            )
+            sys.exit(1)
+
         console.print("\n[yellow]--force set: proceeding despite doctor failures above.[/yellow]")
 
     # 2. Resume: reuse the specs the gate's resume check already filtered (one completion query for
@@ -143,7 +144,7 @@ def _assert_roster_covers_specs(
             f"required but no roster entry provides them: {', '.join(missing)}. This run would "
             "stall forever, so it is aborting before queueing anything."
         )
-        raise RuntimeError("roster does not cover the generated specs")
+        sys.exit(1)
 
 
 # TODO: This feels stupid?

@@ -11,6 +11,7 @@ per player, splits each forward pass into:
 import os
 import platform
 import subprocess
+import sys
 from typing import Annotated, Any
 
 import orjson
@@ -282,9 +283,7 @@ def query_span_timings(
             f"[yellow]No span_timings/*.jsonl found under {run_dir}.[/yellow] "
             "Re-run with [bold]OBSERVABILITY_CAPTURE_SPAN_TIMINGS=1[/bold] to capture timings."
         )
-        raise RuntimeError(
-            "No span timings found; re-run with OBSERVABILITY_CAPTURE_SPAN_TIMINGS=1."
-        )
+        sys.exit(1)
 
     df = pl.concat(
         [pl.read_ndjson(timing_file) for timing_file in timing_files], how="diagonal_relaxed"

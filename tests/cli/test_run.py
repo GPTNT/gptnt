@@ -262,9 +262,10 @@ async def test_run_force_does_not_bypass_roster_failure(monkeypatch: pytest.Monk
     _patch_load_specs(monkeypatch, specs)
     calls = _patch_spawn(monkeypatch)
 
-    with pytest.raises(RuntimeError, match="roster does not cover"):
+    with pytest.raises(SystemExit) as exit_info:
         await pipeline.run_pipeline(_manifest(), manifest_stem="m", force=True)
 
+    assert exit_info.value.code == 1
     assert calls == []
 
 
@@ -317,9 +318,9 @@ def test_score_producing_commands_fail_integrity_before_writing_or_spawning(
         ],
     }[entry_point]
 
-    with pytest.raises(RuntimeError):
-        _ = invoke_cli(build_app(), argv)
+    result = invoke_cli(build_app(), argv)
 
+    assert result.exit_code == 1
     assert not (tmp_path / "specs").exists()
     assert not (tmp_path / "submissions").exists()
 
@@ -388,9 +389,10 @@ async def test_run_pipeline_gate_blocks_when_failed_without_force(
     _patch_load_specs(monkeypatch, specs)
     calls = _patch_spawn(monkeypatch)
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(SystemExit) as exit_info:
         await pipeline.run_pipeline(_manifest(), manifest_stem="m", force=False)
 
+    assert exit_info.value.code == 1
     assert calls == []  # the gate must abort before spawning anything
 
 
@@ -424,9 +426,10 @@ async def test_run_pipeline_aborts_when_run_plan_missing(monkeypatch: pytest.Mon
     _patch_load_specs(monkeypatch, [_spec()])
     calls = _patch_spawn(monkeypatch)
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(SystemExit) as exit_info:
         await pipeline.run_pipeline(_manifest(), manifest_stem="m")
 
+    assert exit_info.value.code == 1
     assert calls == []
 
 
@@ -437,9 +440,10 @@ async def test_run_pipeline_aborts_when_no_specs_on_disk(monkeypatch: pytest.Mon
     _patch_load_specs(monkeypatch, [])  # nothing generated yet
     calls = _patch_spawn(monkeypatch)
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(SystemExit) as exit_info:
         await pipeline.run_pipeline(_manifest(), manifest_stem="m")
 
+    assert exit_info.value.code == 1
     # The raising stub guarantees we exit before the doctor gate. Nothing was spawned.
     assert calls == []
 
@@ -572,9 +576,10 @@ async def test_manual_doctor_failure_prevents_spawn_even_with_force(
     _patch_load_specs(monkeypatch, [spec])
     calls = _patch_spawn(monkeypatch)
 
-    with pytest.raises(RuntimeError, match="run blocked by doctor run-plan checks"):
+    with pytest.raises(SystemExit) as exit_info:
         await pipeline.run_pipeline(_manifest(), manifest_stem="m", force=not resume_filtered)
 
+    assert exit_info.value.code == 1
     assert calls == []
 
 

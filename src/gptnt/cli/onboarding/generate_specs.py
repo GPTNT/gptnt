@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 from typing import Annotated
 
@@ -35,13 +36,13 @@ async def generate(
         console.print(
             "\n[bold red]Doctor found problems.[/bold red] Fix the ✗ rows above before generating."
         )
-        raise RuntimeError("doctor found problems; fix the rows above before generating")
+        sys.exit(1)
 
     if diagnosis.run_plan is None or not diagnosis.run_plan.specs:
         console.print(
             "[bold red]No experiment specs were generated from this manifest.[/bold red]"
         )
-        raise RuntimeError("no experiment specs were generated from this manifest")
+        sys.exit(1)
 
     out_dir = output_dir or Paths().experiment_specs.joinpath(Path(manifest).stem)
     written = write_specs_to_dir(diagnosis.run_plan.specs, out_dir)
