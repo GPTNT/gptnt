@@ -118,13 +118,13 @@ def build_submission(
         Parameter(name="--model", help="Only build these models (default: every model present)."),
     ] = None,
     submitter: Annotated[
-        Submitter | None,
+        Submitter,
         Parameter(
             name="--submitter",
             help="Fill in the submitter name in each submission.yaml.",
             env_var="SUBMITTER",
         ),
-    ] = None,
+    ],
 ) -> None:
     """Build every submission bundle from the DuckDB."""
     built = _build_interactive_bundles(
@@ -145,4 +145,3 @@ def build_submission(
         built += 1
 
     console.print(f"Built {built} bundle(s) under {output_dir}.", style="bold")
-    console.print("Fill in each submission.yaml's submitter, then submit to gptnt-submissions.")
