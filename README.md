@@ -13,8 +13,6 @@ the Expert reads the manual, and they must communicate to defuse it.
 
 This benchmark uses the real game and the official manual. We have done as much as possible to make everything easy to use and run, and have put all the information to help you get started on our [documentation site](https://gptnt.github.io/docs/).
 
-
-
 ## Download
 
 ```bash
