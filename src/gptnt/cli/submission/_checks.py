@@ -18,9 +18,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import orjson
 import yaml
 from pydantic import ValidationError
+from pydantic_core import from_json
 from tomlkit.exceptions import TOMLKitError
 
 from gptnt.cli.checks.result import CheckResult
@@ -322,8 +322,8 @@ def _load_statics_payload(
         return None, [CheckResult.failed("payload", "metrics.json not found", hint=REBUILD_HINT)]
     metrics_text = payload_path.read_text()
     try:
-        orjson.loads(metrics_text)
-    except orjson.JSONDecodeError as error:
+        from_json(metrics_text)
+    except ValueError as error:
         return None, [CheckResult.failed("payload", f"metrics.json is not valid JSON: {error}")]
     bundle = StaticsBundle(manifest=manifest, metrics_text=metrics_text)
     return bundle, [CheckResult.passed("payload", "metrics.json")]

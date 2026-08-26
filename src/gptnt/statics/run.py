@@ -6,11 +6,11 @@ from typing import Any, ClassVar, override
 
 import datasets
 import numpy as np
-import orjson
 import polars as pl
 import structlog
 from PIL import Image
 from pydantic_ai import Agent
+from pydantic_core import from_json, to_json
 from tqdm import tqdm
 from whenever import Instant
 
@@ -86,7 +86,7 @@ async def run_eval_step(
     prediction = await predict_method(**instance)
     # Add index to prediction content
     prediction_with_index = {"index": instance["index"], **prediction}
-    _ = prediction_output_file.write_bytes(orjson.dumps(prediction_with_index))  # noqa: ASYNC240
+    _ = prediction_output_file.write_bytes(to_json(prediction_with_index))  # noqa: ASYNC240
     return prediction
 
 
@@ -188,10 +188,10 @@ class RunEvaluation(abc.ABC):
         predictions: Predictions = {}
         for instance in instances:
             prediction_file = self.output_dir.joinpath(f"prediction_{instance['index']}.json")
-            predictions[instance["index"]] = orjson.loads(prediction_file.read_bytes())
+            predictions[instance["index"]] = from_json(prediction_file.read_bytes())
         metrics = score_predictions(self.scorers, instances, predictions)
         metrics_file = self.output_dir.joinpath("metrics.json")
-        _ = metrics_file.write_bytes(orjson.dumps(metrics, option=orjson.OPT_INDENT_2))
+        _ = metrics_file.write_bytes(to_json(metrics, indent=2))
         logger.info("Wrote metrics", prediction_count=len(predictions), metrics_file=metrics_file)
         return metrics
 

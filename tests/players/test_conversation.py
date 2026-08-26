@@ -1,7 +1,6 @@
 import datetime
 from pathlib import Path
 
-import orjson
 import pytest
 from pydantic import ValidationError
 from pydantic_ai import (
@@ -16,6 +15,7 @@ from pydantic_ai import (
     UserPromptPart,
 )
 from pydantic_ai.usage import UsageLimits
+from pydantic_core import to_json
 
 from gptnt.common.image_ops import load_observation_from_bytes
 from gptnt.common.runtime_settings import MANUAL_ARTIFACTS_ENV
@@ -87,12 +87,11 @@ def test_profiles_select_their_prepared_prompts_and_no_manual_reads_nothing(
     )
     monkeypatch.setenv(
         MANUAL_ARTIFACTS_ENV,
-        orjson.dumps(
+        to_json(
             {
                 ManualRequirement(profile=profile, rule_seed=1).runtime_key: str(artifact.path)
                 for profile, artifact in artifacts.items()
-            },
-            option=orjson.OPT_SORT_KEYS,
+            }
         ).decode(),
     )
     player_app = build_player_app(hydra_overrides=["player=test-defuser"])
@@ -287,7 +286,7 @@ def test_render_composes_truncation_windowing_and_coercion() -> None:
         "What should I do on turn 1?",
         "Response for turn 1.",
         "What should I do on turn 2?",
-        orjson.dumps(
+        to_json(
             {"result": {"kind": "send_message", "data": {"message": "Cut the blue wire."}}}
         ).decode(),
     ]

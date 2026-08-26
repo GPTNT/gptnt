@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-import orjson
 import pytest
+from pydantic_core import to_json
 from pytest_mock import MockerFixture
 
 from gptnt.common.runtime_settings import MANUAL_ARTIFACTS_ENV
@@ -72,7 +72,7 @@ async def test_manual_player_loads_the_artifact_for_its_mission_rule_seed(
     artifact = make_compiled_manual(tmp_path, name="seeded", text="RULE SEED SEVEN")
     requirement = ManualRequirement(profile=instance.manual_profile, rule_seed=7)
     monkeypatch.setenv(
-        MANUAL_ARTIFACTS_ENV, orjson.dumps({requirement.runtime_key: str(artifact.path)}).decode()
+        MANUAL_ARTIFACTS_ENV, to_json({requirement.runtime_key: str(artifact.path)}).decode()
     )
     player_app = build_player_app(hydra_overrides=["player=test-defuser"])
     player_service = player_app.context.get("player_service")

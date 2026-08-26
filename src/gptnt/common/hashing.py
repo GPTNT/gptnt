@@ -13,7 +13,8 @@ def stable_digest(payload: Any) -> str:
     are sorted before hashing, then blake2b'd to a 16-byte hex digest.
     """
     # Keep stdlib JSON's separators and ASCII escaping: these encoded bytes define persisted
-    # experiment, suite, player, and manual-profile identities. orjson cannot emit that exact form.
+    # experiment, suite, player, and manual-profile identities. Pydantic Core cannot emit
+    # that form.
     return hashlib.blake2b(
         json.dumps(to_jsonable_python(payload), sort_keys=True).encode(), digest_size=16
     ).hexdigest()

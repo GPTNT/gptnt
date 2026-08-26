@@ -24,7 +24,6 @@ dependencies = [
     "msgpack>=1.1.2",
     "omegaconf>=2.3.0",
     "opencv-python-headless>=4.11.0.86",
-    "orjson>=3.11.5",
     "pillow>=11.1.0",
     "polars>=1.28.1",
     "playwright>=1.55.0",

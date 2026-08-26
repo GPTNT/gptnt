@@ -5,7 +5,6 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Self, TypedDict
 
-import orjson
 import structlog
 from PIL import Image
 from pydantic import BaseModel
@@ -13,6 +12,7 @@ from pydantic.fields import PrivateAttr
 from pydantic_ai import Agent
 from pydantic_ai.messages import BinaryContent
 from pydantic_ai.models import Model
+from pydantic_core import from_json
 from structlog.tracebacks import ExceptionDictTransformer
 
 from gptnt.common.paths import Paths
@@ -173,4 +173,4 @@ class EvalModel(BaseModel):
         """Fetch the model answer from the json."""
         prediction_path = self._output_dir.joinpath(f"prediction_{index}.json")
 
-        return orjson.loads(prediction_path.read_bytes())
+        return from_json(prediction_path.read_bytes())

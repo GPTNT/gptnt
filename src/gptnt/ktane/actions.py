@@ -77,7 +77,7 @@ class KtaneBaseAction(BaseModel, Generic[KtaneActionT, LocationDataT_co]):  # no
 
     @model_validator(mode="after")
     def check_actions_align_with_location_use(self) -> Self:
-        """Only actions require a location, so we make sure there's not mismatch."""
+        """Some actions require a location, so reject mismatched location data."""
         # Err if action requires location but no location is provided
         if self.action in GameActionType.require_location() and self.location is None:
             raise ValueError(f"Action {self.action} requires a location but none was provided.")

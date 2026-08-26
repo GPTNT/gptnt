@@ -12,10 +12,10 @@ import shutil
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-import orjson
 import pytest
 import yaml
 from pydantic_ai import RunUsage
+from pydantic_core import from_json
 
 from gptnt.cli.__main__ import build_app
 from gptnt.cli.submission._bundle import (
@@ -227,7 +227,7 @@ def test_identity_disagreement_fails(
         build_app(), ["submission", "validate", str(bundle_copy), "--format", "json"]
     )
     assert result.exit_code == 1
-    checks = orjson.loads(result.output)["bundles"][0]["checks"]
+    checks = from_json(result.output)["bundles"][0]["checks"]
     assert any(check["name"] == expected_check and check["status"] == "fail" for check in checks)
 
 
@@ -241,7 +241,7 @@ def test_schema_v1_stops_at_version_boundary(bundle_copy: Path) -> None:
         build_app(), ["submission", "validate", str(bundle_copy), "--format", "json"]
     )
     assert result.exit_code == 1
-    checks = orjson.loads(result.output)["bundles"][0]["checks"]
+    checks = from_json(result.output)["bundles"][0]["checks"]
     assert len(checks) == 1
     assert checks[0]["name"] == "schema_version"
     assert "schema-v1 submissions are not supported" in checks[0]["detail"]
@@ -257,7 +257,7 @@ def test_missing_schema_version_stops_at_version_boundary(bundle_copy: Path) -> 
         build_app(), ["submission", "validate", str(bundle_copy), "--format", "json"]
     )
     assert result.exit_code == 1
-    checks = orjson.loads(result.output)["bundles"][0]["checks"]
+    checks = from_json(result.output)["bundles"][0]["checks"]
     assert len(checks) == 1
     assert checks[0]["name"] == "schema_version"
     assert "schema_version is required" in checks[0]["detail"]
@@ -376,7 +376,7 @@ def test_json_format_is_parseable(bundle_copy: Path) -> None:
         build_app(), ["submission", "validate", str(bundle_copy), "--format", "json"]
     )
     assert result.exit_code == 0, result.output
-    payload = orjson.loads(result.output)
+    payload = from_json(result.output)
     assert payload["summary"] == {"total": 1, "ok": 1, "failed": 0}
     assert payload["bundles"][0]["ok"] is True
     names = {check["name"] for check in payload["bundles"][0]["checks"]}

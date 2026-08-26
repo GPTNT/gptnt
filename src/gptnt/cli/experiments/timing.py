@@ -14,12 +14,12 @@ import subprocess
 import sys
 from typing import Annotated, Any
 
-import orjson
 import polars as pl
 import psutil
 import structlog
 from cyclopts import Parameter
 from cyclopts.types import ExistingDirectory
+from pydantic_core import from_json
 from rich.console import Console
 from rich.table import Table
 
@@ -137,7 +137,7 @@ def _query_darwin_gpu() -> str:
         stderr=subprocess.DEVNULL,
         timeout=5,
     )
-    gpus = orjson.loads(raw).get("SPDisplaysDataType", [])
+    gpus = from_json(raw).get("SPDisplaysDataType", [])
     parts = [_format_darwin_gpu(gpu) for gpu in gpus]
     return " | ".join(parts) if parts else "unknown"
 

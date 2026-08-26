@@ -1,8 +1,8 @@
 import copy
 
-import orjson
 from pydantic_ai import BaseToolCallPart, ModelResponse, TextPart, ToolReturnPart
 from pydantic_ai.messages import ModelMessage, ModelRequest
+from pydantic_core import to_json
 
 
 def _coerce_request(message: ModelRequest) -> ModelRequest | None:
@@ -22,7 +22,7 @@ def _coerce_response(message: ModelResponse) -> ModelResponse:
 
     new_parts = [
         TextPart(
-            content=orjson.dumps(
+            content=to_json(
                 {
                     "result": {
                         "kind": part.tool_name.replace("final_result_", ""),

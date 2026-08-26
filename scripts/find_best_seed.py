@@ -11,9 +11,9 @@ from typing import Any
 
 import anyio
 import numpy as np
-import orjson
 import structlog
 from deepdiff import DeepDiff
+from pydantic_core import from_json, to_json
 from scripts.seed_state_json import dump_unneeded_info
 from tqdm.asyncio import tqdm
 
@@ -229,7 +229,7 @@ async def run_seed_gathering_process(
         return
     # write the seed and difference rating to a file
     _ = (seed_differences_path / f"seed_{seed}_differences.json").write_bytes(
-        orjson.dumps(difference_rating)
+        to_json(difference_rating)
     )
 
 
@@ -276,7 +276,7 @@ def flatten_json(data: list[float | list[float]] | list[float] | float) -> list[
 
 def calculate_average_for_seed(json_file: Path) -> float:
     """Calculates the average of all numerical values in a flattened .json file."""
-    data = orjson.loads(json_file.read_bytes())
+    data = from_json(json_file.read_bytes())
     flattened_values = flatten_json(data)
     return float(np.mean(flattened_values)) if flattened_values else float(0)
 
@@ -501,7 +501,7 @@ def check_modules_on_both_sides(path: Path) -> int | None:
     """Check if the bomb has modules on both sides."""
     all_bombs = list(path.rglob("*.json"))
     for bomb in all_bombs:
-        modules = orjson.loads(bomb.read_bytes()).get("modules", [])
+        modules = from_json(bomb.read_bytes()).get("modules", [])
         has_front = any(module.get("onFront") for module in modules)
         has_back = any(not module.get("onFront") for module in modules)
         if not has_front and not has_back:
@@ -514,7 +514,7 @@ def check_modules_on_both_sides(path: Path) -> int | None:
 def check_valid_morse_code_modules(morse_code_path: Path) -> bool:
     """Ensure morse code is different."""
     all_bomb_paths = list(morse_code_path.rglob("*.json"))
-    all_bombs = [orjson.loads(bomb_path.read_bytes()) for bomb_path in all_bomb_paths]
+    all_bombs = [from_json(bomb_path.read_bytes()) for bomb_path in all_bomb_paths]
     all_morse_modules = [module for modules in all_bombs for module in modules["modules"]]
     for module in all_morse_modules:
         if module["currentFrequency"] == module["correctFrequency"]:
@@ -526,7 +526,7 @@ def check_valid_morse_code_modules(morse_code_path: Path) -> bool:
 def save(path: Path, seed: int, modules: list[KtaneComponent], bomb_state: dict[str, Any]) -> None:
     """Saves the bomb state to a file."""
     file_name = str(seed) + "".join(f"_{component.name}" for component in modules)
-    file_save = path.joinpath(file_name).with_suffix(".json").write_bytes(orjson.dumps(bomb_state))
+    file_save = path.joinpath(file_name).with_suffix(".json").write_bytes(to_json(bomb_state))
     assert file_save > 0
 
 
@@ -548,10 +548,10 @@ def count_unique_attributes(data1, data2) -> int:
         )
     if isinstance(data1, list) and isinstance(data2, list):
         # Combine unique items from both lists
-        unique_items = set(map(orjson.dumps, data1)).union(set(map(orjson.dumps, data2)))
+        unique_items = set(map(to_json, data1)).union(set(map(to_json, data2)))
         # Recursively count attributes in each unique item
         return sum(
-            count_unique_attributes(orjson.loads(item_to_be_counted), {})
+            count_unique_attributes(from_json(item_to_be_counted), {})
             for item_to_be_counted in unique_items
         )
     if isinstance(data1, dict):
@@ -585,8 +585,8 @@ def single_module_difference(single_modules_dir: Path) -> float:
 
         # Perform combinations for the modules in the folder
         for bomb1, bomb2 in combinations(bomb_files, 2):
-            b1 = orjson.loads(bomb1.read_bytes())["modules"]
-            b2 = orjson.loads(bomb2.read_bytes())["modules"]
+            b1 = from_json(bomb1.read_bytes())["modules"]
+            b2 = from_json(bomb2.read_bytes())["modules"]
 
             # Use DeepDiff to calculate the differences
             diff = DeepDiff(b1, b2)
@@ -607,7 +607,7 @@ def intra_bomb_difference(path: Path) -> float:
     all_bombs = list(path.glob("*.json"))
     avg_diff = []
     for bomb in all_bombs:
-        modules = orjson.loads(bomb.read_bytes()).get("modules", [])
+        modules = from_json(bomb.read_bytes()).get("modules", [])
         for module1, module2 in combinations(modules, 2):
             # Use DeepDiff to calculate the differences
             diff = DeepDiff(module1, module2)
@@ -629,8 +629,8 @@ def inter_bomb_difference(path: Path) -> float:
     avg_diff = []
     # check if the bombs themselves are different enough
     for bomb1, bomb2 in combinations(all_bombs, 2):
-        b1 = orjson.loads(bomb1.read_bytes())["modules"]
-        b2 = orjson.loads(bomb2.read_bytes())["modules"]
+        b1 = from_json(bomb1.read_bytes())["modules"]
+        b2 = from_json(bomb2.read_bytes())["modules"]
 
         diff = DeepDiff(b1, b2)
 
