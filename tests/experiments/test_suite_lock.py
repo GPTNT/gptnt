@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from textwrap import dedent
 from typing import TYPE_CHECKING
 
 import pytest
