@@ -1,8 +1,8 @@
 """End-to-end tests for `gptnt submission new`, driven off a real DuckDB built by the ingest path.
 
 Records are written as recorder parquet, ingested into a temp `experiments.duckdb`, and the bundle
-is built through the CLI. The human-only fields (submitter + declared system attribution) must be
-blank on build and preserved across a rebuild.
+is built through the CLI. The submitter supplied to the CLI is written into each bundle, and a
+hand-edited submitter is preserved across a rebuild.
 """
 
 from __future__ import annotations
@@ -42,6 +42,8 @@ if TYPE_CHECKING:
 SUITE = "custom-submission-suite"
 DEFUSER_STEP_INPUT_TOKENS = 100
 EXPERT_STEP_INPUT_TOKENS = 7
+SUBMITTER_NAME = "Ada Lovelace"
+SUBMITTER_CONTACT = "@ada"
 
 _BASE_SPEC = make_experiment_spec()
 _MISSIONS = tuple(make_experiment_spec(seed=seed).mission_spec for seed in (1, 2, 3))
@@ -206,6 +208,10 @@ def _run_new(db_path: Path, output_path: Path, *extra: str) -> None:
             SUITE,
             "--output-dir",
             str(output_path),
+            "--submitter.name",
+            SUBMITTER_NAME,
+            "--submitter.contact",
+            SUBMITTER_CONTACT,
             *extra,
         ],
     )
@@ -240,14 +246,15 @@ def test_new_builds_a_self_contained_bundle_that_validates_offline(
     assert defuser["fingerprint"]  # stamped at the submission boundary
     assert defuser["identity"]["organisation"] == "GPTNT"  # configs/player/test-defuser.yaml
     assert manifest["measured"]["suite_name"] == SUITE
-    assert manifest["submitter"] == {"name": "", "contact": "", "affiliation": None}
+    assert manifest["submitter"] == {
+        "name": SUBMITTER_NAME,
+        "contact": SUBMITTER_CONTACT,
+        "affiliation": None,
+    }
 
     snapshot = SuiteLock.from_lock_path(bundle_dir / "suite.lock")
     assert snapshot.suites == (_SUITE_ENTRY,)
     assert set(snapshot.mission_specs()) == set(_SUITE_ENTRY.mission_digests)
-
-    manifest["submitter"] = {"name": "Ada Lovelace", "contact": "@ada", "affiliation": None}
-    _ = (bundle_dir / "submission.yaml").write_text(yaml.safe_dump(manifest, sort_keys=False))
 
     monkeypatch.setattr("gptnt.experiments.suite.lock.default_lock_path", _fail_live_access)
     monkeypatch.setattr("gptnt.experiments.suite.compose.compose_suite", _fail_live_access)
@@ -286,15 +293,15 @@ def test_rebuild_preserves_hand_filled_fields(tmp_path: Path) -> None:
     _run_new(db_path, output_path)
     bundle_dir = next(output_path.rglob("submission.yaml")).parent
     manifest = _read_manifest(bundle_dir)
-    manifest["submitter"]["name"] = "Ada Lovelace"
-    manifest["submitter"]["contact"] = "@ada"
+    manifest["submitter"]["name"] = "Grace Hopper"
+    manifest["submitter"]["contact"] = "@grace"
     _ = (bundle_dir / "submission.yaml").write_text(yaml.safe_dump(manifest, sort_keys=False))
 
     _run_new(db_path, output_path)  # rebuild
 
     rebuilt = _read_manifest(bundle_dir)
-    assert rebuilt["submitter"]["name"] == "Ada Lovelace"  # hand edits survive
-    assert rebuilt["submitter"]["contact"] == "@ada"
+    assert rebuilt["submitter"]["name"] == "Grace Hopper"  # hand edits survive
+    assert rebuilt["submitter"]["contact"] == "@grace"
     # derived field still correct
     assert rebuilt["players"][0]["capabilities"]["player_name"] == "test-defuser"
 
@@ -329,6 +336,10 @@ def _run_statics_new(root: Path, into: Path, *extra: str) -> CliResult:
             "expert-ocr",
             "--output-dir",
             str(into),
+            "--submitter.name",
+            SUBMITTER_NAME,
+            "--submitter.contact",
+            SUBMITTER_CONTACT,
             *extra,
         ],
     )
@@ -353,7 +364,11 @@ def test_statics_bundle_from_filesystem(tmp_path: Path) -> None:
     assert manifest["measured"]["task_name"] == "expert-ocr"
     assert manifest["measured"]["hf_repo_id"] == "GPTNT/expert-element-ocr"
     assert "metrics" not in manifest
-    assert manifest["submitter"] == {"name": "", "contact": "", "affiliation": None}
+    assert manifest["submitter"] == {
+        "name": SUBMITTER_NAME,
+        "contact": SUBMITTER_CONTACT,
+        "affiliation": None,
+    }
 
 
 def test_statics_model_filter_matches_player_name_not_dir(tmp_path: Path) -> None:
