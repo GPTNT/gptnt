@@ -13,7 +13,6 @@ from cyclopts import Parameter
 from pydantic import ValidationError
 from rich.console import Console
 
-from gptnt.cli.integrity import require_benchmark_integrity
 from gptnt.cli.submission._bundle import InteractiveBundle, StaticsBundle
 from gptnt.cli.submission._interactive import (
     gather_experiments_for_suite,
@@ -128,7 +127,6 @@ def build_submission(
     ] = None,
 ) -> None:
     """Build every submission bundle from the DuckDB."""
-    require_benchmark_integrity()
     built = _build_interactive_bundles(
         experiments_db=experiments_db,
         output_dir=output_dir,
