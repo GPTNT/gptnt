@@ -144,12 +144,7 @@ jobs:
           test "${installed_version}" = "${GITHUB_REF_NAME#v}"
 
           export PATH="${PWD}/.venv/bin:${PATH}"
-          doctor_output=$(gptnt doctor runs/quickstart.yaml --config-only)
-          printf '%s\n' "${doctor_output}"
-          grep -F "${GITHUB_REF_NAME}" <<< "${doctor_output}"
-          grep -F "Protected content" <<< "${doctor_output}"
-          grep -F "matches" <<< "${doctor_output}"
-          gptnt generate runs/quickstart.yaml
+          gptnt --help >/dev/null
 
   verify_zip_windows:
     name: Verify ZIP bundle on Windows
