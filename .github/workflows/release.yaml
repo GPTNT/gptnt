@@ -33,6 +33,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+          ref: ${{ github.ref }}
 
       - name: Verify source checkout is clean
         run: test -z "$(git status --porcelain --untracked-files=all)"
