@@ -1,0 +1,74 @@
+name: Verify
+
+on:
+  workflow_call:
+    inputs:
+      checkout_depth:
+        description: Git history depth required by the caller.
+        required: false
+        type: number
+        default: 1
+      require_release_tag:
+        description: Require the caller ref to be an exact annotated release tag.
+        required: false
+        type: boolean
+        default: false
+      check_suite_lock:
+        description: Verify that suites.lock contains every current suite revision.
+        required: false
+        type: boolean
+        default: false
+
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  test:
+    name: Pytest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: ${{ inputs.checkout_depth }}
+          persist-credentials: false
+          ref: ${{ github.ref }}
+
+      - name: Verify annotated release tag
+        if: inputs.require_release_tag
+        run: |
+          set -euo pipefail
+          test "$(git describe --tags --exact-match)" = "${GITHUB_REF_NAME}"
+          test "$(git cat-file -t "refs/tags/${GITHUB_REF_NAME}")" = "tag"
+
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
+        with:
+          enable-cache: true
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install test dependencies
+        run: |
+          uv sync --frozen --all-groups --all-extras
+          uv run --frozen playwright install chromium
+
+      - name: Verify frozen suite registry
+        if: inputs.check_suite_lock
+        run: uv run --frozen gptnt suite freeze --check
+
+      - name: Run tests
+        env:
+          COVERAGE_CORE: sysmon
+        run: |
+          uv run --frozen pytest -k "not requires_game and not slow" --junitxml=pytest.xml --cov-report "xml:coverage.xml" --cov=src -n auto
+
+      - name: Comment coverage
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: MishaKav/pytest-coverage-comment@dd5b80bde6d16941f336518e92929e89069d8451 # v1.7.2
+        with:
+          pytest-xml-coverage-path: ./coverage.xml
+          junitxml-path: ./pytest.xml
+          report-only-changed-files: true
