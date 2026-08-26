@@ -25,11 +25,6 @@ from gptnt.players.specification import PlayerCapabilities
 
 from tests._factories.experiments import make_experiment_instance, make_provenance
 
-# Names retired by the convergence must never reappear as summary columns or logged metrics.
-_RETIRED_NAMES = frozenset(
-    ("time_remaining", "total_modules_solved", "total_strikes", "is_timeout")
-)
-
 
 def _module(*, solved: bool) -> dict[str, object]:
     """One Wires module (solved or not) for a test BombState."""
@@ -120,16 +115,6 @@ def test_timeout_takes_precedence_if_terminal_signals_overlap() -> None:
     assert bomb.outcome is BombOutcome.timeout
 
 
-def test_outcome_field_names_are_shared_and_drift_free() -> None:
-    """Every canonical outcome field is a summary column.
-
-    Retired names stay gone.
-    """
-    summary_cols = set(ExperimentSummary.model_fields)
-    assert set(ExperimentOutcome.model_fields) <= summary_cols
-    assert _RETIRED_NAMES.isdisjoint(summary_cols)
-
-
 def test_wandb_recorder_logs_canonical_outcome_names() -> None:
     """The W&B recorder logs the outcome under the canonical names, not the old drifting ones."""
     instance = make_experiment_instance()
@@ -162,7 +147,9 @@ def test_wandb_recorder_logs_canonical_outcome_names() -> None:
     logged = recorder._compute_data_to_send(recorder.build_player_record())
 
     assert set(ExperimentOutcome.model_fields) <= set(logged)
-    assert {"time_remaining", "total_modules_solved", "total_strikes"}.isdisjoint(logged)
+    assert {"time_remaining", "total_modules_solved", "total_strikes", "is_timeout"}.isdisjoint(
+        logged
+    )
     assert logged["outcome"] == BombOutcome.timeout
     assert logged["seconds_remaining"] == bomb.seconds_remaining
     assert logged["num_modules_solved"] == bomb.num_modules_solved

@@ -25,5 +25,4 @@ def test_resize_images(target_width: int, target_height: int, test_image: Image.
     resizer = ImageResizer(target_width=target_width, target_height=target_height)
     resized_image = resizer.resize_image(test_image)
 
-    assert resized_image is not None
     assert resized_image.size == (target_width, target_height)
