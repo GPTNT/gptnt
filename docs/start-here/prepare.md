@@ -209,6 +209,8 @@ This is all automatic. To download everything you need, you need to run:
 gptnt manual download
 ```
 
+// TODO: Check the command to see how it knows what pages to download.
+// TODO: CHeck what compile explicitly does so that we can explain it here
 
 ## Check everything together
 
