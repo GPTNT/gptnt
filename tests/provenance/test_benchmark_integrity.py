@@ -25,7 +25,7 @@ from gptnt.provenance._protected_tree import (
     _checkout_protected_tree,
     _git_protected_tree,
 )
-from gptnt.provenance.integrity import PROTECTED_PATHS
+from gptnt.provenance.integrity import PROTECTED_PATHS_V1
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -416,8 +416,8 @@ def test_release_and_checkout_builders_match_for_nested_tree(tmp_path: Path) -> 
         "HEAD", signature, signature, "nested", opened.index.write_tree(), [opened.head.target]
     )
 
-    release = _git_protected_tree(opened[commit_id].tree, roots=PROTECTED_PATHS)
-    checkout = _checkout_protected_tree(repository, roots=PROTECTED_PATHS)
+    release = _git_protected_tree(opened[commit_id].tree, roots=PROTECTED_PATHS_V1)
+    checkout = _checkout_protected_tree(repository, roots=PROTECTED_PATHS_V1)
 
     assert release.entries == checkout.entries
     assert release.digest == checkout.digest

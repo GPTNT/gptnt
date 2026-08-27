@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import yaml
+import pygit2
 from pydantic import ValidationError
 from pydantic_core import from_json
 from tomlkit.exceptions import TOMLKitError
@@ -232,7 +233,7 @@ def check_installed_release_match(provenance: Provenance, repository: Path) -> C
             release_tag=release_tag,
             release_commit=release_commit,
         )
-    except BenchmarkIntegrityError as error:
+    except (BenchmarkIntegrityError, OSError, pygit2.GitError) as error:
         return CheckResult.failed(
             "installed release protected content",
             f"source Git metadata is required: {error}",

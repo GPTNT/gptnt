@@ -1,9 +1,8 @@
 """Compare a repository's protected content with its tagged release commit.
 
-The input repository supplies the exact annotated release tag and tagged release commit used as the
-protected-content baseline. The returned state separates protected changes from permitted input
-changes. A missing repository or release tag, and multiple release tags on the same commit, prevent
-the comparison.
+The input repository supplies the annotated release history used to select a protected-content
+baseline. The returned state separates protected changes from permitted input changes. A missing
+repository or reachable semantic release tag prevents the comparison.
 """
 
 from __future__ import annotations
@@ -23,7 +22,9 @@ from gptnt.provenance._protected_tree import (
     _git_protected_tree,
 )
 
-PROTECTED_PATHS = (
+# Submission schema 4 and its two provenance digest fields imply this v1 policy. Never mutate this
+# root set or the v1 serializer: add a separately versioned policy and schema transition instead.
+PROTECTED_PATHS_V1 = (
     "src/gptnt",
     "pyproject.toml",
     "uv.lock",
@@ -40,7 +41,7 @@ PROTECTED_PATHS = (
 )
 PERMITTED_INPUT_PATHS = ("configs/player", "configs/suites", "configs/missions", "runs")
 RELEASE_TAG_PATTERN = r"v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)"
-_DIGEST_POLICY_VERSION = 1
+_DIGEST_POLICY_VERSION_V1 = 1
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -101,7 +102,7 @@ def _release_protected_tree(
     roots: tuple[str, ...],
     policy_version: int,
 ):
-    if policy_version != _DIGEST_POLICY_VERSION:
+    if policy_version != _DIGEST_POLICY_VERSION_V1:
         raise BenchmarkIntegrityError(
             f"Unsupported protected-content digest policy version {policy_version}"
         )
@@ -142,8 +143,8 @@ def release_protected_content_digest(
     return _release_protected_tree(
         str(discovered_repository),
         release_commit,
-        PROTECTED_PATHS,
-        _DIGEST_POLICY_VERSION,
+        PROTECTED_PATHS_V1,
+        _DIGEST_POLICY_VERSION_V1,
     ).digest
 
 
@@ -151,10 +152,10 @@ def check_benchmark_integrity(repository: Path) -> _BenchmarkIntegrityResult:
     """Compare an input repository with the tagged baseline for its protected content.
 
     The repository's exact annotated release tag and release commit supply the baseline. The result
-    reports tracked and untracked protected changes, permitted input changes, and whether protected
-    content was modified. It raises
-    `BenchmarkIntegrityError` when no repository is found or HEAD has no exact annotated
-    release tag. Other repository read failures propagate from their source.
+    reports canonical protected-tree differences, permitted input changes, and whether protected
+    content was modified. It raises `BenchmarkIntegrityError` when no repository is found or HEAD
+    has no reachable annotated semantic release tag. Other repository read failures propagate from
+    their source.
     """
     # Resolve the working repository and its release baseline.
     discovered_repository = pygit2.discover_repository(str(repository))
@@ -171,10 +172,10 @@ def check_benchmark_integrity(repository: Path) -> _BenchmarkIntegrityResult:
     release_tree = _release_protected_tree(
         str(discovered_repository),
         str(release_commit.id),
-        PROTECTED_PATHS,
-        _DIGEST_POLICY_VERSION,
+        PROTECTED_PATHS_V1,
+        _DIGEST_POLICY_VERSION_V1,
     )
-    checkout_tree = _checkout_protected_tree(worktree, roots=PROTECTED_PATHS)
+    checkout_tree = _checkout_protected_tree(worktree, roots=PROTECTED_PATHS_V1)
 
     # Git status remains relevant only for user-controlled input paths.
     repository_status = git_repository.status(untracked_files="all", ignored=False)

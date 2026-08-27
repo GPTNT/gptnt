@@ -17,7 +17,8 @@ one bundle or the root written by `submission new`. An empty root is an error.
 
 ## The manifest or payload does not parse
 
-- `schema_version` must be `4`. An earlier bundle needs matching earlier tooling or must be rebuilt
+- `schema_version` must be `4`, advanced from manifest schema 3. Player-record Parquet
+  `format_version` remains 3. An earlier bundle needs matching earlier tooling or must be rebuilt
   from source records that contain protected-content digests.
 - `measured` must describe exactly one suite or one static task.
 - Interactive bundles need `experiments.parquet` and `suite.lock`.
