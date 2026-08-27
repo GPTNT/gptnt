@@ -23,7 +23,8 @@ nav = [
     {"Home" = "index.md"},
     {"Start here" = [
         {"Overview" = "start-here/index.md"},
-        {"Install & check" = "start-here/install-and-check.md"},
+        {"Install GPTNT" = "start-here/install.md"},
+        {"Prepare GPTNT" = "start-here/prepare.md"},
         {"Quickstart" = "start-here/run-quickstart.md"},
         {"Next steps" = "start-here/choose-next-workflow.md"},
     ]},
@@ -115,6 +116,7 @@ nav = [
         {"Interrupted runs" = "troubleshooting/interrupted-runs-and-outputs.md"},
         {"Submission validation" = "troubleshooting/submission-validation.md"},
     ]},
+    {"Roadmap" = "roadmap.md"},
 ]
 extra_css = ["stylesheets/extra.css"]
 

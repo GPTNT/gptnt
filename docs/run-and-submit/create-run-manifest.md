@@ -7,7 +7,7 @@ tags:
 
 # Create a run manifest
 
-Create a schema-v2 YAML manifest that selects suites, a player roster, runtime capacity, and resume
+Create a run manifest that selects suites, a player roster, runtime capacity, and resume
 behaviour. Finish with a passing doctor report and generated experiment specifications.
 
 ## Before you begin
