@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from uuid import uuid4
 
@@ -15,6 +16,8 @@ from gptnt.experiments.db.read import load_experiment_summaries
 from gptnt.experiments.instance import ExperimentInstance, PlayerContent
 from gptnt.experiments.recorder.local import ExperimentPlayerRecorder
 from gptnt.experiments.recorder.parquet import (
+    FORMAT_VERSION,
+    KEY_FOOTER,
     KEY_FORMAT_VERSION,
     blob_step,
     footer_from_player_record,
@@ -37,6 +40,8 @@ from tests._factories.experiments import (
     make_manual_profile,
     make_provenance,
 )
+
+_MISMATCHED_PROTECTED_CONTENT_DIGEST = "sha256:" + "2" * 64
 
 
 @fixture
@@ -254,6 +259,36 @@ async def test_recorder_saves_parquet_roundtrips(
     assert footer.is_hard_crash is False
     assert loaded.gptnt_version == player_record.gptnt_version
     assert loaded.release_commit == player_record.release_commit
+    assert loaded.release_protected_content_digest == player_record.release_protected_content_digest
+    assert loaded.protected_content_digest == player_record.protected_content_digest
+    assert footer.release_protected_content_digest == player_record.release_protected_content_digest
+    assert footer.protected_content_digest == player_record.protected_content_digest
+
+
+def test_legacy_format_three_footer_without_digests_remains_readable(
+    tmp_path: Path,
+    experiment_instance: ExperimentInstance,
+    player_content: PlayerContent,
+    step_record: ExperimentStep,
+) -> None:
+    record = _build_player_record(experiment_instance, player_content, step_record)
+    footer = footer_from_player_record(record)
+    footer_data = json.loads(footer[KEY_FOOTER])
+    footer_data.pop("release_protected_content_digest", None)
+    footer_data.pop("protected_content_digest", None)
+    footer[KEY_FOOTER] = json.dumps(footer_data).encode()
+    path = tmp_path / "legacy.parquet"
+    write_player_record_parquet(
+        blobbed_steps=[blob_step(step) for step in record.step_records],
+        footer=footer,
+        output_path=path,
+    )
+
+    loaded = read_record_footer(path)
+
+    assert footer[KEY_FORMAT_VERSION] == FORMAT_VERSION == b"3"
+    assert loaded.release_protected_content_digest is None
+    assert loaded.protected_content_digest is None
 
 
 def test_record_footer_rejects_v1_format_version(
@@ -357,7 +392,12 @@ async def test_recorder_reuses_the_experiment_provenance_snapshot(
 
     # Reset clears the earlier snapshot before the recorder accepts another experiment.
     recorder.reset()
-    next_provenance = provenance.model_copy(update={"protected_content_modified": True})
+    next_provenance = provenance.model_copy(
+        update={
+            "protected_content_digest": _MISMATCHED_PROTECTED_CONTENT_DIGEST,
+            "protected_content_modified": True,
+        }
+    )
     await recorder.configure_for_experiment(
         experiment_instance=experiment_instance,
         protocol=player_content.protocol,
@@ -404,7 +444,13 @@ def test_grouped_player_files_report_every_identity_disagreement(
     assert peer_expert is not None
     second_record = _build_player_record(
         peer_instance, peer_expert, step_record.model_copy(update={"bomb_state": None})
-    ).model_copy(update={"release_commit": "different-commit", "protected_content_modified": True})
+    ).model_copy(
+        update={
+            "release_commit": "different-commit",
+            "protected_content_digest": _MISMATCHED_PROTECTED_CONTENT_DIGEST,
+            "protected_content_modified": True,
+        }
+    )
 
     # Write two player files for the same session with different captured benchmark states.
     first_path = tmp_path / "defuser.parquet"
@@ -416,7 +462,7 @@ def test_grouped_player_files_report_every_identity_disagreement(
         ValueError,
         match=(
             "Grouped experiment files disagree on summary identity: release_commit, "
-            "protected_content_modified, suite_revision, suite_digest, "
+            "protected_content_digest, protected_content_modified, suite_revision, suite_digest, "
             "defuser_uuid, ExperimentSpec fingerprint"
         ),
     ):
@@ -427,6 +473,19 @@ def _write_record_parquet(record: ExperimentPlayerRecord, path: Path) -> None:
     write_player_record_parquet(
         blobbed_steps=[blob_step(step) for step in record.step_records],
         footer=footer_from_player_record(record),
+        output_path=path,
+    )
+
+
+def _write_legacy_record_parquet(record: ExperimentPlayerRecord, path: Path) -> None:
+    footer = footer_from_player_record(record)
+    footer_data = json.loads(footer[KEY_FOOTER])
+    footer_data.pop("release_protected_content_digest")
+    footer_data.pop("protected_content_digest")
+    footer[KEY_FOOTER] = json.dumps(footer_data).encode()
+    write_player_record_parquet(
+        blobbed_steps=[blob_step(step) for step in record.step_records],
+        footer=footer,
         output_path=path,
     )
 
@@ -476,3 +535,34 @@ def test_ingest_recorder_parquet_into_duckdb(tmp_path: Path, step_record: Experi
         again = con.execute("SELECT COUNT(*) FROM experiment_step").fetchone()
     assert again is not None
     assert again[0] == 4
+
+
+def test_ingest_preserves_current_and_in_flight_legacy_provenance(
+    tmp_path: Path, step_record: ExperimentStep
+) -> None:
+    current_instance = make_experiment_instance(make_experiment_spec(seed=101))
+    legacy_instance = make_experiment_instance(make_experiment_spec(seed=202))
+    current_record = _build_player_record(
+        current_instance, current_instance.defuser, step_record
+    )
+    legacy_record = _build_player_record(legacy_instance, legacy_instance.defuser, step_record)
+    current_path = tmp_path / "current.parquet"
+    legacy_path = tmp_path / "legacy.parquet"
+    _write_record_parquet(current_record, current_path)
+    _write_legacy_record_parquet(legacy_record, legacy_path)
+
+    db_path = tmp_path / "mixed.duckdb"
+    ingest_player_records(
+        player_record_paths=[legacy_path, current_path],
+        db_path=db_path,
+        max_workers=1,
+    )
+
+    with duckdb.connect(db_path) as connection:
+        rows = connection.execute(
+            "SELECT seed, release_protected_content_digest, protected_content_digest "
+            "FROM experiment_summary ORDER BY seed"
+        ).fetchall()
+
+    digest = make_provenance().protected_content_digest
+    assert rows == [(101, digest, digest), (202, None, None)]

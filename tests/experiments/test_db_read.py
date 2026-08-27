@@ -13,9 +13,11 @@ from pydantic_ai import RunUsage
 from gptnt.experiments.db.ingest import ensure_schema
 from gptnt.experiments.db.read import load_experiment_summaries, load_final_states_and_usage
 from gptnt.experiments.db.schema import EXPORT_CONTEXT_MARKER
-from gptnt.experiments.records import ExperimentStep
+from gptnt.experiments.records import ExperimentStep, ExperimentSummary
 from gptnt.ktane.state.bomb import BombState
 from gptnt.players.actions import DoNothingAction
+
+from tests._factories.experiments import make_experiment_summary
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -96,6 +98,39 @@ def test_schema_policy_creates_fresh_database_and_rejects_v1_database(tmp_path: 
 
     with pytest.raises(ValueError, match=r"v1 or incompatible schema.*--delete-existing-db"):
         ensure_schema(v1_path)
+
+
+def test_pre_digest_database_requires_rebuild_but_rows_remain_legacy_readable(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "pre-digest.duckdb"
+    ensure_schema(db_path)
+    summary = make_experiment_summary()
+    with duckdb.connect(db_path) as connection:
+        rows = pa.Table.from_pylist(
+            [summary.model_dump(context={"mode": EXPORT_CONTEXT_MARKER})]
+        )
+        _ = connection.register("summary_row", rows)
+        _ = connection.execute(
+            "INSERT INTO experiment_summary BY NAME SELECT * FROM summary_row"
+        )
+        _ = connection.unregister("summary_row")
+        _ = connection.execute(
+            "ALTER TABLE experiment_summary DROP COLUMN release_protected_content_digest"
+        )
+        _ = connection.execute(
+            "ALTER TABLE experiment_summary DROP COLUMN protected_content_digest"
+        )
+
+    with pytest.raises(ValueError, match="--delete-existing-db"):
+        ensure_schema(db_path)
+
+    loaded = load_experiment_summaries(db_path)
+
+    assert len(loaded) == 1
+    assert isinstance(loaded[0], ExperimentSummary)
+    assert loaded[0].release_protected_content_digest is None
+    assert loaded[0].protected_content_digest is None
 
 
 def test_load_final_states_and_usage_takes_last_bomb_state_and_sums_per_role(

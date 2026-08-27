@@ -559,6 +559,8 @@ def test_tagged_repository_supplies_integrity_and_provenance(tmp_path: Path) -> 
         "gptnt_version": gptnt_version(),
         "release_commit": release_commit,
         "release_tag": _RELEASE_TAG,
+        "release_protected_content_digest": integrity.release_protected_content_digest,
+        "protected_content_digest": integrity.protected_content_digest,
         "protected_content_modified": False,
     }
 
@@ -572,6 +574,8 @@ def test_forced_capture_records_null_release_provenance(tmp_path: Path) -> None:
         "gptnt_version": gptnt_version(),
         "release_commit": None,
         "release_tag": None,
+        "release_protected_content_digest": None,
+        "protected_content_digest": None,
         "protected_content_modified": None,
     }
 

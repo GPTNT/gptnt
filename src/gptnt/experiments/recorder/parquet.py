@@ -78,6 +78,8 @@ def footer_from_player_record(record: ExperimentPlayerRecord) -> dict[bytes, byt
         gptnt_version=record.gptnt_version,
         release_commit=record.release_commit,
         release_tag=record.release_tag,
+        release_protected_content_digest=record.release_protected_content_digest,
+        protected_content_digest=record.protected_content_digest,
         protected_content_modified=record.protected_content_modified,
     )
     return build_footer(footer, player_uuid=str(record.player_content.uuid))
@@ -167,5 +169,7 @@ def load_player_record_from_parquet(path: Path) -> ExperimentPlayerRecord:
         gptnt_version=footer.gptnt_version,
         release_commit=footer.release_commit,
         release_tag=footer.release_tag,
+        release_protected_content_digest=footer.release_protected_content_digest,
+        protected_content_digest=footer.protected_content_digest,
         protected_content_modified=footer.protected_content_modified,
     )

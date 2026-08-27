@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 _DEFAULT_METRICS: dict[str, Any] = {"module": {"total": 0.87}}
+_PROTECTED_CONTENT_DIGEST = "sha256:" + "1" * 64
 
 
 def write_statics_run(
@@ -51,6 +52,8 @@ def write_statics_run(
                     "gptnt_version": "2.0.0",
                     "release_commit": "a1b2c3d4" * 5,
                     "release_tag": "v2.0.0",
+                    "release_protected_content_digest": _PROTECTED_CONTENT_DIGEST,
+                    "protected_content_digest": _PROTECTED_CONTENT_DIGEST,
                     "protected_content_modified": False,
                 },
             }
