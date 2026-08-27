@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import os
 import re
+import stat
+import subprocess
 from typing import TYPE_CHECKING, Literal
 
 import pygit2
@@ -14,6 +17,13 @@ from gptnt.provenance import (
     check_benchmark_integrity,
     gptnt_version,
 )
+from gptnt.provenance._protected_tree import (
+    _ProtectedEntry,
+    _ProtectedTree,
+    _checkout_protected_tree,
+    _git_protected_tree,
+)
+from gptnt.provenance.integrity import PROTECTED_PATHS
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -26,9 +36,12 @@ type ChangeKind = Literal[
 type UnsupportedRepositoryState = Literal["no_repository", "no_release_tag"]
 
 
-def _tagged_repository(tmp_path: Path) -> tuple[Path, str]:
+def _tagged_repository(
+    tmp_path: Path, *, reverse_creation_order: bool = False
+) -> tuple[Path, str]:
     """Create a tagged repository containing each path-policy category."""
     repository = tmp_path / "repository"
+    repository.parent.mkdir(parents=True, exist_ok=True)
     opened = pygit2.init_repository(repository)
 
     # Seed protected content, a permitted input, unrelated documentation, and an output ignore.
@@ -39,7 +52,10 @@ def _tagged_repository(tmp_path: Path) -> tuple[Path, str]:
         "docs/notes.md": "notes\n",
         ".gitignore": "output/\n",
     }
-    for relative_path, content in files.items():
+    entries = list(files.items())
+    if reverse_creation_order:
+        entries.reverse()
+    for relative_path, content in entries:
         path = repository / relative_path
         path.parent.mkdir(parents=True, exist_ok=True)
         _ = path.write_text(content)
@@ -62,6 +78,304 @@ def _tagged_repository(tmp_path: Path) -> tuple[Path, str]:
     # Integrity must detect executable-bit changes even when the checkout ignores them.
     opened.config["core.filemode"] = False
     return repository, str(release_commit)
+
+
+def test_protected_digest_is_stable_across_creation_order(tmp_path: Path) -> None:
+    first, _ = _tagged_repository(tmp_path / "first")
+    second, _ = _tagged_repository(tmp_path / "second", reverse_creation_order=True)
+
+    first_result = check_benchmark_integrity(first)
+    second_result = check_benchmark_integrity(second)
+
+    assert first_result.protected_content_digest == second_result.protected_content_digest
+    assert first_result.protected_content_digest.startswith("sha256:")
+    assert first_result.release_protected_content_digest == first_result.protected_content_digest
+
+
+def test_digest_v1_has_fixed_canonical_vector() -> None:
+    tree = _ProtectedTree(
+        roots=("pyproject.toml", "src/gptnt"),
+        entries=(
+            _ProtectedEntry(
+                path="pyproject.toml", kind="file", mode=0o100644, content=b"[project]\n"
+            ),
+            _ProtectedEntry(path="src/gptnt", kind="directory", mode=0o040000, content=b""),
+            _ProtectedEntry(
+                path="src/gptnt/link.py",
+                kind="symlink",
+                mode=0o120000,
+                content=b"benchmark.py",
+            ),
+        ),
+    )
+
+    assert tree.digest == "sha256:5821671a5a714631e986f8ad9ac7f9f8a73f43d8ad6c6d415c2443a5c9f72546"
+
+
+def test_digest_serializer_orders_roots_and_entries() -> None:
+    first = _ProtectedEntry(path="a/first", kind="file", mode=0o100644, content=b"first")
+    second = _ProtectedEntry(path="z/second", kind="file", mode=0o100644, content=b"second")
+
+    ordered = _ProtectedTree(roots=("a", "z"), entries=(first, second))
+    reversed_tree = _ProtectedTree(roots=("z", "a"), entries=(second, first))
+
+    assert reversed_tree.digest == ordered.digest
+
+
+@pytest.mark.parametrize("root", ["src/./gptnt", "src/../gptnt", "src/\0gptnt"])
+def test_invalid_protected_root_is_rejected(tmp_path: Path, root: str) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+
+    with pytest.raises(BenchmarkIntegrityError, match="normalized repository-relative"):
+        _ = _checkout_protected_tree(repository, roots=(root,))
+
+
+def test_pycache_path_component_is_excluded_for_any_object_kind(tmp_path: Path) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+    cache_path = repository / "src/gptnt/__pycache__"
+    cache_path.write_bytes(b"not a directory")
+
+    result = check_benchmark_integrity(repository)
+
+    assert result.protected_changes == ()
+
+
+def test_protected_digest_changes_with_content_and_executable_mode(tmp_path: Path) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+    baseline = check_benchmark_integrity(repository).protected_content_digest
+    protected = repository / "src/gptnt/benchmark.py"
+
+    protected.write_text("VALUE = 2\n")
+    content_digest = check_benchmark_integrity(repository).protected_content_digest
+    protected.write_text("VALUE = 1\n")
+    protected.chmod(protected.stat().st_mode | stat.S_IXUSR)
+    mode_digest = check_benchmark_integrity(repository).protected_content_digest
+
+    assert len({baseline, content_digest, mode_digest}) == 3
+
+
+def test_fixed_protected_cache_exclusion_does_not_change_digest(tmp_path: Path) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+    baseline = check_benchmark_integrity(repository).protected_content_digest
+    cache = repository / "src/gptnt/__pycache__/benchmark.pyc"
+    cache.parent.mkdir()
+    cache.write_bytes(b"generated")
+
+    result = check_benchmark_integrity(repository)
+
+    assert result.protected_content_digest == baseline
+    assert result.protected_changes == ()
+
+
+def test_index_only_change_does_not_change_checkout_digest(tmp_path: Path) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+    baseline = check_benchmark_integrity(repository).protected_content_digest
+    protected = repository / "src/gptnt/benchmark.py"
+    protected.write_text("VALUE = 2\n")
+    discovered = pygit2.discover_repository(str(repository))
+    assert discovered is not None
+    opened = pygit2.Repository(discovered)
+    opened.index.add("src/gptnt/benchmark.py")
+    opened.index.write()
+    protected.write_text("VALUE = 1\n")
+
+    result = check_benchmark_integrity(repository)
+
+    assert result.protected_content_digest == baseline
+    assert result.protected_changes == ()
+
+
+def test_release_and_checkout_builders_match_for_nested_tree(tmp_path: Path) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+    nested = repository / "src/gptnt/nested/deeper/value.txt"
+    nested.parent.mkdir(parents=True)
+    nested.write_text("nested\n")
+    discovered = pygit2.discover_repository(str(repository))
+    assert discovered is not None
+    opened = pygit2.Repository(discovered)
+    opened.index.add("src/gptnt/nested/deeper/value.txt")
+    opened.index.write()
+    signature = pygit2.Signature("Benchmark Test", "benchmark@example.com")
+    commit_id = opened.create_commit(
+        "HEAD", signature, signature, "nested", opened.index.write_tree(), [opened.head.target]
+    )
+
+    release = _git_protected_tree(opened[commit_id].tree, roots=PROTECTED_PATHS)
+    checkout = _checkout_protected_tree(repository, roots=PROTECTED_PATHS)
+
+    assert release.entries == checkout.entries
+    assert release.digest == checkout.digest
+
+
+def test_leaf_symlink_target_changes_protected_digest(tmp_path: Path) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+    link = repository / "src/gptnt/link.py"
+    link.symlink_to("benchmark.py")
+    discovered = pygit2.discover_repository(str(repository))
+    assert discovered is not None
+    opened = pygit2.Repository(discovered)
+    opened.index.add("src/gptnt/link.py")
+    opened.index.write()
+    signature = pygit2.Signature("Benchmark Test", "benchmark@example.com")
+    commit_id = opened.create_commit(
+        "HEAD", signature, signature, "symlink", opened.index.write_tree(), [opened.head.target]
+    )
+    _ = opened.create_tag(
+        "v0.16.0",
+        commit_id,
+        pygit2.enums.ObjectType.COMMIT,
+        signature,
+        "release v0.16.0",
+    )
+    baseline = check_benchmark_integrity(repository).protected_content_digest
+
+    link.unlink()
+    link.symlink_to("other.py")
+    result = check_benchmark_integrity(repository)
+
+    assert result.protected_content_digest != baseline
+    assert result.protected_changes == ("src/gptnt/link.py",)
+
+
+def test_directory_symlink_is_hashed_without_following_target(tmp_path: Path) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+    protected = repository / "src/gptnt"
+    external = tmp_path / "external"
+    external.mkdir()
+    (external / "benchmark.py").write_text("VALUE = 1\n")
+    (protected / "benchmark.py").unlink()
+    protected.rmdir()
+    protected.symlink_to(external, target_is_directory=True)
+
+    first = check_benchmark_integrity(repository)
+    (external / "benchmark.py").write_text("VALUE = 999\n")
+    second = check_benchmark_integrity(repository)
+
+    assert "src/gptnt" in first.protected_changes
+    assert first.protected_content_digest == second.protected_content_digest
+
+
+def test_root_policy_is_canonical_and_entries_are_deduplicated(tmp_path: Path) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+
+    single = _checkout_protected_tree(repository, roots=("src/gptnt",))
+    equivalent = _checkout_protected_tree(
+        repository, roots=("src/gptnt", "src//gptnt/", "src/gptnt")
+    )
+    overlapping = _checkout_protected_tree(repository, roots=("src", "src/gptnt"))
+
+    assert equivalent == single
+    assert overlapping.digest != single.digest
+    assert len({entry.path for entry in overlapping.entries}) == len(overlapping.entries)
+
+
+def test_empty_and_excluded_roots_contribute_only_root_policy(tmp_path: Path) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+    empty = repository / "empty"
+    empty.mkdir()
+    excluded = repository / "excluded"
+    (excluded / "__pycache__").mkdir(parents=True)
+    (excluded / "__pycache__/value.pyc").write_bytes(b"cache")
+    (excluded / ".DS_Store").write_bytes(b"metadata")
+
+    tree = _checkout_protected_tree(repository, roots=("empty", "excluded"))
+
+    assert tree.roots == ("empty", "excluded")
+    assert tree.entries == ()
+
+
+def test_file_root_contributes_its_entry(tmp_path: Path) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+
+    tree = _checkout_protected_tree(repository, roots=("configs/manual/sources.toml",))
+
+    assert [(entry.path, entry.kind, entry.mode) for entry in tree.entries] == [
+        ("configs/manual/sources.toml", "file", 0o100644)
+    ]
+
+
+@pytest.mark.parametrize("ignore_source", ["worktree", "repository", "configured"])
+def test_git_ignore_sources_cannot_hide_protected_file(
+    tmp_path: Path, ignore_source: str
+) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+    protected = repository / "src/gptnt/ignored.py"
+    protected.write_text("ignored = True\n")
+    discovered = pygit2.discover_repository(str(repository))
+    assert discovered is not None
+    opened = pygit2.Repository(discovered)
+    pattern = "src/gptnt/ignored.py\n"
+    match ignore_source:
+        case "worktree":
+            (repository / ".gitignore").write_text(pattern)
+        case "repository":
+            info_exclude = repository / ".git/info/exclude"
+            info_exclude.parent.mkdir(parents=True, exist_ok=True)
+            info_exclude.write_text(pattern)
+        case "configured":
+            excludes = tmp_path / "global-excludes"
+            excludes.write_text(pattern)
+            opened.config["core.excludesFile"] = str(excludes)
+
+    result = check_benchmark_integrity(repository)
+
+    assert "src/gptnt/ignored.py" in result.protected_changes
+
+
+def test_sourceless_bytecode_outside_cache_is_protected(tmp_path: Path) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+    baseline = check_benchmark_integrity(repository).protected_content_digest
+    bytecode = repository / "src/gptnt/extra.pyc"
+    bytecode.write_bytes(b"generated")
+
+    result = check_benchmark_integrity(repository)
+
+    assert result.protected_content_digest != baseline
+    assert result.protected_changes == ("src/gptnt/extra.pyc",)
+
+
+def test_checkout_path_that_is_not_utf8_is_rejected(tmp_path: Path) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+    raw_path = os.fsencode(repository / "src/gptnt") + b"/invalid-\xff.py"
+    try:
+        descriptor = os.open(raw_path, os.O_WRONLY | os.O_CREAT, 0o644)
+    except OSError:
+        pytest.skip("filesystem rejects non-UTF-8 filenames")
+    os.close(descriptor)
+
+    with pytest.raises(BenchmarkIntegrityError, match="checkout path.*UTF-8"):
+        _ = check_benchmark_integrity(repository)
+
+
+def test_git_path_that_is_not_utf8_is_rejected(tmp_path: Path) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+    discovered = pygit2.discover_repository(str(repository))
+    assert discovered is not None
+    opened = pygit2.Repository(discovered)
+
+    def make_tree(record: bytes) -> pygit2.Oid:
+        result = subprocess.run(
+            ["git", "mktree", "-z"],
+            cwd=repository,
+            input=record,
+            check=True,
+            capture_output=True,
+        )
+        return pygit2.Oid(hex=result.stdout.strip().decode("ascii"))
+
+    blob_id = opened.create_blob(b"invalid")
+    gptnt_tree_id = make_tree(
+        b"100644 blob " + str(blob_id).encode("ascii") + b"\tinvalid-\xff.py\0"
+    )
+    src_tree_id = make_tree(
+        b"040000 tree " + str(gptnt_tree_id).encode("ascii") + b"\tgptnt\0"
+    )
+    root_tree_id = make_tree(
+        b"040000 tree " + str(src_tree_id).encode("ascii") + b"\tsrc\0"
+    )
+
+    with pytest.raises(BenchmarkIntegrityError, match="Git path.*UTF-8"):
+        _ = _git_protected_tree(opened[root_tree_id], roots=("src/gptnt",))
 
 
 def test_tagged_repository_supplies_integrity_and_provenance(tmp_path: Path) -> None:
@@ -123,24 +437,23 @@ def _apply_change(repository: Path, change: ChangeKind) -> None:
 
 
 @pytest.mark.parametrize(
-    ("change", "protected", "untracked", "permitted", "modified"),
+    ("change", "protected", "permitted", "modified"),
     [
         # Tracked protected-content states.
-        ("modified", ("configs/manual/sources.toml",), (), (), True),
-        ("deleted", ("src/gptnt/benchmark.py",), (), (), True),
-        ("file_mode", ("src/gptnt/benchmark.py",), (), (), True),
+        ("modified", ("configs/manual/sources.toml",), (), True),
+        ("deleted", ("src/gptnt", "src/gptnt/benchmark.py"), (), True),
+        ("file_mode", ("src/gptnt/benchmark.py",), (), True),
         # Cases with untracked paths or permitted input.
-        ("untracked", (), ("src/gptnt/untracked.py",), (), True),
-        ("replaced", ("src/gptnt/benchmark.py",), ("src/gptnt/benchmark.py",), (), True),
-        ("permitted", (), (), ("configs/player/custom.yaml",), False),
-        ("unrelated", (), (), (), False),
+        ("untracked", ("src/gptnt/untracked.py",), (), True),
+        ("replaced", ("src/gptnt/benchmark.py",), (), True),
+        ("permitted", (), ("configs/player/custom.yaml",), False),
+        ("unrelated", (), (), False),
     ],
 )
 def test_path_policy(
     tmp_path: Path,
     change: ChangeKind,
     protected: tuple[str, ...],
-    untracked: tuple[str, ...],
     permitted: tuple[str, ...],
     modified: bool,
 ) -> None:
@@ -151,7 +464,6 @@ def test_path_policy(
     result = check_benchmark_integrity(repository)
 
     assert result.protected_changes == protected
-    assert result.untracked_protected_files == untracked
     assert result.permitted_input_changes == permitted
     assert result.protected_content_modified is modified
 
