@@ -96,10 +96,45 @@ def test_doctor_config_only_renders_clean_benchmark_and_checks_configuration(
     assert "v2.0.0" in result.output
     assert "Release commit" in result.output
     assert "abc1234" in result.output
+    assert "Release protected digest" in result.output
+    assert "Checkout protected digest" in result.output
+    assert "sha256:111111111111" in result.output
     assert "Protected content" in result.output
     assert "matches" in result.output
     assert "test-random" in result.output
     assert "Infrastructure" not in result.output
+
+
+def test_doctor_reports_mismatched_digest_and_changed_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        integrity,
+        "check_benchmark_integrity",
+        lambda _repository: type(
+            "Integrity",
+            (),
+            {
+                "release_tag": "v2.0.0",
+                "release_commit": "abc123456789",
+                "protected_changes": ("src/gptnt/core.py",),
+                "permitted_input_changes": (),
+                "release_protected_content_digest": "sha256:" + "1" * 64,
+                "protected_content_digest": "sha256:" + "2" * 64,
+                "protected_content_modified": True,
+            },
+        )(),
+    )
+    monkeypatch.setattr(command, "discover_players", lambda: ["test-random"])
+    monkeypatch.setattr(command, "_infrastructure_checks", _unexpected_infrastructure_check)
+    monkeypatch.setattr(command, "check_machine", _unexpected_machine_check)
+
+    result = invoke_cli(build_app(), ["doctor", "--config-only"])
+
+    assert result.exit_code == 1
+    assert "src/gptnt/core.py" in result.output
+    assert "sha256:111111111111" in result.output
+    assert "sha256:222222222222" in result.output
 
 
 def test_doctor_force_runs_infrastructure_without_release_provenance(

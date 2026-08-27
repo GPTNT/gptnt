@@ -15,8 +15,9 @@ def clean_benchmark_checkout(monkeypatch: pytest.MonkeyPatch) -> None:
             release_tag="v2.0.0",
             release_commit="abc123456789",
             protected_changes=(),
-            untracked_protected_files=(),
             permitted_input_changes=(),
+            release_protected_content_digest="sha256:" + "1" * 64,
+            protected_content_digest="sha256:" + "1" * 64,
             protected_content_modified=False,
         ),
     )

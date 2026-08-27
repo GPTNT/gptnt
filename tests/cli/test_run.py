@@ -288,8 +288,9 @@ def test_score_producing_commands_fail_integrity_before_writing_or_spawning(
             release_tag="v2.0.0",
             release_commit="abc123456789",
             protected_changes=("src/gptnt/prompts/manual.py",),
-            untracked_protected_files=(),
             permitted_input_changes=(),
+            release_protected_content_digest="sha256:" + "1" * 64,
+            protected_content_digest="sha256:" + "2" * 64,
             protected_content_modified=True,
         ),
     )
@@ -335,8 +336,9 @@ def test_statics_force_warns_and_stamps_null_release_provenance(
             release_tag="v2.0.0",
             release_commit="abc123456789",
             protected_changes=("src/gptnt/prompts/manual.py",),
-            untracked_protected_files=(),
             permitted_input_changes=("configs/player/test-random.yaml",),
+            release_protected_content_digest="sha256:" + "1" * 64,
+            protected_content_digest="sha256:" + "2" * 64,
             protected_content_modified=True,
         ),
     )
