@@ -201,9 +201,13 @@ We have validated the following cases:
 
 ## Download the manual
 
-New in v2.0, GPTNT now supports building custom manuals for the benchmark. This is so that we can support different languages, different rulesets, and even custom modules. We provide the vanilla English manual and provide all the means to change it yourself. More on how to do this [later](../understand/manuals-and-rule-seeds.md){data-preview}.
+GPTNT builds the manuals for the experiments being run. This is so that we can support different languages, different rulesets, and even custom modules. We provide the vanilla English manual and provide all the means to change it yourself. More on how to do this [later](../understand/manuals-and-rule-seeds.md){data-preview}.
 
-For now
+This is all automatic. To download everything you need, you need to run:
+
+```bash
+gptnt manual download
+```
 
 
 ## Check everything together
