@@ -24,7 +24,7 @@ gptnt doctor --config-only # (1)!
 1. `--config-only` check the benchmark configuration itself and does not require Redis, KTANE, or
 any other services.
 
-??? help "If you get `gptnt: command not found`"
+??? info "If you get `gptnt: command not found`"
 
     If the `gptnt` command is not found, you likely need to activate the virtual environment.
 
