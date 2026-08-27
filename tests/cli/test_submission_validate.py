@@ -152,10 +152,57 @@ def test_bundle_round_trips_through_save_and_load(bundle_copy: Path) -> None:
 
 
 def test_valid_bundle_passes(bundle_copy: Path) -> None:
+    assert _read_manifest(bundle_copy)["schema_version"] == 4
     result = invoke_cli(build_app(), ["submission", "validate", str(bundle_copy)])
     assert result.exit_code == 0, result.output
     assert "✗" not in result.output
     assert "1 ok, 0 failed" in result.output
+
+
+def test_development_package_version_can_match_release_content(bundle_copy: Path) -> None:
+    payload_path = bundle_copy / "experiments.parquet"
+    experiments = read_typed_parquet(SubmissionExperiment, payload_path)
+    development_version = "2.0.1.dev3+gabc1234"
+    write_typed_parquet(
+        [experiment.model_copy(update={"gptnt_version": development_version}) for experiment in experiments],
+        file_path=payload_path,
+    )
+    manifest = _read_manifest(bundle_copy)
+    manifest["provenance"]["gptnt_version"] = development_version
+    _write_manifest(bundle_copy, manifest)
+
+    result = invoke_cli(
+        build_app(), ["submission", "validate", str(bundle_copy), "--format", "json"]
+    )
+
+    assert result.exit_code == 0, result.output
+
+
+def test_checkout_digest_mismatch_fails_protected_content(bundle_copy: Path) -> None:
+    payload_path = bundle_copy / "experiments.parquet"
+    experiments = read_typed_parquet(SubmissionExperiment, payload_path)
+    mismatch = {
+        "protected_content_digest": "sha256:" + "2" * 64,
+        "protected_content_modified": True,
+    }
+    write_typed_parquet(
+        [experiment.model_copy(update=mismatch) for experiment in experiments],
+        file_path=payload_path,
+    )
+    manifest = _read_manifest(bundle_copy)
+    manifest["provenance"].update(mismatch)
+    _write_manifest(bundle_copy, manifest)
+
+    result = invoke_cli(
+        build_app(), ["submission", "validate", str(bundle_copy), "--format", "json"]
+    )
+
+    assert result.exit_code == 1
+    checks = from_json(result.output)["bundles"][0]["checks"]
+    assert any(
+        check["name"] == "protected content" and check["status"] == "fail"
+        for check in checks
+    )
 
 
 def test_bundle_snapshot_must_match_the_installed_suite_registry(bundle_copy: Path) -> None:
@@ -208,7 +255,7 @@ def test_bundle_with_a_self_consistent_unaccepted_suite_is_rejected(
 
 @pytest.mark.parametrize(
     ("identity_domain", "expected_check"),
-    [("release", "gptnt_version"), ("player", "player fingerprint"), ("suite", "suite digest")],
+    [("release", "provenance"), ("player", "player fingerprint"), ("suite", "suite digest")],
 )
 def test_identity_disagreement_fails(
     bundle_copy: Path, identity_domain: str, expected_check: str
@@ -270,13 +317,23 @@ def test_modified_benchmark_records_cannot_be_submitted(
     experiments = read_typed_parquet(SubmissionExperiment, payload)
     write_typed_parquet(
         [
-            experiment.model_copy(update={"protected_content_modified": True})
+            experiment.model_copy(
+                update={
+                    "protected_content_digest": "sha256:" + "2" * 64,
+                    "protected_content_modified": True,
+                }
+            )
             for experiment in experiments
         ],
         file_path=payload,
     )
     manifest = _read_manifest(bundle_copy)
-    manifest["provenance"]["protected_content_modified"] = True
+    manifest["provenance"].update(
+        {
+            "protected_content_digest": "sha256:" + "2" * 64,
+            "protected_content_modified": True,
+        }
+    )
     _write_manifest(bundle_copy, manifest)
 
     _assert_validate_fails(bundle_copy)
@@ -284,11 +341,17 @@ def test_modified_benchmark_records_cannot_be_submitted(
 
 
 def test_records_without_release_provenance_cannot_be_submitted(
-    bundle_copy: Path, capsys: pytest.CaptureFixture[str]
+    bundle_copy: Path,
 ) -> None:
     payload = bundle_copy / "experiments.parquet"
     experiments = read_typed_parquet(SubmissionExperiment, payload)
-    missing = {"release_commit": None, "release_tag": None, "protected_content_modified": None}
+    missing = {
+        "release_commit": None,
+        "release_tag": None,
+        "release_protected_content_digest": None,
+        "protected_content_digest": None,
+        "protected_content_modified": None,
+    }
     write_typed_parquet(
         [experiment.model_copy(update=missing) for experiment in experiments], file_path=payload
     )
@@ -296,8 +359,14 @@ def test_records_without_release_provenance_cannot_be_submitted(
     manifest["provenance"].update(missing)
     _write_manifest(bundle_copy, manifest)
 
-    _assert_validate_fails(bundle_copy)
-    assert "has no release_tag" in _unwrap_output(capsys)
+    result = invoke_cli(
+        build_app(), ["submission", "validate", str(bundle_copy), "--format", "json"]
+    )
+
+    assert result.exit_code == 1
+    checks = from_json(result.output)["bundles"][0]["checks"]
+    assert checks[0]["name"] == "manifest"
+    assert "submission schema 4 requires protected-content digests" in checks[0]["detail"]
 
 
 def test_missing_mission_fails(bundle_copy: Path, capsys: pytest.CaptureFixture[str]) -> None:

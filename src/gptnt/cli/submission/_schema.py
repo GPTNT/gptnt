@@ -21,7 +21,7 @@ from gptnt.players.specification import PlayerCapabilities, PlayerIdentity, Play
 from gptnt.provenance import Provenance
 from gptnt.statics.run_metadata import StaticsIdentity
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 class UnsupportedSubmissionSchemaError(ValueError):
@@ -207,6 +207,16 @@ class Submission[IdentityT: SuiteIdentity | StaticsIdentity](BaseModel):
                 f"(expected submission schema {SCHEMA_VERSION})"
             )
         return version
+
+    @field_validator("provenance")
+    @classmethod
+    def _require_digest_provenance(cls, provenance: Provenance) -> Provenance:
+        if (
+            provenance.release_protected_content_digest is None
+            or provenance.protected_content_digest is None
+        ):
+            raise ValueError("submission schema 4 requires protected-content digests")
+        return provenance
 
     @field_validator("players", mode="after")
     @classmethod

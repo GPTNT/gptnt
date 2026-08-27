@@ -90,7 +90,11 @@ class LoadedBundle:
         findings = [
             _check_release_version(provenance.gptnt_version, provenance.release_tag),
             _check_release_commit(provenance.release_commit),
-            _check_protected_content(modified=provenance.protected_content_modified),
+            _check_protected_content(
+                release_digest=provenance.release_protected_content_digest,
+                checkout_digest=provenance.protected_content_digest,
+                modified=provenance.protected_content_modified,
+            ),
         ]
         if isinstance(self.bundle, InteractiveBundle):
             manifest_provenance = provenance.model_dump()
@@ -254,21 +258,23 @@ def load_bundle(bundle_dir: Path) -> tuple[LoadedBundle | None, list[CheckResult
     return LoadedBundle(bundle_dir=bundle_dir, bundle=bundle), findings
 
 
-def _check_protected_content(*, modified: bool | None) -> CheckResult:
+def _check_protected_content(
+    *, release_digest: str | None, checkout_digest: str | None, modified: bool | None
+) -> CheckResult:
     """Reject records produced while protected benchmark content differed from the release."""
-    if modified is None:
+    if release_digest is None or checkout_digest is None:
         return CheckResult.failed(
             "protected content",
-            "not assessed because the run has no release provenance",
-            "Run the benchmark from an unmodified release checkout, then rebuild the submission.",
+            "protected-content digests are missing from legacy provenance",
+            REBUILD_HINT,
         )
-    if modified:
+    if modified or release_digest != checkout_digest:
         return CheckResult.failed(
             "protected content",
-            "recorded as modified from the release",
+            f"release {release_digest[:19]} does not match checkout {checkout_digest[:19]}",
             "Run the benchmark from an unmodified release checkout, then rebuild the submission.",
         )
-    return CheckResult.passed("protected content", "matches")
+    return CheckResult.passed("protected content", f"matches {checkout_digest[:19]}")
 
 
 def _invalid_manifest_finding(
@@ -536,17 +542,10 @@ def _check_experts_match_manifest(
 
 
 def _check_release_version(version: str, release_tag: str | None) -> CheckResult:
-    """Require the package version to identify the recorded release tag."""
+    """Report the package version without treating it as protected-content identity."""
     if release_tag is None:
         return CheckResult.failed(
             "gptnt_version", f"gptnt_version {version!r} has no release_tag", hint=REBUILD_HINT
-        )
-    expected = release_tag.removeprefix("v")
-    if version != expected:
-        return CheckResult.failed(
-            "gptnt_version",
-            f"gptnt_version {version!r} does not match release_tag {release_tag!r}",
-            hint=REBUILD_HINT,
         )
     return CheckResult.passed("gptnt_version", f"{release_tag} ({version})")
 
