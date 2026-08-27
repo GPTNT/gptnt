@@ -196,9 +196,7 @@ class ExperimentPlayerRecorder:
             gptnt_version=self.provenance.gptnt_version,
             release_commit=self.provenance.release_commit,
             release_tag=self.provenance.release_tag,
-            release_protected_content_digest=(
-                self.provenance.release_protected_content_digest
-            ),
+            release_protected_content_digest=(self.provenance.release_protected_content_digest),
             protected_content_digest=self.provenance.protected_content_digest,
             protected_content_modified=self.provenance.protected_content_modified,
         )

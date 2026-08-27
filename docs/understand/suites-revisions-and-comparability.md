@@ -76,7 +76,7 @@ configuration, and manual inputs. It is independent of Git branch names, `HEAD` 
 the tag, the index, ignore rules, and permitted runner inputs such as player, suite, mission, and
 run files.
 
-The release tag selects the baseline commit. The two digests must be equal for submission, and
+The release tag selects the baseline commit. Both digests must be equal for submission, and
 `protected_content_modified` must equal their comparison. This permits commits after the release
 and local changes outside the protected paths without treating the benchmark as changed. The
 installed GPTNT version remains descriptive; validation does not require the validator's installed
@@ -85,13 +85,13 @@ version to equal it.
 Submission schema 4 binds these fields to protected-content digest policy v1. Its root set,
 exclusions, path encoding, modes, and serialization remain fixed so a later validator can
 recompute a schema 4 release digest. A future policy change requires a separate versioned policy
-and submission-schema transition; it must not alter v1.
+and submission-schema transition. It must not alter v1.
 
 Local `gptnt submission validate` checks that a bundle is internally consistent. Submissions CI
 can recompute protected content from the bundle's declared release and compare it with the recorded
 release digest. It then requires an exact release-lock match: the bundle suite snapshot must equal
 the matching snapshot in that release's suite registry. A changed digest or changed freeze
-provenance fails this check. Rebuild the bundle from the declared release; do not edit `suite.lock`.
+provenance fails this check. Rebuild the bundle from the declared release. Do not edit `suite.lock`.
 
 Every frozen suite revision in a verified published GPTNT release is eligible for leaderboard
 submission. There is no separate acceptance catalog.

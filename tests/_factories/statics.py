@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 _DEFAULT_METRICS: dict[str, Any] = {"module": {"total": 0.87}}
-_PROTECTED_CONTENT_DIGEST = "sha256:" + "1" * 64
+_PROTECTED_CONTENT_DIGEST = f"sha256:{'1' * 64}"
 
 
 def write_statics_run(

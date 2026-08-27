@@ -137,15 +137,14 @@ class Provenance(BaseModel):
                 "release_commit, release_tag, and protected_content_modified must all be set "
                 "or all be null"
             )
-        digests = (
-            self.release_protected_content_digest,
-            self.protected_content_digest,
-        )
-        if any(value is None for value in digests) and any(value is not None for value in digests):
+        digests = (self.release_protected_content_digest, self.protected_content_digest)
+        if any(digest is None for digest in digests) and any(
+            digest is not None for digest in digests
+        ):
             raise ValueError(
                 "release and checkout protected-content digests must both be set or both null"
             )
-        if all(value is not None for value in digests):
+        if all(digest is not None for digest in digests):
             expected_modified = digests[0] != digests[1]
             if self.protected_content_modified is not expected_modified:
                 raise ValueError(

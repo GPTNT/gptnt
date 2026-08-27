@@ -66,7 +66,7 @@ Legacy player records without digests remain readable, but `submission new` does
 backfill their historical provenance.
 
 `--require-installed-release-match` additionally resolves the recorded annotated release tag in
-the installed source repository, verifies that it targets the recorded commit, and recomputes its
+the installed source repository. It verifies the recorded commit target before recomputing the
 protected-content digest. A packaged installation without Git metadata cannot perform this check.
 
 !!! danger "Do not rewrite protected state"

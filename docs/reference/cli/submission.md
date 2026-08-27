@@ -56,7 +56,7 @@ declared release before using this option.
 `--require-installed-release-match` resolves each bundle's annotated release tag in the installed
 source repository. It requires the tag to target the recorded commit and the recomputed release
 protected-content digest to match the manifest. This check is independent of
-`--require-installed-lock-match`; use both when both identities must match.
+`--require-installed-lock-match`. Use both when both identities must match.
 
 ## `submission submit`
 

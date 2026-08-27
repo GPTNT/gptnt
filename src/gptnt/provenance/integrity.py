@@ -20,6 +20,7 @@ from gptnt.provenance._protected_tree import (
     _changed_protected_paths,
     _checkout_protected_tree,
     _git_protected_tree,
+    _ProtectedTree,
 )
 
 # Submission schema 4 and its two provenance digest fields imply this v1 policy. Never mutate this
@@ -59,7 +60,7 @@ class _BenchmarkIntegrityResult:
         return self.release_protected_content_digest != self.protected_content_digest
 
 
-def _resolve_release(
+def _resolve_release(  # noqa: WPS231 - This filters tags before selecting the latest release.
     repository: pygit2.Repository, *, head: pygit2.Commit, worktree: Path
 ) -> tuple[str, pygit2.Commit]:
     release_tag_pattern = re.compile(RELEASE_TAG_PATTERN, re.ASCII)
@@ -71,13 +72,13 @@ def _resolve_release(
         if not release_tag_pattern.fullmatch(tag_name) or not isinstance(tag_object, pygit2.Tag):
             continue
         target = repository[tag_object.target]
-        if not isinstance(target, pygit2.Commit):
+        if not isinstance(target, pygit2.Commit):  # pyright: ignore[reportUnnecessaryIsInstance]
             continue
         if target.id == head.id or repository.descendant_of(head.id, target.id):
             candidates.append((Version(tag_name.removeprefix("v")), tag_name, target))
 
     if candidates:
-        _, tag_name, commit = max(candidates, key=lambda item: item[0])
+        _, tag_name, commit = max(candidates, key=lambda candidate: candidate[0])
         return tag_name, commit
     raise BenchmarkIntegrityError(
         f"Repository {worktree} HEAD has no reachable annotated release tag matching "
@@ -97,23 +98,20 @@ def _paths_under_roots(paths: set[str], *, roots: tuple[str, ...]) -> tuple[str,
 
 @lru_cache(maxsize=4)
 def _release_protected_tree(
-    git_directory: str,
-    release_commit: str,
-    roots: tuple[str, ...],
-    policy_version: int,
-):
+    git_directory: str, release_commit: str, roots: tuple[str, ...], policy_version: int
+) -> _ProtectedTree:
     if policy_version != _DIGEST_POLICY_VERSION_V1:
         raise BenchmarkIntegrityError(
             f"Unsupported protected-content digest policy version {policy_version}"
         )
     repository = pygit2.Repository(git_directory)
     commit = repository[pygit2.Oid(hex=release_commit)]
-    if not isinstance(commit, pygit2.Commit):
+    if not isinstance(commit, pygit2.Commit):  # pyright: ignore[reportUnnecessaryIsInstance]
         raise BenchmarkIntegrityError(f"Release object {release_commit} is not a commit")
     return _git_protected_tree(commit.tree, roots=roots)
 
 
-def release_protected_content_digest(
+def release_protected_content_digest(  # noqa: WPS238 - Identity violations need distinct messages.
     repository: Path, *, release_tag: str, release_commit: str
 ) -> str:
     """Recompute protected content for one exact annotated release identity."""
@@ -134,17 +132,14 @@ def release_protected_content_digest(
     if not isinstance(tag_object, pygit2.Tag):
         raise BenchmarkIntegrityError(f"Release tag {release_tag!r} is not annotated")
     target = git_repository[tag_object.target]
-    if not isinstance(target, pygit2.Commit):
+    if not isinstance(target, pygit2.Commit):  # pyright: ignore[reportUnnecessaryIsInstance]
         raise BenchmarkIntegrityError(f"Release tag {release_tag!r} does not target a commit")
     if str(target.id) != release_commit:
         raise BenchmarkIntegrityError(
             f"Release tag {release_tag!r} does not target recorded commit {release_commit}"
         )
     return _release_protected_tree(
-        str(discovered_repository),
-        release_commit,
-        PROTECTED_PATHS_V1,
-        _DIGEST_POLICY_VERSION_V1,
+        str(discovered_repository), release_commit, PROTECTED_PATHS_V1, _DIGEST_POLICY_VERSION_V1
     ).digest
 
 
@@ -165,9 +160,7 @@ def check_benchmark_integrity(repository: Path) -> _BenchmarkIntegrityResult:
     git_repository = pygit2.Repository(discovered_repository)
     worktree = Path(git_repository.workdir)
     head = git_repository.head.peel(pygit2.Commit)
-    release_tag, release_commit = _resolve_release(
-        git_repository, head=head, worktree=worktree
-    )
+    release_tag, release_commit = _resolve_release(git_repository, head=head, worktree=worktree)
 
     release_tree = _release_protected_tree(
         str(discovered_repository),

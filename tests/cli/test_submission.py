@@ -383,7 +383,7 @@ def test_statics_legacy_provenance_is_not_backfilled_during_bundle_creation(
     into = tmp_path / "submissions"
 
     with pytest.raises(ValueError, match="submission schema 4 requires protected-content digests"):
-        _run_statics_new(root, into)
+        _ = _run_statics_new(root, into)
 
     assert not into.exists()
 

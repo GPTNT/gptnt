@@ -41,7 +41,7 @@ from tests._factories.experiments import (
     make_provenance,
 )
 
-_MISMATCHED_PROTECTED_CONTENT_DIGEST = "sha256:" + "2" * 64
+_MISMATCHED_PROTECTED_CONTENT_DIGEST = f"sha256:{'2' * 64}"
 
 
 @fixture
@@ -259,9 +259,13 @@ async def test_recorder_saves_parquet_roundtrips(
     assert footer.is_hard_crash is False
     assert loaded.gptnt_version == player_record.gptnt_version
     assert loaded.release_commit == player_record.release_commit
-    assert loaded.release_protected_content_digest == player_record.release_protected_content_digest
+    assert (
+        loaded.release_protected_content_digest == player_record.release_protected_content_digest
+    )
     assert loaded.protected_content_digest == player_record.protected_content_digest
-    assert footer.release_protected_content_digest == player_record.release_protected_content_digest
+    assert (
+        footer.release_protected_content_digest == player_record.release_protected_content_digest
+    )
     assert footer.protected_content_digest == player_record.protected_content_digest
 
 
@@ -542,9 +546,7 @@ def test_ingest_preserves_current_and_in_flight_legacy_provenance(
 ) -> None:
     current_instance = make_experiment_instance(make_experiment_spec(seed=101))
     legacy_instance = make_experiment_instance(make_experiment_spec(seed=202))
-    current_record = _build_player_record(
-        current_instance, current_instance.defuser, step_record
-    )
+    current_record = _build_player_record(current_instance, current_instance.defuser, step_record)
     legacy_record = _build_player_record(legacy_instance, legacy_instance.defuser, step_record)
     current_path = tmp_path / "current.parquet"
     legacy_path = tmp_path / "legacy.parquet"
@@ -553,9 +555,7 @@ def test_ingest_preserves_current_and_in_flight_legacy_provenance(
 
     db_path = tmp_path / "mixed.duckdb"
     ingest_player_records(
-        player_record_paths=[legacy_path, current_path],
-        db_path=db_path,
-        max_workers=1,
+        player_record_paths=[legacy_path, current_path], db_path=db_path, max_workers=1
     )
 
     with duckdb.connect(db_path) as connection:

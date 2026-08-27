@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
     from gptnt.players.specification import CommunicationStyle
 
-_PROTECTED_CONTENT_DIGEST = "sha256:" + "1" * 64
+_PROTECTED_CONTENT_DIGEST = f"sha256:{'1' * 64}"
 
 
 def make_manual_profile(document_id: str = "Wires") -> ManualProfile:

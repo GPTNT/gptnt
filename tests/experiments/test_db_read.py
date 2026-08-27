@@ -107,13 +107,9 @@ def test_pre_digest_database_requires_rebuild_but_rows_remain_legacy_readable(
     ensure_schema(db_path)
     summary = make_experiment_summary()
     with duckdb.connect(db_path) as connection:
-        rows = pa.Table.from_pylist(
-            [summary.model_dump(context={"mode": EXPORT_CONTEXT_MARKER})]
-        )
+        rows = pa.Table.from_pylist([summary.model_dump(context={"mode": EXPORT_CONTEXT_MARKER})])
         _ = connection.register("summary_row", rows)
-        _ = connection.execute(
-            "INSERT INTO experiment_summary BY NAME SELECT * FROM summary_row"
-        )
+        _ = connection.execute("INSERT INTO experiment_summary BY NAME SELECT * FROM summary_row")
         _ = connection.unregister("summary_row")
         _ = connection.execute(
             "ALTER TABLE experiment_summary DROP COLUMN release_protected_content_digest"

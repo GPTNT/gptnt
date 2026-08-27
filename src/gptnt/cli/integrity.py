@@ -97,8 +97,7 @@ def diagnose_benchmark_integrity(
                 CheckResult.passed("Reference", integrity.release_tag),
                 CheckResult.passed("Release commit", integrity.release_commit[:7]),
                 CheckResult.passed(
-                    "Release protected digest",
-                    integrity.release_protected_content_digest[:19],
+                    "Release protected digest", integrity.release_protected_content_digest[:19]
                 ),
                 CheckResult.passed(
                     "Checkout protected digest", integrity.protected_content_digest[:19]

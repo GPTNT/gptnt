@@ -166,7 +166,10 @@ def test_development_package_version_can_match_release_content(bundle_copy: Path
     experiments = read_typed_parquet(SubmissionExperiment, payload_path)
     development_version = "2.0.1.dev3+gabc1234"
     write_typed_parquet(
-        [experiment.model_copy(update={"gptnt_version": development_version}) for experiment in experiments],
+        [
+            experiment.model_copy(update={"gptnt_version": development_version})
+            for experiment in experiments
+        ],
         file_path=payload_path,
     )
     manifest = _read_manifest(bundle_copy)
@@ -184,7 +187,7 @@ def test_checkout_digest_mismatch_fails_protected_content(bundle_copy: Path) -> 
     payload_path = bundle_copy / "experiments.parquet"
     experiments = read_typed_parquet(SubmissionExperiment, payload_path)
     mismatch = {
-        "protected_content_digest": "sha256:" + "2" * 64,
+        "protected_content_digest": f"sha256:{'2' * 64}",
         "protected_content_modified": True,
     }
     write_typed_parquet(
@@ -202,8 +205,7 @@ def test_checkout_digest_mismatch_fails_protected_content(bundle_copy: Path) -> 
     assert result.exit_code == 1
     checks = from_json(result.output)["bundles"][0]["checks"]
     assert any(
-        check["name"] == "protected content" and check["status"] == "fail"
-        for check in checks
+        check["name"] == "protected content" and check["status"] == "fail" for check in checks
     )
 
 
@@ -229,7 +231,9 @@ def test_installed_release_match_uses_declared_identity_and_package_repository(
     expected_digest = manifest["provenance"]["release_protected_content_digest"]
     received: list[tuple[Path, str, str]] = []
 
-    def recompute(repository: Path, *, release_tag: str, release_commit: str) -> str:
+    def recompute(  # noqa: WPS430
+        repository: Path, *, release_tag: str, release_commit: str
+    ) -> str:
         received.append((repository, release_tag, release_commit))
         return expected_digest
 
@@ -256,7 +260,7 @@ def test_installed_release_digest_mismatch_is_reported(bundle_copy: Path, monkey
     monkeypatch.setattr(
         submission_checks,
         "release_protected_content_digest",
-        lambda *_args, **_kwargs: "sha256:" + "2" * 64,
+        lambda *_args, **_kwargs: f"sha256:{'2' * 64}",
     )
 
     result = invoke_cli(
@@ -273,14 +277,16 @@ def test_installed_release_digest_mismatch_is_reported(bundle_copy: Path, monkey
 
     assert result.exit_code == 1
     checks = from_json(result.output)["bundles"][0]["checks"]
-    finding = next(check for check in checks if check["name"] == "installed release protected content")
+    finding = next(
+        check for check in checks if check["name"] == "installed release protected content"
+    )
     assert finding["status"] == "fail"
     assert "sha256:111111111111" in finding["detail"]
     assert "sha256:222222222222" in finding["detail"]
 
 
 def test_installed_release_requires_source_git_metadata(bundle_copy: Path, monkeypatch) -> None:
-    def unavailable(*_args: object, **_kwargs: object) -> str:
+    def unavailable(*_args: object, **_kwargs: object) -> str:  # noqa: WPS430
         raise BenchmarkIntegrityError("installed package is not a Git repository")
 
     monkeypatch.setattr(submission_checks, "release_protected_content_digest", unavailable)
@@ -299,13 +305,15 @@ def test_installed_release_requires_source_git_metadata(bundle_copy: Path, monke
 
     assert result.exit_code == 1
     checks = from_json(result.output)["bundles"][0]["checks"]
-    finding = next(check for check in checks if check["name"] == "installed release protected content")
+    finding = next(
+        check for check in checks if check["name"] == "installed release protected content"
+    )
     assert finding["status"] == "fail"
     assert "source Git metadata" in finding["detail"]
 
 
 def test_installed_release_reports_unreadable_git_metadata(bundle_copy: Path, monkeypatch) -> None:
-    def unreadable(*_args: object, **_kwargs: object) -> str:
+    def unreadable(*_args: object, **_kwargs: object) -> str:  # noqa: WPS430
         raise OSError("cannot read Git objects")
 
     monkeypatch.setattr(submission_checks, "release_protected_content_digest", unreadable)
@@ -324,7 +332,9 @@ def test_installed_release_reports_unreadable_git_metadata(bundle_copy: Path, mo
 
     assert result.exit_code == 1
     checks = from_json(result.output)["bundles"][0]["checks"]
-    finding = next(check for check in checks if check["name"] == "installed release protected content")
+    finding = next(
+        check for check in checks if check["name"] == "installed release protected content"
+    )
     assert finding["status"] == "fail"
     assert "cannot read Git objects" in finding["detail"]
 
@@ -428,7 +438,7 @@ def test_modified_benchmark_records_cannot_be_submitted(
         [
             experiment.model_copy(
                 update={
-                    "protected_content_digest": "sha256:" + "2" * 64,
+                    "protected_content_digest": f"sha256:{'2' * 64}",
                     "protected_content_modified": True,
                 }
             )
@@ -438,10 +448,7 @@ def test_modified_benchmark_records_cannot_be_submitted(
     )
     manifest = _read_manifest(bundle_copy)
     manifest["provenance"].update(
-        {
-            "protected_content_digest": "sha256:" + "2" * 64,
-            "protected_content_modified": True,
-        }
+        {"protected_content_digest": f"sha256:{'2' * 64}", "protected_content_modified": True}
     )
     _write_manifest(bundle_copy, manifest)
 
@@ -449,9 +456,7 @@ def test_modified_benchmark_records_cannot_be_submitted(
     assert "✗ protected content" in _unwrap_output(capsys)
 
 
-def test_records_without_release_provenance_cannot_be_submitted(
-    bundle_copy: Path,
-) -> None:
+def test_records_without_release_provenance_cannot_be_submitted(bundle_copy: Path) -> None:
     payload = bundle_copy / "experiments.parquet"
     experiments = read_typed_parquet(SubmissionExperiment, payload)
     missing = {

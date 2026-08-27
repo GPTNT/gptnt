@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+# pyright: reportUnusedCallResult=false, reportPrivateLocalImportUsage=false, reportMatchNotExhaustive=false
 import os
 import re
 import stat
@@ -10,20 +11,20 @@ from typing import TYPE_CHECKING, Literal
 
 import pygit2
 import pytest
-import gptnt.provenance.integrity as integrity_module
 
 from gptnt.provenance import (
     BenchmarkIntegrityError,
     Provenance,
     check_benchmark_integrity,
     gptnt_version,
+    integrity as integrity_module,
     release_protected_content_digest,
 )
 from gptnt.provenance._protected_tree import (
-    _ProtectedEntry,
-    _ProtectedTree,
     _checkout_protected_tree,
     _git_protected_tree,
+    _ProtectedEntry,
+    _ProtectedTree,
 )
 from gptnt.provenance.integrity import PROTECTED_PATHS_V1
 
@@ -93,7 +94,12 @@ def _commit_file(repository: Path, relative_path: str, content: str) -> str:
     opened.index.write()
     signature = pygit2.Signature("Benchmark Test", "benchmark@example.com")
     commit_id = opened.create_commit(
-        "HEAD", signature, signature, relative_path, opened.index.write_tree(), [opened.head.target]
+        "HEAD",
+        signature,
+        signature,
+        relative_path,
+        opened.index.write_tree(),
+        [opened.head.target],
     )
     return str(commit_id)
 
@@ -112,13 +118,9 @@ def _annotated_tag(repository: Path, tag_name: str, commit_id: str | pygit2.Oid)
     )
 
 
-def _commit_from(
-    opened: pygit2.Repository, parent: pygit2.Commit, *, message: str
-) -> pygit2.Oid:
+def _commit_from(opened: pygit2.Repository, parent: pygit2.Commit, *, message: str) -> pygit2.Oid:
     signature = pygit2.Signature("Benchmark Test", "benchmark@example.com")
-    return opened.create_commit(
-        None, signature, signature, message, parent.tree.id, [parent.id]
-    )
+    return opened.create_commit(None, signature, signature, message, parent.tree.id, [parent.id])
 
 
 def test_unprotected_descendant_uses_newest_reachable_release(tmp_path: Path) -> None:
@@ -162,20 +164,13 @@ def test_newer_release_on_second_merge_parent_is_selected(tmp_path: Path) -> Non
     opened.head.set_target(first_parent)
     signature = pygit2.Signature("Benchmark Test", "benchmark@example.com")
     _ = opened.create_commit(
-        "HEAD",
-        signature,
-        signature,
-        "merge",
-        base.tree.id,
-        [first_parent, second_parent],
+        "HEAD", signature, signature, "merge", base.tree.id, [first_parent, second_parent]
     )
 
     assert check_benchmark_integrity(repository).release_tag == "v0.16.0"
 
 
-def test_older_release_on_second_merge_parent_does_not_move_baseline_back(
-    tmp_path: Path,
-) -> None:
+def test_older_release_on_second_merge_parent_does_not_move_baseline_back(tmp_path: Path) -> None:
     repository, _ = _tagged_repository(tmp_path)
     discovered = pygit2.discover_repository(str(repository))
     assert discovered is not None
@@ -188,12 +183,7 @@ def test_older_release_on_second_merge_parent_does_not_move_baseline_back(
     opened.head.set_target(first_parent)
     signature = pygit2.Signature("Benchmark Test", "benchmark@example.com")
     _ = opened.create_commit(
-        "HEAD",
-        signature,
-        signature,
-        "merge",
-        base.tree.id,
-        [first_parent, second_parent],
+        "HEAD", signature, signature, "merge", base.tree.id, [first_parent, second_parent]
     )
 
     assert check_benchmark_integrity(repository).release_tag == "v0.16.0"
@@ -209,17 +199,13 @@ def test_unreachable_release_tag_is_not_a_baseline(tmp_path: Path) -> None:
     side_commit = _commit_from(opened, base, message="side release")
     _annotated_tag(repository, "v0.16.0", side_commit)
     signature = pygit2.Signature("Benchmark Test", "benchmark@example.com")
-    _ = opened.create_commit(
-        "HEAD", signature, signature, "main child", base.tree.id, [base.id]
-    )
+    _ = opened.create_commit("HEAD", signature, signature, "main child", base.tree.id, [base.id])
 
     with pytest.raises(BenchmarkIntegrityError, match="no reachable annotated release tag"):
         _ = check_benchmark_integrity(repository)
 
 
-def test_only_release_tree_is_cached(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_only_release_tree_is_cached(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     repository, _ = _tagged_repository(tmp_path)
     integrity_module._release_protected_tree.cache_clear()
     release_builds = 0
@@ -227,13 +213,13 @@ def test_only_release_tree_is_cached(
     original_release_builder = integrity_module._git_protected_tree
     original_checkout_builder = integrity_module._checkout_protected_tree
 
-    def count_release_build(*args: object, **kwargs: object):
-        nonlocal release_builds
+    def count_release_build(*args: object, **kwargs: object) -> _ProtectedTree:  # noqa: WPS430
+        nonlocal release_builds  # noqa: WPS420
         release_builds += 1
         return original_release_builder(*args, **kwargs)
 
-    def count_checkout_build(*args: object, **kwargs: object):
-        nonlocal checkout_builds
+    def count_checkout_build(*args: object, **kwargs: object) -> _ProtectedTree:  # noqa: WPS430
+        nonlocal checkout_builds  # noqa: WPS420
         checkout_builds += 1
         return original_checkout_builder(*args, **kwargs)
 
@@ -249,9 +235,7 @@ def test_only_release_tree_is_cached(
     assert second.protected_content_modified is True
 
 
-def test_release_digest_requires_tag_and_commit_to_identify_same_release(
-    tmp_path: Path,
-) -> None:
+def test_release_digest_requires_tag_and_commit_to_identify_same_release(tmp_path: Path) -> None:
     repository, release_commit = _tagged_repository(tmp_path)
 
     digest = release_protected_content_digest(
@@ -315,12 +299,9 @@ def test_digest_v1_has_fixed_canonical_vector() -> None:
             _ProtectedEntry(
                 path="pyproject.toml", kind="file", mode=0o100644, content=b"[project]\n"
             ),
-            _ProtectedEntry(path="src/gptnt", kind="directory", mode=0o040000, content=b""),
+            _ProtectedEntry(path="src/gptnt", kind="directory", mode=0o40000, content=b""),
             _ProtectedEntry(
-                path="src/gptnt/link.py",
-                kind="symlink",
-                mode=0o120000,
-                content=b"benchmark.py",
+                path="src/gptnt/link.py", kind="symlink", mode=0o120000, content=b"benchmark.py"
             ),
         ),
     )
@@ -437,11 +418,7 @@ def test_leaf_symlink_target_changes_protected_digest(tmp_path: Path) -> None:
         "HEAD", signature, signature, "symlink", opened.index.write_tree(), [opened.head.target]
     )
     _ = opened.create_tag(
-        "v0.16.0",
-        commit_id,
-        pygit2.enums.ObjectType.COMMIT,
-        signature,
-        "release v0.16.0",
+        "v0.16.0", commit_id, pygit2.enums.ObjectType.COMMIT, signature, "release v0.16.0"
     )
     baseline = check_benchmark_integrity(repository).protected_content_digest
 
@@ -511,9 +488,7 @@ def test_file_root_contributes_its_entry(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("ignore_source", ["worktree", "repository", "configured"])
-def test_git_ignore_sources_cannot_hide_protected_file(
-    tmp_path: Path, ignore_source: str
-) -> None:
+def test_git_ignore_sources_cannot_hide_protected_file(tmp_path: Path, ignore_source: str) -> None:
     repository, _ = _tagged_repository(tmp_path)
     protected = repository / "src/gptnt/ignored.py"
     protected.write_text("ignored = True\n")
@@ -552,14 +527,15 @@ def test_sourceless_bytecode_outside_cache_is_protected(tmp_path: Path) -> None:
 
 def test_checkout_path_that_is_not_utf8_is_rejected(tmp_path: Path) -> None:
     repository, _ = _tagged_repository(tmp_path)
-    raw_path = os.fsencode(repository / "src/gptnt") + b"/invalid-\xff.py"
+    raw_path = b"".join((os.fsencode(repository / "src/gptnt"), b"/invalid-\xff.py"))
     try:
         descriptor = os.open(raw_path, os.O_WRONLY | os.O_CREAT, 0o644)
     except OSError:
         pytest.skip("filesystem rejects non-UTF-8 filenames")
-    os.close(descriptor)
+    else:
+        os.close(descriptor)
 
-    with pytest.raises(BenchmarkIntegrityError, match="checkout path.*UTF-8"):
+    with pytest.raises(BenchmarkIntegrityError, match=r"checkout path.*UTF-8"):
         _ = check_benchmark_integrity(repository)
 
 
@@ -569,28 +545,24 @@ def test_git_path_that_is_not_utf8_is_rejected(tmp_path: Path) -> None:
     assert discovered is not None
     opened = pygit2.Repository(discovered)
 
-    def make_tree(record: bytes) -> pygit2.Oid:
+    def make_tree(record: bytes) -> pygit2.Oid:  # noqa: WPS430
         result = subprocess.run(
-            ["git", "mktree", "-z"],
-            cwd=repository,
-            input=record,
-            check=True,
-            capture_output=True,
+            ["git", "mktree", "-z"], cwd=repository, input=record, check=True, capture_output=True
         )
         return pygit2.Oid(hex=result.stdout.strip().decode("ascii"))
 
     blob_id = opened.create_blob(b"invalid")
     gptnt_tree_id = make_tree(
-        b"100644 blob " + str(blob_id).encode("ascii") + b"\tinvalid-\xff.py\0"
+        b"".join((b"100644 blob ", str(blob_id).encode("ascii"), b"\tinvalid-\xff.py\0"))
     )
     src_tree_id = make_tree(
-        b"040000 tree " + str(gptnt_tree_id).encode("ascii") + b"\tgptnt\0"
+        b"".join((b"040000 tree ", str(gptnt_tree_id).encode("ascii"), b"\tgptnt\0"))
     )
     root_tree_id = make_tree(
-        b"040000 tree " + str(src_tree_id).encode("ascii") + b"\tsrc\0"
+        b"".join((b"040000 tree ", str(src_tree_id).encode("ascii"), b"\tsrc\0"))
     )
 
-    with pytest.raises(BenchmarkIntegrityError, match="Git path.*UTF-8"):
+    with pytest.raises(BenchmarkIntegrityError, match=r"Git path.*UTF-8"):
         _ = _git_protected_tree(opened[root_tree_id], roots=("src/gptnt",))
 
 

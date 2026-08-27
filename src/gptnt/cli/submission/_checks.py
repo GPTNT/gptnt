@@ -18,8 +18,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import yaml
 import pygit2
+import yaml
 from pydantic import ValidationError
 from pydantic_core import from_json
 from tomlkit.exceptions import TOMLKitError
@@ -41,11 +41,7 @@ from gptnt.cli.submission._schema import (
 )
 from gptnt.experiments.db.typed_parquet import read_typed_parquet
 from gptnt.experiments.suite.lock import SuiteLock, SuiteNotFrozenError
-from gptnt.provenance import (
-    BenchmarkIntegrityError,
-    Provenance,
-    release_protected_content_digest,
-)
+from gptnt.provenance import BenchmarkIntegrityError, Provenance, release_protected_content_digest
 
 if TYPE_CHECKING:
     from gptnt.experiments.suite.definition import Suite
@@ -229,14 +225,11 @@ def check_installed_release_match(provenance: Provenance, repository: Path) -> C
         )
     try:
         installed_digest = release_protected_content_digest(
-            repository,
-            release_tag=release_tag,
-            release_commit=release_commit,
+            repository, release_tag=release_tag, release_commit=release_commit
         )
     except (BenchmarkIntegrityError, OSError, pygit2.GitError) as error:
         return CheckResult.failed(
-            "installed release protected content",
-            f"source Git metadata is required: {error}",
+            "installed release protected content", f"source Git metadata is required: {error}"
         )
     if installed_digest != recorded_digest:
         return CheckResult.failed(
@@ -244,9 +237,7 @@ def check_installed_release_match(provenance: Provenance, repository: Path) -> C
             f"recorded {recorded_digest[:19]}, installed {installed_digest[:19]}",
             hint=REBUILD_HINT,
         )
-    return CheckResult.passed(
-        "installed release protected content", installed_digest[:19]
-    )
+    return CheckResult.passed("installed release protected content", installed_digest[:19])
 
 
 def check_mission_coverage(bundle: InteractiveBundle, entry: SuiteLockEntry) -> list[CheckResult]:

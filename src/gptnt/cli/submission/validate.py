@@ -23,8 +23,8 @@ from gptnt.cli.checks.formats import Report, ReportFormat
 from gptnt.cli.checks.result import CheckResult
 from gptnt.cli.submission._bundle import InteractiveBundle
 from gptnt.cli.submission._checks import (
-    check_installed_release_match,
     check_installed_lock_match,
+    check_installed_release_match,
     check_mission_coverage,
     check_players,
     check_suite,

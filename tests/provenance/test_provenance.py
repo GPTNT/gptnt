@@ -7,8 +7,8 @@ from pydantic import ValidationError
 
 from gptnt.provenance import Provenance
 
-_RELEASE_DIGEST = "sha256:" + "1" * 64
-_CHECKOUT_DIGEST = "sha256:" + "2" * 64
+_RELEASE_DIGEST = f"sha256:{'1' * 64}"
+_CHECKOUT_DIGEST = f"sha256:{'2' * 64}"
 
 
 def test_current_provenance_accepts_modified_state_derived_from_digests() -> None:
