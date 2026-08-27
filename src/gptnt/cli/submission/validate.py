@@ -23,6 +23,7 @@ from gptnt.cli.checks.formats import Report, ReportFormat
 from gptnt.cli.checks.result import CheckResult
 from gptnt.cli.submission._bundle import InteractiveBundle
 from gptnt.cli.submission._checks import (
+    check_installed_release_match,
     check_installed_lock_match,
     check_mission_coverage,
     check_players,
@@ -35,6 +36,7 @@ from gptnt.experiments.suite.lock import SuiteLock, SuiteNotFrozenError
 
 paths = Paths()
 console = Console()
+_PACKAGE_DIR = Path(__file__).resolve().parent
 
 RequireInstalledLockMatchOption = Annotated[
     bool,
@@ -43,6 +45,17 @@ RequireInstalledLockMatchOption = Annotated[
         help=(
             "Require each interactive bundle's suite snapshot to exactly match the suite registry "
             "shipped with this GPTNT installation."
+        ),
+    ),
+]
+
+RequireInstalledReleaseMatchOption = Annotated[
+    bool,
+    Parameter(
+        name="--require-installed-release-match",
+        help=(
+            "Recompute protected content at each bundle's declared release and require its "
+            "recorded release digest to match."
         ),
     ),
 ]
@@ -60,6 +73,7 @@ def validate_submission(
         ),
     ] = "rich",
     require_installed_lock_match: RequireInstalledLockMatchOption = False,
+    require_installed_release_match: RequireInstalledReleaseMatchOption = False,
 ) -> None:
     """Validate submission bundle(s).
 
@@ -78,7 +92,9 @@ def validate_submission(
         Report(
             heading=str(bundle_dir if bundle_dir == path else bundle_dir.relative_to(path)),
             checks=_run_bundle_checks(
-                bundle_dir, installed_suite_registry=installed_suite_registry
+                bundle_dir,
+                installed_suite_registry=installed_suite_registry,
+                require_installed_release_match=require_installed_release_match,
             ),
         )
         for bundle_dir in bundle_dirs
@@ -97,7 +113,10 @@ def _load_installed_suite_registry() -> SuiteLock:
 
 
 def _run_bundle_checks(
-    bundle_dir: Path, *, installed_suite_registry: SuiteLock | None
+    bundle_dir: Path,
+    *,
+    installed_suite_registry: SuiteLock | None,
+    require_installed_release_match: bool,
 ) -> list[CheckResult]:
     """Run every applicable check for one bundle.
 
@@ -112,6 +131,8 @@ def _run_bundle_checks(
 
     sections.extend(loaded.check_structure())
     sections.extend(loaded.check_submitter())
+    if require_installed_release_match:
+        sections.append(check_installed_release_match(loaded.manifest.provenance, _PACKAGE_DIR))
 
     if isinstance(loaded.bundle, InteractiveBundle):
         sections.extend(

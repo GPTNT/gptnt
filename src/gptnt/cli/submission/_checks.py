@@ -40,7 +40,11 @@ from gptnt.cli.submission._schema import (
 )
 from gptnt.experiments.db.typed_parquet import read_typed_parquet
 from gptnt.experiments.suite.lock import SuiteLock, SuiteNotFrozenError
-from gptnt.provenance import Provenance
+from gptnt.provenance import (
+    BenchmarkIntegrityError,
+    Provenance,
+    release_protected_content_digest,
+)
 
 if TYPE_CHECKING:
     from gptnt.experiments.suite.definition import Suite
@@ -209,6 +213,39 @@ def check_installed_lock_match(
             hint=REBUILD_HINT,
         )
     return CheckResult.passed("installed suite registry", f"{entry.name}@{entry.revision}")
+
+
+def check_installed_release_match(provenance: Provenance, repository: Path) -> CheckResult:
+    """Recompute the manifest's declared release tree from installed source Git metadata."""
+    release_tag = provenance.release_tag
+    release_commit = provenance.release_commit
+    recorded_digest = provenance.release_protected_content_digest
+    if release_tag is None or release_commit is None or recorded_digest is None:
+        return CheckResult.failed(
+            "installed release protected content",
+            "submission has incomplete release provenance",
+            hint=REBUILD_HINT,
+        )
+    try:
+        installed_digest = release_protected_content_digest(
+            repository,
+            release_tag=release_tag,
+            release_commit=release_commit,
+        )
+    except BenchmarkIntegrityError as error:
+        return CheckResult.failed(
+            "installed release protected content",
+            f"source Git metadata is required: {error}",
+        )
+    if installed_digest != recorded_digest:
+        return CheckResult.failed(
+            "installed release protected content",
+            f"recorded {recorded_digest[:19]}, installed {installed_digest[:19]}",
+            hint=REBUILD_HINT,
+        )
+    return CheckResult.passed(
+        "installed release protected content", installed_digest[:19]
+    )
 
 
 def check_mission_coverage(bundle: InteractiveBundle, entry: SuiteLockEntry) -> list[CheckResult]:

@@ -18,6 +18,7 @@ from pydantic_ai import RunUsage
 from pydantic_core import from_json
 
 from gptnt.cli.__main__ import build_app
+from gptnt.cli.submission import _checks as submission_checks
 from gptnt.cli.submission._bundle import (
     InteractiveBundle,
     StaticsBundle,
@@ -31,6 +32,7 @@ from gptnt.experiments.records import ExperimentSummary
 from gptnt.experiments.suite.compose import compose_suite
 from gptnt.experiments.suite.lock import SuiteLock
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.provenance import BenchmarkIntegrityError
 
 from tests._cli_runner import invoke_cli
 from tests._factories.experiments import (
@@ -218,6 +220,88 @@ def test_bundle_snapshot_must_match_the_installed_suite_registry(bundle_copy: Pa
 
     assert result.exit_code == 1
     assert "installed suite registry" in result.output
+
+
+def test_installed_release_match_uses_declared_identity_and_package_repository(
+    bundle_copy: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest = _read_manifest(bundle_copy)
+    expected_digest = manifest["provenance"]["release_protected_content_digest"]
+    received: list[tuple[Path, str, str]] = []
+
+    def recompute(repository: Path, *, release_tag: str, release_commit: str) -> str:
+        received.append((repository, release_tag, release_commit))
+        return expected_digest
+
+    monkeypatch.setattr(submission_checks, "release_protected_content_digest", recompute)
+    monkeypatch.chdir(tmp_path)
+
+    result = invoke_cli(
+        build_app(),
+        ["submission", "validate", "--require-installed-release-match", str(bundle_copy)],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert received == [
+        (
+            received[0][0],
+            manifest["provenance"]["release_tag"],
+            manifest["provenance"]["release_commit"],
+        )
+    ]
+    assert "src/gptnt/cli/submission" in received[0][0].as_posix()
+
+
+def test_installed_release_digest_mismatch_is_reported(bundle_copy: Path, monkeypatch) -> None:
+    monkeypatch.setattr(
+        submission_checks,
+        "release_protected_content_digest",
+        lambda *_args, **_kwargs: "sha256:" + "2" * 64,
+    )
+
+    result = invoke_cli(
+        build_app(),
+        [
+            "submission",
+            "validate",
+            "--require-installed-release-match",
+            str(bundle_copy),
+            "--format",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 1
+    checks = from_json(result.output)["bundles"][0]["checks"]
+    finding = next(check for check in checks if check["name"] == "installed release protected content")
+    assert finding["status"] == "fail"
+    assert "sha256:111111111111" in finding["detail"]
+    assert "sha256:222222222222" in finding["detail"]
+
+
+def test_installed_release_requires_source_git_metadata(bundle_copy: Path, monkeypatch) -> None:
+    def unavailable(*_args: object, **_kwargs: object) -> str:
+        raise BenchmarkIntegrityError("installed package is not a Git repository")
+
+    monkeypatch.setattr(submission_checks, "release_protected_content_digest", unavailable)
+
+    result = invoke_cli(
+        build_app(),
+        [
+            "submission",
+            "validate",
+            "--require-installed-release-match",
+            str(bundle_copy),
+            "--format",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 1
+    checks = from_json(result.output)["bundles"][0]["checks"]
+    finding = next(check for check in checks if check["name"] == "installed release protected content")
+    assert finding["status"] == "fail"
+    assert "source Git metadata" in finding["detail"]
 
 
 def test_bundle_with_a_self_consistent_unaccepted_suite_is_rejected(

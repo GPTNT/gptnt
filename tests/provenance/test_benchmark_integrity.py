@@ -17,6 +17,7 @@ from gptnt.provenance import (
     Provenance,
     check_benchmark_integrity,
     gptnt_version,
+    release_protected_content_digest,
 )
 from gptnt.provenance._protected_tree import (
     _ProtectedEntry,
@@ -246,6 +247,53 @@ def test_only_release_tree_is_cached(
     assert (release_builds, checkout_builds) == (1, 2)
     assert first.protected_content_modified is False
     assert second.protected_content_modified is True
+
+
+def test_release_digest_requires_tag_and_commit_to_identify_same_release(
+    tmp_path: Path,
+) -> None:
+    repository, release_commit = _tagged_repository(tmp_path)
+
+    digest = release_protected_content_digest(
+        repository, release_tag=_RELEASE_TAG, release_commit=release_commit
+    )
+
+    assert digest == check_benchmark_integrity(repository).release_protected_content_digest
+
+
+def test_release_digest_rejects_tag_commit_disagreement(tmp_path: Path) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+
+    with pytest.raises(BenchmarkIntegrityError, match="does not target"):
+        _ = release_protected_content_digest(
+            repository, release_tag=_RELEASE_TAG, release_commit="0" * 40
+        )
+
+
+def test_release_digest_requires_annotated_semantic_tag(tmp_path: Path) -> None:
+    repository, release_commit = _tagged_repository(tmp_path)
+    discovered = pygit2.discover_repository(str(repository))
+    assert discovered is not None
+    opened = pygit2.Repository(discovered)
+    opened.references.create("refs/tags/v0.16.0", opened.head.target)
+
+    with pytest.raises(BenchmarkIntegrityError, match="annotated"):
+        _ = release_protected_content_digest(
+            repository, release_tag="v0.16.0", release_commit=release_commit
+        )
+
+
+def test_release_digest_rejects_missing_or_malformed_tag(tmp_path: Path) -> None:
+    repository, release_commit = _tagged_repository(tmp_path)
+
+    with pytest.raises(BenchmarkIntegrityError, match="semantic release tag"):
+        _ = release_protected_content_digest(
+            repository, release_tag="v01.2.3", release_commit=release_commit
+        )
+    with pytest.raises(BenchmarkIntegrityError, match="does not exist"):
+        _ = release_protected_content_digest(
+            repository, release_tag="v9.9.9", release_commit=release_commit
+        )
 
 
 def test_protected_digest_is_stable_across_creation_order(tmp_path: Path) -> None:

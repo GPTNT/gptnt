@@ -112,6 +112,41 @@ def _release_protected_tree(
     return _git_protected_tree(commit.tree, roots=roots)
 
 
+def release_protected_content_digest(
+    repository: Path, *, release_tag: str, release_commit: str
+) -> str:
+    """Recompute protected content for one exact annotated release identity."""
+    if re.fullmatch(RELEASE_TAG_PATTERN, release_tag, flags=re.ASCII) is None:
+        raise BenchmarkIntegrityError(
+            f"Release tag {release_tag!r} is not an exact semantic release tag"
+        )
+    discovered_repository = pygit2.discover_repository(str(repository))
+    if discovered_repository is None:
+        raise BenchmarkIntegrityError(f"Repository {repository} is not a Git repository")
+    git_repository = pygit2.Repository(discovered_repository)
+    reference_name = f"refs/tags/{release_tag}"
+    try:
+        reference = git_repository.references[reference_name]
+    except KeyError as error:
+        raise BenchmarkIntegrityError(f"Release tag {release_tag!r} does not exist") from error
+    tag_object = git_repository[reference.target]
+    if not isinstance(tag_object, pygit2.Tag):
+        raise BenchmarkIntegrityError(f"Release tag {release_tag!r} is not annotated")
+    target = git_repository[tag_object.target]
+    if not isinstance(target, pygit2.Commit):
+        raise BenchmarkIntegrityError(f"Release tag {release_tag!r} does not target a commit")
+    if str(target.id) != release_commit:
+        raise BenchmarkIntegrityError(
+            f"Release tag {release_tag!r} does not target recorded commit {release_commit}"
+        )
+    return _release_protected_tree(
+        str(discovered_repository),
+        release_commit,
+        PROTECTED_PATHS,
+        _DIGEST_POLICY_VERSION,
+    ).digest
+
+
 def check_benchmark_integrity(repository: Path) -> _BenchmarkIntegrityResult:
     """Compare an input repository with the tagged baseline for its protected content.
 
