@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Literal
 
 import pygit2
 import pytest
+import gptnt.provenance.integrity as integrity_module
 
 from gptnt.provenance import (
     BenchmarkIntegrityError,
@@ -78,6 +79,173 @@ def _tagged_repository(
     # Integrity must detect executable-bit changes even when the checkout ignores them.
     opened.config["core.filemode"] = False
     return repository, str(release_commit)
+
+
+def _commit_file(repository: Path, relative_path: str, content: str) -> str:
+    path = repository / relative_path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content)
+    discovered = pygit2.discover_repository(str(repository))
+    assert discovered is not None
+    opened = pygit2.Repository(discovered)
+    opened.index.add(relative_path)
+    opened.index.write()
+    signature = pygit2.Signature("Benchmark Test", "benchmark@example.com")
+    commit_id = opened.create_commit(
+        "HEAD", signature, signature, relative_path, opened.index.write_tree(), [opened.head.target]
+    )
+    return str(commit_id)
+
+
+def _annotated_tag(repository: Path, tag_name: str, commit_id: str | pygit2.Oid) -> None:
+    discovered = pygit2.discover_repository(str(repository))
+    assert discovered is not None
+    opened = pygit2.Repository(discovered)
+    signature = pygit2.Signature("Benchmark Test", "benchmark@example.com")
+    _ = opened.create_tag(
+        tag_name,
+        pygit2.Oid(hex=commit_id) if isinstance(commit_id, str) else commit_id,
+        pygit2.enums.ObjectType.COMMIT,
+        signature,
+        f"release {tag_name}",
+    )
+
+
+def _commit_from(
+    opened: pygit2.Repository, parent: pygit2.Commit, *, message: str
+) -> pygit2.Oid:
+    signature = pygit2.Signature("Benchmark Test", "benchmark@example.com")
+    return opened.create_commit(
+        None, signature, signature, message, parent.tree.id, [parent.id]
+    )
+
+
+def test_unprotected_descendant_uses_newest_reachable_release(tmp_path: Path) -> None:
+    repository, release_commit = _tagged_repository(tmp_path)
+    _commit_file(repository, "docs/branch-notes.md", "branch notes\n")
+
+    result = check_benchmark_integrity(repository)
+
+    assert (result.release_tag, result.release_commit) == (_RELEASE_TAG, release_commit)
+    assert result.protected_content_modified is False
+
+
+def test_protected_descendant_is_compared_with_newest_reachable_release(tmp_path: Path) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+    _commit_file(repository, "src/gptnt/benchmark.py", "VALUE = 2\n")
+
+    result = check_benchmark_integrity(repository)
+
+    assert result.protected_changes == ("src/gptnt/benchmark.py",)
+    assert result.protected_content_modified is True
+
+
+def test_newest_reachable_release_wins_over_older_release(tmp_path: Path) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+    newer_commit = _commit_file(repository, "docs/release.md", "new release\n")
+    _annotated_tag(repository, "v0.16.0", newer_commit)
+    _commit_file(repository, "docs/branch.md", "branch\n")
+
+    assert check_benchmark_integrity(repository).release_tag == "v0.16.0"
+
+
+def test_newer_release_on_second_merge_parent_is_selected(tmp_path: Path) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+    discovered = pygit2.discover_repository(str(repository))
+    assert discovered is not None
+    opened = pygit2.Repository(discovered)
+    base = opened.head.peel(pygit2.Commit)
+    first_parent = _commit_from(opened, base, message="first parent")
+    second_parent = _commit_from(opened, base, message="second parent")
+    _annotated_tag(repository, "v0.16.0", second_parent)
+    opened.head.set_target(first_parent)
+    signature = pygit2.Signature("Benchmark Test", "benchmark@example.com")
+    _ = opened.create_commit(
+        "HEAD",
+        signature,
+        signature,
+        "merge",
+        base.tree.id,
+        [first_parent, second_parent],
+    )
+
+    assert check_benchmark_integrity(repository).release_tag == "v0.16.0"
+
+
+def test_older_release_on_second_merge_parent_does_not_move_baseline_back(
+    tmp_path: Path,
+) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+    discovered = pygit2.discover_repository(str(repository))
+    assert discovered is not None
+    opened = pygit2.Repository(discovered)
+    base = opened.head.peel(pygit2.Commit)
+    first_parent = _commit_from(opened, base, message="new release")
+    second_parent = _commit_from(opened, base, message="old release")
+    _annotated_tag(repository, "v0.16.0", first_parent)
+    _annotated_tag(repository, "v0.14.0", second_parent)
+    opened.head.set_target(first_parent)
+    signature = pygit2.Signature("Benchmark Test", "benchmark@example.com")
+    _ = opened.create_commit(
+        "HEAD",
+        signature,
+        signature,
+        "merge",
+        base.tree.id,
+        [first_parent, second_parent],
+    )
+
+    assert check_benchmark_integrity(repository).release_tag == "v0.16.0"
+
+
+def test_unreachable_release_tag_is_not_a_baseline(tmp_path: Path) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+    discovered = pygit2.discover_repository(str(repository))
+    assert discovered is not None
+    opened = pygit2.Repository(discovered)
+    base = opened.head.peel(pygit2.Commit)
+    opened.references.delete(f"refs/tags/{_RELEASE_TAG}")
+    side_commit = _commit_from(opened, base, message="side release")
+    _annotated_tag(repository, "v0.16.0", side_commit)
+    signature = pygit2.Signature("Benchmark Test", "benchmark@example.com")
+    _ = opened.create_commit(
+        "HEAD", signature, signature, "main child", base.tree.id, [base.id]
+    )
+
+    with pytest.raises(BenchmarkIntegrityError, match="no reachable annotated release tag"):
+        _ = check_benchmark_integrity(repository)
+
+
+def test_only_release_tree_is_cached(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repository, _ = _tagged_repository(tmp_path)
+    integrity_module._release_protected_tree.cache_clear()
+    release_builds = 0
+    checkout_builds = 0
+    original_release_builder = integrity_module._git_protected_tree
+    original_checkout_builder = integrity_module._checkout_protected_tree
+
+    def count_release_build(*args: object, **kwargs: object):
+        nonlocal release_builds
+        release_builds += 1
+        return original_release_builder(*args, **kwargs)
+
+    def count_checkout_build(*args: object, **kwargs: object):
+        nonlocal checkout_builds
+        checkout_builds += 1
+        return original_checkout_builder(*args, **kwargs)
+
+    monkeypatch.setattr(integrity_module, "_git_protected_tree", count_release_build)
+    monkeypatch.setattr(integrity_module, "_checkout_protected_tree", count_checkout_build)
+
+    first = check_benchmark_integrity(repository)
+    (repository / "src/gptnt/benchmark.py").write_text("VALUE = 2\n")
+    second = check_benchmark_integrity(repository)
+
+    assert (release_builds, checkout_builds) == (1, 2)
+    assert first.protected_content_modified is False
+    assert second.protected_content_modified is True
 
 
 def test_protected_digest_is_stable_across_creation_order(tmp_path: Path) -> None:
@@ -472,7 +640,7 @@ def test_path_policy(
     ("state", "condition"),
     [
         ("no_repository", "not a Git repository"),
-        ("no_release_tag", "no exact annotated release tag"),
+        ("no_release_tag", "no reachable annotated release tag"),
     ],
 )
 def test_unsupported_git_state_reports_repository_and_condition(
