@@ -69,16 +69,24 @@ unpinned and produces a validation warning.
 
 ## Benchmark provenance and submission validation
 
-Every recorded output includes the installed GPTNT version, exact annotated release tag, release
-commit, and `protected_content_modified` state. Permitted runner inputs such as player, suite,
-mission, and run files may vary. Protected source, prompts, base configuration, and manual inputs
-must match the tagged release for submission.
+Every current recorded output includes the installed GPTNT version, exact annotated release tag,
+release commit, release protected-content digest, checkout protected-content digest, and
+`protected_content_modified` state. The digest covers protected source, prompts, base
+configuration, and manual inputs. It is independent of Git branch names, `HEAD` being exactly at
+the tag, the index, ignore rules, and permitted runner inputs such as player, suite, mission, and
+run files.
+
+The release tag selects the baseline commit. The two digests must be equal for submission, and
+`protected_content_modified` must equal their comparison. This permits commits after the release
+and local changes outside the protected paths without treating the benchmark as changed. The
+installed GPTNT version remains descriptive; validation does not require the validator's installed
+version to equal it.
 
 Local `gptnt submission validate` checks that a bundle is internally consistent. Submissions CI
-first verifies the bundle's declared GPTNT release, then requires an exact release-lock match: the
-bundle suite snapshot must equal the matching snapshot in that release's suite registry. A changed
-digest or changed freeze provenance fails this check. Rebuild the bundle from the declared release;
-do not edit `suite.lock`.
+can recompute protected content from the bundle's declared release and compare it with the recorded
+release digest. It then requires an exact release-lock match: the bundle suite snapshot must equal
+the matching snapshot in that release's suite registry. A changed digest or changed freeze
+provenance fails this check. Rebuild the bundle from the declared release; do not edit `suite.lock`.
 
 Every frozen suite revision in a verified published GPTNT release is eligible for leaderboard
 submission. There is no separate acceptance catalog.

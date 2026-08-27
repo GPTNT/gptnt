@@ -17,7 +17,8 @@ one bundle or the root written by `submission new`. An empty root is an error.
 
 ## The manifest or payload does not parse
 
-- `schema_version` must be `2`. A schema-v1 bundle needs matching v1 tooling.
+- `schema_version` must be `4`. An earlier bundle needs matching earlier tooling or must be rebuilt
+  from source records that contain protected-content digests.
 - `measured` must describe exactly one suite or one static task.
 - Interactive bundles need `experiments.parquet` and `suite.lock`.
 - Static bundles need valid JSON in `metrics.json`.
@@ -58,8 +59,14 @@ check pass.
 
 ## Provenance fails
 
-`gptnt_version` must match the recorded release tag, and `release_commit` must be a complete
-lowercase commit SHA. Every interactive payload row must match the manifest provenance.
+`release_commit` must be a complete lowercase commit SHA. Both protected-content digests are
+required and must be equal. Every interactive payload row must match the manifest provenance.
+Legacy player records without digests remain readable, but `submission new` does not infer or
+backfill their historical provenance.
+
+`--require-installed-release-match` additionally resolves the recorded annotated release tag in
+the installed source repository, verifies that it targets the recorded commit, and recomputes its
+protected-content digest. A packaged installation without Git metadata cannot perform this check.
 
 !!! danger "Do not rewrite protected state"
     `protected_content_modified: true` means the benchmark ran with protected content different

@@ -39,7 +39,9 @@ protected benchmark and a player identity for every bundle it creates.
 ## `submission validate`
 
 ```text title="Command syntax"
-gptnt submission validate [PATH] [--format {rich,json,github}] [--require-installed-lock-match]
+gptnt submission validate [PATH] [--format {rich,json,github}]
+                          [--require-installed-lock-match]
+                          [--require-installed-release-match]
 ```
 
 `PATH` defaults to `output/submissions/` and can identify one bundle or a root containing several.
@@ -50,6 +52,11 @@ checks produce a non-zero exit status, while warnings leave it at zero.
 exactly match the suite registry resolved by the GPTNT installation running the command. The option
 does not itself verify that installation is a published release. Submissions CI verifies the
 declared release before using this option.
+
+`--require-installed-release-match` resolves each bundle's annotated release tag in the installed
+source repository. It requires the tag to target the recorded commit and the recomputed release
+protected-content digest to match the manifest. This check is independent of
+`--require-installed-lock-match`; use both when both identities must match.
 
 ## `submission submit`
 
