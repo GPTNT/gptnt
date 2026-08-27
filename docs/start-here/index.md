@@ -6,7 +6,7 @@ hide:
 
 # Start here
 
-!!! warning "The installation process is not a single step"
+!!! warning "The installation process is not one step"
 
     Because we are using the real game and running an asynchonrous real-time benchmark, we can't do
     everything in Python to make installing and running easy. Instead, we control as much as we can and simplify the rest. Once you download the benchmark and get the external services running, then that's it. But getting there might feel tricky.

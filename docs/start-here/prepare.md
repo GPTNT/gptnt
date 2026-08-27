@@ -136,7 +136,7 @@ directory. The KTANE used for the benchmark is configured to load mods from that
 ## Run the infrastructure (with Docker Compose)
 
 We use Docker Compose to start Redis and an OpenTelemetry collector. Redis is used as a message bus
-for the various services in the benchmark. The OpenTelemetry collector is optional and can be used
+for the services in the benchmark. The OpenTelemetry collector is optional and can be used
 to export traces to a local or remote endpoint. The benchmark does not require the collector to be
 running but if you would like to review logs and even debug what is happening, we **highly
 recommend it.**
@@ -198,6 +198,12 @@ We have validated the following cases:
     sudo -E .venv/bin/python scripts/startx.py 3
     ```
 
+
+## Download the manual
+
+New in v2.0, GPTNT now supports building custom manuals for the benchmark. This is so that we can support different languages, different rulesets, and even custom modules. We provide the vanilla English manual and provide all the means to change it yourself. More on how to do this [later](../understand/manuals-and-rule-seeds.md){data-preview}.
+
+For now
 
 
 ## Check everything together

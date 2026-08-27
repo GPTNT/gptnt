@@ -54,12 +54,10 @@ gptnt doctor runs/quickstart.yaml
 
 ## Generate experiment specifications
 
-For GPTNT, we generate explicit JSON files for every single mission. These specifications are used
-to run every single experiment and contains all the information needed to run it, without needing
+For GPTNT, we generate explicit JSON files for each mission. These specifications are used
+to run each experiment and contains all the information needed to run it, without needing
 the manifest or any other configuration.[^manifest-gen] Importantly, the generated specifications
-are **the only thing that is used to run the experiments.** This means that you could generate the
-specifications on one machine, copy them to another machine, and run the experiments there without
-needing to install or configure anything else.
+are **the only thing that is used to run the experiments.**
 
 [^manifest-gen]: So yes, the run manifest is an abstraction that generates more things.
 
@@ -70,8 +68,8 @@ gptnt generate runs/quickstart.yaml
 !!! tip "Spreading the load across multiple machines"
 
     If you have multiple machines, you can run `generate` on one machine and then copy some of the
-    generated JSON files to other machines. This allows you to run experiments on multiple
-    machines without needing to generate the specifications on each machine and manually edit them.
+    generated JSON files to other machines to be able to run the same experiments across several
+    machines.
 
     One reason for doing this is that there is a limit to how much you can run on a single machine.
     For example, an older machine might not be able to run 20 independent instances of KTANE at
