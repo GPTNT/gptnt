@@ -42,6 +42,9 @@ async def test_compile_reuses_selection_and_orders_pipeline(
         requirement = ManualRequirement(profile=profile, rule_seed=1)
         return {requirement: SimpleNamespace(path=tmp_path / "artifact")}
 
+    async def download_assets(*_args: object, **_kwargs: object) -> None:  # noqa: WPS430
+        """Skip external source-cache work in this command test."""
+
     # Patch every external boundary so the assertion isolates CLI selection and ordering.
     monkeypatch.setattr(selection, "discover_suites", lambda: ["one", "two"])
     monkeypatch.setattr(selection, "compose_suite", compose_suite)
@@ -50,12 +53,14 @@ async def test_compile_reuses_selection_and_orders_pipeline(
         "paths",
         SimpleNamespace(
             manual_sources=tmp_path / "sources.toml",
+            manual_profiles=tmp_path / "manual",
             manual_cache=tmp_path / "cache",
             root=tmp_path,
         ),
     )
     monkeypatch.setattr(command, "ManualSources", SimpleNamespace(from_path=lambda _: object()))
-    monkeypatch.setattr(command, "prepare_manual_artifacts", prepare)
+    monkeypatch.setattr(command, "download_manual_assets", download_assets)
+    monkeypatch.setattr(command, "compile_manual_artifacts", prepare)
 
     await command.compile_manuals(suites=["one", "two", "one"])
 
@@ -89,6 +94,9 @@ async def test_compile_keeps_distinct_rule_seeds_for_a_shared_profile(
             for requirement in requirements
         }
 
+    async def download_assets(*_args: object, **_kwargs: object) -> None:  # noqa: WPS430
+        """Skip external source-cache work in this command test."""
+
     monkeypatch.setattr(selection, "discover_suites", lambda: ["one", "two"])
     monkeypatch.setattr(selection, "compose_suite", compose_suite)
     monkeypatch.setattr(
@@ -96,12 +104,14 @@ async def test_compile_keeps_distinct_rule_seeds_for_a_shared_profile(
         "paths",
         SimpleNamespace(
             manual_sources=tmp_path / "sources.toml",
+            manual_profiles=tmp_path / "manual",
             manual_cache=tmp_path / "cache",
             root=tmp_path,
         ),
     )
     monkeypatch.setattr(command, "ManualSources", SimpleNamespace(from_path=lambda _: object()))
-    monkeypatch.setattr(command, "prepare_manual_artifacts", prepare)
+    monkeypatch.setattr(command, "download_manual_assets", download_assets)
+    monkeypatch.setattr(command, "compile_manual_artifacts", prepare)
 
     await command.compile_manuals(suites=["one", "two"])
 

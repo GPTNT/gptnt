@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from gptnt.ktane.manuals.profile import ManualProfile
+    from gptnt.ktane.manuals.progress import ProgressCallback
     from gptnt.ktane.manuals.requirement import ManualRequirement
     from gptnt.ktane.manuals.resolution import ResolvedDocument
     from gptnt.ktane.manuals.sources import ManualSources
@@ -340,24 +341,18 @@ def load_manual_artifact(
     )
 
 
-async def prepare_manual_artifacts(
+async def compile_manual_artifacts(
     requirements: Sequence[ManualRequirement],
     *,
     sources: ManualSources,
     cache_dir: Path,
     root_dir: Path,
 ) -> dict[ManualRequirement, ManualArtifact]:
-    """Download, resolve, and compile each distinct profile-and-seed requirement once."""
+    """Resolve cached sources and compile each distinct profile-and-seed requirement once."""
     distinct_requirements = tuple(dict.fromkeys(requirements))
     if not distinct_requirements:
         return {}
 
-    _ = await download_manual_assets(
-        [requirement.profile for requirement in distinct_requirements],
-        sources=sources,
-        cache_dir=cache_dir,
-        root_dir=root_dir,
-    )
     resolved_requirements = {
         requirement: resolve_manual_profile(
             requirement.profile,
@@ -385,3 +380,28 @@ async def prepare_manual_artifacts(
             )
         )
     return artifacts
+
+
+async def prepare_manual_artifacts(
+    requirements: Sequence[ManualRequirement],
+    *,
+    sources: ManualSources,
+    cache_dir: Path,
+    root_dir: Path,
+    progress: ProgressCallback | None = None,
+) -> dict[ManualRequirement, ManualArtifact]:
+    """Download, resolve, and compile each distinct profile-and-seed requirement once."""
+    distinct_requirements = tuple(dict.fromkeys(requirements))
+    if not distinct_requirements:
+        return {}
+
+    _ = await download_manual_assets(
+        [requirement.profile for requirement in distinct_requirements],
+        sources=sources,
+        cache_dir=cache_dir,
+        root_dir=root_dir,
+        progress=progress,
+    )
+    return await compile_manual_artifacts(
+        distinct_requirements, sources=sources, cache_dir=cache_dir, root_dir=root_dir
+    )
