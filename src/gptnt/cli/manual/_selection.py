@@ -8,6 +8,8 @@ from cyclopts import Parameter
 from gptnt.cli.config_discovery import discover_suites
 from gptnt.common.paths import Paths
 from gptnt.experiments.suite.compose import compose_suite
+from gptnt.experiments.suite.definition import Suite, SuiteSelector
+from gptnt.experiments.suite.lock import SuiteLock
 from gptnt.ktane.manuals.profile import ManualProfile
 from gptnt.ktane.manuals.requirement import ManualRequirement
 
@@ -56,20 +58,35 @@ def _load_all_manual_profiles(manual_profiles_root: Path) -> list[ManualProfile]
     ]
 
 
-def _get_profiles_from_suites(suites: SuitesOption) -> list[ManualProfile]:
-    """Compose the default or explicitly selected suites into their manual profiles."""
+def _resolve_selected_suites(suites: SuitesOption) -> list[Suite]:
+    """Resolve configured suite names and explicitly pinned frozen revisions."""
     available_suites = discover_suites()
-    # dict preserves the user's first occurrence while dropping repeated suite flags.
-    suite_names = available_suites if suites is None else list(dict.fromkeys(suites))
 
-    unknown_suites = sorted(set(suite_names) - set(available_suites))
-
+    # Parse each selector, preserve the first occurrence, then validate names against live config.
+    suite_targets = available_suites if suites is None else suites
+    parsed_selectors = [SuiteSelector.model_validate(target) for target in suite_targets]
+    selectors = list({selector.target: selector for selector in parsed_selectors}.values())
+    unknown_suites = sorted(
+        selector.name for selector in selectors if selector.name not in available_suites
+    )
     if unknown_suites:
         raise ValueError(f"unknown suites {unknown_suites}; available: {available_suites}")
-    if not suite_names:
+    if not selectors:
         raise ValueError("no suites were selected or configured")
 
-    return [compose_suite(suite_name).manual_profile for suite_name in suite_names]
+    lock: SuiteLock | None = None
+    selected: list[Suite] = []
+
+    # Unpinned selectors compose current config.
+    # Pinned selectors load the exact frozen revision.
+    for selector in selectors:
+        if selector.revision is None:
+            selected.append(compose_suite(selector.name))
+            continue
+        lock = lock or SuiteLock.from_lock_path()
+        suite, _ = lock.load_suite(selector.name, selector.revision)
+        selected.append(suite)
+    return selected
 
 
 def select_manual_profiles(
@@ -83,7 +100,7 @@ def select_manual_profiles(
     if all_profiles:
         profiles = _load_all_manual_profiles(paths.manual_profiles)
     else:
-        profiles = _get_profiles_from_suites(suites)
+        profiles = [suite.manual_profile for suite in _resolve_selected_suites(suites)]
 
     # Multiple suites commonly share a profile. Compile or download each distinct value once.
     return ManualSelection(
@@ -93,20 +110,13 @@ def select_manual_profiles(
 
 def select_manual_requirements(*, suites: SuitesOption = None) -> ManualRequirementSelection:
     """Select and deduplicate the profile-and-seed pairs owned by configured suites."""
-    available_suites = discover_suites()
-    suite_names = available_suites if suites is None else list(dict.fromkeys(suites))
-    unknown_suites = sorted(set(suite_names) - set(available_suites))
-    if unknown_suites:
-        raise ValueError(f"unknown suites {unknown_suites}; available: {available_suites}")
-    if not suite_names:
-        raise ValueError("no suites were selected or configured")
-
-    composed_suites = [compose_suite(suite_name) for suite_name in suite_names]
+    selected_suites = _resolve_selected_suites(suites)
     requirements = tuple(
         ManualRequirement(profile=suite.manual_profile, rule_seed=suite.manual_rule_seed)
-        for suite in composed_suites
+        for suite in selected_suites
     )
 
     return ManualRequirementSelection(
-        requirements=tuple(dict.fromkeys(requirements)), description=f"{len(suite_names)} suite(s)"
+        requirements=tuple(dict.fromkeys(requirements)),
+        description=f"{len(selected_suites)} suite(s)",
     )

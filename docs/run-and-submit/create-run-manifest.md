@@ -7,7 +7,7 @@ tags:
 
 # Create a run manifest
 
-Create a schema-v2 YAML manifest that selects suites, a player roster, runtime capacity, and resume
+Create a run manifest that selects suites, a player roster, runtime capacity, and resume
 behaviour. Finish with a passing doctor report and generated experiment specifications.
 
 ## Before you begin
@@ -59,7 +59,8 @@ included player:
     observability: limited
     ```
 
-    1. A suite name is the filename under `configs/suites/` without `.yaml`.
+    1. A suite name is the filename under `configs/suites/` without `.yaml`. Append `@<revision>` to
+       select that frozen revision; an unpinned name selects the latest frozen revision.
     2. `player` selects a configuration filename, not `capabilities.player_name` or the display
        name. Doctor resolves and cross-checks those names.
     3. `provider` attaches the matching profile under `configs/player/provider/`. Omit it when the
@@ -71,7 +72,7 @@ and constraint.
 ## Set runtime capacity
 
 `rooms` is the number of game-service processes. Each player entry's `count` is the number of
-player-service processes created from that profile; it defaults to `1`.
+player-service processes created from that profile. It defaults to `1`.
 
 Capacity depends on the selected suite protocols. A two-role experiment needs concurrent Defuser
 and Expert services. A solo protocol needs one player. Self-play still needs separate service
@@ -126,7 +127,8 @@ gptnt generate runs/my-run.yaml
 ```
 
 The command writes one JSON file per attempt under
-`output/experiment_specs/my-run/`.
+`output/experiment_specs/my-run/`. Regenerating replaces that directory's previous JSON spec set
+while preserving files with other extensions.
 
 !!! success "Specifications were written"
     The final line reports the specification count and destination directory.

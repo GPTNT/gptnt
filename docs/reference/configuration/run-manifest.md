@@ -33,6 +33,10 @@ Use [Create a run manifest](../../run-and-submit/create-run-manifest.md) for the
 ambient `DISPLAY`. `source` selects the local or W&B completion ledger used to filter completed
 attempts. `attempts_per_mission` changes generation depth rather than suite identity.
 
+Each `suites` entry accepts `<name>` for the latest frozen revision or `<name>@<revision>` for one
+specific frozen revision. `gptnt run` rejects pre-generated specifications whose suite names and
+revisions do not match these selectors.
+
 ## Manifest fields
 
 ::: gptnt.cli.run.manifest.RunManifest

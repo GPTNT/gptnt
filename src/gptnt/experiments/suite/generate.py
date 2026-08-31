@@ -25,17 +25,20 @@ def _best_model_for(pairing_type: PairingType, players: DictConfig) -> str | Non
     return None
 
 
-def generate_specs(overrides: list[str] | None = None) -> list[ExperimentSpec]:
+def generate_specs(
+    overrides: list[str] | None = None, *, suite_revision: int | None = None
+) -> list[ExperimentSpec]:
     """Generate the `ExperimentSpec` objects for one suite, with a roster from the config.
 
     The suite and its missions come from `suites.lock` (the frozen snapshot), selected by the
-    `suites=<name>` override at its latest frozen revision. The roster (`players.all`) and sampling
-    depth (`attempts_per_mission`) still come from the suite-generator config, which a run
-    overrides. Raises `SuiteNotFrozenError` if the selected suite is not frozen.
+    `suites=<name>` override. `suite_revision` selects a frozen revision and defaults to the
+    latest. The roster (`players.all`) and sampling depth (`attempts_per_mission`) still come from
+    the suite-generator config, which a run overrides. Raises `SuiteNotFrozenError` if the
+    selected suite revision is not frozen.
     """
     cfg = load_config(config_name=CONFIG_NAME, overrides=overrides)
     lock = SuiteLock.from_lock_path()
-    entry = lock.select_entry(cfg.suite.name, None)
+    entry = lock.select_entry(cfg.suite.name, suite_revision)
     suite, missions = lock.load_suite(entry.name, entry.revision)
     missions = [
         mission.model_copy(update={"rule_seed": suite.manual_rule_seed}) for mission in missions

@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Annotated, Literal, Self
+from typing import Annotated, Any, Literal, Self
 
 from annotated_types import Predicate
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
@@ -14,6 +14,41 @@ from gptnt.ktane.mission_spec import KtaneMissionSpec
 from gptnt.players.specification import PlayerProtocol
 
 type Modality = Literal["vision", "language", "audio"]
+
+
+class SuiteSelector(BaseModel):
+    """A suite name with an optional frozen revision selected by configuration."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    name: str = Field(min_length=1)
+    revision: int | None = Field(default=None, ge=1)
+
+    @model_validator(mode="before")
+    @classmethod
+    def parse_string(cls, raw_selector: Any) -> Any:
+        """Parse the external `name@revision` string representation."""
+        if not isinstance(raw_selector, str):
+            return raw_selector
+
+        name, separator, revision = raw_selector.rpartition("@")
+        parsed_selector: dict[str, object] = {"name": raw_selector}
+        if not separator:
+            return parsed_selector
+        if not name or "@" in name:
+            raise ValueError(f"invalid suite selector: {raw_selector!r}")
+        try:
+            parsed_selector.update(name=name, revision=int(revision))
+        except ValueError as error:
+            raise ValueError(f"suite revision must be an integer: {raw_selector!r}") from error
+        return parsed_selector
+
+    @property
+    def target(self) -> str:
+        """The suite name with its revision when explicitly selected."""
+        if self.revision is None:
+            return self.name
+        return f"{self.name}@{self.revision}"
 
 
 class SuiteMatchup(BaseModel):

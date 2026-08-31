@@ -16,6 +16,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from gptnt.experiments.ledger.completion import Source
+from gptnt.experiments.suite.definition import SuiteSelector
 from gptnt.players.specification import PlayerSpec
 
 if TYPE_CHECKING:
@@ -42,8 +43,8 @@ class RunManifest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     spec_version: int = 2
-    suites: list[str] = Field(min_length=1)
-    """One or more suite ids (`configs/suites/<id>.yaml`)."""
+    suites: list[SuiteSelector] = Field(min_length=1)
+    """Suite selectors as `<id>` for latest or `<id>@<revision>` for a frozen revision."""
 
     rooms: int = Field(ge=1)
     """Number of KTANE game-service processes started for concurrent experiments."""

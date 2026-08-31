@@ -4,6 +4,7 @@ from pathlib import Path
 
 from gptnt.cli.checks.result import CheckResult
 from gptnt.cli.checks.validation import validate_model_config
+from gptnt.cli.doctor._suite_selection import check_suite_selection
 from gptnt.cli.run.manifest import RunManifest
 from gptnt.common.paths import Paths
 from gptnt.experiments.ledger.resolve import filter_experiments
@@ -81,6 +82,8 @@ def analyze_run_plan(
 
     roster = _resolve_roster(manifest, config_to_player, findings)
     anchors = _resolve_anchors(manifest, roster.config_to_player, findings)
+    if specs is not None:
+        findings.append(check_suite_selection(manifest, specs))
 
     if not roster.player_names:
         # Every roster entry failed to resolve; the ✗ rows above say why, and there is nothing to
@@ -175,7 +178,7 @@ def _collect_manual_requirements(specs: list[ExperimentSpec]) -> dict[ManualRequ
             requirement = ManualRequirement(
                 profile=spec.manual_profile, rule_seed=spec.mission_spec.rule_seed
             )
-            requirements[requirement].add(spec.suite_name)
+            requirements[requirement].add(f"{spec.suite_name}@{spec.suite_revision}")
     return requirements
 
 
@@ -279,19 +282,19 @@ def _generate_manifest_specs(
         f"players.{field_name}={player_name}" for field_name, player_name in anchors.items()
     ]
     union: dict[str, ExperimentSpec] = {}
-    for suite_name in manifest.suites:
+    for selector in manifest.suites:
         overrides = [
-            f"suites={suite_name}",
+            f"suites={selector.name}",
             roster_override,
             *anchor_overrides,
             f"attempts_per_mission={manifest.attempts_per_mission}",
         ]
         try:
-            specs = generate_specs(overrides)
+            specs = generate_specs(overrides, suite_revision=selector.revision)
         except Exception as exc:  # noqa: BLE001  (surface a bad suite/override as a ✗ row)
             findings.append(
                 CheckResult.failed(
-                    f"Generate: {suite_name}",
+                    f"Generate: {selector.target}",
                     f"generation failed: {exc}",
                     "check the suite name (run `gptnt list suites`); "
                     "with_best_* matchups need a matching anchor in `anchors:`",

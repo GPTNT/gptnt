@@ -39,6 +39,9 @@ profile-and-rule-seed requirements, so two suites using one profile with differe
 `manual_rule_seed` values compile separate artifacts. A successful compile writes or reuses a
 validated content-addressed directory under `output/manual_cache/artifacts/`.
 
+An explicit `<name>@<revision>` selector compiles the manual requirement stored with that frozen
+suite revision. An unpinned name uses the configured suite.
+
 HTML compilation requires the Playwright-managed Chromium version installed for the current Python
 environment. Profiles made only from selected pages of official PDF manuals do not use Chromium.
 
