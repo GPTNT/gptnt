@@ -11,4 +11,4 @@ players:
 # W&B logging must be configured with the various WANDB_* environment variables.
 source: local
 
-observability: limited
+observability: full
