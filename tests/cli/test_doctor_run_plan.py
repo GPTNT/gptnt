@@ -17,13 +17,10 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from gptnt.cli.doctor import (
-    _suite_selection as suite_selection_module,
-    run_plan as run_plan_module,
-)
+from gptnt.cli.doctor import run_plan as run_plan_module
 from gptnt.cli.doctor.run_plan import analyze_run_plan
 from gptnt.cli.run.manifest import RunManifest
-from gptnt.experiments.suite.lock import SuiteNotFrozenError
+from gptnt.experiments.suite.lock import SuiteLock, SuiteNotFrozenError
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -206,7 +203,7 @@ def test_missing_suite_lock_is_a_suite_selection_failure(monkeypatch: pytest.Mon
     def missing_lock() -> object:  # noqa: WPS430
         raise SuiteNotFrozenError("suite lock is missing")
 
-    monkeypatch.setattr(suite_selection_module.SuiteLock, "from_lock_path", missing_lock)
+    monkeypatch.setattr(SuiteLock, "from_lock_path", missing_lock)
 
     result = analyze_run_plan(manifest, roster, specs=specs)
 
