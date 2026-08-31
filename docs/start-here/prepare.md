@@ -157,8 +157,10 @@ For the benchmark, we need to run Redis, and optionally an OpenTelemetry collect
 
 As mention above, Redis is used as a message bus for the services and this is very important otherwise the benchmark will not work. The benchmark expects Redis to be available at `localhost:6379` with no password. If you are running Redis yourself, check the `docker-compose.yml` file for the exact configuration to copy from.
 
+<!-- vale ai-tells.SycophancyMarkers = NO -->
 ??? question "Why no password for Redis?"
     We don't use a password for Redis because it is only accessible from the local machine and there was no one else using the machine and nothing else running on it. Of course, the correct thing to do, especially if you are accessing Redis remotely, is to **set a password and configure the services to use it.**
+<!-- vale ai-tells.SycophancyMarkers = YES -->
 
 
 ### OpenTelemetry Collector
@@ -189,7 +191,7 @@ You can find our configuration for the OpenTelemetry collector in `docker-compos
 The game has to render _somewhere_. If you have a display, like on macOS or Windows, you don't need to do anything. If you are on Linux, you may need to start an X display.
 
 !!! warning "The game must run on a machine that can render graphics"
-    KTANE is a Unity game. The machine that runs the game needs a working graphics/display stack: for example, a normal desktop/laptop display, a workstation GPU such as an NVIDIA RTX card, or a headless Linux machine with Xorg backed by a graphics-capable GPU.
+    KTANE is a Unity game. The machine that runs the game needs a working graphics/display stack: <!-- vale ai-tells.VerbTricolon = NO -->for example, a normal desktop/laptop display, a workstation GPU such as an NVIDIA RTX card, or a headless Linux machine with Xorg backed by a graphics-capable GPU<!-- vale ai-tells.VerbTricolon = YES -->.
 
     This is separate from the GPU you might use for model inference. Common ML accelerator machines with A100, H100, TPU, or similar compute-focused hardware are often configured for batch/model workloads only and may not be able to back an X display for the game. If your model runs on that kind of machine, run KTANE on a graphics-capable machine and point your player config at the remote model endpoint instead.
 
@@ -198,7 +200,9 @@ The game has to render _somewhere_. If you have a display, like on macOS or Wind
 We have validated the following cases:
 
 - **macOS/Windows:** nothing to do.
+<!-- vale ai-tells.EmDashUsage = NO -->
 - **Linux with a desktop session:** if `$DISPLAY` is already set, the game uses it—nothing to do.
+<!-- vale ai-tells.EmDashUsage = YES -->
 - **Linux, headless:** start a GPU-backed Xorg with `scripts/startx.py`, then either export
 `$DISPLAY` for the run to inherit, or name the display(s) in the run manifest.
 
@@ -212,7 +216,9 @@ We have validated the following cases:
 
 ## Compile the manual(s)
 
+<!-- vale ai-tells.VerbTricolon = NO -->
 GPTNT builds the manuals for the experiments being run. This is so that we can support different languages, different rulesets, and even custom modules. We provide the vanilla English manual and provide all the means to change it yourself. More on how to do this [later](../understand/manuals-and-rule-seeds.md){data-preview}.
+<!-- vale ai-tells.VerbTricolon = YES -->
 
 This is all automatic. To download everything you need and compile the manuals for the benchmark, run the following command:
 

@@ -96,7 +96,7 @@ gptnt run runs/quickstart.yaml
 The `run` command will do the following:
 
 1. Run the `doctor` check to ensure everything is still in order
-1. Start all of the GPTNT services: so that's the experiment manager, the players, and the rooms
+1. Start all of the GPTNT services: <!-- vale ai-tells.VerbTricolon = NO -->so that's the experiment manager, the players, and the rooms<!-- vale ai-tells.VerbTricolon = YES -->
 1. Submit the specifications to the experiment manager, which will then run them as quickly as
 possible
 1. Monitor the health of the services
@@ -146,7 +146,7 @@ from each agent's own perspective separately. Towards the start of the run, it w
 directory where the results are being recorded. It normally resembles
 `output/experiment_recorder_outputs/<timestamp>/`.
 
-Using this, build a DuckDB database that collates all the results into a single queryable database
+Using this, build a DuckDB database that collates all the results into a queryable database
 at `output/experiments.duckdb` by default.
 
 ```bash
