@@ -58,7 +58,7 @@ class Provenance(BaseModel):
     """Release provenance captured when a record is created.
 
     `capture` reads the release tag and release commit from the checkout at that point. Stored
-    records must supply every field and are never completed from the checkout that later reads
+    records must contain every field and are never completed from the checkout that later reads
     them.
     """
 
@@ -74,12 +74,12 @@ class Provenance(BaseModel):
     release_protected_content_digest: str | None = Field(
         default=None, pattern=rf"^{PROTECTED_CONTENT_DIGEST_PATTERN}$"
     )
-    """Digest of protected content at the recorded release commit, when captured."""
+    """SHA-256 identity of the protected tree stored at `release_commit`."""
 
     protected_content_digest: str | None = Field(
         default=None, pattern=rf"^{PROTECTED_CONTENT_DIGEST_PATTERN}$"
     )
-    """Digest of protected content visible to the run checkout, when captured."""
+    """SHA-256 identity of the protected tree read from the run checkout."""
 
     protected_content_modified: bool | None
     """Whether protected content differed from the tagged baseline, if one was established."""
@@ -101,8 +101,8 @@ class Provenance(BaseModel):
             gptnt_version=gptnt_version(),
             release_commit=integrity.release_commit,
             release_tag=integrity.release_tag,
-            release_protected_content_digest=integrity.release_protected_content_digest,
-            protected_content_digest=integrity.protected_content_digest,
+            release_protected_content_digest=integrity.release_digest,
+            protected_content_digest=integrity.checkout_digest,
             protected_content_modified=integrity.protected_content_modified,
         )
 
@@ -137,6 +137,8 @@ class Provenance(BaseModel):
                 "release_commit, release_tag, and protected_content_modified must all be set "
                 "or all be null"
             )
+        # Digests can be compared only when both tree identities are recorded. Accepting one digest
+        # would leave the missing side open to inference when the record is read later.
         digests = (self.release_protected_content_digest, self.protected_content_digest)
         if any(digest is None for digest in digests) and any(
             digest is not None for digest in digests
@@ -144,6 +146,8 @@ class Provenance(BaseModel):
             raise ValueError(
                 "release and checkout protected-content digests must both be set or both null"
             )
+        # When both identities exist, the stored boolean must describe their comparison. Reject the
+        # record when the boolean conflicts so callers cannot choose between contradictory values.
         if all(digest is not None for digest in digests):
             expected_modified = digests[0] != digests[1]
             if self.protected_content_modified is not expected_modified:

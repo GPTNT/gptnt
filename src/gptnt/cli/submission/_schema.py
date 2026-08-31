@@ -162,8 +162,9 @@ class SubmissionPlayer(BaseModel):
 class Submission[IdentityT: SuiteIdentity | StaticsIdentity](BaseModel):
     """One `submission.yaml`, parameterised by the identity of what was measured.
 
-    The `measured` block is the discriminator: a `SuiteIdentity` makes it an interactive
-    submission, a `StaticsIdentity` a statics one. Everything else is shared.
+    The `measured` block is the discriminator. A `SuiteIdentity` identifies an interactive
+    submission, while a `StaticsIdentity` identifies a statics submission. Everything else is
+    shared.
     """
 
     model_config = ConfigDict(extra="forbid")

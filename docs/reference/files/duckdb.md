@@ -72,5 +72,4 @@ ORDER BY summary.attempt_name, step.role;
 incompatible database requires `--delete-existing-db`. A `.duckdb.wal` file is transient and not a
 third application table or a portable result format.
 
-Digest columns are nullable so legacy format 3 player records remain ingestible. Database
-construction copies provenance from the source records and does not calculate missing digests.
+Database construction copies provenance from the source records and does not calculate digests.

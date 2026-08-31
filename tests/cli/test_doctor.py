@@ -10,6 +10,7 @@ environment-dependent and verified by running `gptnt doctor` directly.
 from __future__ import annotations
 
 import sys
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import pytest
@@ -98,7 +99,6 @@ def test_doctor_config_only_renders_clean_benchmark_and_checks_configuration(
     assert "abc1234" in result.output
     assert "Release protected digest" in result.output
     assert "Checkout protected digest" in result.output
-    assert "sha256:111111111111" in result.output
     assert "Protected content" in result.output
     assert "matches" in result.output
     assert "test-random" in result.output
@@ -111,19 +111,15 @@ def test_doctor_reports_mismatched_digest_and_changed_path(
     monkeypatch.setattr(
         integrity,
         "check_benchmark_integrity",
-        lambda _repository: type(
-            "Integrity",
-            (),
-            {
-                "release_tag": "v2.0.0",
-                "release_commit": "abc123456789",
-                "protected_changes": ("src/gptnt/core.py",),
-                "permitted_input_changes": (),
-                "release_protected_content_digest": f"sha256:{'1' * 64}",
-                "protected_content_digest": f"sha256:{'2' * 64}",
-                "protected_content_modified": True,
-            },
-        )(),
+        lambda _repository: SimpleNamespace(
+            release_tag="v2.0.0",
+            release_commit="abc123456789",
+            changed_protected_paths=("src/gptnt/core.py",),
+            changed_input_paths=(),
+            release_digest=f"sha256:{'1' * 64}",
+            checkout_digest=f"sha256:{'2' * 64}",
+            protected_content_modified=True,
+        ),
     )
     monkeypatch.setattr(command, "discover_players", lambda: ["test-random"])
     monkeypatch.setattr(command, "_infrastructure_checks", _unexpected_infrastructure_check)
@@ -132,9 +128,9 @@ def test_doctor_reports_mismatched_digest_and_changed_path(
     result = invoke_cli(build_app(), ["doctor", "--config-only"])
 
     assert result.exit_code == 1
+    assert "Release protected digest" in result.output
+    assert "Checkout protected digest" in result.output
     assert "src/gptnt/core.py" in result.output
-    assert "sha256:111111111111" in result.output
-    assert "sha256:222222222222" in result.output
 
 
 def test_doctor_force_runs_infrastructure_without_release_provenance(

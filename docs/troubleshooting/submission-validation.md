@@ -17,9 +17,8 @@ one bundle or the root written by `submission new`. An empty root is an error.
 
 ## The manifest or payload does not parse
 
-- `schema_version` must be `4`, advanced from manifest schema 3. Player-record Parquet
-  `format_version` remains 3. An earlier bundle needs matching earlier tooling or must be rebuilt
-  from source records that contain protected-content digests.
+- `schema_version` must be `4`, and manifest provenance must contain both protected-content
+  digests.
 - `measured` must describe exactly one suite or one static task.
 - Interactive bundles need `experiments.parquet` and `suite.lock`.
 - Static bundles need valid JSON in `metrics.json`.
@@ -51,23 +50,17 @@ Expert, and mission pairing.
 
 Preserve the source player-record Parquet while making these corrections.
 
-## Installed suite registry checks fail
+## Installed identity checks fail
 
-`--require-installed-lock-match` reports either that the suite revision is absent from the
-installed suite registry or that the bundle suite snapshot does not exactly match it. Rebuild the
-bundle from the GPTNT release recorded in its provenance. Do not edit `suite.lock` to make this
-check pass.
+`--require-installed-release-to-match-bundle` verifies the recorded tag, commit, and release digest
+against the installed source repository. `--require-installed-lock-match` checks an interactive
+bundle's suite snapshot against the installed suite registry. Rebuild the bundle from the GPTNT
+release recorded in its provenance. Do not edit `suite.lock` to make either check pass.
 
 ## Provenance fails
 
 `release_commit` must be a complete lowercase commit SHA. Both protected-content digests are
 required and must be equal. Every interactive payload row must match the manifest provenance.
-Legacy player records without digests remain readable, but `submission new` does not infer or
-backfill their historical provenance.
-
-`--require-installed-release-match` additionally resolves the recorded annotated release tag in
-the installed source repository. It verifies the recorded commit target before recomputing the
-protected-content digest. A packaged installation without Git metadata cannot perform this check.
 
 !!! danger "Do not rewrite protected state"
     `protected_content_modified: true` means the benchmark ran with protected content different

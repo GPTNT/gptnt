@@ -1,8 +1,8 @@
-"""Tests for `gptnt submission validate`, driven off a real bundle built by the real writers.
+"""Tests for `gptnt submission validate`, driven by a bundle built by the application writers.
 
 A fully covering interactive bundle for the solo leaderboard suite is built once (one solved run
 per mission in the suite's set), then each test copies and breaks exactly one thing. Success paths
-go through the CLI; failure paths call the command directly and assert the raised `RuntimeError`
+go through the CLI. Failure paths call the command directly and assert the raised `RuntimeError`
 (per `tests/_cli_runner.py`).
 """
 
@@ -224,7 +224,7 @@ def test_bundle_snapshot_must_match_the_installed_suite_registry(bundle_copy: Pa
     assert "installed suite registry" in result.output
 
 
-def test_installed_release_match_uses_declared_identity_and_package_repository(
+def test_installed_release_to_match_bundle_uses_declared_identity_and_package_repository(
     bundle_copy: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     manifest = _read_manifest(bundle_copy)
@@ -237,15 +237,21 @@ def test_installed_release_match_uses_declared_identity_and_package_repository(
         received.append((repository, release_tag, release_commit))
         return expected_digest
 
-    monkeypatch.setattr(submission_checks, "release_protected_content_digest", recompute)
+    monkeypatch.setattr(submission_checks, "compute_release_protected_content_digest", recompute)
     monkeypatch.chdir(tmp_path)
 
     result = invoke_cli(
         build_app(),
-        ["submission", "validate", "--require-installed-release-match", str(bundle_copy)],
+        [
+            "submission",
+            "validate",
+            "--require-installed-release-to-match-bundle",
+            str(bundle_copy),
+        ],
     )
 
     assert result.exit_code == 0, result.output
+    assert "installed suite registry" not in result.output
     assert received == [
         (
             received[0][0],
@@ -259,7 +265,7 @@ def test_installed_release_match_uses_declared_identity_and_package_repository(
 def test_installed_release_digest_mismatch_is_reported(bundle_copy: Path, monkeypatch) -> None:
     monkeypatch.setattr(
         submission_checks,
-        "release_protected_content_digest",
+        "compute_release_protected_content_digest",
         lambda *_args, **_kwargs: f"sha256:{'2' * 64}",
     )
 
@@ -268,7 +274,7 @@ def test_installed_release_digest_mismatch_is_reported(bundle_copy: Path, monkey
         [
             "submission",
             "validate",
-            "--require-installed-release-match",
+            "--require-installed-release-to-match-bundle",
             str(bundle_copy),
             "--format",
             "json",
@@ -289,14 +295,14 @@ def test_installed_release_requires_source_git_metadata(bundle_copy: Path, monke
     def unavailable(*_args: object, **_kwargs: object) -> str:  # noqa: WPS430
         raise BenchmarkIntegrityError("installed package is not a Git repository")
 
-    monkeypatch.setattr(submission_checks, "release_protected_content_digest", unavailable)
+    monkeypatch.setattr(submission_checks, "compute_release_protected_content_digest", unavailable)
 
     result = invoke_cli(
         build_app(),
         [
             "submission",
             "validate",
-            "--require-installed-release-match",
+            "--require-installed-release-to-match-bundle",
             str(bundle_copy),
             "--format",
             "json",
@@ -316,14 +322,14 @@ def test_installed_release_reports_unreadable_git_metadata(bundle_copy: Path, mo
     def unreadable(*_args: object, **_kwargs: object) -> str:  # noqa: WPS430
         raise OSError("cannot read Git objects")
 
-    monkeypatch.setattr(submission_checks, "release_protected_content_digest", unreadable)
+    monkeypatch.setattr(submission_checks, "compute_release_protected_content_digest", unreadable)
 
     result = invoke_cli(
         build_app(),
         [
             "submission",
             "validate",
-            "--require-installed-release-match",
+            "--require-installed-release-to-match-bundle",
             str(bundle_copy),
             "--format",
             "json",
@@ -370,6 +376,28 @@ def test_bundle_with_a_self_consistent_unaccepted_suite_is_rejected(
     assert local_result.exit_code == 0, local_result.output
     assert release_result.exit_code == 1
     assert "installed suite registry" in release_result.output
+
+
+def test_installed_lock_check_reports_empty_suite_snapshot(bundle_copy: Path) -> None:
+    snapshot_path = bundle_copy / "suite.lock"
+    snapshot = SuiteLock.from_lock_path(snapshot_path)
+    snapshot.model_copy(update={"suites": ()}).dump_to_path(snapshot_path)
+
+    result = invoke_cli(
+        build_app(),
+        [
+            "submission",
+            "validate",
+            "--require-installed-lock-match",
+            str(bundle_copy),
+            "--format",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 1
+    checks = from_json(result.output)["bundles"][0]["checks"]
+    assert any(check["name"] == "suite snapshot" and check["status"] == "fail" for check in checks)
 
 
 @pytest.mark.parametrize(

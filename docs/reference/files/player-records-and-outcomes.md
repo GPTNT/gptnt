@@ -55,11 +55,9 @@ The footer's instance supplies execution identity shared across both player reco
 which player's rows the file holds. `final_bomb_state` is the last state captured for the
 execution. It can be null after an early failure.
 
-Current records include release and checkout protected-content digests. Both are present or both
-are absent, and `protected_content_modified` equals their inequality when present. Format 3 records
-written before these fields were introduced remain readable with both digests absent. Loading a
-record or building DuckDB does not fill them in because provenance is captured when execution
-starts.
+The footer records release and checkout protected-content digests.
+`protected_content_modified` is true exactly when those digests differ. Provenance is captured when
+execution starts. Loading a record or building DuckDB does not recalculate it.
 
 ## Outcomes and summaries
 

@@ -8,10 +8,8 @@ tags:
 # Submission bundles
 
 A bundle is one flat directory for one Defuser capability fingerprint and one measured target.
-`submission.yaml` uses submission schema version **4**, advanced from version 3. Version 4 requires
-both protected-content digests in manifest provenance. Player-record Parquet `format_version`
-remains 3. A legacy result without those digests remains readable as a source record but cannot be
-placed in a version 4 bundle without an explicit, separately reviewed migration.
+`submission.yaml` uses submission schema version **4** and requires both protected-content digests
+in manifest provenance.
 
 ```text title="Interactive bundle layout"
 output/submissions/

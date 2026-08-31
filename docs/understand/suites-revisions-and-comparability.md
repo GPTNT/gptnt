@@ -69,8 +69,8 @@ unpinned and produces a validation warning.
 
 ## Benchmark provenance and submission validation
 
-Every current recorded output includes the installed GPTNT version, exact annotated release tag,
-release commit, release protected-content digest, checkout protected-content digest, and
+Every recorded output includes the installed GPTNT version, exact annotated release tag, release
+commit, release protected-content digest, checkout protected-content digest, and
 `protected_content_modified` state. The digest covers protected source, prompts, base
 configuration, and manual inputs. It is independent of Git branch names, `HEAD` being exactly at
 the tag, the index, ignore rules, and permitted runner inputs such as player, suite, mission, and
@@ -83,9 +83,11 @@ installed GPTNT version remains descriptive; validation does not require the val
 version to equal it.
 
 Submission schema 4 binds these fields to protected-content digest policy v1. Its root set,
-exclusions, path encoding, modes, and serialization remain fixed so a later validator can
-recompute a schema 4 release digest. A future policy change requires a separate versioned policy
-and submission-schema transition. It must not alter v1.
+exclusions, path encoding, content normalization, and serialization remain fixed so a later
+validator can recompute a schema 4 release digest. The policy normalizes CRLF in UTF-8 files,
+preserves other file bytes, and excludes executable bits because checkout modes differ across
+operating systems. A future policy change requires a separate versioned policy and
+submission-schema transition. It must not alter v1.
 
 Local `gptnt submission validate` checks that a bundle is internally consistent. Submissions CI
 can recompute protected content from the bundle's declared release and compare it with the recorded

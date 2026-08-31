@@ -1,8 +1,7 @@
-"""Compare a repository's protected content with its tagged release commit.
+"""Compare checkout content with the latest annotated release reachable from `HEAD`.
 
-The input repository supplies the annotated release history used to select a protected-content
-baseline. The returned state separates protected changes from permitted input changes. A missing
-repository or reachable semantic release tag prevents the comparison.
+Protected paths are compared as canonical trees. Git status is used only to report changes below
+the permitted input roots. A repository without a reachable semantic release tag cannot be checked.
 """
 
 from __future__ import annotations
@@ -17,15 +16,16 @@ from packaging.version import Version
 
 from gptnt.provenance._protected_tree import (
     BenchmarkIntegrityError,
-    _changed_protected_paths,
-    _checkout_protected_tree,
-    _git_protected_tree,
     _ProtectedTree,
+    build_checkout_protected_tree,
+    build_git_protected_tree,
+    find_changed_protected_paths,
 )
 
 # Submission schema 4 and its two provenance digest fields imply this v1 policy. Never mutate this
 # root set or the v1 serializer: add a separately versioned policy and schema transition instead.
 PROTECTED_PATHS_V1 = (
+    ".gitattributes",
     "src/gptnt",
     "pyproject.toml",
     "uv.lock",
@@ -47,24 +47,49 @@ _DIGEST_POLICY_VERSION_V1 = 1
 
 @dataclass(frozen=True, kw_only=True)
 class _BenchmarkIntegrityResult:
+    """Selected release, tree identities, and changed paths for one checkout."""
+
     release_tag: str
+    """Annotated semantic-version tag selected as the release baseline."""
+
     release_commit: str
-    protected_changes: tuple[str, ...]
-    permitted_input_changes: tuple[str, ...]
-    release_protected_content_digest: str
-    protected_content_digest: str
+    """Commit targeted by the selected release tag."""
+
+    changed_protected_paths: tuple[str, ...]
+    """Protected paths whose release and checkout entries differ."""
+
+    changed_input_paths: tuple[str, ...]
+    """Changed paths below the permitted input roots."""
+
+    release_digest: str
+    """Protected-tree digest calculated from the release commit."""
+
+    checkout_digest: str
+    """Protected-tree digest calculated from the checkout."""
 
     @property
     def protected_content_modified(self) -> bool:
         """Whether protected content differs from the release commit."""
-        return self.release_protected_content_digest != self.protected_content_digest
+        return self.release_digest != self.checkout_digest
 
 
-def _resolve_release(  # noqa: WPS231 - This filters tags before selecting the latest release.
+@dataclass(frozen=True, kw_only=True)
+class _ReleaseBaseline:
+    """Annotated release tag and commit selected as the comparison baseline."""
+
+    tag: str
+    """Selected annotated semantic-version tag."""
+
+    commit: pygit2.Commit
+    """Commit targeted by the selected tag."""
+
+
+def _select_release_baseline(  # noqa: WPS231 - This filters the Git tags before selecting the latest release.
     repository: pygit2.Repository, *, head: pygit2.Commit, worktree: Path
-) -> tuple[str, pygit2.Commit]:
+) -> _ReleaseBaseline:
+    """Select the highest semantic annotated release reachable from `head`."""
     release_tag_pattern = re.compile(RELEASE_TAG_PATTERN, re.ASCII)
-    candidates: list[tuple[Version, str, pygit2.Commit]] = []
+    reachable_releases: list[tuple[Version, _ReleaseBaseline]] = []
 
     for reference in repository.references.iterator(pygit2.enums.ReferenceFilter.TAGS):
         tag_name = reference.shorthand
@@ -75,18 +100,24 @@ def _resolve_release(  # noqa: WPS231 - This filters tags before selecting the l
         if not isinstance(target, pygit2.Commit):  # pyright: ignore[reportUnnecessaryIsInstance]
             continue
         if target.id == head.id or repository.descendant_of(head.id, target.id):
-            candidates.append((Version(tag_name.removeprefix("v")), tag_name, target))
+            reachable_releases.append(
+                (
+                    Version(tag_name.removeprefix("v")),
+                    _ReleaseBaseline(tag=tag_name, commit=target),
+                )
+            )
 
-    if candidates:
-        _, tag_name, commit = max(candidates, key=lambda candidate: candidate[0])
-        return tag_name, commit
+    if reachable_releases:
+        # Each item is `(semantic version, baseline)`: select by version, then return the baseline.
+        return max(reachable_releases, key=lambda release: release[0])[1]
     raise BenchmarkIntegrityError(
         f"Repository {worktree} HEAD has no reachable annotated release tag matching "
         "vMAJOR.MINOR.PATCH"
     )
 
 
-def _paths_under_roots(paths: set[str], *, roots: tuple[str, ...]) -> tuple[str, ...]:
+def _changed_paths_within(paths: set[str], *, roots: tuple[str, ...]) -> tuple[str, ...]:
+    """Return changed paths at or below the requested roots."""
     return tuple(
         sorted(
             path
@@ -100,6 +131,7 @@ def _paths_under_roots(paths: set[str], *, roots: tuple[str, ...]) -> tuple[str,
 def _release_protected_tree(
     git_directory: str, release_commit: str, roots: tuple[str, ...], policy_version: int
 ) -> _ProtectedTree:
+    """Return the cached v1 protected tree for an exact release commit."""
     if policy_version != _DIGEST_POLICY_VERSION_V1:
         raise BenchmarkIntegrityError(
             f"Unsupported protected-content digest policy version {policy_version}"
@@ -108,13 +140,13 @@ def _release_protected_tree(
     commit = repository[pygit2.Oid(hex=release_commit)]
     if not isinstance(commit, pygit2.Commit):  # pyright: ignore[reportUnnecessaryIsInstance]
         raise BenchmarkIntegrityError(f"Release object {release_commit} is not a commit")
-    return _git_protected_tree(commit.tree, roots=roots)
+    return build_git_protected_tree(commit.tree, roots=roots)
 
 
-def release_protected_content_digest(  # noqa: WPS238 - Identity violations need distinct messages.
+def compute_release_protected_content_digest(  # noqa: WPS238 - Identity violations need distinct messages.
     repository: Path, *, release_tag: str, release_commit: str
 ) -> str:
-    """Recompute protected content for one exact annotated release identity."""
+    """Return the v1 protected-tree digest for an exact annotated release."""
     if re.fullmatch(RELEASE_TAG_PATTERN, release_tag, flags=re.ASCII) is None:
         raise BenchmarkIntegrityError(
             f"Release tag {release_tag!r} is not an exact semantic release tag"
@@ -144,15 +176,13 @@ def release_protected_content_digest(  # noqa: WPS238 - Identity violations need
 
 
 def check_benchmark_integrity(repository: Path) -> _BenchmarkIntegrityResult:
-    """Compare an input repository with the tagged baseline for its protected content.
+    """Compare protected checkout content with its reachable release baseline.
 
-    The repository's exact annotated release tag and release commit supply the baseline. The result
-    reports canonical protected-tree differences, permitted input changes, and whether protected
-    content was modified. It raises `BenchmarkIntegrityError` when no repository is found or HEAD
-    has no reachable annotated semantic release tag. Other repository read failures propagate from
-    their source.
+    Select the highest semantic annotated release reachable from `HEAD`. Build the v1 protected
+    tree from that commit and from the checkout, then report their identities and changed paths.
+    Raise `BenchmarkIntegrityError` when the repository or release baseline is unavailable.
     """
-    # Resolve the working repository and its release baseline.
+    # Locate the checkout and select the release commit used for the protected-tree comparison.
     discovered_repository = pygit2.discover_repository(str(repository))
     if discovered_repository is None:
         raise BenchmarkIntegrityError(f"Repository {repository} is not a Git repository")
@@ -160,25 +190,27 @@ def check_benchmark_integrity(repository: Path) -> _BenchmarkIntegrityResult:
     git_repository = pygit2.Repository(discovered_repository)
     worktree = Path(git_repository.workdir)
     head = git_repository.head.peel(pygit2.Commit)
-    release_tag, release_commit = _resolve_release(git_repository, head=head, worktree=worktree)
+    baseline = _select_release_baseline(git_repository, head=head, worktree=worktree)
 
+    # The release tree is immutable and cached. The checkout tree is rebuilt on every call so local
+    # changes cannot be hidden by the cache.
     release_tree = _release_protected_tree(
         str(discovered_repository),
-        str(release_commit.id),
+        str(baseline.commit.id),
         PROTECTED_PATHS_V1,
         _DIGEST_POLICY_VERSION_V1,
     )
-    checkout_tree = _checkout_protected_tree(worktree, roots=PROTECTED_PATHS_V1)
+    checkout_tree = build_checkout_protected_tree(worktree, roots=PROTECTED_PATHS_V1)
 
     # Git status remains relevant only for user-controlled input paths.
     repository_status = git_repository.status(untracked_files="all", ignored=False)
     changed_paths = set(repository_status)
 
     return _BenchmarkIntegrityResult(
-        release_tag=release_tag,
-        release_commit=str(release_commit.id),
-        protected_changes=_changed_protected_paths(release_tree, checkout_tree),
-        permitted_input_changes=_paths_under_roots(changed_paths, roots=PERMITTED_INPUT_PATHS),
-        release_protected_content_digest=release_tree.digest,
-        protected_content_digest=checkout_tree.digest,
+        release_tag=baseline.tag,
+        release_commit=str(baseline.commit.id),
+        changed_protected_paths=find_changed_protected_paths(release_tree, checkout_tree),
+        changed_input_paths=_changed_paths_within(changed_paths, roots=PERMITTED_INPUT_PATHS),
+        release_digest=release_tree.digest,
+        checkout_digest=checkout_tree.digest,
     )

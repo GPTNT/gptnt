@@ -41,7 +41,11 @@ from gptnt.cli.submission._schema import (
 )
 from gptnt.experiments.db.typed_parquet import read_typed_parquet
 from gptnt.experiments.suite.lock import SuiteLock, SuiteNotFrozenError
-from gptnt.provenance import BenchmarkIntegrityError, Provenance, release_protected_content_digest
+from gptnt.provenance import (
+    BenchmarkIntegrityError,
+    Provenance,
+    compute_release_protected_content_digest,
+)
 
 if TYPE_CHECKING:
     from gptnt.experiments.suite.definition import Suite
@@ -212,8 +216,11 @@ def check_installed_lock_match(
     return CheckResult.passed("installed suite registry", f"{entry.name}@{entry.revision}")
 
 
-def check_installed_release_match(provenance: Provenance, repository: Path) -> CheckResult:
-    """Recompute the manifest's declared release tree from installed source Git metadata."""
+def check_installed_release_matches_bundle(
+    provenance: Provenance, repository: Path
+) -> CheckResult:
+    """Compare recorded release content with the installed source repository."""
+    # A release digest is tied to both an annotated tag and the commit targeted by that tag.
     release_tag = provenance.release_tag
     release_commit = provenance.release_commit
     recorded_digest = provenance.release_protected_content_digest
@@ -223,14 +230,16 @@ def check_installed_release_match(provenance: Provenance, repository: Path) -> C
             "submission has incomplete release provenance",
             hint=REBUILD_HINT,
         )
+    # Resolve the declared tag in the installed source repository and rebuild its protected tree.
     try:
-        installed_digest = release_protected_content_digest(
+        installed_digest = compute_release_protected_content_digest(
             repository, release_tag=release_tag, release_commit=release_commit
         )
     except (BenchmarkIntegrityError, OSError, pygit2.GitError) as error:
         return CheckResult.failed(
             "installed release protected content", f"source Git metadata is required: {error}"
         )
+    # The recomputed release identity must equal the digest stored in the submission manifest.
     if installed_digest != recorded_digest:
         return CheckResult.failed(
             "installed release protected content",
@@ -294,7 +303,7 @@ def _check_protected_content(
     if release_digest is None or checkout_digest is None:
         return CheckResult.failed(
             "protected content",
-            "protected-content digests are missing from legacy provenance",
+            "protected-content digests are missing from provenance",
             REBUILD_HINT,
         )
     if modified or release_digest != checkout_digest:
@@ -571,7 +580,7 @@ def _check_experts_match_manifest(
 
 
 def _check_release_version(version: str, release_tag: str | None) -> CheckResult:
-    """Report the package version without treating it as protected-content identity."""
+    """Report the recorded package version with its release tag."""
     if release_tag is None:
         return CheckResult.failed(
             "gptnt_version", f"gptnt_version {version!r} has no release_tag", hint=REBUILD_HINT

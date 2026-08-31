@@ -14,10 +14,10 @@ def clean_benchmark_checkout(monkeypatch: pytest.MonkeyPatch) -> None:
         lambda _repository: SimpleNamespace(
             release_tag="v2.0.0",
             release_commit="abc123456789",
-            protected_changes=(),
-            permitted_input_changes=(),
-            release_protected_content_digest=f"sha256:{'1' * 64}",
-            protected_content_digest=f"sha256:{'1' * 64}",
+            changed_protected_paths=(),
+            changed_input_paths=(),
+            release_digest=f"sha256:{'1' * 64}",
+            checkout_digest=f"sha256:{'1' * 64}",
             protected_content_modified=False,
         ),
     )

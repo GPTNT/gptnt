@@ -4,9 +4,9 @@ The doctor-style gate before a bundle goes to gptnt-submissions first parses the
 schema rejects unknown versions, tampered fingerprints, and blank identities. Validation then
 checks the submitter block, suite snapshot, mission coverage, and payload players. Modified
 protected benchmark content fails validation. An unpinned statics dataset warns. By default,
-interactive validation reads only the bundled suite snapshot. `--require-installed-lock-match` also
-requires that snapshot to exactly match the suite registry resolved by the running GPTNT
-installation.
+interactive validation reads only the bundled suite snapshot. Optional checks compare the declared
+release with the installed source repository and an interactive snapshot with the installed suite
+registry.
 
 `gptnt submission new` bundles every recorded experiment for a (suite, model) group, so a retried
 mission is reported here as a duplicate. Validate is the curation signal, not a bug in the build.
@@ -24,7 +24,7 @@ from gptnt.cli.checks.result import CheckResult
 from gptnt.cli.submission._bundle import InteractiveBundle
 from gptnt.cli.submission._checks import (
     check_installed_lock_match,
-    check_installed_release_match,
+    check_installed_release_matches_bundle,
     check_mission_coverage,
     check_players,
     check_suite,
@@ -49,13 +49,12 @@ RequireInstalledLockMatchOption = Annotated[
     ),
 ]
 
-RequireInstalledReleaseMatchOption = Annotated[
+RequireInstalledReleaseToMatchBundleOption = Annotated[
     bool,
     Parameter(
-        name="--require-installed-release-match",
+        name="--require-installed-release-to-match-bundle",
         help=(
-            "Recompute protected content at each bundle's declared release and require its "
-            "recorded release digest to match."
+            "Require this installed release to contain the bundle's recorded protected content."
         ),
     ),
 ]
@@ -73,7 +72,7 @@ def validate_submission(
         ),
     ] = "rich",
     require_installed_lock_match: RequireInstalledLockMatchOption = False,
-    require_installed_release_match: RequireInstalledReleaseMatchOption = False,
+    require_installed_release_to_match_bundle: RequireInstalledReleaseToMatchBundleOption = False,
 ) -> None:
     """Validate submission bundle(s).
 
@@ -94,7 +93,9 @@ def validate_submission(
             checks=_run_bundle_checks(
                 bundle_dir,
                 installed_suite_registry=installed_suite_registry,
-                require_installed_release_match=require_installed_release_match,
+                require_installed_release_to_match_bundle=(
+                    require_installed_release_to_match_bundle
+                ),
             ),
         )
         for bundle_dir in bundle_dirs
@@ -116,7 +117,7 @@ def _run_bundle_checks(
     bundle_dir: Path,
     *,
     installed_suite_registry: SuiteLock | None,
-    require_installed_release_match: bool,
+    require_installed_release_to_match_bundle: bool,
 ) -> list[CheckResult]:
     """Run every applicable check for one bundle.
 
@@ -131,8 +132,10 @@ def _run_bundle_checks(
 
     sections.extend(loaded.check_structure())
     sections.extend(loaded.check_submitter())
-    if require_installed_release_match:
-        sections.append(check_installed_release_match(loaded.manifest.provenance, _PACKAGE_DIR))
+    if require_installed_release_to_match_bundle:
+        sections.append(
+            check_installed_release_matches_bundle(loaded.manifest.provenance, _PACKAGE_DIR)
+        )
 
     if isinstance(loaded.bundle, InteractiveBundle):
         sections.extend(
@@ -150,13 +153,14 @@ def _interactive_sections(
     Coverage is meaningless against a wrong suite, so it skips.
     """
     suite_findings = check_suite(bundle)
-    if any(finding.status == "fail" for finding in suite_findings):
+    suite_failed = any(finding.status == "fail" for finding in suite_findings)
+    if suite_failed:
         coverage_findings = [CheckResult.skipped("coverage", "suite checks failed; not assessed")]
     else:
         coverage_findings = check_mission_coverage(bundle, bundle.suite_lock.suites[0])
     installed_match = (
         [check_installed_lock_match(bundle, installed_suite_registry)]
-        if installed_suite_registry
+        if installed_suite_registry and not suite_failed
         else []
     )
     return [*suite_findings, *installed_match, *coverage_findings, *check_players(bundle)]

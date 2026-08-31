@@ -5,7 +5,7 @@ import os
 import stat
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import TYPE_CHECKING, Literal, Protocol
+from typing import TYPE_CHECKING, Literal
 
 import pygit2
 
@@ -19,28 +19,33 @@ type ProtectedObjectKind = Literal["directory", "file", "symlink"]
 
 
 class BenchmarkIntegrityError(RuntimeError):
-    """The repository cannot supply a benchmark integrity result."""
-
-
-class _DigestStream(Protocol):
-    def update(self, data: bytes, /) -> None: ...
+    """The repository cannot produce a benchmark integrity result."""
 
 
 @dataclass(frozen=True, kw_only=True)
 class _ProtectedEntry:
+    """One canonical directory, regular file, or symbolic-link record."""
+
     path: str
+    """Repository-relative UTF-8 path."""
+
     kind: ProtectedObjectKind
-    mode: int
+    """Filesystem object kind included in the digest."""
+
     content: bytes
+    """Canonical file content, symlink target bytes, or empty bytes for a directory."""
 
 
 @dataclass(frozen=True, kw_only=True)
 class _ProtectedTree:
+    """Canonical protected roots and the filesystem objects found below them."""
+
     roots: tuple[str, ...]
     entries: tuple[_ProtectedEntry, ...]
 
     @property
     def digest(self) -> str:
+        """SHA-256 identity of the v1 length-prefixed tree serialization."""
         stream = hashlib.sha256()
         stream.update(_DIGEST_DOMAIN)
         for root in sorted(self.roots, key=str.encode):
@@ -50,17 +55,27 @@ class _ProtectedTree:
             _update_field(stream, b"entry")
             _update_field(stream, entry.path.encode("utf-8"))
             _update_field(stream, entry.kind.encode("ascii"))
-            _update_field(stream, f"{entry.mode:o}".encode("ascii"))
             _update_field(stream, entry.content)
         return f"sha256:{stream.hexdigest()}"
 
 
-def _update_field(stream: _DigestStream, payload: bytes) -> None:
+def _update_field(stream: hashlib._Hash, payload: bytes) -> None:
+    """Write one unambiguous length-prefixed field to the digest stream."""
     stream.update(len(payload).to_bytes(8, "big"))
     stream.update(payload)
 
 
+def _canonical_file_content(content: bytes) -> bytes:
+    """Normalize CRLF in UTF-8 text and preserve non-UTF-8 file bytes."""
+    try:
+        _ = content.decode("utf-8", errors="strict")
+    except UnicodeDecodeError:
+        return content
+    return content.replace(b"\r\n", b"\n")
+
+
 def _normalize_roots(roots: Iterable[str]) -> tuple[str, ...]:
+    """Return unique repository-relative roots in UTF-8 byte order."""
     normalized: set[str] = set()
     for root in roots:
         path = PurePosixPath(root)
@@ -84,6 +99,7 @@ def _normalize_roots(roots: Iterable[str]) -> tuple[str, ...]:
 
 
 def _decode_git_name(raw_name: bytes, *, parent: str) -> str:
+    """Decode a Git tree entry name under the v1 UTF-8 path policy."""
     try:
         return raw_name.decode("utf-8", errors="strict")
     except UnicodeDecodeError as error:
@@ -93,7 +109,8 @@ def _decode_git_name(raw_name: bytes, *, parent: str) -> str:
         ) from error
 
 
-def _checkout_name(name: str, *, parent: str) -> str:
+def _decode_checkout_name(name: str, *, parent: str) -> str:
+    """Convert a checkout entry name to the v1 UTF-8 path representation."""
     try:
         return os.fsencode(name).decode("utf-8", errors="strict")
     except UnicodeDecodeError as error:
@@ -104,6 +121,7 @@ def _checkout_name(name: str, *, parent: str) -> str:
 
 
 def _git_entry_at(tree: pygit2.Tree, root: str) -> pygit2.Object | None:
+    """Return the Git object at a protected root, or `None` when it is absent."""
     current = tree
     entry: pygit2.Object | None = None
     components = root.split("/")
@@ -124,11 +142,18 @@ def _git_entry_at(tree: pygit2.Tree, root: str) -> pygit2.Object | None:
 def _collect_git_entry(  # noqa: WPS231 - Git object-kind validation is one recursive traversal.
     entry: pygit2.Object, *, path: str, entries: dict[str, _ProtectedEntry]
 ) -> bool:
+    """Add one Git object and its included descendants to `entries`.
+
+    Return whether the object contributes an entry. Excluded names and directories containing no
+    included descendants return `False`.
+    """
     mode = int(entry.filemode)
     name = path.rsplit("/", maxsplit=1)[-1]
+    # Exclusions are path-component rules and therefore apply before inspecting the object kind.
     if name in _EXCLUDED_NAMES:
         return False
     if isinstance(entry, pygit2.Tree):
+        # Git does not store empty directories. Retain a directory only when a child is retained.
         included = False
         for child in entry:
             if child.raw_name is None:
@@ -137,29 +162,28 @@ def _collect_git_entry(  # noqa: WPS231 - Git object-kind validation is one recu
             child_path = f"{path}/{child_name}"
             included = _collect_git_entry(child, path=child_path, entries=entries) or included
         if included:
-            entries[path] = _ProtectedEntry(path=path, kind="directory", mode=0o40000, content=b"")
+            entries[path] = _ProtectedEntry(path=path, kind="directory", content=b"")
         return included
     if not isinstance(entry, pygit2.Blob):
         raise BenchmarkIntegrityError(f"Unsupported protected Git object at {path!r}")
+    # File modes are excluded because checkout executable bits are not portable across platforms.
     if mode == int(pygit2.enums.FileMode.LINK):
         kind: ProtectedObjectKind = "symlink"
-        normalized_mode = 0o120000
     elif mode in {int(pygit2.enums.FileMode.BLOB), int(pygit2.enums.FileMode.BLOB_EXECUTABLE)}:
         kind = "file"
-        normalized_mode = (
-            0o100755 if mode == int(pygit2.enums.FileMode.BLOB_EXECUTABLE) else 0o100644
-        )
     else:
         raise BenchmarkIntegrityError(f"Unsupported protected Git mode {mode:o} at {path!r}")
+    content = bytes(entry.data)
     entries[path] = _ProtectedEntry(
-        path=path, kind=kind, mode=normalized_mode, content=bytes(entry.data)
+        path=path,
+        kind=kind,
+        content=_canonical_file_content(content) if kind == "file" else content,
     )
     return True
 
 
-def _git_protected_tree(  # pyright: ignore[reportUnusedFunction]
-    tree: pygit2.Tree, *, roots: tuple[str, ...]
-) -> _ProtectedTree:
+def build_git_protected_tree(tree: pygit2.Tree, *, roots: tuple[str, ...]) -> _ProtectedTree:
+    """Build a canonical protected tree from a Git commit tree."""
     normalized_roots = _normalize_roots(roots)
     entries: dict[str, _ProtectedEntry] = {}
     for root in normalized_roots:
@@ -175,28 +199,33 @@ def _git_protected_tree(  # pyright: ignore[reportUnusedFunction]
 def _collect_checkout_path(  # noqa: WPS231 - Filesystem validation is one recursive traversal.
     path: Path, *, relative_path: str, entries: dict[str, _ProtectedEntry]
 ) -> bool:
+    """Add one checkout object and its included descendants to `entries`.
+
+    Return whether the object contributes an entry. Symbolic links are recorded by target and are
+    never followed. UTF-8 regular files use the v1 line-ending normalization.
+    """
     path_stat = path.lstat()
     name = relative_path.rsplit("/", maxsplit=1)[-1]
+    # Apply the same path-component exclusions used while walking the release tree.
     if name in _EXCLUDED_NAMES:
         return False
+    # Test for a link before directories and files so a link cannot escape the protected roots.
     if stat.S_ISLNK(path_stat.st_mode):
         entries[relative_path] = _ProtectedEntry(
-            path=relative_path, kind="symlink", mode=0o120000, content=os.fsencode(path.readlink())
+            path=relative_path, kind="symlink", content=os.fsencode(path.readlink())
         )
         return True
     if stat.S_ISREG(path_stat.st_mode):
         entries[relative_path] = _ProtectedEntry(
-            path=relative_path,
-            kind="file",
-            mode=0o100755 if path_stat.st_mode & 0o111 else 0o100644,
-            content=path.read_bytes(),
+            path=relative_path, kind="file", content=_canonical_file_content(path.read_bytes())
         )
         return True
     if stat.S_ISDIR(path_stat.st_mode):
+        # Match Git's tree model by omitting directories with no included descendants.
         included = False
         with os.scandir(path) as children:
             for child in children:
-                child_name = _checkout_name(child.name, parent=relative_path)
+                child_name = _decode_checkout_name(child.name, parent=relative_path)
                 child_relative_path = f"{relative_path}/{child_name}"
                 included = (
                     _collect_checkout_path(
@@ -206,13 +235,14 @@ def _collect_checkout_path(  # noqa: WPS231 - Filesystem validation is one recur
                 )
         if included:
             entries[relative_path] = _ProtectedEntry(
-                path=relative_path, kind="directory", mode=0o40000, content=b""
+                path=relative_path, kind="directory", content=b""
             )
         return included
     raise BenchmarkIntegrityError(f"Unsupported protected checkout object at {relative_path!r}")
 
 
-def _checkout_root(repository_root: Path, root: str) -> Path | None:
+def _resolve_checkout_root_path(repository_root: Path, root: str) -> Path | None:
+    """Resolve a protected root without traversing a non-directory parent component."""
     current = repository_root
     components = root.split("/")
     for index, component in enumerate(components):
@@ -228,13 +258,14 @@ def _checkout_root(repository_root: Path, root: str) -> Path | None:
     return current
 
 
-def _checkout_protected_tree(  # pyright: ignore[reportUnusedFunction]
+def build_checkout_protected_tree(
     repository_root: Path, *, roots: tuple[str, ...]
 ) -> _ProtectedTree:
+    """Build a canonical protected tree from the current checkout."""
     normalized_roots = _normalize_roots(roots)
     entries: dict[str, _ProtectedEntry] = {}
     for root in normalized_roots:
-        root_path = _checkout_root(repository_root, root)
+        root_path = _resolve_checkout_root_path(repository_root, root)
         if root_path is not None:
             _ = _collect_checkout_path(root_path, relative_path=root, entries=entries)
     return _ProtectedTree(
@@ -243,9 +274,10 @@ def _checkout_protected_tree(  # pyright: ignore[reportUnusedFunction]
     )
 
 
-def _changed_protected_paths(  # pyright: ignore[reportUnusedFunction]
+def find_changed_protected_paths(
     release: _ProtectedTree, checkout: _ProtectedTree
 ) -> tuple[str, ...]:
+    """Return paths whose canonical entries differ between two protected trees."""
     release_by_path = {entry.path: entry for entry in release.entries}
     checkout_by_path = {entry.path: entry for entry in checkout.entries}
     return tuple(

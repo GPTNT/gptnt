@@ -28,9 +28,9 @@ def write_statics_run(
 ) -> Path:
     """Write a statics outputs dir (metrics.json + a stamped run_meta.json). Return the run dir.
 
-    `model_dir` is the run directory leaf (the resolved model string, as the real writer names it);
-    `player_name` is the config/leaderboard name. Tests exercise the `--model` filter, which keys
-    on `player_name` rather than `model_dir`.
+    `model_dir` is the run directory leaf (the resolved model string, as the application writer
+    names it). `player_name` is the config/leaderboard name. Tests exercise the `--model` filter,
+    which keys on `player_name` rather than `model_dir`.
     """
     out = root / f"{task}_predictions" / model_dir
     out.mkdir(parents=True)

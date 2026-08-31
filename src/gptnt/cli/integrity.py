@@ -89,25 +89,21 @@ def diagnose_benchmark_integrity(
     else:
         # Keep protected benchmark changes separate from permitted user inputs.
         protected_finding, failed = _protected_content_finding(
-            protected_paths=integrity.protected_changes, force=force
+            protected_paths=integrity.changed_protected_paths, force=force
         )
 
         diagnosis = BenchmarkDiagnosis(
             findings=[
                 CheckResult.passed("Reference", integrity.release_tag),
                 CheckResult.passed("Release commit", integrity.release_commit[:7]),
-                CheckResult.passed(
-                    "Release protected digest", integrity.release_protected_content_digest[:19]
-                ),
-                CheckResult.passed(
-                    "Checkout protected digest", integrity.protected_content_digest[:19]
-                ),
+                CheckResult.passed("Release protected digest", integrity.release_digest[:19]),
+                CheckResult.passed("Checkout protected digest", integrity.checkout_digest[:19]),
                 protected_finding,
             ],
             permitted_input_findings=[
-                CheckResult.passed("Changed inputs", ", ".join(integrity.permitted_input_changes))
+                CheckResult.passed("Changed inputs", ", ".join(integrity.changed_input_paths))
             ]
-            if integrity.permitted_input_changes
+            if integrity.changed_input_paths
             else [],
             failed=failed,
             protected_content_modified=integrity.protected_content_modified,

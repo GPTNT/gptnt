@@ -154,12 +154,14 @@ class InteractiveBundle(SubmissionBundle[InteractiveSubmission]):
     ) -> Self:
         """Bundle one model's experiments for one frozen suite."""
         canonical = experiments[0]
-        canonical_provenance = canonical.model_dump(include=set(Provenance.model_fields))
-        provenance = Provenance.model_validate(canonical_provenance)
+        canonical_provenance = Provenance.model_validate(
+            canonical.model_dump(include=set(Provenance.model_fields))
+        )
 
         # One manifest cannot describe rows captured from different benchmark states.
         if any(
-            experiment.model_dump(include=set(Provenance.model_fields)) != canonical_provenance
+            Provenance.model_validate(experiment.model_dump(include=set(Provenance.model_fields)))
+            != canonical_provenance
             for experiment in experiments[1:]
         ):
             raise ValueError("Cannot bundle experiments with conflicting provenance")
@@ -195,7 +197,7 @@ class InteractiveBundle(SubmissionBundle[InteractiveSubmission]):
                     for capabilities in _collect_distinct_experts(experiments)
                 ),
             ],
-            provenance=provenance,
+            provenance=canonical_provenance,
             run_date=run_date,
         )
         return cls(manifest=manifest, experiments=experiments, suite_lock=suite_lock)
