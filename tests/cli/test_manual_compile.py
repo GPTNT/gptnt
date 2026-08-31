@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from gptnt.cli.manual import _selection as selection, compile as command
+from gptnt.common.paths import Paths
 from gptnt.ktane.manuals.profile import KtaneContentAppendix, ManualProfile
 from gptnt.ktane.manuals.requirement import ManualRequirement
 
@@ -119,3 +120,11 @@ async def test_compile_keeps_distinct_rule_seeds_for_a_shared_profile(
         ManualRequirement(profile=profile, rule_seed=1),
         ManualRequirement(profile=profile, rule_seed=2),
     ]
+
+
+def test_explicit_suite_revision_selects_its_frozen_manual_requirement() -> None:
+    selected = selection.select_manual_requirements(suites=["multi-self-sync@1"], paths=Paths())
+
+    assert len(selected.requirements) == 1
+    assert selected.requirements[0].rule_seed == 1
+    assert selected.suites[0].suite_name == "multi-self-sync@1"

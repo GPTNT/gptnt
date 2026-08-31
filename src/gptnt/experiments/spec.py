@@ -168,13 +168,17 @@ class ExperimentSpec(BaseModel):
 
 
 def write_specs_to_dir(specs: Iterable[ExperimentSpec], directory: Path) -> list[Path]:
-    """Write one JSON per spec into the directory."""
+    """Write one JSON file per spec and remove stale generated JSON files."""
     directory.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
     for spec in specs:
         path = directory.joinpath(spec.attempt_name).with_suffix(".json")
         _ = path.write_text(spec.model_dump_json())
         written.append(path)
+    written_set = set(written)
+    for path in directory.rglob("*.json"):
+        if path not in written_set:
+            path.unlink()
     return written
 
 

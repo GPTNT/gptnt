@@ -1,8 +1,8 @@
 """Tests for the `run.yaml` manifest schema and loader.
 
-This is the deterministic, infra-free surface: the pydantic schema (defaults, constraints, and the
-`extra="forbid"` gates) and the loader's error handling. No network, no Hydra, no config-name
-cross-checks (those belong to `gptnt doctor <run.yaml>`, a later chunk).
+This deterministic, infra-free surface covers the pydantic schema (defaults, constraints, and the
+`extra="forbid"` gates) and the loader's error handling. Config-name cross-checks belong to `gptnt
+doctor <run.yaml>`.
 """
 
 from __future__ import annotations
@@ -47,11 +47,32 @@ def test_committed_quickstart_manifest_loads_cleanly() -> None:
     manifest = RunManifest.from_path(_QUICKSTART)
 
     assert manifest.spec_version == 2
-    assert manifest.suites == ["single-pairwise-sync"]
+    assert [suite.target for suite in manifest.suites] == ["single-pairwise-sync"]
     assert manifest.rooms == 2
     assert [player.player for player in manifest.players] == ["test-defuser", "test-expert"]
     assert manifest.anchors.best_expert is None
     assert manifest.source is Source.local
+
+
+def test_suite_selector_parses_an_explicit_revision() -> None:
+    manifest = RunManifest.model_validate({**_minimal_manifest(), "suites": ["multi-self-sync@1"]})
+
+    assert manifest.suites[0].name == "multi-self-sync"
+    assert manifest.suites[0].revision == 1
+
+
+@pytest.mark.parametrize("selector", ["@1", "multi-self-sync@", "multi-self-sync@old"])
+def test_invalid_suite_selector_is_rejected(selector: str) -> None:
+    with pytest.raises(ValidationError):
+        _ = RunManifest.model_validate({**_minimal_manifest(), "suites": [selector]})
+
+
+def test_mapping_suite_selector_is_delegated_to_pydantic() -> None:
+    manifest = RunManifest.model_validate(
+        {**_minimal_manifest(), "suites": [{"name": "multi-self-sync", "revision": 1}]}
+    )
+
+    assert manifest.suites[0].target == "multi-self-sync@1"
 
 
 def test_unsupported_spec_version_is_rejected(tmp_path: Path) -> None:

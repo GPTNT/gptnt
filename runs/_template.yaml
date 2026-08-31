@@ -9,11 +9,11 @@
 # The version of the run manifest schema.
 spec_version: 2
 
-# Which suites to run. Each is a suite id from configs/suites/. The run generates and throws all of
-# them, and unions the results.
+# Which suites to run. Use an id from configs/suites/ for its latest frozen revision, or append
+# @<revision> to select an earlier frozen revision. The run unions the generated results.
 suites:
   - single-pairwise-sync
-  # - multi-self-sync
+  # - multi-self-sync@1
 
 # Number of concurrent games to run in parallel.
 rooms: 2

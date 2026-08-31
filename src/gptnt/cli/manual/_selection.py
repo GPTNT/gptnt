@@ -9,6 +9,8 @@ from pydantic import ValidationError
 from gptnt.cli.config_discovery import discover_suites
 from gptnt.common.paths import Paths
 from gptnt.experiments.suite.compose import compose_suite
+from gptnt.experiments.suite.definition import Suite, SuiteSelector
+from gptnt.experiments.suite.lock import SuiteLock
 from gptnt.ktane.manuals.profile import ManualProfile
 from gptnt.ktane.manuals.requirement import ManualRequirement
 
@@ -93,30 +95,35 @@ def _find_profile_path(profile: ManualProfile, *, paths: Paths) -> Path | None:
     return None
 
 
-def _get_profiles_from_suites(suites: SuitesOption, *, paths: Paths) -> list[SuiteProfile]:
-    """Compose the default or explicitly selected suites into their manual profiles."""
+def _resolve_selected_suites(suites: SuitesOption) -> dict[str, Suite]:
+    """Resolve configured suite selectors to live or pinned suite definitions."""
     available_suites = discover_suites()
-    # dict preserves the user's first occurrence while dropping repeated suite flags.
-    suite_names = available_suites if suites is None else list(dict.fromkeys(suites))
 
-    unknown_suites = sorted(set(suite_names) - set(available_suites))
-
+    # Parse each selector, preserve the first occurrence, then validate names against live config.
+    suite_targets = available_suites if suites is None else suites
+    parsed_selectors = [SuiteSelector.model_validate(target) for target in suite_targets]
+    selectors = list({selector.target: selector for selector in parsed_selectors}.values())
+    unknown_suites = sorted(
+        selector.name for selector in selectors if selector.name not in available_suites
+    )
     if unknown_suites:
         raise ValueError(f"unknown suites {unknown_suites}; available: {available_suites}")
-    if not suite_names:
+    if not selectors:
         raise ValueError("no suites were selected or configured")
 
-    suite_profiles: list[SuiteProfile] = []
-    for suite_name in suite_names:
-        profile = compose_suite(suite_name).manual_profile
-        suite_profiles.append(
-            SuiteProfile(
-                suite_name=suite_name,
-                profile=profile,
-                profile_path=_find_profile_path(profile, paths=paths),
-            )
-        )
-    return suite_profiles
+    lock: SuiteLock | None = None
+    selected: dict[str, Suite] = {}
+
+    # Unpinned selectors compose current config.
+    # Pinned selectors load the exact frozen revision.
+    for selector in selectors:
+        if selector.revision is None:
+            selected[selector.target] = compose_suite(selector.name)
+            continue
+        lock = lock or SuiteLock.from_lock_path()
+        suite, _ = lock.load_suite(selector.name, selector.revision)
+        selected[selector.target] = suite
+    return selected
 
 
 def select_manual_profiles(
@@ -132,7 +139,15 @@ def select_manual_profiles(
         suite_profiles: list[SuiteProfile] = []
         description = f"{len(profiles)} manual profile(s)"
     else:
-        suite_profiles = _get_profiles_from_suites(suites, paths=paths)
+        selected_suites = _resolve_selected_suites(suites)
+        suite_profiles = [
+            SuiteProfile(
+                suite_name=target,
+                profile=suite.manual_profile,
+                profile_path=_find_profile_path(suite.manual_profile, paths=paths),
+            )
+            for target, suite in selected_suites.items()
+        ]
         profiles = [suite.profile for suite in suite_profiles]
         description = f"{len(suite_profiles)} suite(s)"
 
@@ -148,29 +163,20 @@ def select_manual_requirements(
     *, suites: SuitesOption = None, paths: Paths
 ) -> ManualRequirementSelection:
     """Select and deduplicate the profile-and-seed pairs owned by configured suites."""
-    available_suites = discover_suites()
-    suite_names = available_suites if suites is None else list(dict.fromkeys(suites))
-    unknown_suites = sorted(set(suite_names) - set(available_suites))
-    if unknown_suites:
-        raise ValueError(f"unknown suites {unknown_suites}; available: {available_suites}")
-    if not suite_names:
-        raise ValueError("no suites were selected or configured")
-
-    selected_suites = tuple(
+    selected_suites = _resolve_selected_suites(suites)
+    suite_manuals = tuple(
         SuiteManual(
-            suite_name=suite_name,
+            suite_name=target,
             requirement=ManualRequirement(
                 profile=suite.manual_profile, rule_seed=suite.manual_rule_seed
             ),
             profile_path=_find_profile_path(suite.manual_profile, paths=paths),
         )
-        for suite_name, suite in zip(
-            suite_names, (compose_suite(suite_name) for suite_name in suite_names), strict=True
-        )
+        for target, suite in selected_suites.items()
     )
 
     return ManualRequirementSelection(
-        requirements=tuple(dict.fromkeys(suite.requirement for suite in selected_suites)),
-        suites=selected_suites,
-        description=f"{len(suite_names)} suite(s)",
+        requirements=tuple(dict.fromkeys(suite.requirement for suite in suite_manuals)),
+        suites=suite_manuals,
+        description=f"{len(suite_manuals)} suite(s)",
     )

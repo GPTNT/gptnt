@@ -20,6 +20,7 @@ import pytest
 from gptnt.cli.doctor import run_plan as run_plan_module
 from gptnt.cli.doctor.run_plan import analyze_run_plan
 from gptnt.cli.run.manifest import RunManifest
+from gptnt.experiments.suite.lock import SuiteLock, SuiteNotFrozenError
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -165,6 +166,53 @@ def test_multiple_suites_union_grows_the_spec_count() -> None:
     assert _coverage_spec_count(two) > _coverage_spec_count(one)
 
 
+def test_explicit_suite_revision_selects_the_frozen_revision() -> None:
+    manifest = _manifest(suites=["multi-self-sync@1"], players=[{"player": "test-defuser"}])
+
+    result = analyze_run_plan(manifest, {"test-defuser": "test-defuser"})
+
+    assert result.specs
+    assert {(spec.suite_name, spec.suite_revision) for spec in result.specs} == {
+        ("multi-self-sync", 1)
+    }
+    assert not any(finding.status == "fail" for finding in result.findings)
+
+
+def test_loaded_specs_must_match_the_manifest_suite_revision() -> None:
+    roster = {"test-defuser": "test-defuser"}
+    latest_manifest = _manifest(suites=["multi-self-sync"], players=[{"player": "test-defuser"}])
+    latest_specs = analyze_run_plan(latest_manifest, roster).specs
+
+    result = analyze_run_plan(
+        _manifest(suites=["multi-self-sync@1"], players=[{"player": "test-defuser"}]),
+        roster,
+        specs=latest_specs,
+    )
+
+    selection = _row(result.findings, "Suite selection")
+    assert selection is not None
+    assert selection.status == "fail"
+    assert "multi-self-sync@2" in selection.detail
+
+
+def test_missing_suite_lock_is_a_suite_selection_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    manifest = _manifest()
+    roster = {"test-defuser": "test-defuser", "test-expert": "test-expert"}
+    specs = analyze_run_plan(manifest, roster).specs
+
+    def missing_lock() -> object:  # noqa: WPS430
+        raise SuiteNotFrozenError("suite lock is missing")
+
+    monkeypatch.setattr(SuiteLock, "from_lock_path", missing_lock)
+
+    result = analyze_run_plan(manifest, roster, specs=specs)
+
+    selection = _row(result.findings, "Suite selection")
+    assert selection is not None
+    assert selection.status == "fail"
+    assert selection.detail == "suite lock is missing"
+
+
 def test_attempts_per_mission_multiplies_the_spec_count() -> None:
     """`attempts_per_mission` reaches generation via a Hydra override: N attempts give N specs."""
     config_to_player = {"test-defuser": "test-defuser", "test-expert": "test-expert"}
@@ -192,4 +240,4 @@ def test_missing_compiled_manual_is_a_failed_run_plan_check(
 
     manual = next(finding for finding in findings if finding.name.startswith("Manual"))
     assert manual.status == "fail"
-    assert "manual compile --suite single-pairwise-sync" in manual.hint
+    assert "manual compile --suite single-pairwise-sync@2" in manual.hint

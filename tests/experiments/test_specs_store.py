@@ -63,3 +63,18 @@ def test_hand_editing_a_spec_set_is_picked_up(tmp_path: Path) -> None:
     loaded = load_specs_from_dir(out)
     assert len(loaded) == 2
     assert specs[0] not in loaded
+
+
+def test_writing_specs_replaces_the_previous_generated_set(tmp_path: Path) -> None:
+    out = tmp_path / "my-run"
+    old_spec = make_experiment_spec(seed=1)
+    new_spec = make_experiment_spec(seed=2)
+    _ = write_specs_to_dir([old_spec], out)
+    note = out / "README.txt"
+    _ = note.write_text("keep me")
+
+    written = write_specs_to_dir([new_spec], out)
+
+    assert written == [out / f"{new_spec.attempt_name}.json"]
+    assert load_specs_from_dir(out) == [new_spec]
+    assert note.read_text() == "keep me"

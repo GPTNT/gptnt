@@ -46,7 +46,7 @@ suite, regenerate its experiment specifications, and compile the suite manual be
 Compile the suites selected by the run manifest, then verify them with doctor:
 
 ```bash title="Compile and verify manuals"
-gptnt manual compile --suite <suite>
+gptnt manual compile --suite <suite-selector>
 gptnt doctor runs/<name>.yaml
 gptnt run runs/<name>.yaml
 ```
@@ -54,7 +54,8 @@ gptnt run runs/<name>.yaml
 The suite owns both its manual profile and `manual_rule_seed`. Compilation creates one artefact for
 each distinct profile-and-seed pair. Doctor loads and validates the required artefacts before the
 experiment manager, game rooms, or players start. `--force` does not bypass a missing or mismatched
-manual artefact.
+manual artefact. Use the same `<name>@<revision>` selector as the run manifest when it pins a frozen
+revision.
 
 !!! success "Manual artefacts are compiled"
     Doctor permits the run after every required profile-and-seed pair resolves to a validated
