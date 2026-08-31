@@ -10,6 +10,7 @@ The quickstart is a self-contained run that will run the entire benchmark from s
     Run these commands from the repository root.
 
     ```bash title="Run the quickstart"
+    gptnt manual compile
     gptnt doctor runs/quickstart.yaml
     gptnt generate runs/quickstart.yaml
     gptnt run runs/quickstart.yaml
