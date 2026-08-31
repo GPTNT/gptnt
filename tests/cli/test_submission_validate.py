@@ -318,11 +318,17 @@ def test_installed_release_requires_source_git_metadata(bundle_copy: Path, monke
     assert "source Git metadata" in finding["detail"]
 
 
-def test_installed_release_reports_unreadable_git_metadata(bundle_copy: Path, monkeypatch) -> None:
-    def unreadable(*_args: object, **_kwargs: object) -> str:  # noqa: WPS430
-        raise OSError("cannot read Git objects")
+@pytest.mark.parametrize(
+    "source_error",
+    [OSError("cannot read Git objects"), ValueError("release_commit is not a commit SHA")],
+)
+def test_installed_release_reports_source_errors(
+    bundle_copy: Path, monkeypatch, source_error: Exception
+) -> None:
+    def unavailable(*_args: object, **_kwargs: object) -> str:  # noqa: WPS430
+        raise source_error
 
-    monkeypatch.setattr(submission_checks, "compute_release_protected_content_digest", unreadable)
+    monkeypatch.setattr(submission_checks, "compute_release_protected_content_digest", unavailable)
 
     result = invoke_cli(
         build_app(),
@@ -342,7 +348,7 @@ def test_installed_release_reports_unreadable_git_metadata(bundle_copy: Path, mo
         check for check in checks if check["name"] == "installed release protected content"
     )
     assert finding["status"] == "fail"
-    assert "cannot read Git objects" in finding["detail"]
+    assert str(source_error) in finding["detail"]
 
 
 def test_bundle_with_a_self_consistent_unaccepted_suite_is_rejected(

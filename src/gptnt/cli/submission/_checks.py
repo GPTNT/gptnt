@@ -235,7 +235,12 @@ def check_installed_release_matches_bundle(
         installed_digest = compute_release_protected_content_digest(
             repository, release_tag=release_tag, release_commit=release_commit
         )
-    except (BenchmarkIntegrityError, OSError, pygit2.GitError) as error:
+    except (  # noqa: WPS239 - Each error must become a failed check.
+        BenchmarkIntegrityError,
+        OSError,
+        ValueError,
+        pygit2.GitError,
+    ) as error:
         return CheckResult.failed(
             "installed release protected content", f"source Git metadata is required: {error}"
         )
