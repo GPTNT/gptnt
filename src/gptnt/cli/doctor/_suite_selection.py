@@ -1,18 +1,21 @@
 from gptnt.cli.checks.result import CheckResult
 from gptnt.cli.run.manifest import RunManifest
 from gptnt.experiments.spec import ExperimentSpec
-from gptnt.experiments.suite.lock import SuiteLock, SuiteNotFrozenError
+from gptnt.experiments.suite.lock import SuiteLock, SuiteLockEntry, SuiteNotFrozenError
 
 SUITE_SELECTION_CHECK = "Suite selection"
+
+
+def _select_entries(manifest: RunManifest) -> list[SuiteLockEntry]:
+    """Load the frozen entries requested by a run manifest."""
+    lock = SuiteLock.from_lock_path()
+    return [lock.select_entry(selector.name, selector.revision) for selector in manifest.suites]
 
 
 def check_suite_selection(manifest: RunManifest, specs: list[ExperimentSpec]) -> CheckResult:
     """Require loaded specs to contain exactly the frozen suites selected by the manifest."""
     try:
-        lock = SuiteLock.from_lock_path()
-        entries = [
-            lock.select_entry(selector.name, selector.revision) for selector in manifest.suites
-        ]
+        entries = _select_entries(manifest)
     except SuiteNotFrozenError as error:
         return CheckResult.failed(
             SUITE_SELECTION_CHECK,
