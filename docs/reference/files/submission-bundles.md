@@ -8,7 +8,8 @@ tags:
 # Submission bundles
 
 A bundle is one flat directory for one Defuser capability fingerprint and one measured target.
-`submission.yaml` uses submission schema version **2**.
+`submission.yaml` uses submission schema version **4** and requires both protected-content digests
+in manifest provenance.
 
 ```text title="Interactive bundle layout"
 output/submissions/

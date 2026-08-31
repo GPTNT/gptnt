@@ -17,7 +17,8 @@ one bundle or the root written by `submission new`. An empty root is an error.
 
 ## The manifest or payload does not parse
 
-- `schema_version` must be `2`. A schema-v1 bundle needs matching v1 tooling.
+- `schema_version` must be `4`, and manifest provenance must contain both protected-content
+  digests.
 - `measured` must describe exactly one suite or one static task.
 - Interactive bundles need `experiments.parquet` and `suite.lock`.
 - Static bundles need valid JSON in `metrics.json`.
@@ -49,17 +50,17 @@ Expert, and mission pairing.
 
 Preserve the source player-record Parquet while making these corrections.
 
-## Installed suite registry checks fail
+## Installed identity checks fail
 
-`--require-installed-lock-match` reports either that the suite revision is absent from the
-installed suite registry or that the bundle suite snapshot does not exactly match it. Rebuild the
-bundle from the GPTNT release recorded in its provenance. Do not edit `suite.lock` to make this
-check pass.
+`--require-installed-release-to-match-bundle` verifies the recorded tag, commit, and release digest
+against the installed source repository. `--require-installed-lock-match` checks an interactive
+bundle's suite snapshot against the installed suite registry. Rebuild the bundle from the GPTNT
+release recorded in its provenance. Do not edit `suite.lock` to make either check pass.
 
 ## Provenance fails
 
-`gptnt_version` must match the recorded release tag, and `release_commit` must be a complete
-lowercase commit SHA. Every interactive payload row must match the manifest provenance.
+`release_commit` must be a complete lowercase commit SHA. Both protected-content digests are
+required and must be equal. Every interactive payload row must match the manifest provenance.
 
 !!! danger "Do not rewrite protected state"
     `protected_content_modified: true` means the benchmark ran with protected content different

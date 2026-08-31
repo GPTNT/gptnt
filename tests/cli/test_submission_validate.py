@@ -1,8 +1,8 @@
-"""Tests for `gptnt submission validate`, driven off a real bundle built by the real writers.
+"""Tests for `gptnt submission validate`, driven by a bundle built by the application writers.
 
 A fully covering interactive bundle for the solo leaderboard suite is built once (one solved run
 per mission in the suite's set), then each test copies and breaks exactly one thing. Success paths
-go through the CLI; failure paths call the command directly and assert the raised `RuntimeError`
+go through the CLI. Failure paths call the command directly and assert the raised `RuntimeError`
 (per `tests/_cli_runner.py`).
 """
 
@@ -18,6 +18,7 @@ from pydantic_ai import RunUsage
 from pydantic_core import from_json
 
 from gptnt.cli.__main__ import build_app
+from gptnt.cli.submission import _checks as submission_checks
 from gptnt.cli.submission._bundle import (
     InteractiveBundle,
     StaticsBundle,
@@ -31,6 +32,7 @@ from gptnt.experiments.records import ExperimentSummary
 from gptnt.experiments.suite.compose import compose_suite
 from gptnt.experiments.suite.lock import SuiteLock
 from gptnt.players.specification import PlayerCapabilities, PlayerProtocol
+from gptnt.provenance import BenchmarkIntegrityError
 
 from tests._cli_runner import invoke_cli
 from tests._factories.experiments import (
@@ -152,10 +154,59 @@ def test_bundle_round_trips_through_save_and_load(bundle_copy: Path) -> None:
 
 
 def test_valid_bundle_passes(bundle_copy: Path) -> None:
+    assert _read_manifest(bundle_copy)["schema_version"] == 4
     result = invoke_cli(build_app(), ["submission", "validate", str(bundle_copy)])
     assert result.exit_code == 0, result.output
     assert "✗" not in result.output
     assert "1 ok, 0 failed" in result.output
+
+
+def test_development_package_version_can_match_release_content(bundle_copy: Path) -> None:
+    payload_path = bundle_copy / "experiments.parquet"
+    experiments = read_typed_parquet(SubmissionExperiment, payload_path)
+    development_version = "2.0.1.dev3+gabc1234"
+    write_typed_parquet(
+        [
+            experiment.model_copy(update={"gptnt_version": development_version})
+            for experiment in experiments
+        ],
+        file_path=payload_path,
+    )
+    manifest = _read_manifest(bundle_copy)
+    manifest["provenance"]["gptnt_version"] = development_version
+    _write_manifest(bundle_copy, manifest)
+
+    result = invoke_cli(
+        build_app(), ["submission", "validate", str(bundle_copy), "--format", "json"]
+    )
+
+    assert result.exit_code == 0, result.output
+
+
+def test_checkout_digest_mismatch_fails_protected_content(bundle_copy: Path) -> None:
+    payload_path = bundle_copy / "experiments.parquet"
+    experiments = read_typed_parquet(SubmissionExperiment, payload_path)
+    mismatch = {
+        "protected_content_digest": f"sha256:{'2' * 64}",
+        "protected_content_modified": True,
+    }
+    write_typed_parquet(
+        [experiment.model_copy(update=mismatch) for experiment in experiments],
+        file_path=payload_path,
+    )
+    manifest = _read_manifest(bundle_copy)
+    manifest["provenance"].update(mismatch)
+    _write_manifest(bundle_copy, manifest)
+
+    result = invoke_cli(
+        build_app(), ["submission", "validate", str(bundle_copy), "--format", "json"]
+    )
+
+    assert result.exit_code == 1
+    checks = from_json(result.output)["bundles"][0]["checks"]
+    assert any(
+        check["name"] == "protected content" and check["status"] == "fail" for check in checks
+    )
 
 
 def test_bundle_snapshot_must_match_the_installed_suite_registry(bundle_copy: Path) -> None:
@@ -171,6 +222,133 @@ def test_bundle_snapshot_must_match_the_installed_suite_registry(bundle_copy: Pa
 
     assert result.exit_code == 1
     assert "installed suite registry" in result.output
+
+
+def test_installed_release_to_match_bundle_uses_declared_identity_and_package_repository(
+    bundle_copy: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest = _read_manifest(bundle_copy)
+    expected_digest = manifest["provenance"]["release_protected_content_digest"]
+    received: list[tuple[Path, str, str]] = []
+
+    def recompute(  # noqa: WPS430
+        repository: Path, *, release_tag: str, release_commit: str
+    ) -> str:
+        received.append((repository, release_tag, release_commit))
+        return expected_digest
+
+    monkeypatch.setattr(submission_checks, "compute_release_protected_content_digest", recompute)
+    monkeypatch.chdir(tmp_path)
+
+    result = invoke_cli(
+        build_app(),
+        [
+            "submission",
+            "validate",
+            "--require-installed-release-to-match-bundle",
+            str(bundle_copy),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "installed suite registry" not in result.output
+    assert received == [
+        (
+            received[0][0],
+            manifest["provenance"]["release_tag"],
+            manifest["provenance"]["release_commit"],
+        )
+    ]
+    assert "src/gptnt/cli/submission" in received[0][0].as_posix()
+
+
+def test_installed_release_digest_mismatch_is_reported(bundle_copy: Path, monkeypatch) -> None:
+    monkeypatch.setattr(
+        submission_checks,
+        "compute_release_protected_content_digest",
+        lambda *_args, **_kwargs: f"sha256:{'2' * 64}",
+    )
+
+    result = invoke_cli(
+        build_app(),
+        [
+            "submission",
+            "validate",
+            "--require-installed-release-to-match-bundle",
+            str(bundle_copy),
+            "--format",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 1
+    checks = from_json(result.output)["bundles"][0]["checks"]
+    finding = next(
+        check for check in checks if check["name"] == "installed release protected content"
+    )
+    assert finding["status"] == "fail"
+    assert "sha256:111111111111" in finding["detail"]
+    assert "sha256:222222222222" in finding["detail"]
+
+
+def test_installed_release_requires_source_git_metadata(bundle_copy: Path, monkeypatch) -> None:
+    def unavailable(*_args: object, **_kwargs: object) -> str:  # noqa: WPS430
+        raise BenchmarkIntegrityError("installed package is not a Git repository")
+
+    monkeypatch.setattr(submission_checks, "compute_release_protected_content_digest", unavailable)
+
+    result = invoke_cli(
+        build_app(),
+        [
+            "submission",
+            "validate",
+            "--require-installed-release-to-match-bundle",
+            str(bundle_copy),
+            "--format",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 1
+    checks = from_json(result.output)["bundles"][0]["checks"]
+    finding = next(
+        check for check in checks if check["name"] == "installed release protected content"
+    )
+    assert finding["status"] == "fail"
+    assert "source Git metadata" in finding["detail"]
+
+
+@pytest.mark.parametrize(
+    "source_error",
+    [OSError("cannot read Git objects"), ValueError("release_commit is not a commit SHA")],
+)
+def test_installed_release_reports_source_errors(
+    bundle_copy: Path, monkeypatch, source_error: Exception
+) -> None:
+    def unavailable(*_args: object, **_kwargs: object) -> str:  # noqa: WPS430
+        raise source_error
+
+    monkeypatch.setattr(submission_checks, "compute_release_protected_content_digest", unavailable)
+
+    result = invoke_cli(
+        build_app(),
+        [
+            "submission",
+            "validate",
+            "--require-installed-release-to-match-bundle",
+            str(bundle_copy),
+            "--format",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 1
+    checks = from_json(result.output)["bundles"][0]["checks"]
+    finding = next(
+        check for check in checks if check["name"] == "installed release protected content"
+    )
+    assert finding["status"] == "fail"
+    assert str(source_error) in finding["detail"]
 
 
 def test_bundle_with_a_self_consistent_unaccepted_suite_is_rejected(
@@ -206,9 +384,31 @@ def test_bundle_with_a_self_consistent_unaccepted_suite_is_rejected(
     assert "installed suite registry" in release_result.output
 
 
+def test_installed_lock_check_reports_empty_suite_snapshot(bundle_copy: Path) -> None:
+    snapshot_path = bundle_copy / "suite.lock"
+    snapshot = SuiteLock.from_lock_path(snapshot_path)
+    snapshot.model_copy(update={"suites": ()}).dump_to_path(snapshot_path)
+
+    result = invoke_cli(
+        build_app(),
+        [
+            "submission",
+            "validate",
+            "--require-installed-lock-match",
+            str(bundle_copy),
+            "--format",
+            "json",
+        ],
+    )
+
+    assert result.exit_code == 1
+    checks = from_json(result.output)["bundles"][0]["checks"]
+    assert any(check["name"] == "suite snapshot" and check["status"] == "fail" for check in checks)
+
+
 @pytest.mark.parametrize(
     ("identity_domain", "expected_check"),
-    [("release", "gptnt_version"), ("player", "player fingerprint"), ("suite", "suite digest")],
+    [("release", "provenance"), ("player", "player fingerprint"), ("suite", "suite digest")],
 )
 def test_identity_disagreement_fails(
     bundle_copy: Path, identity_domain: str, expected_check: str
@@ -270,25 +470,36 @@ def test_modified_benchmark_records_cannot_be_submitted(
     experiments = read_typed_parquet(SubmissionExperiment, payload)
     write_typed_parquet(
         [
-            experiment.model_copy(update={"protected_content_modified": True})
+            experiment.model_copy(
+                update={
+                    "protected_content_digest": f"sha256:{'2' * 64}",
+                    "protected_content_modified": True,
+                }
+            )
             for experiment in experiments
         ],
         file_path=payload,
     )
     manifest = _read_manifest(bundle_copy)
-    manifest["provenance"]["protected_content_modified"] = True
+    manifest["provenance"].update(
+        {"protected_content_digest": f"sha256:{'2' * 64}", "protected_content_modified": True}
+    )
     _write_manifest(bundle_copy, manifest)
 
     _assert_validate_fails(bundle_copy)
     assert "✗ protected content" in _unwrap_output(capsys)
 
 
-def test_records_without_release_provenance_cannot_be_submitted(
-    bundle_copy: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
+def test_records_without_release_provenance_cannot_be_submitted(bundle_copy: Path) -> None:
     payload = bundle_copy / "experiments.parquet"
     experiments = read_typed_parquet(SubmissionExperiment, payload)
-    missing = {"release_commit": None, "release_tag": None, "protected_content_modified": None}
+    missing = {
+        "release_commit": None,
+        "release_tag": None,
+        "release_protected_content_digest": None,
+        "protected_content_digest": None,
+        "protected_content_modified": None,
+    }
     write_typed_parquet(
         [experiment.model_copy(update=missing) for experiment in experiments], file_path=payload
     )
@@ -296,8 +507,14 @@ def test_records_without_release_provenance_cannot_be_submitted(
     manifest["provenance"].update(missing)
     _write_manifest(bundle_copy, manifest)
 
-    _assert_validate_fails(bundle_copy)
-    assert "has no release_tag" in _unwrap_output(capsys)
+    result = invoke_cli(
+        build_app(), ["submission", "validate", str(bundle_copy), "--format", "json"]
+    )
+
+    assert result.exit_code == 1
+    checks = from_json(result.output)["bundles"][0]["checks"]
+    assert checks[0]["name"] == "manifest"
+    assert "submission schema 4 requires protected-content digests" in checks[0]["detail"]
 
 
 def test_missing_mission_fails(bundle_copy: Path, capsys: pytest.CaptureFixture[str]) -> None:

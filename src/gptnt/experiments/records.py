@@ -291,6 +291,8 @@ class ExperimentPlayerRecord(Provenance, StepRecordsMetricsMixin):
             gptnt_version=summary.gptnt_version,
             release_commit=summary.release_commit,
             release_tag=summary.release_tag,
+            release_protected_content_digest=summary.release_protected_content_digest,
+            protected_content_digest=summary.protected_content_digest,
             protected_content_modified=summary.protected_content_modified,
         )
 

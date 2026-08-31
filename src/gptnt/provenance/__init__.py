@@ -1,12 +1,17 @@
 """Capture and validate benchmark provenance."""
 
+from gptnt.provenance._protected_tree import BenchmarkIntegrityError
 from gptnt.provenance.capture import Provenance, git_sha, gptnt_version, is_valid_version
-from gptnt.provenance.integrity import BenchmarkIntegrityError, check_benchmark_integrity
+from gptnt.provenance.integrity import (
+    check_benchmark_integrity,
+    compute_release_protected_content_digest,
+)
 
 __all__ = [
     "BenchmarkIntegrityError",
     "Provenance",
     "check_benchmark_integrity",
+    "compute_release_protected_content_digest",
     "git_sha",
     "gptnt_version",
     "is_valid_version",

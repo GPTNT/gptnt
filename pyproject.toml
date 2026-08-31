@@ -391,6 +391,8 @@ ignore = [
     "S311",
     # it's hard to enforce having a full exec path since everyone's machines works differently
     "S607",
+    # Don't enforce needing copyright headers
+    "CPY001",
     # Things to ignore because ruff's formatter says so
     # https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
     "D206",

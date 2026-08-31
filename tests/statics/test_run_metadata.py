@@ -99,7 +99,10 @@ def test_run_metadata_is_bound_before_predictions_and_validated_on_resume(
             stored_metadata = metadata.model_copy(
                 update={
                     "provenance": metadata.provenance.model_copy(
-                        update={"protected_content_modified": True}
+                        update={
+                            "protected_content_digest": f"sha256:{'2' * 64}",
+                            "protected_content_modified": True,
+                        }
                     )
                 }
             )

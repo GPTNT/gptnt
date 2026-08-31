@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import pygit2
 import yaml
 from pydantic import ValidationError
 from pydantic_core import from_json
@@ -40,7 +41,11 @@ from gptnt.cli.submission._schema import (
 )
 from gptnt.experiments.db.typed_parquet import read_typed_parquet
 from gptnt.experiments.suite.lock import SuiteLock, SuiteNotFrozenError
-from gptnt.provenance import Provenance
+from gptnt.provenance import (
+    BenchmarkIntegrityError,
+    Provenance,
+    compute_release_protected_content_digest,
+)
 
 if TYPE_CHECKING:
     from gptnt.experiments.suite.definition import Suite
@@ -90,7 +95,11 @@ class LoadedBundle:
         findings = [
             _check_release_version(provenance.gptnt_version, provenance.release_tag),
             _check_release_commit(provenance.release_commit),
-            _check_protected_content(modified=provenance.protected_content_modified),
+            _check_protected_content(
+                release_digest=provenance.release_protected_content_digest,
+                checkout_digest=provenance.protected_content_digest,
+                modified=provenance.protected_content_modified,
+            ),
         ]
         if isinstance(self.bundle, InteractiveBundle):
             manifest_provenance = provenance.model_dump()
@@ -207,6 +216,44 @@ def check_installed_lock_match(
     return CheckResult.passed("installed suite registry", f"{entry.name}@{entry.revision}")
 
 
+def check_installed_release_matches_bundle(
+    provenance: Provenance, repository: Path
+) -> CheckResult:
+    """Compare recorded release content with the installed source repository."""
+    # A release digest is tied to both an annotated tag and the commit targeted by that tag.
+    release_tag = provenance.release_tag
+    release_commit = provenance.release_commit
+    recorded_digest = provenance.release_protected_content_digest
+    if release_tag is None or release_commit is None or recorded_digest is None:
+        return CheckResult.failed(
+            "installed release protected content",
+            "submission has incomplete release provenance",
+            hint=REBUILD_HINT,
+        )
+    # Resolve the declared tag in the installed source repository and rebuild its protected tree.
+    try:
+        installed_digest = compute_release_protected_content_digest(
+            repository, release_tag=release_tag, release_commit=release_commit
+        )
+    except (  # noqa: WPS239 - Each error must become a failed check.
+        BenchmarkIntegrityError,
+        OSError,
+        ValueError,
+        pygit2.GitError,
+    ) as error:
+        return CheckResult.failed(
+            "installed release protected content", f"source Git metadata is required: {error}"
+        )
+    # The recomputed release identity must equal the digest stored in the submission manifest.
+    if installed_digest != recorded_digest:
+        return CheckResult.failed(
+            "installed release protected content",
+            f"recorded {recorded_digest[:19]}, installed {installed_digest[:19]}",
+            hint=REBUILD_HINT,
+        )
+    return CheckResult.passed("installed release protected content", installed_digest[:19])
+
+
 def check_mission_coverage(bundle: InteractiveBundle, entry: SuiteLockEntry) -> list[CheckResult]:
     """Return every (expert, mission) pairing the manifest declares has exactly one, valid run."""
     manifest = bundle.manifest
@@ -254,21 +301,23 @@ def load_bundle(bundle_dir: Path) -> tuple[LoadedBundle | None, list[CheckResult
     return LoadedBundle(bundle_dir=bundle_dir, bundle=bundle), findings
 
 
-def _check_protected_content(*, modified: bool | None) -> CheckResult:
+def _check_protected_content(
+    *, release_digest: str | None, checkout_digest: str | None, modified: bool | None
+) -> CheckResult:
     """Reject records produced while protected benchmark content differed from the release."""
-    if modified is None:
+    if release_digest is None or checkout_digest is None:
         return CheckResult.failed(
             "protected content",
-            "not assessed because the run has no release provenance",
-            "Run the benchmark from an unmodified release checkout, then rebuild the submission.",
+            "protected-content digests are missing from provenance",
+            REBUILD_HINT,
         )
-    if modified:
+    if modified or release_digest != checkout_digest:
         return CheckResult.failed(
             "protected content",
-            "recorded as modified from the release",
+            f"release {release_digest[:19]} does not match checkout {checkout_digest[:19]}",
             "Run the benchmark from an unmodified release checkout, then rebuild the submission.",
         )
-    return CheckResult.passed("protected content", "matches")
+    return CheckResult.passed("protected content", f"matches {checkout_digest[:19]}")
 
 
 def _invalid_manifest_finding(
@@ -536,17 +585,10 @@ def _check_experts_match_manifest(
 
 
 def _check_release_version(version: str, release_tag: str | None) -> CheckResult:
-    """Require the package version to identify the recorded release tag."""
+    """Report the recorded package version with its release tag."""
     if release_tag is None:
         return CheckResult.failed(
             "gptnt_version", f"gptnt_version {version!r} has no release_tag", hint=REBUILD_HINT
-        )
-    expected = release_tag.removeprefix("v")
-    if version != expected:
-        return CheckResult.failed(
-            "gptnt_version",
-            f"gptnt_version {version!r} does not match release_tag {release_tag!r}",
-            hint=REBUILD_HINT,
         )
     return CheckResult.passed("gptnt_version", f"{release_tag} ({version})")
 

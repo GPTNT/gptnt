@@ -31,7 +31,8 @@ _RESTORE_HINT = (
     "Restore protected content to the release, or use --force. Forced records cannot be submitted."
 )
 _RELEASE_HINT = (
-    "Check out an exact annotated GPTNT release tag (vMAJOR.MINOR.PATCH), or use --force."
+    "Fetch or base this checkout on a reachable annotated GPTNT release tag "
+    "(vMAJOR.MINOR.PATCH), or use --force."
 )
 _FORCED_HINT = "forced execution records no release provenance and cannot be submitted"
 
@@ -87,21 +88,22 @@ def diagnose_benchmark_integrity(
         diagnosis = _unavailable_reference(error, force=force)
     else:
         # Keep protected benchmark changes separate from permitted user inputs.
-        protected_paths = (*integrity.protected_changes, *integrity.untracked_protected_files)
         protected_finding, failed = _protected_content_finding(
-            protected_paths=protected_paths, force=force
+            protected_paths=integrity.changed_protected_paths, force=force
         )
 
         diagnosis = BenchmarkDiagnosis(
             findings=[
                 CheckResult.passed("Reference", integrity.release_tag),
                 CheckResult.passed("Release commit", integrity.release_commit[:7]),
+                CheckResult.passed("Release protected digest", integrity.release_digest[:19]),
+                CheckResult.passed("Checkout protected digest", integrity.checkout_digest[:19]),
                 protected_finding,
             ],
             permitted_input_findings=[
-                CheckResult.passed("Changed inputs", ", ".join(integrity.permitted_input_changes))
+                CheckResult.passed("Changed inputs", ", ".join(integrity.changed_input_paths))
             ]
-            if integrity.permitted_input_changes
+            if integrity.changed_input_paths
             else [],
             failed=failed,
             protected_content_modified=integrity.protected_content_modified,

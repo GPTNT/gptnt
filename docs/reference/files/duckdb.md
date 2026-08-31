@@ -33,7 +33,7 @@ The declared and recorded columns are:
 | Group | Columns |
 | ----- | ------- |
 | Outcome | `outcome`, `seconds_remaining`, `strike_count`, `num_modules_solved`, `is_hard_crash` |
-| Provenance | `gptnt_version`, `release_commit`, `release_tag`, `protected_content_modified` |
+| Provenance | `gptnt_version`, `release_commit`, `release_tag`, `release_protected_content_digest`, `protected_content_digest`, `protected_content_modified` |
 | Suite and mission | `mission_spec`, `mission_set`, `attempt`, `suite_name`, `suite_revision`, `suite_digest`, `manual_profile` |
 | Protocol and names | `defuser_protocol`, `defuser_name`, `expert_protocol`, `expert_name` |
 | Runtime instance | `session_id`, `expert_uuid`, `defuser_uuid`, `game_uuid`, `start_time` |
@@ -71,3 +71,5 @@ ORDER BY summary.attempt_name, step.role;
 `build-db` inserts source step rows and derived summaries in one transaction. Rebuilding an
 incompatible database requires `--delete-existing-db`. A `.duckdb.wal` file is transient and not a
 third application table or a portable result format.
+
+Database construction copies provenance from the source records and does not calculate digests.

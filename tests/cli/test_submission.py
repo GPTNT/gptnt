@@ -371,6 +371,23 @@ def test_statics_bundle_from_filesystem(tmp_path: Path) -> None:
     }
 
 
+def test_statics_legacy_provenance_is_not_backfilled_during_bundle_creation(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "statics"
+    run_dir = write_statics_run(root)
+    metadata = from_json((run_dir / "run_meta.json").read_bytes())
+    metadata["provenance"].pop("release_protected_content_digest")
+    metadata["provenance"].pop("protected_content_digest")
+    _ = (run_dir / "run_meta.json").write_bytes(to_json(metadata))
+    into = tmp_path / "submissions"
+
+    with pytest.raises(ValueError, match="submission schema 4 requires protected-content digests"):
+        _ = _run_statics_new(root, into)
+
+    assert not into.exists()
+
+
 def test_statics_model_filter_matches_player_name_not_dir(tmp_path: Path) -> None:
     """`--model` filters on the run's `player_name`, even when the run dir is the model string."""
     root = tmp_path / "statics"

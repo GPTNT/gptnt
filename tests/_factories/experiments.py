@@ -21,6 +21,8 @@ if TYPE_CHECKING:
 
     from gptnt.players.specification import CommunicationStyle
 
+_PROTECTED_CONTENT_DIGEST = f"sha256:{'1' * 64}"
+
 
 def make_manual_profile(document_id: str = "Wires") -> ManualProfile:
     """A minimal English manual profile for experiment tests."""
@@ -62,6 +64,8 @@ def make_provenance() -> Provenance:
         gptnt_version="2.0.0",
         release_commit="a1b2c3d4" * 5,
         release_tag="v2.0.0",
+        release_protected_content_digest=_PROTECTED_CONTENT_DIGEST,
+        protected_content_digest=_PROTECTED_CONTENT_DIGEST,
         protected_content_modified=False,
     )
 

@@ -55,6 +55,10 @@ The footer's instance supplies execution identity shared across both player reco
 which player's rows the file holds. `final_bomb_state` is the last state captured for the
 execution. It can be null after an early failure.
 
+The footer records release and checkout protected-content digests.
+`protected_content_modified` is true exactly when those digests differ. Provenance is captured when
+execution starts. Loading a record or building DuckDB does not recalculate it.
+
 ## Outcomes and summaries
 
 ::: gptnt.experiments.records.ExperimentOutcome

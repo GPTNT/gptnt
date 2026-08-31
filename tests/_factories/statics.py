@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 _DEFAULT_METRICS: dict[str, Any] = {"module": {"total": 0.87}}
+_PROTECTED_CONTENT_DIGEST = f"sha256:{'1' * 64}"
 
 
 def write_statics_run(
@@ -27,9 +28,9 @@ def write_statics_run(
 ) -> Path:
     """Write a statics outputs dir (metrics.json + a stamped run_meta.json). Return the run dir.
 
-    `model_dir` is the run directory leaf (the resolved model string, as the real writer names it);
-    `player_name` is the config/leaderboard name. Tests exercise the `--model` filter, which keys
-    on `player_name` rather than `model_dir`.
+    `model_dir` is the run directory leaf (the resolved model string, as the application writer
+    names it). `player_name` is the config/leaderboard name. Tests exercise the `--model` filter,
+    which keys on `player_name` rather than `model_dir`.
     """
     out = root / f"{task}_predictions" / model_dir
     out.mkdir(parents=True)
@@ -51,6 +52,8 @@ def write_statics_run(
                     "gptnt_version": "2.0.0",
                     "release_commit": "a1b2c3d4" * 5,
                     "release_tag": "v2.0.0",
+                    "release_protected_content_digest": _PROTECTED_CONTENT_DIGEST,
+                    "protected_content_digest": _PROTECTED_CONTENT_DIGEST,
                     "protected_content_modified": False,
                 },
             }
