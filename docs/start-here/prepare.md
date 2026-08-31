@@ -65,8 +65,8 @@ any other services.
 
 !!! warning "Not all issues are fatal"
     The `doctor` command reports the issues it finds, but not all of them matter. For example, if
-    an old player config is found, it will be a failure but if you are not using that model, then
-    it doesn't matter.
+    an old player config is found that no longer works (e.g., `gemini-3-flash-preview`), it will be
+    a failure for that model. _BUT_ if you are not using that model, then it doesn't matter.
 
 
 
@@ -133,28 +133,46 @@ If you would like to use more mods for KTANE, you can provide them in the `stora
 directory. The KTANE used for the benchmark is configured to load mods from that directory.
 
 
-## Run the infrastructure (with Docker Compose)
+## Run the infrastructure
 
-We use Docker Compose to start Redis and an OpenTelemetry collector. Redis is used as a message bus
-for the services in the benchmark. The OpenTelemetry collector is optional and can be used
-to export traces to a local or remote endpoint. The benchmark does not require the collector to be
-running but if you would like to review logs and even debug what is happening, we **highly
-recommend it.**
+For the benchmark, we need to run Redis, and optionally an OpenTelemetry collector. The benchmark uses Redis as a message bus for the services. The OpenTelemetry collector is optional and can be used to export traces to a local or remote endpoint. The benchmark does not require the collector to be running but if you would like to review logs and even debug what is happening, we **highly recommend it.**
 
-We've provided a Docker Compose configuration that starts Redis and the OpenTelemetry collector. You can start it with the following command:
+!!! success "Using Docker Compose"
+    We use Docker Compose to start Redis and an OpenTelemetry collector. If you have Docker
+    installed, you can use the provided `docker-compose.yml` file to start both services.
 
-```bash
-docker compose up
-```
+    ```bash
+    docker compose up
+    ```
 
-??? question "What if you don't have Docker?"
-    If you don't have Docker, you can just run Redis yourself. The default configuration is to listen on `localhost:6379` with no password. Check the `docker-compose.yml` file for the exact configuration to copy from.
+
+    ??? question "What if I need `sudo` for Docker?"
+        If your Docker installation requires `sudo`, prefix the command with `sudo -E` to preserve the environment variables. For example:
+
+        ```bash
+        sudo -E docker compose up
+        ```
+
+### Redis
+
+As mention above, Redis is used as a message bus for the services and this is very important otherwise the benchmark will not work. The benchmark expects Redis to be available at `localhost:6379` with no password. If you are running Redis yourself, check the `docker-compose.yml` file for the exact configuration to copy from.
 
 ??? question "Why no password for Redis?"
     We don't use a password for Redis because it is only accessible from the local machine and there was no one else using the machine and nothing else running on it. Of course, the correct thing to do, especially if you are accessing Redis remotely, is to **set a password and configure the services to use it.**
 
-??? question "What if you don't want to use OpenTelemetry?"
-    The most robust option is to set the `COMPOSE_PROFILES` environment variable to `dev` to send all traces to the void. Not using OpenTelemetry will make deubugging harder, so we recommend you keep it enabled unless you know you don't need it.
+
+### OpenTelemetry Collector
+
+For debugging and observability, we provide an OpenTelemetry collector that can be used to export traces to a local or remote endpoint. For the benchmark, we exported everything to [Logfire](https://pydantic.dev/logfire) and use Logfire as a dependency in the project.
+
+You can find our configuration for the OpenTelemetry collector in `docker-compose.yml` and `otel-collector-config.yaml`. You can use this configuration as a starting point and modify it to export traces to your own endpoint.
+
+!!! question "What if I don't want to use Logfire?"
+    You can use any OpenTelemetry collector and export the traces to any service or endpoint you want. As long as it's a OpenTelemetry compliant service, it should work.
+
+
+??? question "What if you don't want to use OpenTelemetry at all (and I'm using Docker)?"
+    Set the `COMPOSE_PROFILES` environment variable to `dev` to send all traces to the void. Not using OpenTelemetry will make debugging harder, so we recommend you keep it enabled unless you _know_ you don't need it.
 
     ```bash
     COMPOSE_PROFILES=dev docker compose up
@@ -164,13 +182,6 @@ docker compose up
     [environment configuration](../reference/configuration/environment.md#observability).
 
 
-
-??? question "What if I need `sudo` for Docker?"
-    If your Docker installation requires `sudo`, prefix the command with `sudo -E` to preserve the environment variables. For example:
-
-    ```bash
-    sudo -E docker compose up
-    ```
 
 
 ## Rendering the game { #make-sure-the-game-can-render }
@@ -199,18 +210,25 @@ We have validated the following cases:
     ```
 
 
-## Download the manual
+## Compile the manual(s)
 
 GPTNT builds the manuals for the experiments being run. This is so that we can support different languages, different rulesets, and even custom modules. We provide the vanilla English manual and provide all the means to change it yourself. More on how to do this [later](../understand/manuals-and-rule-seeds.md){data-preview}.
 
-This is all automatic. To download everything you need, you need to run:
+This is all automatic. To download everything you need and compile the manuals for the benchmark, run the following command:
 
 ```bash
-gptnt manual download
+gptnt manual compile
 ```
 
-// TODO: Check the command to see how it knows what pages to download.
-// TODO: CHeck what compile explicitly does so that we can explain it here
+!!! warning "If you create/change the suites, you need to re-run the command"
+
+    If you create your own suite or change the rulesets, you need to re-run the command. This will
+    update the local cache and ensure that the manuals are up-to-date for the new suites.
+
+!!! danger "The manuals must be downloaded for the benchmark to work"
+    The benchmark will not work if the manuals are not downloaded.
+
+
 
 ## Check everything together
 
