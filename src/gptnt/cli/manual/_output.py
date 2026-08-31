@@ -2,7 +2,6 @@ from pathlib import Path
 
 from rich.progress import Progress, TaskID
 
-from gptnt.common.hashing import stable_digest
 from gptnt.ktane.manuals.profile import ManualProfile
 from gptnt.ktane.manuals.progress import DownloadProgress
 
@@ -46,5 +45,4 @@ def describe_profile(profile: ManualProfile, *, path: Path | None, root: Path) -
     """Describe a configured profile path or identify an inline composed profile."""
     if path is not None:
         return short_path(path, root=root)
-    digest = stable_digest(profile.model_dump(mode="json"))
-    return f"composed profile {digest} ({len(profile.documents)} documents)"
+    return f"composed profile {profile.runtime_digest} ({len(profile.documents)} documents)"

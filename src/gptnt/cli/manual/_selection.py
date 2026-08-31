@@ -4,6 +4,7 @@ from typing import Annotated
 
 import yaml
 from cyclopts import Parameter
+from pydantic import ValidationError
 
 from gptnt.cli.config_discovery import discover_suites
 from gptnt.common.paths import Paths
@@ -81,9 +82,12 @@ def _find_profile_path(profile: ManualProfile, *, paths: Paths) -> Path | None:
     for profile_path in sorted(paths.manual_profiles.glob("*.yaml")):
         if profile_path.stem.startswith("_"):
             continue
-        configured = ManualProfile.model_validate(
-            yaml.safe_load(profile_path.read_text(encoding="utf-8"))
-        )
+        try:
+            configured = ManualProfile.model_validate(
+                yaml.safe_load(profile_path.read_text(encoding="utf-8"))
+            )
+        except (OSError, ValidationError, yaml.YAMLError):
+            continue
         if configured == profile:
             return profile_path
     return None
@@ -126,15 +130,17 @@ def select_manual_profiles(
     if all_profiles:
         profiles = _load_all_manual_profiles(paths.manual_profiles)
         suite_profiles: list[SuiteProfile] = []
+        description = f"{len(profiles)} manual profile(s)"
     else:
         suite_profiles = _get_profiles_from_suites(suites, paths=paths)
         profiles = [suite.profile for suite in suite_profiles]
+        description = f"{len(suite_profiles)} suite(s)"
 
     # Multiple suites commonly share a profile. Compile or download each distinct value once.
     return ManualSelection(
         profiles=tuple(dict.fromkeys(profiles)),
         suites=tuple(suite_profiles),
-        description=f"{len(profiles)} manual profile(s)",
+        description=description,
     )
 
 
