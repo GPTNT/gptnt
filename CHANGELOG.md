@@ -1,3 +1,11 @@
+## v2.1.0 (2026-09-02)
+
+### Feat
+
+- **run**: support suite revision selectors (#109)
+- **provenance**: validate protected content by digest (#108)
+- **manual**: improve preparation logging (#107)
+
 ## v2.0.1 (2026-08-26)
 
 (This is just v2 but it has to be 2.0.1 because I tried to change the past and broke it so v2 is not there now)
