@@ -1,3 +1,9 @@
+## v2.1.1 (2026-09-03)
+
+### Fix
+
+- **ktane**: preserve bomb generation across rule seeds
+
 ## v2.1.0 (2026-09-02)
 
 ### Feat
