@@ -72,10 +72,12 @@ frontmatter.
     The catalog records URLs and pins, but GPTNT does not redefine the remote repositories or PDF
     formats behind them.
 
-## Rule-seed constraint
+## Rule-seed support
 
-GPTNT v2 manual resolution supports only rule seed `1`. A manual-bearing experiment with another
-rule seed fails during preparation.
+Each suite selects `manual_rule_seed`, which defaults to `1`. A non-default seed changes the
+solution rules for KtaneContent modules that declare rule-seed support. GPTNT compiles the manual
+for the selected profile-and-seed pair before a run.
 
-Use [Prepare manuals](../../run-and-submit/prepare-manuals.md) to edit and compile a profile. The
-[manual file reference](../files/manuals.md) describes persisted inputs and cache outputs.
+Use [Manuals and rule seeds](../../understand/manuals-and-rule-seeds.md) for the rules boundary,
+[Prepare manuals](../../run-and-submit/prepare-manuals.md) to edit and compile a profile, and the
+[manual file reference](../files/manuals.md) for persisted inputs and cache outputs.

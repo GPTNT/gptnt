@@ -29,7 +29,7 @@ paths = Paths()
 console = Console()
 
 # The canonical main-leaderboard set. Submitters override with `--suite` / `--static`.
-LEADERBOARD_SUITES: list[str] = ["multi-self-async", "multi-self-sync", "single-parametric-sync"]
+LEADERBOARD_SUITES: list[str] = ["multi-self-async", "multi-self-sync"]
 LEADERBOARD_STATICS: list[str] = []
 
 

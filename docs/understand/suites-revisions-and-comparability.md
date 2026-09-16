@@ -103,5 +103,5 @@ submission. There is no separate acceptance catalog.
     capabilities, manual profile, release provenance, and any static dataset commit. Matching only
     a version, suite name, or model label can combine different measurements.
 
-The current submission workflow requires `multi-self-async`, `multi-self-sync`, and
-`single-parametric-sync`, plus the explicit `expert-vqa-no-manual` static target.
+The current submission workflow requires `multi-self-async` and `multi-self-sync`. Static targets
+are optional and retain their own dataset identity.

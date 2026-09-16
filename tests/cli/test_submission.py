@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from unittest.mock import Mock
 from uuid import uuid4
 
 import pytest
@@ -216,6 +217,28 @@ def _run_new(db_path: Path, output_path: Path, *extra: str) -> None:
         ],
     )
     assert result.exit_code == 0, result.output
+
+
+def test_new_uses_the_two_main_leaderboard_suites_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    build_bundles = Mock(return_value=0)
+    monkeypatch.setattr("gptnt.cli.submission.new._build_interactive_bundles", build_bundles)
+
+    result = invoke_cli(
+        build_app(),
+        [
+            "submission",
+            "new",
+            "--submitter.name",
+            SUBMITTER_NAME,
+            "--submitter.contact",
+            SUBMITTER_CONTACT,
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert build_bundles.call_args.kwargs["suites"] == ["multi-self-async", "multi-self-sync"]
 
 
 def _read_manifest(bundle_dir: Path) -> dict[str, Any]:

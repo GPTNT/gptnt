@@ -26,7 +26,7 @@ gptnt submission new [EXPERIMENTS-DB] [STATICS-OUTPUT-DIR] [OUTPUT-DIR]
 | `EXPERIMENTS-DB`, `--experiments-db` | `output/experiments.duckdb`, or `EXPERIMENTS_DB`. |
 | `STATICS-OUTPUT-DIR`, `--statics-output-dir` | `output/`, or `STATICS_OUTPUTS`. Contains `<task>_predictions/<model>/`. |
 | `OUTPUT-DIR`, `--output-dir` | `output/submissions/`, or `SUBMISSIONS_DIR`. |
-| `--suite` | Repeatable. Defaults to `multi-self-async`, `multi-self-sync`, and `single-parametric-sync`. |
+| `--suite` | Repeatable. Defaults to `multi-self-async` and `multi-self-sync`. |
 | `--static` | Repeatable and empty by default. |
 | `--model` | Repeatable player-name filter. All models are present by default. |
 | `--submitter.name` | Required for successful validation, but blank is allowed while building. |

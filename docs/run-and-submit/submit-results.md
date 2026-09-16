@@ -18,10 +18,8 @@ Complete these interactive suites:
 
 - `multi-self-async`
 - `multi-self-sync`
-- `single-parametric-sync`
 
-Also complete the explicit `expert-vqa-no-manual` static target. Every submitted player needs an
-`identity` block in `configs/player/<player-name>.yaml`; see
+Every submitted player needs an `identity` block in `configs/player/<player-name>.yaml`. See
 [Configure the player](add-model.md#configure-the-player){data-preview}.
 
 Use [Inspect and analyse results](inspect-results.md) to confirm terminal outcomes, build
@@ -53,19 +51,16 @@ gptnt build-db <directory-of-experiment-outputs> \
 gptnt submission new \
   --suite multi-self-async \
   --suite multi-self-sync \
-  --suite single-parametric-sync \
-  --static expert-vqa-no-manual \
   --submitter.name "<name>" \
   --submitter.contact "@<handle>" \
   --submitter.affiliation "<affiliation>"
 ```
 
-`multi-self-async`, `multi-self-sync`, and `single-parametric-sync` are the interactive defaults,
-but stating them in a release command makes the intended selection visible. Static targets have no
-default, so pass `--static expert-vqa-no-manual` explicitly. `--submitter.contact` accepts a GitHub
-handle or an email, and affiliation is optional. Use `--experiments-db`, `--statics-output-dir`, or
-`--output-dir` when your files are outside their default locations. Use `--model` to select player
-configuration names present in the data.
+`multi-self-async` and `multi-self-sync` are the interactive defaults, but stating them in a release
+command makes the intended selection visible. `--submitter.contact` accepts a GitHub handle or an
+email, and affiliation is optional. Use `--experiments-db`, `--statics-output-dir`, or `--output-dir`
+when your files are outside their default locations. Use `--model` to select player configuration
+names present in the data.
 
 The builder creates one flat directory per capability fingerprint and target. An interactive
 bundle contains `submission.yaml`, `experiments.parquet`, and `suite.lock`. The last file is a

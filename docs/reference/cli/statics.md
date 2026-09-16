@@ -20,7 +20,7 @@ share one option set and always select a local player profile with `--player`.
 | `defuser-vqa-mcq` | Multiple-choice VQA. |
 | `defuser-state-recognition-vqa-mcq` | `--state-split`: `state-change`, `solved`, or `strikes`. Defaults to `state-change`. |
 | `expert-vqa` | Expert VQA with the configured manual input. |
-| `expert-vqa-no-manual` | Expert VQA without manual input. This is the explicit static submission target. |
+| `expert-vqa-no-manual` | Expert VQA without manual input. |
 | `expert-ocr` | Expert element OCR. |
 | `expert-ocr-with-text` | Requires `--manual-artifact PATH`. |
 | `expert-element-grounding` | Expert manual-element grounding. |

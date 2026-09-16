@@ -16,9 +16,8 @@ capabilities, and benchmark provenance without starting KTANE.
 Complete the player and provider checks described in
 [Add a model](add-model.md). Choose a task from `gptnt statics --help`.
 
-For a submission, run the three required interactive suites and the explicit
-`expert-vqa-no-manual` static target described in
-[Submit your results](submit-results.md#prepare-the-required-results).
+Static evaluations are optional submission targets. Run one when you need its dataset-specific
+measurement or want to prepare a static bundle.
 
 ## Preview a task
 

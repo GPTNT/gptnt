@@ -84,5 +84,5 @@ For each static target, confirm that its model directory contains `run_meta.json
 `prediction_<index>.json`, and `metrics.json`. The metadata must identify the intended player and a
 resolved dataset revision for reproducible comparison.
 
-When the required interactive suites and `expert-vqa-no-manual` output are complete, continue to
-[Submit your results](submit-results.md).
+When the required interactive suites are complete, continue to
+[Submit your results](submit-results.md). Static outputs can be submitted separately.
