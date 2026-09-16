@@ -6,13 +6,28 @@ hide:
 
 # Start here
 
-Before doing anything, check your machine and run the included players.
+!!! warning "The installation process is not one step"
 
-This can be done **without using an actual model**. We have fake players which can "pretend" to be
-models, to help verify that the benchmark works.
+    Because we are using the real game and running an asynchonrous real-time benchmark, we can't do
+    everything in Python to make installing and running easy. Instead, we control as much as we can and simplify the rest. Once you download the benchmark and get the external services running, then that's it. But getting there might feel tricky.
 
-1. [Install and check GPTNT](install-and-check.md){data-preview}.
-   Install a release, provide KTANE and a display, start Redis, and use `gptnt doctor`.
+    The process is broken up across several pages so that it is not overwhelming, and that the options you need to make are incredibly obvious.
+
+    At a high-level, the entire process is:
+
+    1. Download GPTNT
+    1. Install Python dependencies and Playwright
+    1. Copy and paste the game into the right place
+    1. Run Redis and an OpenTelemetry collector
+    1. Verify it works with `doctor` command and the quickstart config
+
+    After you have verified it works, then you can just run the benchmark however you want and never do those steps again. The whole process from nothing to something on my Macbook takes 5 minutes and I'm copying and pasting commands the entire time.
+
+
+1. [Install GPTNT](install.md){data-preview}.
+   Download the benchmark, install Python dependencies, and install Playwright-managed Chromium.
+1. [Prepare GPTNT](prepare.md){data-preview}.
+   Run the `doctor` command to verify that the benchmark is installed correctly and that the game and Redis are running.
 2. [Run the quickstart](run-quickstart.md){data-preview}.
    Generate specifications, run the included players, build DuckDB, and inspect an outcome.
 3. [Choose the next workflow](choose-next-workflow.md){data-preview}.

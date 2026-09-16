@@ -1,15 +1,3 @@
-# A `run.yaml` manifest: the single, declarative source of truth for one run.
-#
-# It names the suite(s), how many rooms to play, and which players take part. Validate it
-# (structure + config-name cross-checks) with:
-#
-#     gptnt doctor runs/quickstart.yaml
-#
-# then generate its specs and run them:
-#
-#     gptnt generate runs/quickstart.yaml
-#     gptnt run runs/quickstart.yaml
-
 spec_version: 2
 suites:
   - single-pairwise-sync
@@ -19,8 +7,8 @@ players:
   - player: test-defuser
   - player: test-expert
 
-# Where the resume check reads completion from: `local` (on-disk outputs, needs no W&B) or `wandb`.
-# W&B logging itself is driven by the ambient WANDB_* environment, not configured here.
+# Where the ledger of results is stored:`local` (on-disk outputs, so no W&B) or `wandb`.
+# W&B logging must be configured with the various WANDB_* environment variables.
 source: local
 
-observability: limited
+observability: full
