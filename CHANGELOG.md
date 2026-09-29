@@ -1,3 +1,9 @@
+## v2.2.0 (2026-09-29)
+
+### Feat
+
+- build leaderboard artifact from submitted bundles (#112)
+
 ## v2.1.1 (2026-09-03)
 
 ### Fix
