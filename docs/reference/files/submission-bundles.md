@@ -65,6 +65,21 @@ Validation checks the reduced lock identity and digest, exact mission snapshot, 
 expected player pairing and mission, player fingerprints, provenance, bundle naming, and payload
 shape without reading live suite or mission configuration.
 
+## Generated leaderboard artifact
+
+The publication workflow creates the JSON artifact read by the public leaderboard. It runs
+`gptnt leaderboard build` from a fresh checkout of merged `GPTNT/submissions`; submission authors
+do not run this command. Maintainers can run the same command locally to test or troubleshoot the
+generated artifact. It accepts either the root of a submissions checkout (with a `submissions/`
+directory) or that directory itself. It selects only interactive `multi-self-async` and
+`multi-self-sync` bundles measured at suite revision **2 or later**; the output retains every
+selected bundle's precise suite revision and digest.
+
+The artifact is deterministic. It includes role identities and capability fingerprints, benchmark
+provenance, suite metadata, mission and module outcomes, and mean per-role token usage computed
+from the payload. The workflow's fresh checkout means that building website data never depends on
+a maintainer's local bundle directory.
+
 ## Static payload
 
 `metrics.json` is copied verbatim from the task output. The manifest supplies the task, Hugging
