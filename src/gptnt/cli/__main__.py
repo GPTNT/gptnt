@@ -134,6 +134,12 @@ def build_app() -> App:
         group=analysis,
         help="List completed experiment outcomes from the DuckDB results.",
     )
+    app.command(
+        "gptnt.cli.leaderboard.__main__:leaderboard_app",
+        name="leaderboard",
+        group=analysis,
+        help="Build website leaderboard artifacts from submitted bundles.",
+    )
 
     # Statics evaluation: nested group.
     app.command(
