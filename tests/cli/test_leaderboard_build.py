@@ -23,7 +23,7 @@ from gptnt.players.specification import PlayerIdentity
 from tests._cli_runner import invoke_cli
 from tests._factories.experiments import make_experiment_summary, make_solved_bomb
 
-_ZERO_PERCENT = 0.00
+_ZERO_PERCENT = float(0)
 
 if TYPE_CHECKING:
     from pathlib import Path
