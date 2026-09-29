@@ -5,6 +5,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Annotated, Any
 
+import yaml
 from cyclopts import Parameter
 
 from gptnt.cli.submission._bundle import InteractiveBundle, load_submission_bundle
@@ -36,6 +37,18 @@ def _is_eligible(bundle: InteractiveBundle) -> bool:
         measured.suite_name in _ELIGIBLE_SUITES
         and measured.suite_revision >= _MINIMUM_SUITE_REVISION
     )
+
+
+def _could_be_eligible(bundle_dir: Path) -> bool:
+    """Avoid parsing legacy payload schemas that cannot contribute to the active board."""
+    raw = yaml.safe_load((bundle_dir / "submission.yaml").read_text())
+    if not isinstance(raw, dict):
+        raise TypeError(f"{bundle_dir / 'submission.yaml'} is not a mapping")
+    measured = raw.get("measured")
+    if not isinstance(measured, dict) or measured.get("suite_name") not in _ELIGIBLE_SUITES:
+        return False
+    revision = measured.get("suite_revision")
+    return not isinstance(revision, int) or revision >= _MINIMUM_SUITE_REVISION
 
 
 def _mean(values: list[int]) -> float:
@@ -171,7 +184,8 @@ def build_leaderboard(
     entries = [
         _entry_payload(bundle)
         for bundle_dir in _submission_directories(submissions_dir)
-        if isinstance(bundle := load_submission_bundle(bundle_dir), InteractiveBundle)
+        if _could_be_eligible(bundle_dir)
+        and isinstance(bundle := load_submission_bundle(bundle_dir), InteractiveBundle)
         and _is_eligible(bundle)
     ]
     entries.sort(

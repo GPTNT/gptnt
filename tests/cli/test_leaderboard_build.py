@@ -103,6 +103,11 @@ def test_build_aggregates_only_active_randomised_manual_suites(tmp_path: Path) -
     InteractiveBundle(
         manifest=legacy_manifest, experiments=[experiment], suite_lock=snapshot
     ).save(submissions_dir)
+    historical_bundle = submissions_dir / "historical-schema-v1"
+    historical_bundle.mkdir()
+    (historical_bundle / "submission.yaml").write_text(
+        "schema_version: 1\nmeasured:\n  suite_name: multi-self-async\n  suite_revision: 1\n"
+    )
 
     output = tmp_path / "leaderboard.generated.json"
     result = invoke_cli(
