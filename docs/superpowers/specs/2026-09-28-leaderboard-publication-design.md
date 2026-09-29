@@ -40,9 +40,11 @@ the workflow credential.
 
 `gptnt leaderboard build <submissions-dir> --output <path>` will read every
 published submission bundle beneath `submissions-dir/submissions`. It will
-validate the expected flat bundle layout, parse each manifest and interactive
-Parquet payload, and emit `leaderboard.generated.json` with the documented
-schema.
+select `multi-self-async` and `multi-self-sync` entries whose suite revision is
+at least 2, validate the expected flat bundle layout, parse each manifest and
+interactive Parquet payload, and emit `leaderboard.generated.json` with the
+documented schema. The output retains each selected entry's exact revision and
+digest.
 
 The command will calculate all displayed metrics from the experiment records:
 mission solved percentage, module solved percentage, any-module solved
@@ -57,8 +59,8 @@ contract from representative submission bundles.
 
 ## Publication workflow
 
-On a push to `GPTNT/submissions` `main` that changes `submissions/**`, a
-workflow will:
+On a push to `GPTNT/submissions` `main` that changes `submissions/**`, or a
+manual `workflow_dispatch` run, a workflow will:
 
 1. Check out the merged submissions repository.
 2. Install the pinned GPTNT aggregator version and build the artifact.
@@ -75,21 +77,31 @@ in `GPTNT/submissions`, not committed to either repository.
 
 If the artifact is unchanged, the workflow succeeds without opening a pull
 request. If publication fails, it reports the failure but does not alter merged
-submission data.
+submission data. The manual trigger creates the initial artifact from bundles
+merged before the workflow existed.
+
+The publication workflow sends a direct email only when it opens or updates
+the website pull request, or when validation or publication fails. The email
+links to the relevant pull request or workflow run and names the required
+maintainer action. It uses a provider API key stored as a
+`GPTNT/submissions` repository secret and a verified sender address or domain.
+Routine runs with no artifact change send no email.
 
 ## Website transition
 
 The website will preserve the current generated artifact and its existing board
 on a historical route. The historical page will state that its results use the
-original KTANE games with default solutions and will be linked unobtrusively
-from the active leaderboard.
+original KTANE rule tables and solutions and will be linked unobtrusively from
+the active leaderboard.
 
 The homepage will retain the current leaderboard format while consuming the
 new generated artifact. Its editorial overlay will identify models absent from
 the historical board as new. A News entry will introduce the new model results
 and state that they use randomized manual solutions. The first website PR that
 contains the new artifact will include these editorial changes so the page does
-not label old results as the new benchmark.
+not label old results as the new benchmark. Later generated-artifact pull
+requests update data only; creating later News entries remains an editorial
+decision.
 
 ## Verification
 
