@@ -13,7 +13,7 @@ from gptnt.cli.submission._schema import SubmissionExperiment, SubmissionPlayer
 
 _ELIGIBLE_SUITES = frozenset(("multi-self-async", "multi-self-sync"))
 _MINIMUM_SUITE_REVISION = 2
-_ZERO_PERCENT = float()
+_ZERO_PERCENT = 0.00
 
 
 def _submission_directories(submissions_dir: Path) -> list[Path]:
