@@ -78,7 +78,9 @@ in `GPTNT/submissions`, not committed to either repository.
 If the artifact is unchanged, the workflow succeeds without opening a pull
 request. If publication fails, it reports the failure but does not alter merged
 submission data. The manual trigger creates the initial artifact from bundles
-merged before the workflow existed.
+merged before the workflow existed. The manual trigger and merge-triggered run
+use the same workflow, which checks out `GPTNT/submissions` afresh; neither
+depends on a maintainer's local submission directory.
 
 The publication workflow sends a direct email only when it opens or updates
 the website pull request, or when validation or publication fails. The email

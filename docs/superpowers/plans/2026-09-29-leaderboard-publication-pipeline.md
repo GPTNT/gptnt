@@ -18,6 +18,7 @@
 - Never expose the validation or publication credential to untrusted submitted content or a downloaded release subprocess.
 - The normal Actions token may read `GPTNT/submissions`; only a separate least-privilege secret may create a website PR.
 - The original leaderboard remains a frozen archive; later News posts remain editorial decisions.
+- The initial backfill uses the same fresh GitHub Actions checkout and publication workflow as future updates; it never reads a maintainer's local checkout.
 
 ## Review Focus
 
@@ -204,7 +205,7 @@ Publish the `gptnt` version containing `leaderboard build`, pin that released ve
 
 - [ ] **Step 2: Run the first manual backfill**
 
-Use `workflow_dispatch` after the workflow is merged. Confirm the produced artifact contains every eligible revision-2-or-later bundle and no revision-1 bundle.
+Use `workflow_dispatch` after the workflow is merged. Confirm the workflow checks out `GPTNT/submissions:main` afresh and the produced artifact contains every eligible revision-2-or-later bundle and no revision-1 bundle.
 
 - [ ] **Step 3: Review and merge the website transition/data PR**
 
