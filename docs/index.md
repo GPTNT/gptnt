@@ -21,7 +21,7 @@ site explains how to install, run, extend, and maintain GPTNT.
 
     Install GPTNT, check the machine, and complete the included quickstart.
 
-    [Install and check GPTNT](start-here/install-and-check.md) · [Run the quickstart](start-here/run-quickstart.md)
+    [Install and check GPTNT](start-here/prepare.md) · [Run the quickstart](start-here/run-quickstart.md)
 
 -   :material-play-circle-outline:{ .lg .middle } **[Run & submit](run-and-submit/index.md)**
 
