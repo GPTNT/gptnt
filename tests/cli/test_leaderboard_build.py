@@ -23,6 +23,8 @@ from gptnt.players.specification import PlayerIdentity
 from tests._cli_runner import invoke_cli
 from tests._factories.experiments import make_experiment_summary, make_solved_bomb
 
+_ZERO_PERCENT = float()
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -91,7 +93,7 @@ def test_build_aggregates_only_active_randomised_manual_suites(tmp_path: Path) -
         provenance=summary,
         run_date=summary.start_time,
     )
-    InteractiveBundle(manifest=manifest, experiments=[experiment], suite_lock=snapshot).save(
+    _ = InteractiveBundle(manifest=manifest, experiments=[experiment], suite_lock=snapshot).save(
         submissions_dir
     )
     legacy_manifest = manifest.model_copy(
@@ -100,12 +102,12 @@ def test_build_aggregates_only_active_randomised_manual_suites(tmp_path: Path) -
             "measured": measured.model_copy(update={"suite_revision": 1}),
         }
     )
-    InteractiveBundle(
+    _ = InteractiveBundle(
         manifest=legacy_manifest, experiments=[experiment], suite_lock=snapshot
     ).save(submissions_dir)
     historical_bundle = submissions_dir / "historical-schema-v1"
-    historical_bundle.mkdir()
-    (historical_bundle / "submission.yaml").write_text(
+    _ = historical_bundle.mkdir()
+    _ = (historical_bundle / "submission.yaml").write_text(
         "schema_version: 1\nmeasured:\n  suite_name: multi-self-async\n  suite_revision: 1\n"
     )
 
@@ -117,7 +119,7 @@ def test_build_aggregates_only_active_randomised_manual_suites(tmp_path: Path) -
     assert result.exit_code == 0, result.output
     artifact = json.loads(output.read_text())
     assert artifact["suites"] == {
-        f"{suite.name}@{suite.revision}": {
+        measured.target: {
             "name": suite.name,
             "revision": suite.revision,
             "digest": measured.suite_digest,
@@ -130,11 +132,11 @@ def test_build_aggregates_only_active_randomised_manual_suites(tmp_path: Path) -
     assert artifact["entries"][0]["metrics"] == {
         "attempts": 1,
         "mission_solved_pct": 100.0,
-        "module_solved_pct": 0.0,
-        "any_module_solved_pct": 0.0,
-        "mean_strikes": 0.0,
-        "timed_out_pct": 0.0,
-        "detonated_pct": 0.0,
+        "module_solved_pct": _ZERO_PERCENT,
+        "any_module_solved_pct": _ZERO_PERCENT,
+        "mean_strikes": _ZERO_PERCENT,
+        "timed_out_pct": _ZERO_PERCENT,
+        "detonated_pct": _ZERO_PERCENT,
     }
     assert artifact["entries"][0]["usage"] == {
         "defuser_mean_tokens": 20.0,

@@ -11,8 +11,9 @@ from cyclopts import Parameter
 from gptnt.cli.submission._bundle import InteractiveBundle, load_submission_bundle
 from gptnt.cli.submission._schema import SubmissionExperiment, SubmissionPlayer
 
-_ELIGIBLE_SUITES = frozenset({"multi-self-async", "multi-self-sync"})
+_ELIGIBLE_SUITES = frozenset(("multi-self-async", "multi-self-sync"))
 _MINIMUM_SUITE_REVISION = 2
+_ZERO_PERCENT = float()
 
 
 def _submission_directories(submissions_dir: Path) -> list[Path]:
@@ -51,14 +52,14 @@ def _could_be_eligible(bundle_dir: Path) -> bool:
     return not isinstance(revision, int) or revision >= _MINIMUM_SUITE_REVISION
 
 
-def _mean(values: list[int]) -> float:
+def _mean(token_counts: list[int]) -> float:
     """Return a stable zero for a mean over an empty optional role."""
-    return sum(values) / len(values) if values else 0.0
+    return sum(token_counts) / len(token_counts) if token_counts else _ZERO_PERCENT
 
 
 def _percentage(numerator: int, denominator: int) -> float:
     """Return a percentage without failing on an empty experiment payload."""
-    return 100 * numerator / denominator if denominator else 0.0
+    return 100 * numerator / denominator if denominator else _ZERO_PERCENT
 
 
 def _player_payload(player: SubmissionPlayer | None) -> dict[str, Any] | None:
@@ -83,11 +84,11 @@ def _module_breakdown(
             module_counts["appearances"] += 1
             module_counts["solved"] += int(module.is_solved)
     return {
-        module: {
+        module_name: {
             **module_counts,
             "solved_pct": _percentage(module_counts["solved"], module_counts["appearances"]),
         }
-        for module, module_counts in sorted(counts.items())
+        for module_name, module_counts in sorted(counts.items())
     }
 
 
@@ -105,6 +106,7 @@ def _entry_payload(bundle: InteractiveBundle) -> dict[str, Any]:
     module_solves = sum(
         experiment.final_bomb_state.num_modules_solved for experiment in experiments
     )
+    attempt_count = len(experiments)
     return {
         "bundle": manifest.submission_id,
         "submission_id": manifest.submission_id,
@@ -126,10 +128,10 @@ def _entry_payload(bundle: InteractiveBundle) -> dict[str, Any]:
             "submitter": manifest.submitter.model_dump(mode="json"),
         },
         "metrics": {
-            "attempts": len(experiments),
+            "attempts": attempt_count,
             "mission_solved_pct": _percentage(
                 sum(experiment.final_bomb_state.is_solved for experiment in experiments),
-                len(experiments),
+                attempt_count,
             ),
             "module_solved_pct": _percentage(module_solves, module_appearances),
             "any_module_solved_pct": _percentage(
@@ -137,18 +139,18 @@ def _entry_payload(bundle: InteractiveBundle) -> dict[str, Any]:
                     experiment.final_bomb_state.num_modules_solved > 0
                     for experiment in experiments
                 ),
-                len(experiments),
+                attempt_count,
             ),
             "mean_strikes": _mean(
                 [experiment.final_bomb_state.strike_count for experiment in experiments]
             ),
             "timed_out_pct": _percentage(
                 sum(experiment.final_bomb_state.is_timed_out for experiment in experiments),
-                len(experiments),
+                attempt_count,
             ),
             "detonated_pct": _percentage(
                 sum(experiment.final_bomb_state.is_detonated for experiment in experiments),
-                len(experiments),
+                attempt_count,
             ),
         },
         "module_breakdown": _module_breakdown(experiments),
@@ -201,7 +203,7 @@ def build_leaderboard(
         for entry in entries
     }
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(
+    _ = output.write_text(
         json.dumps(
             {
                 "schema_version": 1,

@@ -87,7 +87,7 @@ the website pull request, or when validation or publication fails. The email
 links to the relevant pull request or workflow run and names the required
 maintainer action. It uses a provider API key stored as a
 `GPTNT/submissions` repository secret and a verified sender address or domain.
-Routine runs with no artifact change send no email.
+Routine runs without an artifact change do not send email.
 
 ## Website transition
 

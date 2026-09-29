@@ -4,7 +4,7 @@
 
 **Goal:** Publish a reviewable, `>= 2` randomized-manual leaderboard artifact from merged submission bundles and notify maintainers when action is required.
 
-**Architecture:** `gptnt` owns a deterministic local aggregator because it owns the manifest and Parquet schemas. `GPTNT/submissions` invokes that command after relevant merges and uses a cross-repository credential only to open or update a website PR. `gptnt.github.io` freezes the prior artifact as an archive and treats News and new-model labels as editorial content.
+**Architecture:** `gptnt` provides a deterministic local aggregator because its manifest and Parquet schemas define the inputs. `GPTNT/submissions` invokes that command after relevant merges and uses a cross-repository credential only to open or update a website PR. `gptnt.github.io` freezes the prior artifact as an archive and treats News and new-model labels as editorial content.
 
 **Tech Stack:** Python 3.13, Pydantic, PyArrow, Cyclopts, pytest, GitHub Actions, GitHub CLI/API, Resend HTTP API, Astro 7.
 
@@ -14,19 +14,19 @@
 
 - Select only `multi-self-async` and `multi-self-sync` bundles whose suite revision is `>= 2`.
 - Preserve every selected record's exact suite revision and digest in generated JSON.
-- Read bundle manifests and `experiments.parquet` directly; do not query W&B or a local DuckDB.
+- Read bundle manifests and `experiments.parquet` directly. Do not query W&B or a local DuckDB.
 - Never expose the validation or publication credential to untrusted submitted content or a downloaded release subprocess.
-- The normal Actions token may read `GPTNT/submissions`; only a separate least-privilege secret may create a website PR.
-- The original leaderboard remains a frozen archive; later News posts remain editorial decisions.
-- The initial backfill uses the same fresh GitHub Actions checkout and publication workflow as future updates; it never reads a maintainer's local checkout.
+- The normal Actions token may read `GPTNT/submissions`. Only a separate least-privilege secret may create a website PR.
+- The original leaderboard remains a frozen archive. Later News posts remain editorial decisions.
+- The initial backfill uses the same fresh GitHub Actions checkout and publication workflow as future updates. It never reads a maintainer's local checkout.
 
 ## Review Focus
 
-- A revision-1 bundle with the same suite name must not reach the active artifact; test the revision boundary in Task 1.
-- A malformed manifest or Parquet payload must stop the aggregator with the bundle path in its error; test that in Task 1.
-- Empty eligible input must produce a valid, deterministic artifact rather than stale output; test that in Task 1.
-- An unchanged artifact must not create a website PR or an email; test the workflow's diff branch in Task 3.
-- `GITHUB_TOKEN` must be present for outer release metadata lookups but absent from the downloaded-release validator; test both environments in Task 2.
+- A revision-1 bundle with the same suite name must not reach the active artifact. Test the revision boundary in Task 1.
+- A malformed manifest or Parquet payload must stop the aggregator with the bundle path in its error. Test that in Task 1.
+- Empty eligible input must produce a valid, deterministic artifact rather than stale output. Test that in Task 1.
+- An unchanged artifact must not create a website PR or an email. Test the workflow's diff branch in Task 3.
+- `GITHUB_TOKEN` must be present for release metadata requests and absent from the downloaded-release validator. Test both environments in Task 2.
 
 ---
 
@@ -42,7 +42,7 @@
 **Interfaces:**
 - Consumes: `load_submission_bundle(bundle_dir: Path) -> InteractiveBundle | StaticsBundle` and `SubmissionExperiment` from `gptnt.cli.submission`.
 - Produces: `build_leaderboard(submissions_dir: Path, *, output: Path) -> None`, exposed as `gptnt leaderboard build <submissions-dir> --output <path>`.
-- Produces: JSON with the frozen website contract: schema metadata, selected suite metadata, one entry per interactive bundle, metrics, module breakdown, usage, players, and provenance.
+- Produces: JSON with the frozen website contract. It contains schema metadata, selected suite metadata, one entry per interactive bundle, metrics, module breakdown, usage, players, and provenance.
 
 - [ ] **Step 1: Write focused failing artifact tests**
 
@@ -84,7 +84,7 @@ git commit -m "feat: build leaderboard artifacts from submissions"
 
 **Interfaces:**
 - Consumes: the workflow-provided `${{ secrets.GITHUB_TOKEN }}`.
-- Produces: release/tag requests authenticated with that token; downloaded-release validation subprocesses retain the current credential-free environment.
+- Produces: release and tag requests authenticated with that token. Downloaded-release validation subprocesses retain the current credential-free environment.
 
 - [ ] **Step 1: Write a failing validator test**
 
@@ -131,15 +131,15 @@ In maintainer documentation, record the required least-privilege website PR toke
 
 - [ ] **Step 2: Implement the publication workflow**
 
-Add a workflow triggered by pushes to `main` affecting `submissions/**` and manual dispatch. Check out submissions, install the released/pinned aggregator, run `gptnt leaderboard build` over the checkout, then check out `GPTNT/gptnt.github.io` with `WEBSITE_PR_TOKEN`. Replace only `src/data/leaderboard.generated.json`; create or update a stable data-update PR branch if and only if `git diff --quiet` is false. Configure concurrency so overlapping submission merges coalesce into one update branch.
+Add a workflow triggered by pushes to `main` affecting `submissions/**` and manual dispatch. Check out submissions, install the released and pinned aggregator, then run `gptnt leaderboard build` over the checkout. Check out `GPTNT/gptnt.github.io` with `WEBSITE_PR_TOKEN`. Replace only `src/data/leaderboard.generated.json`. Create or update a stable data-update PR branch only if `git diff --quiet` is false. Configure concurrency so overlapping submission merges coalesce into one update branch.
 
 - [ ] **Step 3: Add action-only Resend notifications**
 
-Send one Resend email after a website PR is opened or updated, and one on validation/publication failure. Include the PR/run URL and requested action. Guard the mail steps so a no-diff run sends no email and email delivery failure is visible rather than silently ignored.
+Send one Resend email after a website PR is opened or updated, and one on validation or publication failure. Include the PR/run URL and requested action. Guard the mail steps so a no-diff run does not send email and email delivery failure is visible rather than silently ignored.
 
 - [ ] **Step 4: Perform a manual-dispatch dry run**
 
-Configure secrets in repository settings, run the workflow with `workflow_dispatch`, and verify that it builds an artifact, opens/updates exactly one website PR, and sends one actionable email. Re-run without bundle changes and verify no additional PR or email.
+Configure secrets in repository settings, then run the workflow with `workflow_dispatch`. Verify the generated artifact and confirm that the workflow opens or updates exactly one website PR. Confirm that it sends one review-needed email. Re-run without bundle changes and verify no additional PR or email.
 
 - [ ] **Step 5: Commit the workflow and documentation**
 
@@ -167,11 +167,11 @@ git commit -m "ci: publish leaderboard artifacts"
 
 Commit the existing `leaderboard.generated.json` as `leaderboard.original.generated.json`. Build an archive route that reuses the current board rendering against this frozen data and displays precise explanatory copy about original KTANE rule tables and solutions.
 
-Refactor `loadLeaderboard.js` so its projection function accepts an explicit generated artifact and overlay; keep the existing default export for the active board. The archive page must call that projection with the frozen artifact rather than import active-board data.
+Refactor `loadLeaderboard.js` so its projection function accepts an explicit generated artifact and overlay. Keep the existing default export for the active board. The archive page must call that projection with the frozen artifact rather than import active-board data.
 
 - [ ] **Step 2: Add the unobtrusive archive link and active-board editorial overlay**
 
-Link to the archive from the active leaderboard's supporting copy. Fill `overlay.newModels` with display names present in the first new artifact but absent from the frozen artifact; preserve baseline and diagnostics data.
+Link to the archive from the active leaderboard's supporting copy. Fill `overlay.newModels` with display names present in the first new artifact but absent from the frozen artifact. Preserve baseline and diagnostics data.
 
 - [ ] **Step 3: Add the initial News item**
 
@@ -193,7 +193,7 @@ git commit -m "feat: publish randomized-manual leaderboard"
 ### Task 5: End-to-end backfill and release verification
 
 **Files:**
-- Modify: the three repositories only as produced by Tasks 1–4.
+- Modify: the three repositories as produced by Tasks 1 through 4.
 
 **Interfaces:**
 - Consumes: the merged `>= 2` submissions currently on `GPTNT/submissions:main`.
@@ -213,4 +213,4 @@ Confirm the artifact, archive link, `NEW` labels, and initial News item. Merge o
 
 - [ ] **Step 4: Confirm steady-state behavior**
 
-Merge or use a controlled future submission, then confirm one submissions workflow run updates the existing website-data PR and sends one email. Confirm an unchanged run leaves no new PR/comment/email.
+After merging or using a controlled future submission, confirm that one workflow run updates the existing website-data PR and sends one email, while an unchanged run does not create a PR, comment, or email.
